@@ -46,12 +46,29 @@ const STAGES = { garage: 0, floor: 1, hq: 2 };
 // and the answer is refused rather than reported as "none satisfied".
 const MAX_WAITING = 1000;
 
-async function play({ bot: startBot, seed, weeks, where, then, within, setup, before: beforeJs, botJs, extra: extraJs, turnWhile, dir, id, perRun, key, filter }) {
+async function play({ bot: startBot, seed, weeks, where, then, within, branch, setup, before: beforeJs, botJs, extra: extraJs, turnWhile, dir, id, perRun, key, filter }) {
   const bot = startBot;
   const mod = (p) => import(pathToFileURL(join(ROOT, p)).href);
   const { botDecide, botTurn } = await mod('src/sim/bots.js');
   const { createGame } = await mod('src/sim/state.js');
   const { tick } = await mod('src/sim/tick.js');
+  const { dispatch } = await mod('src/sim/actions.js');
+  // What a --branch body plays with, on its own copy of the state: the sim's own actions and tick, the
+  // bots, and `step` for one live week (a pending decision answered from `choose`, by event id with
+  // `default` for the rest, then the tick), which returns every event the answer and the tick raised.
+  const sim = {
+    dispatch, tick, botDecide, botTurn,
+    step(st, { choose = {} } = {}) {
+      const events = [];
+      for (let guard = 0; st.pendingDecision && guard < 5; guard++) {
+        const pick = choose[st.pendingDecision.eventId] ?? choose.default ?? 0;
+        events.push(...dispatch(st, { type: 'resolveDecision', choice: pick }).events);
+      }
+      events.push(...tick(st));
+      return events;
+    },
+  };
+  const fork = branch ? new Function('s', 'e', 'm', 'sim', branch) : null;
   const pred = new Function('e', 's', `return (${where});`);
   const stage = filter.stage == null ? null : STAGES[filter.stage] ?? Number(filter.stage);
   const passes = (e) => (filter.era == null || e.era === filter.era) && (stage == null || e.stage === stage)
@@ -107,6 +124,8 @@ async function play({ bot: startBot, seed, weeks, where, then, within, setup, be
         clauses.forEach((c, i) => { if (!everTrue[i]) { try { everTrue[i] = !!c(e, s); } catch { /* false */ } } });
         if (!pred(e, s)) continue;
         const row = { ...base(), type: e.type, id: e.id, ...(more?.(e, s) ?? {}) };
+        // A branch plays this moment forward on a copy and keeps the match only if it returns truthy.
+        if (fork) { started++; const r = fork(structuredClone(s), e, row, sim); if (r) record(row, before, r); break; }
         if (follow) { started++;
           if (waiting.length < MAX_WAITING) waiting.push({ row, e, s0: wantsState ? structuredClone(s) : null, before, until: s.week + within }); else dropped++; } else record(row, before, true);
         break;
@@ -122,8 +141,8 @@ if (!isMainThread) {
 
 // Matches for a query, from the cache and then from playing more runs. Returns { rows, played, cached,
 // error? } with rows in seed, bot order. `onProgress(done, total)` is called as runs finish.
-export async function scan(hash, { id = null, where, then = '', within = 52, rank = '', setup = '', before = '', botJs = '', extra = '', turnWhile = '', filter = {}, seeds, bots, weeks = 1040, limit = 5, perRun = 1, jobs, onProgress }) {
-  const key = createHash('sha256').update(JSON.stringify([id, where, then, within, setup, before, botJs, extra, turnWhile, filter, weeks, perRun, readFileSync(fileURLToPath(import.meta.url), 'utf8')])).digest('hex').slice(0, 16);
+export async function scan(hash, { id = null, where, then = '', within = 52, branch = '', rank = '', setup = '', before = '', botJs = '', extra = '', turnWhile = '', filter = {}, seeds, bots, weeks = 1040, limit = 5, perRun = 1, jobs, onProgress }) {
+  const key = createHash('sha256').update(JSON.stringify([id, where, then, within, branch, setup, before, botJs, extra, turnWhile, filter, weeks, perRun, readFileSync(fileURLToPath(import.meta.url), 'utf8')])).digest('hex').slice(0, 16);
   const dir = join(indexDir(hash), 'scan');
   mkdirSync(join(dir, 'snapshots'), { recursive: true });
   const file = join(dir, `${key}.json`);
@@ -145,7 +164,7 @@ export async function scan(hash, { id = null, where, then = '', within = 52, ran
       while (next < runs.length && have() < limit && !error) {
         const run = runs[next++];
         const r = await new Promise((res, rej) => {
-          const w = new Worker(fileURLToPath(import.meta.url), { workerData: { ...run, weeks, where, then, within, setup, before, botJs, extra, turnWhile, dir, id, perRun, key, filter } });
+          const w = new Worker(fileURLToPath(import.meta.url), { workerData: { ...run, weeks, where, then, within, branch, setup, before, botJs, extra, turnWhile, dir, id, perRun, key, filter } });
           w.once('message', res); w.once('error', rej);
         }).catch((e) => ({ hits: [], error: e.message }));
         if (r.error) { error = r.error; return; }
