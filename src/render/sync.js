@@ -44,6 +44,7 @@ const STANDUP_QUIET_M = 1.5;  // beyond the standup ring, how far other speech s
 // standing facepalmer turns this far off square to the camera.
 const PALM_PICK = { nearM: 0.1, farM: 2.5, acrossM: 0.8, clear: 8, standing: 4, idle: 2, turn: 0.35 };
 const POST_REACT_S = 2.2;
+const PALM_SWIVEL = 1.4;       // radians a seated facepalmer swings round toward the camera
 const SWIVEL = 0.9;            // radians a seated person turns in their chair, either way
 // A standing person's bounds (metres) for screen tests, with room for a lean or a reaching arm:
 // half-width and height.
@@ -591,12 +592,12 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const palm = here.shift();
     // No emote over the facepalmer: the head bows, and a bubble would sit over the face.
     // Bring the temple hand toward the camera instead of behind the far cheek.
-    // Seated, they swivel as far as the chair allows, so a desk facing a wall still shows the palm.
+    // Seated, they swing round in the chair further than for a glance, so a desk facing a wall still shows the palm.
     let turnTo = yaw + PALM_PICK.turn;
     const seat = palm.char.seated && palm.goal?.seated ? palm.goal : null;
     if (seat) {
       // Of the headings the chair reaches, the one nearest the camera.
-      const steps = [-1, -0.5, 0, 0.5, 1].map((k) => seat.yaw + k * SWIVEL);
+      const steps = [-1, -0.5, 0, 0.5, 1].map((k) => seat.yaw + k * PALM_SWIVEL);
       turnTo = steps.reduce((a, b) => (Math.cos(b - yaw) > Math.cos(a - yaw) ? b : a));
     }
     palm.face = { yaw: turnTo, t: POST_REACT_S, post: true };
