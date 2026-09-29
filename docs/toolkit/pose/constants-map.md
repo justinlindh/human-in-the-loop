@@ -13,3 +13,5 @@ Which constant moves which measure, for tuning with `--param FILE:NAME[i]=v` or 
 | `faceCam` | the heading of the person (the matrix `views`), not a constant | |
 
 `--sweep 'PALM_STAND[2]=0.2,0.27,0.35'` prints one line per value with the cells passing, so the passing range is one command. `--sweep SLAP.aside=0,0.12,0.25,0.4,0.6` does the same for an object const (`NAME.key=v`). The lab's filter box lists every constant a run can move.
+
+Caveat for the slap rows and the `SLAP.aside` sweep: the robot plays upright, but the game holds a breakdown pose through the slap (the unplugged robot's head is down and it leans), so a value that passes here can put the fixer inside the robot there (0.3 to 0.4 do, with the unplug pose). Only the shipped `aside` is vouched for until the cause axis lands (#1148).
