@@ -118,7 +118,7 @@ export const BEATS = [
 export const MUSIC = {
   bed: { file: 'public/audio/music/classic/a_full.ogg', gain: -8, fadeIn: 0.3 },
   // The printer's own cue replaces the bed for its beat: 9.9 s of the cue lands on the beat's cut.
-  swaps: [{ file: 'public/audio/moments/printer_smash.ogg', seek: 9.9, at: { beat: 'printer' }, until: { beat: 'era-chatgbt' }, fade: 0.3, gain: -6 }],
+  swaps: [{ file: 'public/audio/moments/printer_smash.ogg', seek: 7.4, at: { beat: 'printer-meme' }, until: { beat: 'era-chatgbt' }, fade: 0.3, gain: -6 }],
   // The foosball rally once both players are at the table: the game plays its cue once per use, so
   // the trailer places a few hits of the same sound under the bed.
   stingers: [5.15, 5.7, 6.35, 6.9, 7.6].map((offset) => ({ file: 'public/audio/sfx/foosball.ogg', at: { beat: 'build', offset }, gain: -12 })),
