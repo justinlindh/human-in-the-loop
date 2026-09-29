@@ -38,7 +38,7 @@ EOF
 node "$tmp/stub.mjs" "$tmp/pub.pem" "$tmp" & spid=$!
 for _ in $(seq 100); do [ -s "$tmp/port" ] && break; sleep 0.1; done
 [ -s "$tmp/port" ] || { echo "FAIL the stub did not start"; exit 1; }
-export HITL_GH_API="http://127.0.0.1:$(cat "$tmp/port")" HITL_APPS_DIR="$apps"
+export HITL_GH_API="http://127.0.0.1:$(cat "$tmp/port")" HITL_APPS_DIR="$apps" HITL_SHIM_DIR="$tmp/none"
 mints() { cat "$tmp/mints" 2>/dev/null || echo 0; }
 
 t="$("$GH" token lane1 2>"$tmp/err")"; rc=$?
@@ -72,6 +72,24 @@ git -C "$repo" remote add origin git@github.com:o/r.git
 [ "$(git -C "$tmp/wt" ls-remote --get-url origin 2>/dev/null)" != "https://github.com/o/r.git" ] || fail "the rewrite stays in its worktree"
 (cd "$repo" && "$GH" git-setup lane1 >/dev/null); n="$(git -C "$repo" config --worktree --get-all credential.https://github.com.helper | wc -l)"
 [ "$n" = 2 ] || fail "git-setup twice does not stack helpers: $n"
+# the gh shim: a plain gh follows the worktree's marker
+[ "$(cat "$(git -C "$repo" rev-parse --absolute-git-dir)/hitl-lane")" = lane1 ] || fail "git-setup writes the lane marker"
+[ ! -e "$(git -C "$tmp/wt" rev-parse --absolute-git-dir)/hitl-lane" ] || fail "the marker stays in its worktree"
+mkdir -p "$tmp/real" "$tmp/bin"
+printf '#!/usr/bin/env bash\necho "gh token=[${GH_TOKEN:-}] args=[$*]"\n' >"$tmp/real/gh"; chmod +x "$tmp/real/gh"
+printf '#!/usr/bin/env bash\necho foreign\n' >"$tmp/bin/gh"; chmod +x "$tmp/bin/gh"
+out="$("$GH" shim-install "$tmp/bin" 2>&1)"; rc=$?; [ $rc -eq 2 ] && grep -q 'not this shim' <<<"$out" || fail "shim-install will not replace another gh: $rc $out"
+rm "$tmp/bin/gh"
+out="$(PATH="$tmp/bin:$tmp/real:$PATH" "$GH" shim-install "$tmp/bin" 2>&1)"; rc=$?; [ $rc -eq 0 ] && [ -x "$tmp/bin/gh" ] && [ -x "$tmp/bin/hitl-gh-as" ] || fail "shim-install writes gh and hitl-gh-as: $rc $out"
+out="$(PATH="$tmp/bin:$tmp/real:$PATH" "$GH" shim-install "$tmp/bin" 2>&1)"; [ $? -eq 0 ] || fail "shim-install twice is fine: $out"
+sh() { (cd "$1" && shift && PATH="$tmp/bin:$tmp/real:$PATH" env "$@" gh pr comment 5 --body 'hi there'); }
+out="$(sh "$repo")"; [ "$out" = "gh token=[ghs_old] args=[pr comment 5 --body hi there]" ] || fail "plain gh in a marked worktree gets the lane's token and its arguments: $out"
+out="$(sh "$tmp/wt")"; [ "$out" = "gh token=[] args=[pr comment 5 --body hi there]" ] || fail "plain gh in an unmarked worktree is untouched: $out"
+out="$(sh "$tmp")"; [ "$out" = "gh token=[] args=[pr comment 5 --body hi there]" ] || fail "plain gh outside a repo is untouched: $out"
+out="$(sh "$repo" GH_TOKEN=mine)"; [ "$out" = "gh token=[mine] args=[pr comment 5 --body hi there]" ] || fail "a GH_TOKEN already set wins: $out"
+printf 'nokey\n' >"$(git -C "$tmp/wt" rev-parse --absolute-git-dir)/hitl-lane"
+out="$(sh "$tmp/wt")"; [ "$out" = "gh token=[] args=[pr comment 5 --body hi there]" ] || fail "a marker for a lane with no key is untouched: $out"
+rm "$(git -C "$tmp/wt" rev-parse --absolute-git-dir)/hitl-lane"
 # no key
 out="$("$GH" token nokey 2>&1)"; rc=$?; [ $rc -eq 3 ] && grep -q 'no GitHub App key for nokey' <<<"$out" || fail "token without a key exits 3 and says so: $rc $out"
 out="$("$GH" env nokey 2>"$tmp/err")"; rc=$?; [ $rc -eq 0 ] && [ -z "$out" ] && grep -q 'no GitHub App key' "$tmp/err" || fail "env without a key prints nothing and exits 0: $rc $out"

@@ -5,6 +5,10 @@
 #   scripts/tools/gh-as.sh env <lane>         print `export GH_TOKEN=...` for eval in a session
 #   scripts/tools/gh-as.sh git-setup <lane>   this worktree pushes to github.com as the bot, commits as the bot
 #   scripts/tools/gh-as.sh credential <lane> get   the git credential helper git-setup installs
+#   scripts/tools/gh-as.sh shim-install [dir]   put a `gh` shim (default ~/.local/bin, ahead of the real gh on PATH)
+# git-setup also writes the lane into <git dir>/hitl-lane. The shim, run in a worktree with that
+# marker, runs the real gh with that lane's token, so a plain `gh` acts as the bot; with no marker, no
+# key, or GH_TOKEN already set, it runs the real gh untouched.
 # The lane's app is described in <apps dir>/apps.json (appId, clientId, installationId, botLogin,
 # botEmail) and signed for with <apps dir>/<lane>.pem. The apps dir is HITL_APPS_DIR, default
 # ~/.config/hitl/apps. A lane with no key gets a message and today's behaviour: `env` and `git-setup`
@@ -15,11 +19,15 @@ APPS="${HITL_APPS_DIR:-$HOME/.config/hitl/apps}"
 API="${HITL_GH_API:-https://api.github.com}"
 SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
 die() { echo "gh-as: $*" >&2; exit 2; }
-usage() { sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2; }
+usage() { sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2; }
 
 cmd="${1:-}"; [ -n "$cmd" ] || usage; shift
-lane="${1:-}"; [ -n "$lane" ] || usage; shift
-[[ "$lane" =~ ^[a-z0-9_-]+$ ]] || die "a lane name is lower-case letters, digits, - _"
+lane=''
+case "$cmd" in
+  shim|shim-install) ;;
+  *) lane="${1:-}"; [ -n "$lane" ] || usage; shift ;;
+esac
+[[ -z "$lane" || "$lane" =~ ^[a-z0-9_-]+$ ]] || die "a lane name is lower-case letters, digits, - _"
 key="$APPS/$lane.pem"
 
 # No key: say so and let the caller carry on as before.
@@ -90,7 +98,9 @@ case "$cmd" in
     git config --worktree user.email "$email"
     helper="!"
     [ -n "${HITL_APPS_DIR:-}" ] && helper+="HITL_APPS_DIR='$HITL_APPS_DIR' "
-    helper+="'$SELF' credential $lane"
+    bin="${HITL_SHIM_DIR:-$HOME/.local/bin}/hitl-gh-as"; [ -x "$bin" ] || bin="$SELF"
+    helper+="'$bin' credential $lane"
+    printf '%s\n' "$lane" >"$(git rev-parse --absolute-git-dir)/hitl-lane"
     # An ssh remote would use the machine's key, so send github.com over https for this worktree.
     git config --worktree --unset-all url.https://github.com/.insteadOf 2>/dev/null
     git config --worktree --add url.https://github.com/.insteadOf git@github.com:
@@ -100,5 +110,31 @@ case "$cmd" in
     git config --worktree --add credential.https://github.com.helper "$helper"
     echo "gh-as: this worktree now pushes and commits as $login"
     echo "gh-as: for gh in a shell: eval \"\$(scripts/tools/gh-as.sh env $lane)\" (the token lasts an hour)" ;;
+  shim)
+    # Runs as `gh`: find the real gh (skipping this shim's own directory), add the lane's token if any.
+    shimdir="$(cd "$(dirname "$SELF")" && pwd)"; real="${HITL_REAL_GH:-}"
+    if [ -z "$real" ]; then
+      IFS=: read -ra dirs <<<"$PATH"
+      for d in "${dirs[@]}"; do
+        [ -x "$d/gh" ] && ! [ "$d/gh" -ef "$shimdir/gh" ] && { real="$d/gh"; break; }
+      done
+    fi
+    [ -n "$real" ] || { echo "gh-as: no real gh on PATH" >&2; exit 127; }
+    if [ -z "${GH_TOKEN:-}" ] && [ -z "${GITHUB_TOKEN:-}" ] && gd="$(git rev-parse --absolute-git-dir 2>/dev/null)" && [ -r "$gd/hitl-lane" ]; then
+      lane="$(head -n1 "$gd/hitl-lane")"; key="$APPS/$lane.pem"
+      if [[ "$lane" =~ ^[a-z0-9_-]+$ ]] && has_key; then
+        if tok="$(token)"; then export GH_TOKEN="$tok"; else echo "gh-as: no token for $lane; running gh as the default identity" >&2; fi
+      fi
+    fi
+    exec "$real" "$@" ;;
+  shim-install)
+    dir="${1:-${HITL_SHIM_DIR:-$HOME/.local/bin}}"; mkdir -p "$dir" || die "cannot create $dir"
+    if [ -e "$dir/gh" ] && ! grep -q '^# hitl gh shim' "$dir/gh" 2>/dev/null; then die "$dir/gh exists and is not this shim; not replacing it"; fi
+    cp "$SELF" "$dir/hitl-gh-as" && chmod 755 "$dir/hitl-gh-as"
+    printf '#!/usr/bin/env bash\n# hitl gh shim (scripts/tools/gh-as.sh shim-install)\nexec "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/hitl-gh-as" shim "$@"\n' >"$dir/gh"
+    chmod 755 "$dir/gh"
+    first="$(PATH="$PATH" command -v gh)"
+    [ "$first" -ef "$dir/gh" ] && echo "gh-as: shim installed in $dir; plain gh there now follows the worktree's lane" \
+      || echo "gh-as: shim installed in $dir but $first comes first on PATH; put $dir ahead of it" ;;
   *) usage ;;
 esac
