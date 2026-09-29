@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { spawnSync } from 'node:child_process';
-import { resolve } from 'node:path';
+import { spawn, spawnSync } from 'node:child_process';
+import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { sensitivity } from '../../blender/checks/pose-matrix-sweep.js';
-import { parseMatrix,cellsOf, parseRule, judgeCell, margin, worstOf, formatMatrix, valueOf } from '../../blender/checks/pose-matrix.js';
+import { parseMatrix, cellsOf, parseRule, judgeCell, margin, worstOf, formatMatrix, valueOf } from '../../blender/checks/pose-matrix.js';
 
 const POSE = resolve(__dirname, '../../blender/checks/pose.mjs');
 const run = (...args) => spawnSync(process.execPath, [POSE, ...args], { encoding: 'utf8', timeout: 180000 });
@@ -118,6 +120,22 @@ describe('pose.mjs --matrix', () => {
     expect(s.map((x) => x.name)).toEqual(['A', 'B']);
     expect(s.map((x) => x.spread)).toEqual([1, 0]);
   });
+
+  it('a sweep killed mid-run removes its temp dir and stops its runs', async () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'msweep-test-'));
+    const dirs = () => readdirSync(tmp).filter((n) => n.startsWith('pose-msweep-'));
+    try {
+      const values = Array.from({ length: 24 }, (_, i) => (0.2 + i * 0.01).toFixed(2)).join(',');
+      const child = spawn(process.execPath, [POSE, ...base, '--expect', 'coverHandEyeNear>=0.5@0.7', '--sweep', `PALM_STAND[2]=${values}`, '--jobs', '2'], { stdio: 'ignore', env: { ...process.env, TMPDIR: tmp } });
+      const closed = new Promise((res) => child.on('close', (code, signal) => res({ code, signal })));
+      for (let i = 0; i < 300 && !dirs().length; i++) await new Promise((r) => setTimeout(r, 50));
+      expect(dirs().length).toBeGreaterThan(0);
+      child.kill('SIGTERM');
+      const { code, signal } = await closed;
+      expect(code === 143 || signal === 'SIGTERM').toBe(true);
+      expect(readdirSync(tmp)).toEqual([]);
+    } finally { rmSync(tmp, { recursive: true, force: true }); }
+  }, 60000);
 
   it('needs a gesture and a measure', () => {
     expect(run('--matrix', 'views=0', '--measure', 'faceCam').status).toBe(2);

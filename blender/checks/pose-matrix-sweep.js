@@ -34,8 +34,12 @@ export function sensitivity(rows, axes) {
   }).sort((a, b) => b.spread - a.spread);
 }
 
+const running = new Set();
+
 const runOne = (script, args) => new Promise((resolve) => {
   const p = spawn(process.execPath, [script, ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
+  running.add(p);
+  p.on('close', () => running.delete(p));
   let out = '';
   p.stdout.on('data', (d) => { out += d; });
   p.stderr.on('data', (d) => { out += d; });
@@ -70,6 +74,14 @@ export async function runMatrixSweep(argv, script) {
   for (let i = 0; i < argv.length; i++) { if (OWN.has(argv[i])) { i++; continue; } base.push(argv[i]); }
   const dir = mkdtempSync(join(tmpdir(), 'pose-msweep-'));
   const label = (c) => c.map(([n, v]) => `${n}=${v}`).join(' ');
+  // A signal skips the finally below, so stop the running values and remove the dir here.
+  const onSignal = (sig) => () => {
+    for (const p of running) p.kill('SIGTERM');
+    rmSync(dir, { recursive: true, force: true });
+    process.exit(128 + (sig === 'SIGINT' ? 2 : sig === 'SIGHUP' ? 1 : 15));
+  };
+  const handlers = ['SIGINT', 'SIGTERM', 'SIGHUP'].map((s) => [s, onSignal(s)]);
+  for (const [s, h] of handlers) process.on(s, h);
   let rows;
   try {
     rows = await pool(cols, jobs, async (c, i) => {
@@ -81,8 +93,11 @@ export async function runMatrixSweep(argv, script) {
       const worst = worstOf(m.cells);
       return { c, pass: m.cells.filter((x) => x.pass).length, total: m.cells.length, worst, axes: m.axes, margin: margin(worst) };
     });
-  } finally { rmSync(dir, { recursive: true, force: true }); }
-  const w = Math.max(...rows.map((r) => label(r.c).length));
+  } finally {
+    for (const [s, h] of handlers) process.off(s, h);
+    rmSync(dir, { recursive: true, force: true });
+  }
+  const w =Math.max(...rows.map((r) => label(r.c).length));
   console.log('SWEEP matrix: passing cells per value');
   for (const r of rows) {
     if (r.error) { console.log(`SWEEP ${label(r.c).padEnd(w)}  error: ${r.error}`); continue; }
