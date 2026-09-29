@@ -30,6 +30,10 @@
 //   moments  [{ moment: "slap", fixer?: id | "nearest" }]   the game's own staging plays it: the robot's fix event
 //                                    runs at frame 0 and the game picks the spot and walks the fixer (default: the
 //                                    person nearest the robot). Needs a robot.
+//            { moment: "music_night", genre?, organiser?, dancers?: [id] }   the incentive event the game raises for a
+//                                    music night runs at frame 0: the robot DJs and the dancers dance (defaults:
+//                                    corporate_synthwave, the first free person organises, the next three dance).
+//                                    Needs a robot.
 //   robot    { at: [x, y], cause?, level? }   the office robot; a cause (spin, stuck, emptyDesk, cone, decaf, unplug)
 //                                    leaves it broken down that way
 // Tile axes: +x east, +y south (a desk at rotation 0 faces +y).
@@ -58,9 +62,9 @@ export class ComposeError extends Error {
 const isSpot = (v) => v != null && typeof v === 'object' && !Array.isArray(v);
 const isPoint =(v) => Array.isArray(v) && v.length === 2 && v.every(Number.isFinite);
 const clone = (o) => JSON.parse(JSON.stringify(o));
-const MOMENTS = ['slap'];
+const MOMENTS = ['slap', 'music_night'];
 const KEEP = ['office', 'staff'];
-const KEYS = { top: ['base', 'era', 'keep', 'items', 'people', 'robot', 'moments'], item: ['item', 'at', 'rot', 'level', 'id'], person: ['id', 'build', 'seat', 'at', 'face', 'gesture', 't', 'look', 'free', 'use', 'until'], use: ['item', 'slot', 'dur'], robot: ['at', 'cause', 'level'], moment: ['moment', 'fixer'] };
+const KEYS = { top: ['base', 'era', 'keep', 'items', 'people', 'robot', 'moments'], item: ['item', 'at', 'rot', 'level', 'id'], person: ['id', 'build', 'seat', 'at', 'face', 'gesture', 't', 'look', 'free', 'use', 'until'], use: ['item', 'slot', 'dur'], robot: ['at', 'cause', 'level'], moment: ['moment', 'fixer', 'genre', 'organiser', 'dancers'] };
 
 function unknownKeys(obj, allowed, where, problems) {
   for (const k of Object.keys(obj)) if (!allowed.includes(k)) problems.push(`${where}: unknown key "${k}" (allowed: ${allowed.join(', ')})`);
@@ -217,7 +221,15 @@ export function compose(input) {
     const where = `moments[${i}]`;
     unknownKeys(m, KEYS.moment, where, problems);
     if (!MOMENTS.includes(m.moment)) return problems.push(`${where}: moment "${m.moment}" is not one of ${MOMENTS.join(', ')}`);
-    if (!robot) return problems.push(`${where}: slap needs a robot`);
+    if (!robot) return problems.push(`${where}: ${m.moment} needs a robot`);
+    if (m.moment === 'music_night') {
+      const known = (id) => state.staff.some((x) => x.id === id);
+      if (m.fixer != null) return problems.push(`${where}: music_night has no fixer (use organiser)`);
+      if (m.organiser != null && !known(m.organiser)) return problems.push(`${where}: organiser "${m.organiser}" is not a person`);
+      if (m.dancers != null && (!Array.isArray(m.dancers) || m.dancers.some((d) => !known(d)))) return problems.push(`${where}: dancers must be a list of people`);
+      if (m.genre != null && typeof m.genre !== 'string') return problems.push(`${where}: genre must be a name`);
+      return script.push({ frame: 0, who: null, op: 'moment', name: m.moment, genre: m.genre ?? 'corporate_synthwave', organiser: m.organiser ?? null, dancers: m.dancers ?? null });
+    }
     const fixer = m.fixer ?? 'nearest';
     if (fixer !== 'nearest' && !state.staff.some((x) => x.id === fixer)) problems.push(`${where}: fixer "${fixer}" is not a person`);
     else script.push({ frame: 0, who: fixer === 'nearest' ? null : fixer, op: 'moment', name: m.moment, fixer });

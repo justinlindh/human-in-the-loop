@@ -200,6 +200,17 @@ describe('compose moments, era and keep', () => {
     expect(state.office.placed.some((p) => p.itemId === 'office_robot' && p.level === 2)).toBe(true);
   });
 
+  it('compiles a music night with its organiser, genre and dancers, and refuses strangers', () => {
+    const { script } = compose(`${EX}/music-night.json`);
+    expect(script).toEqual([{ frame: 0, who: null, op: 'moment', name: 'music_night', genre: 'corporate_synthwave', organiser: null, dancers: null }]);
+    const withRobot = { ...base, robot: { at: [2, 2] } };
+    expect(problemsOf({ ...withRobot, moments: [{ moment: 'music_night' }] }).join('\n')).toBe('');
+    expect(problemsOf({ ...base, moments: [{ moment: 'music_night' }] }).join('\n')).toMatch(/music_night needs a robot/);
+    expect(problemsOf({ ...withRobot, moments: [{ moment: 'music_night', dancers: ['nobody'] }] }).join('\n')).toMatch(/dancers must be a list of people/);
+    expect(problemsOf({ ...withRobot, moments: [{ moment: 'music_night', organiser: 'nobody' }] }).join('\n')).toMatch(/organiser "nobody" is not a person/);
+    expect(problemsOf({ ...withRobot, moments: [{ moment: 'music_night', fixer: 'x' }] }).join('\n')).toMatch(/no fixer/);
+  });
+
   it('refuses a moment without a robot, an unknown moment, an unknown fixer, an unknown era and a bad keep', () => {
     expect(problemsOf({ ...base, moments: [{ moment: 'slap' }] }).join('\n')).toMatch(/moments\[0\]: slap needs a robot/);
     expect(problemsOf({ ...base, robot: { at: [2, 2] }, moments: [{ moment: 'dance' }] }).join('\n')).toMatch(/moment "dance" is not one of slap/);
@@ -228,6 +239,18 @@ describe('composed staged moments', () => {
     // stage.mjs reads 0.008 m in this setup, against its 0.06 m rule.
     expect(best).toBeLessThan(0.02);
     expect(best).toBeGreaterThan(0);
+  }, 260000);
+});
+
+describe('composed music night', () => {
+  it('the dancers dance and the robot leaves its dock for the floor', () => {
+    const r = spawnSync(process.execPath, [resolve(__dirname, '../../scripts/studio/scene.mjs'), '--compose', `${EX}/music-night.json`, '--from', '0', '--to', '6', '--every', '1'], { encoding: 'utf8', timeout: 240000, maxBuffer: 1 << 28 });
+    expect(r.status, r.stderr).toBe(0);
+    const rows = r.stdout.trim().split('\n').map((l) => JSON.parse(l));
+    const last = rows.at(-1).objects;
+    expect(last.filter((o) => /^dance_/.test(o.person?.activity ?? '')).length).toBeGreaterThanOrEqual(4);
+    const at = (row) => row.objects.find((o) => o.kind === 'robot').position;
+    expect(Math.hypot(at(rows[0])[0] - at(rows.at(-1))[0], at(rows[0])[2] - at(rows.at(-1))[2])).toBeGreaterThan(1);
   }, 260000);
 });
 
