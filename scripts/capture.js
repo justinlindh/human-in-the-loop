@@ -7,6 +7,12 @@
 // npm run capture -- --manifest scripts/capture-manifest.js --out shots/capture
 //   [--url http://localhost:5174] [--fps 60] [--size 1920x1080] [--quality high] [--software]
 //   [--gif] [--no-webm] [--webm-size 1280x720 --webm-bitrate 1.4M] [--build <sha>] [--seconds N] [--list]
+//   [--fast] [--changed]
+// --fast is the fix loop's draft: 30 fps, 960x540, medium quality, no WebM or GIF, into shots/capture-fast
+// (an explicit --fps, --size, --quality or --out wins, and items' own fps and size are ignored).
+// --changed skips an item that last rendered clean into this out dir with the same item, options,
+// tool code and every file its page loaded (blender/checks/cache.mjs, per scene), and whose output is
+// still there and unchanged.
 // An item's `camera` (a list of { at, target, zoom, ease } keys) moves the camera along that path in
 // the render (see CAMERA_PATH below). Without --url it serves the working tree itself. Output: <out>/<id>.mp4 (H.264, yuv420p, CRF 18),
 // <id>.webm (VP9, CRF 30),
@@ -17,8 +23,10 @@ import { holdRenderLock, launchChromium } from './lib/gl.js';
 import { spawn, execSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync, renameSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { join, relative, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { createHash } from 'node:crypto';
+import { clearScene, recordScene, requestedFiles, sceneBase, sceneUpToDate } from '../blender/checks/cache.mjs';
 
 function parseArgs(argv) {
   const out = {};
@@ -33,15 +41,16 @@ function parseArgs(argv) {
 }
 
 const args = parseArgs(process.argv.slice(2));
-// Renders under the render lock for its GL mode (a GPU slot, or the software lock with --software).
-if (!args.list) holdRenderLock(args.software ? 'software' : 'gpu');
-// The run's frame rate and size; an item's own fps or size (e.g. '3840x2160' for a still to crop) wins.
-const RUN_FPS = Number(args.fps ?? 60);
-const RUN_SIZE = String(args.size ?? '1920x1080');
-const QUALITY = args.quality ?? 'high';
+const FAST = !!args.fast;
+// The run's frame rate and size; an item's own fps or size (e.g. '3840x2160' for a still to crop) wins,
+// except in --fast, which draws every item small.
+const RUN_FPS = Number(args.fps ?? (FAST ? 30 : 60));
+const RUN_SIZE = String(args.size ?? (FAST ? '960x540' : '1920x1080'));
+const QUALITY = args.quality ?? (FAST ? 'medium' : 'high');
+const NO_WEBM = !!args['no-webm'] || FAST;
 // --audio records the game's sound into each clip (AAC in the MP4, Opus in the WebM).
 const AUDIO = !!args.audio;
-const OUT = resolve(String(args.out ?? 'shots/capture').replace(/^~/, homedir()));
+const OUT = resolve(String(args.out ?? (FAST ? 'shots/capture-fast' : 'shots/capture')).replace(/^~/, homedir()));
 const manifestPath = resolve(String(args.manifest ?? 'scripts/capture-manifest.js'));
 const { ITEMS } = await import(pathToFileURL(manifestPath).href);
 
@@ -54,6 +63,33 @@ const only = typeof args.only === 'string' ? new Set(args.only.split(',')) : nul
 const group = typeof args.group === 'string' ? args.group : null;
 const items = ITEMS.filter((it) => (only ? only.has(it.id) : group ? it.group === group : !it.group));
 if (!items.length) { console.error(`capture: nothing matches --only ${args.only}`); process.exit(1); }
+
+// What one item is drawn at, from the run and the item.
+const runOf = (it) => {
+  const FPS = Number(FAST && !args.fps ? RUN_FPS : it.fps ?? RUN_FPS);
+  const [W, H] = String(FAST && !args.size ? RUN_SIZE : it.size ?? RUN_SIZE).split('x').map(Number);
+  const seconds = it.still ? Math.max(...(it.screenshots ?? [1])) + 1 / FPS : Number(args.seconds ?? it.seconds);
+  return { FPS, W, H, seconds };
+};
+// --changed: the record an item's earlier clean run left, if its inputs and its output are as they were.
+const REPO = fileURLToPath(new URL('..', import.meta.url));
+const fn2s = (_, v) => (typeof v === 'function' ? String(v) : v);
+const cacheOf = (it) => {
+  const r = runOf(it);
+  const opts = { it: JSON.stringify(it, fn2s), ...r, QUALITY, AUDIO: !!args.audio, NO_WEBM, gif: !FAST && !!args.gif, out: OUT };
+  const first = it.still ? `${it.id}-${(it.screenshots ?? [1])[0].toFixed(1)}s.png` : `${it.id}.mp4`;
+  return { name: `${it.id}-${createHash('sha256').update(OUT).digest('hex').slice(0, 8)}`, base: sceneBase('capture', opts, ['scripts/capture.js']), ref: relative(REPO, join(OUT, first)) };
+};
+const outIndex = existsSync(join(OUT, 'index.json')) ? JSON.parse(readFileSync(join(OUT, 'index.json'), 'utf8')) : { items: {} };
+const upToDate = (it) => { const c = cacheOf(it); return !!outIndex.items?.[it.id] && !outIndex.items[it.id].errors && sceneUpToDate('capture', c.name, c.base, c.ref); };
+const skipped = args.changed ? items.filter(upToDate) : [];
+const todo = items.filter((it) => !skipped.includes(it));
+const reportSkipped = () => { for (const it of skipped) console.log(`skip ${it.id}: unchanged since it last rendered into ${OUT} (--changed)`); };
+if (!todo.length) { reportSkipped(); process.exit(0); }
+// Renders under the render lock for its GL mode (a GPU slot, or the software lock with --software).
+// Taking it can re-run this script under the lock, so nothing is printed before this line.
+holdRenderLock(args.software ? 'software' : 'gpu');
+reportSkipped();
 
 // Installed before any page script runs. Time only moves when the capture script says so.
 function shim({ fps, seed, audioSeconds }) {
@@ -256,7 +292,7 @@ const { browser } = await launchChromium(chromium, { mode: args.software ? 'soft
 let failed = false;
 
 try {
-  for (const it of items) {
+  for (const it of todo) {
     // A camera path with keys out of order fails the item before anything starts for it.
     const bad = (it.camera ?? []).findIndex((k, i, ks) => !Number.isFinite(k.at) || (i > 0 && k.at < ks[i - 1].at));
     if (bad >= 0) {
@@ -264,10 +300,8 @@ try {
       failed = true; continue;
     }
     const t0 = Date.now();
-    const FPS = Number(it.fps ?? RUN_FPS);
-    const [W, H] = String(it.size ?? RUN_SIZE).split('x').map(Number);
     // A still item records only until its last screenshot and writes no video.
-    const seconds = it.still ? Math.max(...(it.screenshots ?? [1])) + 1 / FPS : Number(args.seconds ?? it.seconds);
+    const { FPS, W, H, seconds } = runOf(it);
     const frames = Math.round(seconds * FPS);
     const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
     // Enough offline audio for boot, warmup, and the clip.
@@ -277,6 +311,8 @@ try {
     const errors = [];
     page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
     page.on('pageerror', (e) => errors.push(`pageerror ${e.message}`));
+    const requests = [];
+    page.on('request', (r) => requests.push(r.url()));
     const query = new URLSearchParams(it.query ?? '');
     query.set('quality', QUALITY);
     await page.goto(`${base}?${query}`, { waitUntil: 'domcontentloaded' });
@@ -376,18 +412,23 @@ try {
     // Marks a clip's page pushed to window.__captureMarks ({ t: seconds into the clip, label }).
     const marks = await page.evaluate(() => window.__captureMarks ?? null);
     const webmFile = join(OUT, `${it.id}.webm`);
-    if (!it.still && !args['no-webm']) await webm(mp4, webmFile);
+    if (!it.still && !NO_WEBM) await webm(mp4, webmFile);
     let gifFile = null;
-    if (!it.still && (args.gif || it.gif)) { gifFile = join(OUT, `${it.id}.gif`); await gif(mp4, gifFile); }
+    if (!it.still && !FAST && (args.gif || it.gif)) { gifFile = join(OUT, `${it.id}.gif`); await gif(mp4, gifFile); }
     const took = ((Date.now() - t0) / 1000).toFixed(0);
     console.log(`\r${errors.length ? 'FAIL' : 'ok  '} ${it.id}: ${it.still ? `${pngs.length} still(s)` : mp4} (${seconds}s at ${FPS} fps, ${W}x${H}, ${QUALITY}; rendered in ${took}s on ${renderer})`);
     for (const e of errors.slice(0, 5)) console.log(`     ${e}`);
     failed ||= errors.length > 0;
     index.items[it.id] = {
-      title: it.title, file: it.still ? null : `${it.id}.mp4`, webm: it.still || args['no-webm'] ? null : `${it.id}.webm`, gif: gifFile ? `${it.id}.gif` : null, screenshots: pngs.map((p) => p.slice(OUT.length + 1)),
+      title: it.title, file: it.still ? null : `${it.id}.mp4`, webm: it.still || NO_WEBM ? null : `${it.id}.webm`, gif: gifFile ? `${it.id}.gif` : null, screenshots: pngs.map((p) => p.slice(OUT.length + 1)),
       seconds, fps: FPS, size: `${W}x${H}`, quality: QUALITY, query: it.query, moment, build: BUILD, renderer, audio, marks, errors: errors.length, capturedAt: new Date().toISOString(),
     };
     writeFileSync(indexFile, `${JSON.stringify(index, null, 2)}\n`);
+    if (args.changed) {
+      const c = cacheOf(it);
+      clearScene('capture', c.name);
+      if (!errors.length) recordScene('capture', c.name, c.base, requestedFiles(requests), c.ref);
+    }
     await ctx.close();
   }
 } finally {

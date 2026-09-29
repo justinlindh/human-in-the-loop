@@ -27,11 +27,16 @@ const SHOP_SHAPE = {
   espresso: [{ w: 2, h: 1 }, null], plant_wall: [{ w: 2, h: 1 }, null], nap_pod: [{ w: 1, h: 2 }, null], arcade: [{ w: 1, h: 1 }, null],
   standing_desk: [{ w: 2, h: 1 }, null], whiteboard_wall: [{ w: 3, h: 1 }, null], library: [{ w: 2, h: 2 }, null],
   monitoring_wall: [{ w: 3, h: 1 }, null], server_rack: [{ w: 2, h: 1 }, { radius: 1, key: 'uptimeFloor', value: 0.01, to: 'server_rack' }],
-  trophy_case: [{ w: 2, h: 1 }, null],
+  trophy_case: [{ w: 2, h: 1 }, null], noc: [{ w: 3, h: 1 }, null],
 };
 
 // Items about AI work arrive with that era.
 const SHOP_ERA = { monitoring_wall: 'agents' };
+
+// Items that grow with the office: level N needs officeStage >= levelStage[N - 1].
+const LEVEL_STAGE = { noc: [0, 1, 2] };
+// Items an office has only one of.
+const UNIQUE = new Set(['noc']);
 
 const rows = [
   ['espresso', 'Espresso Machine', 'Proper coffee, for the whole office. Everyone\'s stamina comes back faster.', 0, [3000, 9000, 27000],
@@ -52,22 +57,25 @@ const rows = [
     [{ oversight: 0.15 }, { oversight: 0.3 }, { oversight: 0.45 }], null],
   ['server_rack', 'Server Racks', 'Your own hardware. Less to maintain, fewer bad days.', 0, [5000, 15000, 45000],
     [{ maintenanceNeed: -0.05, uptimeFloor: 0.03 }, { maintenanceNeed: -0.1, uptimeFloor: 0.06 }, { maintenanceNeed: -0.15, uptimeFloor: 0.1 }], null],
+  ['noc', 'Network Operations Center', 'Starts as a TV on a cart and a pager nobody wants. Trouble gets caught sooner and outages end faster. Grows with the office.', 0, [8000, 30000, 90000],
+    [{ nocCatch: 0.08, outageFix: 0.1 }, { nocCatch: 0.15, outageFix: 0.2 }, { nocCatch: 0.25, outageFix: 0.35 }], 'ops'],
   ['trophy_case', 'Trophy Case', 'Show off the Saasies. People remember you longer.', 0, [3000, 9000, 27000],
     [{ brandDecay: -0.15 }, { brandDecay: -0.3 }, { brandDecay: -0.45 }], 'award'],
 ];
 
 // Items with a front zone, keyed to the level it starts at: a use spot people stand at, or stools, a mat or a
 // grate in front. The tile row in front of the footprint stays clear of other items (see frontCells).
-const FRONT_FROM = { espresso: 1, coffee_corner: 1, plant_wall: 1, bookshelf: 1, library: 1, arcade: 1, standing_desk: 2, server_rack: 3 };
+const FRONT_FROM = { noc: 2, espresso: 1, coffee_corner: 1, plant_wall: 1, bookshelf: 1, library: 1, arcade: 1, standing_desk: 2, server_rack: 3 };
 
 // Items that can go on the roof terrace.
 const OUTDOOR = new Set(['plant', 'couch', 'coffee_corner', 'ping_pong_table', 'plant_wall']);
 
 export const ITEMS = Object.fromEntries([
   ...FURNITURE.map(([id, name, desc, costs, footprint, adjacency, effect = {}, minStage = 0]) => [
-    id, { id, name, desc, kind: 'furniture', minStage, costs, effects: [effect], requires: null, footprint, adjacency, era: null, outdoor: OUTDOOR.has(id), frontFrom: FRONT_FROM[id] ?? null },
+    id, { id, name, desc, kind: 'furniture', minStage, costs, effects: [effect], requires: null, footprint, adjacency, era: null, outdoor: OUTDOOR.has(id), frontFrom: FRONT_FROM[id] ?? null, levelStage: null, unique: false },
   ]),
   ...rows.map(([id, name, desc, minStage, costs, effects, requires]) => [
-    id, { id, name, desc, kind: 'shop', minStage, costs, effects, requires, footprint: SHOP_SHAPE[id][0], adjacency: SHOP_SHAPE[id][1], era: SHOP_ERA[id] ?? null, outdoor: OUTDOOR.has(id), frontFrom: FRONT_FROM[id] ?? null },
+    id, { id, name, desc, kind: 'shop', minStage, costs, effects, requires, footprint: SHOP_SHAPE[id][0], adjacency: SHOP_SHAPE[id][1], era: SHOP_ERA[id] ?? null, outdoor: OUTDOOR.has(id), frontFrom: FRONT_FROM[id] ?? null,
+      levelStage: LEVEL_STAGE[id] ?? null, unique: UNIQUE.has(id) },
   ]),
 ]);

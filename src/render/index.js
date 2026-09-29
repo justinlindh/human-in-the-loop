@@ -24,6 +24,7 @@ import { createBuild } from './build.js';
 import { createPortraits } from './portraits.js';
 import { advisorPerson } from './advisors.js';
 import { createRival } from './rival.js';
+import { nocLook, paintNoc } from './noc.js';
 
 const STAGE_ZOOM = [1, 1.05, 1.25];
 
@@ -105,6 +106,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   for (const [k, views] of Object.entries(DEBUG_VIEWS)) if (views[params.get(k)]) debugBuild = views[params.get(k)];
 
   let office = null;
+  let noc = null, nocT = 0;
   let props = null;
   let surroundings = null;
   let probeImpl = null;
@@ -225,6 +227,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       lighting.setEraTone(office.era);
     }
     firstSync = false;
+    noc = nocLook(state);
+    screens.setNoc(noc, q === 'low');
     const changed = office.setPlaced(state.office?.placed ?? []);
     if (!stageJustBuilt) for (const c of changed) fx.pop(c.obj);
     props?.sync(state);
@@ -245,6 +249,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     for (const e of events ?? []) {
       if (e.type === 'officeUpgrade') pendingUpgrade = true;
       if (e.type === 'incident' && !e.caught) screens.alarm(3);
+      if (e.type === 'incident' && e.misread) screens.nocMisread();
     }
     staff?.handleEvents(events, state);
   }
@@ -379,6 +384,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       const paused = speedZero || menuPaused;
       const simDt = paused ? 0 : dt;
       office?.update(dt, { yaw: rig.yaw, env: lighting.env });
+      nocT += dt;
+      paintNoc(office?.current?.dyn.noc?.look, !!noc?.alert && !screens.nocAllClear, nocT, q === 'low');
       surroundings?.setViewYaw(rig.yaw);
       surroundings?.update(dt, lighting.env);
       if (staff && office && (!flying || fly.path.fade)) office.fadeColumns(cam, staff.positions(), dt);
