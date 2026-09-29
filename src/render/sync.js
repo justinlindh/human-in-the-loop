@@ -11,7 +11,7 @@ import { nocLook } from './noc.js';
 import { createPerks } from './perks.js';
 import { createPets } from './pets.js';
 import { createRobot } from './robot.js';
-import { createIncentives } from './incentives.js';
+import { createIncentives, HOLD_NEAR_M } from './incentives.js';
 import { createMoments } from './moments.js';
 import { createMomentCamera } from './momentcam.js';
 import { createSpotlights } from './spotlight.js';
@@ -1578,6 +1578,9 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const nav = office.nav();
     for (const r of recs.values()) {
       if (r.hidden || r.mode !== 'placed' && r.mode !== 'enter') continue;
+      // A dancer this near their spot already holds the floor round it: straight on in.
+      const g = r.temp?.holdsFloor && r.temp.goal;
+      if (r.path.length && g && Math.hypot(r.pos.x - g.x, r.pos.z - g.z) < HOLD_NEAR_M) { r.path = [{ x: g.x, z: g.z }]; continue; }
       if (r.path.length) {
         const end = r.path[r.path.length - 1];
         const goal = r.temp?.goal && !r.temp.enter ? r.temp.goal : r.goal;
@@ -1596,7 +1599,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         r.speed = speed; r.walkAnim = anim;
         continue;
       }
-      if (r.temp?.enter || r.temp?.lift || r.goal?.seated && Math.hypot(r.pos.x - r.goal.x, r.pos.z - r.goal.z) < 0.3) continue;
+      // A dancer stands inside the floor they hold (incentives.js), so stays put.
+      if (r.temp?.enter || r.temp?.lift || r.temp?.holdsFloor || r.goal?.seated && Math.hypot(r.pos.x - r.goal.x, r.pos.z - r.goal.z) < 0.3) continue;
       if (nav.isBlocked(r.pos.x, r.pos.z, BODY_R)) stepOut(r, nav);
     }
     // Someone on their way out takes a fresh way to the door; one still waving goodbye where

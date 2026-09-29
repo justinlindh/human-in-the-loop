@@ -30,7 +30,9 @@ const DANCE_POOL = 7;
 const CROWD_REACTIONS = ['point', 'whisper', 'wave', 'shake'];
 const REACTIONS = ['whisper', 'point', 'wave', 'shake'];
 const ROLL_S = 2.2;
-const DIM = 1.9;            // how far the room lights drop (see lighting.setSkeleton)
+const DANCER_HOLD_M = 0.3;      // half-width of the square of floor a dancer on their spot blocks
+export const HOLD_NEAR_M = 0.9; // from this far out on their way to it
+const DIM = 1.9;           // how far the room lights drop (see lighting.setSkeleton)
 const POOL = 5.5;             // warm light over the table
 
 const rnd = (a, b) => between(a, b, 'incentives');
@@ -428,7 +430,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     dancers.forEach((r, i) => {
       const p = at(...SPOTS[i]);
       const spot = { x: p.x, z: p.z, yaw: faceCam, anim: 'idle' };
-      r.temp = { anim: moves[i].anim, t: DANCE_S, goal: spot, back: true, party: true };
+      r.temp = { anim: moves[i].anim, t: DANCE_S, goal: spot, back: true, party: true, holdsFloor: true };
       r.char.setAnimRate(moves[i].rate);
       walkTo(r, spot);
       hurry(r, 3);
@@ -472,6 +474,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     setDim(0);
     setAccent(null);
     d.props.removeFromParent();
+    office.setFloorObstacles?.([]);
     for (const r of d.dancers) r.char.setAnimRate(1);
     if (d.robot) robot.leave();
     spotlights?.end(d.spot);
@@ -491,6 +494,10 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     setDim(DIM * fade);
     setAccent({ x: d.center.x, y: 2.1, z: d.center.z }, DANCE_POOL * fade * (0.75 + 0.25 * pulse), d.genre.light);
     d.cart.lampMat.emissiveIntensity = 0.8 + 1.4 * pulse;
+    // A dancer on their spot, or on the last stretch to it, holds the floor there: walkers route
+    // round them, not through.
+    office.setFloorObstacles?.(d.dancers.filter((r) => recs.has(r.id) && r.temp?.holdsFloor && Math.hypot(r.pos.x - r.temp.goal.x, r.pos.z - r.temp.goal.z) < HOLD_NEAR_M)
+      .map((r) => ({ x0: r.temp.goal.x - DANCER_HOLD_M, x1: r.temp.goal.x + DANCER_HOLD_M, z0: r.temp.goal.z - DANCER_HOLD_M, z1: r.temp.goal.z + DANCER_HOLD_M })));
     // Onlookers take turns reacting, as at the waffle party.
     if (d.t > ROLL_S + 1) {
       const slot = Math.floor((d.t - ROLL_S - 1) / 2.4);
@@ -531,7 +538,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     setPictureLight(null);
     if (party?.robot || dance?.robot) robot.leave();
     if (party) { party.props.removeFromParent(); spotlights?.end(party.spot); party = null; setDim(0); setAccent(null); }
-    if (dance) { dance.props.removeFromParent(); for (const r of dance.dancers) r.char.setAnimRate(1); spotlights?.end(dance.spot); dance = null; setDim(0); setAccent(null); }
+    if (dance) { dance.props.removeFromParent(); office.setFloorObstacles?.([]); for (const r of dance.dancers) r.char.setAnimRate(1); spotlights?.end(dance.spot); dance = null; setDim(0); setAccent(null); }
   }
 
   return { handle, update, reset, get party() { return party ? { t: party.t, center: party.v.center, yaw: party.v.yaw, watchers: party.watchers.map((w) => w.id), winner: party.r.id, robot: party.robot } : null; }, get dance() { return dance ? { t: dance.t, dur: dance.dur, dancers: dance.dancers.map((r) => r.id), crowd: dance.crowd.map((r) => r.id), robot: dance.robot } : null; }, get frameAt() { return frame?.userData.at ?? null; } };

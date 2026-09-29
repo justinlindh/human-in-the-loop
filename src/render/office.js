@@ -765,7 +765,7 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
     if (!cur.nav) {
       const rects = [];
       for (const e of placed.values()) rects.push(...obstaclesOf(e));
-      rects.push(...(cur.propRects ?? []));
+      rects.push(...(cur.propRects ?? []), ...(cur.floorRects ?? []));
       for (const [bx, by] of cur.L.blocked) rects.push({ x0: bx - cur.L.W / 2, x1: bx + 1 - cur.L.W / 2, z0: by - cur.L.D / 2, z1: by + 1 - cur.L.D / 2 });
       cur.nav = createNav(cur.L, rects);
       cur.zones.wander = wanderSpots(cur.nav, cur.L);
@@ -1319,6 +1319,7 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
       const out = [];
       for (const e of placed.values()) for (const r of obstaclesOf(e)) out.push({ by: e.id, itemId: e.itemId, ...r });
       for (const r of cur.propRects ?? []) out.push({ by: 'prop', ...r });
+      for (const r of cur.floorRects ?? []) out.push({ by: 'floor', ...r });
       for (const [bx, by] of cur.L.blocked) out.push({ by: 'pillar', x0: bx - cur.L.W / 2, x1: bx + 1 - cur.L.W / 2, z0: by - cur.L.D / 2, z1: by + 1 - cur.L.D / 2 });
       return out;
     },
@@ -1330,6 +1331,17 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
       if (key === (cur.propKey ?? '')) return;
       cur.propKey = key;
       cur.propRects = rects;
+      cur.nav = null;
+      navVersion++;
+    },
+    // Floor rectangles people hold for a staged moment (dancers on their spots), kept apart from
+    // the props' own so each side replaces only its own. The same rebuild follows a change.
+    setFloorObstacles(rects) {
+      if (!cur) return;
+      const key = rects.map((r) => [r.x0, r.x1, r.z0, r.z1].map((v) => v.toFixed(2)).join(',')).join('|');
+      if (key === (cur.floorKey ?? '')) return;
+      cur.floorKey = key;
+      cur.floorRects = rects;
       cur.nav = null;
       navVersion++;
     },
