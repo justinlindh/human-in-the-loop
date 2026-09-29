@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { compose, ComposeError } from '../../scripts/studio/compose.mjs';
 
 const EX = resolve(__dirname, '../../scripts/studio/examples');
@@ -13,7 +14,7 @@ describe('studio compose', () => {
     expect(state.office.placed.map((p) => p.itemId)).toEqual(['desk', 'office_robot']);
     expect(state.staff.map((p) => [p.id, p.appearance.build])).toEqual([['fixer', 1]]);
     expect(script).toEqual([
-      { frame: 0, who: 'fixer', op: 'place', at: [5.5, 4.5], dir: [-1, 0] },
+      { frame: 0, who: 'fixer', op: 'place', at: [5, 4.6], toward: 'robot' },
       { frame: 12, who: 'fixer', op: 'gesture', name: 'slap' },
     ]);
   });
@@ -72,4 +73,39 @@ describe('studio compose', () => {
   it('applies the game placement rules: an item off the grid is refused', () => {
     expect(problemsOf({ ...base, items: [{ item: 'desk', at: [99, 99] }] }).join('\n')).toMatch(/items\[0\]: desk at 99,99/);
   });
+});
+
+describe('studio scene --compose', () => {
+  const frames = (file, args) => {
+    const r = spawnSync(process.execPath, [resolve(__dirname, '../../scripts/studio/scene.mjs'), '--compose', `${EX}/${file}`, ...args], { encoding: 'utf8', timeout: 240000, maxBuffer: 1 << 28 });
+    expect(r.status, r.stderr).toBe(0);
+    return r.stdout.trim().split('\n').map((l) => JSON.parse(l));
+  };
+  const person = (frame, id) => frame.objects.find((o) => o.id === `person:${id}`);
+
+  it('stands the fixer at the composed spot, and the slap plays from its frame', () => {
+    const rows = frames('slap.json', ['--from', '0', '--to', '1', '--every', '0.2']);
+    const fixer = rows.map((r) => person(r, 'fixer'));
+    expect(fixer[0].world.slice(12, 15).map((v) => +v.toFixed(2))).toEqual([-2.5, 0, -1.4]);
+    // The slap is at frame 12 (0.4 s) and a sample at frame 12 already shows it.
+    expect(fixer.map((f) => f.person.activity)).toEqual(['idle', 'idle', 'slap', 'slap', 'slap', 'slap']);
+    // The fixer faces the robot where it rests, within a few degrees.
+    const robot = rows[0].objects.find((o) => o.kind === 'robot');
+    expect(robot.id).toBe('robot:office');
+    const m = fixer[0].world, r = robot.world;
+    const heading = Math.atan2(m[8], m[10]), bearing = Math.atan2(r[12] - m[12], r[14] - m[14]);
+    const off = Math.abs(((heading - bearing + 3 * Math.PI) % (2 * Math.PI)) - Math.PI) * 180 / Math.PI;
+    expect(off).toBeLessThan(3);
+  }, 260000);
+
+  it('seats the composed person at the desk and plays the gesture over it', () => {
+    const rows = frames('facepalm.json', ['--from', '0', '--to', '1', '--every', '1']);
+    const ada = person(rows[0], 'ada');
+    expect(ada.person.walk.goal.seated).toBe(true);
+    expect(ada.person.activity).toBe('typing');
+    const later = frames('facepalm.json', ['--from', '0.5', '--to', '0.5'])[0];
+    expect(person(later, 'ada').person.activity).toBe('facepalmsit');
+    expect(rows[0].objects.find((o) => o.id === 'item:d1')).toBeTruthy();
+    expect(rows[0].objects.find((o) => o.id === 'item:w1')).toBeTruthy();
+  }, 260000);
 });

@@ -4,16 +4,16 @@ import { writeFileSync } from 'node:fs';
 import { openScene } from './index.mjs';
 
 const { values } = parseArgs({ options: Object.fromEntries([
-  ...['mock', 'snapshot', 'seed', 'week', 'from', 'to', 'every', 'who', 'facts', 'profile'].map(k => [k, { type: 'string' }]),
+  ...['mock', 'snapshot', 'compose', 'seed', 'week', 'from', 'to', 'every', 'who', 'facts', 'profile'].map(k => [k, { type: 'string' }]),
   ['json', { type: 'boolean' }], ['rig', { type: 'boolean' }], ['help', { type: 'boolean' }],
 ]) });
 if (values.help) {
-  console.log('node scripts/studio/scene.mjs [--mock floor | --snapshot file | --seed N --week W] --from 0 --to 2 --every 0.2 --facts occupancy,projections --who s1 --json [--rig] [--profile file]');
+  console.log('node scripts/studio/scene.mjs [--mock floor | --snapshot file | --compose file.json | --seed N --week W] --from 0 --to 2 --every 0.2 --facts occupancy,projections --who s1 --json [--rig] [--profile file]');
   process.exit(0);
 }
 let scene;
 try {
-  const sources = ['mock', 'snapshot', 'seed'].filter(k => values[k] != null);
+  const sources = ['mock', 'snapshot', 'compose', 'seed'].filter(k => values[k] != null);
   if (sources.length > 1) throw new Error('select one state source');
   const frame = (name, fallback) => {
     const seconds = Number(values[name] ?? fallback), n = Math.round(seconds * 30);
@@ -25,7 +25,7 @@ try {
   const facts = values.facts?.split(',') ?? [];
   if (facts.some(f => !['intersections', 'clearances', 'visibility', 'projections', 'occupancy'].includes(f))) throw new Error('unknown fact family');
   for (const k of ['seed', 'week']) if (values[k] != null && (!Number.isSafeInteger(Number(values[k])) || Number(values[k]) < 0)) throw new Error(`${k} must be a nonnegative integer`);
-  scene = await openScene({ mock: values.mock ?? 'floor', snapshot: values.snapshot,
+  scene = await openScene({ mock: values.mock ?? 'floor', snapshot: values.snapshot, compose: values.compose,
     seed: values.seed == null ? undefined : Number(values.seed), week: Number(values.week ?? 0), rig: values.rig });
   const timings = [];
   for (let n = from; n <= to; n += every) {

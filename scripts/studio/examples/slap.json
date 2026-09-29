@@ -4,5 +4,5 @@
   ],
   "robot": { "at": [4, 4], "cause": "unplug" },
   "people": [
-    { "id": "fixer", "build": 1, "at": [5.5, 4.5], "face": "robot", "gesture": "slap", "t": 0.4 }
+    { "id": "fixer", "build": 1, "at": [5.0, 4.6], "face": "robot", "gesture": "slap", "t": 0.4 }
   ] }
