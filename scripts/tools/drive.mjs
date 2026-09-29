@@ -44,9 +44,11 @@ export function parseSize(name) {
   return { name, w: Number(m[1]), h: Number(m[2]), touch: m[3] === 't' };
 }
 const STEP_KEYS = ['click', 'wait', 'waitFor', 'press', 'dismiss', 'eval', 'count', 'expect', 'dispatch', 'tick', 'speed', 'shot'];
+// A step whose value is empty or zero does nothing, which is a typo, not a step.
+const NEEDS_VALUE = new Set(['click', 'waitFor', 'press', 'eval', 'count', 'expect', 'tick', 'shot']);
 export function checkSteps(steps) {
   if (!Array.isArray(steps)) throw new Error('drive: --steps must be a JSON array');
-  steps.forEach((st, i) => { if (!st || !STEP_KEYS.some((k) => k in st)) throw new Error(`drive: step ${i} (${JSON.stringify(st)}) has none of ${STEP_KEYS.join(', ')}`); });
+  steps.forEach((st, i) => { if (!st || !STEP_KEYS.some((k) => k in st && !(NEEDS_VALUE.has(k) && !st[k]))) throw new Error(`drive: step ${i} (${JSON.stringify(st)}) has none of ${STEP_KEYS.join(', ')}`); });
   return steps;
 }
 
@@ -57,11 +59,15 @@ async function play(page, { bot, weeks, until }) {
     const bots = await import('/src/sim/bots.js');
     const H = window.__HITL; const on = { onEvents: (ev) => H.emit(ev) };
     const stop = until ? new Function('s', `return (${until});`) : null;
+    // The same loop as runBot (balance, find.js and pair.js), so a seed and week from those tools
+    // replays here. A decision a tick raises is left for the next botDecide to choose.
     for (let i = 0; i < 2000 && !H.state.gameOver && H.state.week < weeks; i++) {
-      bots.botDecide(bot, H.state, on); bots.botTurn(bot, H.state, on); H.tickN(1);
-      if (H.state.pendingDecision) H.dispatch({ type: 'resolveDecision', choice: 0 });
+      bots.botDecide(bot, H.state, on);
+      if (H.state.gameOver) break;
+      bots.botTurn(bot, H.state, on); H.tickN(1);
       if (stop && stop(H.state)) break;
     }
+    // Leave the page off a decision card.
     if (H.state.pendingDecision) H.dispatch({ type: 'resolveDecision', choice: 0 });
     return { week: H.state.week, gameOver: !!H.state.gameOver };
   }, { bot, weeks, until });

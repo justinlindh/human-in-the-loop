@@ -14,7 +14,8 @@ The shared form of the one-off playwright scripts: it starts vite, launches Chro
 An incident played to its postmortem at two sizes (ui's `incident.mjs`, 72 lines):
 
     node scripts/tools/drive.mjs --seed 11 --play squads:90 --until "s.week > 90 && s.products.filter((x) => !x.killed).length >= 2 && !s.outage" \
-      --setup-file inc-setup.js --sizes desktop,phone --name inc \
+      --setup "const { landIncident } = await import('/src/sim/incidents.js'); const { makeCtx } = await import('/src/sim/registry.js'); const ctx = makeCtx(s); landIncident(ctx, { kind: 'credential_stuffing', severity: 4, caught: false, model: null, fn: null }); H.emit(ctx.events);" \
+      --sizes desktop,phone --name inc \
       --steps '[{"wait":1500},{"shot":"1alarm"},{"tick":1},{"speed":3},{"waitFor":"window.__HITL.state.pendingDecision && !window.__HITL.state.outage","timeout":90000},{"shot":"4postmortem"}]'
 
-with `inc-setup.js` holding the four lines that call `landIncident`. For phone playability (pinch, HUD overlaps) use [phone-check](phone-check.md); for a still of one scene, `npm run snap` or `scene.mjs`.
+`--play` runs the same loop as `runBot`, so a seed, bot and week from `find.js`, `pair.js` or a balance run reproduce the same company here (a decision a tick raises is left for the bot's next turn; only after the last week is one open decision resolved so the page isn't left on a card). For phone playability (pinch, HUD overlaps) use [phone-check](phone-check.md); for a still of one scene, `npm run snap` or `scene.mjs`.
