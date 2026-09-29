@@ -66,7 +66,7 @@ def l1():
     chair = [box('fc_seat', (0.4, 0.38, 0.03), (0, 0, 0.45), 'metal_soft', bevel=0),
              box('fc_back', (0.4, 0.03, 0.3), (0, 0.19, 0.72), 'metal_soft', bevel=0)]
     for sx in (-1, 1):
-        chair.append(box(f'fc_legf{sx}', (0.025, 0.025, 0.52), (sx * 0.18, -0.12, 0.23), 'metal_dark', bevel=0, rot=(math.radians(-12), 0, 0)))
+        chair.append(box(f'fc_legf{sx}', (0.025, 0.025, 0.52), (sx * 0.18, -0.12, 0.265), 'metal_dark', bevel=0, rot=(math.radians(-12), 0, 0)))
         chair.append(box(f'fc_legb{sx}', (0.025, 0.025, 0.9), (sx * 0.18, 0.16, 0.45), 'metal_dark', bevel=0, rot=(math.radians(8), 0, 0)))
     parts += place(chair, fx, fy, rz)
     parts.append(box('bag', (0.34, 0.12, 0.26), (fx + 0.35, fy + 0.25, 0.13), 'fabric_slate', bevel=0.04))
@@ -105,7 +105,7 @@ def dark_backdrop(W, H, y):
 
 
 def l2():
-    parts = dark_backdrop(2.9, 2.1, 0.44)
+    parts = dark_backdrop(2.8, 2.1, 0.44)
     # A 3 x 2 wall of screens.
     i = 0
     for row, z in enumerate((1.5, 0.98)):
@@ -123,21 +123,21 @@ def l2():
 
 
 def l3():
-    parts = dark_backdrop(2.94, 2.4, 0.46)
+    parts = dark_backdrop(2.8, 2.4, 0.46)
     # The operations wall: a big centre screen flanked by 2 x 2 tiles each side.
-    parts += screen_panel('noc_wall0', 1.2, 0.8, 0.0, 0.4, 1.55)
+    parts += screen_panel('noc_wall0', 1.1, 0.76, 0.0, 0.4, 1.55)
     i = 1
     for side in (-1, 1):
         for row, z in enumerate((1.8, 1.3)):
             for col in range(2):
-                x = side * (0.9 + col * 0.46)
-                parts += screen_panel(f'noc_wall{i}', 0.44, 0.44, x, 0.4, z)
+                x = side * (0.8 + col * 0.42)
+                parts += screen_panel(f'noc_wall{i}', 0.4, 0.44, x, 0.4, z)
                 i += 1
     # A ticker strip under the big screen.
-    parts += screen_panel('noc_wall9', 1.2, 0.14, 0.0, 0.4, 1.04)
+    parts += screen_panel('noc_wall9', 1.1, 0.14, 0.0, 0.4, 1.04)
     parts += sign(1.1, 0.34, 0.0, 0.41, 2.18)
     # The beacon on a post at the right end.
-    parts.append(box('beacon_post', (0.05, 0.05, 0.3), (1.35, 0.3, 2.45), 'metal_dark', bevel=0.008))
+    parts.append(box('beacon_post', (0.05, 0.05, 0.3), (1.3, 0.3, 2.45), 'metal_dark', bevel=0.008))
     # Two tiers: a raised back rail behind the curved front desk.
     parts.append(box('tier_rail', (2.4, 0.12, 0.95), (0, 0.18, 0.475), 'plastic_charcoal', bevel=0.02))
     parts.append(box('tier_top', (2.44, 0.2, 0.04), (0, 0.18, 0.97), 'wood_walnut', bevel=0.012))
@@ -154,5 +154,5 @@ build(1, l1, 'noc')
 build(2, l2, 'noc')
 reset()
 join(l3(), 'noc_l3')
-uvsphere('noc_beacon_led', 0.07, (1.35, 0.3, 2.64), 'led_red', seg=10, rings=6)
+uvsphere('noc_beacon_led', 0.07, (1.3, 0.3, 2.64), 'led_red', seg=10, rings=6)
 export(tier_path(3), budget=BUDGET[3])

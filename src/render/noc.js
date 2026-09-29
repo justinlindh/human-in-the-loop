@@ -8,15 +8,15 @@ import { glow } from './materials.js';
 // Spots in model space (three.js axes of the glTF, front toward +z), per model. Seats face the screens;
 // stands are where the crew gets up to during an alert, a step behind the seats.
 const SPOTS = {
-  noc_l1: { seats: [{ x: 0.85, z: 0.2, look: [-0.25, -0.1] }], stands: [{ x: 0.5, z: 0.55, look: [-0.25, -0.1] }, { x: -0.25, z: 0.75, look: [-0.25, -0.1] }] },
+  noc_l1: { seats: [{ x: 0.85, z: 0.2, look: [-0.25, -0.1] }], stands: [{ x: 0.35, z: 0.6, look: [-0.25, -0.1] }, { x: -0.5, z: 0.75, look: [-0.25, -0.1] }] },
   noc_l2: {
-    seats: [{ x: -0.36, z: 1.08, look: [-0.3, 0] }, { x: 0.36, z: 1.08, look: [0.3, 0] }],
-    stands: [{ x: -0.95, z: 1.2, look: [-0.6, 0] }, { x: 0.95, z: 1.2, look: [0.6, 0] }, { x: 0, z: 1.45, look: [0, 0] }],
+    seats: [{ x: -0.36, z: 0.97, look: [-0.3, 0] }, { x: 0.36, z: 0.97, look: [0.3, 0] }],
+    stands: [{ x: -0.98, z: 1.02, look: [-0.6, 0] }, { x: 0.98, z: 1.02, look: [0.6, 0] }, { x: 0, z: 1.46, look: [0, 0] }],
     chairs: true,
   },
   noc_l3: {
-    seats: [{ x: -0.58, z: 1.1, look: [-0.5, 0] }, { x: 0, z: 1.14, look: [0, 0] }, { x: 0.58, z: 1.1, look: [0.5, 0] }],
-    stands: [{ x: -1.15, z: 1.2, look: [-0.8, 0] }, { x: 1.15, z: 1.2, look: [0.8, 0] }, { x: -0.3, z: 1.5, look: [-0.2, 0] }, { x: 0.3, z: 1.5, look: [0.2, 0] }],
+    seats: [{ x: -0.6, z: 0.97, look: [-0.5, 0] }, { x: 0, z: 1.0, look: [0, 0] }, { x: 0.6, z: 0.97, look: [0.5, 0] }],
+    stands: [{ x: -1.18, z: 1.0, look: [-0.8, 0] }, { x: 1.18, z: 1.0, look: [0.8, 0] }, { x: -0.3, z: 1.46, look: [-0.2, 0] }, { x: 0.3, z: 1.46, look: [0.2, 0] }],
     chairs: true,
   },
 };
@@ -40,6 +40,14 @@ function localSpots(g) {
     return { x: at.x, z: at.z, yaw: Math.atan2(look.x - at.x, look.z - at.z) };
   };
   return { seats: s.seats.map(conv), stands: s.stands.map(conv) };
+}
+
+// Floor rectangles (item frame, [x0, z0, x1, z1]) the NOC blocks past its footprint: its chairs and the
+// seat behind each, entered from behind as at a desk. The desk's overhang is part of the model box.
+export function nocObstacles(g) {
+  const n = g.userData.noc;
+  if (!n || n.level < 2) return [];
+  return n.seats.map((s) => [s.x - 0.28, s.z - 0.15, s.x + 0.28, s.z + 0.28]);
 }
 
 // Radial floor glow texture, shared.

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { mat, color, glow, glass, paletteMaterial, setGlowBase } from './materials.js';
-import { dressNoc } from './noc.js';
+import { dressNoc, nocObstacles } from './noc.js';
 import { ROLE_COLORS } from './palette.js';
 import { roundedBox, roundedCylinder, mesh, mergeStatic, batchMeshes } from './prims.js';
 import { getModel, hasModel, itemModelName } from './models.js';
@@ -706,6 +706,20 @@ export function localBox(e) {
   return b;
 }
 
+// A NOC's bounds without the floor glow and chairs the renderer adds round its model.
+function nocBox(e) {
+  if (e.nocBox) return e.nocBox;
+  const inner = e.obj.children[0];
+  const saved = { x: e.obj.position.x, z: e.obj.position.z, r: e.obj.rotation.y, s: e.obj.scale.clone() };
+  e.obj.position.set(0, e.obj.position.y, 0); e.obj.rotation.y = 0; e.obj.scale.set(1, 1, 1);
+  e.obj.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(inner);
+  e.obj.position.set(saved.x, e.obj.position.y, saved.z); e.obj.rotation.y = saved.r; e.obj.scale.copy(saved.s);
+  e.obj.updateMatrixWorld(true);
+  e.nocBox = b;
+  return b;
+}
+
 function frontOf(e, dist = 0.45) {
   const r = e.target.rotY;
   const k = frontEdge(e) + dist;
@@ -772,7 +786,11 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
     // round what they can see and a use spot just in front stays walkable.
     const b = localBox(e);
     const cl = (v, lim) => Math.max(-lim, Math.min(lim, v));
-    return [rect(cl(b.min.x, f.w / 2 + 0.1), cl(b.min.z, f.h / 2), cl(b.max.x, f.w / 2 + 0.1), cl(b.max.z, f.h / 2))];
+    // The NOC's desk reaches onto its front zone, and its chairs further; those block too.
+    const front = e.itemId === 'noc' && e.obj.userData.noc?.level >= 2 ? FRONT_ZONE_M : 0;
+    const box = e.itemId === 'noc' ? nocBox(e) : b;
+    return [rect(cl(box.min.x, f.w / 2 + 0.1), cl(box.min.z, f.h / 2), cl(box.max.x, f.w / 2 + 0.1), cl(box.max.z, f.h / 2 + front)),
+      ...(e.itemId === 'noc' ? nocObstacles(e.obj).map(([x0, z0, x1, z1]) => rect(x0, z0, x1, z1)) : [])];
   }
 
   // A few free spots spread over the room for idle wandering.
