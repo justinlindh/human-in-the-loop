@@ -11,7 +11,8 @@
 // starts no browser at all when every scene is unchanged and the frame-by-frame identity check (below)
 // has a matching success record of its own. Scene records never stand in for it: with the scenes
 // cached but no current identity record, golden opens a browser for the identity check alone.
-// HITL_NO_CHECK_CACHE=1 renders and checks everything.
+// HITL_NO_CHECK_CACHE=1 renders and checks everything. HITL_GOLDEN_OUT moves the failure artifacts
+// (default shots/golden).
 //
 // Each scene loads the game through harness.mjs (Math.random seeded, the clock frozen, the game
 // loop held) and steps a fixed number of frames by hand, drawing only the last (__settle), so a
@@ -29,7 +30,7 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REF = join(HERE, 'golden');
-const OUT = resolve(HERE, '..', '..', 'shots', 'golden');
+const OUT = process.env.HITL_GOLDEN_OUT ? resolve(process.env.HITL_GOLDEN_OUT) : resolve(HERE, '..', '..', 'shots', 'golden');
 const UPDATE = process.argv.includes('--update');
 const ONLY = process.argv.find((a) => a.startsWith('--only='))?.slice(7).split(',');
 const JOBS = Math.max(1, Number(process.argv.find((a) => a.startsWith('--jobs='))?.slice(7)) || 8);
