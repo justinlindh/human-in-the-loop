@@ -76,7 +76,7 @@ export function createProps(office, screens = null) {
     let swapped = false;
     for (const [k, e] of live) {
       if (keys.has(k) || e.gone) continue;
-      gone.push({ prop: e.prop, x: e.obj.position.x, z: e.obj.position.z, at: clock });
+      gone.push({ prop: e.prop, x: e.obj.position.x, z: e.obj.position.z, at: clock, out: e.obj.userData.out ?? null });
       if (handover && KITCHEN_SWAP.has(e.prop) && kitchenOf(office)) { dispose(e.obj); live.delete(k); swapped = true; continue; }
       e.gone = true; e.t = 0;
     }
@@ -98,7 +98,7 @@ export function createProps(office, screens = null) {
       obj.userData.propId = w.prop;
       if (obj.userData.blocks) obj.userData.rect = floorRect(obj, obj.userData.blockPart);
       const inPlace = swapped && KITCHEN_SWAP.has(w.prop);
-      if (KITCHEN_SWAP.has(w.prop) && kk && kitchenOf(office)) printerSpot = { x: obj.position.x, z: obj.position.z, rot: obj.rotation.y, kitchen: kk };
+      if (KITCHEN_SWAP.has(w.prop) && kk && kitchenOf(office)) printerSpot = { x: obj.position.x, z: obj.position.z, rot: obj.rotation.y, wall: !!obj.userData.out, kitchen: kk };
       if (!obj.userData.noPop && !inPlace) obj.scale.setScalar(0.001);
       root.add(obj);
       live.set(w.key, { obj, t: inPlace ? POP_S + 1 : 0, gone: false, prop: w.prop, staffId: w.staffId ?? null });
@@ -1229,6 +1229,8 @@ function byKitchen(build) {
     const at = env.printerAt?.() ?? kitchenSpot(L, env.office, g, k, anchor.prop);
     g.rotation.y = at.rot;
     g.position.set(at.x, 0, at.z);
+    // Its back is to a wall: the way out into the room, for a moment that moves it (goneAt's out).
+    if (at.wall) g.userData.out = [Math.sin(at.rot), Math.cos(at.rot)];
     return g;
   };
 }
@@ -1286,7 +1288,7 @@ function kitchenSpot(L, office, g, k, moment) {
   };
   const p = pickSpot(kc, { candidates: candidates(), needs: ['door', 'furniture', 'floor', 'reach'], checks,
     score: (q) => Math.hypot(q.x - kc.x, q.z - kc.z), debug: spotDebug(office), moment, search: 'kitchenWall' });
-  if (p) return { x: p.x, z: p.z, rot: p.rot };
+  if (p) return { x: p.x, z: p.z, rot: p.rot, wall: true };
   g.rotation.y = k.obj.rotation.y;
   const c = clearSpot(L, office, g, kc);
   return { x: c.x, z: c.z, rot: k.obj.rotation.y };
