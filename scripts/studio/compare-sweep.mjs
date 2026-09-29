@@ -34,6 +34,7 @@ function compile(file) {
 const { createRuntime } = await import('./runtime.mjs');
 const X = await import('../../blender/checks/intersect.js');
 const { partId } = await import('./ids.mjs');
+const { depthAtTol } = await import('./geometry.mjs');
 
 // The sweep names an item part by its material, as intersect.js's partName does.
 const partName = (m) => {
@@ -67,7 +68,7 @@ function pairs(R, S, model) {
     if (!person || !item) continue;
     const part = /\/(head|torso):\d+$/.exec(person)?.[1];
     const mesh = byId.get(item);
-    if (part && mesh) put(engine, `${person.split('/')[0].slice(7)}|${item.split('/')[0].slice(5)}|${part}|${partName(mesh)}`, c.depthM);
+    if (part && mesh) put(engine, `${person.split('/')[0].slice(7)}|${item.split('/')[0].slice(5)}|${part}|${partName(mesh)}`, depthAtTol(c, TOL_PERSON));
   }
   return { sweep, engine, scene };
 }
