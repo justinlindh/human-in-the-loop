@@ -91,7 +91,7 @@ export const OFFICE_NODS = [
       { label: 'Call the repair line', hint: `$${N.printerRepair}`, effects: { cash: -N.printerRepair }, outcome: 'A technician shows up, says "huh", and leaves. It works now. Nobody knows why.' },
       { label: 'Print less', hint: 'Output down a little for 13 weeks', effects: { modifier: { key: 'output', value: N.printLessOutput, weeks: N.printLessWeeks, label: 'Paperless, grudgingly' },
         later: [{ inWeeks: 1, effects: { chat: { from: '@officebot', channel: 'random', text: 'Reminder: the printer is out of order. Printing is a state of mind now.' } } }] },
-      outcome: 'A sign goes up over the printer: OUT OF ORDER. FOREVER.' },
+      leaves: { prop: 'printer_out_of_order', until: null, anchor: 'kitchen' }, outcome: 'A sign goes up over the printer: OUT OF ORDER. FOREVER.' },
     ],
   },
   {
