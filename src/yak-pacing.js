@@ -10,6 +10,8 @@ export function createYakPacer() {
   // Ids of posts shown at once (the player's own posts, reply prompts). Replies to them are answers
   // the player is waiting on, so they queue and expire like important posts.
   const answered = new Set();
+  // Ids of the player's own posts (shown at once and not important): their replies go before other priority posts.
+  const mine = new Set();
   const pri = (e) => importantChat(e) || answered.has(e.replyTo);
   const omit = (e) => { if (e.id) omitted.set(e.id, now); };
   function reserve(e) {
@@ -45,7 +47,7 @@ export function createYakPacer() {
     for (const [id, at] of omitted) if (now - at > B.yakMemorySeconds) omitted.delete(id);
   }
   return {
-    reset() { answered.clear(); now = 0; gameNow = 0; free = 0; pending = []; omitted.clear(); },
+    reset() { answered.clear(); mine.clear(); now = 0; gameNow = 0; free = 0; pending = []; omitted.clear(); },
     enqueue(events, { urgentIds = new Set(), state, gameTime = gameNow } = {}) {
       const urgent = [];
       for (const e of events) {
@@ -53,6 +55,7 @@ export function createYakPacer() {
         if (urgentIds.has(e.id)) {
           urgent.push(e); reserve(e);
           answered.add(e.id);
+          if (!importantChat(e)) mine.add(e.id);
           if (answered.size > 200) answered.delete(answered.values().next().value);
           continue;
         }
@@ -67,7 +70,8 @@ export function createYakPacer() {
       gameNow = gameTime;
       prune(state);
       if (now < free || !pending.length) return [];
-      let i = pending.findIndex(x => pri(x.e));
+      let i = pending.findIndex(x => mine.has(x.e.replyTo));
+      if (i < 0) i = pending.findIndex(x => pri(x.e));
       if (i < 0) i = 0;
       // A priority reply still follows its parent when both are waiting.
       const seen = new Set();

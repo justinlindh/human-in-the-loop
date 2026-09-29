@@ -76,6 +76,33 @@ describe('find.js --where', () => {
     expect(r.out.kind).toBe('scan-failed');
   });
 
+  it('looks ahead: --then confirms a moment from a later week, the snapshot stays before the first tick', () => {
+    const r = find('--where', "e.type === 'week' && s.week === 4", '--then', "e.type === 'week' && s.week === 9 && s.week", '--within', '10', ...SCAN);
+    expect(r.code).toBe(0);
+    expect(r.out[0]).toMatchObject({ week: 4, result: 9 });
+    expect(JSON.parse(gunzipSync(readFileSync(r.out[0].snapshotFile)).toString()).week).toBe(3);
+  });
+
+  it('drops a moment whose --then never holds within --within, and says so', () => {
+    const r = find('--where', "e.type === 'week' && s.week === 4", '--then', "e.type === 'week' && s.week === 20", '--within', '5', ...SCAN);
+    expect(r.code).toBe(1);
+    expect(r.err).toMatch(/1 moment\(s\) matched --where and none satisfied --then within 5 weeks/);
+  });
+
+  it('ranks matches by --rank, highest first, over every seed asked for', () => {
+    const r = find('--where', "e.type === 'week' && s.week === 6", '--rank', 'm.seed', '--scan-seeds', '1-3', '--scan-weeks', '10', '--bot', 'balanced', '--limit', '3');
+    expect(r.out.map((x) => x.seed)).toEqual([3, 2, 1]);
+    expect(r.out[0].rank).toBe(3);
+  });
+
+  it('names the && part no run made true, so an unreachable condition is not scanned forever', () => {
+    const r = find('--explain', '--where', "e.type === 'week' && s.week === 5 && s.office.stage === 2", ...SCAN);
+    expect(r.code).toBe(1);
+    expect(r.out.matches).toEqual([]);
+    expect(r.out.scan.unreachable).toEqual(['s.office.stage === 2']);
+    expect(r.err).not.toBe(null);
+  });
+
   it('keeps the snapshots of two queries that differ only in --setup and match the same week apart', () => {
     const base = ['--where', "e.type === 'week' && s.week === 7", ...SCAN];
     const a = find(...base);
@@ -98,6 +125,37 @@ describe('find.js --where', () => {
     const r = find('--where', 's.week === 3', '--choice', '0', ...SCAN);
     expect(r.code).toBe(2);
     expect(r.out.kind).toBe('bad-query');
+  });
+
+  it('keeps every waiting moment: a later --where moment is still checked while earlier ones wait', () => {
+    const r = find('--where', "e.type === 'week' && s.week >= 1", '--then', "e.type === 'week' && m.week >= 30 && s.week === m.week + 1", '--within', '52', '--scan-seeds', '1', '--scan-weeks', '50', '--bot', 'balanced');
+    expect(r.code).toBe(0);
+    expect(r.out[0].week).toBe(30);
+  });
+
+  it('lets --per-run take several matches from one run, and --rank order them', () => {
+    const r = find('--where', "e.type === 'week' && s.week >= 3", '--rank', 'm.week', '--per-run', '3', '--limit', '3', ...SCAN);
+    expect(r.out.map((x) => x.week)).toEqual([5, 4, 3]);
+  });
+
+  it('counts a clause as reachable only inside the --weeks window', () => {
+    const r = find('--explain', '--where', "e.type === 'week' && s.week === 20", '--weeks', '1-10', ...SCAN);
+    expect(r.code).toBe(1);
+    expect(r.out.scan.unreachable).toContain('s.week === 20');
+  });
+
+  it('runs --before before the decide and the turn each week, and --extra adds fields to the row', () => {
+    const r = find('--where', "e.type === 'week' && s.week === 4", '--before', 's.marker = (s.marker ?? 0) + 1;', '--extra', '({ mk: s.marker })', ...SCAN);
+    expect(r.code).toBe(0);
+    expect(r.out[0].mk).toBe(2 * r.out[0].week);
+  });
+
+  it('plays the bot --bot-js names each week, and refuses one that is not JS', () => {
+    const ok = find('--where', "e.type === 'week' && s.week === 3", '--bot-js', "s.week < 2 ? 'balanced' : 'sensible'", ...SCAN);
+    expect(ok.code).toBe(0);
+    const bad = find('--where', 's.week === 3', '--bot-js', 's.week <', ...SCAN);
+    expect(bad.code).toBe(2);
+    expect(bad.out.kind).toBe('bad-query');
   });
 });
 

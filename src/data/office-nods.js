@@ -78,7 +78,8 @@ export const OFFICE_NODS = [
     ],
   },
   {
-    id: 'printer_jam', kind: 'misc', weight: 2, cooldownWeeks: ONCE, random: true, subject: 'randomStaff',
+    id: 'printer_jam', kind: 'misc', weight: 0, cooldownWeeks: ONCE, random: false, subject: 'randomStaff',
+    floorWindow: { from: N.printerFromWeeks, to: N.printerToWeeks },
     when: (s) => s.officeStage >= 1,
     chat: 'The printer is jammed. Again.',
     title: 'PC LOAD LETTER',

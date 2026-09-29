@@ -45,11 +45,11 @@ function weeksOfChat(s, weeks) {
 }
 
 describe('issue #339: office classics', () => {
-  it('all six are random, once a run, and use the literal classics', () => {
+  it('all six are once a run and use the literal classics; all but the printer are random rolls', () => {
     expect(IDS).toEqual(['banner_company', 'cover_sheets', 'the_stapler', 'efficiency_consultants', 'printer_jam', 'saturday_ask']);
     for (const ev of OFFICE_NODS) {
       expect(EVENTS[ev.id]).toBe(ev);
-      expect(ev.random).toBe(true);
+      expect(ev.random).toBe(ev.id !== 'printer_jam');
       expect(ev.cooldownWeeks).toBeGreaterThanOrEqual(10000);
     }
     const all = JSON.stringify(OFFICE_NODS.map((e) => [e.title, e.text, e.choices]));
@@ -58,12 +58,12 @@ describe('issue #339: office classics', () => {
     }
   });
 
-  it('the banner and consultants only run in Consolidation; the rest run in any era', () => {
+  it('the banner and consultants only roll in Consolidation; the other random ones in any era', () => {
     const early = company(1, 16, 200);
     const late = company(1, 16, 560);
     const ids = (s) => eligibleEvents(s).map((e) => e.id).filter((id) => IDS.includes(id));
-    expect(ids(early).sort()).toEqual(['cover_sheets', 'printer_jam', 'saturday_ask', 'the_stapler']);
-    expect(ids(late).sort()).toEqual([...IDS].sort());
+    expect(ids(early).sort()).toEqual(['cover_sheets', 'saturday_ask', 'the_stapler']);
+    expect(ids(late).sort()).toEqual(IDS.filter((id) => id !== 'printer_jam').sort());
   });
 
   it('once fired, an event never comes back in the same run', () => {
