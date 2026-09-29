@@ -58,3 +58,4 @@
 @media (max-width: 480px) { .hitl .tl-exp { min-width: 2.8em; padding: 0; } .hitl .tl-explbl { display: none; } }
 .hitl .tl-replacelist { max-height: min(22em, 42vh); overflow-y: auto; padding-right: 0.2em; scrollbar-width: thin; }
 .hitl .tl-replacelist.more { -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent); mask-image: linear-gradient(to bottom, #000 78%, transparent); }
+.hitl .tl-del.armed:hover:not(:disabled) { background: var(--red); }

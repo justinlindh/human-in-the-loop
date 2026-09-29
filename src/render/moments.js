@@ -43,6 +43,7 @@ const TAKE_IT_OUT = 0;       // printer_jam's 'Take it out back' choice index
 const CARRY_SPEED = [0.5, 3];  // metres a second: the printer carry takes the cue's verse, within these
 const PAIR_CLEAR = 0.7;      // metres a printer carry keeps from furniture, either side of its way
 const GRIP_OUT = 0.2;        // how far each carrier stands out from the printer's side
+const WALL_STEP_OUT = 0.9;   // a printer against a wall is first carried this far straight out from it
 const BAT_BEHIND = 0.9;      // the one with the bat follows this far behind the printer
 const COLUMN_SCREEN_R = 0.45;  // a column's half-width on screen for staging: its corner-on width plus a body's
 const WATCH_AT = 1.05, WATCH_S = 1;   // where the carriers watch from (metres off the printer), and how long they take to get there
@@ -1079,7 +1080,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     parent.add(obj);
     const size = new THREE.Box3().setFromObject(obj).getSize(new THREE.Vector3());
     obj.position.set(at.x, 0, at.z);
-    const route = printerRoute(at, wreck.position);
+    const route = printerRoute(at, wreck.position, at.out);
     const pm = printer = {
       phase: 'gather', obj, people: near, bat: null, route, len: routeLength(route), s: 0, t: 0, cue: 0,
       clear: routeClear, side: size.x / 2 + GRIP_OUT, h: size.y, wreck, scale1: wreck.children[0]?.scale.x ?? JAM_SCALE, hit: 0, swung: -1,
@@ -1103,15 +1104,22 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   }
   // From the printer's spot to the wreck's.
   let routeClear = 0;
-  function printerRoute(at, end) {
+  // out: for a printer with its back to a wall, the way into the room. The carry starts straight out
+  // along it, so the pair lifts it standing either side along the wall rather than one in the wall.
+  function printerRoute(at, end, out = null) {
     const to = end;
     const pts = [{ x: at.x, y: 0, z: at.z }];
+    let from = at;
+    if (out) {
+      from = { x: at.x + out[0] * WALL_STEP_OUT, z: at.z + out[1] * WALL_STEP_OUT };
+      pts.push({ x: from.x, y: 0, z: from.z });
+    }
     // As wide a way as there is for the pair: the printer's half-width plus a carrier either side.
     const nav = office.nav();
     let way = null;
-    for (const clear of [PAIR_CLEAR, PAIR_CLEAR * 0.7]) if ((way = nav.path({ x: at.x, z: at.z }, { x: to.x, z: to.z }, clear))) { routeClear = clear; break; }
+    for (const clear of [PAIR_CLEAR, PAIR_CLEAR * 0.7]) if ((way = nav.path({ x: from.x, z: from.z }, { x: to.x, z: to.z }, clear))) { routeClear = clear; break; }
     // Through a narrow aisle: as far from its sides as it can keep.
-    if (!way) { way = nav.path({ x: at.x, z: at.z }, { x: to.x, z: to.z }, 0.35, { soft: true }); routeClear = -0.35; }
+    if (!way) { way = nav.path({ x: from.x, z: from.z }, { x: to.x, z: to.z }, 0.35, { soft: true }); routeClear = -0.35; }
     for (const q of way ?? []) pts.push({ x: q.x, y: 0, z: q.z });
     pts.push({ x: end.x, y: 0, z: end.z });
     return pts.filter((q, i) => i === 0 || Math.hypot(q.x - pts[i - 1].x, q.z - pts[i - 1].z) > 0.05);
