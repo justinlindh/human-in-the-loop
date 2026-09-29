@@ -1,6 +1,6 @@
 import { YAK_HELPERS, YAK_CHECK } from '../feature-media/yak.js';
 import { GROW, EMPTY_DESKS } from '../feature-media/manifest.js';
-import { PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY, CAMLOG, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN } from '../capture-manifest.js';
+import { PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY, CAMLOG, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK_SEL } from '../capture-manifest.js';
 
 // Everything the trailer is made of: which captured clips, where each cut starts and ends, the cards,
 // the music and stingers, and when each voiceover line lands. Change the trailer here; build.js only
@@ -64,6 +64,18 @@ export const DEFERRED_CAPTURES = [];
 // The one-minute cut (#668). Beats 4 (build) and 11 (the cloud bill) need the game changes noted there.
 const YAK_SETUP = `(async () => { await ${PRE_UNTIL({ weeks: 600, bot: 'balanced', turn: 's.office.stage < 1 || s.staff.length < 8', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY + "const check = structuredClone(s); sim.tick(check); if (check.office.stage !== 1 || check.outage?.weeks !== 0) throw new Error('trailer: no seed-2 outage found');", hit: '(c) => c.office.stage === 1 && c.outage?.weeks === 0' })}; ${YAK_ONLY}; ${YAK_HELPERS} })()`;
 
+// A quiet week (seed 62, week 124) where "Share a meme" picks the PC LOAD LETTER image: the post
+// lands in Yak, then is opened full size the way a player taps it.
+const MEME_SETUP = `(async () => { await ${PRE_UNTIL({ weeks: 500, bot: 'balanced', turn: 's.office.stage < 1 || s.staff.length < 8', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: '(c) => c.week === 125' })}; ${YAK_ONLY}; })()`;
+const MEME_ACTIONS = [
+  ...CLEAR_EARLY, ...DISMISS_AT([5, 6, 7], { escape: false }), ...CHOOSE_WHEN(null, 0, 1, 9, 1),
+  { at: 1, js: CLICK_SEL('.chat.yak .ysz[aria-label="large size"]') },
+  { at: 1.4, js: CLICK_SEL('.ypost-btn') },
+  { at: 1.9, js: `(() => { const b = [...document.querySelectorAll('.ypost-opt')].find((b) => b.getClientRects().length && /meme/i.test(b.textContent)); if (!b || b.disabled) throw new Error('trailer: Share a meme unavailable'); const s = window.__HITL.state; if (s.week !== 124) throw new Error('trailer: meme week is ' + s.week); b.click(); const post = s.chatLog.at(-1); if (post?.image?.id !== 'change_my_mind') throw new Error('trailer: the meme is ' + post?.image?.id); })()` },
+  { at: 3.2, js: "(() => { const st = document.createElement('style'); st.textContent = '.memebox-img { width: 1160px !important; height: auto !important; max-width: none !important; max-height: none !important; }'; document.head.append(st); })()" },
+  { at: 3.3, js: `[...document.querySelectorAll('.chat.yak .ymeme')].at(-1)?.click()` },
+];
+
 export const BEATS = [
   { id: 'title', card: 'title', dur: 2.0 },
   // The founders' first desks, with a slow in-engine push-in.
@@ -82,6 +94,7 @@ export const BEATS = [
   { id: 'yak', item: 'site-yak-backfire', capture: { query: 'seed=62&speed=1', setup: YAK_SETUP, still: false, seconds: 64, screenshots: [] }, actions: [NO_SAY_T(0), YAK_CHECK(61.5), YAK_CHECK(63.06)], from: 60.1, dur: 3.1 },
   { id: 'yak-react', item: 'site-yak-backfire', capture: { query: 'seed=62&speed=1', setup: YAK_SETUP, still: false, seconds: 16, screenshots: [11.2, 11.6, 12.4, 13.2, 14, 14.8, 15.6], camera: [{ at: 0, target: VIEW0, zoom: 1 }, { at: 11, target: VIEW0, zoom: 1 }, { at: 11.2, target: FACEPALMER, zoom: 4.2 }] }, actions: [...CAMLOG(16), NO_SAY_T(0), { at: 11, js: "document.querySelector('#ui').style.display = 'none'" }, { at: 11.3, js: "if (!window.__facepalmer) throw new Error('trailer: the post has no facepalmer')" }], from: 11.2, dur: 2.0 },
   // PC LOAD LETTER from the flying camera: the wind-up and hits, to the rap's last word. No narration.
+  { id: 'printer-meme', item: 'site-yak-backfire', capture: { query: 'seed=62&speed=1', setup: MEME_SETUP, still: false, seconds: 7, screenshots: [], actions: MEME_ACTIONS }, from: 2.6, dur: 2.5 },
   { id: 'printer', item: 'trail-fly-printer', capture: { seconds: 30 }, from: 23 + 13 / 30, dur: 5.7 },
   { id: 'era-chatgbt', item: 'real-era-chatgbt', actions: [NO_ERA_CARD(0)], from: 9.0, dur: 4.1 },
   { id: 'era-agents', item: 'real-era-agents', actions: [NO_ERA_CARD(0)], from: 9.0, dur: 2.4 },

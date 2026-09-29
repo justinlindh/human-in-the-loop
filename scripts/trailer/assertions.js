@@ -8,6 +8,7 @@ const EXPECT = {
   incident: "s.outage && s.outage.responderIds?.length > 0",
   yak: "window.__assertYak()",
   'yak-react': "s.staff.some(p => R.probe(p.id)?.anim?.startsWith('facepalm'))",
+  'printer-meme': "s.week === 124 && s.chatLog.some(m => m.image?.id === 'change_my_mind') && visible('.chat.yak .ymeme-img')",
   printer: "R.moments.printer && Math.abs(R.moments.printer.cue - 9.9) <= 1 / 30 && R.props.current().some(p => p.prop === 'printer_wrecked') && R.flying",
   'era-chatgbt': "s.era.id === 'chatgbt'",
   'era-agents': "s.era.id === 'agents'",
