@@ -2,7 +2,7 @@
 tool: `npm run trailer`
 section: run
 who: integrator, audio
-covers: scripts/trailer/build.js scripts/trailer/assertions.js scripts/trailer/reuse.js
+covers: scripts/trailer/build.js scripts/trailer/assertions.js scripts/trailer/reuse.js scripts/trailer/pin.mjs scripts/trailer/pins.js scripts/trailer/pin-manifest.js
 ---
 Builds the trailer from captures, cards and the game's music. See `docs/trailer/README.md`.
 
