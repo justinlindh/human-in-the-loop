@@ -1,0 +1,10 @@
+{
+  "base": "floor",
+  "era": "agents",
+  "items": [{ "item": "coffee_corner", "at": [6, 6], "id": "cc" }],
+  "people": [
+    { "id": "ada", "at": [6.2, 9], "use": { "item": "cc", "slot": 0, "dur": 3 } },
+    { "id": "cy", "at": [8.2, 9], "use": { "item": "cc", "slot": 1, "dur": 20 } },
+    { "id": "bo", "at": { "stepOut": { "item": "cc", "slot": 0 } }, "face": "north", "until": 6.5 }
+  ]
+}

@@ -49,7 +49,13 @@ export async function createRuntime({ state, mock = 'floor', quality = 'low', ri
     for (let i = 0; i < 2; i++) advance();
     if (S.robot?.cause && R.robot.force(`broken:${S.robot.cause}`)) R.robot.arriveNow();
     for (const e of script.filter((x) => x.op === 'place')) {
-      const x = -L.W / 2 + e.at[0], z = -L.D / 2 + e.at[1];
+      // A named spot is the game's own step-out point for an item's slot, in world metres already.
+      let x, z;
+      if (e.stepOut) {
+        const q = R.perks.stepOut(e.stepOut.item, e.stepOut.slot);
+        if (!q) throw new Error(`scene-engine: compose place: "${e.stepOut.item}" slot ${e.stepOut.slot} has no step-out point (not a perk item with a step-in, a slot out of range, or the front is blocked)`);
+        ({ x, z } = q);
+      } else { x = -L.W / 2 + e.at[0]; z = -L.D / 2 + e.at[1]; }
       // standAt teleports; the temp it makes is then replaced by one that holds for the whole scene.
       if (!R.standAt(e.who, x, z)) throw new Error(`scene-engine: compose place: no such person ${e.who}`);
       // Facing the robot means where it rests after its plan (its dock), not the tile the item sits on.

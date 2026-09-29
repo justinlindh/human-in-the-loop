@@ -55,7 +55,8 @@ export class ComposeError extends Error {
   }
 }
 
-const isPoint = (v) => Array.isArray(v) && v.length === 2 && v.every(Number.isFinite);
+const isSpot = (v) => v != null && typeof v === 'object' && !Array.isArray(v);
+const isPoint =(v) => Array.isArray(v) && v.length === 2 && v.every(Number.isFinite);
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const MOMENTS = ['slap'];
 const KEEP = ['office', 'staff'];
@@ -142,7 +143,16 @@ export function compose(input) {
       else { rec.deskId = desk.id; seatedAt.set(desk.id, p.id); spots.set(p.id, seatTile(desk)); }
       if (p.face != null) problems.push(`${where}: a seated person faces their desk; drop face`);
     } else if (standing) {
-      if (!isPoint(p.at)) problems.push(`${where}: at must be [x, y] tiles`);
+      if (isSpot(p.at)) {
+        // The game's own number, read when the scene runs (the point depends on what stands round the item).
+        const s = p.at.stepOut;
+        if (Object.keys(p.at).length !== 1 || typeof s !== 'object' || s === null) problems.push(`${where}: at must be [x, y] tiles or { stepOut: { item, slot? } }`);
+        else {
+          unknownKeys(s, ['item', 'slot'], `${where}.at.stepOut`, problems);
+          if (!state.office.placed.some((it) => it.id === s.item)) problems.push(`${where}.at.stepOut: item "${s.item}" is not an item id`);
+          if (s.slot != null && !(Number.isInteger(s.slot) && s.slot >= 0)) problems.push(`${where}.at.stepOut: slot must be a whole number from 0`);
+        }
+      } else if (!isPoint(p.at)) problems.push(`${where}: at must be [x, y] tiles or { stepOut: { item, slot? } }`);
       else {
         const near = [...byId].find(([other, o]) => other !== p.id && o.entry.at && isPoint(o.entry.at) && Math.hypot(o.entry.at[0] - p.at[0], o.entry.at[1] - p.at[1]) < APART);
         if (near) problems.push(`${where}: at ${p.at} is within ${APART} tile of "${near[0]}" at ${near[1].entry.at}`);
@@ -175,7 +185,14 @@ export function compose(input) {
   for (const [id, { entry: p }] of byId) {
     const where = `people "${id}"`, at = spots.get(id);
     const frame = Math.round((p.t ?? 0) * FPS);
-    if (p.at != null && at) {
+    if (isSpot(p.at) && p.at.stepOut && typeof p.at.stepOut === 'object') {
+      const f = p.face ?? 'south';
+      let dir = null;
+      if (typeof f === 'string' && COMPASS[f]) dir = COMPASS[f];
+      else if (typeof f === 'number') dir = [Math.sin((f * Math.PI) / 180), Math.cos((f * Math.PI) / 180)];
+      else problems.push(`${where}: at a named spot, face is north, east, south, west or a degree`);
+      if (dir) script.push({ frame: 0, who: id, op: 'place', stepOut: { item: p.at.stepOut.item, slot: p.at.stepOut.slot ?? 0 }, dir: dir.map((v) => +v.toFixed(6)) });
+    } else if (p.at != null && at) {
       let dir = null, towardRobot = false;
       const f = p.face ?? 'south';
       if (typeof f === 'string' && COMPASS[f]) dir = COMPASS[f];

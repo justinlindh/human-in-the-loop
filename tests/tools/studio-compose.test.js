@@ -124,6 +124,32 @@ describe('studio scene --compose', () => {
     expect(new Set(held).size).toBe(1);
   }, 260000);
 
+  it('coffee wait: a person stands on the step-out point by name, and the visitor leaves only after them, never inside them', () => {
+    const rows = frames('coffee-wait.json', ['--from', '0', '--to', '10', '--every', '0.5', '--facts', 'intersections']);
+    const at = (r, id) => person(r, id).position;
+    const act = (r, id) => person(r, id).person.activity;
+    const bo = rows.map((r) => at(r, 'bo'));
+    // held still until `until` (6.5 s), then walking
+    expect(new Set(bo.slice(0, 13).map((p) => p.join())).size).toBe(1);
+    expect(act(rows[14], 'bo')).toBe('walk');
+    // the point is in front of the spot ada sips at, straight in line with it (read from the game, not pinned)
+    const sip = rows.find((r) => act(r, 'ada') === 'sip');
+    expect(sip).toBeTruthy();
+    expect(Math.abs(bo[0][0] - at(sip, 'ada')[0])).toBeLessThan(0.1);
+    expect(bo[0][2] - at(sip, 'ada')[2]).toBeGreaterThan(0.2);
+    expect(bo[0][2] - at(sip, 'ada')[2]).toBeLessThan(0.8);
+    // ada sips through bo's stay and steps out after bo has left
+    const last = rows.map((r) => act(r, 'ada')).lastIndexOf('sip');
+    expect(last * 0.5).toBeGreaterThanOrEqual(6.5);
+    expect(rows.findIndex((r) => act(r, 'ada') === 'walk' && r.timeSeconds > 4)).toBeGreaterThan(13);
+    // once ada is at the spot, ada and bo never overlap
+    const from = rows.indexOf(sip);
+    for (const r of rows.slice(from)) {
+      const pairs = r.facts.intersections.filter((c) => /person:(ada|bo)\//.test(c.a) && /person:(ada|bo)\//.test(c.b) && c.a.split('/')[0] !== c.b.split('/')[0]);
+      expect(pairs, `t=${r.timeSeconds}`).toEqual([]);
+    }
+  }, 260000);
+
   it('seats the composed person at the desk and plays the gesture over it', () => {
     const rows = frames('facepalm.json', ['--from', '0', '--to', '1', '--every', '1']);
     const ada = person(rows[0], 'ada');
@@ -142,6 +168,16 @@ describe('compose perk visits and timed releases', () => {
     const { script } = compose({ ...cc, people: [{ id: 'a', at: [8, 9], t: 2, use: { item: 'cc', slot: 1, dur: 4 } }, { id: 'b', at: [6.4, 8.2], until: 7 }] });
     expect(script).toContainEqual({ frame: 60, who: 'a', op: 'use', item: 'cc', slot: 1, dur: 4 });
     expect(script).toContainEqual({ frame: 210, who: 'b', op: 'release' });
+  });
+  it('compiles a named step-out spot to a place step the runtime resolves, and refuses a bad one', () => {
+    const at = (x) => ({ ...cc, people: [{ id: 'b', at: x, face: 'north' }] });
+    expect(compose(at({ stepOut: { item: 'cc', slot: 1 } })).script).toEqual([{ frame: 0, who: 'b', op: 'place', stepOut: { item: 'cc', slot: 1 }, dir: [0, -1] }]);
+    const p = (x) => problemsOf(at(x)).join('\n');
+    expect(p({ stepOut: { item: 'nope' } })).toMatch(/at\.stepOut: item "nope" is not an item id/);
+    expect(p({ stepOut: { item: 'cc', slot: 1.5 } })).toMatch(/slot must be a whole number/);
+    expect(p({ stepOut: { item: 'cc' }, extra: 1 })).toMatch(/at must be \[x, y\] tiles or \{ stepOut/);
+    expect(p({ stepIn: {} })).toMatch(/at must be \[x, y\] tiles or \{ stepOut/);
+    expect(problemsOf({ ...cc, people: [{ id: 'b', at: { stepOut: { item: 'cc' } }, face: 'robot' }] }).join('\n')).toMatch(/at a named spot, face is north/);
   });
   it('refuses a use of a non-item, a bad slot, an until without a place, and a person with nothing to do', () => {
     const p = (x) => problemsOf({ ...cc, people: [{ id: 'a', at: [8, 9], ...x }] }).join('\n');
