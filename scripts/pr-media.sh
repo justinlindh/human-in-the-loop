@@ -102,7 +102,7 @@ done
 git add "$dir"
 if ! git diff --cached --quiet; then
   git commit -q -m "Media for $target $kind $pr"
-  git push -q -u origin pr-media 2>/dev/null || { echo "pr-media: push failed" >&2; exit 1; }
+  git push -q -u origin pr-media || { echo "pr-media: push failed (git's message is above)" >&2; exit 1; }
 fi
 
 printf '%s' "$md"

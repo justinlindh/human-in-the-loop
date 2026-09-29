@@ -585,7 +585,10 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     spot.yaw = towardCamera(spot, p.obj.position);
     // Push the chair back to get up; it rolls in again as they sit back down.
     const chair = office.freeChair?.(deskId, true);
-    const route = side ? [{ x: side.x, z: side.z }, { x: spot.x, z: spot.z }] : [{ x: spot.x, z: spot.z }];
+    // The step out beside the chair is straight; from there on they keep to the walk grid, so a
+    // reading spot across the room (the fallback) is walked round what stands between.
+    const grid = (a, b) => nav.path({ x: a.x, z: a.z }, { x: b.x, z: b.z }).slice(1);
+    const route = side ? [{ x: side.x, z: side.z }, ...grid(side, spot)] : grid(seat, spot);
     if (chair) rolls.push({ r, deskId, chair, z0: chair.position.z, k: 0, seat, sat: 0, route });
     // Read, then react: the letter goes up in front of their face for a beat, then down on the desk
     // and they slump over the news.
@@ -604,7 +607,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
           if (tp.sheet) { tp.sheet.removeFromParent(); tp.sheet = null; env.visible = true; }
           // Back the way they came: to the side of the chair, then in.
           rr.temp = { anim: 'typing', t: 0.1, goal: rr.goal, moment: 'letter', envelope: env, stage: { beat: 'return' } };
-          rr.path = [...(side ? [{ x: side.x, z: side.z }] : []), { x: seat.x, z: seat.z }];
+          rr.path = side ? [...grid(rr.pos, side), { x: seat.x, z: seat.z }] : grid(rr.pos, seat);
           return true;
         }
         rr.char.setAnim(tp.el < READ_S ? 'readpaper' : 'slump');
