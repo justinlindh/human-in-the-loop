@@ -1122,16 +1122,25 @@ function printerIdle() {
   const body = printerBody(false, { jammed: false, screen: readyScreen });
   g.add(body);
   const light = statusLight(P.marker_green);
+  light.scale.setScalar(1.5);
+  light.position.y = 0.4;
   body.add(light);
+  // The sheet a print job pushes out of the slot, hidden between jobs.
+  const sheet = mesh(roundedBox(0.22, 0.004, 0.2, 0.002, 1), mat('paper'), -0.14, 0.305, 0.2);
+  sheet.visible = false;
+  body.add(sheet);
   let t = 0;
   g.userData.tick = (dt) => {
     t += dt;
     const b = t % IDLE_BLINK_S;
-    light.material.emissiveIntensity = b < 0.12 || (b > 0.3 && b < 0.42) ? 2.4 : 0.3;
     const h = (t + 6) % IDLE_HUM_S;
-    const hum = h < HUM_LEN_S ? Math.sin((h / HUM_LEN_S) * Math.PI) : 0;
-    body.position.x = hum * Math.sin(t * 90) * 0.006;
-    body.rotation.y = hum * Math.sin(t * 70) * 0.012;
+    const printing = h < HUM_LEN_S;
+    light.material.emissiveIntensity = printing ? (Math.sin(t * 12) > 0 ? 2.6 : 0.6) : b < 0.14 || (b > 0.32 && b < 0.46) ? 2.6 : 0.3;
+    const hum = printing ? Math.sin((h / HUM_LEN_S) * Math.PI) : 0;
+    body.position.x = hum * Math.sin(t * 90) * 0.01;
+    body.rotation.y = hum * Math.sin(t * 70) * 0.02;
+    sheet.visible = printing;
+    sheet.position.z = 0.2 + Math.min(1, h / HUM_LEN_S) * 0.16;
   };
   return g;
 }
