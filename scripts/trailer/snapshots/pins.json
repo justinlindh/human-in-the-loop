@@ -19,5 +19,15 @@
     "seed": 1,
     "bot": "allHumans",
     "week": 139
+  },
+  "cloud": {
+    "query": "seed=6&speed=1",
+    "seed": 6,
+    "week": 442
+  },
+  "plateau": {
+    "query": "seed=3&speed=1&time=day",
+    "seed": 3,
+    "week": 800
   }
 }
