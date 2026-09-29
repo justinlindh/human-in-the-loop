@@ -47,7 +47,7 @@ State = {
   modifiers: [{ id, key, value, label, untilWeek, source }],   // temporary effects from decisions; key names a sim bonus (e.g. 'output', 'meaningRecovery')
   scheduled: [{ id, week, kind /*'effects'|'event'*/, payload }],   // delayed consequences and follow-up events; UI does not reveal payloads
   discoveredCombos: { ['cat:angle']: fitNumber },
-  outage: null | { productId, kind, severity, weeks, unrecoverable, responderIds, etaWeeks, cost, cause },   // see Incidents (#830)
+  outage: null | { productId, kind, severity, weeks, unrecoverable, responderIds, etaWeeks, cost, cause, misread },   // see Incidents (#830) and NOC (#342)
   incidentLog: [{ week, kind, productId, caught, severity }],   // last 30
   chatLog: [ChatEvent],   // the most recent chat events (same shape as the chat SimEvent), last 80, so the feed survives save and load
   lowCashWeeks,
@@ -101,7 +101,7 @@ Product = {
                                           // image: optional { id, alt } on posts that carry a picture (a meme); id is a meme image id from src/data/memes.js, and ui maps it to its files;
                                           // alt is the picture's short caption and equals text, so readers of text alone still get a sensible line; ui shows text when the image is missing
 { type: 'launch', productId }
-{ type: 'incident', kind, productId, caught, severity }
+{ type: 'incident', kind, productId, caught, severity, misread }   // misread: true when the NOC's agents read the alert as routine (NOC, #342)
 { type: 'resign', staffId, name, fired, reason }    // fired: true when the player fired them; reason: 'fired'|'burnout'|'moved_on'|'poached'|'retired' (older saves may omit it; treat missing as 'burnout' when fired is false)
 { type: 'hire', staffId }
 { type: 'decision' }
@@ -553,3 +553,26 @@ state.outage = null | { productId, kind, severity, weeks, unrecoverable,
   - Security kinds: the decision stays at the alarm, since its choices respond to the attack (pay the ransom, restore from backups). The resolution card offers only the two below, as a small follow-up decision (`incident_postmortem`), whose `vars` carry the same five keys.
   - "Write it up properly": responders respond `B.postmortemWeeks` (1) more week, tech debt -`B.postmortemDebt` (5), responders' knowledge +`B.postmortemKnowledge` (3), and each responder loses `B.postmortemMeaning` meaning unless Blameless Postmortems is on.
   - "Patch and move on": tech debt +`B.patchDebt` (3).
+
+## NOC (#342)
+
+A network operations centre the company grows out of Ops, with a one-off bet on who watches it.
+
+```
+ITEMS.noc = { id: 'noc', kind: 'shop', minStage: 0, costs: [c1, c2, c3], effects: [{ nocCatch, outageFix } x3],
+              footprint: { w: 3, h: 1 }, frontFrom: 2, requires: 'ops', unique: true, levelStage: [0, 1, 2] }
+state.ops.noc: null | 'humans' | 'agents'   // null until noc_bet is answered, and in old saves
+state.ops.nocSince: null | week             // week the mode was last set; null in old saves
+```
+
+- New item field `levelStage`, usable on any item: level N needs `officeStage >= levelStage[N - 1]`; absent means no limit. `unique: true` means one copy per office and replaces the shop cap for that item, so the refusal is 'You already have one' instead of 'You already have two'. The existing `requires` field gains the value `'ops'` (needs `unlocks.ops`, refused as 'Needs Ops and Security'). `upgradeItem` gains the refusal 'Needs a bigger office'. `outage.misread` and the incident event's `misread` load as false in old saves.
+- Looks by level: 1 a pager and a TV on a cart; 2 a darkened corner with a screen wall and a curved desk; 3 a full operations floor wall.
+- Effects, through itemBonus: `outageFix` multiplies outage fix capacity (the key research already uses), so outages end sooner and are less often unrecoverable. `nocCatch` is a chance to catch a breach from a cyber attack early (without a NOC a breach is never caught), cutting its damage like any caught incident; from the Agents era it also adds to the agent-incident catch chance, even with nobody overseeing. `nocCatch` goes through itemBonus, so `B.itemBonusCap` clamps it as well as `B.catchMax`. Catch and misread rolls come from their own stream derived from seed, week and incident count, so a company without a NOC plays exactly as before.
+- Mode `null` or `'humans'`: the `nocCatch` bonus scales by `min(1, n / B.nocCrew)`, where n counts staff on the `security` assignment and not away (as `onSecurity` counts them); no misreads. Mode `'agents'`: the `nocCatch` bonus times `B.nocAgentCatch`, no staff needed, and every incident rolls `B.nocMisreadChance`: on a hit it lands uncaught at severity +1 (max 5) with `misread: true`. A misread outage's `cause` says so in plain words, `incidentResolved.hurt` names it, and pagerbot posts it in Yak.
+- Decision `noc_bet`: raised once, from the Agents era on, whenever a `noc` at level 2 or higher exists (placed, upgraded, or already there when the era arrives). It waits in the usual decision queue while another decision is pending. Choices: 'Let the agents watch' (`ops.noc = 'agents'`), 'Keep humans on the glass' (`ops.noc = 'humans'`).
+
+```
+{ type: 'setNocMode', mode }   // 'humans' | 'agents'; refusals: 'No NOC', 'Not yet' (before noc_bet), 'Already set', 'Too soon' (under B.nocSwitchWeeks since ops.nocSince)
+```
+
+- Render reads existing state, no new fields: a live outage or incident means red alert; a quiet week can show someone dozing at the NOC; weeks since the last `incidentLog` entry drive a "days since last incident" sign; `ops.noc === 'agents'` puts agent logs on the screens.
