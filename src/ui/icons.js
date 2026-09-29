@@ -89,6 +89,7 @@ export const ICONS = {
   'item.whiteboard_wall': I('📝', 'Office shop item card', 30),
   'item.library': I('📚', 'Office shop item card', 30),
   'item.monitoring_wall': I('🖥️', 'Office shop item card', 30),
+  'item.noc': I('📟', 'Office shop item card', 30),
   'item.server_rack': I('🗄️', 'Office shop item card', 30),
   'item.trophy_case': I('🏆', 'Office shop item card', 30),
   'research.eval_harness': I('🧪', 'Internal tools card', 26),
