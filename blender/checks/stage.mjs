@@ -326,6 +326,7 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
       window.__step(90);
       Object.assign(S, JSON.parse(JSON.stringify(patch)));
       if (setup) await new Function('R', 'S', `return (async () => { ${setup}; })()`)(R, S);
+      const robotContact = moment === 'robot' ? (await import('/blender/checks/robot-contact.js')).robotContact : null;
       const petProbe = moment === 'pet' || moment === 'robot' ? (await import('/src/render/probe.js')).createProbe({ scene: R.scene, camera: R.camera, office: R.office }) : null;
       const samples = [];
       // Everyone the moment takes part, each sampled every frame until the moment is over for all.
@@ -371,10 +372,8 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
             m.petContact = pet?.contact ? Math.hypot(...m.hands[1].map((v, i) => v - pet.contact[i])) : Infinity;
           }
           if (moment === 'robot' && R.robot?.root) {
-            const head = R.robot.root.getObjectByName('robot_head') ?? R.robot.root;
-            const box = new THREE.Box3().setFromObject(head);
             m.robotVisible = petProbe.seen(R.robot.root)[0].visible;
-            m.robotContact = box.distanceToPoint(new THREE.Vector3(...m.hands[1]));
+            m.robotContact = robotContact(R.robot.root, m.hands[1]);
           }
           samples.push({ t: f / 30, actor, role: st?.role ?? null, ...m });
           if (arrive && st?.role === arrive.role) {

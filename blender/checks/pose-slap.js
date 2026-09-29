@@ -23,15 +23,13 @@ import { setRigEnabled } from '/src/render/rig.js';
 import { overlaps } from './intersect.js';
 import { faceVisibility } from './pose-visibility.js';
 import { coverCamera } from './pose-measure.js';
+import { robotContact } from './robot-contact.js';
 
 const AFTER_S = 1.1;   // how long the game keeps the fixer in the slap anim after SLAP_AT (robot.js temp t)
 const PITCH = Math.atan(1 / Math.SQRT2);
 const SIDE = -1;
 const START_YAW = Math.PI / 4;
 const TO_CAMERA = new THREE.Vector3(Math.sin(START_YAW) * Math.cos(PITCH), Math.sin(PITCH), Math.cos(START_YAW) * Math.cos(PITCH));
-
-// Distance from a hand point to the robot head's box: the stage's robotContact.
-export const robotContact = (headObject, handAt) => new THREE.Box3().setFromObject(headObject).distanceToPoint(new THREE.Vector3(...handAt));
 
 // Degrees between where the fixer's face points and the robot head: the stage's facingRobot angle.
 function robotAngle(p, robotHead) {
@@ -123,7 +121,7 @@ export async function createSlapRun({ build = 1, rig = true, view = 0, fps = 30,
       eyes: p.eyes.toArray().map((v) => +v.toFixed(4)), forward: p.forward.toArray().map((v) => +v.toFixed(4)),
       head: p.head.toArray().map((v) => +v.toFixed(4)), hands: p.hands.map((h) => h.toArray().map((v) => +v.toFixed(4))),
       joints: j && Object.fromEntries(Object.entries(j).map(([name, v]) => [name, v.toArray().map((n) => +n.toFixed(4))])),
-      contact: { robotContact: +robotContact(robotHead, p.hands[1].toArray()).toFixed(4), robotDepth: +depth.toFixed(4), faceVisible: +vis.faceVisible.toFixed(3), robotAngle: robotAngle(p, robotHead) },
+      contact: { robotContact: +robotContact(robotRig.root, p.hands[1].toArray()).toFixed(4), robotDepth: +depth.toFixed(4), faceVisible: +vis.faceVisible.toFixed(3), robotAngle: robotAngle(p, robotHead) },
       faceCam: +THREE.MathUtils.radToDeg(p.forward.angleTo(TO_CAMERA)).toFixed(1),
     };
   };
