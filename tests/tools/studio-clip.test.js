@@ -14,6 +14,16 @@ describe('studio clip', () => {
     expect(r.stdout).toMatch(/CLIP ok {3}head:s1:/);
   }, 260000);
 
+  it('leaves the rig to the quality setting, as a page with no rig parameter does', () => {
+    const script = `const { createRuntime } = await import(${JSON.stringify(resolve(__dirname, '../../scripts/studio/runtime.mjs'))});
+      const rt = await createRuntime({ quality: 'low', initialSync: false });
+      const { rigEnabled } = await import(${JSON.stringify(resolve(__dirname, '../../src/render/rig.js'))});
+      const low = rigEnabled(); rt.R.setQuality('medium');
+      console.log(JSON.stringify({ low, medium: rigEnabled() })); process.exit(0);`;
+    const r = spawnSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8', timeout: 120000 });
+    expect(r.stdout.trim().split('\n').pop(), r.stderr).toBe('{"low":false,"medium":true}');
+  }, 130000);
+
   it('refuses a group it does not run', () => {
     const r = run('--group', 'sky');
     expect(r.status).toBe(2);

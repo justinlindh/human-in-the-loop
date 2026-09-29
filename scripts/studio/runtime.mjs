@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 // A stand lasts the whole scene (Infinity does not serialize in a sample).
 const HOLD_S = 1e9;
 
-export async function createRuntime({ state, mock = 'floor', quality = 'low', rig = false, traceRandom = false, initialPerkDelay, script = [], initialSync = true } = {}) {
+export async function createRuntime({ state, mock = 'floor', quality = 'low', rig = null, traceRandom = false, initialPerkDelay, script = [], initialSync = true } = {}) {
   const clock = installPlatform(fileURLToPath(new URL('../../', import.meta.url)), { quality, rig });
   installLoader({ initialPerkDelay });
   const { createRenderer } = await import('../../src/render/index.js');

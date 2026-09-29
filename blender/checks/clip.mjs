@@ -35,6 +35,9 @@ const GROUPS = {
   respond: ['moment:respond:rack', 'moment:respond:desk'],
   control: ['control:head-through-slab'],
 };
+// scripts/studio/clip.mjs runs this function (from `const installExact = async () => {` to `const noMatch`) and
+// the main page function below (from `const got = await page.evaluate(async (runs) => {` to
+// `}, Object.fromEntries(MAIN.map`) on the studio engine, finding them by those lines' text.
 // Installed in each page: measures also count triangles crossing furniture (blender/checks/clip-exact.js),
 // which a vertex count misses on a thin slab. The module and its trees are made on the tool stream so
 // the game's random stream is untouched.
