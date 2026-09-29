@@ -22,6 +22,7 @@ if (compiled.status !== 0) { console.error(compiled.stderr); process.exit(2); }
 const { state, script } = JSON.parse(compiled.stdout);
 
 const { createRuntime } = await import('./runtime.mjs');
+const { depthAtTol } = await import('./geometry.mjs');
 const rt = await createRuntime({ state, script });
 rt.stepTo(frame);
 const X = await import('../../blender/checks/intersect.js');
@@ -46,7 +47,7 @@ for (const c of scene.facts.intersections) {
   const person = [a, b].find((x) => x.startsWith('person:')), item = [a, b].find((x) => x.startsWith('item:'));
   if (!person || !item) continue;
   const part = /\/(head|torso|legL|legR):\d+$/.exec(person)?.[1];
-  if (part) engine.push({ person: person.split('/')[0].slice(7), item: item.split('/')[0].slice(5), part, depth: c.depthM });
+  if (part) engine.push({ person: person.split('/')[0].slice(7), item: item.split('/')[0].slice(5), part, depth: depthAtTol(c, TOL_PERSON) });
 }
 if (values.detail) {
   const short = (id) => id.replace(/Group:\d+\//g, '');
