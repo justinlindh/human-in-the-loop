@@ -95,8 +95,8 @@ export const BEATS = [
   // The flying camera's orbit onto the waffle table.
   { id: 'waffle', item: 'trail-fly-waffle', from: 14.3, dur: 4.2 },
   { id: 'dance', item: 'site-loop-music', capture: { camera: [{ at: 14, target: DANCER, zoom: 2.2 }] }, from: 19.0, dur: 3.0 },
-  // Seed 9 with no hiring after Consolidation, so attrition empties most desks; pushes in on the largest empty group.
-  { id: 'plateau', item: 'growth-late', capture: { query: 'seed=9&speed=1&time=day', setup: GROW(790, { lateHires: false }), camera: [{ at: 0, target: VIEW0, zoom: 1.25 }, { at: 1, target: VIEW0, zoom: 1.25 }, { at: 5.5, target: EMPTY_DESKS, zoom: 2.5, ease: 'inOut' }] }, from: 0.5, dur: 5.0 },
+  // Seed 18 with no hiring after Consolidation, so attrition empties most desks; pushes in on the largest empty group.
+  { id: 'plateau', item: 'growth-late', capture: { query: 'seed=18&speed=1&time=day', setup: GROW(800, { lateHires: false }), camera: [{ at: 0, target: VIEW0, zoom: 1.25 }, { at: 1, target: VIEW0, zoom: 1.25 }, { at: 5.5, target: EMPTY_DESKS, zoom: 2.5, ease: 'inOut' }] }, from: 0.5, dur: 5.0 },
   { id: 'end', card: 'end', dur: 8.0 },
 ];
 
