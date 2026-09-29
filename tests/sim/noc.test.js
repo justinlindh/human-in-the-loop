@@ -4,7 +4,7 @@ import { ITEMS } from '../../src/data/items.js';
 import { EVENTS } from '../../src/data/events.js';
 import { B } from '../../src/sim/balance.js';
 import { makeCtx } from '../../src/sim/registry.js';
-import { purchaseProblem, upgradeProblem } from '../../src/sim/office.js';
+import { purchaseProblem, upgradeProblem, autoArrange, frontCells, footprintCells } from '../../src/sim/office.js';
 import { catchChance, fixCapacity, landIncident, incidentsSystem } from '../../src/sim/incidents.js';
 import { nocCatch, nocSystem } from '../../src/sim/noc.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
@@ -58,6 +58,22 @@ describe('NOC item (#342)', () => {
     expect(upgradeProblem(s, nocOf(s))).toBe('Needs a bigger office');
     s.officeStage = 2;
     expect(upgradeProblem(s, nocOf(s))).toBe(null);
+  });
+});
+
+describe('moving office keeps front zones (#1021)', () => {
+  it('the movers keep a grown item\'s front row clear, whatever level it is at', () => {
+    for (const [itemId, level] of [['noc', 3], ['noc', 2], ['server_rack', 3], ['standing_desk', 2]]) {
+      const desks = Array.from({ length: 24 }, (_, i) => ({ id: `d${i}`, itemId: 'desk', level: 1, x: 0, y: 0, rot: 0 }));
+      const { placed } = autoArrange(2, [{ id: 'x', itemId, level, x: 0, y: 0, rot: 0 }, ...desks]);
+      const it = placed.find((p) => p.id === 'x');
+      expect(it, itemId).toBeTruthy();
+      const front = new Set(frontCells(itemId, it.x, it.y, it.rot, level).map(([x, y]) => `${x},${y}`));
+      expect(front.size, itemId).toBeGreaterThan(0);
+      for (const p of placed.filter((q) => q !== it)) {
+        for (const [x, y] of footprintCells(p.itemId, p.x, p.y, p.rot)) expect(front.has(`${x},${y}`), `${itemId} L${level} front vs ${p.id}`).toBe(false);
+      }
+    }
   });
 });
 
