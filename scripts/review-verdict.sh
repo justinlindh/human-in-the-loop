@@ -3,7 +3,7 @@
 # "**Verdict: pass** (head <sha7>)" or "**Verdict: changes requested** (head <sha7>)", then the commit
 # status "review" on that head (success for pass, failure for changes), linked to the review.
 # Usage: scripts/review-verdict.sh <pr> pass|changes <body-file> [--head <sha>] [--watched <url or file>]...
-#          [--superseded <url or file>]... [--code-only <why>] [--repo <owner/name>]
+#          [--superseded <url or file>]... [--code-only <why>] [--repo <owner/name>] [--as <lane>]
 #   <body-file>  the review text; its first line is also the status description
 #   --head       the head that was reviewed; refuses if the PR's head has moved since
 #   --watched    a media file on the PR that the verdict was judged from, by URL or file name; repeat
@@ -16,17 +16,21 @@
 #                printed in the verdict
 #   --repo       the repository the PR is in, one of the two this project uses (default: the one this
 #                checkout points at)
+#   --as         post as that lane's GitHub App bot (scripts/tools/gh-as.sh env <lane>): only this script's
+#                gh calls carry the token, never the checkout under review. With no key for the lane, or no
+#                gh-as.sh in this tree, it warns and posts as the default identity. HITL_GH_AS names another
+#                gh-as.sh (tests).
 # Exit 0 when posted, 1 when the head moved (before posting, or during it) or a pass doesn't name
 # the PR's media, 2 on usage or lookup errors.
 set -uo pipefail
 
-usage="usage: scripts/review-verdict.sh <pr> pass|changes <body-file> [--head <sha>] [--watched <url or file>]... [--superseded <url or file>]... [--code-only <why>] [--repo <owner/name>]"
+usage="usage: scripts/review-verdict.sh <pr> pass|changes <body-file> [--head <sha>] [--watched <url or file>]... [--superseded <url or file>]... [--code-only <why>] [--repo <owner/name>] [--as <lane>]"
 pr="${1:-}"; verdict="${2:-}"; body="${3:-}"
 case "$pr" in ''|*[!0-9]*) echo "$usage" >&2; exit 2 ;; esac
 case "$verdict" in pass|changes) ;; *) echo "$usage" >&2; exit 2 ;; esac
 [ -f "$body" ] || { echo "review-verdict: no such body file: $body" >&2; exit 2; }
 shift 3
-want=""; repo=""; watched=(); superseded=(); why=""
+want=""; repo=""; watched=(); superseded=(); why=""; as=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --head) want="${2:?$usage}"; shift 2 ;;
@@ -34,6 +38,7 @@ while [ $# -gt 0 ]; do
     --superseded) superseded+=("${2:?$usage}"); shift 2 ;;
     --code-only) why="${2:?$usage}"; shift 2 ;;
     --repo) repo="${2:?$usage}"; shift 2 ;;
+    --as) as="${2:?$usage}"; shift 2 ;;
     *) echo "$usage" >&2; exit 2 ;;
   esac
 done
@@ -41,6 +46,12 @@ case "$repo" in
   ''|justinlindh/human-in-the-loop|justinlindh/humanintheloopgame-site) ;;
   *) echo "review-verdict: --repo must be justinlindh/human-in-the-loop or justinlindh/humanintheloopgame-site" >&2; exit 2 ;;
 esac
+# The bot's token goes only to this script's own gh calls (exported here, so its helpers inherit it).
+if [ -n "$as" ]; then
+  gh_as="${HITL_GH_AS:-$(dirname "$0")/tools/gh-as.sh}"
+  if [ -f "$gh_as" ]; then eval "$(bash "$gh_as" env "$as")"
+  else echo "review-verdict: no $gh_as; posting as the default identity" >&2; fi
+fi
 R=(); api="repos/{owner}/{repo}"
 [ -n "$repo" ] && { R=(-R "$repo"); api="repos/$repo"; }
 
