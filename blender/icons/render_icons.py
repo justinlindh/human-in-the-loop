@@ -190,10 +190,10 @@ def main():
     for name in names:
         clear()
         cam = add_rig()
-        if name.startswith('item.'):
-            import_item(name[5:])
-        else:
+        if name in icon_props.BUILDERS:
             icon_props.BUILDERS[name]()
+        else:
+            import_item(name[5:])
         frame(cam, VIEWS.get(name))
         path = os.path.join(out_dir, f'{name}.png')
         bpy.context.scene.render.filepath = path

@@ -75,6 +75,10 @@
   "file": "objects/item.nap_pod.png",
   "size": 30
  },
+ "item.noc": {
+  "file": "objects/item.noc.png",
+  "size": 30
+ },
  "item.plant_wall": {
   "file": "objects/item.plant_wall.png",
   "size": 30
