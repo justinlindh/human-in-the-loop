@@ -5,7 +5,7 @@
 //        [--stage garage|floor|hq|0|1|2] [--weeks a-b] [--prop p] [--snapshot] [--limit 5]
 //        [--json] [--build] [--where '<js>' [--setup '<js>'] [--turn-while '<js>']] [--scan | --no-scan]
 //        [--scan-seeds 1-60] [--scan-bots a,b]
-//        [--then '<js>' [--within 52]] [--rank '<js>'] [--explain]
+//        [--then '<js>' [--within 52]] [--before '<js>'] [--bot-js '<js>'] [--extra '<js>'] [--rank '<js>'] [--explain]
 //
 //   printer_jam --choice 0 --stage floor --limit 3
 //   era --era agents --snapshot
@@ -16,6 +16,10 @@
 // states the index does not hold, so find plays seeds and bots for it (--scan-seeds, default 1-60; --scan-bots, default the index's bots,
 // or --bot), stops at --limit matches, and writes each as a loadable snapshot. A plain query scans
 // only with --scan, and never with --no-scan; results are cached by sim hash, so a repeat is instant.
+//
+// Bot plan: --bot-js '<js over s>' names the bot to play each week (default: the run's bot), --before
+// '<js over s>' runs on the state before the bot decides and again before its turn, and --extra
+// '<js over e, s>' returns fields merged into each match's row (a desk count, say).
 //
 // Look-ahead: --then '<js over e, s, m>' keeps each --where moment (m: its fields, m.e its event, m.s
 // its state) waiting up to --within weeks (52) for a later event or week where it returns truthy; the
@@ -49,6 +53,8 @@ const q = parseQuery(argv.filter((a, i) => !['--json', '--build', '--scan', '--n
 const compile = (flag, args, src) => { try { new Function(...args, `return (${src});`); } catch (e) { refuse('bad-query', `--${flag} is not a JS expression: ${e.message}`); } };
 if (typeof q.where === 'string') compile('where', ['e', 's'], q.where);
 if (typeof q.then === 'string') { if (typeof q.where !== 'string') refuse('bad-query', '--then needs a --where to look ahead from'); compile('then', ['e', 's', 'm'], q.then); }
+if (typeof q['bot-js'] === 'string') compile('bot-js', ['s'], q['bot-js']);
+if (typeof q.extra === 'string') compile('extra', ['e', 's'], q.extra);
 if (typeof q.rank === 'string') { if (typeof q.where !== 'string') refuse('bad-query', '--rank needs a --where to rank matches of'); compile('rank', ['m'], q.rank); }
 const limitAt = argv.indexOf('--limit');
 const limit = limitAt >= 0 ? Number(argv[limitAt + 1]) : 5;
@@ -87,7 +93,7 @@ if ((needsState || (!rows.length && (where || argv.includes('--scan')))) && !arg
   const seeds = q.seed != null ? [Number(q.seed)] : q['scan-seeds'] ? range(q['scan-seeds']) : range('1-60');
   const bots = q['scan-bots'] ? String(q['scan-bots']).split(',') : q.bot ? [q.bot] : meta.bots;
   const t0 = Date.now();
-  scanned = await scan(hash, { id: q.id ?? null, where, then: typeof q.then === 'string' ? q.then : '', within: Number(q.within) || 52, rank: typeof q.rank === 'string' ? q.rank : '', setup: q.setup ?? '', filter: { era: q.era, stage: q.stage, from: q.from, to: q.to }, turnWhile: q['turn-while'] ?? '', seeds, bots, limit, weeks: Number(q['scan-weeks']) || 1040,
+  scanned = await scan(hash, { id: q.id ?? null, where, then: typeof q.then === 'string' ? q.then : '', within: Number(q.within) || 52, rank: typeof q.rank === 'string' ? q.rank : '', setup: q.setup ?? '', before: q.before ?? '', botJs: q['bot-js'] ?? '', extra: q.extra ?? '', filter: { era: q.era, stage: q.stage, from: q.from, to: q.to }, turnWhile: q['turn-while'] ?? '', seeds, bots, limit, weeks: Number(q['scan-weeks']) || 1040,
     onProgress: (d, n) => { if (d % 10 === 0) console.error(`find: scanned ${d}/${n} runs (${Math.round((Date.now() - t0) / 1000)} s)`); } });
   if (scanned.error) refuse('scan-failed', `the scan failed: ${scanned.error}`);
   rows = scanned.rows;

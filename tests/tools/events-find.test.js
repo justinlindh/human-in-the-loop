@@ -126,4 +126,19 @@ describe('find.js --where', () => {
     expect(r.code).toBe(2);
     expect(r.out.kind).toBe('bad-query');
   });
+
+  it('runs --before before the decide and the turn each week, and --extra adds fields to the row', () => {
+    const r = find('--where', "e.type === 'week' && s.week === 4", '--before', 's.marker = (s.marker ?? 0) + 1;', '--extra', '({ mk: s.marker })', ...SCAN);
+    expect(r.code).toBe(0);
+    expect(r.out[0].mk).toBe(2 * r.out[0].week);
+  });
+
+  it('plays the bot --bot-js names each week, and refuses one that is not JS', () => {
+    const ok = find('--where', "e.type === 'week' && s.week === 3", '--bot-js', "s.week < 2 ? 'balanced' : 'sensible'", ...SCAN);
+    expect(ok.code).toBe(0);
+    const bad = find('--where', 's.week === 3', '--bot-js', "s.week <", ...SCAN);
+    expect(bad.code).toBe(2);
+    expect(bad.out.kind).toBe('bad-query');
+  });
 });
+
