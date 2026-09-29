@@ -2,7 +2,7 @@
 tool: `npm run trailer`
 section: run
 who: integrator, audio
-covers: scripts/trailer/build.js scripts/trailer/assertions.js scripts/trailer/reuse.js
+covers: scripts/trailer/build.js scripts/trailer/assertions.js scripts/trailer/reuse.js scripts/trailer/pin.mjs scripts/trailer/pins.js scripts/trailer/pin-manifest.js
 ---
 Builds the trailer from captures, cards and the game's music. See `docs/trailer/README.md`.
 
@@ -13,3 +13,5 @@ The launch capture selects a seed that reaches a first-version hit on the Office
 Every clip checks its live subject at the beat’s `from` time and saves a cut-frame still and a `beat-check` mark. An ended game or missing subject fails capture. Build and hire also check that the action completes. Era cuts start after the live era tick; the Plateau shot uses seed 9 with no hiring after Consolidation, so attrition leaves most desks empty.
 
 `--reuse-from <clips>` imports explicitly selected prior footage only when its capture specification matches and its cut subject assertions passed. Imported clips retain their source build and SHA256 in the capture index. Both Yak shots require fresh capture. Yak assertions identify the clicked post and require its decoded picture and replies to fit inside the frame.
+
+`node scripts/trailer/pin.mjs [name ...]` writes the pinned game states the outage, meme, garage and printer beats open on (`scripts/trailer/snapshots/*.snap`, gzipped saves, with `pins.json` naming each source seed and week). The beats load a pin through the game's own save in place of replaying a bot game, so a sim change that moves a bot's game no longer moves the beat. A pin is the state just before the week that raises the subject; the game's tick then raises it live. After a sim change, re-run `pin.mjs` and rebuild. The printer pin is copied from the event index (`scripts/events/find.js`), so it needs an index for the current sim code.

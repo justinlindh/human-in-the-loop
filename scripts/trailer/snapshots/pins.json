@@ -1,0 +1,23 @@
+{
+  "outage": {
+    "query": "seed=13&speed=1",
+    "seed": 13,
+    "week": 587
+  },
+  "meme": {
+    "query": "seed=62&speed=1",
+    "seed": 62,
+    "week": 124
+  },
+  "garage": {
+    "query": "seed=5&speed=1&time=day",
+    "seed": 5,
+    "week": 4
+  },
+  "printer": {
+    "moment": "printer_jam --stage floor --choice 0",
+    "seed": 1,
+    "bot": "allHumans",
+    "week": 139
+  }
+}

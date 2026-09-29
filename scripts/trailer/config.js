@@ -1,4 +1,5 @@
 import { YAK_HELPERS, YAK_CHECK } from '../feature-media/yak.js';
+import { LOAD_PIN } from './pins.js';
 import { GROW, EMPTY_DESKS } from '../feature-media/manifest.js';
 import { PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY, CAMLOG, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK_SEL, STAGE_ONLY, CLEAR_CARDS } from '../capture-manifest.js';
 // A player closes any launch or unlock card that turns up while the Yak thread plays out; a modal card holds the clock.
@@ -68,11 +69,13 @@ export const DEFERRED_CAPTURES = [];
 // misread, so the alert, the Yak thread and the facepalm all come from the same game.
 const NOC_HIT = '(c) => c.ops.noc === "agents" && c.outage?.misread && c.outage.weeks === 0';
 const OUTAGE_PLAY = { weeks: 1000, bot: 'balanced', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: NOC_HIT };
+// The Yak beats replay the game: a pinned load seats a different cast and misplaces the facepalm shot.
 const YAK_SETUP = `(async () => { await ${PRE_UNTIL(OUTAGE_PLAY)}; ${YAK_ONLY}; ${YAK_HELPERS} })()`;
 
 // A quiet week (seed 62, week 124) where "Share a meme" picks the PC LOAD LETTER image: the post
 // lands in Yak, then is opened full size the way a player taps it.
-const MEME_SETUP = `(async () => { await ${PRE_UNTIL({ weeks: 500, bot: 'balanced', turn: 's.office.stage < 1 || s.staff.length < 8', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: '(c) => c.week === 125' })}; ${YAK_ONLY}; })()`;
+const MEME_PLAY = { weeks: 500, bot: 'balanced', turn: 's.office.stage < 1 || s.staff.length < 8', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: '(c) => c.week === 125' };
+const MEME_SETUP = `(async () => { await ${LOAD_PIN('meme')}; ${YAK_ONLY}; })()`;
 const MEME_ACTIONS = [
   ...CLEAR_EARLY, ...DISMISS_AT([5, 6, 7], { escape: false }), ...CHOOSE_WHEN(null, 0, 1, 9, 1),
   { at: 1, js: CLICK_SEL('.chat.yak .ysz[aria-label="large size"]') },
@@ -82,7 +85,7 @@ const MEME_ACTIONS = [
   { at: 3.3, js: `[...document.querySelectorAll('.chat.yak .ymeme')].at(-1)?.click()` },
 ];
 
-const NOC_SETUP = `(async () => { await ${PRE_UNTIL(OUTAGE_PLAY)}; ${STAGE_ONLY}; })()`;
+const NOC_SETUP = `(async () => { await ${LOAD_PIN('outage')}; ${STAGE_ONLY}; })()`;
 // The NOC item's spot on the floor, for the camera.
 const NOC_AT = { js: `(window.__nocAt ??= (() => {
   const R = window.__hitlRender, T = R.THREE, s = window.__HITL.state, noc = s.office.placed.find((i) => i.itemId === 'noc');
@@ -97,7 +100,7 @@ const NOC_CAPTURE = { query: 'seed=13&speed=1', setup: NOC_SETUP, still: false, 
 export const BEATS = [
   { id: 'title', card: 'title', dur: 2.0 },
   // The founders' first desks, with a slow in-engine push-in.
-  { id: 'garage', item: 'growth-garage', capture: { seconds: 8, setup: GROW(4), camera: [{ at: 1, target: VIEW0, zoom: 1.0 }, { at: 7, target: VIEW0, zoom: 1.35 }] }, from: 1.0, dur: 6.0 },
+  { id: 'garage', item: 'growth-garage', capture: { seconds: 8, setup: `(async () => { await ${LOAD_PIN('garage')}; ${STAGE_ONLY}; })()`, camera: [{ at: 1, target: VIEW0, zoom: 1.0 }, { at: 7, target: VIEW0, zoom: 1.35 }] }, from: 1.0, dur: 6.0 },
   // From just before the move, so the new floor drops onto the garage on screen.
   { id: 'office', item: '2-2-office-move', capture: { seconds: 9 }, actions: [LATER(0.1), NO_ERA_CARD(0)], from: 1.8, dur: 3.5 },
   // The player places a foosball table (the build bar is the one interface kept), and people come to play.
@@ -114,7 +117,7 @@ export const BEATS = [
   { id: 'yak-react', item: 'site-yak-backfire', capture: { query: 'seed=13&speed=1', setup: YAK_SETUP, still: false, seconds: 16, screenshots: [11.2, 11.6, 12.4, 13.2, 14, 14.8, 15.6], camera: [{ at: 0, target: VIEW0, zoom: 1 }, { at: 11, target: VIEW0, zoom: 1 }, { at: 11.2, target: FACEPALMER, zoom: 4.2 }] }, actions: [...CAMLOG(16), NO_SAY_T(0), { at: 11, js: "document.querySelector('#ui').style.display = 'none'" }, { at: 11.3, js: "if (!window.__facepalmer) throw new Error('trailer: the post has no facepalmer')" }], from: 11.2, dur: 2.0 },
   // The PC LOAD LETTER meme held full size from its first frame, so the sign reads. No narration.
   { id: 'printer-meme', item: 'site-yak-backfire', capture: { query: 'seed=62&speed=1', setup: MEME_SETUP, still: false, seconds: 8, screenshots: [], actions: MEME_ACTIONS }, from: 3.65, dur: 3.5 },
-  { id: 'printer', item: 'trail-fly-printer', capture: { seconds: 36 }, from: 27 + 2 / 30, dur: 7.0 },
+  { id: 'printer', item: 'trail-fly-printer', capture: { seconds: 36, pin: 'printer' }, from: 26 + 4 / 30, dur: 7.0 },
   { id: 'era-chatgbt', item: 'real-era-chatgbt', actions: [NO_ERA_CARD(0)], from: 9.0, dur: 4.1 },
   { id: 'era-agents', item: 'real-era-agents', actions: [NO_ERA_CARD(0)], from: 9.0, dur: 2.4 },
   // The runaway cloud bill: the hot rack smoking behind the card.
@@ -171,4 +174,13 @@ export const VO = {
     { id: 'l5', at: { beat: 'end', offset: 0.4 }, max: 3.0, text: 'Human in the Loop. Someone has to be.' },
     { id: 'l6', at: { beat: 'end', offset: 3.6 }, max: 4.2, text: 'Play it free, right now, at humanintheloopgame.com.', say: 'Play it free, right now, at human in the loop game dot com.' },
   ],
+};
+
+// The games the pinned states come from (node scripts/trailer/pin.mjs): each replays a bot game to the week
+// before its beat's subject. The printer pin is an indexed moment (scripts/events/find.js), copied as it is.
+export const PIN_SOURCES = {
+  outage: { query: 'seed=13&speed=1', setup: `(async () => { await ${PRE_UNTIL(OUTAGE_PLAY)}; })()` },
+  meme: { query: 'seed=62&speed=1', setup: `(async () => { await ${PRE_UNTIL(MEME_PLAY)}; })()` },
+  garage: { query: 'seed=5&speed=1&time=day', setup: GROW(4) },
+  printer: { moment: 'printer_jam --stage floor --choice 0' },
 };
