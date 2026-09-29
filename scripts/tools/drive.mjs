@@ -9,6 +9,10 @@
 // State:   --play <bot>:<weeks> [--until '<js over s>']   bot plays a seeded game (real game only)
 //          --setup '<js>' | --setup-file <f>   async body run in the page with H (window.__HITL) and s
 //                                              (its state); dynamic import('/src/...') works
+// Storage: --saves <n> (1 to 6) puts n saved companies (seeds N, N+1, ... from --seed, default 1) in
+//          localStorage before the page loads, so the title screen lists them; --storage-file <json>
+//          seeds more keys ({"key": "string" | any JSON, ...}, over the saves). Seeded once per browser
+//          context, before any page script, so a reload keeps whatever the page did to them.
 // Steps:   --steps '<json array>' | --steps-file <f>, run in order at every size:
 //   {"click": "<css>", "text": "<regex>", "nth": 0, "optional": true, "timeout": ms}   the visible matches; tap on touch, click otherwise
 //   {"dismiss": true} closes toasts and info cards and takes an open decision's first choice
@@ -53,6 +57,28 @@ export function checkSteps(steps) {
 }
 
 const DISMISS = /^(Got it|Onward|Close|Nice!|Back to work)$/;
+
+// The localStorage entries --saves and --storage-file ask for, as { key: string }: n saved companies
+// through the game's own saveGame (into an in-memory storage), then the file's keys over them.
+export async function storageEntries({ saves, storageFile, seed = 1 }) {
+  const entries = {};
+  if (saves !== undefined) {
+    const n = saves === true ? NaN : Number(saves);
+    const { MAX_SLOTS } = await import('../../src/save/save.js');
+    if (!Number.isInteger(n) || n < 1 || n > MAX_SLOTS) throw new Error(`drive: --saves wants a whole number from 1 to ${MAX_SLOTS}`);
+    const { createGame } = await import('../../src/sim/index.js');
+    const { saveGame } = await import('../../src/save/save.js');
+    const mem = { getItem: (k) => entries[k] ?? null, setItem: (k, v) => { entries[k] = String(v); }, removeItem: (k) => { delete entries[k]; } };
+    for (let i = 0; i < n; i++) if (!saveGame(createGame({ seed: Number(seed) + i }), mem)) throw new Error('drive: could not write a save');
+  }
+  if (storageFile !== undefined) {
+    let raw;
+    try { raw = JSON.parse(readFileSync(String(storageFile), 'utf8')); } catch (e) { throw new Error(`drive: --storage-file ${storageFile}: ${e.message}`); }
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('drive: --storage-file must hold a JSON object of key to value');
+    for (const [k, v] of Object.entries(raw)) entries[k] = typeof v === 'string' ? v : JSON.stringify(v);
+  }
+  return entries;
+}
 
 async function play(page, { bot, weeks, until }) {
   return page.evaluate(async ({ bot, weeks, until }) => {
@@ -109,8 +135,9 @@ async function runStep(page, st, ctx) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const args = parseArgs(process.argv.slice(2));
-  let sizes, steps;
+  let sizes, steps, seeded = {};
   try {
+    seeded = await storageEntries({ saves: args.saves, storageFile: args['storage-file'], seed: args.seed === undefined || args.seed === true ? 1 : args.seed });
     sizes = String(args.sizes ?? 'desktop').split(',').map(parseSize);
     steps = checkSteps(args.steps ? JSON.parse(args.steps) : args['steps-file'] ? JSON.parse(readFileSync(args['steps-file'], 'utf8')) : []);
     if (args.play && !/^[\w-]+:\d+$/.test(String(args.play))) throw new Error('drive: --play wants <bot>:<weeks>, like squads:90');
@@ -134,6 +161,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   try {
     for (const sz of sizes) {
       const c = await browser.newContext({ viewport: { width: sz.w, height: sz.h }, hasTouch: sz.touch, isMobile: sz.touch, deviceScaleFactor: 1, ...(args.clip ? { recordVideo: { dir: out, size: { width: sz.w, height: sz.h } } } : {}) });
+      if (Object.keys(seeded).length) {
+        await c.addInitScript((entries) => {
+          try {
+            if (sessionStorage.getItem('__driveSeeded')) return;
+            for (const [k, v] of Object.entries(entries)) localStorage.setItem(k, v);
+            sessionStorage.setItem('__driveSeeded', '1');
+          } catch { /* storage blocked */ }
+        }, seeded);
+      }
       const page = await c.newPage(); page.setDefaultTimeout(10000);
       const errors = [];
       page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
