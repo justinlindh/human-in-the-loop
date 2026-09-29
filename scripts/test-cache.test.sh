@@ -33,6 +33,14 @@ t >/dev/null; n=$(runs); CI=true t >/dev/null; [ "$(runs)" -eq $((n + 1)) ] || f
 HITL_NO_TEST_CACHE=1 t >/dev/null; [ "$(runs)" -eq $((n + 2)) ] || fail "HITL_NO_TEST_CACHE=1 always runs"
 [ -z "$(g -C "$r" status --porcelain -- src/a.js | grep '^[AM]')" ] || fail "the real index is left alone"
 
+# An edit that keeps the file's size and mtime while the index entry is racily clean (its mtime is not
+# older than the index's) must still change the tree.
+r2="$tmp/racy"; mkdir -p "$r2"; echo a >"$r2/f"
+g -C "$r2" init -q -b main && g -C "$r2" config core.trustctime false && g -C "$r2" add -A && g -C "$r2" commit -qm base
+touch -d '2020-01-01' "$r2/f"; g -C "$r2" update-index --refresh -q; touch -d '2020-01-01' "$r2/.git/index"
+t2() { (cd "$r2" && HITL_TEST_CACHE_DEBUG=1 bash "$HERE/test-cache.sh" "$tmp/fake" 2>>"$tmp/debug"); }
+: >"$COUNT"; t2 >/dev/null; echo b >"$r2/f"; touch -d '2020-01-01' "$r2/f"; t2 >/dev/null
+[ "$(runs)" -eq 2 ] || fail "a same-size edit with an unchanged mtime runs: runs $(runs)"
 [ $fails -eq 0 ] && echo "test-cache: all cases pass"
 [ $fails -eq 0 ] || { echo "test-cache debug log:"; sed 's/^/  /' "$tmp/debug"; }
 exit $fails
