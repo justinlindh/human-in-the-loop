@@ -6,12 +6,14 @@ REPO="$(cd "$HERE/.." && pwd)"
 tmp="$(mktemp -d)"; bg=""
 trap '[ -n "$bg" ] && { pkill -P "$bg" 2>/dev/null; kill "$bg" 2>/dev/null; }; rm -rf "$tmp"; git -C "$REPO" worktree prune' EXIT
 mkdir -p "$tmp/bin"
-# GH_OPEN holds "label number" lines: the open issue per label.
+# GH_OPEN holds "label number [hand]" lines: an open issue per line, opened by the guard (its body carries
+# the marker) or, with "hand", filed by a person under the same label (no marker).
 cat >"$tmp/bin/gh" <<'GH'
 #!/usr/bin/env bash
 echo "gh $*" >>"$GH_LOG"
 case "$*" in
-  "issue list"*) args="$*"; label="${args#*--label }"; label="${label%% *}"; awk -v l="$label" '$1 == l { print $2 }' "$GH_OPEN" 2>/dev/null ;;
+  "issue list"*) args="$*"; label="${args#*--label }"; label="${label%% *}"
+    awk -v l="$label" 'BEGIN { printf "[" } $1 == l { printf "%s{\"number\":%s,\"body\":\"%s\"}", (n++ ? "," : ""), $2, ($3 == "hand" ? "filed by hand" : "<!-- main-guard:" l " -->") } END { print "]" }' "$GH_OPEN" 2>/dev/null ;;
   "issue create"*) echo "https://github.com/o/r/issues/99" ;;
 esac
 # An issue body goes in the log too, so a case can check what it says.
@@ -67,6 +69,10 @@ compgen -G "$case_root/main-guard/*-steps" >/dev/null && { echo "FAIL a green ga
 one 'a new violation outside seeded games makes main red' "$PASS" "$NEW_MOCK" '' 'state=failure|description=Red: sweep|--label main-red'
 one 'a seed-only violation leaves main green and opens a sweep-finding issue' "$PASS" "$NEW_SEED" '' 'state=success|--label sweep-finding|!--label main-red --body'
 one 'a clean sweep closes the open sweep-finding issue' "$PASS" "$CLEAN" 'sweep-finding 52' 'state=success|issue close 52'
+one 'a clean sweep leaves a hand-filed sweep-finding issue open' "$PASS" "$CLEAN" 'sweep-finding 53 hand' 'state=success|!issue close 53'
+one 'a clean sweep closes only its own sweep-finding issue' "$PASS" "$CLEAN" 'sweep-finding 53 hand;sweep-finding 52' 'state=success|issue close 52|!issue close 53'
+one 'a seed-only violation opens its own issue beside a hand-filed one' "$PASS" "$NEW_SEED" 'sweep-finding 53 hand' 'state=success|issue create|!issue comment 53'
+one 'green leaves a hand-filed main-red issue open' "$PASS" "$CLEAN" 'main-red 54 hand' 'state=success|!issue close 54'
 one 'a missing sweep report fails the gate' "$PASS" 'true' '' 'state=failure|description=Red: sweep'
 one 'a prewarm that cannot build the index is logged and main stays green' "$PASS" "$CLEAN" '' 'state=success|!issue create|out:prewarm could not build' MAIN_GUARD_PREWARM='exit 2'
 one 'a prewarm with an unanswered query is logged and main stays green' "$PASS" "$CLEAN" '' 'state=success|!issue create|out:prewarm left a query unanswered' MAIN_GUARD_PREWARM='exit 1'
