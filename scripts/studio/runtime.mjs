@@ -52,7 +52,21 @@ export async function createRuntime({ state, mock = 'floor', quality = 'low', ri
       const dir = rest ? [rest[0] - x, rest[1] - z] : e.dir;
       R.catchFor(e.who, { anim: 'idle', t: HOLD_S, goal: { x, z, yaw: Math.atan2(dir[0], dir[1]), anim: 'idle' }, back: true });
     }
-    for (let n = 0; n < 45; n++) advance();
+    const moment = script.find((x) => x.op === 'moment');
+    for (let n = 0; n < (moment ? 30 : 45); n++) advance();
+    // The game's own staging: what checks.js setupRobotFix does once the robot has settled. The fix event
+    // makes the game pick the spot, walk the fixer there and slap; frame 0 is that event.
+    if (moment) {
+      R.perks.hold = true; S.pendingDecision = null;
+      const rp = R.robot.root.position;
+      const far = (id) => { const w = R.walkOf(id); return w?.goal ? Math.hypot(w.goal.x - rp.x, w.goal.z - rp.z) : Infinity; };
+      const ids = S.staff.filter((p) => p.mood !== 'away' && !p.remote).map((p) => p.id).filter((id) => R.walkOf(id)?.mode === 'placed' && !R.walkOf(id).temp).sort((a, b) => far(a) - far(b));
+      const fixer = moment.fixer === 'nearest' ? ids[0] : moment.fixer;
+      if (!fixer) throw new Error('scene-engine: compose moment: nobody free to be the fixer');
+      S.robot = { ...S.robot, status: 'ok', cause: null };
+      R.handleEvents([{ type: 'robot', kind: 'fixed', fixerId: fixer, sameWeek: false }], S);
+      R.sync(S);
+    }
   }
   const character = (id) => {
     let root = null;

@@ -116,6 +116,7 @@ export function sampleScene(R, S, { frame, who = null, facts = [], width = 1600,
       const walk = R.walkOf(record.staffId);
       const stage = R.moments?.staging?.(record.actorId);
       object.person = { joints: character ? Object.fromEntries(Object.entries(character.joints()).map(([name, p]) => [name, p.toArray()])) : null,
+        hands: character ? character.probe().hands.map(h => h.toArray()) : null,
         activity: character?.anim ?? walk?.temp?.anim ?? walk?.mode ?? null, walk,
         target: stage?.target?.isVector3 ? stage.target.toArray() : stage?.target?.isObject3D ? stage.target.getWorldPosition(new THREE.Vector3()).toArray() : walk?.goal ?? null,
         holds: records.filter(r => r.held && r.staffId === record.staffId).map(r => r.id) };

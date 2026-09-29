@@ -109,3 +109,43 @@ describe('studio scene --compose', () => {
     expect(rows[0].objects.find((o) => o.id === 'item:w1')).toBeTruthy();
   }, 260000);
 });
+
+describe('compose moments, era and keep', () => {
+  it('compiles a moment to one script step for the game to stage', () => {
+    const { script, state } = compose(`${EX}/slap-moment.json`);
+    expect(script).toEqual([{ frame: 0, who: null, op: 'moment', name: 'slap', fixer: 'nearest' }]);
+    expect(state.staff).toHaveLength(10);
+    expect(state.era.id).toBe('agents');
+    expect(state.office.placed.some((p) => p.itemId === 'office_robot' && p.level === 2)).toBe(true);
+  });
+
+  it('refuses a moment without a robot, an unknown moment, an unknown fixer, an unknown era and a bad keep', () => {
+    expect(problemsOf({ ...base, moments: [{ moment: 'slap' }] }).join('\n')).toMatch(/moments\[0\]: slap needs a robot/);
+    expect(problemsOf({ ...base, robot: { at: [2, 2] }, moments: [{ moment: 'dance' }] }).join('\n')).toMatch(/moment "dance" is not one of slap/);
+    expect(problemsOf({ ...base, robot: { at: [2, 2] }, moments: [{ moment: 'slap', fixer: 'nobody' }] }).join('\n')).toMatch(/fixer "nobody" is not a person/);
+    expect(() => compose({ ...base, era: 'stone' })).toThrow(/era "stone"/);
+    expect(() => compose({ ...base, keep: ['everything'] })).toThrow(/keep must be/);
+  });
+});
+
+describe('composed staged moments', () => {
+  it('the composed slap reproduces the game: the fixer\'s right hand reaches the robot head like stage.mjs reads', () => {
+    const r = spawnSync(process.execPath, [resolve(__dirname, '../../scripts/studio/scene.mjs'), '--compose', `${EX}/slap-moment.json`, '--from', '0', '--to', '6', '--every', '0.1', '--who', 's1'], { encoding: 'utf8', timeout: 240000, maxBuffer: 1 << 28 });
+    expect(r.status, r.stderr).toBe(0);
+    const rows = r.stdout.trim().split('\n').map((l) => JSON.parse(l));
+    let best = Infinity;
+    for (const row of rows) {
+      const fixer = row.objects.find((o) => o.id === 'person:s1');
+      if (fixer.person.activity !== 'slap') continue;
+      const box = { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] };
+      for (const p of row.objects.find((o) => o.kind === 'robot').parts.filter((x) => x.id.includes('robot_head'))) {
+        for (let i = 0; i < 3; i++) { box.min[i] = Math.min(box.min[i], p.bounds.min[i]); box.max[i] = Math.max(box.max[i], p.bounds.max[i]); }
+      }
+      const h = fixer.person.hands[1];
+      best = Math.min(best, Math.hypot(...[0, 1, 2].map((i) => Math.max(0, box.min[i] - h[i], h[i] - box.max[i]))));
+    }
+    // stage.mjs reads 0.008 m in this setup, against its 0.06 m rule.
+    expect(best).toBeLessThan(0.02);
+    expect(best).toBeGreaterThan(0);
+  }, 260000);
+});

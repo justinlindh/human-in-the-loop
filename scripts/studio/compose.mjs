@@ -18,7 +18,12 @@
 //              at      standing tile position [x, y] (fractions allowed), with face: north|east|south|west, a
 //                      degree (0 = south, +y; 90 = east, +x), another person's id, or "robot"
 //              gesture played from t seconds (default 0)
-//   robot    { at: [x, y], cause? }   the office robot; a cause (spin, stuck, emptyDesk, cone, decaf, unplug)
+//   era      the era the state is in (items arrive with eras; the office robot needs agents)
+//   keep     ["office", "staff"]: keep the base's furniture and people (items and people add to them)
+//   moments  [{ moment: "slap", fixer?: id | "nearest" }]   the game's own staging plays it: the robot's fix event
+//                                    runs at frame 0 and the game picks the spot and walks the fixer (default: the
+//                                    person nearest the robot). Needs a robot.
+//   robot    { at: [x, y], cause?, level? }   the office robot; a cause (spin, stuck, emptyDesk, cone, decaf, unplug)
 //                                    leaves it broken down that way
 // Tile axes: +x east, +y south (a desk at rotation 0 faces +y).
 import { readFileSync } from 'node:fs';
@@ -28,6 +33,7 @@ import { placementCheck, seatTile, footprintCells } from '../../src/sim/office.j
 import { ANIMS } from '../../src/render/character.js';
 import { newRobot } from '../../src/sim/state.js';
 import { officeShape } from '../../src/data/office.js';
+import { ERA_IDS } from '../../src/data/eras.js';
 
 export const CAUSES = ['spin', 'stuck', 'emptyDesk', 'cone', 'decaf', 'unplug'];
 const BASES = ['garage', 'floor', 'hq', 'incident', 'night', 'ending'];
@@ -44,7 +50,9 @@ export class ComposeError extends Error {
 
 const isPoint = (v) => Array.isArray(v) && v.length === 2 && v.every(Number.isFinite);
 const clone = (o) => JSON.parse(JSON.stringify(o));
-const KEYS = { top: ['base', 'items', 'people', 'robot'], item: ['item', 'at', 'rot', 'level', 'id'], person: ['id', 'build', 'seat', 'at', 'face', 'gesture', 't', 'look'], robot: ['at', 'cause'] };
+const MOMENTS = ['slap'];
+const KEEP = ['office', 'staff'];
+const KEYS = { top: ['base', 'era', 'keep', 'items', 'people', 'robot', 'moments'], item: ['item', 'at', 'rot', 'level', 'id'], person: ['id', 'build', 'seat', 'at', 'face', 'gesture', 't', 'look'], robot: ['at', 'cause', 'level'], moment: ['moment', 'fixer'] };
 
 function unknownKeys(obj, allowed, where, problems) {
   for (const k of Object.keys(obj)) if (!allowed.includes(k)) problems.push(`${where}: unknown key "${k}" (allowed: ${allowed.join(', ')})`);
@@ -63,8 +71,14 @@ export function compose(input) {
   if (problems.length) throw new ComposeError(problems);
 
   const state = clone(createMockSim({ scenario: baseName, seed: 7 }).state);
-  state.office.placed = [];
-  state.staff = [];
+  if (spec.era != null) {
+    if (!ERA_IDS.includes(spec.era)) throw new ComposeError([`era "${spec.era}" is not one of ${ERA_IDS.join(', ')}`]);
+    state.era = { ...state.era, id: spec.era };
+  }
+  const keep = spec.keep ?? [];
+  if (!Array.isArray(keep) || keep.some((k) => !KEEP.includes(k))) throw new ComposeError([`keep must be a list of ${KEEP.join(', ')}`]);
+  if (!keep.includes('office')) state.office.placed = [];
+  if (!keep.includes('staff')) state.staff = [];
   state.cash = 1e9;
   const check = (entry, where) => {
     const r = placementCheck(state, { itemId: entry.itemId, x: entry.x, y: entry.y, rot: entry.rot });
@@ -72,7 +86,7 @@ export function compose(input) {
     else state.office.placed.push(entry);
   };
 
-  const ids = new Set();
+  const ids = new Set(state.office.placed.map((p) => p.id));
   items.forEach((it, i) => {
     const where = `items[${i}]`;
     unknownKeys(it, KEYS.item, where, problems);
@@ -91,7 +105,7 @@ export function compose(input) {
     unknownKeys(robot, KEYS.robot, 'robot', problems);
     if (!isPoint(robot.at)) problems.push('robot: at must be [x, y] tiles');
     else {
-      check({ id: 'robot', level: 1, itemId: 'office_robot', x: robot.at[0], y: robot.at[1], rot: 0 }, 'robot');
+      check({ id: 'robot', level: robot.level ?? 1, itemId: 'office_robot', x: robot.at[0], y: robot.at[1], rot: 0 }, 'robot');
       state.robot = newRobot();
       if (robot.cause != null) {
         if (!CAUSES.includes(robot.cause)) problems.push(`robot: cause "${robot.cause}" is not one of ${CAUSES.join(', ')}`);
@@ -105,7 +119,7 @@ export function compose(input) {
     const where = `people[${i}]`;
     unknownKeys(p, KEYS.person, where, problems);
     if (typeof p.id !== 'string' || !p.id) return problems.push(`${where}: id is required`);
-    if (byId.has(p.id)) return problems.push(`${where}: duplicate id "${p.id}"`);
+    if (byId.has(p.id) || state.staff.some((x) => x.id === p.id)) return problems.push(`${where}: duplicate id "${p.id}"`);
     const build = p.build ?? 1;
     if (![0, 1, 2].includes(build)) problems.push(`${where}: build must be 0, 1 or 2`);
     const seated = p.seat != null, standing = p.at != null;
@@ -158,6 +172,16 @@ export function compose(input) {
     }
     if (p.gesture) script.push({ frame, who: id, op: 'gesture', name: p.gesture });
   }
+  // A staged moment is played by the game's own staging; the composed scene only sets it up.
+  (spec.moments ?? []).forEach((m, i) => {
+    const where = `moments[${i}]`;
+    unknownKeys(m, KEYS.moment, where, problems);
+    if (!MOMENTS.includes(m.moment)) return problems.push(`${where}: moment "${m.moment}" is not one of ${MOMENTS.join(', ')}`);
+    if (!robot) return problems.push(`${where}: slap needs a robot`);
+    const fixer = m.fixer ?? 'nearest';
+    if (fixer !== 'nearest' && !state.staff.some((x) => x.id === fixer)) problems.push(`${where}: fixer "${fixer}" is not a person`);
+    else script.push({ frame: 0, who: fixer === 'nearest' ? null : fixer, op: 'moment', name: m.moment, fixer });
+  });
   if (problems.length) throw new ComposeError(problems);
   state.cash = createMockSim({ scenario: baseName, seed: 7 }).state.cash;
   script.sort((a, b) => a.frame - b.frame || (a.op === 'place' ? -1 : 1) - (b.op === 'place' ? -1 : 1));
