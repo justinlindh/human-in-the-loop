@@ -22,6 +22,7 @@
 - **Whiteboard wall**: a mobile board, a wide board with sticky notes, then a wall-sized kanban. `id: whiteboard_wall`
 - **Library nook**: a bookshelf, then an armchair for reading, then a reading nook with lamp and rug. `id: library`
 - **Monitoring wall** (Agents era): one screen, then a console, then a tiled video wall with a bar per automation function that flashes red on alarm; overseers stand in front of it. `id: monitoring_wall`
+- **Network Operations Center** (once Ops and Security opens; one per office): trouble gets caught sooner and outages end faster. It grows with the office: a pager and a TV on a cart in the garage, a darkened corner with a screen wall and a curved desk on the Office Floor, a full operations floor at HQ. With humans on the glass it needs Security staff (full effect at three); in the Agents era a one-time decision can hand it to agents, who catch more with nobody watching but now and then read a real alert as routine, and that incident lands a step worse. The mode can be switched back and forth, at most once every 26 weeks. The render look is art's follow-up. `id: noc`
 - **Server racks**: one rack, two with a cable tray, then a glass-door row with a cold-aisle glow; blinking LEDs. `id: server_rack`
 - **Trophy case**: a low shelf, a glass case, then a lit display wall for the Saasies. `id: trophy_case`
 - **Desk screens**: code, UI, charts and games by desk; grey for coasting or burnt-out sitters, red during an outage, off when empty.
