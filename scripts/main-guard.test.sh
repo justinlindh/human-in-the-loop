@@ -111,8 +111,8 @@ wait 2>/dev/null
 
 # Shared checkout: fast-forwarded when clean and idle, left alone when a ci-pr runs in it.
 # A bare stand-in origin whose main is this HEAD, and a clone of it one commit behind.
-git init -q --bare "$tmp/origin.git"
-git -C "$REPO" push -q "$tmp/origin.git" "HEAD:refs/heads/main" 2>/dev/null
+git init -q --bare -b main "$tmp/origin.git"
+git -C "$REPO" push -q --no-verify "$tmp/origin.git" "HEAD:refs/heads/main" 2>/dev/null
 shared="$tmp/shared"; git clone -q "$tmp/origin.git" "$shared" 2>/dev/null
 git -C "$shared" checkout -q -B main "$(git -C "$REPO" rev-parse HEAD~1)"
 case_root="$tmp/root-sync"; sl="$tmp/sync.log"; : >"$sl"
@@ -125,6 +125,15 @@ guard "$sl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" HITL_S
 [ "$(git -C "$shared" rev-parse HEAD)" != "$(git -C "$REPO" rev-parse HEAD)" ] || { echo "FAIL a busy shared checkout was updated"; fails=$((fails + 1)); }
 kill "$busy" 2>/dev/null
 wait "$busy" 2>/dev/null
+# A detached checkout in the middle of a bisect is left alone.
+git -C "$shared" checkout -q --detach HEAD
+: >"$(git -C "$shared" rev-parse --path-format=absolute --git-path BISECT_LOG)"
+guard "$sl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" HITL_SHARED_CHECKOUT="$shared" -- --sha HEAD --no-post
+[ -z "$(git -C "$shared" branch --show-current)" ] || { echo "FAIL a shared checkout in a bisect was moved onto main"; fails=$((fails + 1)); }
+rm -f "$(git -C "$shared" rev-parse --path-format=absolute --git-path BISECT_LOG)"
+# A clean detached checkout on main's history is put back on main and updated.
+guard "$sl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" HITL_SHARED_CHECKOUT="$shared" -- --sha HEAD --no-post
+[ "$(git -C "$shared" branch --show-current)" = main ] && [ "$(git -C "$shared" rev-parse HEAD)" = "$(git -C "$REPO" rev-parse HEAD)" ] || { echo "FAIL a detached shared checkout was not put back on main"; fails=$((fails + 1)); }
 # A shared checkout whose install doesn't match its lockfile is reinstalled.
 cat >"$tmp/npm" <<SH
 #!/usr/bin/env bash

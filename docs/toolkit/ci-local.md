@@ -15,3 +15,4 @@ It keeps only what needs this machine: the GPU render checks, golden, phone-chec
 The main guard (`CI_FULL=1`) still runs all of them here, so a red main gets its issue and bisect.
 
 The tooling self-tests include `pace-browser`: browser fixtures check visible presentation records, toast queue provenance, and panel origins under the shared render lock.
+The `golden-font` step checks char-lineup identity under both early and late font arrival when a change touches emotes, lineup initialization, fonts, the harness, golden or its font control. It uses SwiftShader and the software render lock, and compares exact pixels without a cache. The tests tier records it as skipped alongside the other render steps; it runs only in the full-run branch. See [golden](golden.md).

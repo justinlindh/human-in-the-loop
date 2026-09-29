@@ -181,6 +181,7 @@ tool_step ci-classify bash "$SELF/ci-classify.test.sh"
 tool_step wait-for bash "$SELF/wait-for.test.sh"
 tool_step check-commits bash "$SELF/check-commits.test.sh"
 tool_step review-prep bash "$SELF/review-prep.test.sh"
+tool_step review-verdict bash "$SELF/review-verdict.test.sh"
 tool_step pr-body bash "$SELF/pr-body.test.sh"
 tool_step test-cache bash "$SELF/test-cache.test.sh"
 tool_step ci-pr-trust bash "$SELF/ci-pr-trust.test.sh"
@@ -188,6 +189,7 @@ tool_step drive bash "$SELF/tools/drive.test.sh"
 tool_step pace-browser node "$SELF/pace-browser.test.mjs"
 tool_step test-related bash "$SELF/tools/test-related.test.sh"
 tool_step job bash "$SELF/tools/job.test.sh"
+tool_step gh-as bash "$SELF/tools/gh-as.test.sh"
 tool_step commit-msg bash "$SELF/hooks/commit-msg.test.sh"
 tool_step pre-push bash "$SELF/hooks/pre-push.test.sh"
 tool_step render-lock bash "$SELF/render-lock-held.test.sh"
@@ -372,11 +374,33 @@ rng_check() {
   fi
   render_step tool-rng gpu "node blender/checks/tool-rng.mjs"
 }
+# Text textures must converge when their font arrives after scene construction. Compare both font
+# schedules without a scene cache, so ordinary asset arrival order cannot hide the regression.
+golden_font_check() {
+  [ -f blender/checks/golden-font-controls.mjs ] || { echo "skipped: no golden-font-controls.mjs in this tree"; return 0; }
+  local mb files
+  mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
+  files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; })"
+  if ! grep -qE '^(src/render/(emotes|debug|index)\.js$|public/fonts/|index\.html$|blender/checks/(harness|golden|golden-font-controls)\.mjs$)' <<<"$files"; then
+    echo "skipped: no text-emote, font, lineup or golden harness changes"; return 0
+  fi
+  render_step golden-font software "node blender/checks/golden-font-controls.mjs"
+}
 # golden renders in software (SwiftShader, on the CPU), so it runs in the background while the GPU
 # steps run one after another: those open many browsers each, and running them all at once exhausts
 # the GPU's WebGL contexts (Chromium then blocks WebGL for the page).
 browser_t0=$(now)
+# CI_TIER=tests (ci-pr sets it for a change only tests read, scripts/ci-tests-only-paths) leaves out the
+# render, browser and perf checks; the main guard (CI_FULL=1) always runs them.
+if [ "${CI_TIER:-}" = tests ] && [ "${CI_FULL:-}" != 1 ]; then
+  for name in golden golden-font lifecycle soak render-checks perf-budget phone-check stage pose-nodraw tool-rng; do
+    record "$name" "skipped: tests tier (only tests read these changes)" 0
+    timing_log kind=step tool=ci-local step="$name" skipped=1 tier=tests wall_s=0 exit=0
+  done
+  note "Tests tier: every changed file is on scripts/ci-skip-paths or scripts/ci-tests-only-paths, so the tests and the light checks ran, and the render, browser and balance checks did not."
+else
 pstep golden render_step golden software "node blender/checks/golden.mjs --jobs=$GOLDEN_JOBS"
+pstep golden-font golden_font_check
 gh_step lifecycle browser bash "$SELF/with-render-lock.sh" --gpu npm run lifecycle -- --quality low --no-shots
 gh_step soak browser bash "$SELF/with-render-lock.sh" --gpu npm run soak
 step render-checks render_step render-checks gpu "bash '$SELF/lib/run-parallel.sh' $render_parts"
@@ -385,6 +409,7 @@ step phone-check phone_check
 step stage stage_check
 step pose-nodraw nodraw_check
 step tool-rng rng_check
+fi
 pjoin "$browser_t0"
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
 gh_step commits commits commits

@@ -1,0 +1,6 @@
+# Changed paths that only tests read: prose or data no game code, build or render check uses. A PR whose
+# changed files all match scripts/ci-skip-paths or a line here (and at least one matches only here) gets
+# the tests tier: the light gate plus test:fast, and no build, balance, browser or render checks. Same
+# format and rules as scripts/ci-skip-paths, read with scripts/ci-classify.sh from main, never from the PR.
+# src/audio/director.test.js reads the contract.
+src/contract/contract.md
