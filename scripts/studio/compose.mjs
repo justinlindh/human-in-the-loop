@@ -20,6 +20,11 @@
 //                      degree (0 = south, +y; 90 = east, +x), another person's id, or "robot"
 //              free    true: allow standing inside an item's footprint (to look at what overlaps)
 //              gesture played from t seconds (default 0)
+//              use     { item: <placed item id>, slot?: 0, dur?: seconds }   sent to use that item (a perk visit: coffee,
+//                      couch, table) at t seconds, as the game's perk system does; while anyone has a use, nobody
+//                      else starts a visit. With use, seat and at are optional (at is where they stand until sent)
+//              until   seconds: a person placed with at is held there until then, then released to walk back to their
+//                      own goal (or the visit they were sent on)
 //   era      the era the state is in (items arrive with eras; the office robot needs agents)
 //   keep     ["office", "staff"]: keep the base's furniture and people (items and people add to them)
 //   moments  [{ moment: "slap", fixer?: id | "nearest" }]   the game's own staging plays it: the robot's fix event
@@ -54,7 +59,7 @@ const isPoint = (v) => Array.isArray(v) && v.length === 2 && v.every(Number.isFi
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const MOMENTS = ['slap'];
 const KEEP = ['office', 'staff'];
-const KEYS = { top: ['base', 'era', 'keep', 'items', 'people', 'robot', 'moments'], item: ['item', 'at', 'rot', 'level', 'id'], person: ['id', 'build', 'seat', 'at', 'face', 'gesture', 't', 'look', 'free'], robot: ['at', 'cause', 'level'], moment: ['moment', 'fixer'] };
+const KEYS = { top: ['base', 'era', 'keep', 'items', 'people', 'robot', 'moments'], item: ['item', 'at', 'rot', 'level', 'id'], person: ['id', 'build', 'seat', 'at', 'face', 'gesture', 't', 'look', 'free', 'use', 'until'], use: ['item', 'slot', 'dur'], robot: ['at', 'cause', 'level'], moment: ['moment', 'fixer'] };
 
 function unknownKeys(obj, allowed, where, problems) {
   for (const k of Object.keys(obj)) if (!allowed.includes(k)) problems.push(`${where}: unknown key "${k}" (allowed: ${allowed.join(', ')})`);
@@ -125,7 +130,7 @@ export function compose(input) {
     const build = p.build ?? 1;
     if (![0, 1, 2].includes(build)) problems.push(`${where}: build must be 0, 1 or 2`);
     const seated = p.seat != null, standing = p.at != null;
-    if (seated === standing) problems.push(`${where}: give exactly one of seat (a desk id) or at (a tile position)`);
+    if ((seated && standing) || (!seated && !standing && p.use == null)) problems.push(`${where}: give exactly one of seat (a desk id) or at (a tile position)`);
     const rec = { id: p.id, name: p.id, role: 'engineer', seniority: 'mid', level: 1, xp: 0, skills: { features: 50, polish: 50, reliability: 50, novelty: 50 }, speed: 1, meaning: 60, stamina: 60, knowledge: 30, traits: [], assignment: { type: 'idle', targetId: null }, mood: 'ok', burnoutWeeks: 0, sabbaticalWeeksLeft: 0, salary: 1000, hiredWeek: 0, founder: false, path: null, pathPending: false, legend: false, record: {}, appearance: { skin: 2, hair: 3, hairColor: '#a3442f', shirt: '#2f3a4a', pants: '#8a7f6a', accessory: 'none', ...(p.look ?? {}), build } };
     state.staff.push(rec);
     byId.set(p.id, { rec, entry: p });
@@ -150,6 +155,20 @@ export function compose(input) {
     }
     if (p.gesture != null && !ANIMS.includes(p.gesture)) problems.push(`${where}: gesture "${p.gesture}" is not an animation the game plays (see ANIMS in src/render/character.js)`);
     if (p.t != null && !(Number.isFinite(p.t) && p.t >= 0)) problems.push(`${where}: t must be seconds from the start`);
+    if (p.until != null) {
+      if (!(Number.isFinite(p.until) && p.until > 0)) problems.push(`${where}: until must be seconds from the start`);
+      if (!standing) problems.push(`${where}: until releases a person placed with at`);
+    }
+    if (p.use != null) {
+      const u = p.use;
+      if (typeof u !== 'object' || Array.isArray(u)) problems.push(`${where}: use must be { item, slot?, dur? }`);
+      else {
+        unknownKeys(u, KEYS.use, `${where}.use`, problems);
+        if (!state.office.placed.some((it) => it.id === u.item)) problems.push(`${where}.use: item "${u.item}" is not an item id`);
+        if (u.slot != null && !(Number.isInteger(u.slot) && u.slot >= 0)) problems.push(`${where}.use: slot must be a whole number from 0`);
+        if (u.dur != null && !(Number.isFinite(u.dur) && u.dur > 0)) problems.push(`${where}.use: dur must be seconds`);
+      }
+    }
   });
 
   // Directions resolve after every position is known (a face can name another person or the robot).
@@ -173,6 +192,8 @@ export function compose(input) {
       }
     }
     if (p.gesture) script.push({ frame, who: id, op: 'gesture', name: p.gesture });
+    if (p.use && typeof p.use === 'object') script.push({ frame, who: id, op: 'use', item: p.use.item, slot: p.use.slot ?? 0, ...(p.use.dur ? { dur: p.use.dur } : {}) });
+    if (p.until) script.push({ frame: Math.round(p.until * FPS), who: id, op: 'release' });
   }
   // A staged moment is played by the game's own staging; the composed scene only sets it up.
   (spec.moments ?? []).forEach((m, i) => {
