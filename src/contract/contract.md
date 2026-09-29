@@ -583,3 +583,35 @@ state.ops.nocSince: null | week             // week the mode was last set; null 
 ```
 
 - Render reads existing state, no new fields: a live outage or incident means red alert; a quiet week can show someone dozing at the NOC; weeks since the last `incidentLog` entry drive a "days since last incident" sign; `ops.noc === 'agents'` puts agent logs on the screens.
+
+## Office robot (#178)
+
+A buyable coffee robot from the Agents era. It lifts morale a little, breaks now and then, and draws resentment as the company automates. Resentment never touches output or quitting.
+
+```
+ITEMS.office_robot = { id: 'office_robot', kind: 'shop', unique: true, costs: [c1, c2, c3], effects: [...] }   // era-gated like other Agents-era shop items; 1x1 dock footprint, the robot itself roams (render)
+state.robot = null | {
+  status: 'ok' | 'broken',
+  cause: null | 'spin' | 'stuck' | 'emptyDesk' | 'cone' | 'decaf' | 'unplug',
+  since,                     // week it broke, or null
+  breakdowns, sabotages,     // counts
+  calmUntil,                 // no sabotage before this week, or null
+  googly,                    // bool: googly eyes stuck on for good
+}
+```
+
+- `state.robot` is null until the item is placed, and loads as null in old saves.
+- Effects go through itemBonus (staminaRecovery, meaningRecovery; L2 also scales Potted Plant adjacency by `B.robot.plantBoost`), count toward `B.itemBonusCap`, and pay nothing while `status === 'broken'`. Every number lives in `B.robot`.
+- Breakdowns: `B.robot.breakChance` a week (x`l3BreakMult` at level 3), one at a time. The next week a fixer slaps it back to `'ok'`. Someone who has fixed it twice earns the `percussive` trait (Percussive Maintenance; the count lives in `flags`), and a fixer with it fixes it the same week. It is never rolled on hire, so hiring plays exactly as before. A breakdown never pauses the clock.
+- Resentment follows the automation share (the mean automation level the Automation panel shows). From `B.robot.grumbleFrom`, people with `automationExposure >= 0.5` get no meaningRecovery from the robot. From `B.robot.sabotageFrom`, sabotage causes a breakdown with a chance scaled by the share, never while `week < calmUntil`, and halved for good by googly eyes.
+- The first sabotage raises the one-time decision `robot_kicked` through `raiseDecision`: a blameless meeting sets `calmUntil = week + B.robot.calmWeeks`, googly eyes sets `googly`, or let it go. The Waffle Party and music night also set `calmUntil`.
+- The robot draws from its own stream (seed, week, a salt), so a company without one plays exactly as before.
+
+Events:
+```
+{ type: 'robot', kind: 'breakdown', cause, staffId, deskStaffId }   // staffId: the saboteur, for staging only and never named in text; deskStaffId: whose desk for 'emptyDesk'; both null otherwise
+{ type: 'robot', kind: 'fixed', fixerId, sameWeek }
+```
+
+- Props: `robot_note` while grumbling, `googly_eyes` for good once chosen, `traffic_cone` during a cone breakdown.
+- No new actions: buying, upgrading and moving use the existing item actions.

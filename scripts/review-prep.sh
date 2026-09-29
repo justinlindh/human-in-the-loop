@@ -104,9 +104,11 @@ if [ $bot = 1 ]; then
   odd="$(cut -f1 <<<"$files" | grep -vE '^(package\.json|package-lock\.json|\.github/workflows/.*)$' || true)"
   [ -z "$odd" ] || { echo "review-prep: #$pr changes more than package.json, package-lock.json and .github/workflows/: don't run it; report it to team-lead:"; sed 's/^/  /' <<<"$odd"; exit 3; }
 else
-  grep -Ev '^[[:space:]]*(#|$)' "$REPO/scripts/ci-trusted" | grep -qxF -- "$author" \
+  { grep -Ev '^[[:space:]]*(#|$)' "$REPO/scripts/ci-trusted" | grep -qxF -- "$author" \
+      || { [[ "$author" == app/* ]] && [ "$(jq -r .author.is_bot <<<"$view")" = true ] \
+           && grep -Ev '^[[:space:]]*(#|$)' "$REPO/scripts/ci-trusted-bots" | grep -qxF -- "${author#app/}[bot]"; }; } \
     || { if [ "$author" = "dependabot[bot]" ]; then echo "review-prep: #$pr is a Dependabot PR: use --bot"
-         else echo "review-prep: #$pr is by $author, who is not in scripts/ci-trusted: don't fetch or run it; report it to team-lead"; fi; exit 3; }
+         else echo "review-prep: #$pr is by $author, who is not in scripts/ci-trusted or ci-trusted-bots: don't fetch or run it; report it to team-lead"; fi; exit 3; }
 fi
 
 head="$(jq -r .headRefOid <<<"$view")"; base="$(jq -r .baseRefName <<<"$view")"; branch="$(jq -r .headRefName <<<"$view")"

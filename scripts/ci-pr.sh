@@ -52,10 +52,21 @@ fi
 # so it only runs PRs from a branch of this repository by an author listed in scripts/ci-trusted.
 # Nothing is fetched, checked out or posted for any other PR.
 TRUSTED="${CI_TRUSTED_FILE:-}"
+TRUSTED_BOTS="${CI_TRUSTED_BOTS_FILE:-}"
+# The list's lines, without comments or blanks.
+trust_lines() { tr -d '\r' <"$1" 2>/dev/null | sed -e 's/#.*//' -e 's/[[:blank:]]//g' | grep -v '^$'; }
 pr_trusted() { # <isCrossRepository> <head repo owner> <author> <repo owner>
   [ "$1" = false ] || { echo "ci-pr: #$pr comes from a fork ($2); not running it" >&2; return 1; }
   [ "$2" = "$4" ] || { echo "ci-pr: #$pr head repository belongs to $2, not $4; not running it" >&2; return 1; }
-  grep -qxF -- "$3" <(tr -d '\r' <"$TRUSTED" 2>/dev/null | sed -e 's/#.*//' -e 's/[[:blank:]]//g' | grep -v '^$') \
+  if [[ "$3" == app/* ]]; then
+    # An app author: gh shows app/<name>; the REST login (<name>[bot], type Bot) is what the list names.
+    local rest_login rest_type
+    IFS=$'\037' read -r rest_login rest_type < <(gh api "repos/{owner}/{repo}/pulls/$pr" --jq '[.user.login, .user.type] | join("\u001f")')
+    [ "${rest_type:-}" = Bot ] && [ "${rest_login:-}" = "${3#app/}[bot]" ] && grep -qxF -- "$rest_login" <(trust_lines "$TRUSTED_BOTS") \
+      || { echo "ci-pr: #$pr is by $3, which is not an app in scripts/ci-trusted-bots; not running it" >&2; return 1; }
+    return 0
+  fi
+  grep -qxF -- "$3" <(trust_lines "$TRUSTED") \
     || { echo "ci-pr: #$pr is by $3, who is not in scripts/ci-trusted; not running it" >&2; return 1; }
 }
 # Fields are split on the unit separator, which read never merges: an empty field stays empty
@@ -71,6 +82,11 @@ if [ -z "$TRUSTED" ]; then
   git -C "$REPO" fetch -q origin "$pr_base" 2>/dev/null
   git -C "$REPO" show "origin/$pr_base:scripts/ci-trusted" >"$trusted_tmp" 2>/dev/null
 fi
+bots_tmp=""
+if [ -z "$TRUSTED_BOTS" ]; then
+  bots_tmp="$(mktemp)"; TRUSTED_BOTS="$bots_tmp"
+  git -C "$REPO" show "origin/$pr_base:scripts/ci-trusted-bots" >"$bots_tmp" 2>/dev/null
+fi
 repo_owner="$(gh repo view --json owner --jq .owner.login)"
 [ -n "${cross:-}" ] && [ -n "$repo_owner" ] || { echo "ci-pr: cannot read PR #$pr" >&2; exit 2; }
 if [ "$allow_bot" = 1 ]; then
@@ -79,9 +95,9 @@ if [ "$allow_bot" = 1 ]; then
   [ "${bot_login:-}" = 'dependabot[bot]' ] && [ "${bot_type:-}" = Bot ] \
     || { echo "ci-pr: --allow-bot is only for Dependabot PRs; #$pr is by ${bot_login:-unknown}" >&2; exit 2; }
 else
-  pr_trusted "$cross" "$owner" "$author" "$repo_owner" || { rm -f "$trusted_tmp"; exit 2; }
+  pr_trusted "$cross" "$owner" "$author" "$repo_owner" || { rm -f "$trusted_tmp" "$bots_tmp"; exit 2; }
 fi
-rm -f "$trusted_tmp"
+rm -f "$trusted_tmp" "$bots_tmp"
 mkdir -p "$ROOT"
 # One run per PR at a time, each in its own worktree: overlapping runs sharing a path deleted
 # each other's trees mid-run.

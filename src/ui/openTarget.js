@@ -41,6 +41,7 @@ export function openTarget(ctx, target) {
   if (panel === 'office' && typeof arg === 'string' && arg) return startPlacing(ctx, arg);
   // Squads live in a tab of Staff: { panel: 'squads', arg: squadId } opens it scrolled to that squad.
   if (panel === 'squads') { ctx.open('staff', { tab: 'squads', squadId: arg ?? null }); return true; }
+  if (panel === 'staff' && (target.tab || target.assign || target.focus || target.note)) { ctx.open('staff', { staffId: arg, tab: target.tab, assign: target.assign, focus: target.focus, note: target.note }); return true; }
   ctx.open(panel, arg && ARG_KEY[panel] ? { [ARG_KEY[panel]]: arg } : undefined);
   return true;
 }
