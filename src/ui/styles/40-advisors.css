@@ -49,3 +49,7 @@
 .hitl .advflash { animation: hitl-adv-flash 1.6s ease-out; }
 @keyframes hitl-adv-flash { 0%, 40% { box-shadow: 0 0 0 0.3em rgba(255, 176, 32, 0.85); } 100% { box-shadow: 0 0 0 0 rgba(255, 176, 32, 0); } }
 @media (prefers-reduced-motion: reduce) { .hitl .advflash { animation: none; outline: 0.2em solid var(--yellow); } }
+.hitl .card.landing { display: flex; align-items: center; gap: 0.6em; margin-bottom: 0.5em; background: #fff3d6; }
+.hitl .advhi { outline: 0.22em solid var(--yellow); outline-offset: 0.1em; animation: hitl-adv-flash 1.6s ease-out 2; }
+@media (prefers-reduced-motion: reduce) { .hitl .advhi { animation: none; } }
+.hitl .advnote { font-weight: 700; }
