@@ -49,11 +49,8 @@ const FACEPALMER = { js: `(() => {
     if (!p) return null;
     window.__facepalmer = p.id;
   }
-  let o = null;
-  R.scene.traverse((x) => { if (!o && x.userData.staffId === window.__facepalmer) o = x.parent; });
-  if (!o) return null;
-  const v = o.getWorldPosition(new o.position.constructor());
-  return { x: v.x, z: v.z };
+  const e = R.probe(window.__facepalmer)?.eyes;
+  return e ? { x: e[0], z: e[2] } : null;
 })()` };
 // The first dancer of a music night.
 const DANCER = { js: "(() => { const R = window.__hitlRender, id = R.incentives?.dance?.dancers?.[0]; if (id == null) return null; let o = null; R.scene.traverse((x) => { if (!o && x.userData.staffId === id) o = x.parent; }); if (!o) return null; const v = o.getWorldPosition(new o.position.constructor()); return { x: v.x, z: v.z }; })()" };
