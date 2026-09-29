@@ -59,7 +59,7 @@ function fix(ctx, fixer, sameWeek) {
   Object.assign(r, { status: 'ok', cause: null, since: null });
   ctx.emit({ type: 'robot', kind: 'fixed', fixerId: fixer.id, sameWeek });
   emitChat(ctx, { channel: 'random', person: fixer, text: fill(pick(stream(state, 5), sameWeek ? L.fixedFast : L.fixed), { fixer: first(fixer) }) });
-  if (sameWeek) fixer.meaning = Math.min(100, fixer.meaning + 2);
+  if (sameWeek) fixer.meaning = Math.min(100, fixer.meaning + B.robot.fixMeaning);
   const fixes = (state.flags.robotFixes ??= {});
   fixes[fixer.id] = (fixes[fixer.id] ?? 0) + 1;
   if (fixes[fixer.id] >= B.robot.fixesForTrait && !fixer.traits.includes('percussive') && fixer.traits.length < 3) {

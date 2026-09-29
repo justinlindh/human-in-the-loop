@@ -126,6 +126,17 @@ describe('office robot breakdowns', () => {
     expect(TRAITS.percussive.mods).toEqual({ reliability: 1.05 });
   }));
 
+  it('a same-week fix lifts the fixer by fixMeaning', () => withRobotB({ breakChance: 1, fixMeaning: 7 }, () => {
+    const s = company();
+    for (const p of s.staff) if (p.role === 'engineer') p.traits = [];
+    const fixer = s.staff.find((p) => p.role === 'engineer');
+    fixer.traits = ['percussive'];
+    fixer.meaning = 50;
+    const fix = week(s).find((e) => e.kind === 'fixed');
+    expect(fix).toMatchObject({ fixerId: fixer.id, sameWeek: true });
+    expect(fixer.meaning).toBe(57);
+  }));
+
   it('nobody is ever hired with Percussive Maintenance', () => {
     const s = game(9);
     for (let i = 0; i < 400; i++) expect(generateStaff(s, { role: 'engineer', seniority: 'mid' }).traits).not.toContain('percussive');
