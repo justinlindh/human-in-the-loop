@@ -553,3 +553,28 @@ state.outage = null | { productId, kind, severity, weeks, unrecoverable,
   - Security kinds: the decision stays at the alarm, since its choices respond to the attack (pay the ransom, restore from backups). The resolution card offers only the two below, as a small follow-up decision (`incident_postmortem`), whose `vars` carry the same five keys.
   - "Write it up properly": responders respond `B.postmortemWeeks` (1) more week, tech debt -`B.postmortemDebt` (5), responders' knowledge +`B.postmortemKnowledge` (3), and each responder loses `B.postmortemMeaning` meaning unless Blameless Postmortems is on.
   - "Patch and move on": tech debt +`B.patchDebt` (3).
+
+## NOC (#342)
+
+A network operations centre the company grows out of Ops, with a one-off bet on who watches it.
+
+```
+ITEMS.noc = { id: 'noc', kind: 'shop', minStage: 0, costs: [c1, c2, c3], effects: [{ catch, fixWeeks } x3],
+              footprint: { w: 3, h: 1 }, frontFrom: 2, requires: 'ops', unique: true, levelStage: [0, 1, 2] }
+state.ops.noc: null | 'humans' | 'agents'   // null until noc_bet is answered, and in old saves
+state.ops.nocSince: null | week             // week the mode was last set; null in old saves
+state.outage.misread: bool                  // old saves load with false
+```
+
+- Item fields any item may use: `levelStage` (level N needs `officeStage >= levelStage[N - 1]`; absent means no limit), `requires: 'ops'` (needs `unlocks.ops`), `unique: true` (one copy per office). New refusals: 'Needs Ops and Security', 'You already have one', and 'Needs a bigger office' on `upgradeItem`.
+- Looks by level: 1 a pager and a TV on a cart; 2 a darkened corner with a screen wall and a curved desk; 3 a full operations floor wall.
+- Effects, through itemBonus: `catch` adds to the chance an incident is caught early (the `B.catchMax` cap is unchanged); `fixWeeks` takes that fraction off the weeks an outage needs.
+- Mode `null` or `'humans'`: the `catch` bonus scales by `min(1, Security staff present / B.nocCrew)`; no misreads. Mode `'agents'`: the `catch` bonus times `B.nocAgentCatch`, no staff needed, and every incident rolls `B.nocMisreadChance`: on a hit it lands uncaught at severity +1 (max 5) with `misread: true`. A misread outage's `cause` says so in plain words, `incidentResolved.hurt` names it, and pagerbot posts it in Yak.
+- Decision `noc_bet`: raised once, from the Agents era on, when a noc at level 2 or higher is placed. Choices: 'Let the agents watch' (`ops.noc = 'agents'`), 'Keep humans on the glass' (`ops.noc = 'humans'`).
+
+```
+{ type: 'setNocMode', mode }   // 'humans' | 'agents'; refusals: 'No NOC', 'Not yet' (before noc_bet), 'Already set', 'Too soon' (under B.nocSwitchWeeks since ops.nocSince)
+{ type: 'incident', kind, productId, caught, severity, misread }   // misread: true when the NOC's agents read the alert as routine
+```
+
+- Render reads existing state, no new fields: a live outage or incident means red alert; a quiet week can show someone dozing at the NOC; weeks since the last `incidentLog` entry drive a "days since last incident" sign; `ops.noc === 'agents'` puts agent logs on the screens.
