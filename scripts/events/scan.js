@@ -42,6 +42,9 @@ export function clausesOf(expr) {
 }
 
 const STAGES = { garage: 0, floor: 1, hq: 2 };
+// Moments waiting on a look-ahead at once, per run. A run that would pass it counts the rest as dropped
+// and the answer is refused rather than reported as "none satisfied".
+const MAX_WAITING = 1000;
 
 async function play({ bot, seed, weeks, where, then, within, setup, turnWhile, dir, id, perRun, key, filter }) {
   const mod = (p) => import(pathToFileURL(join(ROOT, p)).href);
@@ -65,7 +68,8 @@ async function play({ bot, seed, weeks, where, then, within, setup, turnWhile, d
   const collect = (events) => { for (const ev of events ?? []) seen.push(ev); };
   // Starts waiting for their look-ahead condition: { row, before (the pre-tick state), until (week) }.
   let waiting = [];
-  let started = 0;
+  let started = 0, dropped = 0;
+  const wantsState = /\bm\.s\b/.test(then ?? '');
   const record = (row, before, result) => {
     const name = `${key}-${seed}-${bot}-w${row.week}-${row.type}.json.gz`;
     writeFileSync(join(dir, 'snapshots', name), gzipSync(before));
@@ -92,15 +96,17 @@ async function play({ bot, seed, weeks, where, then, within, setup, turnWhile, d
       }
       for (const e of events) {
         if (id != null && e.id !== id && e.type !== id) continue;
+        if (!passes(e)) continue;
         clauses.forEach((c, i) => { if (!everTrue[i]) { try { everTrue[i] = !!c(e, s); } catch { /* false */ } } });
-        if (!passes(e) || !pred(e, s)) continue;
+        if (!pred(e, s)) continue;
         const row = { ...base(), type: e.type, id: e.id };
-        if (follow) { started++; if (waiting.length < 8) waiting.push({ row, e, s0: structuredClone(s), before, until: s.week + within }); } else record(row, before, true);
+        if (follow) { started++;
+          if (waiting.length < MAX_WAITING) waiting.push({ row, e, s0: wantsState ? structuredClone(s) : null, before, until: s.week + within }); else dropped++; } else record(row, before, true);
         break;
       }
     }
   } catch (err) { error = `${err.message.split('\n')[0]} (seed ${seed}, bot ${bot}, week ${s.week})`; }
-  return { hits, error, everTrue, started };
+  return { hits, error, everTrue, started, dropped };
 }
 
 if (!isMainThread) {
@@ -140,6 +146,8 @@ export async function scan(hash, { id = null, where, then = '', within = 52, ran
         rec.ever[`${run.seed}:${run.bot}`] = r.everTrue;
         rec.started ??= {};
         rec.started[`${run.seed}:${run.bot}`] = r.started ?? 0;
+        rec.dropped ??= {};
+        rec.dropped[`${run.seed}:${run.bot}`] = r.dropped ?? 0;
         rec.done.push(`${run.seed}:${run.bot}`);
         played++;
         onProgress?.(played, runs.length);
@@ -161,5 +169,6 @@ export async function scan(hash, { id = null, where, then = '', within = 52, ran
   const parts = clausesOf(where);
   const clauses = parts.map((expr, i) => ({ expr, runsTrue: inRange.filter(([, v]) => v?.[i]).length }));
   const started = inRange.reduce((n, [k]) => n + (rec.started?.[k] ?? 0), 0);
-  return { rows: rows.slice(0, limit), played, cached, error, dir, runs: inRange.length, clauses, started };
+  const dropped = inRange.reduce((n, [k]) => n + (rec.dropped?.[k] ?? 0), 0);
+  return { rows: rows.slice(0, limit), played, cached, error, dir, runs: inRange.length, clauses, started, dropped };
 }

@@ -87,17 +87,18 @@ if ((needsState || (!rows.length && (where || argv.includes('--scan')))) && !arg
   const seeds = q.seed != null ? [Number(q.seed)] : q['scan-seeds'] ? range(q['scan-seeds']) : range('1-60');
   const bots = q['scan-bots'] ? String(q['scan-bots']).split(',') : q.bot ? [q.bot] : meta.bots;
   const t0 = Date.now();
-  scanned = await scan(hash, { id: q.id ?? null, where, then: typeof q.then === 'string' ? q.then : '', within: Number(q.within) || 52, rank: typeof q.rank === 'string' ? q.rank : '', setup: q.setup ?? '', filter: { era: q.era, stage: q.stage, from: q.from, to: q.to }, turnWhile: q['turn-while'] ?? '', seeds, bots, limit, weeks: Number(q['scan-weeks']) || 1040,
+  scanned = await scan(hash, { id: q.id ?? null, where, then: typeof q.then === 'string' ? q.then : '', within: Number(q.within) || 52, rank: typeof q.rank === 'string' ? q.rank : '', setup: q.setup ?? '', filter: { era: q.era, stage: q.stage, from: q.from, to: q.to }, turnWhile: q['turn-while'] ?? '', seeds, bots, limit, perRun: Number(q['per-run']) || (typeof q.rank === 'string' ? 5 : 1), weeks: Number(q['scan-weeks']) || 1040,
     onProgress: (d, n) => { if (d % 10 === 0) console.error(`find: scanned ${d}/${n} runs (${Math.round((Date.now() - t0) / 1000)} s)`); } });
   if (scanned.error) refuse('scan-failed', `the scan failed: ${scanned.error}`);
+  if (scanned.dropped && !scanned.rows.length) refuse('scan-failed', `${scanned.dropped} moment(s) matching --where were dropped while waiting on --then (too many waiting at once): narrow --where or shorten --within`);
   rows = scanned.rows;
 }
 const withFile = (r) => (r.scanned ? { ...r, snapshotFile: join(indexDir(hash), 'scan/snapshots', r.snapshot) } : r);
 // What the scan learned about each `&&` part of the predicate: one that no played run ever made true
 // says no bot game reaches it (a mock or a bot change is needed, not more seeds).
 const never = scanned ? scanned.clauses.filter((c) => c.runsTrue === 0).map((c) => c.expr) : [];
-if (scanned && !rows.length) console.error(`find: no match in ${scanned.runs} runs${never.length ? `; never true in any run: ${never.map((c) => `\`${c}\``).join(', ')}, so no bot game reaches it` : ''}${typeof q.then === 'string' && scanned.started && !never.length ? `; ${scanned.started} moment(s) matched --where and none satisfied --then within ${Number(q.within) || 52} weeks` : ''}`);
-if (JSON_OUT && argv.includes('--explain')) console.log(JSON.stringify({ matches: rows.slice(0, limit).map(withFile), scan: scanned ? { runs: scanned.runs, clauses: scanned.clauses, unreachable: never, whereMatchesWithoutThen: typeof q.then === 'string' ? scanned.started - rows.length : null } : null }, null, 1));
+if (scanned && !rows.length) console.error(`find: no match in ${scanned.runs} runs${never.length ? `; never true in any run: ${never.map((c) => `\`${c}\``).join(', ')}, so no run played here reaches it` : ''}${typeof q.then === 'string' && scanned.started && !never.length ? `; ${scanned.started} moment(s) matched --where and none satisfied --then within ${Number(q.within) || 52} weeks` : ''}`);
+if (JSON_OUT && argv.includes('--explain')) console.log(JSON.stringify({ matches: rows.slice(0, limit).map(withFile), scan: scanned ? { runs: scanned.runs, clauses: scanned.clauses, unreachable: never, dropped: scanned.dropped, whereMatchesWithoutThen: typeof q.then === 'string' ? scanned.started - rows.length : null } : null }, null, 1));
 else if (JSON_OUT) console.log(JSON.stringify(rows.slice(0, limit).map(withFile), null, 1));
 else {
   for (const r of rows.slice(0, limit)) {

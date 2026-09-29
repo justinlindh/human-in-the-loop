@@ -126,4 +126,22 @@ describe('find.js --where', () => {
     expect(r.code).toBe(2);
     expect(r.out.kind).toBe('bad-query');
   });
+
+  it('keeps every waiting moment: a later --where moment is still checked while earlier ones wait', () => {
+    const r = find('--where', "e.type === 'week' && s.week >= 1", '--then', "e.type === 'week' && m.week >= 30 && s.week === m.week + 1", '--within', '52', '--scan-seeds', '1', '--scan-weeks', '50', '--bot', 'balanced');
+    expect(r.code).toBe(0);
+    expect(r.out[0].week).toBe(30);
+  });
+
+  it('lets --per-run take several matches from one run, and --rank order them', () => {
+    const r = find('--where', "e.type === 'week' && s.week >= 3", '--rank', 'm.week', '--per-run', '3', '--limit', '3', ...SCAN);
+    expect(r.out.map((x) => x.week)).toEqual([5, 4, 3]);
+  });
+
+  it('counts a clause as reachable only inside the --weeks window', () => {
+    const r = find('--explain', '--where', "e.type === 'week' && s.week === 20", '--weeks', '1-10', ...SCAN);
+    expect(r.code).toBe(1);
+    expect(r.out.scan.unreachable).toContain('s.week === 20');
+  });
 });
+
