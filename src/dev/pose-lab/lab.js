@@ -31,9 +31,9 @@ try {
   defaults = await (await fetch('/__lab/params')).json();
 } catch { defaults = []; }
 
-const [{ createPoseRun }, { measureCovers }, { getTemplate }, { ANIMS }] = await Promise.all([
+const [{ createPoseRun, playPose }, PM, { getTemplate }, { ANIMS }] = await Promise.all([
   import('/blender/checks/pose-measure.js'),
-  import('/blender/checks/pose-cover.js'),
+  import('/blender/checks/pose-matrix.js'),
   import('/src/render/models.js'),
   import('/src/render/character.js'),
 ]);
@@ -61,7 +61,8 @@ function fit() {
   camera.updateProjectionMatrix();
 }
 function placeCamera() {
-  camera.position.copy(CENTER).addScaledVector(toCamera(state.view), 10);
+  // The camera stays on the game's first view; a view turns the person instead, as the matrix does.
+  camera.position.copy(CENTER).addScaledVector(toCamera(0), 10);
   camera.lookAt(CENTER);
   camera.updateMatrixWorld(true);
 }
@@ -81,7 +82,7 @@ const total = () => Math.ceil((state.warm + state.seconds + 0.5) * state.fps);
 
 async function rebuild() {
   if (run) scene.remove(run.character.root);
-  run = await createPoseRun({ under: state.under, gesture: state.gesture, seconds: state.seconds, warm: state.warm, fps: state.fps, yawToCamera: state.yaw, view: state.view, rig: state.rig, look: { build: state.build } });
+  run = await createPoseRun({ under: state.under, gesture: state.gesture, seconds: state.seconds, warm: state.warm, fps: state.fps, yawToCamera: state.view * 90 + state.yaw, view: 0, rig: state.rig, look: { build: state.build }, covers: COVER_NAMES });
   scene.add(run.character.root);
   frames = []; stepped = 0; planted = false;
 }
@@ -107,7 +108,9 @@ function headMesh(root) {
   return head;
 }
 
-function draw() {
+// covers: the run's own cover measure for the frame (the matrix's code), or a fresh one when the caller
+// has moved something since the step.
+function draw(fresh = false) {
   placeCamera();
   const f = frames[stepped - 1] ?? null;
   const J = f?.joints;
@@ -115,8 +118,7 @@ function draw() {
   rays.forEach((l, h) => { l.visible = state.rays && !!f; if (f) setLine(l, f.hands[h], f.eyes); });
   covers = {};
   if (f) {
-    const c = run.character;
-    try { covers = measureCovers({ camera }, { root: c.root, head: headMesh(c.root) }, getTemplate('chibi'), COVER_NAMES, [], { width: canvas.width, height: canvas.height }).measures; } catch (e) { status(String(e.message ?? e), true); }
+    try { covers = fresh ? run.covers(COVER_NAMES) : (f.cover ?? {}); } catch (e) { status(String(e.message ?? e), true); }
   }
   renderer.render(scene, camera);
   readout(f);
@@ -128,7 +130,7 @@ function draw() {
 async function plant(landmark = 'EyeLeft', lift = 0.02) {
   const { faceLandmarks } = await import('/blender/checks/pose-landmarks.js');
   const c = run.character, f = frames[stepped - 1];
-  const eye = faceLandmarks(getTemplate('chibi'))[landmark][0].clone().applyMatrix4(headMesh(c.root).parent.matrixWorld).addScaledVector(toCamera(state.view), lift);
+  const eye = faceLandmarks(getTemplate('chibi'))[landmark][0].clone().applyMatrix4(headMesh(c.root).parent.matrixWorld).addScaledVector(toCamera(0), lift);
   let arm = null;
   c.root.traverse((o) => { if (!arm && o.isMesh && o.userData.part === 'armL') arm = o; });
   const delta = eye.clone().sub(new THREE.Vector3(...f.hands[0]));
@@ -139,7 +141,7 @@ async function plant(landmark = 'EyeLeft', lift = 0.02) {
   arm.matrixAutoUpdate = false;
   arm.updateMatrixWorld(true);
   planted = true;
-  draw();
+  draw(true);
   return covers;
 }
 

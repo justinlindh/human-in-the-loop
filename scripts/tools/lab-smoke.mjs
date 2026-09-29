@@ -35,10 +35,11 @@ try {
   // The same frame from the module the checks run.
   const ref = await page.evaluate(async (o) => {
     const { playPose } = await import('/blender/checks/pose-measure.js');
-    const r = await playPose({ under: 'typing', gesture: 'facepalm', view: o.view, look: { build: 1 } });
+    const r = await playPose({ under: 'typing', gesture: 'facepalm', view: 0, yawToCamera: o.view * 90, look: { build: 1 }, covers: ['coverHandEyeNear', 'coverHandEyeL', 'coverHandEyeR', 'coverHandFace'] });
     return r.frames[o.frame - 1];
   }, { view: Number(opt('view', 0)), frame: Number(opt('frame', 70)) });
   if (JSON.stringify(ref.contact) !== JSON.stringify(got.f.contact)) fail('lab contact numbers differ from playPose');
+  if (JSON.stringify(ref.cover) !== JSON.stringify(got.covers)) fail(`lab cover numbers differ from playPose: ${JSON.stringify(got.covers)} vs ${JSON.stringify(ref.cover)}`);
   if (!Number.isFinite(got.covers.coverHandEyeNear)) fail('no cover number');
   // A planted control: a hand placed on an eye must read as covering that eye, and not the other one.
   const planted = await page.evaluate(async () => {
@@ -52,7 +53,8 @@ try {
     return out;
   });
   console.log(`lab-smoke: planted control ${JSON.stringify(planted)}`);
-  for (const [lm, r] of Object.entries(planted)) {
+  // A person facing away has no face in view to cover, so the control needs a view that shows it.
+  for (const [lm, r] of got.f.faceCam < 100 ? Object.entries(planted) : []) {
     if (!(r.hit >= 0.5)) fail(`a hand placed on ${lm} reads ${r.hit} cover, want at least 0.5`);
     if (!(r.miss < 0.1)) fail(`a hand placed on ${lm} reads ${r.miss} on the other eye, want under 0.1`);
   }
