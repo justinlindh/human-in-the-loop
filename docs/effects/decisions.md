@@ -1176,7 +1176,7 @@ When: `(s) => s.officeStage >= 1`
 |---|---|
 | Take it out back | cash -$2,500; team meaning +6; leaves printer_wrecked for 4 weeks |
 | Call the repair line | cash -$300 |
-| Print less | Output -1% for 13 weeks ("Paperless, grudgingly"); after 1 weeks: nothing |
+| Print less | Output -1% for 13 weeks ("Paperless, grudgingly"); after 1 weeks: nothing; leaves printer_out_of_order |
 
 ## About Saturday `saturday_ask`
 
