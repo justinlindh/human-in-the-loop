@@ -62,9 +62,15 @@ function witnessDepth(source, target) {
 // the same posed world geometry that decided the intersection (skinned and morphed meshes are baked, so
 // it is wrapped in identity-matrix meshes): how far either mesh reaches inside the other, and half the
 // extent of the curve where their surfaces cross. Metres.
-function depthParts(A, B) {
-  const proxy = W => { const m = new THREE.Mesh(W.geometry); W.geometry.boundingBox ?? W.geometry.computeBoundingBox(); return m; };
-  const a = proxy(A), b = proxy(B);
+// A mesh that is not skinned or morphed is measured as the sweep measures it, in its own space: the
+// crossing reach is taken along the other mesh's axes, so it changes with how the meshes are turned.
+function depthParts(A, B, a0, b0) {
+  const dynamic = m => m.isSkinnedMesh || m.morphTargetInfluences;
+  const proxy = (W, m) => {
+    if (!dynamic(m)) { m.geometry.boundingBox ?? m.geometry.computeBoundingBox(); return m; }
+    const p = new THREE.Mesh(W.geometry); W.geometry.boundingBox ?? W.geometry.computeBoundingBox(); return p;
+  };
+  const a = proxy(A, a0), b = proxy(B, b0);
   return { interiorM: Math.max(depthInto(a, b).depth, depthInto(b, a).depth), crossM: crossReach(a, b).depth };
 }
 
@@ -84,7 +90,7 @@ export function meshContact(a, b, { clearance = false } = {}) {
   const point = mesh => new THREE.Vector3().fromBufferAttribute(mesh.geometry.attributes.position, 0);
   const containment = boxesMeet && !surfaceCrossing && (inside(point(A), B) || inside(point(B), A));
   const intersects = surfaceCrossing || containment;
-  const parts = intersects ? depthParts(A, B) : { interiorM: 0, crossM: 0 };
+  const parts = intersects ? depthParts(A, B, a, b) : { interiorM: 0, crossM: 0 };
   const result = { intersects, surfaceCrossing, containment, ...parts,
     depthM: depthAtTol({ intersects, ...parts }), depthStatus: 'sweep-metric',
     vertexDepthLowerBoundM: intersects ? Math.max(witnessDepth(A, B), witnessDepth(B, A)) : 0,
