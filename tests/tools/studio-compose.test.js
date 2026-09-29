@@ -58,6 +58,17 @@ describe('studio compose', () => {
     expect(p.join('\n')).toMatch(/inside the desk "d1"/);
   });
 
+  it('refuses two people on one seat, two standing on top of each other, and a gesture the game does not play', () => {
+    const seat = problemsOf({ ...base, people: [{ id: 'a', seat: 'd1' }, { id: 'b', seat: 'd1' }] });
+    expect(seat.join('\n')).toMatch(/people\[1\]: seat "d1" is already taken by "a"/);
+    const spot = problemsOf({ ...base, people: [{ id: 'a', at: [3, 3] }, { id: 'b', at: [3.1, 3] }] });
+    expect(spot.join('\n')).toMatch(/people\[1\]: at 3.1,3 is within 0.4 tile of "a"/);
+    expect(problemsOf({ ...base, people: [{ id: 'a', at: [3, 3] }, { id: 'b', at: [3.6, 3] }] })).toEqual([]);
+    const move = problemsOf({ ...base, people: [{ id: 'a', at: [3, 3], gesture: 'moonwalk' }] });
+    expect(move.join('\n')).toMatch(/people\[0\]: gesture "moonwalk" is not an animation/);
+    expect(problemsOf({ ...base, people: [{ id: 'a', at: [3, 3], gesture: 'slap' }] })).toEqual([]);
+  });
+
   it('applies the game placement rules: an item off the grid is refused', () => {
     expect(problemsOf({ ...base, items: [{ item: 'desk', at: [99, 99] }] }).join('\n')).toMatch(/items\[0\]: desk at 99,99/);
   });

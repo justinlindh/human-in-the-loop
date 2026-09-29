@@ -21,6 +21,7 @@
 //                                    leaves it broken down that way
 // Tile axes: +x east, +y south (a desk at rotation 0 faces +y).
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { createMockSim } from '../../src/dev/mockSim.js';
 import { ITEMS } from '../../src/data/items.js';
 import { placementCheck, seatTile, footprintCells } from '../../src/sim/office.js';
@@ -31,6 +32,18 @@ export const CAUSES = ['spin', 'stuck', 'emptyDesk', 'cone', 'decaf', 'unplug'];
 const BASES = ['garage', 'floor', 'hq', 'incident', 'night', 'ending'];
 const COMPASS = { south: [0, 1], east: [1, 0], north: [0, -1], west: [-1, 0] };
 const FPS = 30;
+const APART = 0.4;   // tiles between two standing people
+
+// The animation names the runtime can play: character.js's own ANIMS list, read from its source.
+let anims = null;
+function animNames() {
+  if (anims) return anims;
+  const src = readFileSync(fileURLToPath(new URL('../../src/render/character.js', import.meta.url)), 'utf8');
+  const list = /const ANIMS = \[([\s\S]*?)\];/.exec(src)?.[1];
+  anims = new Set([...(list ?? '').matchAll(/'([a-z_]+)'/g)].map((m) => m[1]));
+  if (!anims.has('idle')) throw new Error('compose: could not read the animation list from src/render/character.js');
+  return anims;
+}
 
 export class ComposeError extends Error {
   constructor(problems) {
@@ -97,7 +110,7 @@ export function compose(input) {
     }
   }
 
-  const script = [], byId = new Map(), spots = new Map();
+  const script = [], byId = new Map(), spots = new Map(), seatedAt = new Map();
   people.forEach((p, i) => {
     const where = `people[${i}]`;
     unknownKeys(p, KEYS.person, where, problems);
@@ -114,11 +127,14 @@ export function compose(input) {
       const desk = state.office.placed.find((d) => d.id === p.seat);
       if (!desk) problems.push(`${where}: seat "${p.seat}" is not an item id`);
       else if (desk.itemId !== 'desk') problems.push(`${where}: seat "${p.seat}" is a ${desk.itemId}, not a desk`);
-      else { rec.deskId = desk.id; spots.set(p.id, seatTile(desk)); }
+      else if (seatedAt.has(desk.id)) problems.push(`${where}: seat "${desk.id}" is already taken by "${seatedAt.get(desk.id)}"`);
+      else { rec.deskId = desk.id; seatedAt.set(desk.id, p.id); spots.set(p.id, seatTile(desk)); }
       if (p.face != null) problems.push(`${where}: a seated person faces their desk; drop face`);
     } else if (standing) {
       if (!isPoint(p.at)) problems.push(`${where}: at must be [x, y] tiles`);
       else {
+        const near = [...byId].find(([other, o]) => other !== p.id && o.entry.at && isPoint(o.entry.at) && Math.hypot(o.entry.at[0] - p.at[0], o.entry.at[1] - p.at[1]) < APART);
+        if (near) problems.push(`${where}: at ${p.at} is within ${APART} tile of "${near[0]}" at ${near[1].entry.at}`);
         spots.set(p.id, p.at);
         const { w, h } = officeShape(state.officeStage, state.office.expansion ?? 0).grid;
         if (p.at[0] < 0 || p.at[1] < 0 || p.at[0] > w || p.at[1] > h) problems.push(`${where}: at ${p.at} is outside the ${w}x${h} office`);
@@ -126,7 +142,7 @@ export function compose(input) {
         if (inside) problems.push(`${where}: at ${p.at} is inside the ${inside.itemId} "${inside.id}"`);
       }
     }
-    if (p.gesture != null && (typeof p.gesture !== 'string' || !p.gesture)) problems.push(`${where}: gesture must be a name`);
+    if (p.gesture != null && !animNames().has(p.gesture)) problems.push(`${where}: gesture "${p.gesture}" is not an animation the game plays (see ANIMS in src/render/character.js)`);
     if (p.t != null && !(Number.isFinite(p.t) && p.t >= 0)) problems.push(`${where}: t must be seconds from the start`);
   });
 
