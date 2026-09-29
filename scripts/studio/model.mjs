@@ -52,10 +52,16 @@ export function inventory(R, S) {
       add(`pet:${pet?.id ?? pathOf(root)}`, 'pet', root, { petId: pet?.id ?? null });
     }
   });
+  const heldCount = new Map();
   for (const held of carried(R)) {
     const existing = records.find(r => r.root === held.thing.obj);
     if (existing) Object.assign(existing, { staffId: String(held.staffId), held: true });
-    else add(`held:${held.staffId}:${heldName(held.thing.obj)}`, 'prop', held.thing.obj, { staffId: String(held.staffId), held: true });
+    else {
+      // Two unnamed things in one hand (a slice's cheese and crust) share a name, so it carries an index.
+      const base = `held:${held.staffId}:${heldName(held.thing.obj)}`;
+      const n = heldCount.get(base) ?? 0; heldCount.set(base, n + 1);
+      add(`${base}:${n}`, 'prop', held.thing.obj, { staffId: String(held.staffId), held: true });
+    }
   }
   // Draw batches and unowned environment geometry remain explicit, with structural path ids.
   R.scene.traverse(mesh => {

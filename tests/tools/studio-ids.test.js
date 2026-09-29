@@ -17,13 +17,25 @@ describe('studio part ids', () => {
     expect(partId('item:f1', root, root)).toBe('item:f1/self');
   });
 
+  it('do not move when another mesh joins the same owner earlier in its tree (the flat index does)', () => {
+    const flat = (root, target) => { const all = []; root.traverse((o) => { if (o.isMesh) all.push(o); }); return all.indexOf(target); };
+    const wanted = mesh('leg');
+    const item = group('person', mesh('torso'), wanted);
+    const before = { path: partId('person:s1', wanted, item), flat: flat(item, wanted) };
+    // Something the owner did not have before (a picked-up prop) comes ahead of it.
+    item.children[0].add(mesh('prop'));
+    item.add(mesh('cup'));
+    item.children.unshift(item.children.pop());
+    expect(flat(item, wanted)).not.toBe(before.flat);
+    expect(partId('person:s1', wanted, item)).toBe(before.path);
+  });
+
   it('do not move when an unrelated object is added or reordered elsewhere', () => {
-    const wanted = mesh('leg'), other = mesh('leg');
-    const item = group('chair', other, wanted);
+    const wanted = mesh('leg');
+    const item = group('chair', mesh('leg'), wanted);
     const before = partId('item:x', wanted, item);
     const scene = new THREE.Group();
-    scene.add(group('table', mesh(), mesh()), item);
-    scene.add(group('extra', mesh()));
+    scene.add(group('table', mesh(), mesh()), item, group('extra', mesh()));
     scene.children.reverse();
     expect(partId('item:x', wanted, item)).toBe(before);
   });
@@ -36,6 +48,27 @@ describe('studio part ids', () => {
     expect(heldName(cup)).toBe('coffee');
     hand.remove(cup); const torso = group('torso'); torso.add(cup);
     expect(heldName(cup)).toBe('coffee');
+  });
+});
+
+describe('carried things', () => {
+  it('two unnamed meshes in one hand (a slice) get distinct held ids', async () => {
+    const { inventory } = await import('../../scripts/studio/model.mjs');
+    const solid = (name = '') => Object.assign(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial()), { name });
+    const part = (name) => Object.assign(solid(), { userData: { part: name } });
+    const pivot = new THREE.Group();
+    pivot.add(part('hand'), group('', solid(), solid()));
+    const character = group('character', part('head'), part('torso'), pivot);
+    character.userData.staffId = 's1';
+    character.traverse((o) => { if (o.isMesh && o.userData.part) o.userData.staffId = undefined; });
+    const wrapper = new THREE.Group(); wrapper.add(character);
+    const scene = new THREE.Scene(); scene.add(wrapper);
+    scene.updateMatrixWorld(true);
+    const { records } = inventory({ scene }, { pets: [] });
+    const held = records.filter((r) => r.held).map((r) => r.id);
+    expect(held).toHaveLength(2);
+    expect(new Set(held).size).toBe(2);
+    expect(held.every((id) => id.startsWith('held:s1:'))).toBe(true);
   });
 });
 
