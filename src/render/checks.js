@@ -1290,7 +1290,8 @@ export async function runRobotChecks(R, S) {
         if (v > inRobot && exact) { const hits = []; exact(root, meshes(robot), (o) => !isArm(o), hits); const at = root.getWorldPosition(new THREE.Vector3()); robotHits = { frame: f, beat: w.temp.stage?.beat ?? null, dist: +Math.hypot(at.x - p.pos[0], at.z - p.pos[1]).toFixed(3), parts: hits.map((h) => `${h.part} x ${h.target} ${(100 * h.frac).toFixed(1)}%`) }; }
         inRobot = Math.max(inRobot, v);
       }
-      if (cause !== 'stuck' && !p.fix?.slapped) robotIn = Math.max(robotIn, bodyInside(robot, furnitureOf(R, new Set(['check_robot'])), false));
+      // Stuck, it noses into one empty desk's chair: that desk (the chair is part of it) is left out.
+      if (!p.fix?.slapped) robotIn = Math.max(robotIn, bodyInside(robot, furnitureOf(R, new Set(['check_robot', p.stop?.desk])), false));
       ended = slapped && !p.fix && R.walkOf(id)?.temp?.moment !== 'robot';
     }
     results.push({ name: `moment:robot:${cause}`, pass: slapped && ended && worst < 0.01 && inRobot < 0.01 && robotIn < 0.01,

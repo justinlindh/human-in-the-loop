@@ -57,7 +57,7 @@ function checkFrame(R, C, t, memo) {
     memo.sig = sig;
     // One entry per pair of parts (materials), so a new clash on a baselined pair of things (pizza
     // into the monitor where a plant was accepted) still shows as new.
-    for (const o of X.overlaps(list, { tol: C.tol.overlap, skip: skipPair })) {
+    for (const o of X.overlaps(list, { tol: C.tol.overlap, skip: skipPair, touch: X.robotTouch })) {
       for (const p of o.parts) C.add(R, 'overlap', t, `${o.a.label}/${p.a}`, `${o.b.label}/${p.b}`, p.depth, o.at, `${o.a.label}${o.a.id ? `#${o.a.id}` : ''}[${p.a}] ~ ${o.b.label}${o.b.id ? `#${o.b.id}` : ''}[${p.b}]`);
     }
     for (const s of X.support(list, (b) => b.kind === 'deskProp' || b.kind === 'floorProp' || (b.kind === 'placed' && !b.wallMounted))) {

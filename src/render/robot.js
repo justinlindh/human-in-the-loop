@@ -314,7 +314,7 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
       for (const back of [0.55, 0.65, 0.75, 0.85]) {
         const x = d.seat.x - Math.sin(f) * back, z = d.seat.z - Math.cos(f) * back;
         // Up against the chair back, never into it.
-        if (!nav.isBlocked(x, z, 0.18) && clearOf({ x, z }, boxes, STUCK_R) && inView({ x, z }) && reached({ x, z })) return { x, z, face: { x: d.seat.x, z: d.seat.z } };
+        if (!nav.isBlocked(x, z, 0.18) && clearOf({ x, z }, boxes, STUCK_R) && inView({ x, z }) && reached({ x, z })) return { x, z, face: { x: d.seat.x, z: d.seat.z }, desk: d.id };
       }
     }
     return null;
@@ -636,7 +636,7 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
       if (!rec) return null;
       const last = rec.path.length ? rec.path[rec.path.length - 1] : null;
       return { plan: rec.plan, cause: rec.cause ?? null, docked: !!rec.docked, pos: [+rec.pos.x.toFixed(2), +rec.pos.z.toFixed(2)], yaw: +rec.yaw.toFixed(2), path: rec.path.length,
-        target: last && { x: +last.x.toFixed(2), z: +last.z.toFixed(2) }, stop: rec.stop && { x: +rec.stop.x.toFixed(2), z: +rec.stop.z.toFixed(2), who: rec.stop.who?.id ?? null },
+        target: last && { x: +last.x.toFixed(2), z: +last.z.toFixed(2) }, stop: rec.stop && { x: +rec.stop.x.toFixed(2), z: +rec.stop.z.toFixed(2), who: rec.stop.who?.id ?? null, desk: rec.stop.desk ?? null },
         eyes: rec.eyes, fix: rec.fix && { fixer: rec.fix.who?.id ?? null, slapped: rec.fix.slapped }, cone: !!rec.rig.cone.parent, note: rec.rig.note.visible, googly: rec.rig.googly.visible };
     },
     // Test hook: start a plan now ('rounds', 'home', or 'broken:<cause>').
