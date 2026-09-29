@@ -71,7 +71,7 @@ const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i
 const all = (k) => argv.flatMap((a, i) => (a === `--${k}` ? [argv[i + 1]] : []));
 const ROOT = resolve(opt('root', join(import.meta.dirname, '../..')));
 // --sweep runs this script again once per value, so it goes before anything takes a render slot.
-if (opt('sweep')) process.exit((opt('matrix') ? runMatrixSweep : runSweep)(argv, fileURLToPath(import.meta.url)));
+if (opt('sweep')) process.exit(await (opt('matrix') ? runMatrixSweep : runSweep)(argv, fileURLToPath(import.meta.url)));
 let PARAMS = [];
 // A page serves the working directory, so --param there names files under it.
 const IN_PAGE = argv.includes('--scene') || argv.includes('--check-browser');
