@@ -62,3 +62,5 @@ Each B is sampled by a disc of points in the camera plane around its landmark (1
 
 `node blender/checks/pose-cover-controls.mjs` runs the controls (a facepalm passes, the same person typing fails with B clear, left and right are told apart, the far eye is a separate target, an unknown measure is refused), about half a minute.
 
+`--seed N` stages a real seeded game (the page's `?seed=N`, no mock) and `--patch-js` may `await`, so a patch can import the sim and play weeks first (`const sim = await import('/src/sim/index.js')`, `window.__HITL.tickN(1)`, `window.__HITL.dispatch({...})`, then `R.sync(S)`, `window.__sample(n)` and `R.handleEvents(events, S)` for the renderer to react). Use `--warm 0` when the patch replays the sim from week 1: the warm-up frames run the game's own clock first. To find who does the gesture, run without `--who` and read `anim` (`facepalmsit`) in the rows, then rerun with `--who <id>` and a cover rule over the gesture's frames.
+
