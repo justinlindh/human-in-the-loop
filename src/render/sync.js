@@ -421,8 +421,10 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
           r.char.root.visible = true;
           walkTo(r, g);
         } else if (!r.temp) {
-          // Mood-only changes at the same desk need no walk.
+          // Mood-only changes at the same desk need no walk, and a walk still heading for the old
+          // goal (the door, for a goal that went hidden and came back) stops where they are.
           if (Math.hypot(r.pos.x - g.x, r.pos.z - g.z) > 0.2) walkTo(r, g, false, was);
+          else r.path = [];
         }
       }
     }
