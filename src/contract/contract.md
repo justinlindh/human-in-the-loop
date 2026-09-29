@@ -559,7 +559,7 @@ state.outage = null | { productId, kind, severity, weeks, unrecoverable,
 A network operations centre the company grows out of Ops, with a one-off bet on who watches it.
 
 ```
-ITEMS.noc = { id: 'noc', kind: 'shop', minStage: 0, costs: [c1, c2, c3], effects: [{ catch, fixWeeks } x3],
+ITEMS.noc = { id: 'noc', kind: 'shop', minStage: 0, costs: [c1, c2, c3], effects: [{ nocCatch, outageFix } x3],
               footprint: { w: 3, h: 1 }, frontFrom: 2, requires: 'ops', unique: true, levelStage: [0, 1, 2] }
 state.ops.noc: null | 'humans' | 'agents'   // null until noc_bet is answered, and in old saves
 state.ops.nocSince: null | week             // week the mode was last set; null in old saves
@@ -568,8 +568,8 @@ state.outage.misread: bool                  // old saves load with false
 
 - Item fields any item may use: `levelStage` (level N needs `officeStage >= levelStage[N - 1]`; absent means no limit), `requires: 'ops'` (needs `unlocks.ops`), `unique: true` (one copy per office). New refusals: 'Needs Ops and Security', 'You already have one', and 'Needs a bigger office' on `upgradeItem`.
 - Looks by level: 1 a pager and a TV on a cart; 2 a darkened corner with a screen wall and a curved desk; 3 a full operations floor wall.
-- Effects, through itemBonus: `catch` adds to the chance an incident is caught early (the `B.catchMax` cap is unchanged); `fixWeeks` takes that fraction off the weeks an outage needs.
-- Mode `null` or `'humans'`: the `catch` bonus scales by `min(1, Security staff present / B.nocCrew)`; no misreads. Mode `'agents'`: the `catch` bonus times `B.nocAgentCatch`, no staff needed, and every incident rolls `B.nocMisreadChance`: on a hit it lands uncaught at severity +1 (max 5) with `misread: true`. A misread outage's `cause` says so in plain words, `incidentResolved.hurt` names it, and pagerbot posts it in Yak.
+- Effects, through itemBonus: `outageFix` multiplies outage fix capacity (the key research already uses), so outages end sooner and are less often unrecoverable. `nocCatch` is a chance to catch a breach from a cyber attack early (without a NOC a breach is never caught), cutting its damage like any caught incident; from the Agents era it also adds to the agent-incident catch chance, even with nobody overseeing. The `B.catchMax` cap is unchanged. Catch and misread rolls come from their own stream derived from seed, week and incident count, so a company without a NOC plays exactly as before.
+- Mode `null` or `'humans'`: the `nocCatch` bonus scales by `min(1, Security staff present / B.nocCrew)`; no misreads. Mode `'agents'`: the `nocCatch` bonus times `B.nocAgentCatch`, no staff needed, and every incident rolls `B.nocMisreadChance`: on a hit it lands uncaught at severity +1 (max 5) with `misread: true`. A misread outage's `cause` says so in plain words, `incidentResolved.hurt` names it, and pagerbot posts it in Yak.
 - Decision `noc_bet`: raised once, from the Agents era on, when a noc at level 2 or higher is placed. Choices: 'Let the agents watch' (`ops.noc = 'agents'`), 'Keep humans on the glass' (`ops.noc = 'humans'`).
 
 ```
