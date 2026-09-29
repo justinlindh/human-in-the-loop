@@ -634,5 +634,15 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
       if (dur) rs[0].temp.t = dur;
       return true;
     },
+    // Test hook: the world point a placed item's spot is stepped into and out of from, or null
+    // when the item has no step-in or nothing clear stands in front of that spot.
+    stepOut(placedId, slot = 0) {
+      const e = office.placed.get(placedId);
+      const kind = e && perkOf(e);
+      const def = kind && PERKS[kind];
+      if (!def?.stepIn || !Number.isInteger(slot) || slot < 0 || slot >= def.cap) return null;
+      const q = stepOutFor(e, def, slot);
+      return q && { x: q.x, z: q.z };
+    },
   };
 }
