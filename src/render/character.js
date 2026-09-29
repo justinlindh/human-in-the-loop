@@ -45,7 +45,7 @@ const SLEEPING = new Set(['lie', 'nap', 'desknap']);
 const PALM_STAND = [-2.75, 0.14, 0.27, -0.6, 0.08];
 const PALM_SHOULDER_REF = 0.18;   // metres from the spine to the shoulder of the middle build
 const PALM_BUILD_K = 3;
-const PALM_SIT = [-3.05, 0.12, 0.04, -0.75, 0.1];
+const PALM_SIT = [-2.75, 0.14, 0.27, -0.6, 0.08];
 const SEATED = new Set(['growthpumpsit', 'growthclapsit', 'typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit']);
 
 const roleMats = new Map();
@@ -790,7 +790,6 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         break;
       case 'facepalm': case 'facepalmsit': {
         // The palm covers the camera-side eye and brow, in front of the face, with the head bowed into it.
-        // Seated, the head is turned in profile, so the palm sits closer to the face and further out over the eye.
         const sit = anim === 'facepalmsit';
         const [ax, ay, az0, bow, lean] = sit ? PALM_SIT : PALM_STAND;
         // Standing, wider shoulders start the arm further out, so the spread brings the palm back to the same eye.
