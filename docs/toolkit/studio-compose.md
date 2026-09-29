@@ -6,7 +6,7 @@ covers: scripts/studio/compose.mjs tests/tools/studio-compose.test.js
 ---
 A compose file is a small JSON description of a scene (furniture at tiles, people, the office robot) that compiles to `{ state, script }`: a game state the scene engine loads as it loads a save or a mock, and a list of steps a game state cannot say (stand here facing there, play this gesture at t). No seeded game or save is needed. Every problem in a file is reported at once, each naming its entry, and the game's own placement rules apply (`placementCheck`, footprints, the era an item arrives in).
 
-The file: `base` (the mock scenario the state starts from, which fixes the office stage and era; default `floor`, use `incident` or `hq` for the office robot), `items` (`item`, `at: [x, y]` tiles, `rot`, `level`, `id`), `people` (`id`, `build` 0 to 2, `look`, then either `seat` (a desk's id) or `at: [x, y]` with `face` (`north`, `east`, `south`, `west`, degrees, another person's id or `robot`), and `gesture` from `t` seconds) and `robot` (`at`, and a `cause`: spin, stuck, emptyDesk, cone, decaf or unplug, to leave it broken down that way). Tile axes: +x east, +y south.
+The file: `base` (the mock scenario the state starts from, which fixes the office stage and era; default `floor`, use `incident` or `hq` for the office robot), `items` (`item`, `at: [x, y]` tiles, `rot`, `level`, `id`), `people` (`id`, `build` 0 to 2, `look`, then either `seat` (a desk's id) or `at: [x, y]` with `face` (`north`, `east`, `south`, `west`, degrees, another person's id or `robot`), and `gesture` from `t` seconds) `era` (the era the state is in; the office robot needs `agents`), `keep` (`["office", "staff"]` keeps the base's furniture and people, and items and people add to them), `moments` (`{ "moment": "slap", "fixer": "nearest" }`, see below) and `robot` (`at`, `level`, and a `cause`: spin, stuck, emptyDesk, cone, decaf or unplug, to leave it broken down that way). Tile axes: +x east, +y south.
 
 The slap: a fixer beside a robot that has been unplugged.
 
@@ -20,6 +20,19 @@ The slap: a fixer beside a robot that has been unplugged.
     { "id": "fixer", "build": 1, "at": [5.0, 4.6], "face": "robot", "gesture": "slap", "t": 0.4 }
   ] }
 ```
+
+The slap as the game stages it: the game's own fix event runs at frame 0, so the game picks the spot, walks the fixer there and slaps, and the composed scene only sets it up (`scripts/studio/examples/slap-moment.json`, the floor mock with the robot as `stage.mjs` places it).
+
+```json
+{ "base": "floor", "era": "agents",
+  "keep": ["office", "staff"],
+  "robot": { "at": [13, 0], "level": 2, "cause": "spin" },
+  "moments": [
+    { "moment": "slap" }
+  ] }
+```
+
+Its fixer's right hand reaches within 0.0086 m of the robot head box (the hand point in `person.hands[1]` against the union of the `robot_head` part bounds), which is the `robotContact` `stage.mjs` reads (about 0.008 m) against its 0.06 m rule; the hand-placed slap above is a set-up for looking at the geometry, not a reproduction of the game's slap. `person.hands` carries the two hand points the staging probe uses.
 
 A seated facepalm beside a monitoring wall:
 
