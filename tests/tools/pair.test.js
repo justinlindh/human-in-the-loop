@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
+import { readdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { compare, markdown, parseFields } from '../../scripts/events/pair-report.js';
 
 const rec = (over = {}) => ({ reason: 'exit', exited: true, won: false, weeks: 500, score: 100, incidents: 2, caught: 1, breaches: 1, hash: 'exit|500|100|7', ...over });
@@ -97,6 +99,16 @@ describe('pair.js arguments and fields', () => {
     const header = r.stdout.split('\n')[0], row = r.stdout.split('\n')[2];
     expect(header).toMatch(/\| staff \| bad \|$/);
     expect(row).toMatch(/\| \d+ -> \d+ \| - -> - \|$/);
+  });
+
+  it('a refused argument leaves no worktree and no temporary directory behind', () => {
+    const list = () => spawnSync('git', ['worktree', 'list', '--porcelain'], { encoding: 'utf8' }).stdout;
+    const pairDirs = () => readdirSync(tmpdir()).filter((d) => d.startsWith('pair-')).sort();
+    const before = [list(), pairDirs()];
+    expect(run('--bots', 'balanced', '--seeds', '1', '--fields', 'oops').status).toBe(2);
+    expect(run('--a', '.', '--b', '/nonexistent/dir', '--bots', 'balanced', '--seeds', '1').status).toBe(2);
+    expect(run('--a', '.', '--bots', 'balanced', '--seeds', '1', '--fields', 'oops').status).toBe(2);
+    expect([list(), pairDirs()]).toEqual(before);
   });
 });
 

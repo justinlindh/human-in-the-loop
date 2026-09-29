@@ -73,12 +73,20 @@ if (!isMainThread) {
   const jobs = Number(opt('jobs', Math.max(1, Math.floor(cpus().length / 8))));
   const timeoutMs = Number(opt('timeout', 3600)) * 1000;
   const bootRoot = resolve(HERE, '..', '..');
+  // Everything that can be refused is checked before the temporary directory or the base worktree
+  // exists, so a bad argument leaves nothing behind.
+  const b = resolve(opt('b', bootRoot));
+  let a = opt('a') ? resolve(opt('a')) : null;
+  let parsed = [];
+  try { parsed = parseFields(fields); } catch (e) { fail(`--fields: ${e.message}`); }
+  for (const [flag, root] of [['a', a], ['b', b]]) if (root && !existsSync(join(root, 'src/sim/bots.js'))) fail(`--${flag} ${root} is not a checkout with src/sim/bots.js`);
+  const { BOTS } = await import(pathToFileURL(join(b, 'src/sim/bots.js')).href);
+  const bots = opt('bots', Object.keys(BOTS).join(',')).split(',');
+  const spec = JSON.stringify({ bots, seeds, jobs, fields: parsed });
   const tmp = mkdtempSync(join(tmpdir(), 'pair-'));
   let baseWorktree = null;
   let code = 0;
   try {
-    let a = opt('a');
-    const b = resolve(opt('b', bootRoot));
     if (!a) {
       execFileSync('git', ['fetch', '-q', 'origin', 'main'], { cwd: b, stdio: 'ignore' });
       baseWorktree = join(tmp, 'base');
@@ -86,13 +94,6 @@ if (!isMainThread) {
       symlinkSync(join(b, 'node_modules'), join(baseWorktree, 'node_modules'));
       a = baseWorktree;
     }
-    a = resolve(a);
-    let parsed = [];
-    try { parsed = parseFields(fields); } catch (e) { fail(`--fields: ${e.message}`); }
-    for (const [flag, root] of [['a', a], ['b', b]]) if (!existsSync(join(root, 'src/sim/bots.js'))) fail(`--${flag} ${root} is not a checkout with src/sim/bots.js`);
-    const { BOTS } = await import(pathToFileURL(join(b, 'src/sim/bots.js')).href);
-    const bots = opt('bots', Object.keys(BOTS).join(',')).split(',');
-    const spec = JSON.stringify({ bots, seeds, jobs, fields: parsed });
     const t0 = Date.now();
     const side = (root, name) => new Promise((res) => {
       const out = join(tmp, `${name}.json`);
@@ -113,7 +114,7 @@ if (!isMainThread) {
       if (jf) writeFileSync(jf, JSON.stringify({ a, b, bots, seeds, summary: result.rows.map((r) => ({ ...r, lost: r.lost, gained: r.gained })), runs: { a: A, b: B } }, null, 1));
     }
   } finally {
-    if (baseWorktree) { try { execFileSync('git', ['worktree', 'remove', '--force', baseWorktree], { cwd: resolve(opt('b', bootRoot)), stdio: 'ignore' }); } catch { /* left in tmp */ } }
+    if (baseWorktree) { try { execFileSync('git', ['worktree', 'remove', '--force', baseWorktree], { cwd: b, stdio: 'ignore' }); } catch { /* left in tmp */ } }
     rmSync(tmp, { recursive: true, force: true });
   }
   process.exit(code);
