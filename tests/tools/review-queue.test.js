@@ -113,6 +113,21 @@ describe('review-queue command', () => {
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
   }, 20000);
 
+  it('--drain prints a PR again when it moves from pending CI to ready on the same head', async () => {
+    const t = setup([pr(3, {}, 'PENDING'), pr(5)]);
+    try {
+      const child = spawn(process.execPath, [QUEUE, '--drain', '--interval', '0.2'], { env: t.env });
+      let out = '';
+      child.stdout.on('data', (d) => { out += d; });
+      await new Promise((r) => setTimeout(r, 600));
+      expect(out.trim().split('\n')).toEqual(['READY #5 5aaaaaaa tools/x5: t5', 'CI #3 3aaaaaaa tools/x3: t3 (local-ci pending)']);
+      t.set([pr(3, {}, 'SUCCESS'), pr(5)]);
+      await new Promise((r) => setTimeout(r, 600));
+      expect(out.trim().split('\n')).toEqual(['READY #5 5aaaaaaa tools/x5: t5', 'CI #3 3aaaaaaa tools/x3: t3 (local-ci pending)', 'READY #3 3aaaaaaa tools/x3: t3']);
+      child.kill('SIGTERM');
+    } finally { rmSync(t.dir, { recursive: true, force: true }); }
+  }, 20000);
+
   it('refuses bad options, reports a failing gh, and times out a wait', () => {
     const t = setup([]);
     try {

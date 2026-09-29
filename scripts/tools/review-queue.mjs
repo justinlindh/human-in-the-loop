@@ -66,7 +66,7 @@ function look(trusted, repos) {
 }
 
 const sleep = (s) => new Promise((resolve) => setTimeout(resolve, s * 1000));
-const key = (w) => `${w.repo ?? ''}#${w.number}@${w.head}`;
+const key = (w) => `${w.group} ${w.repo ?? ''}#${w.number}@${w.head}`;
 
 async function main() {
   const { values } = parseArgs({ options: { wait: { type: 'boolean' }, drain: { type: 'boolean' }, interval: { type: 'string' }, timeout: { type: 'string' }, json: { type: 'boolean' }, repo: { type: 'string', multiple: true } } });
