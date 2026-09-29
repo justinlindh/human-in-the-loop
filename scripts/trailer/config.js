@@ -114,7 +114,7 @@ export const BEATS = [
   { id: 'yak-react', item: 'site-yak-backfire', capture: { query: 'seed=13&speed=1', setup: YAK_SETUP, still: false, seconds: 16, screenshots: [11.2, 11.6, 12.4, 13.2, 14, 14.8, 15.6], camera: [{ at: 0, target: VIEW0, zoom: 1 }, { at: 11, target: VIEW0, zoom: 1 }, { at: 11.2, target: FACEPALMER, zoom: 4.2 }] }, actions: [...CAMLOG(16), NO_SAY_T(0), { at: 11, js: "document.querySelector('#ui').style.display = 'none'" }, { at: 11.3, js: "if (!window.__facepalmer) throw new Error('trailer: the post has no facepalmer')" }], from: 11.2, dur: 2.0 },
   // PC LOAD LETTER from the flying camera: the wind-up and hits, to the rap's last word. No narration.
   { id: 'printer-meme', item: 'site-yak-backfire', capture: { query: 'seed=62&speed=1', setup: MEME_SETUP, still: false, seconds: 7, screenshots: [], actions: MEME_ACTIONS }, from: 2.6, dur: 2.5 },
-  { id: 'printer', item: 'trail-fly-printer', capture: { seconds: 30 }, from: 23 + 13 / 30, dur: 5.7 },
+  { id: 'printer', item: 'trail-fly-printer', capture: { seconds: 34 }, from: 27 + 2 / 30, dur: 5.7 },
   { id: 'era-chatgbt', item: 'real-era-chatgbt', actions: [NO_ERA_CARD(0)], from: 9.0, dur: 4.1 },
   { id: 'era-agents', item: 'real-era-agents', actions: [NO_ERA_CARD(0)], from: 9.0, dur: 2.4 },
   // The runaway cloud bill: the hot rack smoking behind the card.
