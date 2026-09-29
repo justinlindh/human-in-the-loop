@@ -206,6 +206,7 @@ export async function runPerkChecks(R, S, items, { settle = 12, frames = 12, dt 
     }
     for (let i = 0; i < settle; i++) R.advance(dt);
     let inside = 0, total = 0, headIn = 0, headTotal = 0, gap = 0, low = Infinity;
+    const headHits = {};
     const top = new THREE.Box3().setFromObject(e.obj).max.y;
     for (let f = 0; f < frames; f++) {
       R.advance(dt);
@@ -218,7 +219,9 @@ export async function runPerkChecks(R, S, items, { settle = 12, frames = 12, dt 
       const head = headCentre(root);
       if (head) {
         const hp = vertices(head.parent, 3);
-        headIn += Math.max(insideCount(hp, furniture), exact ? Math.ceil(exact(head.parent, furniture) * hp.length) : 0);
+        const frameHits = [];
+        headIn += Math.max(insideCount(hp, furniture), exact ? Math.ceil(exact(head.parent, furniture, undefined, frameHits) * hp.length) : 0);
+        for (const h of frameHits) { const k = `${h.part} x ${h.target}`; const cur = headHits[k] ?? { frames: 0, maxPct: 0 }; cur.frames++; cur.maxPct = Math.max(cur.maxPct, +(100 * h.frac).toFixed(1)); headHits[k] = cur; }
         headTotal += hp.length;
       }
     }
@@ -227,7 +230,8 @@ export async function runPerkChecks(R, S, items, { settle = 12, frames = 12, dt 
     const sunk = top - low;
     const pass = headPct < 1 && gap < FLOAT_MAX && (soft ? sunk > SOFT_SINK : pct < 2) && walkIn === 0 && (soft || enterIn < 0.05);
     results.push({ name: label, anim: R.perks.peek(who)?.temp?.anim, pass, insidePct: +pct.toFixed(2), headInsidePct: +headPct.toFixed(2),
-      floatGap: +gap.toFixed(3), walkInsidePct: +(100 * walkIn).toFixed(2), enterUpperInsidePct: +(100 * enterIn).toFixed(2), ...(soft ? { sunkBelowTop: +sunk.toFixed(2) } : {}) });
+      floatGap: +gap.toFixed(3), walkInsidePct: +(100 * walkIn).toFixed(2), enterUpperInsidePct: +(100 * enterIn).toFixed(2),
+      ...(!pass && Object.keys(headHits).length ? { who, look: S.staff.find((p) => p.id === who)?.look, headHits } : {}), ...(soft ? { sunkBelowTop: +sunk.toFixed(2) } : {}) });
   }
   return { pass: results.every((r) => r.pass), results };
 }

@@ -44,7 +44,9 @@ function partCross(part, target) {
 }
 
 // The worst share over a person's mesh parts passing `keep`, against the furniture meshes `targets`.
-export function crossFraction(root, targets, keep = () => true) {
+// `hits`, when given, receives { part, target, frac } for every part and furniture mesh that cross:
+// the person's mesh name (hair_3, head), the furniture's mesh and material name, and the share.
+export function crossFraction(root, targets, keep = () => true, hits = null) {
   root.updateMatrixWorld(true);
   const parts = [];
   root.traverse((o) => { if (o.isMesh && o.userData.staffId === undefined && !o.material?.transparent && o.visible && keep(o)) parts.push(o); });
@@ -56,7 +58,9 @@ export function crossFraction(root, targets, keep = () => true) {
       if (!t.geometry.boundingBox) t.geometry.computeBoundingBox();
       tbox.copy(t.geometry.boundingBox).applyMatrix4(t.matrixWorld);
       if (!wbox.intersectsBox(tbox)) continue;
-      worst = Math.max(worst, partCross(p, t));
+      const f = partCross(p, t);
+      if (f > 0 && hits) hits.push({ part: p.name || p.userData.part || 'mesh', target: `${t.name || 'mesh'}/${(Array.isArray(t.material) ? t.material[0] : t.material)?.name ?? ''}`, frac: f });
+      worst = Math.max(worst, f);
     }
   }
   return worst;
