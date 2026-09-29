@@ -26,4 +26,4 @@ For Yak pictures, run `node scripts/reels/memes.mjs` to stage the renderer and c
 **How you report:**
 - When a clip shows a problem in the game (a person hovering, a hidden prop, silent hits, the wrong pacing, a leaking sound), file or update the issue with frame numbers and a crop, and message the owning lane: art for render and staging, ui for interface and audio cues, audio for sound files, sim for timing and rules, tools for checks. Batch your requests; report only what a viewer would notice or what blocks a clip.
 - Finished media for the user goes to team-lead, who puts it on the review desk. Send each finished piece once, as the latest version, and never a work in progress. Include a download-ready MP4 (H.264 plus AAC, under 15 MB for the desk) and the full-quality file.
-- Media on PRs goes through `scripts/pr-media.sh` (`--issue` for issues).
+- Media on PRs goes through `scripts/pr-media.sh` (`--issue` for issues); change one PR description section with `scripts/pr-body.sh`.
