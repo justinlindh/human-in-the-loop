@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
 const ROOT = resolve(__dirname, '../..');
-const worktrees = () => execFileSync('git', ['-C', ROOT, 'worktree', 'list', '--porcelain'], { encoding: 'utf8' }).split('\n').filter((l) => l.startsWith('worktree ')).length;
+const worktrees = () => execFileSync('git', ['-C', ROOT, 'worktree', 'list', '--porcelain'], { encoding: 'utf8' }).split('\n').filter((l) => /^worktree .*\/hitl-wt-sweep-against-/.test(l)).length;
 const leftovers = () => readdirSync(tmpdir()).filter((n) => n.startsWith('hitl-wt-sweep-against-'));
 
 describe('sweep --against', () => {
