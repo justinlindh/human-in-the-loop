@@ -38,9 +38,11 @@ const LYING = new Set(['lie', 'nap', 'sprawl']);
 // colours in, so face parts must use fixed palette colours only, never a per-person colour.
 const FACE_GEOS = new Map();
 const SLEEPING = new Set(['lie', 'nap', 'desknap']);
-// Facepalm shoulder pitch, lift and spread for the palm hand, standing and seated.
-const PALM_STAND = [-2.75, 0.14, 0.2];
-const PALM_SIT = [-3.05, 0.12, 0.04];
+// Facepalm shoulder pitch, lift and spread for the palm hand, then head bow and body lean, standing and seated.
+const PALM_STAND = [-2.75, 0.14, 0.27, -0.6, 0.08];
+const PALM_SHOULDER_REF = 0.18;   // metres from the spine to the shoulder of the middle build
+const PALM_BUILD_K = 3;
+const PALM_SIT = [-3.05, 0.12, 0.04, -0.75, 0.1];
 const SEATED = new Set(['growthpumpsit', 'growthclapsit', 'typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit']);
 
 const roleMats = new Map();
@@ -771,11 +773,13 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         break;
       case 'facepalm': case 'facepalmsit': {
         // The palm covers the camera-side eye and brow, in front of the face, with the head bowed into it.
-        tgt.lean = 0.1;
-        tgt.headX = -0.75 + s(t * 1.2 + phase) * 0.03;
-        const hz = 0.15 + s(t * 0.8) * 0.04;
         // Seated, the head is turned in profile, so the palm sits closer to the face and further out over the eye.
-        const [ax, ay, az] = anim === 'facepalmsit' ? PALM_SIT : PALM_STAND;
+        const [ax, ay, az0, bow, lean] = anim === 'facepalmsit' ? PALM_SIT : PALM_STAND;
+        // Wider shoulders start the arm further out, so the spread brings the palm back to the same eye.
+        const az = az0 + PALM_BUILD_K * (Math.abs(arms[0].shoulder.position.x) - PALM_SHOULDER_REF);
+        tgt.lean = lean;
+        tgt.headX = bow + s(t * 1.2 + phase) * 0.03;
+        const hz = 0.15 + s(t * 0.8) * 0.04;
         if (gestureSide > 0) {
           tgt.headZ = hz;
           tgt.armLX = ax; tgt.armLY = ay; tgt.armLZ = az;
