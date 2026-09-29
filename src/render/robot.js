@@ -62,6 +62,24 @@ export function slapPose(t, { cringeSide = 0, jolt = 0 } = {}) {
   return { headZ: SLAP.cringe * cringeSide + Math.sin(t * 38) * 0.35 * j + 0.3 * j, lean: -0.12 * j };
 }
 
+// A broken robot's pose at clock t (seconds) for a breakdown cause, or null when the cause has no
+// pose of its own and the robot idles. Stuck or at a cone ('stuck', 'cone') it noses into the
+// obstacle and backs off, moving its body by bodyZ; spinning ('spin') its head wobbles. Those two
+// last only while `struggling`, which stops once its fixer reaches it, so at the slap only the
+// unplugged slump ('unplug') and the empty-desk sway ('emptyDesk') still hold.
+export function breakdownPose(cause, t, { struggling = true } = {}) {
+  const p = { bob: 0, lean: 0, headX: 0, headZ: 0, tray: 0, bodyZ: null };
+  if ((cause === 'stuck' || cause === 'cone') && struggling) {
+    const c = (t * 1.3) % 1;
+    const push = c < 0.35 ? c / 0.35 : Math.max(0, 1 - (c - 0.35) / 0.25);
+    return { ...p, bodyZ: push * 0.06 - 0.03, headZ: Math.sin(t * 13) * 0.12 * push, lean: 0.1 * push };
+  }
+  if (cause === 'spin' && struggling) return { ...p, headZ: Math.sin(t * 5) * 0.25, bob: Math.abs(Math.sin(t * 14)) * 0.01 };
+  if (cause === 'unplug') return { ...p, headX: 0.45, lean: 0.12 };
+  if (cause === 'emptyDesk') return { ...p, headX: 0.08, headZ: Math.sin(t * 0.9) * 0.18, tray: 0.02 };
+  return null;
+}
+
 export function buildRig() {
   const tpl = getTemplate('robot');
   const part = (name) => {
@@ -525,18 +543,12 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
   function pose(r, dt, moving) {
     const g = r.rig, t = clock, k = 1 - Math.exp(-dt * 10);
     let bob = 0, lean = 0, headX = 0, headZ = 0, tray = 0, sway = 0;
+    const broken = !moving && r.plan.startsWith('broken:') ? breakdownPose(r.plan.slice(7), t, { struggling: r.bump || r.spin }) : null;
     if (moving) { bob = Math.abs(Math.sin(t * 9)) * 0.008; lean = 0.06; headZ = Math.sin(t * 4.5) * 0.04; }
-    else if (r.bump) {
-      // Nosing into the obstacle, backing off, trying again.
-      const p = (t * 1.3) % 1;
-      const push = p < 0.35 ? p / 0.35 : Math.max(0, 1 - (p - 0.35) / 0.25);
-      g.body.position.z = push * 0.06 - 0.03;
-      headZ = Math.sin(t * 13) * 0.12 * push;
-      lean = 0.1 * push;
-    } else if (r.spin) { headZ = Math.sin(t * 5) * 0.25; bob = Math.abs(Math.sin(t * 14)) * 0.01; }
-    else if (r.plan === 'broken:unplug') { headX = 0.45; lean = 0.12; }
-    else if (r.plan === 'broken:emptyDesk') { headX = 0.08; headZ = Math.sin(t * 0.9) * 0.18; tray = 0.02; }
-    else if (r.watering) { lean = 0.28; headX = 0.2; }
+    else if (broken) {
+      ({ bob, lean, headX, headZ, tray } = broken);
+      if (broken.bodyZ != null) g.body.position.z = broken.bodyZ;
+    } else if (r.watering) { lean = 0.28; headX = 0.2; }
     else if (r.arrived && r.stop?.who) { tray = 0.03 + Math.sin(t * 6) * 0.01; headX = -0.1; sway = Math.sin(t * 3) * 0.05; }
     else headZ = Math.sin(t * 1.1) * 0.05;
     // The slap's cringe and jolt (slapPose) take over the head's tilt.
