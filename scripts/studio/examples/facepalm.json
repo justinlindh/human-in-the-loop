@@ -1,0 +1,8 @@
+{ "base": "incident",
+  "items": [
+    { "item": "desk", "at": [6, 6], "id": "d1" },
+    { "item": "monitoring_wall", "at": [6, 3], "id": "w1" }
+  ],
+  "people": [
+    { "id": "ada", "build": 1, "seat": "d1", "gesture": "facepalmsit", "t": 0.5 }
+  ] }
