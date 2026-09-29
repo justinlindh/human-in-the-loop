@@ -18,10 +18,11 @@
 // sets is printed.
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { spawn, execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, readFileSync, writeFileSync, symlinkSync, existsSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir, cpus } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { createWorktree } from '../tools/worktree.mjs';
 import { compare, markdown, parseFields } from './pair-report.js';
 
 const fail = (msg) => { console.error(`pair: ${msg}`); process.exit(2); };
@@ -86,20 +87,23 @@ if (!isMainThread) {
   const tmp = mkdtempSync(join(tmpdir(), 'pair-'));
   let baseWorktree = null;
   let code = 0;
+  // Each side's process runs until it ends or this process does, whichever comes first.
+  const sides = new Set();
+  process.on('exit', () => { for (const c of sides) { try { c.kill('SIGKILL'); } catch { /* gone */ } } });
   try {
     if (!a) {
       execFileSync('git', ['fetch', '-q', 'origin', 'main'], { cwd: b, stdio: 'ignore' });
-      baseWorktree = join(tmp, 'base');
-      execFileSync('git', ['worktree', 'add', '-q', '--detach', baseWorktree, 'origin/main'], { cwd: b });
-      symlinkSync(join(b, 'node_modules'), join(baseWorktree, 'node_modules'));
-      a = baseWorktree;
+      // Removed on every way out of this process (error, timeout, signal), not only the normal one.
+      baseWorktree = await createWorktree({ repo: b, rev: 'origin/main', label: 'pair' });
+      a = baseWorktree.path;
     }
     const t0 = Date.now();
     const side = (root, name) => new Promise((res) => {
       const out = join(tmp, `${name}.json`);
       const child = spawn(process.execPath, [SELF, '--side', root, '--out', out], { env: { ...process.env, PAIR_SPEC: spec }, stdio: ['ignore', 'inherit', 'inherit'] });
+      sides.add(child);
       const timer = setTimeout(() => child.kill('SIGKILL'), timeoutMs);
-      child.on('exit', (c) => { clearTimeout(timer); res({ name, code: c, out }); });
+      child.on('exit', (c) => { clearTimeout(timer); sides.delete(child); res({ name, code: c, out }); });
     });
     // Wait on both processes, never on a sleep.
     const [sa, sb] = await Promise.all([side(a, 'a'), side(b, 'b')]);
@@ -114,7 +118,7 @@ if (!isMainThread) {
       if (jf) writeFileSync(jf, JSON.stringify({ a, b, bots, seeds, summary: result.rows.map((r) => ({ ...r, lost: r.lost, gained: r.gained })), runs: { a: A, b: B } }, null, 1));
     }
   } finally {
-    if (baseWorktree) { try { execFileSync('git', ['worktree', 'remove', '--force', baseWorktree], { cwd: b, stdio: 'ignore' }); } catch { /* left in tmp */ } }
+    baseWorktree?.disposeSync();
     rmSync(tmp, { recursive: true, force: true });
   }
   process.exit(code);
