@@ -15,8 +15,9 @@ const chance = () => draw('perks');
 
 // Spots are in the item's local frame (origin at the footprint center, front toward +z).
 // face: 'item' looks at the item, 'front' faces the way the item faces, 'axis' lies along it.
+// stepIn: the spot is walked into, and out of, straight from this far in front of it.
 const PERKS = {
-  coffee: { cap: 2, anim: 'sip', dur: [5, 8], weight: 3, spots: (f) => [[-0.35, f.h / 2 + 0.5], [0.35, f.h / 2 + 0.5]], face: 'item' },
+  coffee: { cap: 2, anim: 'sip', dur: [5, 8], weight: 3, spots: (f) => [[-0.45, f.h / 2 + 0.5], [0.45, f.h / 2 + 0.5]], face: 'item', stepIn: 0.55 },
   nap_pod: { cap: 1, anim: 'lie', dur: [9, 15], weight: 1.4, rest: true, spots: () => [[0, 0]], face: 'axis', emote: 'zzz' },
   couch: { cap: 2, anim: 'sit', dur: [7, 12], weight: 1.4, rest: true, spots: () => [[-0.4, 0.05], [0.4, 0.05]], face: 'front' },
   arcade: { cap: 1, anim: 'play', dur: [7, 11], weight: 1.5, spots: (f) => [[0, f.h / 2 + 0.45]], face: 'item', bursts: true },
@@ -139,6 +140,10 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     if (a) {
       r.temp.enter = { from: null, t: 0, side: { x: a.x, z: a.z }, item: e.id };
       walkTo(r, { x: a.x, z: a.z, yaw: spot.yaw });
+    } else if (r.temp.stepOut) {
+      const q = r.temp.stepOut;
+      walkTo(r, { x: q.x, z: q.z, yaw: spot.yaw });
+      r.path.push({ x: spot.x, z: spot.z });
     } else {
       walkTo(r, spot);
     }
@@ -212,6 +217,17 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     return e.lieY;
   }
 
+  // Where a spot beside another at the item's front is walked into and out of from: straight in
+  // front of it, nearer in when something beside the item stands at the full distance, or null.
+  function stepOutFor(e, def, i) {
+    const spot = spotFor(e, def, i);
+    for (const d of [def.stepIn, def.stepIn * 0.7, def.stepIn * 0.5]) {
+      const q = { x: spot.x + Math.sin(e.target.rotY) * d, z: spot.z + Math.cos(e.target.rotY) * d };
+      if (!office.nav().isBlocked(q.x, q.z)) return q;
+    }
+    return null;
+  }
+
   function freeSlots() {
     const out = [];
     for (const e of office.placed.values()) {
@@ -223,7 +239,18 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
         continue;
       }
       const n = modelSpots(e)?.length ?? def.spots(footprint(e.itemId, 0)).length;
-      for (let i = 0; i < Math.min(def.cap, n); i++) if (!slots.has(`${e.id}:${i}`)) { out.push({ e, kind, def, i }); break; }
+      let order = [...Array(Math.min(def.cap, n)).keys()];
+      // A spot walked into from its front: where one has no clear front (something beside the item),
+      // getting to or from it runs along the front past the other, so one person uses the item at a
+      // time, at a spot with a clear front when there is one.
+      if (def.stepIn) {
+        const clear = order.filter((i) => stepOutFor(e, def, i));
+        if (clear.length < order.length) {
+          if (order.some((i) => slots.has(`${e.id}:${i}`))) continue;
+          order = clear.length ? [clear[0]] : [0];
+        }
+      }
+      for (const i of order) if (!slots.has(`${e.id}:${i}`)) { out.push({ e, kind, def, i }); break; }
     }
     return out;
   }
@@ -255,6 +282,8 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
       anim, t: rnd(...def.dur), goal: spot, back: true, wander: true, perkKey: key,
       lift: lying ? lieHeight(e) : spot.lift ?? 0, tick: perkTick, def, burstT: rnd(2, 4), emoteT: rnd(1, 3),
     };
+    const q = def.stepIn ? stepOutFor(e, def, i) : null;
+    if (q) r.temp.stepOut = q;
     walkToSpot(r, e, spot);
   }
 
