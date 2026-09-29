@@ -25,7 +25,7 @@ export const EFFECT_KEYS = [
   'clones', 'priceHike', 'vendorOutage', 'migrateOff', 'modelBoost', 'cond', 'gamble',
   'later', 'modifier', 'followUp', 'awayWeeks', 'setAutomation', 'automationBump', 'pivot', 'teamSalaryPct',
   'consultants', 'clearOutage', 'postmortem', 'buyItem', 'upgradeItem', 'openOffer', 'workPolicy', 'adoptPet', 'rivalHit', 'rivalFate',
-  'mission', 'purpose', 'ransom', 'chat', 'teamStrain', 'efficiencyCuts', 'ownerFlag', 'strain', 'nocMode',
+  'mission', 'purpose', 'ransom', 'chat', 'teamStrain', 'efficiencyCuts', 'ownerFlag', 'strain', 'nocMode', 'robot',
 ];
 
 
@@ -673,6 +673,21 @@ const list = [
         outcome: 'The screens fill with agent logs scrolling faster than anyone can read. The dashboards have never looked calmer. That is either very good or very bad.' },
       { label: 'Keep humans on the glass', hint: 'Catches scale with your Security staff; nobody misreads anything on purpose', effects: { nocMode: 'humans' },
         outcome: 'Someone brings in a better chair and a blanket. The pager stays. So does the person who knows what the weird graph means.' },
+    ],
+  },
+  // Raised once by the robot system, at the office robot's first sabotage.
+  {
+    id: 'robot_kicked', kind: 'misc', weight: 0, cooldownWeeks: 0, random: false, subject: null, eras: ['agents', 'consolidation', 'plateau'], office: 'office_robot',
+    when: (s) => s.office.placed.some((p) => p.itemId === 'office_robot'),
+    title: 'Who kicked the robot?',
+    text: 'The office robot is back on its dock with a scuff mark and a new rattle. Nobody saw anything. Everybody has a theory. The robot has already forgiven whoever it was, which somehow makes it worse.',
+    choices: [
+      { label: 'Hold a blameless meeting', hint: 'No sabotage for half a year; the team feels a little better', effects: { robot: 'calm', teamMeaning: 1 },
+        outcome: 'We are not here to find who did it. We know who did it. We are here to talk about feelings. The robot attends and brings coffee.' },
+      { label: 'Stick googly eyes on it', hint: 'Sabotage gets rarer for good', effects: { robot: 'googly' },
+        outcome: 'It is much harder to kick something that is looking at you. It is looking at everyone. Always.' },
+      { label: 'Let it go', hint: 'Nothing changes', effects: {},
+        outcome: 'Robots are resilient. Mostly. It rattles a little when it turns left now.' },
     ],
   },
 

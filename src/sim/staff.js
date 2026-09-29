@@ -2,7 +2,7 @@ import { B } from './balance.js';
 import { int, range, pick, shuffle, weighted, next } from './rng.js';
 import { clamp, round, newId } from './util.js';
 import { ROLES } from '../data/roles.js';
-import { TRAITS } from '../data/traits.js';
+import { TRAITS, NEVER_HIRED } from '../data/traits.js';
 import { emptyRecord, addToRecord } from './record.js';
 import {
   US_FIRST_NAMES, SOUTH_ASIAN_FIRST_NAMES, INTL_FIRST_NAMES, US_LAST_NAMES, SOUTH_ASIAN_LAST_NAMES, INTL_LAST_NAMES, FAMOUS_NAMES, NAME_VOICE,
@@ -66,7 +66,7 @@ export function staffMods(person) {
   return m;
 }
 
-const RANDOM_TRAITS = Object.keys(TRAITS).filter((id) => id !== 'natural_mentor');
+const RANDOM_TRAITS = Object.keys(TRAITS).filter((id) => !NEVER_HIRED.has(id));
 
 // A person's voice for the audio barks, chosen from their first name and id without touching the rng:
 // the set follows the name (neutral names take either), the variant (0..7) and pitch spread by id.

@@ -28,7 +28,11 @@ const rows = [
   ['cynic', 'Cynic', 'Expects everything to break. Builds accordingly.', { meaningRecovery: 0.7, reliability: 1.15 }],
   ['red_teamer', 'Red Teamer', 'Tries to trick the agents for fun. Catches a lot.', { catch: 0.2, oversight: 1.2 }],
   ['natural_mentor', 'Natural Mentor', 'Earned by mentoring for months. Teaching comes easily now.', { mentorBonus: 1.3, meaningRecovery: 1.1 }],
+  ['percussive', 'Percussive Maintenance', 'Earned the hard way: two slaps, right side. Fixes the office robot on the spot.', { reliability: 1.05 }],
 ];
+
+// Traits nobody is hired with: natural_mentor comes from mentoring, percussive from slapping the office robot back to life.
+export const NEVER_HIRED = new Set(['natural_mentor', 'percussive']);
 
 // Traits people earn from experience rather than arrive with.
 export const EARNED_TRAITS = [

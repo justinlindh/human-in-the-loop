@@ -86,6 +86,18 @@ const SPECS = {
     share('headVisible', 'head >= 80% unblocked', x => x.petHeadVisible >= 0.8, 0.9),
     share('petVisible', 'pet >= 60% unblocked', x => x.petVisible >= 0.6, 0.9), noFade,
   ] },
+  // The office robot slapped back to life: the fixer faces it, winds up where both of them show, and
+  // the right hand lands on its head.
+  'robot.windup': { moment: 'robot', beat: 'windup', role: 'fixer', rules: [
+    share('facingRobot', 'face within 35 deg of the robot head', (x) => x.targetAngle <= 35, 0.8),
+    share('robotVisible', 'robot >= 60% unblocked', (x) => x.robotVisible >= 0.6, 0.9),
+    visibleRule, noFade,
+  ] },
+  'robot.slap': { moment: 'robot', beat: 'slap', role: 'fixer', rules: [
+    { metric: 'robotContact', want: 'right hand within 0.06 m of the robot head during the slap', test: (xs) => Math.min(...xs.map((x) => x.robotContact)), pass: (v) => v <= 0.06 },
+    share('robotVisible', 'robot >= 60% unblocked', (x) => x.robotVisible >= 0.6, 0.9),
+    visibleRule, noFade,
+  ] },
   'letter.read': { moment: 'letter', beat: 'read', rules: [
     share('gazeOnLetter', 'line of sight meets the letter', (x) => x.gaze.hit === 'held', 0.8),
     share('letterNear', 'letter <= 0.25 m from the eyes, within 30 deg of the face', (x) => x.held && x.held.dist <= 0.25 && x.held.ahead <= 30, 0.8),
@@ -214,6 +226,8 @@ const SCENARIOS = {
   company_party: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "R.handleEvents([{ type: 'celebrate', staffId: null }], S);" }], seconds: 6 },
   pet: { query: 'mock=floor', patch: {}, seconds: 6,
     setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'dog', 2.104, 1.0)" },
+  robot: { query: 'mock=floor', patch: {}, seconds: 14,
+    setup: "(await import('/src/render/checks.js')).setupRobotFix(R, S)" },
   petcat: { moment: 'pet', query: 'mock=floor', patch: {}, seconds: 6,
     setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'cat', 2.104, 1.0)" },
   letter: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'resignation_letter', subjectId: 's6', stage: { prop: 'envelope', anchor: 'subjectDesk', x: 12, y: 2 } } }, seconds: 16 },
@@ -312,7 +326,7 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
       window.__step(90);
       Object.assign(S, JSON.parse(JSON.stringify(patch)));
       if (setup) await new Function('R', 'S', `return (async () => { ${setup}; })()`)(R, S);
-      const petProbe = moment === 'pet' ? (await import('/src/render/probe.js')).createProbe({ scene: R.scene, camera: R.camera, office: R.office }) : null;
+      const petProbe = moment === 'pet' || moment === 'robot' ? (await import('/src/render/probe.js')).createProbe({ scene: R.scene, camera: R.camera, office: R.office }) : null;
       const samples = [];
       // Everyone the moment takes part, each sampled every frame until the moment is over for all.
       const actors = new Set();
@@ -355,6 +369,12 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
             m.petHeadVisible = head ? petProbe.seen(head)[0].visible : 0;
             m.petVisible = petRoot ? petProbe.seen(petRoot)[0].visible : 0;
             m.petContact = pet?.contact ? Math.hypot(...m.hands[1].map((v, i) => v - pet.contact[i])) : Infinity;
+          }
+          if (moment === 'robot' && R.robot?.root) {
+            const head = R.robot.root.getObjectByName('robot_head') ?? R.robot.root;
+            const box = new THREE.Box3().setFromObject(head);
+            m.robotVisible = petProbe.seen(R.robot.root)[0].visible;
+            m.robotContact = box.distanceToPoint(new THREE.Vector3(...m.hands[1]));
           }
           samples.push({ t: f / 30, actor, role: st?.role ?? null, ...m });
           if (arrive && st?.role === arrive.role) {

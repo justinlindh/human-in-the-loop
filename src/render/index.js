@@ -464,6 +464,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     get incentives() { return staff?.incentives ?? null; },
     standAt(id, x, z) { return staff?.standAt(id, x, z) ?? false; },
     get pets() { return staff?.pets ?? null; },
+    get robot() { return staff?.robot ?? null; },
     get incentivesFrame() { return staff?.incentives.frameAt ?? null; },
     get stats() { return { growth: staff?.officeGrowth.stats ?? null, perkVisits: staff?.perks.visiting ?? 0, standup: staff?.standup ?? null, labels: floating.count, confetti: fx.liveConfetti, staff: staff?.count ?? 0, leavers: staff?.leaverCount ?? 0 }; },
   };

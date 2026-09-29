@@ -21,6 +21,7 @@ import * as THREE from 'three';
 import { MeshBVH } from 'three-mesh-bvh';
 import { createCharacter } from '/src/render/character.js';
 import { faceLandmarks, landmarkContacts } from './pose-landmarks.js';
+import { measureCovers } from './pose-cover.js';
 import { loadModels, getTemplate } from '/src/render/models.js';
 import { setRigEnabled } from '/src/render/rig.js';
 
@@ -69,20 +70,44 @@ function headSurfaces(c, headCenter, forward) {
 const target = { point: new THREE.Vector3(), distance: 0 };
 const dist = (bvh, p) => (bvh ? bvh.closestPointToPoint(p, target) && +target.distance.toFixed(4) : null);
 
-export async function playPose({ under = 'idle', gesture = null, seconds = 2.2, warm = 1, fps = 30, yawToCamera = 0, view = 0, rig = true, look = {}, seed = 'pose' } = {}) {
+// The game camera's shape for cover measures: orthographic, looking along -toCam at the head, with the
+// person filling a 3 m window (cover shares do not depend on the window, only on what is in view).
+function coverCamera(toCam, headAt) {
+  const cam = new THREE.OrthographicCamera(-1.5, 1.5, 1.5, -1.5, 0.1, 200);
+  cam.position.copy(headAt).addScaledVector(toCam, 60);
+  cam.lookAt(headAt);
+  cam.updateMatrixWorld(true);
+  cam.updateProjectionMatrix();
+  return cam;
+}
+
+// One person stepped a frame at a time and measured after each step: the run playPose loops over,
+// and the pose lab scrubs by replaying it from the start (a fixed step makes that deterministic).
+// step() advances one frame and returns the frame; character is the live character.
+// covers: cover<A><B> names (pose-cover.js) measured each frame from the view's camera into frame.cover.
+// contact: false skips the hand-to-head surface distances (a matrix of cover measures doesn't need them).
+export async function createPoseRun({ under = 'idle', gesture = null, seconds = 2.2, warm = 1, fps = 30, yawToCamera = 0, view = 0, rig = true, look = {}, seed = 'pose', covers = [], contact = true } = {}) {
   await loadModels(['chibi']);
   await setRigEnabled(rig);
-  const landmarks = faceLandmarks(getTemplate('chibi'));
+  const template = getTemplate('chibi');
+  const landmarks = faceLandmarks(template);
   const c = createCharacter(look, undefined, { seed });
   if (gesture && typeof c.gesture !== 'function') throw new Error("pose: this checkout's characters have no gesture()");
   const toCam = toCamera(view);
   // Heading: yaw 0 faces +z; the camera sits along toCam.
   c.root.rotation.y = Math.atan2(toCam.x, toCam.z) + THREE.MathUtils.degToRad(yawToCamera);
   c.setAnim(under);
-  const dt = 1 / fps, frames = [];
+  let camera = null, headMesh = null;
+  const dt = 1 / fps;
   const total = warm + (gesture ? seconds + 0.5 : seconds);
   let t = 0, started = false;
-  for (let i = 0; t < total - 1e-9; i++) {
+  // The cover shares for `names` on the current pose (also what step() records into frame.cover).
+  const coverNow = (names, headAt) => {
+    camera ??= coverCamera(toCam, headAt ?? c.probe().head);
+    headMesh ??= (() => { let h = null; c.root.traverseVisible((o) => { if (!h && o.userData.part === 'head') h = o; }); return h; })();
+    return measureCovers({ camera }, { root: c.root, head: headMesh }, template, names, [], { width: 1000, height: 1000 }).measures;
+  };
+  const step = () => {
     if (gesture && !started && t >= warm - 1e-9) { c.gesture(gesture, seconds); started = true; }
     c.update(dt);
     t = +(t + dt).toFixed(6);
@@ -90,16 +115,25 @@ export async function playPose({ under = 'idle', gesture = null, seconds = 2.2, 
     const p = c.probe();
     // joints() may be missing when --root points at an older checkout; write null then.
     const j = c.joints?.() ?? null;
-    const S = headSurfaces(c, p.head, p.forward);
+    const S = contact ? headSurfaces(c, p.head, p.forward) : null;
+    const cover = covers.length ? coverNow(covers, p.head) : null;
     const phase = !gesture || t <= warm + 1e-9 ? (gesture ? 'warm' : 'pose') : t <= warm + seconds + 1e-9 ? 'gesture' : 'after';
-    frames.push({
+    return {
       t, phase, anim: p.anim,
       eyes: p.eyes.toArray().map((v) => +v.toFixed(4)), forward: p.forward.toArray().map((v) => +v.toFixed(4)),
       head: p.head.toArray().map((v) => +v.toFixed(4)), hands: p.hands.map((h) => h.toArray().map((v) => +v.toFixed(4))),
       joints: j && Object.fromEntries(Object.entries(j).map(([name, v]) => [name, v.toArray().map((n) => +n.toFixed(4))])),
-      contact: { ...landmarkContacts(landmarks, c.head.matrixWorld, p.hands), ...Object.fromEntries([0, 1].flatMap((h) => [[`hand${h}Face`, dist(S.face, p.hands[h])], [`hand${h}Head`, dist(S.head, p.hands[h])], [`hand${h}HeadTop`, dist(S.headTop, p.hands[h])]])) },
+      contact: S ? { ...landmarkContacts(landmarks, c.head.matrixWorld, p.hands), ...Object.fromEntries([0, 1].flatMap((h) => [[`hand${h}Face`, dist(S.face, p.hands[h])], [`hand${h}Head`, dist(S.head, p.hands[h])], [`hand${h}HeadTop`, dist(S.headTop, p.hands[h])]])) } : {},
+      ...(cover ? { cover } : {}),
       faceCam: +THREE.MathUtils.radToDeg(p.forward.angleTo(toCam)).toFixed(1),
-    });
-  }
-  return { frames, info: { under, gesture, seconds, warm, fps, yawToCamera, view, rig, hasGesture: typeof c.gesture === 'function' } };
+    };
+  };
+  return { character: c, step, covers: coverNow, done: () => t >= total - 1e-9, total, info: { under, gesture, seconds, warm, fps, yawToCamera, view, rig, hasGesture: typeof c.gesture === 'function' } };
+}
+
+export async function playPose(opts = {}) {
+  const run = await createPoseRun(opts);
+  const frames = [];
+  while (!run.done()) frames.push(run.step());
+  return { frames, info: run.info };
 }

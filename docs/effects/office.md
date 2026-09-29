@@ -25,6 +25,7 @@ Placed in Build mode. Each level's cost and what it adds.
 | Monitoring Wall | shop | Office Floor, the Agents era | L1 $7,000: oversight hours +15% · L2 $21,000: oversight hours +30% · L3 $60,000: oversight hours +45% |
 | Server Racks | shop | any | L1 $5,000: maintenance needed -5%, uptime floor +3% · L2 $15,000: maintenance needed -10%, uptime floor +6% · L3 $45,000: maintenance needed -15%, uptime floor +10%; uptime floor +1% for each other Server Racks within 1 tile |
 | Network Operations Center | shop | any, ops | L1 $8,000: early catches +8%, outage fixing +10% · L2 $30,000: early catches +15%, outage fixing +20% · L3 $90,000: early catches +25%, outage fixing +35% |
+| Office Robot | shop | any, the Agents era | L1 $15,000: stamina recovery +8%, meaning recovery +3% · L2 $45,000: stamina recovery +12%, meaning recovery +5% · L3 $120,000: stamina recovery +16%, meaning recovery +7% |
 | Trophy Case | shop | any, after your first award | L1 $3,000: brand decay -15% · L2 $9,000: brand decay -30% · L3 $27,000: brand decay -45% |
 
 A second copy of an item adds its level effect at 50%, and copies past the second add no level effect. Nearby bonuses are different: every copy counts in full, for each desk or item in reach. All items together are capped at ±50% on any one effect. A desk bonus counts only when someone sits at that desk, and is divided by headcount.

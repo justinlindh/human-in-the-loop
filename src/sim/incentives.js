@@ -8,6 +8,7 @@ import { outputMult } from './staff.js';
 import { testPurpose } from './purpose.js';
 import { INCENTIVES } from '../data/incentives.js';
 import { raiseDecision } from './events.js';
+import { calmRobot } from './robot.js';
 
 // The timed ladder; the Waffle Party is earned by a milestone instead.
 const LADDER = INCENTIVES.filter((r) => r.id !== 'waffle_party');
@@ -59,6 +60,8 @@ export function incentivesSystem(ctx) {
 function award(ctx, winner, reward, count) {
   const { state } = ctx;
   winner.meaning = Math.min(100, winner.meaning + B.incentiveWinnerMeaning);
+  // For one night everyone loves the robot: it serves the waffles or runs the playlist.
+  if (reward.id === 'waffle_party' || reward.id === 'music_night') calmRobot(state);
   for (const p of state.staff) if (p !== winner) p.meaning = Math.max(0, p.meaning - B.incentiveEnvy);
   // Each reward's boost is named for the reward and runs until the next award replaces it quietly; only
   // the last one, when the program stops, ends with a toast.

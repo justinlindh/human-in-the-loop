@@ -1243,6 +1243,66 @@ export function setupPetPasser(R, S, species = 'dog', yaw = null, distance = 0.6
   return { id, at };
 }
 
+// The office robot broken by `cause` at its spot, then fixed by the nearest free person in the
+// office: the robot slap moment. Places a dock at tile (x, y) when the office has none.
+export function setupRobotFix(R, S, { cause = 'spin', x = 13, y = 0, rot = 0 } = {}) {
+  R.perks.hold = true;
+  S.pendingDecision = null;
+  if (!S.office.placed.some((p) => p.itemId === 'office_robot')) S.office.placed = [...S.office.placed, { id: 'check_robot', itemId: 'office_robot', level: 2, x, y, rot }];
+  S.robot = { status: 'broken', cause, since: S.week, breakdowns: 1, sabotages: 0, calmUntil: 0, googly: false };
+  R.sync(S);
+  window.__advance(2);
+  R.robot.force(`broken:${cause}`);
+  R.robot.arriveNow();
+  window.__advance(30);
+  const rp = R.robot.root.position;
+  const far = (id) => { const w = R.walkOf(id); return w?.goal ? Math.hypot(w.goal.x - rp.x, w.goal.z - rp.z) : Infinity; };
+  const ids = S.staff.filter((p) => p.mood !== 'away' && !p.remote).map((p) => p.id).filter((id) => R.walkOf(id)?.mode === 'placed' && !R.walkOf(id).temp);
+  ids.sort((a, b) => far(a) - far(b));
+  const id = ids[0];
+  S.robot = { ...S.robot, status: 'ok', cause: null };
+  R.handleEvents([{ type: 'robot', kind: 'fixed', fixerId: id, sameWeek: false }], S);
+  R.sync(S);
+  return { id };
+}
+
+// The robot slap from each breakdown: the fixer reaches it, slaps it, and walks off; nobody stands in
+// furniture or in the robot, and the robot keeps out of furniture (except the chair it is stuck on).
+export async function runRobotChecks(R, S) {
+  const results = [];
+  const savedPlaced = S.office.placed, savedRobot = S.robot;
+  for (const cause of ['spin', 'stuck', 'cone', 'emptyDesk', 'unplug']) {
+    R.setQuality('medium');
+    const { id } = setupRobotFix(R, S, { cause });
+    const root = charOf(R.scene, id), robot = R.robot.root;
+    let worst = 0, inRobot = 0, robotIn = 0, slapped = false, ended = false, worstFrame = null, robotHits = null;
+    for (let f = 0; f < 30 * 24 && !ended; f++) {
+      window.__advance(1);
+      const p = R.robot.peek();
+      if (p.fix?.slapped) slapped = true;
+      // Their own desk and chair are theirs while they get up; the robot counts once they stand by it.
+      const w = R.walkOf(id);
+      const inFurniture = bodyInside(root, furnitureOf(R, new Set([R.perks.peek(id)?.seat])));
+      if (inFurniture > worst) { worst = inFurniture; worstFrame = f; }
+      if (w?.temp?.moment === 'robot' && !w.path.length) {
+        const v = bodyInside(root, meshes(robot), false);
+        // What crosses at the worst frame, for the failure detail.
+        if (v > inRobot && exact) { const hits = []; exact(root, meshes(robot), (o) => !isArm(o), hits); const at = root.getWorldPosition(new THREE.Vector3()); robotHits = { frame: f, beat: w.temp.stage?.beat ?? null, dist: +Math.hypot(at.x - p.pos[0], at.z - p.pos[1]).toFixed(3), parts: hits.map((h) => `${h.part} x ${h.target} ${(100 * h.frac).toFixed(1)}%`) }; }
+        inRobot = Math.max(inRobot, v);
+      }
+      // Stuck, it noses into one empty desk's chair: that desk (the chair is part of it) is left out.
+      if (!p.fix?.slapped) robotIn = Math.max(robotIn, bodyInside(robot, furnitureOf(R, new Set(['check_robot', p.stop?.desk])), false));
+      ended = slapped && !p.fix && R.walkOf(id)?.temp?.moment !== 'robot';
+    }
+    results.push({ name: `moment:robot:${cause}`, pass: slapped && ended && worst < 0.01 && inRobot < 0.01 && robotIn < 0.01,
+      slapped, ended, insidePct: +(worst * 100).toFixed(2), worstFrame, inRobotPct: +(inRobot * 100).toFixed(2), robotInsidePct: +(robotIn * 100).toFixed(2),
+      ...(inRobot >= 0.01 && robotHits ? { robotHits } : {}) });
+  }
+  S.office.placed = savedPlaced; S.robot = savedRobot; R.sync(S); R.setQuality('low');
+  window.__advance(30);
+  return results;
+}
+
 export async function runPetChecks(R, S) {
   const results = [];
   const headings = [null, 2.104, ...Array.from({ length: 24 }, (_, i) => i * Math.PI / 12)];

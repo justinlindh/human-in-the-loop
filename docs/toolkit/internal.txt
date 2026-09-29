@@ -9,6 +9,9 @@ scripts/events/load.js            opens a page at an indexed moment, for the too
 scripts/perf/stats.js             helpers shared by the perf scripts
 scripts/trailer/cards.js          the trailer build's title cards
 scripts/trailer/config.js         the trailer build's settings
+blender/checks/pose-matrix.js         the pose matrix (pose.mjs --matrix): cells, rules and the grids
+blender/checks/pose-matrix-sweep.js   pose.mjs --matrix with --sweep: the matrix once per param value
+blender/checks/pose-crop.mjs          one picture of a pose-matrix cell, run by pose.mjs --crop
 scripts/trailer/manifest.js       the trailer build's shot list
 scripts/hooks/claude/test.sh      the Claude Code hooks' own tests
 blender/checks/dump.js            the in-page half of dump.mjs

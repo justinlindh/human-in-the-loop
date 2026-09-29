@@ -488,6 +488,8 @@ export function buildPlacedModel(p, stageIdx, screens = null, seed = 0, era = 'c
   g.userData.screen = inner.userData.screen ?? null;
   g.userData.rug = inner.userData.rug ?? null;
   if (p.itemId === 'noc') dressNoc(g, inner, f);
+  // The office robot's charging pad, in item space (the robot parks on it).
+  if (p.itemId === 'office_robot') g.userData.dock = new THREE.Vector3(0, 0, 0.1).applyMatrix4(g.userData.fit);
   return g;
 }
 

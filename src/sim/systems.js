@@ -36,3 +36,4 @@ import './posts.js';
 import './advisors.js';
 import './squads.js';
 import './noc.js';
+import './robot.js';

@@ -10,6 +10,7 @@ import { glow } from './materials.js';
 import { nocLook } from './noc.js';
 import { createPerks } from './perks.js';
 import { createPets } from './pets.js';
+import { createRobot } from './robot.js';
 import { createIncentives } from './incentives.js';
 import { createMoments } from './moments.js';
 import { createMomentCamera } from './momentcam.js';
@@ -364,7 +365,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       }
       r.staff = s;
     }
-    if (stageChanged) { for (const r of recs.values()) r.seat = null; momentSpeech.clear(); perks.reset(); pets.reset(); incentives.reset(); moments.reset(); spotlights.clear(); }
+    if (stageChanged) { for (const r of recs.values()) r.seat = null; momentSpeech.clear(); perks.reset(); pets.reset(); robot.reset(); incentives.reset(); moments.reset(); spotlights.clear(); }
     assignSeats(list, state);
 
     const roleIndex = { oversight: 0, hard: 0, security: 0 };
@@ -420,13 +421,16 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
           r.char.root.visible = true;
           walkTo(r, g);
         } else if (!r.temp) {
-          // Mood-only changes at the same desk need no walk.
+          // Mood-only changes at the same desk need no walk, and a walk still heading for the old
+          // goal (the door, for a goal that went hidden and came back) stops where they are.
           if (Math.hypot(r.pos.x - g.x, r.pos.z - g.z) > 0.2) walkTo(r, g, false, was);
+          else r.path = [];
         }
       }
     }
     firstSync = false;
     pets.sync(state);
+    robot.sync(state);
 
     // Desk screens and sabbatical signs.
     const outage = !!state.outage;
@@ -499,6 +503,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         case 'incident': incident(e, state); break;
         case 'standup': if (e.mode === 'daily') startStandup(e, state); break;
         case 'incentive': incentives.handle(e); break;
+        case 'robot': robot.event(e); break;
         default: break;
       }
     }
@@ -966,6 +971,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   // Perk visits (coffee, nap pod, couch, arcade, shelves, tables) replace plain wandering.
   const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup, low });
   const pets = createPets({ office, recs, emote, parent: group, getProps, resumeWalk: walkTo, low });
+  const robot = createRobot({ office, recs, emote, parent: group, walkTo, inView: (q) => moments.inView(q, { body: true, walls: true }), camYaw: () => rig?.yaw ?? Math.PI / 4 });
   const momentCam = createMomentCamera(rig);
   const spotlights = createSpotlights({ camera: momentCam });
   const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx, spotlights });
@@ -987,8 +993,28 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       r.pos.addScaledVector(dir, step);
       r.yaw = angleLerp(r.yaw, r.temp?.walkYaw ?? Math.atan2(dir.x, dir.z), 1 - Math.exp(-dt * 12));
     }
+    keepOffRobot(r, target);
     r.char.setMoveSpeed(r.speed);
     r.char.setAnim(anim);
+  }
+
+  // The walk grid doesn't know where the office robot is: a walker whose step lands inside its
+  // circle slides round it to the open floor on its edge nearest where they are, favouring the side
+  // toward their target. One heading for a point inside the circle walks on.
+  const ROUND = [0, 0.5, -0.5, 1, -1, 1.5, -1.5, 2, -2];
+  function keepOffRobot(r, target) {
+    const b = robot.blocker();
+    if (!b) return;
+    const dx = r.pos.x - b.x, dz = r.pos.z - b.z;
+    if (Math.hypot(dx, dz) >= b.r || Math.hypot(target.x - b.x, target.z - b.z) < b.r) return;
+    const a0 = Math.atan2(dz, dx), toward = Math.atan2(target.z - b.z, target.x - b.x);
+    const side = Math.sin(toward - a0) >= 0 ? 1 : -1;
+    const nav = office.nav();
+    for (const k of ROUND) {
+      const a = a0 + k * side;
+      const x = b.x + Math.cos(a) * b.r, z = b.z + Math.sin(a) * b.r;
+      if (!nav.isBlocked(x, z)) { r.pos.set(x, 0, z); return; }
+    }
   }
 
   function updateRec(r, dt) {
@@ -1502,6 +1528,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     updateFast(dt);
     perks.update(dt, lastState);
     pets.update(dt);
+    robot.update(dt);
     incentives.update(dt);
     moments.update(dt, lastState);
     updateResponders(lastState);
@@ -1593,7 +1620,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       }
       return spotlights.cut();
     },
-    officeGrowth, sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, incentives, moments, spotlights, setCharacterShadows,
+    officeGrowth, sync, handleEvents, update, pick, positionOf, dispose, setSpeed, perks, pets, robot, incentives, moments, spotlights, setCharacterShadows,
     get playTime() { return playTime; },
     // Test hook: stand a person at a floor point, idle, with no errand.
     standAt(id, x, z) {

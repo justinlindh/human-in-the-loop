@@ -9,7 +9,7 @@ export const PROP_NAMES = [
 
 export const ITEM_IDS = [
   'espresso', 'plant_wall', 'nap_pod', 'arcade', 'standing_desk', 'trophy_case', 'server_rack', 'library',
-  'monitoring_wall', 'whiteboard_wall', 'noc',
+  'monitoring_wall', 'whiteboard_wall', 'noc', 'office_robot',
 ];
 export const itemModelName = (itemId, level) => `${itemId}_l${Math.max(1, Math.min(3, level | 0))}`;
 const ITEM_MODELS = ITEM_IDS.flatMap((id) => [1, 2, 3].map((l) => itemModelName(id, l)));
@@ -44,7 +44,7 @@ function loadOne(name) {
 }
 
 // Loads each named model once (cached per name) and resolves when all of them are ready.
-export function loadModels(names = [...PROP_NAMES, ...ITEM_MODELS, 'chibi', 'pets']) {
+export function loadModels(names = [...PROP_NAMES, ...ITEM_MODELS, 'chibi', 'pets', 'robot']) {
   return Promise.all(names.map(loadOne)).then(() => templates);
 }
 
