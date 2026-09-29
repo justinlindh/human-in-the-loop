@@ -80,7 +80,7 @@ try { PARAMS = resolveParams(paramSpecs(argv), ROOT); } catch (e) { console.erro
 if (PARAMS.length && argv.includes('--serve')) { console.error('pose: --param needs a cold run: --serve keeps one server across requests'); process.exit(2); }
 const OPTS = {
   under: opt('under', opt('gesture') ? 'typing' : 'idle'), gesture: opt('gesture', null), seconds: Number(opt('seconds', 2.2)),
-  warm: Number(opt('warm', 1)), yawToCamera: Number(opt('yaw-to-camera', 0)), view: Number(opt('view', 0)), fps: 30, rig: opt('rig', 'on') !== 'off',
+  warm: Number(opt('warm', 1)), side: Number(opt('side', 1)) < 0 ? -1 : 1, yawToCamera: Number(opt('yaw-to-camera', 0)), view: Number(opt('view', 0)), fps: 30, rig: opt('rig', 'on') !== 'off',
 };
 const EVERY = Number(opt('every', 6));
 const MEASURES = ['hand0Face', 'hand0Head', 'hand0HeadTop', 'hand1Face', 'hand1Head', 'hand1HeadTop', ...[0, 1].flatMap(h => LANDMARKS.map(n => `hand${h}${n}`)), 'faceCam'];
@@ -365,7 +365,7 @@ try {
     if (opt('crop')) {
       const w = X.worstOf(result.cells);
       const v = w.verdicts.find((x) => !x.pass) ?? w.verdicts[0];
-      const args = [join(import.meta.dirname, 'pose-crop.mjs'), '--gesture', OPTS.gesture, '--posture', w.posture, '--build', String(w.build), '--rig', w.rig, '--view', String(w.view), '--accessory', w.accessory, '--t', String(v?.worstT ?? OPTS.warm + 1), '--warm', String(OPTS.warm), '--seconds', String(OPTS.seconds), '--out', opt('crop')];
+      const args = [join(import.meta.dirname, 'pose-crop.mjs'), '--gesture', OPTS.gesture, '--posture', w.posture, '--build', String(w.build), '--rig', w.rig, '--view', String(w.view), '--side', String(w.side), '--accessory', w.accessory, '--t', String(v?.worstT ?? OPTS.warm + 1), '--warm', String(OPTS.warm), '--seconds', String(OPTS.seconds), '--out', opt('crop')];
       const r = spawnSync(process.execPath, args, { stdio: ['ignore', 'pipe', 'inherit'], encoding: 'utf8' });
       console.log(`pose: crop of the worst cell (${X.rowLabel(w, axes)} view ${w.view}, t ${v?.worstT ?? '-'}): ${r.status === 0 ? opt('crop') : `failed (exit ${r.status})`}`);
     }

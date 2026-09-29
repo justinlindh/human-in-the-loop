@@ -12,6 +12,14 @@ const run = (...args) => spawnSync(process.execPath, [POSE, ...args], { encoding
 const frame = (t, cover, faceCam = 10, phase = 'gesture') => ({ t, phase, faceCam, contact: { hand0Head: 0.1, hand1Head: 0.3 }, cover: { coverHandEyeNear: cover } });
 
 describe('pose matrix parsing', () => {
+  it('plays the hand the game would at each view unless a side axis says otherwise', () => {
+    const sides = (spec) => cellsOf(parseMatrix(`postures=stand,builds=1,rig=on${spec}`)).map((c) => c.side);
+    expect(sides('')).toEqual([1, 1, 1, -1]);
+    expect(sides(',side=-1')).toEqual([-1, -1, -1, -1]);
+    expect(sides(',side=all')).toEqual([1, 1, 1, 1, -1, -1, -1, -1]);
+    expect(() => parseMatrix('side=2')).toThrow(/side/);
+  });
+
   it('expands all and lists, one cell per combination', () => {
     const a = parseMatrix('views=all,postures=stand,sit,builds=0,2,rig=on');
     expect(a).toMatchObject({ views: [0, 1, 2, 3], postures: ['stand', 'sit'], builds: [0, 2], rig: ['on'], accessory: ['none'] });
@@ -136,6 +144,12 @@ describe('pose.mjs --matrix', () => {
       expect(readdirSync(tmp)).toEqual([]);
     } finally { rmSync(tmp, { recursive: true, force: true }); }
   }, 60000);
+
+  it('view 3 plays the game hand, so a standing facepalm passes there and the other hand does not', () => {
+    const v3 = ['--gesture', 'facepalm', '--matrix', 'views=3,postures=stand,builds=1,rig=on', '--measure', 'coverHandEyeNear,faceCam', '--expect', 'coverHandEyeNear>=0.5@0.7 if faceCam<=80'];
+    expect(run(...v3).status).toBe(0);
+    expect(run(...v3.map((a) => (a.startsWith('views') ? `${a},side=1` : a))).status).toBe(1);
+  });
 
   it('needs a gesture and a measure', () => {
     expect(run('--matrix', 'views=0', '--measure', 'faceCam').status).toBe(2);
