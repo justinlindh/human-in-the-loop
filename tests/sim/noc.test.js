@@ -4,7 +4,7 @@ import { ITEMS } from '../../src/data/items.js';
 import { EVENTS } from '../../src/data/events.js';
 import { B } from '../../src/sim/balance.js';
 import { makeCtx } from '../../src/sim/registry.js';
-import { purchaseProblem, upgradeProblem } from '../../src/sim/office.js';
+import { purchaseProblem, upgradeProblem, autoArrange, frontCells, footprintCells } from '../../src/sim/office.js';
 import { catchChance, fixCapacity, landIncident, incidentsSystem } from '../../src/sim/incidents.js';
 import { nocCatch, nocSystem } from '../../src/sim/noc.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
@@ -61,6 +61,22 @@ describe('NOC item (#342)', () => {
   });
 });
 
+describe('moving office keeps front zones (#1021)', () => {
+  it('the movers keep a grown item\'s front row clear, whatever level it is at', () => {
+    for (const [itemId, level] of [['noc', 3], ['noc', 2], ['server_rack', 3], ['standing_desk', 2]]) {
+      const desks = Array.from({ length: 24 }, (_, i) => ({ id: `d${i}`, itemId: 'desk', level: 1, x: 0, y: 0, rot: 0 }));
+      const { placed } = autoArrange(2, [{ id: 'x', itemId, level, x: 0, y: 0, rot: 0 }, ...desks]);
+      const it = placed.find((p) => p.id === 'x');
+      expect(it, itemId).toBeTruthy();
+      const front = new Set(frontCells(itemId, it.x, it.y, it.rot, level).map(([x, y]) => `${x},${y}`));
+      expect(front.size, itemId).toBeGreaterThan(0);
+      for (const p of placed.filter((q) => q !== it)) {
+        for (const [x, y] of footprintCells(p.itemId, p.x, p.y, p.rot)) expect(front.has(`${x},${y}`), `${itemId} L${level} front vs ${p.id}`).toBe(false);
+      }
+    }
+  });
+});
+
 describe('NOC effects', () => {
   it('with humans on the glass, the catch bonus grows with the security crew up to a full crew', () => {
     const s = company(2);
@@ -87,6 +103,31 @@ describe('NOC effects', () => {
     s.staff = s.staff.filter((p) => p.assignment.type !== 'oversight');
     expect(catchChance(s)).toBeCloseTo(Math.min(B.catchMax, nocCatch(s)));
     expect(catchChance(s)).toBeGreaterThan(0);
+  });
+
+  it('adds nothing to the agent-incident catch chance before the Agents era', () => {
+    const s = company(3);
+    s.ops.noc = 'agents';
+    s.staff = s.staff.filter((p) => p.assignment.type !== 'oversight');
+    s.era = { id: 'chatgbt', since: 0 };
+    expect(nocCatch(s)).toBeGreaterThan(0);
+    expect(catchChance(s)).toBe(0);
+  });
+
+  it('credits the security crew for a caught attack, and overseers for a caught agent incident', () => {
+    const s = company(2);
+    const guard = addStaff(s, 'security', 'mid');
+    const watcher = addStaff(s, 'engineer', 'mid');
+    watcher.assignment = { type: 'oversight', targetId: null };
+    const caughtBy = (model, kind) => {
+      const before = { g: guard.record?.incidentsCaught ?? 0, w: watcher.record?.incidentsCaught ?? 0 };
+      landIncident(makeCtx(s), { kind, severity: 2, caught: true, model });
+      return { g: guard.record.incidentsCaught - before.g, w: (watcher.record?.incidentsCaught ?? 0) - before.w };
+    };
+    expect(caughtBy(null, 'phishing')).toEqual({ g: 1, w: 0 });
+    s.outage = null;
+    const agent = caughtBy('grokk', 'mass_email');
+    expect(agent.w).toBe(1);
   });
 
   it('speeds up fixing outages', () => {

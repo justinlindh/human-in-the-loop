@@ -14,6 +14,7 @@ import './knowledge.js';
 import './market.js';
 import './incidents.js';
 import './events.js';
+import './windows.js';
 import './calendar.js';
 import './economy.js';
 import './endgame.js';

@@ -260,7 +260,8 @@ export function autoArrange(stageIdx, placed) {
   const islands = islandSlots(stageIdx);
   for (const p of order) {
     const slot = p.itemId === 'desk' ? islands.find((sl) => !layoutProblem(stageIdx, out, { itemId: 'desk', ...sl })) : null;
-    const spot = slot ?? findSpot(stageIdx, out, p.itemId, p.itemId === 'desk' ? [0, 2, 1, 3] : [0, 1, 2, 3]);
+    // Each item goes where its current level fits, so a front zone it has grown into stays clear.
+    const spot = slot ?? findSpot(stageIdx, out, p.itemId, p.itemId === 'desk' ? [0, 2, 1, 3] : [0, 1, 2, 3], p.level ?? 1);
     if (spot) out.push({ ...p, ...spot });
     else left.push(p);
   }

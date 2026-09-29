@@ -662,7 +662,7 @@ const list = [
     ],
   },
 
-  // The NOC bet (#342): raised once from the Agents era on, when a NOC at level 2 or more is placed.
+  // The NOC bet (#342): raised once from the Agents era on, whenever a NOC at level 2 or more exists.
   {
     id: 'noc_bet', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null, eras: ['agents', 'consolidation', 'plateau'], office: 'noc',
     when: (s) => (s.office.placed.find((p) => p.itemId === 'noc')?.level ?? 0) >= 2,

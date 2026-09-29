@@ -1179,7 +1179,7 @@ When: `(s) => s.staff.length >= N.consultantStaff && cuttable(s).length >= N.con
 
 ## PC LOAD LETTER `printer_jam`
 
-misc · weight 2 · cooldown 100000 weeks · about anyone in · staged: printer_jammed
+misc · raised by a rule · cooldown 100000 weeks · about anyone in · staged: printer_jammed
 
 When: `(s) => s.officeStage >= 1`
 

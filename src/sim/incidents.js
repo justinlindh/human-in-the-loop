@@ -69,7 +69,7 @@ export function catchChance(state) {
   const coverage = req > 0 ? Math.min(1, oversightProvided(state) / req) : 1;
   const eyes = overseers(state);
   const people = eyes.length ? B.catchBase * coverage + Math.max(0, ...eyes.map((p) => staffMods(p).catch)) : 0;
-  return Math.min(B.catchMax, people + nocCatch(state));
+  return Math.min(B.catchMax, people + (eraAtLeast(state, 'agents') ? nocCatch(state) : 0));
 }
 
 // Attackers find a company once it has been around for a while: no attacks in the first months after the first launch.
@@ -306,9 +306,10 @@ export function landIncident(ctx, { kind, severity, caught, model, fn = null }) 
   emitChat(ctx, { channel: 'incidents', from: '@pagerbot', text: caught ? `SEV${6 - severity} caught early${where}: ${KIND_LABEL[kind]}. Crisis averted.` : `SEV${6 - severity}${where}: ${KIND_LABEL[kind]}.` });
   const witnesses = state.staff.filter((p) => p.mood !== 'away');
   if (caught) {
-    // Overseers get the credit; with none, the security crew does; with neither, the NOC's agents did.
-    const overseeing = overseers(state);
-    const eyes = overseeing.length ? overseeing : onSecurity(state);
+    // Overseers get the credit for an agent incident and the security crew for an attack, each falling back to
+    // the other; with neither, the NOC's agents did.
+    const [first, second] = model ? [overseers(state), onSecurity(state)] : [onSecurity(state), overseers(state)];
+    const eyes = first.length ? first : second;
     if (!eyes.length) {
       emitChat(ctx, { channel: 'incidents', from: '@pagerbot', text: 'The NOC agents flagged it before anyone woke up. They would like that noted.' });
       return;

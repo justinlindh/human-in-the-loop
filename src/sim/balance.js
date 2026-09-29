@@ -186,6 +186,8 @@ export const B = {
     consultantStaff: 15, consultantFee: 60000, consultantCuts: 2, consultantNewHireWeeks: 13, consultantMinEligible: 3,
     consultantOutput: 0.05, consultantWeeks: 26, consultantMeaning: -4, layoffGapWeeks: 52,
     printerCost: 2500, printerMeaning: 6, printerWreckWeeks: 4, printerRepair: 300, printLessOutput: -0.01, printLessWeeks: 13,
+    // The printer jams once, on a week this many weeks after the company first reaches the Office Floor.
+    printerFromWeeks: 8, printerToWeeks: 48,
     saturdayStaff: 10, saturdayOutput: 0.08, saturdayWeeks: 2, saturdayStrain: 10, saturdayMeaning: -3, saturdayNoTeam: 2, saturdayNoSubject: -3,
   },
   // Staff names: the share of draws from the international tier, the share of the US mix that is South
