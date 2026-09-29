@@ -3,9 +3,13 @@
 # 1600 px wide). Every ffmpeg call runs under timeout and nice and reads one frame per input, so a
 # bad input cannot turn into a runaway job.
 #
-#   scripts/sheet.sh grid <out.png> [--cols N] <image>...          labelled grid, labels = file names
-#   scripts/sheet.sh pair <out.png> <before> <after> [--labels "Before,After"]
-#   scripts/sheet.sh frames <out.png> <clip> [--count K] [--cols N]  K evenly spaced frames, labelled by time
+#   scripts/sheet.sh grid <out.png> [--cols N] [--crop x,y,w,h] <image>...   labelled grid, labels = file names
+#   scripts/sheet.sh pair <out.png> <before> <after> [--labels "Before,After"] [--crop x,y,w,h]
+#   scripts/sheet.sh frames <out.png> <clip> [--count K] [--cols N] [--from S] [--to S] [--crop x,y,w,h]
+#                                                                   K evenly spaced frames, labelled by time
+#
+# --crop x,y,w,h (pixels of the source frame) crops every cell before it is scaled, to show a small
+# detail such as one face. --from and --to (seconds) confine `frames` to a window of the clip.
 #
 # Images can be anything ffmpeg reads (png, jpg, a video's first frame). Exit 0 on success.
 set -uo pipefail
@@ -16,13 +20,15 @@ FF=(timeout "$LIMIT" nice -n 10 ffmpeg -nostdin -hide_banner -loglevel error -y)
 usage() { grep '^#   scripts/sheet.sh' "$0" | sed 's/^#   /usage: /' >&2; exit 2; }
 
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+CROP=''   # the crop filter for every cell, set by --crop
+set_crop() { [[ "$1" =~ ^[0-9]+,[0-9]+,[0-9]+,[0-9]+$ ]] || { echo "sheet: --crop wants x,y,w,h in pixels" >&2; exit 2; }; IFS=, read -r cx cy cw_ ch_ <<<"$1"; CROP="crop=$cw_:$ch_:$cx:$cy,"; }
 
 # cell <input> <label> <cell width> <index> [seek seconds]: one letterboxed 16:9 cell with a label band.
 cell() {
   local in="$1" label="$2" cw="$3" i="$4" seek="${5:-}" ch=$(( $3 * 9 / 16 ))
   printf '%s' "$label" >"$tmp/label$i.txt"
   "${FF[@]}" ${seek:+-ss "$seek"} -i "$in" -frames:v 1 -vf \
-    "scale=$cw:$ch:force_original_aspect_ratio=decrease,pad=$cw:$ch:(ow-iw)/2:(oh-ih)/2:color=white,pad=iw:ih+34:0:34:color=white,drawtext=font='DejaVu Sans':textfile=$tmp/label$i.txt:x=8:y=8:fontsize=20:fontcolor=black" \
+    "${CROP}scale=$cw:$ch:force_original_aspect_ratio=decrease,pad=$cw:$ch:(ow-iw)/2:(oh-ih)/2:color=white,pad=iw:ih+34:0:34:color=white,drawtext=font='DejaVu Sans':textfile=$tmp/label$i.txt:x=8:y=8:fontsize=20:fontcolor=black" \
     "$tmp/cell_$(printf '%03d' "$i").png" || { echo "sheet: cannot read $in" >&2; return 1; }
 }
 
@@ -39,7 +45,7 @@ shift 2
 case "$mode" in
   grid)
     cols=3; files=()
-    while [ $# -gt 0 ]; do case "$1" in --cols) cols="$2"; shift 2 ;; *) files+=("$1"); shift ;; esac; done
+    while [ $# -gt 0 ]; do case "$1" in --cols) cols="$2"; shift 2 ;; --crop) set_crop "$2"; shift 2 ;; *) files+=("$1"); shift ;; esac; done
     [ ${#files[@]} -gt 0 ] || usage
     [ ${#files[@]} -lt "$cols" ] && cols=${#files[@]}
     cw=$(( (WIDTH - 6 * (cols + 1)) / cols )); i=0
@@ -48,20 +54,23 @@ case "$mode" in
   pair)
     [ $# -ge 2 ] || usage
     before="$1"; after="$2"; shift 2; labels="Before,After"
-    [ "${1:-}" = --labels ] && labels="${2:?--labels needs \"A,B\"}"
+    while [ $# -gt 0 ]; do case "$1" in --labels) labels="${2:?--labels needs \"A,B\"}"; shift 2 ;; --crop) set_crop "${2:-}"; shift 2 ;; *) usage ;; esac; done
     cw=$(( (WIDTH - 18) / 2 ))
     cell "$before" "${labels%%,*}" "$cw" 0 && cell "$after" "${labels#*,}" "$cw" 1 || exit 1
     assemble "$out" 2 2 ;;
   frames)
     [ $# -ge 1 ] || usage
-    clip="$1"; shift; count=6; cols=3
-    while [ $# -gt 0 ]; do case "$1" in --count) count="$2"; shift 2 ;; --cols) cols="$2"; shift 2 ;; *) usage ;; esac; done
+    clip="$1"; shift; count=6; cols=3; from=''; to=''
+    while [ $# -gt 0 ]; do case "$1" in --count) count="$2"; shift 2 ;; --cols) cols="$2"; shift 2 ;; --from) from="$2"; shift 2 ;; --to) to="$2"; shift 2 ;; --crop) set_crop "$2"; shift 2 ;; *) usage ;; esac; done
     dur="$(timeout "$LIMIT" nice -n 10 ffprobe -v error -show_entries format=duration -of csv=p=0 "$clip")" \
       || { echo "sheet: cannot read $clip" >&2; exit 1; }
+    from="${from:-0}"; to="${to:-$dur}"
+    awk -v a="$from" -v b="$to" -v d="$dur" 'BEGIN { exit !(a >= 0 && b > a && b <= d + 0.01) }' \
+      || { echo "sheet: --from/--to must satisfy 0 <= from < to <= clip length ($dur s)" >&2; exit 2; }
     [ "$count" -lt "$cols" ] && cols=$count
     cw=$(( (WIDTH - 6 * (cols + 1)) / cols ))
     for i in $(seq 0 $((count - 1))); do
-      t="$(awk -v d="$dur" -v i="$i" -v n="$count" 'BEGIN { printf "%.2f", d * (i + 0.5) / n }')"
+      t="$(awk -v a="$from" -v b="$to" -v i="$i" -v n="$count" 'BEGIN { printf "%.2f", a + (b - a) * (i + 0.5) / n }')"
       cell "$clip" "${t}s" "$cw" "$i" "$t" || exit 1
     done
     assemble "$out" "$cols" "$count" ;;
