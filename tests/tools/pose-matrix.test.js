@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { spawnSync } from 'node:child_process';
-import { resolve } from 'node:path';
+import { spawn, spawnSync } from 'node:child_process';
+import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { sensitivity } from '../../blender/checks/pose-matrix-sweep.js';
 import { parseMatrix, cellsOf, parseRule, judgeCell, margin, worstOf, formatMatrix, valueOf } from '../../blender/checks/pose-matrix.js';
 
 const POSE = resolve(__dirname, '../../blender/checks/pose.mjs');
@@ -103,6 +106,44 @@ describe('pose.mjs --matrix', () => {
     expect(r.stdout).toMatch(/PALM_STAND\[2\]=0\.9\s+0 of 1\s+worst/);
     expect(r.stdout).toContain('SWEEP passing every cell: PALM_STAND[2]=0.27');
   });
+
+  it('refuses a grid over --max-runs before running anything, and names the run count', () => {
+    const r = run(...base, '--expect', 'coverHandEyeNear>=0.5@0.7', '--sweep', 'PALM_STAND[2]=0.27,0.9', '--sweep', 'PALM_STAND[3]=-0.6,-0.5', '--max-runs', '3');
+    expect(r.status).toBe(2);
+    expect(r.stdout).toContain('SWEEP 4 runs (2 x 2; a repeated --sweep multiplies)');
+    expect(r.stderr).toContain('4 runs is over --max-runs 3');
+  });
+
+  it('runs a grid in parallel and names the param that moves the pass count', () => {
+    const r = run(...base, '--expect', 'coverHandEyeNear>=0.5@0.7', '--sweep', 'PALM_STAND[2]=0.27,0.9', '--sweep', 'PALM_STAND[3]=-0.6,-0.55', '--jobs', '2');
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toContain('SWEEP 4 runs');
+    expect(r.stdout).toMatch(/SWEEP moves the pass count most: PALM_STAND\[2\] \(/);
+  });
+
+  it('ranks swept params by how far the mean pass count moves', () => {
+    const row = (a, b, pass) => ({ c: [['A', a], ['B', b]], pass });
+    const rows = [row('1', 'x', 0), row('1', 'y', 0), row('2', 'x', 1), row('2', 'y', 1)];
+    const s = sensitivity(rows, [{ name: 'B', values: ['x', 'y'] }, { name: 'A', values: ['1', '2'] }]);
+    expect(s.map((x) => x.name)).toEqual(['A', 'B']);
+    expect(s.map((x) => x.spread)).toEqual([1, 0]);
+  });
+
+  it('a sweep killed mid-run removes its temp dir and stops its runs', async () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'msweep-test-'));
+    const dirs = () => readdirSync(tmp).filter((n) => n.startsWith('pose-msweep-'));
+    try {
+      const values = Array.from({ length: 24 }, (_, i) => (0.2 + i * 0.01).toFixed(2)).join(',');
+      const child = spawn(process.execPath, [POSE, ...base, '--expect', 'coverHandEyeNear>=0.5@0.7', '--sweep', `PALM_STAND[2]=${values}`, '--jobs', '2'], { stdio: 'ignore', env: { ...process.env, TMPDIR: tmp } });
+      const closed = new Promise((res) => child.on('close', (code, signal) => res({ code, signal })));
+      for (let i = 0; i < 300 && !dirs().length; i++) await new Promise((r) => setTimeout(r, 50));
+      expect(dirs().length).toBeGreaterThan(0);
+      child.kill('SIGTERM');
+      const { code, signal } = await closed;
+      expect(code === 143 || signal === 'SIGTERM').toBe(true);
+      expect(readdirSync(tmp)).toEqual([]);
+    } finally { rmSync(tmp, { recursive: true, force: true }); }
+  }, 60000);
 
   it('view 3 plays the game hand, so a standing facepalm passes there and the other hand does not', () => {
     const v3 = ['--gesture', 'facepalm', '--matrix', 'views=3,postures=stand,builds=1,rig=on', '--measure', 'coverHandEyeNear,faceCam', '--expect', 'coverHandEyeNear>=0.5@0.7 if faceCam<=80'];
