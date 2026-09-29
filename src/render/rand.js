@@ -52,7 +52,7 @@ export function fixed(...key) {
   return unit(h);
 }
 
-export const between =(a, b, ...key) => a + draw(...key) * (b - a);
+export const between = (a, b, ...key) => a + draw(...key) * (b - a);
 
 export const pick = (list, ...key) => list[Math.floor(draw(...key) * list.length)];
 
