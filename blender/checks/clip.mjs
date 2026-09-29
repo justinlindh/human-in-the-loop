@@ -56,9 +56,15 @@ if (before && !ONLY) {
   process.exit(0);
 }
 const H = await startHarness();
-const { page, errors } = await H.openScene(`quality=low&mock=floor${rig}`, { width: 800, height: 500 });
+const errors = [];
+const out = [];
+// Each group of the floor office runs on a fresh page, so who a case picks and where they start
+// never depend on which groups ran before it (a narrowed --only gives the same subject and result).
+const MAIN = ['seats', 'perks', 'dance', 'walk', 'pets', 'props', 'pairs', 'use', 'party', 'sky'];
+for (const group of MAIN.filter((g) => runs[g])) {
+const { page, errors: pageErrors } = await H.openScene(`quality=low&mock=floor${rig}`, { width: 800, height: 500 });
 await page.evaluate(installExact);
-const out = await page.evaluate(async (runs) => {
+out.push(...await page.evaluate(async (runs) => {
   const R = window.__hitlRender, S = window.__HITL.state;
   // The ownership trace, for the failure detail (the worst actor's last trace lines).
   if (R.trace) R.trace.on = true;
@@ -124,7 +130,10 @@ const out = await page.evaluate(async (runs) => {
   const party = runs.party ? await C.runPartyCheck(R, S) : null;
   const sky = runs.sky ? await C.runSkyCheck() : null;
   return [runs.seats ? seatCheck : null, ...a.results, ...b.results, ...dance, ...w, ...u, party, sky, pairs].filter(Boolean);
-}, runs);
+}, Object.fromEntries(MAIN.map((g) => [g, g === group]))));
+errors.push(...pageErrors);
+await page.close();
+}
 // The garage: two founders still get a game of foosball in now and then.
 if (runs.garage) {
   const g = await H.openScene(`quality=low&mock=garage${rig}`, { width: 800, height: 500 });
