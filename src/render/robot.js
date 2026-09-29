@@ -13,7 +13,7 @@ import { between, draw, shuffled } from './rand.js';
 // decaf, unplugged), a sticky note while people grumble about it, googly eyes once chosen.
 
 const SPEED = 0.85;
-const NECK_Y = 0.5;
+export const NECK_Y = 0.5;
 const EMOTE_SIZE = 0.42;
 // Metres out from the dock's front edge where the robot turns in to park.
 const DOCK_OUT = 0.45;
@@ -50,6 +50,16 @@ function angleLerp(a, b, k) {
   let d = ((b - a + Math.PI) % (Math.PI * 2)) - Math.PI;
   if (d < -Math.PI) d += Math.PI * 2;
   return a + d * k;
+}
+
+// The slap's part of the robot's pose at clock t (seconds), added to the head's side tilt and the
+// torso's lean. Waiting for the slap, it cringes: head tipped away from the fixer (cringeSide 1 or
+// -1, 0 when nobody is coming), so a big head of hair squaring up beside it doesn't meet its head.
+// jolt (1 at the slap, easing to 0 at JOLT_DECAY per second) is a sharp tilt and shake that dies away.
+export const JOLT_DECAY = 1.4;
+export function slapPose(t, { cringeSide = 0, jolt = 0 } = {}) {
+  const j = jolt * jolt;
+  return { headZ: SLAP.cringe * cringeSide + Math.sin(t * 38) * 0.35 * j + 0.3 * j, lean: -0.12 * j };
 }
 
 export function buildRig() {
@@ -529,16 +539,12 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     else if (r.watering) { lean = 0.28; headX = 0.2; }
     else if (r.arrived && r.stop?.who) { tray = 0.03 + Math.sin(t * 6) * 0.01; headX = -0.1; sway = Math.sin(t * 3) * 0.05; }
     else headZ = Math.sin(t * 1.1) * 0.05;
-    // Waiting for the slap, it cringes: head tipped away from the fixer, so a big head of hair
-    // squaring up beside it doesn't meet its head.
-    if (r.fix && !r.fix.slapped && r.fixSide) headZ = SLAP.cringe * r.fixSide;
-    if (r.jolt > 0) {
-      // The slap: a sharp tilt and shake that dies away.
-      r.jolt = Math.max(0, r.jolt - dt * 1.4);
-      const j = r.jolt * r.jolt;
-      headZ += Math.sin(t * 38) * 0.35 * j + 0.3 * j;
-      lean -= 0.12 * j;
-    }
+    // The slap's cringe and jolt (slapPose) take over the head's tilt.
+    if (r.fix && !r.fix.slapped && r.fixSide) headZ = 0;
+    if (r.jolt > 0) r.jolt = Math.max(0, r.jolt - dt * JOLT_DECAY);
+    const s = slapPose(t, { cringeSide: r.fix && !r.fix.slapped ? r.fixSide ?? 0 : 0, jolt: r.jolt ?? 0 });
+    headZ += s.headZ;
+    lean += s.lean;
     if (!r.bump) g.body.position.z *= 1 - k;
     g.body.position.y += (bob - g.body.position.y) * k;
     g.torso.rotation.x += (lean - g.torso.rotation.x) * k;

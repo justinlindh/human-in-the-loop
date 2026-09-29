@@ -2,7 +2,7 @@
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { check, readEntries, table } from './toolkit.mjs';
+import { check, readEntries, table, shortLine } from './toolkit.mjs';
 
 let fails = 0;
 const expect = (ok, what) => { if (!ok) { fails++; console.log(`FAIL ${what}`); } };
@@ -35,6 +35,13 @@ try {
   expect(has('nohead.md: no --- header'), 'a file with no header is caught');
   const t = table(readEntries(join(root, 'docs/toolkit')), 'pr');
   expect(t.includes('| `scripts/a.sh` | Does a thing \\| with a pipe. |'), `a pipe in the text is escaped in the table (got ${t})`);
+  put('docs/toolkit/a.md', entry('`scripts/a.sh`', 'pr', 'scripts/a.sh', 'Does a thing. More text.'));
+  put('docs/toolkit/a/deep.md', 'The robotDepth topic.\n');
+  const ent = readEntries(join(root, 'docs/toolkit')).find((e) => e.file === 'a.md');
+  const line = shortLine(ent, 'robotdepth', join(root, 'docs/toolkit'));
+  expect(!line.includes('\n') && line.includes('Does a thing.') && !line.includes('More text') && line.includes('docs/toolkit/a.md'), `a grep hit is one short line (got ${line})`);
+  expect(line.includes('see docs/toolkit/a/deep.md'), 'a topic page that mentions the word is named');
+  expect(!check(root).problems.some((p) => p.includes('/a/') || p.includes('deep')), 'a topic page adds no --check problem');
 } finally { rmSync(root, { recursive: true, force: true }); }
 console.log(fails ? `toolkit: ${fails} failing` : 'toolkit: all cases pass');
 process.exit(fails ? 1 : 0);

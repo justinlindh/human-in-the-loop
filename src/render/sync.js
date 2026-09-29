@@ -1459,7 +1459,15 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         const goal = r.temp?.goal && !r.temp.enter ? r.temp.goal : r.goal;
         const dest = goal && Math.hypot(goal.x - end.x, goal.z - end.z) < 0.9 ? goal : { x: end.x, z: end.z };
         const speed = r.speed, anim = r.walkAnim;
+        // Someone still stepping off an item keeps going out by its side, the item still theirs.
+        const exit = r.exitFrom && r.path.includes(r.exitSide) ? { from: r.exitFrom, side: r.exitSide } : null;
         walkTo(r, dest);
+        if (exit) {
+          const to = r.path[r.path.length - 1] ?? dest;
+          r.path = [exit.side, ...nav.path(exit.side, { x: to.x, z: to.z }).slice(1)];
+          r.exitFrom = exit.from;
+          r.exitSide = exit.side;
+        }
         r.speed = speed; r.walkAnim = anim;
         continue;
       }
