@@ -4,6 +4,14 @@ import { B } from './sim/balance.js';
 // A bot post counts only when the sim flags it.
 export const importantChat = (m) => m.important === true || m.channel === 'incidents' || m.channel === 'wins';
 
+// How many of the player's own post ids are remembered for reply priority. The oldest fall out first,
+// so a long game keeps a bounded set and replies to recent posts still jump the queue.
+export const MAX_TRACKED_POST_IDS = 200;
+const remember = (set, id) => {
+  set.add(id);
+  if (set.size > MAX_TRACKED_POST_IDS) set.delete(set.values().next().value);
+};
+
 export function createYakPacer() {
   let now = 0, gameNow = 0, free = 0, pending = [];
   const omitted = new Map();
@@ -54,9 +62,8 @@ export function createYakPacer() {
         if (e.type !== 'chat') continue;
         if (urgentIds.has(e.id)) {
           urgent.push(e); reserve(e);
-          answered.add(e.id);
-          if (!importantChat(e)) mine.add(e.id);
-          if (answered.size > 200) answered.delete(answered.values().next().value);
+          remember(answered, e.id);
+          if (!importantChat(e)) remember(mine, e.id);
           continue;
         }
         if (!pri(e) && pending.filter(x => !pri(x.e)).length >= B.yakPendingLimit) { omit(e); continue; }
@@ -86,6 +93,7 @@ export function createYakPacer() {
       // A copy flagged priority when it only counts as important for answering an earlier post.
       return [pri(e) && !importantChat(e) ? { ...e, priority: true } : e];
     },
+    get trackedIds() { return { answered: answered.size, mine: mine.size }; },
     get queued() { return pending.length; },
     get pending() { return pending.map((x) => x.e); },
   };
