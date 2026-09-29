@@ -69,8 +69,7 @@ export const DEFERRED_CAPTURES = [];
 // misread, so the alert, the Yak thread and the facepalm all come from the same game.
 const NOC_HIT = '(c) => c.ops.noc === "agents" && c.outage?.misread && c.outage.weeks === 0';
 const OUTAGE_PLAY = { weeks: 1000, bot: 'balanced', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: NOC_HIT };
-// The Yak beats replay the game: a pinned load seats a different cast and misplaces the facepalm shot.
-const YAK_SETUP = `(async () => { await ${PRE_UNTIL(OUTAGE_PLAY)}; ${YAK_ONLY}; ${YAK_HELPERS} })()`;
+const YAK_SETUP = `(async () => { await ${LOAD_PIN('outage')}; ${YAK_ONLY}; ${YAK_HELPERS} })()`;
 
 // A quiet week (seed 62, week 124) where "Share a meme" picks the PC LOAD LETTER image: the post
 // lands in Yak, then is opened full size the way a player taps it.
