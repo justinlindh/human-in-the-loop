@@ -160,22 +160,28 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     return out.slice(0, n);
   }
 
-  // Open floor as near a desk's seat as the robot fits, in view, facing the sitter.
+  // Open floor as near a desk's seat as the robot fits, in view, facing the sitter. The chair's side
+  // of the seat comes first: on the desk's side the robot's head sits level with the desktop and
+  // reads as poking through it.
   function besideSeat(desk) {
-    const c = desk.seat;
-    const q = openSpot(c, 'serve', { radii: SERVE_RADII, clearR: SERVE_R, score: (p) => Math.hypot(p.x - c.x, p.z - c.z) });
+    const c = desk.seat, fx = Math.sin(c.rotY ?? 0), fz = Math.cos(c.rotY ?? 0);
+    const score = (p) => Math.hypot(p.x - c.x, p.z - c.z);
+    const side = (p) => (p.x - c.x) * fx + (p.z - c.z) * fz <= 0.05 || 'desk side';
+    const q = openSpot(c, 'serve', { radii: SERVE_RADII, clearR: SERVE_R, score, side })
+      ?? openSpot(c, 'serve', { radii: SERVE_RADII, clearR: SERVE_R, score });
     return q ? { x: q.x, z: q.z, face: { x: c.x, z: c.z } } : null;
   }
 
   // Open floor near a point, clear for the robot (and a second point along with it, when given),
   // and in view: the first ring candidate that passes, else null.
-  function openSpot(center, search, { radii = [0.4, 0.7, 1.0, 1.4, 1.8, 2.4], partner = null, clearR = 0.28, score = null } = {}) {
+  function openSpot(center, search, { radii = [0.4, 0.7, 1.0, 1.4, 1.8, 2.4], partner = null, clearR = 0.28, score = null, side = null } = {}) {
     const nav = office.nav();
     const clear = (x, z) => !nav.isBlocked(x, z, clearR);
     return pickSpot(center, {
       ring: { radii, count: 12 },
-      needs: ['clear', 'inView'],
+      needs: side ? ['side', 'clear', 'inView'] : ['clear', 'inView'],
       checks: {
+        side,
         clear: (q) => (clear(q.x, q.z) && (!partner || (q.partner = partner(q)) && clear(q.partner.x, q.partner.z))) || 'blocked',
         inView: (q) => inView(q) || 'out of view',
       },
