@@ -19,8 +19,12 @@ import * as THREE from 'three';
 import { MeshBVH } from 'three-mesh-bvh';
 
 const MAX_POINTS = 1500;
-const UP = new THREE.Vector3(0, 1, 0);
+// How much of the smaller mesh's size a crossing curve spans for it to count as a surface through it.
+const THROUGH = 0.5;
+const SIDE_POINTS = 300;const UP = new THREE.Vector3(0, 1, 0);
 const DOWN = new THREE.Vector3(0, -1, 0);
+// Each axis as the pair of rays opposite each other.
+const AXES = [[new THREE.Vector3(1, 0, 0), new THREE.Vector3(-1, 0, 0)], [UP, DOWN], [new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, -1)]];
 
 const bvhs = new WeakMap();
 function bvhOf(geo) {
@@ -254,7 +258,7 @@ function scaleOf(m) { return new THREE.Vector3().setFromMatrixScale(m.matrixWorl
 
 // How far points of mesh a reach inside mesh b: the largest distance from a point of a inside b to
 // b's surface, and that point.
-function depthInto(a, b) {
+export function depthInto(a, b) {
   const bvh = bvhOf(b.geometry);
   const inv = new THREE.Matrix4().copy(b.matrixWorld).invert();
   const box = b.geometry.boundingBox;
@@ -272,8 +276,57 @@ function depthInto(a, b) {
   return { depth, at };
 }
 
+// A thin surface through a body has no vertex inside it, so depthInto() reads nothing. The curve where
+// the two surfaces cross is measured instead: its reach, half its largest extent in metres. A graze
+// crosses in a small patch and reads little; a slab through a body crosses all the way round it.
+// Returns the reach and a point on the curve.
+export function crossReach(a, b) {
+  const bvh = bvhOf(b.geometry);
+  const m = new THREE.Matrix4().copy(b.matrixWorld).invert().multiply(a.matrixWorld);
+  const box = new THREE.Box3(), seg = new THREE.Line3();
+  let at = null;
+  bvh.bvhcast(bvhOf(a.geometry), m, {
+    intersectsTriangles: (tb, ta) => {
+      if (!tb.intersectsTriangle(ta, seg, true)) return false;
+      box.expandByPoint(seg.start).expandByPoint(seg.end);
+      at ??= seg.start.clone().applyMatrix4(b.matrixWorld);
+      return false;
+    },
+  });
+  if (box.isEmpty()) return { depth: 0, at: null };
+  const extent = Math.max(...box.getSize(new THREE.Vector3()).toArray()) * scaleOf(b);
+  const size = (o) => Math.max(...o.geometry.boundingBox.getSize(new THREE.Vector3()).toArray()) * scaleOf(o);
+  // A curve short next to the smaller mesh is a graze, not a surface through it.
+  if (extent < THROUGH * Math.min(size(a), size(b))) return { depth: 0, at: null };
+  // And a mesh only sunk into another sits on one side of it: a surface through has the other mesh's
+  // points on both sides.
+  return passesThrough(a, b) || passesThrough(b, a) ? { depth: extent * 0.5, at } : { depth: 0, at: null };
+}
+
+// Whether mesh `body` has sample points on both sides of mesh `sheet` along some axis of the sheet's
+// space: a ray one way from an outside point hits the sheet, the ray the other way does not.
+function passesThrough(body, sheet) {
+  const bvh = bvhOf(sheet.geometry);
+  const to = new THREE.Matrix4().copy(sheet.matrixWorld).invert().multiply(body.matrixWorld);
+  const pos = body.geometry.attributes.position;
+  const step = Math.max(1, Math.ceil(pos.count / SIDE_POINTS));
+  const seen = AXES.map(() => [false, false]);
+  const p = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i += step) {
+    p.fromBufferAttribute(pos, i).applyMatrix4(to);
+    for (let k = 0; k < AXES.length; k++) {
+      const hits = AXES[k].map((d) => crossings(bvh, p, d));
+      if (hits[0] % 2 || hits[1] % 2) continue;
+      if (hits[0] && !hits[1]) seen[k][0] = true;
+      if (hits[1] && !hits[0]) seen[k][1] = true;
+      if (seen[k][0] && seen[k][1]) return true;
+    }
+  }
+  return false;
+}
+
 // Whether two meshes' surfaces cross, or one sits wholly inside the other.
-function touching(a, b) {
+export function touching(a, b) {
   const bvh = bvhOf(b.geometry);
   const m = new THREE.Matrix4().copy(b.matrixWorld).invert().multiply(a.matrixWorld);
   if (bvh.intersectsGeometry(a.geometry, m)) return true;
@@ -303,7 +356,9 @@ export function overlaps(list, { tol = 0.01, skip = () => false } = {}) {
     for (const a of A.meshes) for (const b of B.meshes) {
       const ba = a.geometry.boundingBox.clone().applyMatrix4(a.matrixWorld), bb = b.geometry.boundingBox.clone().applyMatrix4(b.matrixWorld);
       if (!ba.intersectsBox(bb) || !touching(a, b)) continue;
-      const d = Math.max(...[depthInto(a, b), depthInto(b, a)].map((r) => { if (r.depth > depth) { depth = r.depth; at = r.at; } return r.depth; }));
+      let rs = [depthInto(a, b), depthInto(b, a)];
+      if (Math.max(rs[0].depth, rs[1].depth) <= tol) rs = [crossReach(a, b)];
+      const d = Math.max(...rs.map((r) => { if (r.depth > depth) { depth = r.depth; at = r.at; } return r.depth; }));
       if (d > tol) parts.push({ a: partName(a), b: partName(b), depth: d });
     }
     parts.sort((x, y) => y.depth - x.depth);
