@@ -89,7 +89,8 @@ if (!isMainThread) {
   let code = 0;
   // Each side's process runs until it ends or this process does, whichever comes first.
   const sides = new Set();
-  process.on('exit', () => { for (const c of sides) { try { c.kill('SIGKILL'); } catch { /* gone */ } } });
+  // The temporary directory goes here too: a signal handler exits without running the finally below.
+  process.on('exit', () => { for (const c of sides) { try { c.kill('SIGKILL'); } catch { /* gone */ } } rmSync(tmp, { recursive: true, force: true }); });
   try {
     if (!a) {
       execFileSync('git', ['fetch', '-q', 'origin', 'main'], { cwd: b, stdio: 'ignore' });

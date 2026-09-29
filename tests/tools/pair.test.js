@@ -116,7 +116,8 @@ describe('pair.js arguments and fields', () => {
 
   it('a run killed while it holds the base worktree removes it and its side processes', async () => {
     const list = () => spawnSync('git', ['worktree', 'list', '--porcelain'], { encoding: 'utf8' }).stdout.split('\n').filter((l) => /^worktree .*\/hitl-wt-pair-/.test(l));
-    const before = list();
+    const dirs = () => readdirSync(tmpdir()).filter((d) => d.startsWith('pair-') || d.startsWith('hitl-wt-pair-')).sort();
+    const before = list(), beforeDirs = dirs();
     const child = spawn(process.execPath, [PAIR, '--bots', 'balanced', '--seeds', '400'], { stdio: 'ignore' });
     const closed = new Promise((res) => child.on('close', res));
     for (let i = 0; i < 100 && list().length <= before.length; i++) await new Promise((r) => setTimeout(r, 100));
@@ -124,6 +125,7 @@ describe('pair.js arguments and fields', () => {
     child.kill('SIGTERM');
     expect(await closed).toBe(143);
     expect(list()).toEqual(before);
+    expect(dirs()).toEqual(beforeDirs);
   }, 60000);
 });
 
