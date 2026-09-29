@@ -1,6 +1,6 @@
 import { YAK_HELPERS, YAK_CHECK } from '../feature-media/yak.js';
 import { LOAD_PIN } from './pins.js';
-import { GROW, EMPTY_DESKS } from '../feature-media/manifest.js';
+import { GROW, RUNAWAY, EMPTY_DESKS } from '../feature-media/manifest.js';
 import { PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY, CAMLOG, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK_SEL, STAGE_ONLY, CLEAR_CARDS } from '../capture-manifest.js';
 // A player closes any launch or unlock card that turns up while the Yak thread plays out; a modal card holds the clock.
 const CARDS_EVERY = (from, to, step) => Array.from({ length: Math.floor((to - from) / step) + 1 }, (_, i) => ({ at: from + i * step, js: CLEAR_CARDS }));
@@ -120,14 +120,14 @@ export const BEATS = [
   { id: 'era-chatgbt', item: 'real-era-chatgbt', actions: [NO_ERA_CARD(0)], from: 9.0, dur: 4.1 },
   { id: 'era-agents', item: 'real-era-agents', actions: [NO_ERA_CARD(0)], from: 9.0, dur: 2.4 },
   // The runaway cloud bill: the hot rack smoking behind the card.
-  { id: 'cloud-bill', item: 'site-loop-automation', from: 10.0, dur: 4.0 },
+  { id: 'cloud-bill', item: 'site-loop-automation', capture: { query: 'seed=6&speed=1', pin: 'cloud' }, from: 10.0, dur: 4.0 },
   // Consolidation's redress is mostly cleanup: the beat frames the crowd, the busiest HQ.
   { id: 'era-consolidation', item: 'real-era-consolidation', actions: [NO_ERA_CARD(0)], capture: { camera: [{ at: 0, target: PEOPLE, zoom: 1.7 }] }, from: 9.0, dur: 2.8 },
   // The flying camera's orbit onto the waffle table.
   { id: 'waffle', item: 'trail-fly-waffle', from: 14.3, dur: 4.2 },
   { id: 'dance', item: 'site-loop-music', capture: { camera: [{ at: 14, target: DANCER, zoom: 2.2 }] }, from: 19.0, dur: 3.0 },
   // Seed 18 with no hiring after Consolidation, so attrition empties most desks; pushes in on the largest empty group.
-  { id: 'plateau', item: 'growth-late', capture: { query: 'seed=18&speed=1&time=day', setup: GROW(800, { lateHires: false }), camera: [{ at: 0, target: VIEW0, zoom: 1.25 }, { at: 1, target: VIEW0, zoom: 1.25 }, { at: 5.5, target: EMPTY_DESKS, zoom: 2.5, ease: 'inOut' }] }, from: 0.5, dur: 5.0 },
+  { id: 'plateau', item: 'growth-late', capture: { query: 'seed=3&speed=1&time=day', pin: 'plateau', setup: GROW(800, { lateHires: false }), camera: [{ at: 0, target: VIEW0, zoom: 1.25 }, { at: 1, target: VIEW0, zoom: 1.25 }, { at: 5.5, target: EMPTY_DESKS, zoom: 2.5, ease: 'inOut' }] }, from: 0.5, dur: 5.0 },
   { id: 'end', card: 'end', dur: 8.0 },
 ];
 
@@ -181,5 +181,7 @@ export const PIN_SOURCES = {
   outage: { query: 'seed=13&speed=1', setup: `(async () => { await ${PRE_UNTIL(OUTAGE_PLAY)}; })()` },
   meme: { query: 'seed=62&speed=1', setup: `(async () => { await ${PRE_UNTIL(MEME_PLAY)}; })()` },
   garage: { query: 'seed=5&speed=1&time=day', setup: GROW(4) },
+  cloud: { query: 'seed=6&speed=1', setup: RUNAWAY },
+  plateau: { query: 'seed=3&speed=1&time=day', setup: GROW(800, { lateHires: false }) },
   printer: { moment: 'printer_jam --stage floor --choice 0' },
 };
