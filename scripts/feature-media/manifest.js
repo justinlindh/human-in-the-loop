@@ -235,7 +235,7 @@ export const ITEMS = [
   },
 
   {
-    // Automate it, and live with it: seed 5 grows to an Agents-era HQ with the balanced bot, then the
+    // Automate it, and live with it: the seeded game grows to an Agents-era HQ with the balanced bot, then the
     // automate-everything bot runs it until the live week raises the runaway cloud bill. The office
     // holds still under the card (the bill), so the camera pushes in on the hot rack.
     id: 'site-loop-automation', title: 'Landing page loop: the runaway cloud bill and the hot rack', query: 'seed=6&speed=1', seconds: 22, warmup: 0.5,
