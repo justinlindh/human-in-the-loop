@@ -33,7 +33,7 @@ export function nocRoll(state, salt, p) {
 // Whether the NOC's agents read this incident's alert as routine.
 export const nocMisread = (state) => state.ops.noc === 'agents' && !!nocItem(state) && nocRoll(state, 7, B.nocMisreadChance);
 
-// The Agents-era bet, raised once a NOC at level 2 or more is placed and the mode is still open.
+// The Agents-era bet, raised once a NOC at level 2 or more exists and the mode is still open.
 export function nocSystem(ctx) {
   const { state } = ctx;
   if (state.ops.noc || state.flags.nocBetAsked || state.pendingDecision || !eraAtLeast(state, 'agents')) return;
