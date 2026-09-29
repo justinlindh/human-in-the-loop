@@ -7,7 +7,7 @@
 //        [--root <checkout>]
 //        [--expect 'hand0Face<=0.05@0.8'] [--expect 'faceCam<=70@0.8'] [--check-browser]
 //   node blender/checks/pose.mjs --under idle --seconds 2          (an animation alone)
-//   node blender/checks/pose.mjs --scene [--mock floor | --moment '<query>' | --snapshot <path>]
+//   node blender/checks/pose.mjs --scene [--mock floor | --seed N | --moment '<query>' | --snapshot <path>]
 //        [--patch-js '<js>'] [--event '<json>'] [--warm 30] [--frames 0,15,30 | --clip <s> --every 6]
 //        [--who s3,s5] [--view 0] [--expect 's3:faceCovered<=0.1@0.8'] [--expect 'faceVisible>=0.9']
 //        [--slow-raycast] [--render-reference] [--profile <file>] [--json out.json]
@@ -119,7 +119,7 @@ function normalizeSceneRequest({ get, flag, getAll }) {
   // including a missing field, is on).
   const rigRaw = get('rig', 'on');
   return {
-    mock: get('mock', null), moment: get('moment', null), snapshot: get('snapshot', null),
+    seed: get('seed', null), mock: get('mock', null), moment: get('moment', null), snapshot: get('snapshot', null),
     rig: rigRaw !== 'off' && rigRaw !== false, view: Number(get('view', 0)), warm: Number(get('warm', 30)),
     frames, who: whoRaw ? (Array.isArray(whoRaw) ? whoRaw : String(whoRaw).split(',')) : null, rules,
     patchJs: get('patch-js', null),
@@ -159,7 +159,8 @@ async function runSample(page, req) {
     const warmed = window.__drawAudit();
     const skipDraw = !o.renderReference;
     const sampleStart = window.__wallNow();
-    if (o.patchJs) new Function('S', 'R', o.patchJs)(S, R);
+    // Async, so a patch can import the sim and play weeks (await sim.tick) before the frames start.
+    if (o.patchJs) await new (Object.getPrototypeOf(async () => {}).constructor)('S', 'R', o.patchJs)(S, R);
     if (o.events) R.handleEvents([].concat(o.events), S);
     const out = [];
     let at = 0;
@@ -214,7 +215,7 @@ async function sceneMode() {
   let code = 0;
   try {
     const target = req.snapshot || req.moment ? resolveTarget({ snapshot: req.snapshot, event: req.moment }) : null;
-    const opened = target ? await openAt(H, target, { width: 1280, height: 800, quality: 'medium' }) : await H.openScene(`quality=medium&mock=${req.mock ?? 'floor'}&rig=${req.rig ? 1 : 0}`, { width: 1280, height: 800 });
+    const opened = target ? await openAt(H, target, { width: 1280, height: 800, quality: 'medium' }) : await H.openScene(`quality=medium&${req.seed != null ? `seed=${req.seed}` : `mock=${req.mock ?? 'floor'}`}&rig=${req.rig ? 1 : 0}`, { width: 1280, height: 800 });
     const { page, errors } = opened;
     const readyMs = performance.now() - t0;
     const { rows, profile } = await runSample(page, req);
@@ -255,7 +256,7 @@ async function serveMode() {
     const target = req.snapshot || req.moment ? resolveTarget({ snapshot: req.snapshot, event: req.moment }) : null;
     const opened = target
       ? await openAt(H, target, { width: 1280, height: 800, quality: 'medium' })
-      : await H.openScene(`quality=medium&mock=${req.mock ?? 'floor'}&rig=${req.rig ? 1 : 0}`, { width: 1280, height: 800 });
+      : await H.openScene(`quality=medium&${req.seed != null ? `seed=${req.seed}` : `mock=${req.mock ?? 'floor'}`}&rig=${req.rig ? 1 : 0}`, { width: 1280, height: 800 });
     const { page, errors } = opened;
     try {
       const readyMs = performance.now() - t0;
