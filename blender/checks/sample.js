@@ -10,7 +10,7 @@
 // A violation: { check, key, state, t, a, b, value, at, crop? }. key names the check and the two
 // things by kind (item ids, prop ids), not by instance, so a baseline entry holds across states.
 import * as X from './intersect.js';
-import { mentions } from './sweep-plan.js';
+import { mentions, isWorse } from './sweep-plan.js';
 
 const DT = 1 / 30;
 
@@ -24,8 +24,9 @@ function skipPair(A, B) {
   return false;
 }
 
-// With `item`, only violations that involve that item are kept (and cropped).
-function createCollector({ state, known, crops, tol, item = null }) {
+// With `item`, only violations that involve that item are kept (and cropped). A key in `known` is
+// cropped too when its value is past its accepted depth in `worst`, so the media for a raised entry exists.
+export function createCollector({ state, known, worst = {}, crops, tol, item = null, cropAt = X.crop }) {
   const found = new Map();
   let cropped = 0;
   return {
@@ -36,7 +37,7 @@ function createCollector({ state, known, crops, tol, item = null }) {
       const prev = found.get(key);
       if (prev && prev.value >= value) { prev.seen++; return; }
       const v = { check, key, state, t: +t.toFixed(2), a: x, b: y, value: +value.toFixed(3), at: at ? [+at.x.toFixed(2), +at.y.toFixed(2), +at.z.toFixed(2)] : null, seen: (prev?.seen ?? 0) + 1, crop: prev?.crop ?? null, ...(detail ? { detail } : {}) };
-      if (!v.crop && (at || shot) && cropped < crops && !known.includes(key)) { v.crop = at ? X.crop(R, at) : shot(); cropped++; }
+      if (!v.crop && (at || shot) && cropped < crops && (!known.includes(key) || isWorse(value, worst[key]))) { v.crop = at ? cropAt(R, at) : shot(); cropped++; }
       found.set(key, v);
     },
     // The same collector, recording under another state name (a moment played in this scene).
@@ -333,10 +334,10 @@ async function gridPass(R, S, C, { rots = [0, 1, 2, 3], only = null } = {}) {
 }
 
 
-export async function sampleMock({ name, seconds = 20, every = 1, known = [], crops = 60, propDesks = 0, moments = null, grid = false, item = null }) {
+export async function sampleMock({ name, seconds = 20, every = 1, known = [], worst = {}, crops = 60, propDesks = 0, moments = null, grid = false, item = null }) {
   const R = window.__hitlRender, S = window.__HITL.state;
   R.moments.full = true;
-  const C = createCollector({ state: `mock:${name}`, known, crops, tol: TOL, item });
+  const C = createCollector({ state: `mock:${name}`, known, worst, crops, tol: TOL, item });
   stepWorld(R, S, 90);
   R.render(0);
   // Scoped to an item: its footprint pass, and the office window only where the item stands.
@@ -359,10 +360,10 @@ export async function sampleMock({ name, seconds = 20, every = 1, known = [], cr
 // A loaded snapshot of an indexed moment (scripts/events): `open` seconds as loaded (the decision
 // open, its prop staged), then, if a decision is open, the choice made (the index's, or 0) and
 // `after` seconds more.
-export async function sampleLoaded({ label, open = 16, after = 8, every = 1, choice = 0, known = [], crops = 60, item = null }) {
+export async function sampleLoaded({ label, open = 16, after = 8, every = 1, choice = 0, known = [], worst = {}, crops = 60, item = null }) {
   const R = window.__hitlRender, H = window.__HITL;
   R.moments.full = true;
-  const C = createCollector({ state: label, known, crops, tol: TOL, item });
+  const C = createCollector({ state: label, known, worst, crops, tol: TOL, item });
   // The loaded office builds on the first sync; a second settles it.
   window.__step(30);
   window_(R, H.state, C, { seconds: open, every });
@@ -373,7 +374,7 @@ export async function sampleLoaded({ label, open = 16, after = 8, every = 1, cho
   return { violations: C.list, windows: [{ state: label, why: 'event', bodies: X.bodies(R).length, staff: H.state.staff.length }] };
 }
 
-export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every = 52, seconds = 6, stagedSeconds = 20, step = 1, known = [], crops = 60, maxStaged = 6, item = null, only = null }) {
+export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every = 52, seconds = 6, stagedSeconds = 20, step = 1, known = [], worst = {}, crops = 60, maxStaged = 6, item = null, only = null }) {
   const R = window.__hitlRender, H = window.__HITL;
   const { botDecide, botTurn } = await import('/src/sim/bots.js');
   R.moments.full = true;
@@ -398,7 +399,7 @@ export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every =
       window_(R, S, null, { seconds: why.startsWith('decision') ? stagedSeconds : seconds, every: step, quiet: true });
     }
     if (wanted) {
-      const C = createCollector({ state: `seed:${seed}:w${S.week}`, known, crops: crops - out.filter((v) => v.crop).length, tol: TOL, item });
+      const C = createCollector({ state: `seed:${seed}:w${S.week}`, known, worst, crops: crops - out.filter((v) => v.crop).length, tol: TOL, item });
       // Settle what the weeks since the last window changed (a stage move, new furniture popping in).
       stepWorld(R, S, 120);
       window_(R, S, C, { seconds: why.startsWith('decision') ? stagedSeconds : seconds, every: step });
