@@ -39,7 +39,7 @@ const LYING = new Set(['lie', 'nap', 'sprawl']);
 const FACE_GEOS = new Map();
 const SLEEPING = new Set(['lie', 'nap', 'desknap']);
 // Facepalm shoulder pitch, lift and spread for the palm hand, standing and seated.
-const PALM_STAND = [-2.75, 0.14, 0.3];
+const PALM_STAND = [-2.75, 0.14, 0.2];
 const PALM_SIT = [-3.05, 0.12, 0.04];
 const SEATED = new Set(['growthpumpsit', 'growthclapsit', 'typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit']);
 
