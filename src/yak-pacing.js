@@ -79,7 +79,8 @@ export function createYakPacer() {
       }
       const [{ e }] = pending.splice(i, 1);
       reserve(e);
-      return [e];
+      // A copy flagged priority when it only counts as important for answering an earlier post.
+      return [pri(e) && !importantChat(e) ? { ...e, priority: true } : e];
     },
     get queued() { return pending.length; },
     get pending() { return pending.map((x) => x.e); },

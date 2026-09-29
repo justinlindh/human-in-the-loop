@@ -28,6 +28,7 @@ describe('replies to the player\'s own post', () => {
     it(`all show promptly at ${speed}x amid chatter`, () => {
       const got = run(speed);
       expect(got.map((x) => x.e.id).sort()).toEqual(['r1', 'r2', 'r3']);
+      expect(got.every((x) => x.e.priority === true)).toBe(true);
       expect(got.at(-1).at).toBeLessThan(5 * speed + 10 * speed + 30);
     });
     it(`survive a full ordinary queue at ${speed}x`, () => {
