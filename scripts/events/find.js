@@ -81,11 +81,13 @@ let scanned = null;
 if (typeof q.then === 'string' || typeof q.rank === 'string') needsState = true;
 if ((needsState || (!rows.length && (where || argv.includes('--scan')))) && !argv.includes('--no-scan')) {
   if (!where) refuse('bad-query', '--scan needs a --where predicate to look for');
+  // Filters a scan cannot apply (they read index-only fields) are refused rather than ignored.
+  for (const k of ['choice', 'prop', 'snapshot', 'pre']) if (q[k] != null) refuse('bad-query', `--${k} filters index rows and cannot be applied to a scan`);
   const meta = idx.meta;
-  const seeds = q['scan-seeds'] ? range(q['scan-seeds']) : range('1-60');
+  const seeds = q.seed != null ? [Number(q.seed)] : q['scan-seeds'] ? range(q['scan-seeds']) : range('1-60');
   const bots = q['scan-bots'] ? String(q['scan-bots']).split(',') : q.bot ? [q.bot] : meta.bots;
   const t0 = Date.now();
-  scanned = await scan(hash, { id: q.id ?? null, where, then: typeof q.then === 'string' ? q.then : '', within: Number(q.within) || 52, rank: typeof q.rank === 'string' ? q.rank : '', setup: q.setup ?? '', turnWhile: q['turn-while'] ?? '', seeds, bots, limit, weeks: Number(q['scan-weeks']) || 1040,
+  scanned = await scan(hash, { id: q.id ?? null, where, then: typeof q.then === 'string' ? q.then : '', within: Number(q.within) || 52, rank: typeof q.rank === 'string' ? q.rank : '', setup: q.setup ?? '', filter: { era: q.era, stage: q.stage, from: q.from, to: q.to }, turnWhile: q['turn-while'] ?? '', seeds, bots, limit, weeks: Number(q['scan-weeks']) || 1040,
     onProgress: (d, n) => { if (d % 10 === 0) console.error(`find: scanned ${d}/${n} runs (${Math.round((Date.now() - t0) / 1000)} s)`); } });
   if (scanned.error) refuse('scan-failed', `the scan failed: ${scanned.error}`);
   rows = scanned.rows;

@@ -6,7 +6,8 @@
 // event and the state just before the tick that raised it, as a snapshot in the game's save format,
 // so loading it plays into the moment through the game's own loop.
 //
-// The predicate is a JS expression over `e` (the event: type, id, its own fields, and seed, bot, week,
+// `filter` ({ era, stage, from, to }) is applied to events before the predicate, as the index's own
+// filters are. The predicate is a JS expression over `e` (the event: type, id, its own fields, and seed, bot, week,
 // era, stage, staff) and `s` (the state after the tick; read-only). `setup` is a statement list run
 // on the state each week just before the tick (`s` in scope), and `turnWhile` an expression that must
 // hold for the bot to take its turn that week; both change what the run plays, and a snapshot
@@ -40,12 +41,17 @@ export function clausesOf(expr) {
   return parts.filter(Boolean);
 }
 
-async function play({ bot, seed, weeks, where, then, within, setup, turnWhile, dir, id, perRun }) {
+const STAGES = { garage: 0, floor: 1, hq: 2 };
+
+async function play({ bot, seed, weeks, where, then, within, setup, turnWhile, dir, id, perRun, key, filter }) {
   const mod = (p) => import(pathToFileURL(join(ROOT, p)).href);
   const { botDecide, botTurn } = await mod('src/sim/bots.js');
   const { createGame } = await mod('src/sim/state.js');
   const { tick } = await mod('src/sim/tick.js');
   const pred = new Function('e', 's', `return (${where});`);
+  const stage = filter.stage == null ? null : STAGES[filter.stage] ?? Number(filter.stage);
+  const passes = (e) => (filter.era == null || e.era === filter.era) && (stage == null || e.stage === stage)
+    && (filter.from == null || e.week >= Number(filter.from)) && (filter.to == null || e.week <= Number(filter.to));
   const clauses = clausesOf(where).map((c) => new Function('e', 's', `return (${c});`));
   const everTrue = clauses.map(() => false);
   const follow = then ? new Function('e', 's', 'm', `return (${then});`) : null;
@@ -61,7 +67,7 @@ async function play({ bot, seed, weeks, where, then, within, setup, turnWhile, d
   let waiting = [];
   let started = 0;
   const record = (row, before, result) => {
-    const name = `${seed}-${bot}-w${row.week}-scan-${row.type}.json.gz`;
+    const name = `${key}-${seed}-${bot}-w${row.week}-${row.type}.json.gz`;
     writeFileSync(join(dir, 'snapshots', name), gzipSync(before));
     hits.push({ ...row, snapshot: name, preTick: name, scanned: true, ...(result !== true ? { result } : {}) });
   };
@@ -87,7 +93,7 @@ async function play({ bot, seed, weeks, where, then, within, setup, turnWhile, d
       for (const e of events) {
         if (id != null && e.id !== id && e.type !== id) continue;
         clauses.forEach((c, i) => { if (!everTrue[i]) { try { everTrue[i] = !!c(e, s); } catch { /* false */ } } });
-        if (!pred(e, s)) continue;
+        if (!passes(e) || !pred(e, s)) continue;
         const row = { ...base(), type: e.type, id: e.id };
         if (follow) { started++; if (waiting.length < 8) waiting.push({ row, e, s0: structuredClone(s), before, until: s.week + within }); } else record(row, before, true);
         break;
@@ -103,8 +109,8 @@ if (!isMainThread) {
 
 // Matches for a query, from the cache and then from playing more runs. Returns { rows, played, cached,
 // error? } with rows in seed, bot order. `onProgress(done, total)` is called as runs finish.
-export async function scan(hash, { id = null, where, then = '', within = 52, rank = '', setup = '', turnWhile = '', seeds, bots, weeks = 1040, limit = 5, perRun = 1, jobs, onProgress }) {
-  const key = createHash('sha256').update(JSON.stringify([id, where, then, within, setup, turnWhile, weeks, perRun, readFileSync(fileURLToPath(import.meta.url), 'utf8')])).digest('hex').slice(0, 16);
+export async function scan(hash, { id = null, where, then = '', within = 52, rank = '', setup = '', turnWhile = '', filter = {}, seeds, bots, weeks = 1040, limit = 5, perRun = 1, jobs, onProgress }) {
+  const key = createHash('sha256').update(JSON.stringify([id, where, then, within, setup, turnWhile, filter, weeks, perRun, readFileSync(fileURLToPath(import.meta.url), 'utf8')])).digest('hex').slice(0, 16);
   const dir = join(indexDir(hash), 'scan');
   mkdirSync(join(dir, 'snapshots'), { recursive: true });
   const file = join(dir, `${key}.json`);
@@ -126,7 +132,7 @@ export async function scan(hash, { id = null, where, then = '', within = 52, ran
       while (next < runs.length && have() < limit && !error) {
         const run = runs[next++];
         const r = await new Promise((res, rej) => {
-          const w = new Worker(fileURLToPath(import.meta.url), { workerData: { ...run, weeks, where, then, within, setup, turnWhile, dir, id, perRun } });
+          const w = new Worker(fileURLToPath(import.meta.url), { workerData: { ...run, weeks, where, then, within, setup, turnWhile, dir, id, perRun, key, filter } });
           w.once('message', res); w.once('error', rej);
         }).catch((e) => ({ hits: [], error: e.message }));
         if (r.error) { error = r.error; return; }

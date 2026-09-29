@@ -102,5 +102,28 @@ describe('find.js --where', () => {
     expect(r.out.scan.unreachable).toEqual(['s.office.stage === 2']);
     expect(r.err).not.toBe(null);
   });
-});
 
+  it('keeps the snapshots of two queries that differ only in --setup and match the same week apart', () => {
+    const base = ['--where', "e.type === 'week' && s.week === 7", ...SCAN];
+    const a = find(...base);
+    const b = find(...base, '--setup', 's.flags.zzprobe = 1;');
+    expect(a.out[0].snapshotFile).not.toBe(b.out[0].snapshotFile);
+    const flag = (r) => JSON.parse(gunzipSync(readFileSync(r.out[0].snapshotFile)).toString()).flags?.zzprobe;
+    expect(flag(find(...base))).toBeUndefined();
+    expect(flag(b)).toBe(1);
+  });
+
+  it('applies --stage, --era and --weeks to scanned events', () => {
+    const w = ['--where', "e.type === 'week'", ...SCAN, '--limit', '1'];
+    expect(find(...w, '--stage', 'hq').code).toBe(1);
+    expect(find(...w, '--era', 'no_such_era').code).toBe(1);
+    expect(find(...w, '--weeks', '12-13').out[0].week).toBe(12);
+    expect(find(...w, '--stage', 'garage', '--weeks', '3-4').out[0].week).toBe(3);
+  });
+
+  it('refuses a filter on index-only fields for a scan, exit 2', () => {
+    const r = find('--where', 's.week === 3', '--choice', '0', ...SCAN);
+    expect(r.code).toBe(2);
+    expect(r.out.kind).toBe('bad-query');
+  });
+});
