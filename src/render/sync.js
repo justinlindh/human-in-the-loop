@@ -20,6 +20,7 @@ import { createOfficeGrowth, promotionWeek } from './growth-office.js';
 import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { holdSeconds } from './reading.js';
 import { pickSpot, spotDebug, spotRing } from './spots.js';
+import { between, draw, fixed } from './rand.js';
 
 // Keeps one character per staff member in step with state, and plays event effects.
 // Characters are keyed by staff id; removed staff walk out and are disposed.
@@ -68,7 +69,7 @@ const NEAR_M = 1.8;            // closer than this, a conversation needs no walk
 const WALK_MAX_S = 1.0;        // a walk-over longer than this is skipped; the opener talks from where they are
 const FAST_HOLD = 0.9;         // at 4x, a line waits this long for a reply before showing
 
-function rnd(a, b) { return a + Math.random() * (b - a); }
+const jitter = (a, b) => between(a, b, 'fx');
 function angleLerp(a, b, k) {
   let d = ((b - a + Math.PI) % (Math.PI * 2)) - Math.PI;
   if (d < -Math.PI) d += Math.PI * 2;
@@ -165,7 +166,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const r = {
       id: s.id, char, pos: new THREE.Vector3(), yaw: 0, path: [], speed: WALK,
       goal: null, goalKey: '', seat: null, mode: 'placed', hidden: false,
-      temp: null, emoteT: 0, moodEmoteT: rnd(6, 14), staff: s, walkAnim: 'walk', tempBy: null,
+      temp: null, emoteT: 0, moodEmoteT: between(6, 14, 'mood', s.id), staff: s, walkAnim: 'walk', tempBy: null,
     };
     if (trace.on) traceRec(r);
     return r;
@@ -273,7 +274,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (desk) return { ...seated(desk), key: `desk-${desk.seat.x.toFixed(2)},${desk.seat.z.toFixed(2)},${desk.seat.rotY.toFixed(2)}-${s.mood}-${isTired(s) ? 't' : ''}` };
     const W = Z.wander?.length ? Z.wander : [Z.door];
     const w = W[r.id.length % W.length];
-    return { x: w.x + rnd(-0.5, 0.5), z: w.z + rnd(-0.5, 0.5), yaw: rnd(0, 6.28), anim: 'idle', key: 'nodesk' };
+    return { x: w.x + fixed('nodesk-x', s.id) - 0.5, z: w.z + fixed('nodesk-z', s.id) - 0.5, yaw: fixed('nodesk-yaw', s.id) * 6.28, anim: 'idle', key: 'nodesk' };
   }
 
   function walkTo(r, goal, run = false, from = r.goal) {
@@ -607,7 +608,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const here = [...recs.values()].filter((r) => !r.hidden && r.mode === 'placed' && !r.temp?.moment && (outcome === 'backfired' || !r.path.length));
     if (!here.length) return;
     if (outcome === 'landed') {
-      for (let i = 0; i < 2 && here.length; i++) emote(here.splice(Math.floor(Math.random() * here.length), 1)[0], 'sparkle', 2);
+      for (let i = 0; i < 2 && here.length; i++) emote(here.splice(Math.floor(draw('post') * here.length), 1)[0], 'sparkle', 2);
       return;
     }
     if (outcome !== 'backfired') return;
@@ -640,7 +641,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     // bubble, since it would sit over their face.
     near.slice(0, 2).forEach((r, i) => { faceToward(r, palm); if (!hides(r, palm)) emote(r, i ? 'sweat' : 'exclamation', POST_REACT_S); });
     const rest = near.slice(2).filter((r) => !hides(r, palm));
-    for (let i = 0; i < 2 && rest.length; i++) emote(rest.splice(Math.floor(Math.random() * rest.length), 1)[0], 'sweat', POST_REACT_S);
+    for (let i = 0; i < 2 && rest.length; i++) emote(rest.splice(Math.floor(draw('post') * rest.length), 1)[0], 'sweat', POST_REACT_S);
   }
 
   // Turn toward someone for a few seconds; seated people only swivel so they stay in the chair.
@@ -777,7 +778,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     lastParty = now;
     partyBanner = false;
     const L = cur.L;
-    for (let i = 0; i < 3; i++) fx.confetti(rnd(-L.W / 4, L.W / 4), 1.0, rnd(-L.D / 4, L.D / 4), { spread: 1.4 });
+    for (let i = 0; i < 3; i++) fx.confetti(jitter(-L.W / 4, L.W / 4), 1.0, jitter(-L.D / 4, L.D / 4), { spread: 1.4 });
     let k = 0;
     const cast = [];
     for (const r of recs.values()) {
@@ -1026,21 +1027,23 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     r.moodEmoteT -= dt;
     // Not in the middle of a moment (moments.js): their own emotes carry it.
     if (r.moodEmoteT <= 0 && !r.hidden && !r.temp?.moment && !c.anim.startsWith('facepalm')) {
-      r.moodEmoteT = rnd(9, 18);
+      // Each person's own stream, so one person's rolls never shift another's.
+      const roll = () => draw('mood', r.id);
+      r.moodEmoteT = 9 + roll() * 9;
       const m = r.staff.mood;
       if (!c.emote) {
-        if (r.goal?.dozing && !r.path.length) { emote(r, 'zzz', 3); r.moodEmoteT = rnd(4, 7); }
+        if (r.goal?.dozing && !r.path.length) { emote(r, 'zzz', 3); r.moodEmoteT = 4 + roll() * 3; }
         else if (m === 'burnout') emote(r, 'zzz', 3);
         else if (isTired(r.staff)) {
           emote(r, 'tired', 2.6);
           // Now and then a tired person nods off at the desk for a few seconds.
-          if (r.goal?.seated && !r.temp && !r.path.length && Math.random() < 0.35) r.temp = { anim: 'desknap', t: rnd(3, 5), keepPos: true };
+          if (r.goal?.seated && !r.temp && !r.path.length && roll() < 0.35) r.temp = { anim: 'desknap', t: 3 + roll() * 2, keepPos: true };
         }
-        else if (m === 'coasting' && Math.random() < 0.6) emote(r, 'sweat', 2.5);
-        else if (r.goal?.thinking && Math.random() < 0.7) emote(r, 'lightbulb', 2.5);
-        else if (r.goal?.mentoring && Math.random() < 0.5) emote(r, 'heart', 2);
+        else if (m === 'coasting' && roll() < 0.6) emote(r, 'sweat', 2.5);
+        else if (r.goal?.thinking && roll() < 0.7) emote(r, 'lightbulb', 2.5);
+        else if (r.goal?.mentoring && roll() < 0.5) emote(r, 'heart', 2);
         // Nobody hums while the screens are taken over.
-        else if (m === 'ok' && !getProps()?.overlay && Math.random() < 0.12) emote(r, 'music', 2.2);
+        else if (m === 'ok' && !getProps()?.overlay && roll() < 0.12) emote(r, 'music', 2.2);
       }
     }
 

@@ -20,6 +20,7 @@ import { createProbe } from './probe.js';
 import { createLabels } from './labels.js';
 import { createFx } from './fx.js';
 import { createStaffSync } from './sync.js';
+import { reseed, reset as resetRand } from './rand.js';
 import { createBuild } from './build.js';
 import { createPortraits } from './portraits.js';
 import { advisorPerson } from './advisors.js';
@@ -69,6 +70,7 @@ const FLY_BLOOM = 0.3;       // its strength while the flying camera is on
 const FLY_NEAR = 1.5;        // metres from the flying camera within which a person is warned about
 
 export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
+  resetRand();
   labelsElRef = labelsEl;
   let q = ['low', 'medium', 'high'].includes(quality) ? quality : 'high';
 
@@ -209,6 +211,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   function sync(state) {
     decisionOpen = !!state?.pendingDecision;
     if (!office || !ready || !state) return;
+    reseed(state.seed, state.week);
     const stage = state.officeStage ?? 0;
     const moving = !firstStage && pendingUpgrade;
     if (office.setStage(stage, { animate: moving, expansion: state.office?.expansion ?? 0 })) {
@@ -246,6 +249,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   }
 
   function handleEvents(events, state) {
+    if (state) reseed(state.seed, state.week);
     for (const e of events ?? []) {
       if (e.type === 'officeUpgrade') pendingUpgrade = true;
       if (e.type === 'incident' && !e.caught) screens.alarm(3);

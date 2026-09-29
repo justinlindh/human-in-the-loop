@@ -4,6 +4,7 @@ import { emoteMaterial } from './emotes.js';
 import { pickSpot, spotDebug } from './spots.js';
 import { robotResentment } from '../sim/robot.js';
 import { SLAP_AT } from './character.js';
+import { between, draw, shuffled } from './rand.js';
 
 // The office robot (shop item office_robot). The placed item is its charging dock; the robot itself
 // is built here from robot.glb's parts and roams: coffee rounds to people at their desks, plant
@@ -44,7 +45,7 @@ const EYE = { ok: '#5fe0d0', broken: '#ffb238', off: '#1e2333' };
 // before heading home, from how far away the fixer jogs over, and how long they square up first.
 const SLAP = { radii: [0.47, 0.51, 0.55], waitS: 20, afterS: 1.4, runFromM: 5, aside: 0.12, turnS: 0.4, clearM: 0.9, holdS: 6, cringe: 0.22 };
 
-function rnd(a, b) { return a + Math.random() * (b - a); }
+const rnd = (a, b) => between(a, b, 'robot');
 function angleLerp(a, b, k) {
   let d = ((b - a + Math.PI) % (Math.PI * 2)) - Math.PI;
   if (d < -Math.PI) d += Math.PI * 2;
@@ -226,8 +227,7 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
       if (!d) continue;
       out.push({ who, desk: d });
     }
-    out.sort(() => Math.random() - 0.5);
-    return out.slice(0, n);
+    return shuffled(out, 'robot').slice(0, n);
   }
 
   // Open floor as near a desk's seat as the robot fits, in view, facing the sitter. The chair's side
@@ -284,7 +284,7 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
   function plantStop() {
     const plants = [...office.placed.values()].filter((e) => e.itemId === 'plant_wall' || e.obj.userData.kind === 'plant');
     if (!plants.length) return null;
-    const e = plants[Math.floor(Math.random() * plants.length)];
+    const e = plants[Math.floor(draw('robot') * plants.length)];
     const t = e.target, out = 0.5 + 0.45;
     const p = openSpot({ x: t.x + Math.sin(t.rotY) * out, z: t.z + Math.cos(t.rotY) * out }, 'plant', { radii: [0.2, 0.4, 0.6, 0.9], clearR: SERVE_R });
     return p ? { x: p.x, z: p.z, face: { x: t.x, z: t.z }, water: true } : null;
@@ -362,8 +362,8 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
         walkTo(r, front.x, front.z); r.path.push(pad); r.t = 0; return;
       case 'rounds':
         undock();
-        r.stops = deskStops(1 + Math.floor(Math.random() * 3)).map((s) => ({ ...besideSeat(s.desk), who: s.who })).filter((s) => s.x != null);
-        if (r.level >= 2 && Math.random() < 0.35) { const p = plantStop(); if (p) r.stops.push(p); }
+        r.stops = deskStops(1 + Math.floor(draw('robot') * 3)).map((s) => ({ ...besideSeat(s.desk), who: s.who })).filter((s) => s.x != null);
+        if (r.level >= 2 && draw('robot') < 0.35) { const p = plantStop(); if (p) r.stops.push(p); }
         nextStop(); return;
       case 'broken:spin': {
         const p = !boxed && spinStop(front);
