@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { spawn, spawnSync } from 'node:child_process';
-import { resolve } from 'node:path';
-import { readdirSync } from 'node:fs';
+import { resolve, join } from 'node:path';
+import { readdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { compare, markdown, parseFields } from '../../scripts/events/pair-report.js';
 
@@ -104,28 +104,31 @@ describe('pair.js arguments and fields', () => {
   });
 
   it('a refused argument leaves no worktree and no temporary directory behind', () => {
-    // Only this tool's own worktrees and directories: other jobs on the machine add and remove theirs.
-    const list = () => spawnSync('git', ['worktree', 'list', '--porcelain'], { encoding: 'utf8' }).stdout.split('\n').filter((l) => /^worktree .*\/(hitl-wt-pair-|pair-)/.test(l));
-    const pairDirs = () => readdirSync(tmpdir()).filter((d) => d.startsWith('pair-') || d.startsWith('hitl-wt-pair-')).sort();
-    const before = [list(), pairDirs()];
-    expect(run('--bots', 'balanced', '--seeds', '1', '--fields', 'oops').status).toBe(2);
-    expect(run('--a', '.', '--b', '/nonexistent/dir', '--bots', 'balanced', '--seeds', '1').status).toBe(2);
-    expect(run('--a', '.', '--bots', 'balanced', '--seeds', '1', '--fields', 'oops').status).toBe(2);
-    expect([list(), pairDirs()]).toEqual(before);
+    // The runs get a TMPDIR of their own, so other pair.js jobs on the machine cannot change what is counted.
+    const tmp = mkdtempSync(join(tmpdir(), 'pair-test-'));
+    const runIn = (...args) => spawnSync(process.execPath, [PAIR, ...args], { encoding: 'utf8', timeout: 120000, env: { ...process.env, TMPDIR: tmp } });
+    const list = () => spawnSync('git', ['worktree', 'list', '--porcelain'], { encoding: 'utf8' }).stdout.split('\n').filter((l) => l.startsWith(`worktree ${tmp}/`));
+    try {
+      expect(runIn('--bots', 'balanced', '--seeds', '1', '--fields', 'oops').status).toBe(2);
+      expect(runIn('--a', '.', '--b', '/nonexistent/dir', '--bots', 'balanced', '--seeds', '1').status).toBe(2);
+      expect(runIn('--a', '.', '--bots', 'balanced', '--seeds', '1', '--fields', 'oops').status).toBe(2);
+      expect([list(), readdirSync(tmp)]).toEqual([[], []]);
+    } finally { rmSync(tmp, { recursive: true, force: true }); }
   });
 
   it('a run killed while it holds the base worktree removes it and its side processes', async () => {
-    const list = () => spawnSync('git', ['worktree', 'list', '--porcelain'], { encoding: 'utf8' }).stdout.split('\n').filter((l) => /^worktree .*\/hitl-wt-pair-/.test(l));
-    const dirs = () => readdirSync(tmpdir()).filter((d) => d.startsWith('pair-') || d.startsWith('hitl-wt-pair-')).sort();
-    const before = list(), beforeDirs = dirs();
-    const child = spawn(process.execPath, [PAIR, '--bots', 'balanced', '--seeds', '400'], { stdio: 'ignore' });
-    const closed = new Promise((res) => child.on('close', res));
-    for (let i = 0; i < 100 && list().length <= before.length; i++) await new Promise((r) => setTimeout(r, 100));
-    expect(list().length).toBeGreaterThan(before.length);
-    child.kill('SIGTERM');
-    expect(await closed).toBe(143);
-    expect(list()).toEqual(before);
-    expect(dirs()).toEqual(beforeDirs);
+    const tmp = mkdtempSync(join(tmpdir(), 'pair-test-'));
+    const list = () => spawnSync('git', ['worktree', 'list', '--porcelain'], { encoding: 'utf8' }).stdout.split('\n').filter((l) => l.startsWith(`worktree ${tmp}/`));
+    try {
+      const child = spawn(process.execPath, [PAIR, '--bots', 'balanced', '--seeds', '400'], { stdio: 'ignore', env: { ...process.env, TMPDIR: tmp } });
+      const closed = new Promise((res) => child.on('close', res));
+      for (let i = 0; i < 100 && !list().length; i++) await new Promise((r) => setTimeout(r, 100));
+      expect(list().length).toBeGreaterThan(0);
+      child.kill('SIGTERM');
+      expect(await closed).toBe(143);
+      expect(list()).toEqual([]);
+      expect(readdirSync(tmp)).toEqual([]);
+    } finally { rmSync(tmp, { recursive: true, force: true }); }
   }, 60000);
 });
 
