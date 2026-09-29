@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { MeshBVH, StaticGeometryGenerator, acceleratedRaycast } from 'three-mesh-bvh';
+import { depthInto, crossReach } from '../../blender/checks/intersect.js';
 
 const worldCache = new WeakMap();
 const pairCache = new WeakMap();
@@ -57,6 +58,15 @@ function witnessDepth(source, target) {
   return depth;
 }
 
+// The scene sweep's own depth of one mesh in another, the same functions it calls: the deepest point of
+// either mesh inside the other, or half the extent of the crossing curve when a thin surface goes
+// through a body (which has no point inside). Metres; a graze reads 0.
+function sweepDepth(a, b) {
+  for (const m of [a, b]) if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+  a.updateWorldMatrix(true, false); b.updateWorldMatrix(true, false);
+  return Math.max(depthInto(a, b).depth, depthInto(b, a).depth, crossReach(a, b).depth);
+}
+
 export function meshContact(a, b, { clearance = false } = {}) {
   const A = worldMesh(a), B = worldMesh(b);
   let pairs = pairCache.get(a);
@@ -69,7 +79,7 @@ export function meshContact(a, b, { clearance = false } = {}) {
   const containment = boxesMeet && !surfaceCrossing && (inside(point(A), B) || inside(point(B), A));
   const intersects = surfaceCrossing || containment;
   const result = { intersects, surfaceCrossing, containment,
-    depthM: null, depthStatus: 'general-solid-depth-unavailable',
+    depthM: intersects ? sweepDepth(a, b) : 0, depthStatus: 'sweep-metric',
     vertexDepthLowerBoundM: intersects ? Math.max(witnessDepth(A, B), witnessDepth(B, A)) : 0,
     clearanceM: intersects ? 0 : clearance ? A.bvh.closestPointToGeometry(B.geometry, identity)?.distance ?? null : null };
   pairs.set(b, { A, B, clearance, result });

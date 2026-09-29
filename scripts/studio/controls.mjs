@@ -24,6 +24,15 @@ for (const intrusion of [-0.01, 0.005, 0.02, 0.1, 0.25]) {
 }
 const nested = mesh('contained', new THREE.BoxGeometry(0.1, 0.1, 0.1), 0, 0.25);
 check('full containment', globalThis.__tool(() => meshContact(head, nested)), c => c.intersects && c.containment && !c.surfaceCrossing);
+check('depth of a contained cube is its distance to the nearest face', globalThis.__tool(() => meshContact(head, nested)), c => Math.abs(c.depthM - 0.2) < 1e-6 && c.depthStatus === 'sweep-metric');
+for (const sunk of [0.05, 0.15]) {
+  const poke = mesh('poking-cube', new THREE.BoxGeometry(0.2, 0.2, 0.2), 0.25 + 0.1 - sunk, 0.25);
+  check(`depth of a cube sunk ${sunk} m into a face`, globalThis.__tool(() => meshContact(head, poke)), c => c.intersects && Math.abs(c.depthM - sunk) < 1e-6);
+}
+const clear = mesh('clear-cube', new THREE.BoxGeometry(0.2, 0.2, 0.2), 1, 0.25);
+check('depth of a separated pair is 0', globalThis.__tool(() => meshContact(head, clear)), c => !c.intersects && c.depthM === 0);
+const slab = mesh('slab-through-head', new THREE.BoxGeometry(2, 0.006, 2), 0, 0.25);
+check('a slab through the middle of a body reads half the crossing extent', globalThis.__tool(() => meshContact(head, slab)), c => Math.abs(c.depthM - 0.25) < 1e-6);
 for (const gap of [0.02, 0.2, 0.6]) {
   const furniture = mesh('furniture', new THREE.BoxGeometry(0.5, 0.5, 0.5), 0.5 + gap, 0.25);
   check(`clearance ${gap} m`, globalThis.__tool(() => meshContact(head, furniture, { clearance: true })), c => !c.intersects && Math.abs(c.clearanceM - gap) < 1e-6);
@@ -69,7 +78,7 @@ check('offscreen head projection', projectedHead(spanning, projectionCamera, 100
 const plain = createNav({ W: 4, D: 4 }, []), blocked = createNav({ W: 4, D: 4 }, [{ x0: -0.5, x1: 0.5, z0: -0.5, z1: 0.5 }]);
 check('walk grid responds to planted desk', { plain: plain.isBlocked(0, 0), blocked: blocked.isBlocked(0, 0) }, r => !r.plain && r.blocked);
 const report = { schema: 'hitl.scene-controls/0.1', passed: results.length,
-  missingAssertions: ['Exact general-solid penetration depth is unavailable; crossing detection and clearance controls do not prove it.'], results };
+  missingAssertions: ["depthM is the scene sweep's metric (deepest interior point, or half the crossing extent for a thin surface through a body), not a minimum separating translation."], results };
 const out = process.argv.indexOf('--out');
 if (out >= 0) writeFileSync(process.argv[out + 1], JSON.stringify(report, null, 2) + '\n');
 console.log(JSON.stringify(report, null, 2));
