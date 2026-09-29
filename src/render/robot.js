@@ -42,7 +42,7 @@ const EYE = { ok: '#5fe0d0', broken: '#ffb238', off: '#1e2333' };
 // the body), how far they turn so its head sits a little to their right where the hand sweeps, how
 // long the robot waits for them before it recovers on its own, how long it shakes after the slap
 // before heading home, from how far away the fixer jogs over, and how long they square up first.
-const SLAP = { radii: [0.47, 0.51, 0.55], waitS: 20, afterS: 1.4, runFromM: 5, aside: 0.12, turnS: 0.4, clearM: 0.9, holdS: 6 };
+const SLAP = { radii: [0.47, 0.51, 0.55], waitS: 20, afterS: 1.4, runFromM: 5, aside: 0.12, turnS: 0.4, clearM: 0.9, holdS: 6, cringe: 0.22 };
 
 function rnd(a, b) { return a + Math.random() * (b - a); }
 function angleLerp(a, b, k) {
@@ -529,6 +529,9 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     else if (r.watering) { lean = 0.28; headX = 0.2; }
     else if (r.arrived && r.stop?.who) { tray = 0.03 + Math.sin(t * 6) * 0.01; headX = -0.1; sway = Math.sin(t * 3) * 0.05; }
     else headZ = Math.sin(t * 1.1) * 0.05;
+    // Waiting for the slap, it cringes: head tipped away from the fixer, so a big head of hair
+    // squaring up beside it doesn't meet its head.
+    if (r.fix && !r.fix.slapped && r.fixSide) headZ = SLAP.cringe * r.fixSide;
     if (r.jolt > 0) {
       // The slap: a sharp tilt and shake that dies away.
       r.jolt = Math.max(0, r.jolt - dt * 1.4);
@@ -565,6 +568,8 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     const yaw = toRobot - SLAP.aside;
     // The robot turns an ear to them, keeping its tray out of their way.
     r.fixYaw = toRobot + Math.PI / 2;
+    // Which side of its head (local +x or -x, once turned to fixYaw) faces the fixer.
+    r.fixSide = Math.sign((spot.x - r.pos.x) * Math.cos(r.fixYaw) - (spot.z - r.pos.z) * Math.sin(r.fixYaw)) || 1;
     const temp = { anim: 'slap', t: SLAP.turnS + SLAP_AT + 1.1, goal: { x: spot.x, z: spot.z, yaw }, back: true, moment: 'robot',
       stage: { beat: 'turn', role: 'fixer', target: r.rig.head },
       // Square up to the robot standing, then the slap; slapAge counts from the anim's start.
