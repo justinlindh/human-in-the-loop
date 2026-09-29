@@ -267,7 +267,7 @@ registerAction('fire', (ctx, { staffId }) => {
   return { ok: true };
 });
 
-function validateAssignment(state, p, a) {
+export function validateAssignment(state, p, a) {
   if (!a || !ASSIGNMENT_TYPES.includes(a.type)) return 'Unknown assignment';
   if (p.mood === 'away') return 'They are on sabbatical';
   switch (a.type) {
