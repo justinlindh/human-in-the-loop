@@ -7,6 +7,10 @@ export const importantChat = (m) => m.important === true || m.channel === 'incid
 export function createYakPacer() {
   let now = 0, gameNow = 0, free = 0, pending = [];
   const omitted = new Map();
+  // Ids of posts shown at once (the player's own posts, reply prompts). Replies to them are answers
+  // the player is waiting on, so they queue and expire like important posts.
+  const answered = new Set();
+  const pri = (e) => importantChat(e) || answered.has(e.replyTo);
   const omit = (e) => { if (e.id) omitted.set(e.id, now); };
   function reserve(e) {
     const words = String(e.text ?? '').trim().split(/\s+/).filter(Boolean).length;
@@ -16,7 +20,7 @@ export function createYakPacer() {
     const parents = new Set();
     const byId = new Map(pending.map(x => [x.e.id, x.e]));
     for (const { e } of pending) {
-      if (!importantChat(e)) continue;
+      if (!pri(e)) continue;
       let parent = e.replyTo;
       while (parent && !parents.has(parent)) {
         parents.add(parent);
@@ -33,7 +37,7 @@ export function createYakPacer() {
       // them up for minutes. The incident alerts themselves (bot posts in #incidents) never expire.
       const alert = x.e.channel === 'incidents' && !x.e.fromId;
       const staleImportant = !alert && gameNow - x.gameAt > B.yakImportantMaxWaitGameSeconds;
-      const expired = importantChat(x.e) ? staleImportant : stale || omitted.has(x.e.replyTo);
+      const expired = pri(x.e) ? staleImportant : stale || omitted.has(x.e.replyTo);
       if (ended || (!parents.has(x.e.id) && expired)) {
         omit(x.e); pending.splice(i, 1);
       } else i++;
@@ -41,13 +45,18 @@ export function createYakPacer() {
     for (const [id, at] of omitted) if (now - at > B.yakMemorySeconds) omitted.delete(id);
   }
   return {
-    reset() { now = 0; gameNow = 0; free = 0; pending = []; omitted.clear(); },
+    reset() { answered.clear(); now = 0; gameNow = 0; free = 0; pending = []; omitted.clear(); },
     enqueue(events, { urgentIds = new Set(), state, gameTime = gameNow } = {}) {
       const urgent = [];
       for (const e of events) {
         if (e.type !== 'chat') continue;
-        if (urgentIds.has(e.id)) { urgent.push(e); reserve(e); continue; }
-        if (!importantChat(e) && pending.filter(x => !importantChat(x.e)).length >= B.yakPendingLimit) { omit(e); continue; }
+        if (urgentIds.has(e.id)) {
+          urgent.push(e); reserve(e);
+          answered.add(e.id);
+          if (answered.size > 200) answered.delete(answered.values().next().value);
+          continue;
+        }
+        if (!pri(e) && pending.filter(x => !pri(x.e)).length >= B.yakPendingLimit) { omit(e); continue; }
         pending.push({ e, at: now, gameAt: gameTime, outage: state?.flags?.outageChat?.[e.id] });
       }
       return urgent;
@@ -58,7 +67,7 @@ export function createYakPacer() {
       gameNow = gameTime;
       prune(state);
       if (now < free || !pending.length) return [];
-      let i = pending.findIndex(x => importantChat(x.e));
+      let i = pending.findIndex(x => pri(x.e));
       if (i < 0) i = 0;
       // A priority reply still follows its parent when both are waiting.
       const seen = new Set();
