@@ -4,13 +4,14 @@
 // (blender/checks/intersect.js: bodies, people, crossOverlaps, the tolerance sweep.mjs uses for people) and the
 // engine's `depthM` intersections. A row matches when the same person part and item overlap by depths within
 // --tolerance metres (default 0.005). Exit 1 when a sweep row has no matching engine row, or the reverse.
-//   node scripts/studio/compare-sweep.mjs --compose file.json [--frame 30] [--tolerance 0.005] [--json out.json]
+//   node scripts/studio/compare-sweep.mjs --compose file.json [--frame 30] [--tolerance 0.005] [--json out.json] [--detail]
+//   --detail lists every sweep row and every engine row of the scene before the comparison.
 import { parseArgs } from 'node:util';
 import { spawnSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const { values } = parseArgs({ options: { compose: { type: 'string' }, frame: { type: 'string' }, tolerance: { type: 'string' }, json: { type: 'string' } } });
+const { values } = parseArgs({ options: { compose: { type: 'string' }, frame: { type: 'string' }, tolerance: { type: 'string' }, json: { type: 'string' }, detail: { type: 'boolean' } } });
 if (!values.compose) { console.error('usage: compare-sweep.mjs --compose file.json [--frame 30] [--tolerance 0.005] [--json out.json]'); process.exit(2); }
 const TOL_PERSON = 0.02;   // sweep.mjs's tolerance for people
 const tolerance = Number(values.tolerance ?? 0.005), frame = Number(values.frame ?? 30);
@@ -46,6 +47,11 @@ for (const c of scene.facts.intersections) {
   if (!person || !item) continue;
   const part = /\/(head|torso|legL|legR):\d+$/.exec(person)?.[1];
   if (part) engine.push({ person: person.split('/')[0].slice(7), item: item.split('/')[0].slice(5), part, depth: c.depthM });
+}
+if (values.detail) {
+  const short = (id) => id.replace(/Group:\d+\//g, '');
+  for (const r of sweep) console.log('sweep ', key(r), r.depth.toFixed(4));
+  for (const c of scene.facts.intersections) console.log('engine', short(c.a), '|', short(c.b), typeof c.depthM === 'number' ? c.depthM.toFixed(4) : c.depthM);
 }
 const s = best(sweep), e = best(engine);
 const rows = [], problems = [];
