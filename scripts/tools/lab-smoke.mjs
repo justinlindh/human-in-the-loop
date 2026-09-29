@@ -35,7 +35,7 @@ try {
   // The same frame from the module the checks run.
   const ref = await page.evaluate(async (o) => {
     const { playPose } = await import('/blender/checks/pose-measure.js');
-    const r = await playPose({ under: 'typing', gesture: 'facepalm', view: 0, yawToCamera: o.view * 90, look: { build: 1 }, covers: ['coverHandEyeNear', 'coverHandEyeL', 'coverHandEyeR', 'coverHandFace'] });
+    const r = await playPose({ under: 'typing', gesture: 'facepalm', view: 0, yawToCamera: o.view * 90, side: o.view === 3 ? -1 : 1, look: { build: 1 }, covers: ['coverHandEyeNear', 'coverHandEyeL', 'coverHandEyeR', 'coverHandFace'] });
     return r.frames[o.frame - 1];
   }, { view: Number(opt('view', 0)), frame: Number(opt('frame', 70)) });
   if (JSON.stringify(ref.contact) !== JSON.stringify(got.f.contact)) fail('lab contact numbers differ from playPose');
@@ -56,7 +56,8 @@ try {
   // A person facing away has no face in view to cover, so the control needs a view that shows it.
   for (const [lm, r] of got.f.faceCam < 100 ? Object.entries(planted) : []) {
     if (!(r.hit >= 0.5)) fail(`a hand placed on ${lm} reads ${r.hit} cover, want at least 0.5`);
-    if (!(r.miss < 0.1)) fail(`a hand placed on ${lm} reads ${r.miss} on the other eye, want under 0.1`);
+    // In profile the near eye hides the far one from the camera, so only a face-on view separates them.
+    if (got.f.faceCam < 30 && !(r.miss < 0.1)) fail(`a hand placed on ${lm} reads ${r.miss} on the other eye, want under 0.1`);
   }
   // The matrix view: a small grid runs, has one cell per view, and a cell loads into the viewport.
   const grid = await page.evaluate(async (axesArg) => {
@@ -65,11 +66,17 @@ try {
     const m = window.__lab.matrix();
     const cell = m.cells.find((c) => c.view === 2);
     await window.__lab.loadCell(cell);
-    return { n: m.cells.length, passing: m.cells.filter((c) => c.pass && !c.na).length, na: m.cells.filter((c) => c.na).length, summary: document.getElementById('mxsum').textContent, naButtons: document.querySelectorAll('#grid button.cell.na').length, cells: m.cells.slice(0, 4).map((c) => [c.view, c.pass, c.verdicts[0].share]), loaded: { view: window.__lab.state.view, under: window.__lab.state.under, frame: window.__lab.state.frame }, buttons: document.querySelectorAll('#grid button.cell').length };
+    // The hand a cell was judged on is the hand the viewport plays: view 3 is the right hand (side -1).
+    const v3 = m.cells.find((c) => c.view === 3);
+    await window.__lab.loadCell(v3);
+    const sides = { cell: v3.side, viewport: window.__lab.side() };
+    await window.__lab.loadCell(cell);
+    return { sides, n: m.cells.length, passing: m.cells.filter((c) => c.pass && !c.na).length, na: m.cells.filter((c) => c.na).length, summary: document.getElementById('mxsum').textContent, naButtons: document.querySelectorAll('#grid button.cell.na').length, cells: m.cells.slice(0, 4).map((c) => [c.view, c.pass, c.verdicts[0].share]), loaded: { view: window.__lab.state.view, under: window.__lab.state.under, frame: window.__lab.state.frame }, buttons: document.querySelectorAll('#grid button.cell').length };
   }, opt('axes', 'views=all,postures=sit,builds=1,rig=on'));
   console.log(`lab-smoke: matrix ${JSON.stringify(grid)}`);
   if (opt('grid-out')) { await page.evaluate(() => document.getElementById('grid').scrollIntoView()); await page.screenshot({ path: opt('grid-out') }); }
   if (!opt('axes') && grid.n !== 4) fail('the matrix did not give four cells');
+  if (grid.sides.cell !== -1 || grid.sides.viewport !== -1) fail(`view 3 cell side ${grid.sides.cell}, viewport plays side ${grid.sides.viewport}, want -1 for both`);
   if (grid.loaded.view !== 2) fail('clicking a cell did not load it');
   // A slider change reaches the render code: PALM_STAND[2] moves the hand, and the page reloads on it.
   const before = got.f.contact.hand0Eye;

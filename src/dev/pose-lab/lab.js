@@ -77,13 +77,15 @@ const rays = [0, 1].map((h) => { const l = new THREE.Line(new THREE.BufferGeomet
 const setLine = (l, a, b) => { const p = l.geometry.attributes.position; p.setXYZ(0, ...a); p.setXYZ(1, ...b); p.needsUpdate = true; };
 
 // ---- the run -----------------------------------------------------------------------------------------
-let run = null, frames = [], stepped = 0, busy = null, covers = {}, planted = false;
+let run = null, frames = [], stepped = 0, busy = null, covers = {}, planted = false, sideUsed = 1;
 const COVER_NAMES = ['coverHandEyeNear', 'coverHandEyeL', 'coverHandEyeR', 'coverHandFace'];
 const total = () => Math.ceil((state.warm + state.seconds + 0.5) * state.fps);
 
 async function rebuild() {
   if (run) scene.remove(run.character.root);
-  run = await createPoseRun({ under: state.under, gesture: state.gesture, seconds: state.seconds, warm: state.warm, fps: state.fps, yawToCamera: state.view * 90 + state.yaw, view: 0, rig: state.rig, look: { build: state.build }, covers: COVER_NAMES });
+  // The hand a one-handed gesture uses: the game's pick for the view unless a matrix cell or the side box set it.
+  sideUsed = state.side ?? PM.gameSide(state.view);
+  run = await createPoseRun({ under: state.under, gesture: state.gesture, seconds: state.seconds, warm: state.warm, fps: state.fps, yawToCamera: state.view * 90 + state.yaw, view: 0, rig: state.rig, look: { build: state.build }, covers: COVER_NAMES, side: sideUsed });
   scene.add(run.character.root);
   frames = []; stepped = 0; planted = false;
 }
@@ -217,7 +219,7 @@ async function runGrid() {
   } catch (e) { if (s) { s.textContent = String(e.message ?? e); s.className = 'err'; } } finally { matrixBusy = false; }
 }
 async function loadCell(c) {
-  state.under = PM.POSTURES[c.posture]; state.build = c.build; state.rig = c.rig === 'on'; state.view = c.view; state.yaw = 0;
+  state.under = PM.POSTURES[c.posture]; state.build = c.build; state.rig = c.rig === 'on'; state.view = c.view; state.yaw = 0; state.side = c.side;
   const t = c.verdicts.find((v) => !v.pass)?.worstT ?? c.verdicts[0]?.worstT;
   state.frame = t != null ? Math.round(t * state.fps) : state.frame;
   buildPanel();
@@ -227,7 +229,7 @@ async function loadCell(c) {
 function buildPanel() {
   const p = $('panel');
   p.replaceChildren();
-  const views = el('div', { className: 'row views' }, ...[0, 1, 2, 3].map((v) => { const b = el('button', { textContent: `view ${v}` }); b.classList.toggle('on', state.view === v); b.onclick = async () => { state.view = v; [...views.children].forEach((c, i) => c.classList.toggle('on', i === v)); await rebuildAndSeek(); }; return b; }));
+  const views = el('div', { className: 'row views' }, ...[0, 1, 2, 3].map((v) => { const b = el('button', { textContent: `view ${v}` }); b.classList.toggle('on', state.view === v); b.onclick = async () => { state.view = v; state.side = null; [...views.children].forEach((c, i) => c.classList.toggle('on', i === v)); await rebuildAndSeek(); }; return b; }));
   const builds = el('div', { className: 'row' }, ...[0, 1, 2].map((v) => { const b = el('button', { textContent: `build ${v}` }); b.classList.toggle('on', state.build === v); b.onclick = async () => { state.build = v; [...builds.children].forEach((c, i) => c.classList.toggle('on', i === v)); await rebuildAndSeek(); }; return b; }));
   const toggle = (key, label, after) => { const b = el('button', { textContent: label }); b.classList.toggle('on', !!state[key]); b.onclick = async () => { state[key] = !state[key]; b.classList.toggle('on', !!state[key]); await after(); }; return b; };
   p.append(
@@ -235,6 +237,7 @@ function buildPanel() {
     el('label', {}, 'gesture', select('gesture', ANIMS)),
     el('label', {}, 'under', select('under', ANIMS)),
     views, builds,
+    el('label', {}, 'hand side', (() => { const s = el('select'); for (const [v, t] of [['', 'game pick'], ['1', '1 (left hand)'], ['-1', '-1 (right hand)']]) s.append(el('option', { value: v, textContent: t })); s.value = state.side == null ? '' : String(state.side); s.onchange = async () => { state.side = s.value === '' ? null : Number(s.value); await rebuildAndSeek(); }; return s; })()),
     el('div', { className: 'row' }, toggle('rig', 'rig on (Medium/High)', rebuildAndSeek), toggle('skeleton', 'skeleton', async () => draw()), toggle('rays', 'rays', async () => draw())),
     el('label', {}, 'heading', slider('yaw', -90, 90, 1, () => { rebuildAndSeek(); })),
     el('label', {}, 'zoom', slider('zoom', 0.5, 4, 0.05, () => { fit(); draw(); })),
@@ -308,4 +311,4 @@ if (state.mxAuto) runGrid();
 addEventListener('resize', () => { fit(); if (run) draw(); });
 fit();
 await seek(state.frame);
-window.__lab = { state, seek, plant, canvas, runGrid, loadCell, matrix: () => lastMatrix, frames: () => frames, covers: () => covers, diff: diffText, changed: () => changed };
+window.__lab = { state, seek, plant, canvas, side: () => sideUsed, runGrid, loadCell, matrix: () => lastMatrix, frames: () => frames, covers: () => covers, diff: diffText, changed: () => changed };
