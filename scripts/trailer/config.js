@@ -100,7 +100,7 @@ const NOC_CAPTURE = { query: 'seed=13&speed=1', setup: NOC_SETUP, still: false, 
 export const BEATS = [
   { id: 'title', card: 'title', dur: 2.0 },
   // The founders' first desks, with a slow in-engine push-in.
-  { id: 'garage', item: 'growth-garage', capture: { seconds: 8, setup: LOAD_PIN('garage'), camera: [{ at: 1, target: VIEW0, zoom: 1.0 }, { at: 7, target: VIEW0, zoom: 1.35 }] }, from: 1.0, dur: 6.0 },
+  { id: 'garage', item: 'growth-garage', capture: { seconds: 8, setup: `(async () => { await ${LOAD_PIN('garage')}; ${STAGE_ONLY}; })()`, camera: [{ at: 1, target: VIEW0, zoom: 1.0 }, { at: 7, target: VIEW0, zoom: 1.35 }] }, from: 1.0, dur: 6.0 },
   // From just before the move, so the new floor drops onto the garage on screen.
   { id: 'office', item: '2-2-office-move', capture: { seconds: 9 }, actions: [LATER(0.1), NO_ERA_CARD(0)], from: 1.8, dur: 3.5 },
   // The player places a foosball table (the build bar is the one interface kept), and people come to play.
