@@ -75,7 +75,7 @@ export const GROW = (week, { lateHires = true } = {}) => `(async () => {
 
 // A seeded game grown by the balanced bot until the Agents era at the Office Floor or HQ, then run by the
 // automate-everything bot; stops the week before the runaway cloud bill (tested on a copy ticked ahead).
-const RUNAWAY = `(async () => {
+export const RUNAWAY = `(async () => {
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
   const s = window.__HITL.state;
