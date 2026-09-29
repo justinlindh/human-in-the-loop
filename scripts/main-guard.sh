@@ -64,8 +64,13 @@ sync_shared() {
   [ "$br" = main ] || [ -z "$br" ] || return 0
   busy_in "$dir" && { echo "main-guard: the shared checkout is in use; not updating it"; return 0; }
   git -C "$dir" fetch -q origin main || return 0
-  # A detached checkout that sits on a commit of main's history goes back onto the main branch.
+  # A detached checkout that sits on a commit of main's history goes back onto the main branch,
+  # unless a bisect, rebase or merge is in progress there.
   if [ -z "$br" ]; then
+    local f
+    for f in BISECT_LOG rebase-merge rebase-apply MERGE_HEAD; do
+      [ -e "$(git -C "$dir" rev-parse --path-format=absolute --git-path "$f")" ] && return 0
+    done
     git -C "$dir" merge-base --is-ancestor HEAD origin/main 2>/dev/null && git -C "$dir" checkout -q main 2>/dev/null || return 0
   fi
   if [ -n "$(git -C "$dir" rev-list HEAD..origin/main)" ]; then

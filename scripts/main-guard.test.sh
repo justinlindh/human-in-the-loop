@@ -125,8 +125,13 @@ guard "$sl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" HITL_S
 [ "$(git -C "$shared" rev-parse HEAD)" != "$(git -C "$REPO" rev-parse HEAD)" ] || { echo "FAIL a busy shared checkout was updated"; fails=$((fails + 1)); }
 kill "$busy" 2>/dev/null
 wait "$busy" 2>/dev/null
-# A clean detached checkout on main's history is put back on main and updated.
+# A detached checkout in the middle of a bisect is left alone.
 git -C "$shared" checkout -q --detach HEAD
+: >"$(git -C "$shared" rev-parse --path-format=absolute --git-path BISECT_LOG)"
+guard "$sl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" HITL_SHARED_CHECKOUT="$shared" -- --sha HEAD --no-post
+[ -z "$(git -C "$shared" branch --show-current)" ] || { echo "FAIL a shared checkout in a bisect was moved onto main"; fails=$((fails + 1)); }
+rm -f "$(git -C "$shared" rev-parse --path-format=absolute --git-path BISECT_LOG)"
+# A clean detached checkout on main's history is put back on main and updated.
 guard "$sl" /dev/null MAIN_GUARD_SUITE="$PASS" MAIN_GUARD_STRICT="$CLEAN" HITL_SHARED_CHECKOUT="$shared" -- --sha HEAD --no-post
 [ "$(git -C "$shared" branch --show-current)" = main ] && [ "$(git -C "$shared" rev-parse HEAD)" = "$(git -C "$REPO" rev-parse HEAD)" ] || { echo "FAIL a detached shared checkout was not put back on main"; fails=$((fails + 1)); }
 # A shared checkout whose install doesn't match its lockfile is reinstalled.
