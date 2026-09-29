@@ -3,6 +3,12 @@ import { Worker } from 'node:worker_threads';
 // Each scene owns a worker so module caches, clocks, and legacy random streams cannot leak.
 export async function openScene(options = {}) {
   const start = performance.now();
+  // A compose file compiles here, in the caller's thread, to the game state and script the worker runs.
+  if (options.compose) {
+    const { compose } = await import('./compose.mjs');
+    const { state, script } = compose(options.compose);
+    options = { ...options, compose: undefined, state, script };
+  }
   const worker = new Worker(new URL('./worker.mjs', import.meta.url), { workerData: options, execArgv: [] });
   const pending = new Map(); let sequence = 0, closed = false;
   const fail = error => { for (const p of pending.values()) p.reject(error); pending.clear(); };

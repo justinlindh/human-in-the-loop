@@ -2,7 +2,10 @@ import { installLoader } from './loader.mjs';
 import { Element, installPlatform } from './platform.mjs';
 import { fileURLToPath } from 'node:url';
 
-export async function createRuntime({ state, mock = 'floor', quality = 'low', rig = false, traceRandom = false, initialPerkDelay } = {}) {
+// A stand lasts the whole scene (Infinity does not serialize in a sample).
+const HOLD_S = 1e9;
+
+export async function createRuntime({ state, mock = 'floor', quality = 'low', rig = false, traceRandom = false, initialPerkDelay, script = [] } = {}) {
   const clock = installPlatform(fileURLToPath(new URL('../../', import.meta.url)), { quality, rig });
   installLoader({ initialPerkDelay });
   const { createRenderer } = await import('../../src/render/index.js');
@@ -28,10 +31,49 @@ export async function createRuntime({ state, mock = 'floor', quality = 'low', ri
   R.sync(S);
   if (S.pendingDecision) R.handleEvents([{ type: 'decision' }], S);
   let frame = 0;
-  return { R, S, randomTrace, get frame() { return frame; },
+  const advance = () => { clock.tick(); R.sync(S); R.render(1 / 30, { draw: false }); };
+
+  // A compose script (compose.mjs) says what a game state cannot: where someone stands and what they play.
+  // It goes through the game's own hooks (R.catchFor for a stand, the character's gesture(), R.robot.force),
+  // and the scene settles for a moment before frame 0, so script frames count from a scene at rest.
+  const pending = script.filter((e) => e.op === 'gesture').map((e) => ({ ...e }));
+  if (script.length || S.robot?.cause) {
+    const { stageLayout } = await import('../../src/render/layout.js');
+    const L = stageLayout(S.officeStage, S.office.expansion ?? 0);
+    for (let i = 0; i < 2; i++) advance();
+    if (S.robot?.cause && R.robot.force(`broken:${S.robot.cause}`)) R.robot.arriveNow();
+    for (const e of script.filter((x) => x.op === 'place')) {
+      const x = -L.W / 2 + e.at[0], z = -L.D / 2 + e.at[1];
+      // standAt teleports; the temp it makes is then replaced by one that holds for the whole scene.
+      if (!R.standAt(e.who, x, z)) throw new Error(`scene-engine: compose place: no such person ${e.who}`);
+      // Facing the robot means where it rests after its plan (its dock), not the tile the item sits on.
+      const rest = e.toward === 'robot' ? R.robot.peek()?.pos : null;
+      if (e.toward === 'robot' && !rest) throw new Error('scene-engine: compose place: face "robot" but the scene has no robot');
+      const dir = rest ? [rest[0] - x, rest[1] - z] : e.dir;
+      R.catchFor(e.who, { anim: 'idle', t: HOLD_S, goal: { x, z, yaw: Math.atan2(dir[0], dir[1]), anim: 'idle' }, back: true });
+    }
+    for (let n = 0; n < 45; n++) advance();
+  }
+  const character = (id) => {
+    let root = null;
+    R.scene.traverse((o) => { if (!root && o.userData.staffId === id) root = o.parent; });
+    return root && globalThis.__sceneCharacters?.get(root);
+  };
+  // Gestures whose frame has come; called on reaching each frame, so a sample at frame f already shows it.
+  const applyScript = (at) => {
+    for (const e of pending) {
+      if (e.done || e.frame > at) continue;
+      const c = character(e.who);
+      if (!c) throw new Error(`scene-engine: compose gesture: no such person ${e.who}`);
+      c.gesture(e.name, e.seconds ?? 4);
+      e.done = true;
+    }
+  };
+  applyScript(0);
+  return { R, S, randomTrace, get frame() { return frame; }, applyScript,
     stepTo(target) {
       if (!Number.isInteger(target) || target < frame) throw new Error('scene-engine: frames must increase; open a fresh scene to rewind');
-      while (frame < target) { clock.tick(); R.sync(S); R.render(1 / 30, { draw: false }); frame++; }
+      while (frame < target) { advance(); frame++; applyScript(frame); }
       R.scene.updateMatrixWorld(); R.camera.updateMatrixWorld();
     },
     async loadMeasurements() {

@@ -1,5 +1,5 @@
 ---
-tool: `node scripts/studio/compose.mjs <file.json>` (prints what a compose file compiles to); `compose(file)` in `scripts/studio/compose.mjs` for the scene engine's `--compose`
+tool: `node scripts/studio/scene.mjs --compose <file.json> --from 0 --to 2 --every 0.2 [--facts intersections,...]` (the composed scene through the studio engine); `openScene({ compose })`; `node scripts/studio/compose.mjs <file.json>` prints what a file compiles to
 section: render
 who: art, tools
 covers: scripts/studio/compose.mjs tests/tools/studio-compose.test.js
@@ -17,7 +17,7 @@ The slap: a fixer beside a robot that has been unplugged.
   ],
   "robot": { "at": [4, 4], "cause": "unplug" },
   "people": [
-    { "id": "fixer", "build": 1, "at": [5.5, 4.5], "face": "robot", "gesture": "slap", "t": 0.4 }
+    { "id": "fixer", "build": 1, "at": [5.0, 4.6], "face": "robot", "gesture": "slap", "t": 0.4 }
   ] }
 ```
 
@@ -34,4 +34,4 @@ A seated facepalm beside a monitoring wall:
   ] }
 ```
 
-Both files are in `scripts/studio/examples/`. The steps are applied by the engine's runtime after each step, through the game's own character and robot calls.
+Both files are in `scripts/studio/examples/`. `scene.mjs --compose` (or `openScene({ compose })`) loads the compiled state into the engine, so `query`, `verify` and the facts run on it unchanged. The runtime then stands each `at` person with the game's own `standAt` hold (teleported, held for the scene), leaves a broken robot in its cause's plan with the game's `robot.force`, lets the scene settle a moment, and plays each `gesture` through the character's own `gesture()`, so a sample at the gesture's frame already shows it. Frames count from the settled scene: frame 0 is when the composed scene starts. A person `at` a spot faces their `face` (`robot` aims at where the robot actually rests after its plan, not at its tile); how close the robot's own tile lets them stand is the compose file's business (the game's own slap stands the fixer about half a metre from the robot).
