@@ -17,7 +17,7 @@ const chance = () => draw('perks');
 // face: 'item' looks at the item, 'front' faces the way the item faces, 'axis' lies along it.
 // stepIn: the spot is walked into, and out of, straight from this far in front of it.
 const PERKS = {
-  coffee: { cap: 2, anim: 'sip', dur: [5, 8], weight: 3, spots: (f) => [[-0.45, f.h / 2 + 0.5], [0.45, f.h / 2 + 0.5]], face: 'item', stepIn: 0.55 },
+  coffee: { cap: 2, anim: 'sip', dur: [5, 8], weight: 3, spots: (f) => [[-0.45, f.h / 2 + 0.5], [0.45, f.h / 2 + 0.5]], face: 'item', stepIn: 0.7 },
   nap_pod: { cap: 1, anim: 'lie', dur: [9, 15], weight: 1.4, rest: true, spots: () => [[0, 0]], face: 'axis', emote: 'zzz' },
   couch: { cap: 2, anim: 'sit', dur: [7, 12], weight: 1.4, rest: true, spots: () => [[-0.4, 0.05], [0.4, 0.05]], face: 'front' },
   arcade: { cap: 1, anim: 'play', dur: [7, 11], weight: 1.5, spots: (f) => [[0, f.h / 2 + 0.45]], face: 'item', bursts: true },
@@ -140,7 +140,8 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     if (a) {
       r.temp.enter = { from: null, t: 0, side: { x: a.x, z: a.z }, item: e.id };
       walkTo(r, { x: a.x, z: a.z, yaw: spot.yaw });
-    } else if (r.temp.stepOut) {
+    } else if (r.temp.stepOut && Math.hypot(r.pos.x - spot.x, r.pos.z - spot.z) > Math.hypot(r.temp.stepOut.x - spot.x, r.temp.stepOut.z - spot.z)) {
+      // From beyond the step-in point (anyone already nearer the spot walks straight to it).
       const q = r.temp.stepOut;
       walkTo(r, { x: q.x, z: q.z, yaw: spot.yaw });
       r.path.push({ x: spot.x, z: spot.z });

@@ -39,6 +39,7 @@ const ENTER_S = 0.7;           // sliding from the front of a couch or chair ont
 const PERSON_GAP = 0.45;       // two people's centres nearer than this overlap
 const STEP_WAIT_S = 0.4;       // how long someone waits before trying to step out again
 const STEP_WAITS = 6;          // and how many times
+const STEP_IN_NEAR_M = 0.9;    // someone walking in stops this far short of a taken step-in point
 const EXIT_NEAR_M = 0.5;       // how much further than its exit side from an item someone leaving it may be (nearExit)
 const LIE_ANIMS = new Set(['nap', 'lie', 'sprawl']);
 const RUN = 2.8;
@@ -323,6 +324,18 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   function stepOutTaken(r, q) {
     for (const o of recs.values()) if (o !== r && !o.hidden && Math.hypot(o.pos.x - q.x, o.pos.z - q.z) < PERSON_GAP) return true;
     return false;
+  }
+
+  // Walking up to a use spot's step-in point while someone else stands on it: they stop short and
+  // wait, as long as someone leaving waits at most, then go on.
+  function waitsToStepIn(r, dt) {
+    const tp = r.temp, q = tp?.stepOut;
+    if (!q || r.path.length !== 2) return false;
+    const at = r.path[0];
+    if (Math.hypot(at.x - q.x, at.z - q.z) > 0.05 || Math.hypot(r.pos.x - q.x, r.pos.z - q.z) > STEP_IN_NEAR_M) return false;
+    if (!stepOutTaken(r, q)) return false;
+    tp.inWait = (tp.inWait ?? 0) + dt;
+    return tp.inWait < STEP_WAIT_S * STEP_WAITS;
   }
 
   function teleport(r, goal) {
@@ -1071,6 +1084,9 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     // Pause a walking reactor without discarding their route or errand.
     if ((c.anim === 'facepalm' || c.anim === 'facepalmsit') && r.face?.post && !r.temp?.moment) {
       r.yaw = angleLerp(r.yaw, r.face.yaw, 1 - Math.exp(-dt * 8));
+    } else if (r.path.length && waitsToStepIn(r, dt)) {
+      c.setMoveSpeed(0);
+      c.setAnim('idle');
     } else if (r.path.length) {
       stepWalker(r, dt, r.walkAnim);
       // Stepping off an item lasts until they reach the side they got on from.
