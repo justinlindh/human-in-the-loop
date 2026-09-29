@@ -44,14 +44,15 @@ async function open({ state, mock }) {
   const render = R.render.bind(R);
   R.render = (dt, options) => render(dt, { ...options, draw: false });
   const step = (n) => { rt.stepTo(rt.frame + n); };
+  // As the page's __advance: the world moves without the render pass (no labels, no camera).
+  const advance = (n) => { for (let i = 0; i < n; i++) { rt.clock.tick(); R.sync(S); R.advance(1 / 30); R.scene.updateMatrixWorld(); } };
   const game = { state: S };
   Object.assign(globalThis, {
     __sweepNoDom: true,
     __hitlRender: R,
     __HITL: game,
-    __advance: step,
+    __advance: advance,
     __step: step,
-    __tool: (fn) => fn(),
   });
   // Moments announce themselves as window events for the page's listeners; nobody listens here.
   globalThis.dispatchEvent ??= () => true;
@@ -64,6 +65,18 @@ export async function hostMock({ name, ...options }) {
   const { sampleMock } = await import('../../blender/checks/sample.js');
   await open({ mock: name });
   return sampleMock({ name, ...options, crops: 0 });
+}
+
+// A saved state (an indexed moment's snapshot, or a find.js match): played as sampleLoaded plays a page
+// that loaded it, the open decision answered with its choice.
+export async function hostLoaded({ file, ...options }) {
+  const { sampleLoaded } = await import('../../blender/checks/sample.js');
+  const { dispatch } = await import('../../src/sim/index.js');
+  const state = await resolveState({ snapshot: file });
+  const { R, S, game } = await open({ state });
+  game.emit = (events) => { if (events?.length) R.handleEvents(events, S); };
+  game.dispatch = (action) => { const res = dispatch(S, action); game.emit(res.events); return res; };
+  return sampleLoaded({ ...options, crops: 0 });
 }
 
 export async function hostSeed({ seed, ...options }) {

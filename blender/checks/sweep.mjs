@@ -45,7 +45,7 @@
 // exactly what this run found. The run is deterministic: it depends only on the code.
 import { startHarness, wantGpu } from './harness.mjs';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { dirname, resolve, join, basename } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -92,11 +92,6 @@ if (plan) {
     process.exit(2);
   }
 } else if (item && !opt('mocks')) M.mocks = M.gridMocks;
-if (engine) {
-  const unsupported = ['moments', 'snapshots', 'against'].filter((k) => opt(k));
-  if (unsupported.length) { console.error(`sweep: --engine does not run --${unsupported.join(', --')} yet`); process.exit(2); }
-  if (plan?.events.length) { console.error(`sweep: --engine cannot replay an indexed moment (${plan.events.length} in this report); run it without --engine`); process.exit(2); }
-}
 const outDir = resolve(opt('out', 'shots/sweep'));
 const timeout = Number(opt('timeout', full ? 3600 : 600));
 
@@ -118,6 +113,11 @@ async function startControl(spec) {
   const patch = asRoot ? execFileSync('git', ['-C', spec, 'diff', 'HEAD', '--binary'], { maxBuffer: 1 << 28 }) : null;
   const overlay = Object.fromEntries(['sweep.mjs', 'sample.js', 'sweep-plan.js'].map((f) => [`blender/checks/${f}`, join(HERE, f)]));
   overlay['scripts/tools/worktree.mjs'] = join(repoRoot, 'scripts/tools/worktree.mjs');
+  // An engine run on the other checkout is this checkout's engine on that checkout's game code.
+  if (engine) {
+    overlay['blender/checks/intersect.js'] = join(HERE, 'intersect.js');
+    for (const f of readdirSync(join(repoRoot, 'scripts/studio')).filter((x) => x.endsWith('.mjs'))) overlay[`scripts/studio/${f}`] = join(repoRoot, 'scripts/studio', f);
+  }
   // The worktree and the control's process group go away however this process ends.
   const wt = await createWorktree({ repo: repoRoot, rev, label: 'sweep-against', patch, overlay });
   const drop = new Set(['--update-baseline', '--prune']);
@@ -168,28 +168,28 @@ try {
     const target = resolveTarget({ event: query });
     const row = target.row;
     const label = `event:${row.id}:s${row.seed}${row.bot}w${row.week}`;
-    const { page, errors: e } = await openAt(H, target, { width: 1600, height: 1000, quality: 'low' });
-    const r = await page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleLoaded(o),
-      { label, open: M.stagedSeconds, after: 8, every: M.step, choice: row.choice, known, worst: acceptedWorst, item });
+    const o = { label, open: M.stagedSeconds, after: 8, every: M.step, choice: row.choice, known, worst: acceptedWorst, item };
+    const { page, errors: e } = engine ? { page: null, errors: [] } : await openAt(H, target, { width: 1600, height: 1000, quality: 'low' });
+    const r = engine ? await host.hostLoaded({ file: target.file, ...o }) : await page.evaluate(async (o2) => (await import('/blender/checks/sample.js')).sampleLoaded(o2), o);
     found.push(...r.violations);
     windows.push(...r.windows.map((w) => ({ ...w, query })));
     errors.push(...e.map((x) => `${label}: ${x}`));
     console.log(`sweep: ${label} ${r.violations.length} violation(s) (${Math.round((wall() - t0) / 1000)} s)`);
-    await page.close();
+    await page?.close();
   }
   // Saved states from find.js scans (--snapshots a.json.gz,b.json.gz), each loaded and played as a
   // moment is, with no decision to answer.
   for (const file of (opt('snapshots') ?? '').split(',').map((x) => x.trim()).filter(Boolean)) {
     const target = resolveTarget({ snapshot: file });
     const label = `snap:${basename(file).replace(/\.json(\.gz)?$/, '')}`;
-    const { page, errors: e } = await openAt(H, target, { width: 1600, height: 1000, quality: 'low' });
-    const r = await page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleLoaded(o),
-      { label, open: M.stagedSeconds, after: 8, every: M.step, choice: null, known, item });
+    const o = { label, open: M.stagedSeconds, after: 8, every: M.step, choice: null, known, item };
+    const { page, errors: e } = engine ? { page: null, errors: [] } : await openAt(H, target, { width: 1600, height: 1000, quality: 'low' });
+    const r = engine ? await host.hostLoaded({ file: target.file, ...o }) : await page.evaluate(async (o2) => (await import('/blender/checks/sample.js')).sampleLoaded(o2), o);
     found.push(...r.violations);
     windows.push(...r.windows.map((w) => ({ ...w, snapshot: basename(file) })));
     errors.push(...e.map((x) => `${label}: ${x}`));
     console.log(`sweep: ${label} ${r.violations.length} violation(s) (${Math.round((wall() - t0) / 1000)} s)`);
-    await page.close();
+    await page?.close();
   }
   // Each seed runs in a browser of its own, with a time limit, so a slow or stuck seed can neither
   // slow the ones after it nor use up the whole run; the page reports the week it has reached.
