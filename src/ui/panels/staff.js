@@ -317,11 +317,7 @@ export function staffPanel(ctx, arg) {
       : confirmButton('Let go', 'Really? Click again', 'small.danger', () => { if (ctx.act({ type: 'fire', staffId: p.id }).ok) { detailId = null; render(); } });
     acts.append(h('div.act', null, h('b', null, icon('letgo'), ' Let go'), h('span.small.muted', { text: 'Their knowledge walks out the door with them.' }), fire));
 
-    // Time off is always offered, so burnout has it too; an advisor's focus highlights its control.
-    acts.append(h('div.act', null, h('b', null, icon('sabbatical'), ' Time off'), h('span.small.muted', { text: 'Two weeks away. Strain drops fast.' }),
-      h(`button.btn.small.go${landing?.focus === 'timeOff' ? '.advhi' : ''}`, { disabled: away, onclick: () => { if (ctx.act({ type: 'timeOff', staffId: p.id }).ok) ctx.sfx('confirm'); } }, away ? 'Away' : 'Send')));
     if (landing?.focus === 'training') acts.querySelector('.act .btn.blue')?.classList.add('advhi');
-    if (landing?.focus && landing.note) { const hi = acts.querySelector('.advhi'); hi?.before(h('div.small.advnote', { text: landing.note })); }
     const suggested = landing?.assign ? assignmentOptions(s, p).find((o) => o.type === landing.assign.type && (o.targetId ?? null) === (landing.assign.targetId ?? null)) : null;
     const landingCard = landing && (suggested || landing.note || landing.focus) ? h('div.card.landing', null,
       icon('idea', { size: 20 }),
@@ -345,6 +341,14 @@ export function staffPanel(ctx, arg) {
       h('div.row.wrap', null,
         h('button.btn.small', { disabled: p.assignment.type === 'idle', title: onProject ? 'Take them off their project for now' : '', onclick: () => { if (assign('idle').ok) ctx.sfx('click'); } }, 'Lighter load'),
         h('button.btn.small.go', { disabled: away, title: 'Two weeks away. Strain drops fast.', onclick: () => { if (ctx.act({ type: 'timeOff', staffId: p.id }).ok) ctx.sfx('confirm'); } }, 'Time off'))) : null;
+    // Time off is offered on the running-on-empty card, and here for a burnt-out person or when an advisor points at it.
+    const hiTime = landing?.focus === 'timeOff' ? '.advhi' : '';
+    if (!emptyCard && (p.mood === 'burnout' || landing?.focus === 'timeOff')) {
+      acts.append(h('div.act', null, h('b', null, icon('sabbatical'), ' Time off'), h('span.small.muted', { text: 'Two weeks away. Strain drops fast.' }),
+        h(`button.btn.small.go${hiTime}`, { disabled: away, onclick: () => { if (ctx.act({ type: 'timeOff', staffId: p.id }).ok) ctx.sfx('confirm'); } }, away ? 'Away' : 'Send')));
+    }
+    if (landing?.focus === 'timeOff') emptyCard?.querySelector('.btn.go')?.classList.add('advhi');
+    if (landing?.focus && landing.note) (acts.querySelector('.advhi') ?? emptyCard?.querySelector('.advhi'))?.before(h('div.small.advnote', { text: landing.note }));
     return [
       h('div.row', null, back, h('span.spacer'), h('span.faint.small', { text: 'Tip: click people in the office to open this.' })),
       landingCard,
