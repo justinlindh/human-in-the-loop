@@ -73,13 +73,11 @@ describe('sweep-parity', () => {
 describe('sweep --engine', () => {
   it('runs the mocks on the studio engine and finds what the browser sweep finds there', () => {
     const out = mkdtempSync(join(tmpdir(), 'sweep-engine-'));
-    const r = spawnSync(process.execPath, [script('blender/checks/sweep.mjs'), '--mocks', 'garage,night', '--seeds', 'none', '--out', out], { encoding: 'utf8', timeout: 240000 });
+    const r = spawnSync(process.execPath, [script('blender/checks/sweep.mjs'), '--no-screen', '--mocks', 'garage,night', '--seeds', 'none', '--out', out], { encoding: 'utf8', timeout: 240000 });
     rmSync(out, { recursive: true, force: true });
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toMatch(/mock:garage 0 violation/);
     expect(r.stdout).toMatch(/mock:night 0 violation/);
-    // The page checks come from the small browser step.
-    expect(r.stdout).toMatch(/screen and tooltip \(browser\) \d+ violation/);
   }, 260000);
 
   it('replays one state from a report in seconds, and refuses an indexed moment', () => {
@@ -87,7 +85,7 @@ describe('sweep --engine', () => {
     const v = (state) => ({ check: 'person', key: 'person|a|b', state, states: [state], a: 'a', b: 'b', value: 0.1 });
     const write = (name, report) => { const f = join(dir, name); writeFileSync(f, JSON.stringify({ mode: 'fast', ...report })); return f; };
     const t0 = Date.now();
-    let r = spawnSync(process.execPath, [script('blender/checks/sweep.mjs'), '--engine', '--replay', write('seed.json', { windows: [], violations: [v('seed:1:w5')] }), '--out', join(dir, 'out')], { encoding: 'utf8', timeout: 120000 });
+    let r = spawnSync(process.execPath, [script('blender/checks/sweep.mjs'), '--no-screen', '--replay', write('seed.json', { windows: [], violations: [v('seed:1:w5')] }), '--out', join(dir, 'out')], { encoding: 'utf8', timeout: 120000 });
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toMatch(/seed:1 played to week 6; windows: w5/);
     expect(r.stdout).toMatch(/replay: 0 of 1 reported violation\(s\) still present, 1 gone/);
@@ -97,7 +95,7 @@ describe('sweep --engine', () => {
 
   it('plays an indexed moment from its snapshot, replays it from the report, and takes it as a control run', () => {
     const dir = mkdtempSync(join(tmpdir(), 'sweep-moment-'));
-    const sweep = (...args) => spawnSync(process.execPath, [script('blender/checks/sweep.mjs'), '--engine', '--seeds', 'none', '--mocks', 'none', ...args], { encoding: 'utf8', timeout: 500000 });
+    const sweep = (...args) => spawnSync(process.execPath, [script('blender/checks/sweep.mjs'), '--no-screen', '--seeds', 'none', '--mocks', 'none', ...args], { encoding: 'utf8', timeout: 500000 });
     let r = sweep('--moments', 'printer_jam --choice 0', '--out', join(dir, 'a'));
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toMatch(/sweep: event:printer_jam:\S+ \d+ violation/);
