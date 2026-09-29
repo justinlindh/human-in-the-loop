@@ -184,8 +184,10 @@ export function placedTransform(L, p) {
   return { x: -L.W / 2 + p.x + f.w / 2, z: -L.D / 2 + p.y + f.h / 2, rotY: -(p.rot ?? 0) * PI / 2, w: f.w, h: f.h };
 }
 
-// Nav grid over the floor. Obstacles are axis-aligned rects { x0, z0, x1, z1 } in meters.
+// Nav grid over the floor. Obstacles are axis-aligned rects { x0, z0, x1, z1 } in meters, with an
+// optional margin: a cell is blocked when its centre is within that of one (NAV_MARGIN by default).
 const NEAR_COST = 3;   // extra cost of a cell inside a soft clearance (one cell's move costs 1)
+const NAV_MARGIN = 0.12;
 export function createNav(L, obstacles, cell = 0.35) {
   const nx = Math.ceil(L.W / cell), nz = Math.ceil(L.D / cell);
   const blocked = new Uint8Array(nx * nz);
@@ -195,7 +197,7 @@ export function createNav(L, obstacles, cell = 0.35) {
     for (let k = 0; k < nz; k++) {
       const x = -L.W / 2 + (i + 0.5) * cell, z = -L.D / 2 + (k + 0.5) * cell;
       const edge = x < -L.W / 2 + 0.35 || z < -L.D / 2 + 0.35 || x > L.W / 2 - 0.2 || z > L.D / 2 - 0.2;
-      if (edge || obstacles.some((r) => x > r.x0 - 0.12 && x < r.x1 + 0.12 && z > r.z0 - 0.12 && z < r.z1 + 0.12)) blocked[i + k * nx] = 1;
+      if (edge || obstacles.some((r) => { const m = r.margin ?? NAV_MARGIN; return x > r.x0 - m && x < r.x1 + m && z > r.z0 - m && z < r.z1 + m; })) blocked[i + k * nx] = 1;
     }
   }
   const N0 = nx * nz, grid0 = blocked;
