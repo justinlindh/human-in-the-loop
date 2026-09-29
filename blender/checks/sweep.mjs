@@ -68,7 +68,9 @@ const MODES = {
   full: { mocks: ['garage', 'floor', 'hq', 'incident', 'night', 'ending'], propMocks: ['garage', 'floor', 'hq'], propDesks: 8, gridMocks: ['floor'], momentMocks: ['floor', 'hq'], moments: { open: 20, after: 10, choices: 2 }, mockSeconds: 30, seeds: [1, 2, 3, 4], seedLimit: 1200, weeks: 1040, every: 13, seconds: 8, stagedSeconds: 24, maxStaged: 40, step: 0.5 },
 };
 const replayFile = opt('replay');
-const replayed = replayFile ? JSON.parse(readFileSync(resolve(replayFile), 'utf8')) : null;
+const replayed = replayFile ? (() => {
+  try { return JSON.parse(readFileSync(resolve(replayFile), 'utf8')); } catch (e) { console.error(`sweep: cannot read the report "${replayFile}" (${e.message.split('\n')[0]})`); process.exit(2); }
+})() : null;
 const M = { ...MODES[full ? 'full' : (replayed?.mode ?? 'fast')] };
 const item = opt('item') ?? null;
 // With --item, only that item's violations are re-checked.
