@@ -2,7 +2,7 @@ import { B } from './balance.js';
 import { createRng, int, pick } from './rng.js';
 import { registerSystem } from './registry.js';
 import { EVENTS } from '../data/events.js';
-import { fireEvent, helpers, lastPauseWeek, resolveSubjects } from './events.js';
+import { eventFitsEra, fireEvent, helpers, lastPauseWeek, resolveSubjects } from './events.js';
 
 const WINDOW_EVENTS = Object.values(EVENTS).filter((e) => e.floorWindow);
 
@@ -16,7 +16,8 @@ export function windowWeek(state, ev) {
   return state.flags.floorWeek + int(windowRng(state, ev, 0), from, to);
 }
 
-// Fires each floorWindow event once, on its due week or the first week after it that has room for a decision.
+// Fires each floorWindow event once, on its due week or the first week after it that has room for a decision
+// and fits the era, with the same era check random events get.
 export function windowsSystem(ctx) {
   const { state } = ctx;
   if (state.officeStage < 1) return;
@@ -26,7 +27,7 @@ export function windowsSystem(ctx) {
   if (last !== undefined && state.week - last < B.decisionGapWeeks) return;
   for (const ev of WINDOW_EVENTS) {
     if ((state.flags[`cd_${ev.id}`] ?? -1) > state.week || state.week < windowWeek(state, ev)) continue;
-    if (!ev.when(state, helpers(state))) continue;
+    if (!eventFitsEra(state, ev) || !ev.when(state, helpers(state))) continue;
     const subjects = resolveSubjects(state, ev);
     if (ev.subject !== null && !subjects.length) continue;
     if (fireEvent(ctx, ev, subjects.length ? pick(windowRng(state, ev, 1 + state.week), subjects).id : null)) return;

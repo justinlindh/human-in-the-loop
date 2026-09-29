@@ -105,7 +105,7 @@ export function people(R, world = []) {
     const meshes = [];
     root.traverse((c) => { if (c.isMesh && parts.has(c.userData.part)) meshes.push(c); });
     if (!meshes.length) return;
-    const own = new Set([pk?.seat, pk?.exitFrom, pk?.temp?.key?.split(':')[0]].filter(Boolean).map((x) => `placed:${x}`));
+    const own = new Set([pk?.seat, pk?.exitFrom, pk?.uses, pk?.temp?.key?.split(':')[0]].filter(Boolean).map((x) => `placed:${x}`));
     if (moment.has(id)) for (const d of momentDesks) own.add(`placed:${d}`);
     const b = { key: `staff:${id}`, kind: 'person', label: 'person', id, obj: root, meshes, own, walking, anim: pk?.temp?.anim ?? null, moment: moment.get(id) ?? null };
     root.updateMatrixWorld(true);
