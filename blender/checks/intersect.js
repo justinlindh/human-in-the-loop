@@ -339,8 +339,12 @@ function passesThrough(body, sheet) {
 // Returns [{ depth, at }, ...]; the pair's depth is the largest.
 export function pairDepths(a, b, tol = 0.01) {
   const rs = [depthInto(a, b), depthInto(b, a)];
-  return Math.max(rs[0].depth, rs[1].depth) <= tol ? [crossReach(a, b)] : rs;
+  return useInterior(Math.max(rs[0].depth, rs[1].depth), tol) ? rs : [crossReach(a, b)];
 }
+
+// The one rule that picks between the two readings of a pair: the interior reach when it is past the
+// check's tolerance, else the crossing reach. depthAtTol in scripts/studio/geometry.mjs uses it too.
+export const useInterior = (interior, tol = 0.01) => interior > tol;
 
 // Whether two meshes' surfaces cross, or one sits wholly inside the other.
 export function touching(a, b) {

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { MeshBVH, StaticGeometryGenerator, acceleratedRaycast } from 'three-mesh-bvh';
-import { depthInto, crossReach } from '../../blender/checks/intersect.js';
+import { depthInto, crossReach, useInterior } from '../../blender/checks/intersect.js';
 
 const worldCache = new WeakMap();
 const pairCache = new WeakMap();
@@ -71,7 +71,7 @@ function depthParts(A, B) {
 // The sweep's depth for a contact at a tolerance: the interior reach, unless it is within tol (a thin
 // surface through a body has no point inside), then the crossing reach. Each sweep check picks its own
 // tol (0.01 by default, 0.02 for people), so a rule passes the tol of the check it replaces.
-export const depthAtTol = (contact, tol = 0.01) => (!contact.intersects ? 0 : contact.interiorM > tol ? contact.interiorM : contact.crossM);
+export const depthAtTol = (contact, tol = 0.01) => (!contact.intersects ? 0 : useInterior(contact.interiorM, tol) ? contact.interiorM : contact.crossM);
 
 export function meshContact(a, b, { clearance = false } = {}) {
   const A = worldMesh(a), B = worldMesh(b);

@@ -47,7 +47,9 @@ const BODY = /^(head|torso)$/;
 // Both sides' pairs on the current frame: Map of "person|item|body part|item part" to the deepest overlap.
 function pairs(R, S, model) {
   const list = X.bodies(R), ps = X.people(R, list);
-  const skip = (A, B) => { const [p, w] = A.kind === 'person' ? [A, B] : [B, A]; return w.kind !== 'person' && p.own.has(w.key); };
+  // The sweep's own-furniture rule (a person's seat, the item they use) is a rule on top of the metric, not
+  // part of it, so this comparison keeps those pairs.
+  const skip = () => false;
   const sweep = new Map(), engine = new Map();
   const put = (m, k, d) => m.set(k, Math.max(m.get(k) ?? 0, d));
   for (const o of X.crossOverlaps(ps, list, { tol: TOL_PERSON, skip })) {

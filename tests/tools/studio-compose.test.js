@@ -165,6 +165,15 @@ describe('the sweep\'s collision rows on a composed scene', () => {
     expect(r.stdout).toMatch(/plant +20 positions, \d+ pairs: \d+ match, 0 missed by the engine, 0 differ/);
   }, 260000);
 
+  it('compares the desk too: the sweep\'s own-furniture rule is not applied, so every desk pair matches', () => {
+    const r = spawnSync(process.execPath, [resolve(__dirname, '../../scripts/studio/compare-sweep.mjs'), '--grid', 'desk', '--positions', '12'], { encoding: 'utf8', timeout: 240000, maxBuffer: 1 << 28 });
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    const m = /desk +12 positions, (\d+) pairs: (\d+) match, 0 missed by the engine, 0 differ, 0 engine-only/.exec(r.stdout);
+    expect(m, r.stdout).toBeTruthy();
+    expect(Number(m[1])).toBeGreaterThan(0);
+    expect(m[2]).toBe(m[1]);
+  }, 260000);
+
   it('lets a person stand inside a footprint only when asked', () => {
     const spec = (free) => ({ base: 'floor', items: [{ item: 'coffee_corner', at: [6, 6], id: 'c1' }], people: [{ id: 'a', at: [6.5, 6.5], ...(free ? { free: true } : {}) }] });
     expect(problemsOf(spec(false)).join('\n')).toMatch(/inside the coffee_corner "c1"/);
