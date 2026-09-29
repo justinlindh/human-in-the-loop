@@ -6,7 +6,7 @@
 #   scripts/tools/job.sh run   <name> [start options] -- <command...>   start then wait: one call for run_in_background
 #   scripts/tools/job.sh tail  <name> [-n <lines>] [-f]
 #   scripts/tools/job.sh ls
-#   scripts/tools/job.sh stop  <name>                                 stop a running job (its whole process group)
+#   scripts/tools/job.sh stop  <name>                                 stop a running job (every process in its session)
 #   scripts/tools/job.sh rm    <name>                                 forget a finished job
 # start defaults: timeout 3600 s, nice 10. wait exits with the job's exit code (124 when the job hit
 # its timeout), and 3 when wait itself timed out with the job still running. State lives in
@@ -91,9 +91,12 @@ case "$cmd" in
     done ;;
   stop)
     need; alive || { echo "job $name: not running"; exit 0; }
-    pid="$(cat "$j/pid")"; kill -TERM -- "-$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
-    for _ in $(seq 1 50); do alive || break; sleep 0.1; done
-    if alive; then kill -KILL -- "-$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null; fi
+    pid="$(cat "$j/pid")"
+    # The job's session id is its wrapper's pid (setsid). timeout puts the command in a group of its
+    # own, so signal the whole session, which is exact, not a text match.
+    pkill -TERM -s "$pid" 2>/dev/null
+    for _ in $(seq 1 50); do pgrep -s "$pid" >/dev/null 2>&1 || break; sleep 0.1; done
+    pgrep -s "$pid" >/dev/null 2>&1 && { pkill -KILL -s "$pid" 2>/dev/null; sleep 0.2; }
     [ -e "$j/exit" ] || echo 143 >"$j/exit"
     echo "job $name: stopped" ;;
   rm)
