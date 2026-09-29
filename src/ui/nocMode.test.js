@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { nocLockWeeks, nocStatus, nocEffect, nocPlaced } from './nocMode.js';
+import { nocLockWeeks, nocStatus, nocEffect, nocPlaced, modeBlurb } from './nocMode.js';
 import { B } from './content.js';
 
 const st = (ops, week = 100) => ({ week, ops, office: { placed: [{ itemId: 'noc', level: 2 }] } });
@@ -24,5 +24,12 @@ describe('NOC mode card', () => {
   it('states the mode effect', () => {
     expect(nocEffect(st({ noc: 'agents' }), 0)).toMatch(/misread/);
     expect(nocEffect(st({ noc: 'humans' }), 1)).toBe(`Crew on security: 1 of ${B.nocCrew} for full catch.`);
+  });
+  it('shows each mode effect as text', () => {
+    expect(modeBlurb('humans')).toContain(`${B.nocCrew} on security`);
+    expect(modeBlurb('agents')).toMatch(/misread/);
+  });
+  it('points the unchosen state at the decision card', () => {
+    expect(nocStatus(st({ noc: null }))).toMatch(/decision card/);
   });
 });

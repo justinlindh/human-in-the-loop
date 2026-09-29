@@ -17,6 +17,7 @@ const PLAYER_MS = 1500; // how long after a tap or key press a toast still count
 
 // Toasts stack top-right when no panel is open. While a panel is open they show one at a
 // time in a strip reserved at the bottom of the panel, so they never cover its controls.
+const ANSWER_MS = 4000;
 export function createToasts(root, { canShow = () => true } = {}) {
   const el = h('div.toasts', { 'aria-live': 'polite' });
   root.append(el);
@@ -75,8 +76,11 @@ export function createToasts(root, { canShow = () => true } = {}) {
   function renderDock() {
     if (!dock) return;
     if (!live.length) { dock.replaceChildren(h('span.dockidle')); return; }
+    // A toast that answers the player's own tap (a refusal's reason) outranks a severe one for a few seconds.
+    const now = performance.now();
+    const rank = (t) => RANK[t.tone] + (t.answer && now - t.at < ANSWER_MS ? 10 : 0);
     let top = live[0];
-    for (const t of live) if (RANK[t.tone] >= RANK[top.tone]) top = t;
+    for (const t of live) if (rank(t) >= rank(top)) top = t;
     const key = `${top.id}:${live.length}:${held.length}`;
     if (dock.firstChild?.dataset?.key === key) return;
     const n = node(top, 'dtoast', live.length - 1 + held.length);
@@ -199,7 +203,7 @@ export function createToasts(root, { canShow = () => true } = {}) {
     if (text === lastText && now - lastAt < 800) return;
     lastText = text;
     lastAt = now;
-    const t = { id: ++seq, text, tone: toneOf(tone), timer: 0, node: null, action, glyph, person, at };
+    const t = { id: ++seq, text, tone: toneOf(tone), timer: 0, node: null, action, glyph, person, at, answer: !!player || playerCaused() };
     live.push(t);
     arm(t, LIFE[t.tone]);
     if (dock) renderDock();

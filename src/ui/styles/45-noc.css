@@ -3,3 +3,5 @@
 .hitl .nocseg .segb { flex: 1; font-family: inherit; font-weight: 700; font-size: 0.85em; padding: 0.45em 0.6em; cursor: pointer; }
 .hitl .nocseg .segb.on { background: var(--ink); color: #fff; }
 .hitl .nocstatus { font-weight: 700; }
+.hitl .nocseg .segb { display: flex; flex-direction: column; gap: 0.15em; align-items: center; text-align: center; }
+.hitl .nocseg .nocblurb { font-weight: 400; font-size: 0.85em; opacity: 0.85; line-height: 1.2; }
