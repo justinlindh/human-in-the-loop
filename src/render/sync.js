@@ -275,7 +275,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     return { x: w.x + rnd(-0.5, 0.5), z: w.z + rnd(-0.5, 0.5), yaw: rnd(0, 6.28), anim: 'idle', key: 'nodesk' };
   }
 
-  function walkTo(r, goal, run = false) {
+  function walkTo(r, goal, run = false, from = r.goal) {
     const nav = office.nav();
     // A standing goal that falls inside furniture moves to the nearest walkable point.
     if (!goal.seated && !goal.onItem && nav.isBlocked(goal.x, goal.z)) Object.assign(goal, nav.freePoint(goal.x, goal.z));
@@ -284,6 +284,14 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (goal.seated) to = { x: goal.x - Math.sin(goal.yaw) * CHAIR_BACK_M, z: goal.z - Math.cos(goal.yaw) * CHAIR_BACK_M };
     r.path = nav.path({ x: r.pos.x, z: r.pos.z }, { x: to.x, z: to.z });
     r.path.shift();
+    // Leaving a seat at an item (the NOC) the way they came: back out behind the chair first, the item
+    // still theirs until they're clear of it, as at a desk.
+    if (from && from !== goal && from.seated && from.uses && Math.hypot(r.pos.x - from.x, r.pos.z - from.z) < 0.3) {
+      const back = { x: from.x - Math.sin(from.yaw) * CHAIR_BACK_M, z: from.z - Math.cos(from.yaw) * CHAIR_BACK_M };
+      r.path = [back, ...nav.path(back, { x: to.x, z: to.z }).slice(1)];
+      r.exitFrom = from.uses;
+      r.exitSide = back;
+    }
     // Starting inside furniture (an item placed where they stood) finds no path: out to the nearest
     // clear point first, then on from there.
     if (!r.path.length && nav.isBlocked(r.pos.x, r.pos.z, BODY_R)) {
@@ -400,10 +408,11 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         continue;
       }
       if (g.key !== r.goalKey) {
+        const was = r.goal;
         r.goalKey = g.key;
         r.goal = g;
         if (g.hidden && !r.hidden) {
-          walkTo(r, g);           // head for the door, then disappear
+          walkTo(r, g, false, was);           // head for the door, then disappear
         } else if (!g.hidden && r.hidden) {
           const d = cur.zones.door;
           r.pos.set(d.x, 0, d.z);
@@ -412,7 +421,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
           walkTo(r, g);
         } else if (!r.temp) {
           // Mood-only changes at the same desk need no walk.
-          if (Math.hypot(r.pos.x - g.x, r.pos.z - g.z) > 0.2) walkTo(r, g);
+          if (Math.hypot(r.pos.x - g.x, r.pos.z - g.z) > 0.2) walkTo(r, g, false, was);
         }
       }
     }
