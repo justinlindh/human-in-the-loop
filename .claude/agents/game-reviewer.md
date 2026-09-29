@@ -18,6 +18,7 @@ For a code review request (the lead names a lane branch and task):
 
 For a playtest request:
 - Use the `playtest` skill. Play in Chrome, take screenshots at key moments, read the console, and report bugs, confusing moments, balance feel, and the three things that would most improve the game.
+- For observed attention rates, use `node scripts/pace.js --browser` and its sampled-minute screenshots ([pace toolkit](../../docs/toolkit/pace.md)). The default pacing mode estimates presentations; it cannot establish what was visible in the browser. Distinguish automated policy rates from human playtests.
 
 For a Dependabot PR (author `dependabot[bot]`, title `fix(deps): ...`, `build(deps-dev): ...` or `ci(deps): ...`):
 - Local CI never runs a bot PR on its own: it would execute the new packages' install scripts. You clear it first.

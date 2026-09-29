@@ -17,6 +17,7 @@ Every tool the team uses, what it's for, and who reaches for it: `npm run toolki
 | Tune a pose or gesture on numbers, without rendering (a hand reaching an eye or brow, the face's angle to the camera) | `node blender/checks/pose.mjs --gesture <name> --under <anim> --expect '...'`, `--root <worktree>` | [pose](toolkit/pose.md) |
 | Check a bubble or emote doesn't cover a face, and who hides whom, in a staged scene | `node blender/checks/pose.mjs --scene --moment '<query>' --who <ids> --expect 's3:faceCovered<=0.1'` | [pose](toolkit/pose.md) |
 | Estimate the extra time spent watching spotlights | `node scripts/pace.js --weeks 1040 --speed 1` | [pace](toolkit/pace.md) |
+| Measure visible cards, toasts, prompts and pushed panels on the real browser clock | `node scripts/pace.js --browser --seed 1 --speed 1 --weeks 156 --out shots/pace-browser` | [pace](toolkit/pace.md) |
 | Check a moment reads on screen | `stage.mjs --only=<moment>`: every staged role needs a spec; `known: <issue>` excuses a failure only while the issue is open | [stage](toolkit/stage.md) |
 | Check nothing overlaps, floats, leaves the room or clutters the screen | `sweep.mjs`, `clip.mjs --only=<pattern>` | [sweep](toolkit/sweep.md), [clip](toolkit/clip.md) |
 | Iterate on one moment without half-edited runs | `npm run gates -- --moment <kind>` | [gates](toolkit/gates.md) |

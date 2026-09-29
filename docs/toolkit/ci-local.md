@@ -13,3 +13,5 @@ It keeps only what needs this machine: the GPU render checks, golden, phone-chec
 - the main guard's cases and the renderer counts against `scripts/perf/budget.json` (`tools`).
 
 The main guard (`CI_FULL=1`) still runs all of them here, so a red main gets its issue and bisect.
+
+The tooling self-tests include `pace-browser`: browser fixtures check visible presentation records, toast queue provenance, and panel origins under the shared render lock.
