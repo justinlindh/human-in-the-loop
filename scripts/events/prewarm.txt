@@ -1,0 +1,8 @@
+# One find.js argument line per query, kept warm by scripts/events/prewarm.js.
+# Add a query here when a lane reruns it after sim merges.
+# The trailer's outage stretch: an agents-run NOC whose outage is misread, at its first week.
+--where "e.type === 'week' && s.ops?.noc === 'agents' && s.outage?.misread && s.outage.weeks === 0" --bot balanced --scan-seeds 13 --scan-weeks 1000 --limit 3
+# An outage on the floor from its first weeks.
+--where "e.type === 'week' && s.outage?.weeks === 0 && s.office.stage === 1" --limit 3
+# The longest outage that resolves after at least two weeks.
+--where "e.type === 'week' && s.outage?.weeks === 0 && s.office.stage >= 1" --then "e.type === 'incidentResolved' && e.weeks >= 2 && e.weeks" --rank m.result --limit 3
