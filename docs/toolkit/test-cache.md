@@ -8,4 +8,6 @@ covers: scripts/test-cache.sh scripts/test-cache.test.sh scripts/tools/test-cach
 
 Every cached call appends a row to `hitl-test-cache.log` in the git directory, and `scripts/tools/test-cache-report.sh [--since <hours>] [--worktree <name>]` reports the calls, the hit rate, the time spent in runs, and which top-level directories changed behind the misses. A fix loop edits code between runs, so most misses are real changes; for those use `scripts/tools/test-related.sh` ([test-related](test-related.md)).
 
+UI tests that need DOM APIs put `// @vitest-environment happy-dom` on the first line of a `src/ui/*.test.js` file. Happy DOM is a dev dependency; Node remains the default in `vite.config.js`. These files run in `npm run test:fast` alongside the Node tests. See `src/ui/toasts.dom.test.js` and `src/ui/chat.dom.test.js` for real component mounting, DOM assertions, fake timers and cleanup. Use a browser capture for layout or visual judgment: Happy DOM tests cover DOM behaviour without rendering pixels.
+
 `HITL_TEST_CACHE_DEBUG=1` prints the key's inputs (tree, node version, lockfile hash, arguments) and what happened (hit, ran, or an uncached run and why) to stderr. `test-cache.test.sh` turns it on and prints the lines when a case fails.
