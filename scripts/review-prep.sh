@@ -10,16 +10,20 @@
 #   --no-checkout  no worktree
 #   --base         also check out the merge base with main at <root>/review-<pr>-base, for paired runs
 #   --head-at <sha>  also check out an earlier head of this PR at <root>/review-<pr>-at-<sha7>, for before and
-#                  after runs (the sha must be in the PR's history)
+#                  after runs (the sha must be one of the PR's commits, or it exits 2)
 #   --merged       also check out the head merged with current origin/<base> at <root>/review-<pr>-merged,
-#                  so a newer tool or check measures the PR as it would land (refuses on conflicts)
+#                  so a newer tool or check measures the PR as it would land (with --head-at, that commit
+#                  merged); a conflict exits 1 naming the files, makes no tree and, with --json, prints no JSON
 #   --base-at <sha>  the --base checkout at <sha> (say, the last passed head) instead of the merge base;
 #                  implies --base
 #   --diff         print the PR's diff (only these paths when given) after the stat
 #   --since <sha>  print the diff from <sha> (say, the last reviewed head) to the head
 #   --bot          a Dependabot PR: refuses unless the author is dependabot[bot] and only package.json,
 #                  package-lock.json or .github/workflows/ change; never checks out
-#   --json         the gathered facts as JSON instead of text
+#   --json         the gathered facts as JSON instead of text, including `trees` (kind, path, sha; for --merged
+#                  the origin/<base> sha merged and the tree sha) for every checkout made. Plain --json
+#                  makes no checkout: it does when --dir or a checkout flag (--base, --head-at, --merged,
+#                  --base-at) is given
 # The trust gate comes first: a PR from a fork, or by an author not in scripts/ci-trusted (dependabot[bot]
 # only with --bot), exits 3 before anything is fetched. Exit 0 when prepared, 2 on usage or lookup errors.
 set -uo pipefail
@@ -63,10 +67,10 @@ media_in() { # <text>
 
 usage="usage: scripts/review-prep.sh <pr> [--dir <root>] [--no-checkout] [--base] [--diff [path...]] [--since <sha>] [--head-at <sha>] [--merged] [--base-at <sha>] [--bot] [--json]"
 pr="${1:-}"; case "$pr" in ''|*[!0-9]*) echo "$usage" >&2; exit 2 ;; esac; shift
-root="${HITL_REVIEW_DIR:-}"; checkout=1; want_base=0; diff=0; dpaths=(); since=""; bot=0; json=0; head_at=""; merged=0; base_at=""
+root="${HITL_REVIEW_DIR:-}"; checkout=1; want_base=0; diff=0; dpaths=(); since=""; bot=0; json=0; dir_given=0; head_at=""; merged=0; base_at=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --dir) root="${2:?$usage}"; shift 2 ;;
+    --dir) root="${2:?$usage}"; dir_given=1; shift 2 ;;
     --no-checkout) checkout=0; shift ;;
     --base) want_base=1; shift ;;
     --diff) diff=1; shift; while [ $# -gt 0 ] && [[ "$1" != --* ]]; do dpaths+=("$1"); shift; done ;;
@@ -165,7 +169,7 @@ nm() { # <worktree>: node_modules for it; prints what it did
 }
 put() { # <path> <sha> <kind> [<merged with> <tree>]
   if [ -d "$1" ]; then git -C "$1" checkout -q --detach --force "$2" && git -C "$1" clean -fdq
-  else git -C "$REPO" worktree add -q --detach "$1" "$2"; fi || { echo "review-prep: can't check out ${2:0:10} at $1" >&2; exit 2; }
+  else git -C "$REPO" worktree prune; git -C "$REPO" worktree add -q --detach "$1" "$2"; fi || { echo "review-prep: can't check out ${2:0:10} at $1" >&2; exit 2; }
   echo "  $1 at ${2:0:10}: $(nm "$1")"
   trees+="$3"$'\t'"$1"$'\t'"$2"$'\t'"${4:-}"$'\t'"${5:-}"$'\n'
 }
@@ -205,7 +209,8 @@ checkouts() {
     fi
   fi
 }
-if [ $json = 1 ] && [ $checkout = 1 ]; then checkouts >/dev/null; fi
+# A plain --json is a fact lookup and makes no checkout; it does when a checkout flag or --dir is given.
+if [ $json = 1 ] && [ $checkout = 1 ] && { [ $dir_given = 1 ] || [ $want_base = 1 ] || [ -n "$head_at" ] || [ $merged = 1 ]; }; then checkouts >/dev/null; fi
 
 if [ $json = 1 ]; then
   jq -n --argjson v "$view" --arg mb "$mb" --arg behind "$behind" --arg mo "$mergeonly" --arg lh "${last_head:-}" --arg la "${last_at:-}" \

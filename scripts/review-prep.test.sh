@@ -103,10 +103,14 @@ rp --head-at "${first:0:7}" --merged --base-at "$oldmain"; mt="$tmp/wt/review-9-
 [ $rc -eq 0 ] && [ "$(git -C "$mt" rev-parse HEAD^1)" = "$first" ] && [ -e "$mt/a" ] && [ ! -e "$mt/b" ] && [ -d "$tmp/wt/review-9-base" ] && [ -d "$tmp/wt/review-9-at-${first:0:7}" ] || fail "the flags combine, and --merged merges the earlier head: $rc $out"
 rp --json --head-at "${first:0:7}" --merged --base-at "$oldmain"
 [ "$(jq -r '[.trees[].kind] | join(",")' <<<"$out")" = "head,base,head-at,merged" ] && [ "$(jq -r '.trees[] | select(.kind == "merged") | .mergedWith' <<<"$out")" = "$newmain" ] && [ "$(jq -r '.trees[] | select(.kind == "merged") | .tree' <<<"$out")" = "$(git -C "$tmp/wt/review-9-merged" rev-parse 'HEAD^{tree}')" ] && [ "$(jq -r '.trees[] | select(.kind == "head") | .sha' <<<"$out")" = "$head" ] || fail "--json lists each tree with its sha, and for --merged the main sha and tree: $out"
+rm -rf "$tmp/wt"; rp --json; [ $rc -eq 0 ] && jq -e '.trees == [] and .number == 9' <<<"$out" >/dev/null && [ ! -d "$tmp/wt" ] || fail "plain --json makes no checkout: $rc $out"
+out="$(cd "$r" && env -u HITL_REVIEW_DIR PATH="$tmp/bin:$PATH" bash scripts/review-prep.sh 9 --json 2>&1)"; rc=$?; [ $rc -eq 0 ] && jq -e '.trees == []' <<<"$out" >/dev/null || fail "plain --json needs no --dir: $rc $out"
+rp --json --dir "$tmp/wt"; [ $rc -eq 0 ] && [ "$(jq '.trees | length' <<<"$out")" -eq 1 ] || fail "--json with --dir checks out the head: $rc $out"
 rp --no-checkout --merged; [ $rc -eq 0 ] && grep -q 'need a checkout' <<<"$out" || fail "--merged with --no-checkout says so: $rc $out"
 echo conflict >"$r/b"; g -C "$r" add -A; g -C "$r" commit -qm "main adds b"; g -C "$r" push -q origin main
 rp --merged; [ $rc -eq 1 ] && grep -q 'does not merge cleanly' <<<"$out" && grep -q ' b' <<<"$out" || fail "--merged on a conflict exits 1 naming the file: $rc $out"
 [ ! -d "$tmp/wt/review-9-merged" ] || fail "a conflict leaves no merged checkout behind"
+rp --json --merged; [ $rc -eq 1 ] && ! jq -e . <<<"$out" >/dev/null 2>&1 || fail "--json --merged on a conflict exits 1 with no JSON: $rc $out"
 rp --done; [ ! -d "$tmp/wt/review-9" ] && [ ! -d "$tmp/wt/review-9-merged" ] && ! ls "$tmp/wt" | grep -q 'review-9-at-' || fail "--done removes every checkout: $(ls "$tmp/wt")"
 
 [ $fails -eq 0 ] && echo "review-prep: all cases pass"
