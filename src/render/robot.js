@@ -34,6 +34,10 @@ const STUCK_R = 0.2;
 const KEEP_OFF_R = 0.42;
 // Longest it waits for someone in its way before going on.
 const YIELD_S = 3;
+// Furthest it turns from the camera at a party post (radians), so its face still shows, and how
+// long it waits after a party before heading home, while the others start back.
+const PARTY_TURN = 1.75;
+const LEAVE_HOLD_S = 1.5;
 // Floor clearance round the robot, tray included, and the height and radius of its dock's pad.
 const ROBOT_R = 0.3;
 const PAD_Y = 0.03;
@@ -193,11 +197,61 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     const tgt = r.path[0];
     const hx = tgt.x - r.pos.x, hz = tgt.z - r.pos.z, hl = Math.hypot(hx, hz) || 1;
     for (const w of recs.values()) {
-      if (w.hidden || w.mode === 'hidden') continue;
+      if (w.hidden || w.mode === 'hidden' || tgt.around === w) continue;
       const dx = w.pos.x - r.pos.x, dz = w.pos.z - r.pos.z, d = Math.hypot(dx, dz);
-      if (d < KEEP_OFF_R + 0.08 && (dx * hx + dz * hz) / hl > 0.05) return true;
+      if (d < KEEP_OFF_R + 0.08 && (dx * hx + dz * hz) / hl > 0.05) return w;
     }
-    return false;
+    return null;
+  }
+
+  // Whether the straight line from a to b keeps PATH_CLEAR from anything blocked.
+  function navLeg(a, b) {
+    const nav = office.nav();
+    const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.1));
+    for (let k = 1; k <= n; k++) if (nav.isBlocked(a.x + (b.x - a.x) * k / n, a.z + (b.z - a.z) * k / n, PATH_CLEAR)) return false;
+    return true;
+  }
+
+  // Someone standing still in its way (at a party, chatting): a point beside them it can go by,
+  // on the side where the way there and on is clear of furniture and of everyone else, or null.
+  const SIDESTEP_M = [0.65, 0.85];
+  function sidestep(r, w) {
+    const nav = office.nav(), tgt = r.path[0];
+    const hx = tgt.x - r.pos.x, hz = tgt.z - r.pos.z, hl = Math.hypot(hx, hz) || 1;
+    const px = -hz / hl, pz = hx / hl;
+    // It may not come nearer the one it goes round than it is now.
+    const room = Math.min(SIDESTEP_M[0] - 0.05, Math.hypot(w.pos.x - r.pos.x, w.pos.z - r.pos.z) - 0.02);
+    const clear = (x, z) => !nav.isBlocked(x, z, PATH_CLEAR) && [...recs.values()].every((o) => o.hidden || Math.hypot(o.pos.x - x, o.pos.z - z) >= (o === w ? room : KEEP_OFF_R));
+    const leg = (a, b) => {
+      const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.1));
+      for (let k = 1; k <= n; k++) if (!clear(a.x + (b.x - a.x) * k / n, a.z + (b.z - a.z) * k / n)) return false;
+      return true;
+    };
+    // Beside them, or when the way on from there still passes too near, beside them and then past.
+    for (const d of SIDESTEP_M) for (const s of [1, -1]) {
+      const q = { x: w.pos.x + px * s * d, z: w.pos.z + pz * s * d, around: w };
+      if (!clear(q.x, q.z) || !leg(r.pos, q)) continue;
+      if (leg(q, tgt)) return [q];
+      const q2 = { x: q.x + (hx / hl) * d, z: q.z + (hz / hl) * d, around: w };
+      if (clear(q2.x, q2.z) && leg(q, q2) && leg(q2, tgt)) return [q, q2];
+    }
+    return null;
+  }
+
+  // Whether it waits: someone is in its way, and when they stand still it goes round them if it can.
+  function waits(r) {
+    const w = blockedBy(r);
+    if (!w) return false;
+    if (w.path.length || r.path[0].around) return true;
+    // A turn of its way that falls where they stand is dropped: it goes round them to the next one.
+    // Only when the straight way to the turn after it keeps clear of furniture.
+    const near = (p) => Math.hypot(p.x - w.pos.x, p.z - w.pos.z) < KEEP_OFF_R + 0.08;
+    const skip = r.path.length > 1 && near(r.path[0]) && navLeg(r.pos, r.path[1]) ? r.path.shift() : null;
+    if (skip && blockedBy(r) !== w) return !!blockedBy(r);
+    const q = sidestep(r, w);
+    if (!q) { if (skip) r.path.unshift(skip); return true; }
+    r.path.unshift(...q);
+    return !!blockedBy(r);
   }
 
   function walkTo(r, x, z) {
@@ -294,16 +348,19 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
   // Open floor near a point, clear for the robot (and a second point along with it, when given),
   // and in view: the first ring candidate that passes, else null.
   // A robot stop also clears every piece of furniture by BODY_R (robot: false for a person's spot).
-  function openSpot(center, search, { radii = [0.4, 0.7, 1.0, 1.4, 1.8, 2.4], partner = null, clearR = 0.28, score = null, side = null, robot = true } = {}) {
+  // `avoid`: more boxes to keep ROBOT_R clear of (a party's cart, where people will stand).
+  // `way`: a check on the candidate that runs last (the route there).
+  function openSpot(center, search, { radii = [0.4, 0.7, 1.0, 1.4, 1.8, 2.4], partner = null, clearR = 0.28, score = null, side = null, robot = true, avoid = [], centerFirst = false, way = null } = {}) {
     const nav = office.nav(), boxes = robot ? furnitureBoxes() : [];
-    const clear = (x, z) => !nav.isBlocked(x, z, clearR) && clearOf({ x, z }, boxes) && (!robot || reached({ x, z }));
+    const clear = (x, z) => !nav.isBlocked(x, z, clearR) && clearOf({ x, z }, boxes) && clearOf({ x, z }, avoid, ROBOT_R) && (!robot || reached({ x, z }));
     return pickSpot(center, {
-      ring: { radii, count: 12 },
-      needs: side ? ['side', 'clear', 'inView'] : ['clear', 'inView'],
+      ring: { radii, count: 12, centerFirst },
+      needs: [...(side ? ['side'] : []), 'clear', 'inView', ...(way ? ['way'] : [])],
       checks: {
         side,
         clear: (q) => (clear(q.x, q.z) && (!partner || (q.partner = partner(q)) && clear(q.partner.x, q.partner.z))) || 'blocked',
         inView: (q) => inView(q) || 'out of view',
+        way,
       },
       score, debug: spotDebug(office), moment: 'robot', search,
     });
@@ -375,7 +432,14 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
       return;
     }
     r.plan = plan; r.stop = null; r.arrived = false; r.spin = false; r.bump = false;
+    if (!plan.startsWith('party:')) { r.party = null; r.speedK = 1; }
+    r.holdT = 0;
     const g = r.rig;
+    if (g.ledMat) {
+      r.led0 ??= { color: g.ledMat.color.clone(), emissive: g.ledMat.emissive?.clone() };
+      g.ledMat.color.copy(r.led0.color);
+      if (r.led0.emissive) g.ledMat.emissive.copy(r.led0.emissive);
+    }
     g.cone.removeFromParent();
     g.cable.visible = false;
     g.can.visible = false;
@@ -418,6 +482,21 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
         walkTo(r, front.x, front.z); r.path.push(pad);
         if (r.docked) r.path = [];
         g.cable.visible = true; setEyes('off'); r.t = 0; return;
+      case 'party:serve':
+      case 'party:dj': {
+        undock();
+        r.stops = [r.party.spot];
+        nextStop();
+        // Late to a party that has started: it hurries, up to a jog.
+        let len = 0, p = r.pos;
+        for (const q of r.path) { len += Math.hypot(q.x - p.x, q.z - p.z); p = q; }
+        r.speedK = Math.min(2.5, Math.max(1, len / (r.party.hurry * SPEED)));
+        if (plan === 'party:dj') {
+          g.tray.visible = g.cup.visible = false;
+          if (r.party.color) { g.ledMat?.color.set(r.party.color); g.ledMat?.emissive?.set(r.party.color); }
+        }
+        return;
+      }
       default:
         r.plan = 'dock'; r.t = rnd(6, 12);
     }
@@ -468,6 +547,17 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     if (r.plan === 'broken:spin') { r.spin = true; sayEmote('sweat', 3); r.t = Infinity; return; }
     if (r.plan === 'broken:stuck' || r.plan === 'broken:cone') { r.bump = true; sayEmote('sweat', 3); r.t = Infinity; return; }
     if (r.plan === 'broken:emptyDesk') { r.t = Infinity; r.wait = 0; return; }
+    // At its post for the party: it stays until leave(). Turned to what it faces, but never so far
+    // that the camera sees only its back.
+    if (r.party) {
+      r.t = Infinity; r.speedK = 1;
+      if (r.faceYaw != null) {
+        const cy = camYaw(), d = Math.atan2(Math.sin(r.faceYaw - cy), Math.cos(r.faceYaw - cy));
+        if (Math.abs(d) > PARTY_TURN) r.faceYaw = cy + Math.sign(d) * PARTY_TURN;
+      }
+      sayEmote(r.party.role === 'dj' ? 'music' : 'heart', 2.4);
+      return;
+    }
     if (s?.water) { r.t = 3; r.watering = true; return; }
     if (s?.who) {
       r.t = 2.6;
@@ -497,13 +587,16 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
       stepFix(dt);
       if (r.faceYaw != null) r.yaw = angleLerp(r.yaw, r.faceYaw, 1 - Math.exp(-dt * 6));
       if (r.spin) r.yaw += dt * 7;
-    } else if (r.path.length && blockedBy(r) && (r.yieldT = (r.yieldT ?? 0) + dt) < YIELD_S) {
+    } else if (r.path.length && r.holdT > 0) {
+      // Holding back while people walk to (or away from) a party.
+      r.holdT -= dt;
+    } else if (r.path.length && waits(r) && (r.yieldT = (r.yieldT ?? 0) + dt) < YIELD_S) {
       // Someone right ahead: it waits for them to pass.
     } else if (r.path.length) {
       r.yieldT = 0;
       const tgt = r.path[0];
       dir.set(tgt.x - r.pos.x, 0, tgt.z - r.pos.z);
-      const d = dir.length(), step = SPEED * dt;
+      const d = dir.length(), step = SPEED * (r.speedK ?? 1) * dt;
       moving = true;
       if (d <= step) { r.pos.set(tgt.x, 0, tgt.z); r.path.shift(); } else {
         dir.multiplyScalar(1 / d);
@@ -549,6 +642,12 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
       ({ bob, lean, headX, headZ, tray } = broken);
       if (broken.bodyZ != null) g.body.position.z = broken.bodyZ;
     } else if (r.watering) { lean = 0.28; headX = 0.2; }
+    else if (r.arrived && r.party?.role === 'dj') {
+      // Nodding on the beat, swaying over two bars, the antenna light flashing on each beat.
+      const ph = ((r.party.clock?.() ?? t) / r.party.beat) * Math.PI * 2;
+      const nod = Math.max(0, Math.cos(ph)) ** 2;
+      headX = 0.2 * nod; bob = 0.015 * nod; headZ = Math.sin(ph / 4) * 0.14; sway = Math.sin(ph / 8) * 0.22;
+    } else if (r.arrived && r.party) { tray = 0.03 + Math.sin(t * 6) * 0.01; headX = -0.1; headZ = Math.sin(t * 1.3) * 0.08; }
     else if (r.arrived && r.stop?.who) { tray = 0.03 + Math.sin(t * 6) * 0.01; headX = -0.1; sway = Math.sin(t * 3) * 0.05; }
     else headZ = Math.sin(t * 1.1) * 0.05;
     // The slap's cringe and jolt (slapPose) take over the head's tilt.
@@ -566,7 +665,64 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     g.tray.position.y = g.cup.position.y = tray;
     g.can.rotation.x = r.watering ? 0.7 + Math.sin(t * 3) * 0.1 : 0;
     // The antenna light blinks while it works, and slowly while it charges.
-    if (g.led.visible) g.led.scale.setScalar(r.plan === 'dock' ? 0.8 + 0.2 * Math.sin(t * 2) : Math.sin(t * 6) > 0 ? 1.1 : 0.9);
+    if (g.led.visible) {
+      const dj = r.arrived && r.party?.role === 'dj';
+      const beat = dj && Math.max(0, Math.cos(((r.party.clock?.() ?? t) / r.party.beat) * Math.PI * 2)) ** 4;
+      g.led.scale.setScalar(dj ? 0.9 + 0.5 * beat : r.plan === 'dock' ? 0.8 + 0.2 * Math.sin(t * 2) : Math.sin(t * 6) > 0 ? 1.1 : 0.9);
+    }
+  }
+
+  // A waffle party or a music night: it goes to a clear spot near `near` (clear of the `avoid`
+  // boxes and of the `crowd`, the points where people will stand), turns to `face`, and serves ('serve') or plays DJ ('dj', nodding every `beat`
+  // seconds of `clock()`, its antenna light in `color`) until leave(). It sets off after `settle`
+  // seconds and hurries to arrive within `hurry` seconds of that. `score` ranks clear spots (lower wins; nearest `near` by default). Not while
+  // it is broken or being fixed; false when it can't go.
+  function join({ role, near, face, avoid = [], crowd = [], settle = 0, hurry = 3, beat = 0.5, clock: beatClock = null, color = null, score = null }) {
+    const r = rec;
+    if (!r || r.fix || r.cause || !office.current) return false;
+    // The spot leaves room round where the `crowd` will stand, and the way there keeps clear of the
+    // `avoid` boxes (a cart the walk grid doesn't know about) and of the crowd: someone standing in
+    // a gap between desks can't be gone round.
+    const e = dockEntry();
+    const from = r.docked && e ? wayHome(e) : r.pos;
+    const cy = camYaw(), cam = { x: Math.sin(cy), z: Math.cos(cy) };
+    // In line with someone as the camera looks (within a body's width to the side, a few steps nearer
+    // or farther): one of them hides the other.
+    const inLine = (q, c) => { const dx = q.x - c.x, dz = q.z - c.z; return Math.abs(dx * cam.x + dz * cam.z) < 1.6 && Math.abs(dx * cam.z - dz * cam.x) < 0.5; };
+    const way = (q) => {
+      if (!crowd.every((c) => Math.hypot(c.x - q.x, c.z - q.z) >= KEEP_OFF_R + 0.15)) return 'crowded';
+      if (crowd.some((c) => inLine(q, c))) return 'in line with the crowd';
+      const pts = route({ x: from.x, z: from.z }, { x: q.x, z: q.z });
+      if (!pts) return 'no way there';
+      for (let i = 1; i < pts.length; i++) {
+        const a = pts[i - 1], b = pts[i], n = Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.15);
+        for (let k = 0; k <= n; k++) {
+          const p = { x: a.x + (b.x - a.x) * k / n, z: a.z + (b.z - a.z) * k / n };
+          if (!clearOf(p, avoid, ROBOT_R)) return 'through the cart';
+          if (crowd.some((c) => Math.hypot(c.x - p.x, c.z - p.z) < KEEP_OFF_R + 0.08)) return 'through the crowd';
+        }
+      }
+      return true;
+    };
+    const spot = openSpot({ x: near.x, z: near.z }, `party:${role}`, { radii: [0.3, 0.55, 0.8, 1.1, 1.5, 2], avoid, centerFirst: true, way,
+      score: score ?? ((q) => Math.hypot(q.x - near.x, q.z - near.z)) });
+    if (!spot) return false;
+    r.party = { role, hurry, beat, clock: beatClock, color, spot: { x: spot.x, z: spot.z, face } };
+    startPlan(`party:${role}`);
+    if (!r.stop) r.party = null;
+    // It sets off once the others have walked to their places, so it only has people standing
+    // still to go round, and no one walks into it on their way.
+    r.holdT = settle;
+    return !!r.party;
+  }
+
+  // The party is over: home to the dock, once the others have started back.
+  function leave() {
+    if (!rec?.party) return;
+    rec.party = null;
+    if (rec.cause || rec.fix) return;
+    startPlan('home');
+    rec.holdT = LEAVE_HOLD_S;
   }
 
   // Someone slaps it back to life: they walk up beside it and slap its head; it jolts, its eyes
@@ -648,14 +804,14 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
   }
 
   return {
-    sync, update, event, reset,
+    sync, update, event, reset, join, leave,
     // Read-only snapshot for scripts.
     peek() {
       if (!rec) return null;
       const last = rec.path.length ? rec.path[rec.path.length - 1] : null;
       return { plan: rec.plan, cause: rec.cause ?? null, docked: !!rec.docked, pos: [+rec.pos.x.toFixed(2), +rec.pos.z.toFixed(2)], yaw: +rec.yaw.toFixed(2), path: rec.path.length,
         target: last && { x: +last.x.toFixed(2), z: +last.z.toFixed(2) }, stop: rec.stop && { x: +rec.stop.x.toFixed(2), z: +rec.stop.z.toFixed(2), who: rec.stop.who?.id ?? null, desk: rec.stop.desk ?? null },
-        eyes: rec.eyes, fix: rec.fix && { fixer: rec.fix.who?.id ?? null, slapped: rec.fix.slapped }, cone: !!rec.rig.cone.parent, note: rec.rig.note.visible, googly: rec.rig.googly.visible };
+        party: rec.party?.role ?? null, settled: !!rec.arrived && !rec.path.length && (rec.faceYaw == null || Math.abs(Math.atan2(Math.sin(rec.yaw - rec.faceYaw), Math.cos(rec.yaw - rec.faceYaw))) < 0.15), partyFace: rec.party?.spot.face ? { x: rec.party.spot.face.x, z: rec.party.spot.face.z } : null, eyes: rec.eyes, fix: rec.fix && { fixer: rec.fix.who?.id ?? null, slapped: rec.fix.slapped }, cone: !!rec.rig.cone.parent, note: rec.rig.note.visible, googly: rec.rig.googly.visible };
     },
     // Test hook: start a plan now ('rounds', 'home', or 'broken:<cause>').
     force(plan) { if (!rec) return false; startPlan(plan); return true; },
