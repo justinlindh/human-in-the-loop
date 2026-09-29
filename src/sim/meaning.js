@@ -12,6 +12,7 @@ import { itemBonus } from './bonus.js';
 import { eraLines } from './eras.js';
 import { petComfort } from './ladder.js';
 import { purposeLift } from './purpose.js';
+import { robotRefusal } from './robot.js';
 
 const SIGHS = ['sigh', '...', 'meh', 'ugh', 'zzz', 'why'];
 
@@ -31,7 +32,8 @@ function weeklyMeaning(state, p) {
 
   if (liveProducts(state).some((pr) => pr.ownerId === p.id && pr.score >= 6)) bonus += B.meaningRecovery.owner;
   // Office comforts and decision modifiers scale the recovery people earn; craft Fridays is a flat policy bonus.
-  const comfort = Math.max(0, 1 + modifierBonus(state, 'meaningRecovery') + itemBonus(state, 'meaningRecovery') + petComfort(state) + B.purposeMeaning * purposeLift(state)
+  // Someone refusing the office robot's coffee on principle gets none of its share.
+  const comfort = Math.max(0, 1 + modifierBonus(state, 'meaningRecovery') + itemBonus(state, 'meaningRecovery') - robotRefusal(state, p) + petComfort(state) + B.purposeMeaning * purposeLift(state)
     + (state.policies.office_upkeep ? B.upkeepMeaningRecovery : 0));
   // Recovery slows near the top, so even well-cared-for people settle below 100.
   const ceiling = clamp((100 - p.meaning) / B.meaningCeilingBand, 0, 1);
