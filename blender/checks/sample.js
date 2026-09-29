@@ -185,7 +185,7 @@ function window_(R, S, C, { seconds, every, t0 = 0, quiet = false }) {
   const per = Math.round(PEOPLE_EVERY / DT);
   for (let i = 0; i <= n; i++) {
     // Drawn frames, as the game runs: the labels lay themselves out in render().
-    if (i) for (let f = 0; f < per; f++) { window.__step(1); if (!quiet) checkScreen(R, C, t0 + (i - 1) * PEOPLE_EVERY + (f + 1) * DT, track); }
+    if (i) for (let f = 0; f < per; f++) { window.__step(1); if (!quiet && !window.__noScreen) checkScreen(R, C, t0 + (i - 1) * PEOPLE_EVERY + (f + 1) * DT, track); }
     if (quiet) continue;
     const t = t0 + i * PEOPLE_EVERY;
     if (i % k === 0) checkFrame(R, C, t, memo);

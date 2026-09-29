@@ -1,5 +1,11 @@
 # Scripts that are modules or data for the tools, not tools themselves, so they need no toolkit
 # entry. One path per line, then what uses it. `npm run toolkit -- --check` reads this.
+blender/checks/node/scene.mjs           spike: a game scene in plain Node (no browser, GL or render slot)
+blender/checks/node/three-shim.mjs      spike: three.js with a stand-in WebGLRenderer, aliased in for the Node scene
+blender/checks/node/compare.mjs         spike: the sweep's mock sampler in Node
+blender/checks/node/compare-browser.mjs spike: the same sampler in the harness page, for comparison
+blender/checks/node/trace.mjs           spike: per-frame positions in Node or the page, to find where runs diverge
+blender/checks/node/bodies.mjs          spike: the sweep's bodies and people in Node or the page, for a diff
 blender/checks/harness.mjs        the page every render check runs in
 blender/checks/panels.js          the visible-panel reader play.mjs and onscreen.mjs share
 blender/checks/report.mjs         the report format stage.mjs and the sweep share
