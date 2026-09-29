@@ -48,6 +48,7 @@
 | Cynic | meaning recovery ×0.7, reliability ×1.15 | any |
 | Red Teamer | bug catching ×0.2, oversight ×1.2 | agents |
 | Natural Mentor | mentoring ×1.3, meaning recovery ×1.1 | any |
+| Percussive Maintenance | reliability ×1.05 | any |
 
 ## Training
 

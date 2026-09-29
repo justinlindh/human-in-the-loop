@@ -20,10 +20,12 @@ const TORSO_H = 0.30;
 const BUILD_W = [0.26, 0.3, 0.36];
 const SEAT_HIP_Y = 0.47;
 const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
+// Seconds into the slap anim when the hand lands (robot.js times the robot's jolt to it).
+export const SLAP_AT = 0.5;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'hide', 'flinch', 'pointscreen', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake', 'facepalm', 'facepalmsit', 'pet', 'fidget', 'dilemma',
-  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff', 'growthpump', 'growthpumpsit', 'growthclap', 'growthclapsit', 'rackfix'];
+  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff', 'growthpump', 'growthpumpsit', 'growthclap', 'growthclapsit', 'rackfix', 'slap'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
 // for the moment before the rig model has loaded.
 const ALWAYS_CLIP = /^dance_/;
@@ -653,6 +655,20 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.armRZ = -0.1; tgt.armLZ = 0.1;
         tgt.lean = -0.12 + e * 0.4;
         tgt.bodyY = -e * 0.03;
+        break;
+      }
+      case 'slap': {
+        // One firm open-handed slap across something at chest height in front (the office robot's
+        // head): the right hand winds up out to the side, sweeps across at SLAP_AT seconds, holds,
+        // and comes back down.
+        const w = Math.min(1, animT / SLAP_AT), wu = w * w * (3 - 2 * w);
+        const hit = Math.min(1, Math.max(0, (animT - SLAP_AT) / 0.12));
+        const back = Math.min(1, Math.max(0, (animT - SLAP_AT - 0.45) / 0.4));
+        tgt.armRX = -1.2 - wu * 1.1 + hit * 0.6 + back * 1.6;
+        tgt.armRZ = -0.12 + wu * 1.12 - hit * 1.5 + back * 0.5;
+        tgt.twist = -wu * 0.2 + hit * 0.35 - back * 0.15;
+        tgt.lean = 0.04 + hit * 0.1 - back * 0.1;
+        tgt.headX = 0.08;
         break;
       }
       case 'batswing': {

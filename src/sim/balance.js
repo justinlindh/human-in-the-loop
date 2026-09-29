@@ -75,6 +75,16 @@ export const B = {
   // The NOC (#342): Security staff for a full humans crew; the agents' catch multiplier, the chance they misread
   // an incident, and the weeks between switching modes.
   nocCrew: 3, nocAgentCatch: 1.5, nocMisreadChance: 0.15, nocSwitchWeeks: 26,
+  // The office robot (#178). Item effects live in items.js; these are its moods.
+  //   plantBoost: Potted Plant adjacency multiplier from level 2. breakChance: a week, x l3BreakMult at level 3.
+  //   grumbleFrom / sabotageFrom: automation share where grumbling and sabotage start; refuseExposure: how automated
+  //   someone's own job is before they refuse its coffee. sabotageChance: a week at full automation, scaled from
+  //   sabotageFrom; googlyMult once it has eyes. calmWeeks: no sabotage after a blameless meeting or a party.
+  //   fixesForTrait: slaps that earn Percussive Maintenance. fixMeaning: meaning for a same-week fix. grumbleChat / fondChat: a week, a line in #random.
+  robot: {
+    plantBoost: 1.25, breakChance: 0.02, l3BreakMult: 0.6, grumbleFrom: 0.3, sabotageFrom: 0.6, refuseExposure: 0.5,
+    sabotageChance: 0.04, googlyMult: 0.5, calmWeeks: 26, fixesForTrait: 2, fixMeaning: 2, grumbleChat: 0.08, fondChat: 0.03,
+  },
   ransomFloor: 10000, ransomCap: 400000, ransomCashShare: 0.2, ransomMrrMonths: 0.5, ransomMaxCashShare: 0.6,
   cyberGraceWeeks: 26, cyberBase: 0.006, cyberPerMrr: 0.00000004, cyberMax: 0.12,
   incidentCashPerSeverity: 4000, incidentCashYearGrowth: 0.3, outageMinSeverity: 3,

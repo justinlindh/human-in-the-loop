@@ -150,6 +150,7 @@ function normalize(state) {
   state.fame ??= 0;
   state.ops.noc ??= null;
   state.ops.nocSince ??= null;
+  state.robot ??= null;
   if (state.outage) {
     state.outage.misread ??= false;
     state.outage.responderIds ??= [];

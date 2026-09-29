@@ -21,7 +21,7 @@ OUT = 96
 OUTLINE = 9            # px at render size
 PAD = 0.05              # share of the frame left around the object
 
-ITEMS = ['espresso', 'plant_wall', 'nap_pod', 'arcade', 'standing_desk', 'whiteboard_wall', 'library',
+ITEMS = ['espresso', 'plant_wall', 'nap_pod', 'arcade', 'standing_desk', 'whiteboard_wall', 'library', 'office_robot',
          'monitoring_wall', 'server_rack', 'trophy_case']
 ITEM_LEVEL = 2
 # Flat objects read better from nearly in front than from the isometric angle: (yaw, pitch) degrees.
@@ -149,9 +149,23 @@ def outline(path):
     bpy.data.images.remove(img)
 
 
+# Items whose icon shows what the renderer adds to the model: another model's parts, placed at a
+# point in model space. The office robot parks on its dock's pad, carrying its tray and cup.
+RIDERS = {'office_robot': ('robot', (0, -0.1, 0.03), {'robot_cable', 'robot_can', 'robot_note', 'robot_googly', 'traffic_cone'})}
+
+
 def import_item(item):
     path = os.path.join(ROOT, 'public', 'models', f'{item}_l{ITEM_LEVEL}.glb')
     bpy.ops.import_scene.gltf(filepath=path)
+    if item in RIDERS:
+        model, at, drop = RIDERS[item]
+        before = set(bpy.data.objects)
+        bpy.ops.import_scene.gltf(filepath=os.path.join(ROOT, 'public', 'models', f'{model}.glb'))
+        for o in set(bpy.data.objects) - before:
+            if o.name.split('.')[0] in drop:
+                bpy.data.objects.remove(o, do_unlink=True)
+            elif o.parent is None:
+                o.location = (o.location[0] + at[0], o.location[1] + at[1], o.location[2] + at[2])
     # Glow slots render dark in a plain import; give them their emissive look.
     for m in bpy.data.materials:
         key = m.name.replace('pal_', '').split('.')[0]

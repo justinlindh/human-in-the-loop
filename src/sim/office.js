@@ -6,6 +6,7 @@ import { OFFICE_STAGES, officeShape } from '../data/office.js';
 import { B } from './balance.js';
 import { adjacencyLinks, itemBonus } from './bonus.js';
 import { eraAtLeast } from './eras.js';
+import { newRobot } from './state.js';
 
 const key = (x, y) => `${x},${y}`;
 
@@ -332,6 +333,7 @@ export function placeNow(ctx, itemId, spot) {
   state.flags.lastItemWeek = state.week;
   state.flags.lastItemId = itemId;
   if (itemId === 'desk') assignSeats(state);
+  if (itemId === 'office_robot') state.robot ??= newRobot();
   if (it.kind === 'shop') {
     ctx.emit({ type: 'toast', text: `New in the office: ${it.name}.`, tone: 'good' });
     emitChat(ctx, { channel: 'random', from: '@officebot', text: `The new ${it.name} has arrived. Please be nice to it.` });
@@ -394,6 +396,7 @@ registerAction('sellItem', (ctx, { id }) => {
   state.cash += refund;
   state.office.placed = state.office.placed.filter((p) => p !== placed);
   if (placed.itemId === 'desk') assignSeats(state);
+  if (placed.itemId === 'office_robot') state.robot = null;
   ctx.emit({ type: 'toast', text: `Sold the ${it.name} for $${refund.toLocaleString('en-US')}.`, tone: 'info' });
   return { ok: true };
 });

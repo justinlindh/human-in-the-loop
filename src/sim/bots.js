@@ -14,7 +14,7 @@ import { botProductName } from '../data/product-names.js';
 import { oversightRequired } from './automation.js';
 import { trendMods } from './projects.js';
 import { capacity } from './staff.js';
-import { deskCapacity, suggestPlacement, deskCap, findSpot, layoutOf, upgradeProblem } from './office.js';
+import { deskCapacity, suggestPlacement, deskCap, findSpot, layoutOf, upgradeProblem, purchaseProblem } from './office.js';
 import { scoreRun } from './endgame.js';
 import { comboFit } from '../data/combos.js';
 import { CATEGORIES } from '../data/categories.js';
@@ -522,6 +522,21 @@ function runNoc(s) {
   dispatch(s, { type: 'upgradeItem', id: noc.id });
 }
 
+// The careful bots and the all-in automator buy the office robot once the Agents era offers it, on the same
+// tenth-of-the-bank rule; the automator is the one whose staff come to resent it.
+const ROBOT_BOTS = new Set(['balanced', 'sensible', 'automateAll']);
+function runRobot(s) {
+  const robot = s.office.placed.find((p) => p.itemId === 'office_robot');
+  const costs = ITEMS.office_robot.costs;
+  if (!robot) {
+    if (s.cash < 10 * costs[0] || purchaseProblem(s, 'office_robot')) return;
+    const spot = findSpot(layoutOf(s), s.office.placed, 'office_robot');
+    if (spot) dispatch(s, { type: 'placeItem', itemId: 'office_robot', ...spot });
+    return;
+  }
+  if (robot.level < costs.length && s.cash >= 10 * costs[robot.level]) dispatch(s, { type: 'upgradeItem', id: robot.id });
+}
+
 export function botDecide(name, s, { onEvents = null } = {}) {
   const prev = sink;
   sink = onEvents;
@@ -565,6 +580,7 @@ export function botTurn(name, s, { onEvents = null } = {}) {
     furnish(s);
     if (name !== 'recklessHumans') decorate(s);
     if (NOC_BOTS.has(name)) runNoc(s);
+    if (ROBOT_BOTS.has(name)) runRobot(s);
     answerPrompts(name, s);
     for (const a of BOTS[name](s)) dispatch(s, a);
   } finally {

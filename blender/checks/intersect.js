@@ -60,6 +60,12 @@ function propKind(obj) {
   return 'fxProp';
 }
 
+// A mesh drawn now: it and every parent visible.
+function shown(o) {
+  for (let x = o; x; x = x.parent) if (!x.visible) return false;
+  return true;
+}
+
 // Every solid body now in the office. Items still popping in, sliding, or shrinking away are left
 // out: they are mid-animation, not placed.
 export function bodies(R) {
@@ -77,6 +83,9 @@ export function bodies(R) {
   }
   for (const [k, w] of Object.entries(cur.walls ?? {})) out.push({ key: `wall:${k}`, kind: 'wall', label: `wall_${k}`, obj: w, meshes: solidMeshes(w) });
   if (cur.columnSet?.group) out.push({ key: 'columns', kind: 'column', label: 'columns', obj: cur.columnSet.group, meshes: solidMeshes(cur.columnSet.group) });
+  // The office robot, with only the parts it shows now (its spare can, cable and cone hide).
+  const bot = R.robot?.root;
+  if (bot?.parent && bot.visible) out.push({ key: 'robot', kind: 'robot', label: 'robot', obj: bot, meshes: solidMeshes(bot).filter(shown) });
   for (const b of out) {
     b.obj.updateMatrixWorld(true);
     b.box = new THREE.Box3();
@@ -344,25 +353,42 @@ export function crossOverlaps(as, bs, opts = {}) {
   return overlaps([...as, ...bs], { ...opts, skip: (A, B) => (tag.has(A) === tag.has(B)) || (opts.skip?.(A, B) ?? false) });
 }
 
+// The robot drives among furniture, so any crossing of its surface with something standing above
+// the floor plates counts; rugs and pads it rolls over do not. A touch() rule for overlaps().
+const PLATE_H = 0.15;
+export function robotTouch(A, B, ba, bb) {
+  if (A.kind === 'robot') return bb.max.y > PLATE_H;
+  if (B.kind === 'robot') return ba.max.y > PLATE_H;
+  return false;
+}
+
 // Pairs of bodies that interpenetrate by more than `tol` metres. skip(a, b) leaves out pairs that
-// are not to be compared at all (wall against wall).
-export function overlaps(list, { tol = 0.01, skip = () => false } = {}) {
+// are not to be compared at all (wall against wall). touch(A, B, boxA, boxB) marks mesh pairs where
+// any surface crossing counts, however shallow: a thin slab through a mesh leaves no vertex inside
+// either, so such a pair reads at least the thinnest side of the two meshes' shared box.
+export function overlaps(list, { tol = 0.01, skip = () => false, touch = () => false } = {}) {
   const out = [];
   for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
     const A = list[i], B = list[j];
     if (skip(A, B) || !A.box.intersectsBox(B.box)) continue;
-    let depth = 0, at = null;
+    let depth = 0, at = null, crossed = false;
     const parts = [];
     for (const a of A.meshes) for (const b of B.meshes) {
       const ba = a.geometry.boundingBox.clone().applyMatrix4(a.matrixWorld), bb = b.geometry.boundingBox.clone().applyMatrix4(b.matrixWorld);
       if (!ba.intersectsBox(bb) || !touching(a, b)) continue;
       let rs = [depthInto(a, b), depthInto(b, a)];
       if (Math.max(rs[0].depth, rs[1].depth) <= tol) rs = [crossReach(a, b)];
-      const d = Math.max(...rs.map((r) => { if (r.depth > depth) { depth = r.depth; at = r.at; } return r.depth; }));
-      if (d > tol) parts.push({ a: partName(a), b: partName(b), depth: d });
+      let d = Math.max(...rs.map((r) => { if (r.depth > depth) { depth = r.depth; at = r.at; } return r.depth; }));
+      if (touch(A, B, ba, bb)) {
+        const s = ba.clone().intersect(bb), size = s.getSize(new THREE.Vector3());
+        d = Math.max(d, Math.min(size.x, size.y, size.z));
+        if (d > depth) { depth = d; at = s.getCenter(new THREE.Vector3()); }
+        crossed = true;
+        parts.push({ a: partName(a), b: partName(b), depth: d });
+      } else if (d > tol) parts.push({ a: partName(a), b: partName(b), depth: d });
     }
     parts.sort((x, y) => y.depth - x.depth);
-    if (depth > tol) out.push({ a: A, b: B, depth, at, parts });
+    if (depth > tol || crossed) out.push({ a: A, b: B, depth, at, parts });
   }
   return out;
 }
