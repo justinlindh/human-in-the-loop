@@ -16,9 +16,25 @@ import { startHarness } from './harness.mjs';
 import { createReport } from './report.mjs';
 import { inputHash, passedAt, recordPass } from './cache.mjs';
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { touchedSpecs } from './stage-touched.js';
 
 const args = process.argv.slice(2);
-const ONLY = args.find((a) => a.startsWith('--only='))?.slice(7).split(',');
+let ONLY = args.find((a) => a.startsWith('--only='))?.slice(7).split(',');
+// --touched[=<base>]: only the specs this checkout adds or changes against <base> (default origin/main), and
+// the specs of any scenario whose setup changed. --only alone cannot skip a spec it does not name, so a new
+// spec is not left unrun by listing the old ones.
+const touchedArg = args.find((a) => a === '--touched' || a.startsWith('--touched='));
+if (touchedArg) {
+  const base = touchedArg.split('=')[1] || 'origin/main';
+  let baseText;
+  try { baseText = execFileSync('git', ['show', `${base}:blender/checks/stage.mjs`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 26 }); } catch { console.error(`stage: cannot read blender/checks/stage.mjs at "${base}" (git show failed)`); process.exit(2); }
+  const touched = touchedSpecs(baseText, readFileSync(fileURLToPath(import.meta.url), 'utf8'));
+  if (!touched.size) { console.log(`stage: no spec added or changed against ${base}`); process.exit(0); }
+  for (const [k, why] of touched) console.log(`stage: touched ${k} (${why})`);
+  ONLY = [...new Set([...(ONLY ?? []), ...touched.keys()])];
+}
 const OUT = args.includes('--out') ? args[args.indexOf('--out') + 1] : 'shots/stage/report.json';
 const FPS = 30;
 
@@ -301,6 +317,10 @@ for (const n of new Set(Object.values(SPECS).flatMap((sp) => sp.rules.map((r) =>
   } catch {
     console.log(`stage: could not read issue #${n} (gh unavailable?); its known rules count as open`);
   }
+}
+// A name that matches no spec would run nothing and read as a pass.
+for (const o of ONLY ?? []) {
+  if (!Object.keys(SPECS).some((k) => k === o || k.startsWith(`${o}.`))) { console.error(`stage: --only "${o}" matches no spec (specs: ${Object.keys(SPECS).join(', ')})`); process.exit(2); }
 }
 const rep = createReport('stage');
 // A full pass is recorded against a hash of every input (cache.mjs); unchanged inputs skip the run.

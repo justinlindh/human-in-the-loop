@@ -80,6 +80,22 @@ describe('sweep --engine', () => {
     expect(r.stdout).toMatch(/mock:night 0 violation/);
   }, 260000);
 
+  it('replays one state from a report in seconds, and refuses an indexed moment', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'sweep-replay-'));
+    const v = (state) => ({ check: 'person', key: 'person|a|b', state, states: [state], a: 'a', b: 'b', value: 0.1 });
+    const write = (name, report) => { const f = join(dir, name); writeFileSync(f, JSON.stringify({ mode: 'fast', ...report })); return f; };
+    const t0 = Date.now();
+    let r = spawnSync(process.execPath, [script('blender/checks/sweep.mjs'), '--engine', '--replay', write('seed.json', { windows: [], violations: [v('seed:1:w5')] }), '--out', join(dir, 'out')], { encoding: 'utf8', timeout: 120000 });
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toMatch(/seed:1 played to week 6; windows: w5/);
+    expect(r.stdout).toMatch(/replay: 0 of 1 reported violation\(s\) still present, 1 gone/);
+    expect(Date.now() - t0).toBeLessThan(60000);
+    r = spawnSync(process.execPath, [script('blender/checks/sweep.mjs'), '--engine', '--replay', write('event.json', { windows: [{ state: 'event:x:s1', query: 'printer_jam' }], violations: [v('event:x:s1')] }), '--out', join(dir, 'out2')], { encoding: 'utf8', timeout: 120000 });
+    expect(r.status).toBe(2);
+    expect(r.stderr).toMatch(/cannot replay an indexed moment/);
+    rmSync(dir, { recursive: true, force: true });
+  }, 200000);
+
   it('refuses the runs it does not do yet', () => {
     const r = spawnSync(process.execPath, [script('blender/checks/sweep.mjs'), '--engine', '--moments', 'printer_jam'], { encoding: 'utf8', timeout: 60000 });
     expect(r.status).toBe(2);
