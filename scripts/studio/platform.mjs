@@ -34,10 +34,15 @@ export function installPlatform(root, { quality = 'low', rig = false } = {}) {
   g.document = { createElement: tag => new Element(tag), createElementNS: (_, tag) => new Element(tag),
     getElementById: () => null, querySelector: () => null, querySelectorAll: () => [],
     addEventListener: noop, hidden: false, fonts: { check: () => true, load: async () => [], ready: Promise.resolve(), addEventListener: noop } };
+  g.document.defaultView = g;
   g.document.body = new Element(); g.document.head = new Element(); g.document.documentElement = new Element();
   g.innerWidth = 1600; g.innerHeight = 1000; g.devicePixelRatio = 1;
   g.location = { search: `?snap=1&quality=${quality}&rig=${rig ? 1 : 0}`, href: 'http://scene.invalid/' };
-  g.addEventListener = noop; g.removeEventListener = noop;
+  // Events the game dispatches on window (the spotlight, sounds) reach the checks that listen for them.
+  const listeners = new Map();
+  g.addEventListener = (type, fn) => { if (!listeners.has(type)) listeners.set(type, new Set()); listeners.get(type).add(fn); };
+  g.removeEventListener = (type, fn) => { listeners.get(type)?.delete(fn); };
+  g.dispatchEvent = (event) => { for (const fn of [...(listeners.get(event.type) ?? [])]) fn(event); return true; };
   g.matchMedia = () => ({ matches: false, addEventListener: noop, removeEventListener: noop });
   g.ResizeObserver = class { observe() {} disconnect() {} };
   g.Image = class extends Element { constructor() { super('img'); } set src(value) { this.source = value; } };

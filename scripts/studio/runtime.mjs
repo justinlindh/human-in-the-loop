@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 // A stand lasts the whole scene (Infinity does not serialize in a sample).
 const HOLD_S = 1e9;
 
-export async function createRuntime({ state, mock = 'floor', quality = 'low', rig = false, traceRandom = false, initialPerkDelay, script = [] } = {}) {
+export async function createRuntime({ state, mock = 'floor', quality = 'low', rig = false, traceRandom = false, initialPerkDelay, script = [], initialSync = true } = {}) {
   const clock = installPlatform(fileURLToPath(new URL('../../', import.meta.url)), { quality, rig });
   installLoader({ initialPerkDelay });
   const { createRenderer } = await import('../../src/render/index.js');
@@ -28,8 +28,11 @@ export async function createRuntime({ state, mock = 'floor', quality = 'low', ri
     const random = Math.random;
     Math.random = () => { const value = random(); randomTrace.push({ t: performance.now(), value, stack: new Error().stack.split('\n').slice(2, 7).join('\n') }); return value; };
   }
-  R.sync(S);
-  if (S.pendingDecision) R.handleEvents([{ type: 'decision' }], S);
+  // A caller that steps the renderer itself (the clip host) starts from the unsynced scene the browser page has.
+  if (initialSync) {
+    R.sync(S);
+    if (S.pendingDecision) R.handleEvents([{ type: 'decision' }], S);
+  }
   let frame = 0;
   const advance = () => { clock.tick(); R.sync(S); R.render(1 / 30, { draw: false }); };
 
@@ -84,7 +87,7 @@ export async function createRuntime({ state, mock = 'floor', quality = 'low', ri
     }
   };
   applyScript(0);
-  return { R, S, randomTrace, get frame() { return frame; }, applyScript,
+  return { R, S, randomTrace, clock, get frame() { return frame; }, applyScript,
     stepTo(target) {
       if (!Number.isInteger(target) || target < frame) throw new Error('scene-engine: frames must increase; open a fresh scene to rewind');
       while (frame < target) { advance(); frame++; applyScript(frame); }
