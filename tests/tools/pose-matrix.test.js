@@ -163,6 +163,13 @@ describe('pose.mjs --matrix', () => {
     expect(run(...v3.map((a) => (a.startsWith('views') ? `${a},side=1` : a))).status).toBe(1);
   });
 
+  it('a sweep whose every value errors passes nothing and exits non-zero', () => {
+    const r = run(...base, '--sweep', 'NO_SUCH_PARAM.x=0.05,0.12');
+    expect(r.status).toBe(2);
+    expect(r.stdout).toContain('error:');
+    expect(r.stdout).toContain('SWEEP passing every cell: none');
+  });
+
   it('needs a gesture and a measure', () => {
     expect(run('--matrix', 'views=0', '--measure', 'faceCam').status).toBe(2);
     expect(run('--gesture', 'facepalm', '--matrix', 'views=0').status).toBe(2);

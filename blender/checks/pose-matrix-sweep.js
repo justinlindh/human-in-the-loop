@@ -109,7 +109,7 @@ export async function runMatrixSweep(argv, script) {
     if (s[0].spread > 0) console.log(`SWEEP moves the pass count most: ${s.map((x) => `${x.name} (${Number(x.spread.toFixed(2))})`).join(', ')}`);
     else console.log('SWEEP no swept param changes the pass count');
   }
-  const good = rows.filter((r) => r.pass === r.total).map((r) => label(r.c));
+  const good = rows.filter((r) => !r.error && r.pass === r.total).map((r) => label(r.c));
   console.log(`SWEEP passing every cell: ${good.length ? good.join(' | ') : 'none'}`);
   return rows.some((r) => r.error) ? 2 : good.length ? 0 : 1;
 }
