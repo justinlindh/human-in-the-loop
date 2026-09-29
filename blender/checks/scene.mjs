@@ -7,6 +7,7 @@
 //                                        from its snapshot: the state just before it
 //   --patch '<json>'                     applied to the state after warm-up (see applyPatch)
 //   --pre '<json>'                       applied before warm-up (the "before" state)
+//   --param [file:]NAME[idx]=value       override a module-level const in game code for this run (see param.js)
 //   --patch-js '<js>'                    statements run with S (the state) and R (the renderer) at patch time
 //   --event '<json>'                     an event or list of events handed to the renderer with --patch
 //   --focus x,y,z [--zoom Z]             ease the camera onto a world point
@@ -29,6 +30,7 @@
 // becomes { id, since }, props: [...] sets office.props, placed: [...] replaces office.placed, and
 // place: [...] adds to it.
 import { startHarness } from './harness.mjs';
+import { paramSpecs, resolveParams } from './param.js';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
 import { writeFileSync, mkdirSync, rmSync, existsSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -137,7 +139,9 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const o = parse(process.argv.slice(2));
   if (!o.out) { console.error('scene: --out is required'); process.exit(2); }
   const kill = setTimeout(() => { console.error(`scene: timed out after ${o.timeout} s`); process.exit(124); }, o.timeout * 1000);
-  const H = await startHarness({ gpu: o.gpu });
+  let params = [];
+  try { params = resolveParams(paramSpecs(process.argv.slice(2)), process.cwd()); } catch (e) { console.error(e.message); process.exit(2); }
+  const H = await startHarness({ gpu: o.gpu, params });
   try {
     const { images, errors, report } = await renderScene(H, o);
     if (report !== undefined) console.log(`scene: report ${JSON.stringify(report)}`);
