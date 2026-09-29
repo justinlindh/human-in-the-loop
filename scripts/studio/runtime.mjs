@@ -68,7 +68,17 @@ export async function createRuntime({ state, mock = 'floor', quality = 'low', ri
     for (let n = 0; n < (moment ? 30 : 45); n++) advance();
     // The game's own staging: what checks.js setupRobotFix does once the robot has settled. The fix event
     // makes the game pick the spot, walk the fixer there and slap; frame 0 is that event.
-    if (moment) {
+    if (moment?.name === 'music_night') {
+      // What checks.js setupRobotParty does: the incentive event the game raises, with the dancers chosen.
+      R.perks.hold = true; S.pendingDecision = null;
+      S.robot = { ...S.robot, status: 'ok', cause: null };
+      const ids = S.staff.filter((p) => p.mood !== 'away' && !p.remote).map((p) => p.id);
+      const organiser = moment.organiser ?? ids[0];
+      if (!organiser) throw new Error('scene-engine: compose moment: nobody free to organise the music night');
+      const dancers = moment.dancers ?? ids.filter((id) => id !== organiser).slice(0, 3);
+      R.handleEvents([{ type: 'incentive', staffId: organiser, reward: 'music_night', genre: moment.genre, dancers }], S);
+      R.sync(S);
+    } else if (moment) {
       R.perks.hold = true; S.pendingDecision = null;
       const rp = R.robot.root.position;
       const far = (id) => { const w = R.walkOf(id); return w?.goal ? Math.hypot(w.goal.x - rp.x, w.goal.z - rp.z) : Infinity; };

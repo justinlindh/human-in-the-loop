@@ -34,6 +34,8 @@ The slap as the game stages it: the game's own fix event runs at frame 0, so the
 
 Its fixer's right hand reaches within 0.0086 m of the robot head box (the hand point in `person.hands[1]` against the union of the `robot_head` part bounds), which is the `robotContact` `stage.mjs` reads (about 0.008 m) against its 0.06 m rule; the hand-placed slap above is a set-up for looking at the geometry, not a reproduction of the game's slap. `person.hands` carries the two hand points the staging probe uses.
 
+A music night: `{ "moment": "music_night", "genre": "corporate_synthwave", "organiser": "s1", "dancers": ["s2", "s3", "s4"] }` (every key but `moment` optional; `scripts/studio/examples/music-night.json`) raises the incentive event the game raises for one at frame 0, as `checks.js` `setupRobotParty` does: the robot leaves its dock to DJ and the dancers dance. Defaults are the first free person as organiser and the next three as dancers, so the file names people only when a case needs particular ones; it needs a robot (the dock) and refuses a `fixer`.
+
 A seated facepalm beside a monitoring wall:
 
 ```json

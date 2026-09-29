@@ -1,0 +1,6 @@
+{ "base": "floor", "era": "agents",
+  "keep": ["office", "staff"],
+  "robot": { "at": [4, 11], "level": 2 },
+  "moments": [
+    { "moment": "music_night" }
+  ] }
