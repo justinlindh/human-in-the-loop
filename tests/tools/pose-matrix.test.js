@@ -20,6 +20,12 @@ describe('pose matrix parsing', () => {
     expect(() => parseMatrix('side=2')).toThrow(/side/);
   });
 
+  it('defaults the slap to the side-on views and one posture, and lets a view list override', () => {
+    expect(cellsOf(parseMatrix('', 'slap'))).toHaveLength(2 * 1 * 3 * 2);
+    expect(parseMatrix('views=1,3', 'slap').views).toEqual([1, 3]);
+    expect(parseMatrix('postures=lie', 'slap').postures).toEqual(['stand']);
+  });
+
   it('expands all and lists, one cell per combination', () => {
     const a = parseMatrix('views=all,postures=stand,sit,builds=0,2,rig=on');
     expect(a).toMatchObject({ views: [0, 1, 2, 3], postures: ['stand', 'sit'], builds: [0, 2], rig: ['on'], accessory: ['none'] });

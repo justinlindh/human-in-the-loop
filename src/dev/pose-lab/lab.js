@@ -213,7 +213,7 @@ async function runGrid() {
   matrixBusy = true;
   const s = $('mxstat');
   try {
-    const axes = PM.parseMatrix(state.mxAxes), measures = [];
+    const axes = PM.parseMatrix(state.mxAxes, state.gesture), measures = [];
     const rules = state.mxRules.split('\n').map((x) => x.trim()).filter(Boolean).map((r) => PM.parseRule(r, measures));
     const n = PM.cellsOf(axes).length;
     let done = 0;

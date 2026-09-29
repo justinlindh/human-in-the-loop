@@ -357,7 +357,7 @@ try {
     const measures = String(opt('measure', '')).split(',').map((s) => s.trim()).filter(Boolean);
     const rules = all('expect').map((r) => X.parseRule(r, measures));
     if (!measures.length) throw new Error('pose: --matrix needs --measure <m1,m2> (e.g. coverHandEyeNear,faceCam,clearance)');
-    const axes = X.parseMatrix(opt('matrix'));
+    const axes = X.parseMatrix(opt('matrix'), OPTS.gesture);
     const result = await X.runMatrix({ playPose: P.playPose, gesture: OPTS.gesture, axes, measures, rules, seconds: OPTS.seconds, warm: OPTS.warm, fps: OPTS.fps });
     for (const l of X.formatMatrix(result, rules, OPTS.gesture)) console.log(l);
     if (opt('json')) writeFileSync(opt('json'), JSON.stringify(result, null, 1));
