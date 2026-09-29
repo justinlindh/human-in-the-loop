@@ -36,6 +36,9 @@ const DOOR_SPREAD = 0.45;      // how far apart people leaving by the door head 
 const WAVE_S = 1.1;            // someone leaving waves goodbye this long before heading out
 const LEAVE_SPEED = 1.0;       // and walks to the door at this speed
 const ENTER_S = 0.7;           // sliding from the front of a couch or chair onto the spot
+const PERSON_GAP = 0.45;       // two people's centres nearer than this overlap
+const STEP_WAIT_S = 0.4;       // how long someone waits before trying to step out again
+const STEP_WAITS = 6;          // and how many times
 const EXIT_NEAR_M = 0.5;       // how much further than its exit side from an item someone leaving it may be (nearExit)
 const LIE_ANIMS = new Set(['nap', 'lie', 'sprawl']);
 const RUN = 2.8;
@@ -314,6 +317,12 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const c = office.placed.get(itemId)?.target;
     if (!c) return false;
     return Math.hypot(r.pos.x - c.x, r.pos.z - c.z) < Math.hypot(side.x - c.x, side.z - c.z) + EXIT_NEAR_M;
+  }
+
+  // Whether anyone else stands within PERSON_GAP of the point someone would step out to.
+  function stepOutTaken(r, q) {
+    for (const o of recs.values()) if (o !== r && !o.hidden && Math.hypot(o.pos.x - q.x, o.pos.z - q.z) < PERSON_GAP) return true;
+    return false;
   }
 
   function teleport(r, goal) {
@@ -1084,9 +1093,18 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         tp.t -= dt;
         if (!tp.tick?.(r, dt, tp)) c.setAnim(tp.anim);
         if (tp.goal && !tp.keepPos) r.yaw = angleLerp(r.yaw, r.face?.yaw ?? tp.goal.yaw, 1 - Math.exp(-dt * 6));
+        // Someone standing where they would step out to: they wait at the spot a moment longer (a
+        // few times at most, so someone who stays there can't hold them for good).
+        if (tp.t <= 0 && tp.stepOut && (tp.waited ?? 0) < STEP_WAITS && stepOutTaken(r, tp.stepOut)) { tp.t = STEP_WAIT_S; tp.waited = (tp.waited ?? 0) + 1; }
         if (tp.t <= 0) {
           r.temp = null;
           if (tp.back && r.goal) walkTo(r, r.goal);
+          // From a use spot in front of an item, straight back out first, then onward: never along
+          // the item's front past whoever stands at its other spot.
+          if (tp.stepOut && tp.goal && Math.hypot(r.pos.x - tp.goal.x, r.pos.z - tp.goal.z) < 0.3 && r.path.length) {
+            const q = tp.stepOut;
+            r.path = [{ x: q.x, z: q.z }, ...office.nav().path(q, r.path[r.path.length - 1]).slice(1)];
+          }
           // Off the furniture the way they got on: back to the side they came from, then onward.
           if (tp.enter?.side && nearExit(r, tp.enter.side, tp.enter.item)) {
             const side = tp.enter.side;

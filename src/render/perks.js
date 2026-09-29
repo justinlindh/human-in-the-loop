@@ -15,8 +15,9 @@ const chance = () => draw('perks');
 
 // Spots are in the item's local frame (origin at the footprint center, front toward +z).
 // face: 'item' looks at the item, 'front' faces the way the item faces, 'axis' lies along it.
+// stepIn: the spot is walked into, and out of, straight from this far in front of it.
 const PERKS = {
-  coffee: { cap: 2, anim: 'sip', dur: [5, 8], weight: 3, spots: (f) => [[-0.35, f.h / 2 + 0.5], [0.35, f.h / 2 + 0.5]], face: 'item' },
+  coffee: { cap: 2, anim: 'sip', dur: [5, 8], weight: 3, spots: (f) => [[-0.45, f.h / 2 + 0.5], [0.45, f.h / 2 + 0.5]], face: 'item', stepIn: 0.55 },
   nap_pod: { cap: 1, anim: 'lie', dur: [9, 15], weight: 1.4, rest: true, spots: () => [[0, 0]], face: 'axis', emote: 'zzz' },
   couch: { cap: 2, anim: 'sit', dur: [7, 12], weight: 1.4, rest: true, spots: () => [[-0.4, 0.05], [0.4, 0.05]], face: 'front' },
   arcade: { cap: 1, anim: 'play', dur: [7, 11], weight: 1.5, spots: (f) => [[0, f.h / 2 + 0.45]], face: 'item', bursts: true },
@@ -139,6 +140,10 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     if (a) {
       r.temp.enter = { from: null, t: 0, side: { x: a.x, z: a.z }, item: e.id };
       walkTo(r, { x: a.x, z: a.z, yaw: spot.yaw });
+    } else if (r.temp.stepOut) {
+      const q = r.temp.stepOut;
+      walkTo(r, { x: q.x, z: q.z, yaw: spot.yaw });
+      r.path.push({ x: spot.x, z: spot.z });
     } else {
       walkTo(r, spot);
     }
@@ -255,6 +260,11 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
       anim, t: rnd(...def.dur), goal: spot, back: true, wander: true, perkKey: key,
       lift: lying ? lieHeight(e) : spot.lift ?? 0, tick: perkTick, def, burstT: rnd(2, 4), emoteT: rnd(1, 3),
     };
+    // A spot beside another at the item's front is walked into and out of straight from its front.
+    if (def.stepIn) {
+      const q = { x: spot.x + Math.sin(e.target.rotY) * def.stepIn, z: spot.z + Math.cos(e.target.rotY) * def.stepIn };
+      if (!office.nav().isBlocked(q.x, q.z)) r.temp.stepOut = q;
+    }
     walkToSpot(r, e, spot);
   }
 
