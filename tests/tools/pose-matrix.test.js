@@ -20,6 +20,12 @@ describe('pose matrix parsing', () => {
     expect(() => parseMatrix('side=2')).toThrow(/side/);
   });
 
+  it('defaults the slap to the side-on views and one posture, and lets a view list override', () => {
+    expect(cellsOf(parseMatrix('', 'slap'))).toHaveLength(2 * 1 * 3 * 2);
+    expect(parseMatrix('views=1,3', 'slap').views).toEqual([1, 3]);
+    expect(parseMatrix('postures=lie', 'slap').postures).toEqual(['stand']);
+  });
+
   it('expands all and lists, one cell per combination', () => {
     const a = parseMatrix('views=all,postures=stand,sit,builds=0,2,rig=on');
     expect(a).toMatchObject({ views: [0, 1, 2, 3], postures: ['stand', 'sit'], builds: [0, 2], rig: ['on'], accessory: ['none'] });
@@ -161,6 +167,13 @@ describe('pose.mjs --matrix', () => {
     const v3 = ['--gesture', 'facepalm', '--matrix', 'views=3,postures=stand,builds=1,rig=on', '--measure', 'coverHandEyeNear,faceCam', '--expect', 'coverHandEyeNear>=0.5@0.7 if faceCam<=80'];
     expect(run(...v3).status).toBe(0);
     expect(run(...v3.map((a) => (a.startsWith('views') ? `${a},side=1` : a))).status).toBe(1);
+  });
+
+  it('a sweep whose every value errors passes nothing and exits non-zero', () => {
+    const r = run(...base, '--sweep', 'NO_SUCH_PARAM.x=0.05,0.12');
+    expect(r.status).toBe(2);
+    expect(r.stdout).toContain('error:');
+    expect(r.stdout).toContain('SWEEP passing every cell: none');
   });
 
   it('needs a gesture and a measure', () => {

@@ -11,7 +11,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-const SPEC = /^(?:(.+?):)?([A-Za-z_$][\w$]*)(?:\[(\d+)\])?=(.+)$/s;
+const SPEC = /^(?:(.+?):)?([A-Za-z_$][\w$]*)(?:\[(\d+)\]|\.([A-Za-z_$][\w$]*))?=(.+)$/s;
 
 const headRe = (name) => new RegExp(`^(?:export\\s+)?const\\s+${name.replace(/\$/g, '\\$')}\\s*=\\s*`, 'm');
 
@@ -49,8 +49,8 @@ function* jsFiles(dir) {
 export function resolveParams(specs, root) {
   return specs.map((spec) => {
     const m = SPEC.exec(spec);
-    if (!m) throw new Error(`param: can't read "${spec}" (want [file:]NAME[index]=value)`);
-    const [, file, name, index, value] = m;
+    if (!m) throw new Error(`param: can't read "${spec}" (want [file:]NAME[index]=value or NAME.key=value)`);
+    const [, file, name, index, key, value] = m;
     if (/[\n]/.test(value) || value.includes(';')) throw new Error(`param: the value of ${name} can't hold a newline or a semicolon`);
     const has = (f) => headRe(name).test(readFileSync(f, 'utf8'));
     const candidates = file ? [resolve(root, file)] : [...jsFiles(join(root, 'src'))].filter(has);
@@ -59,8 +59,9 @@ export function resolveParams(specs, root) {
     let text;
     try { text = readFileSync(candidates[0], 'utf8'); } catch { throw new Error(`param: can't read ${file}`); }
     if (!headRe(name).test(text)) throw new Error(`param: no top-level "const ${name} =" found in ${file}`);
-    applyParams(text, [{ file: candidates[0], name, index: index === undefined ? null : Number(index), value }]);
-    return { file: candidates[0], name, index: index === undefined ? null : Number(index), value };
+    const p = { file: candidates[0], name, index: index === undefined ? null : Number(index), ...(key === undefined ? {} : { key }), value };
+    applyParams(text, [p]);
+    return p;
   });
 }
 
@@ -71,30 +72,35 @@ export function paramSpecs(argv) {
 
 export function applyParams(code, params) {
   let out = code;
-  for (const p of [...params].sort((a, b) => (a.index === null ? 0 : 1) - (b.index === null ? 0 : 1))) {
+  const whole = (p) => p.index === null && p.key === undefined;
+  for (const p of [...params].sort((a, b) => (whole(a) ? 0 : 1) - (whole(b) ? 0 : 1))) {
     const span = valueSpan(out, p.name);
     if (!span) throw new Error(`param: can't find where ${p.name}'s declaration ends (does it end in a semicolon?)`);
     if (/\n(?:const|let|var|function|export|import|class)\b/.test(out.slice(span.start, span.end))) throw new Error(`param: can't find where ${p.name}'s declaration ends (does it end in a semicolon?)`);
-    if (p.index === null) { out = `${out.slice(0, span.start)}${p.value}${out.slice(span.end)}`; continue; }
+    if (whole(p)) { out = `${out.slice(0, span.start)}${p.value}${out.slice(span.end)}`; continue; }
     const eol = out.indexOf('\n', span.end);
     const at = eol < 0 ? out.length : eol;
-    out = `${out.slice(0, at)}\n${p.name}[${p.index}] = ${p.value};${out.slice(at)}`;
+    out = `${out.slice(0, at)}\n${p.name}${p.key === undefined ? `[${p.index}]` : `.${p.key}`} = ${p.value};${out.slice(at)}`;
   }
   return out;
 }
 
-// The numeric top-level consts of a file, as { name, value } where value is a number or an array of
-// numbers: what --param can reach and a slider can drive. Anything else (objects, strings, calls) is left out.
+// The numeric top-level consts of a file, as { name, value } where value is a number, an array of
+// numbers, or an object of its numeric members (a flat `{ aside: 0.12, radii: [...] }`, reached as
+// NAME.aside): what --param can reach and a slider can drive. Anything else (strings, calls) is left out.
 export function listConsts(code) {
   const out = [];
   for (const m of code.matchAll(/^(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=\s*/gm)) {
     const span = valueSpan(code, m[1]);
     if (!span || span.head !== m.index) continue;
-    const text = code.slice(span.start, span.end).trim();
-    if (!/^[-+\d.eE,\s[\]]+$/.test(text)) continue;
+    let text = code.slice(span.start, span.end).trim();
+    const isObject = /^\{[\w$\s:,.[\]+-]*\}$/.test(text);
+    if (!isObject && !/^[-+\d.eE,\s[\]]+$/.test(text)) continue;
+    if (isObject) text = text.replace(/([A-Za-z_$][\w$]*)\s*:/g, '"$1":');
     try {
-      const value = JSON.parse(text);
-      if (typeof value === 'number' || (Array.isArray(value) && value.length && value.every((v) => typeof v === 'number'))) out.push({ name: m[1], value });
+      let value = JSON.parse(text);
+      if (isObject) { value = Object.fromEntries(Object.entries(value).filter(([, v]) => typeof v === 'number')); if (!Object.keys(value).length) continue; }
+      if (typeof value === 'number' || isObject || (Array.isArray(value) && value.length && value.every((v) => typeof v === 'number'))) out.push({ name: m[1], value });
     } catch { /* not plain JSON numbers (a leading + or a bare .5) */ }
   }
   return out;

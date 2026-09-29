@@ -19,7 +19,9 @@ const ACCESSORIES = ['none', 'glasses', 'headphones', 'beanie', 'cap'];
 const list = (v, all) => (v === 'all' ? all : v);
 
 // "views=all,postures=stand,sit,builds=0,1" into axes; a value list runs until the next name=.
-export function parseMatrix(spec) {
+// `gesture` 'slap' plays two actors that ignore posture, and the game's spot search only makes the side-on
+// placements (views 0 and 2), so its defaults are those views and one posture; a view list still overrides.
+export function parseMatrix(spec, gesture = null) {
   const raw = {};
   let key = null;
   for (const tok of String(spec).split(',').map((s) => s.trim()).filter(Boolean)) {
@@ -28,9 +30,9 @@ export function parseMatrix(spec) {
   }
   const known = ['views', 'postures', 'builds', 'rig', 'accessory', 'side'];
   for (const k of Object.keys(raw)) if (!known.includes(k)) throw new Error(`pose: --matrix axis "${k}" is not one of ${known.join(', ')}`);
-  const pick = (k, all, d) => list((raw[k] ?? [d]).flatMap((v) => (v === 'all' ? all : [v])), all);
-  const views = pick('views', ['0', '1', '2', '3'], 'all').map(Number);
-  const postures = pick('postures', Object.keys(POSTURES), 'all');
+  const pick = (k, all, d) => list((raw[k] ?? [].concat(d)).flatMap((v) => (v === 'all' ? all : [v])), all);
+  const views = pick('views', ['0', '1', '2', '3'], gesture === 'slap' ? ['0', '2'] : 'all').map(Number);
+  const postures = gesture === 'slap' ? ['stand'] : pick('postures', Object.keys(POSTURES), 'all');
   const builds = pick('builds', ['0', '1', '2'], 'all').map(Number);
   const rig = (raw.rig ?? ['on', 'off']).flatMap((v) => (v === 'all' ? ['on', 'off'] : [v]));
   const accessory = pick('accessory', ACCESSORIES, 'none');
