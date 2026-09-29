@@ -18,7 +18,7 @@ function installGlobals(search) {
   g.self ??= g; g.window = g;
   g.innerWidth = 1600; g.innerHeight = 1000; g.devicePixelRatio = 1;
   g.location = { search, href: `http://node/${search}` };
-  g.addEventListener = () => {}; g.removeEventListener = () => {};
+  g.addEventListener = () => {}; g.removeEventListener = () => {}; g.dispatchEvent = () => true;
   Object.defineProperty(g, 'navigator', { value: { userAgent: 'node', hardwareConcurrency: 4 }, configurable: true });
   g.matchMedia = () => ({ matches: false, addEventListener() {}, addListener() {} });
   g.ResizeObserver = class { observe() {} disconnect() {} };
@@ -40,7 +40,7 @@ function installGlobals(search) {
   g.__rafQ = []; g.requestAnimationFrame = (cb) => { g.__rafQ.push(cb); return g.__rafQ.length; };
 }
 
-export async function openNodeScene({ mock = 'floor', quality = 'low', rig = null } = {}) {
+export async function openNodeScene({ mock = 'floor', quality = 'low', rig = null, snapshot = null } = {}) {
   const realNow = performance.now.bind(performance);
   const t0 = realNow();
   installGlobals(`?snap=1&quality=${quality}&mock=${mock}${rig == null ? '' : `&rig=${rig ? 1 : 0}`}`);
@@ -51,10 +51,19 @@ export async function openNodeScene({ mock = 'floor', quality = 'low', rig = nul
   const R = createRenderer({ canvas: el(), labelsEl: el(), quality });
   for (let i = 0; i < 400 && !R.ready; i++) await new Promise((r) => setTimeout(r, 5));
   if (!R.ready) throw new Error('node scene: the renderer never became ready');
-  const S = m.state;
   globalThis.__noScreen = true; // the screen-space checks read real DOM layout and stay in the browser
   globalThis.__hitlRender = R;
-  globalThis.__HITL = { state: S, dispatch: (a) => m.dispatch(a) };
+  globalThis.__HITL = { state: m.state, dispatch: (a) => m.dispatch(a) };
+  // An indexed moment: the snapshot is the state, actions go to the real sim, and the open decision
+  // is announced to the renderer the way a loaded save is.
+  if (snapshot) {
+    const { gunzipSync } = await import('node:zlib');
+    const { dispatch } = await vite.ssrLoadModule('/src/sim/actions.js');
+    const S0 = JSON.parse(gunzipSync(readFileSync(snapshot)).toString('utf8'));
+    globalThis.__HITL = { state: S0, dispatch: (a) => { const r = dispatch(S0, a); R.handleEvents(r.events ?? [], S0); return r; } };
+    if (S0.pendingDecision) R.handleEvents([{ type: 'decision' }], S0);
+  }
+  const S = globalThis.__HITL.state;
   globalThis.__reseedGame();
   R.setSpeed?.(1); R.setPaused?.(false); R.setTimeOfDay?.(0.45);
   const step = (n) => { for (let i = 0; i < n; i++) { globalThis.__tick(1000 / 30); R.sync?.(S); R.advance(1 / 30); R.scene.updateMatrixWorld(); } };

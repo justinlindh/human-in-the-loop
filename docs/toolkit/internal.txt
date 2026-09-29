@@ -6,6 +6,9 @@ blender/checks/node/compare.mjs         spike: the sweep's mock sampler in Node
 blender/checks/node/compare-browser.mjs spike: the same sampler in the harness page, for comparison
 blender/checks/node/trace.mjs           spike: per-frame positions in Node or the page, to find where runs diverge
 blender/checks/node/bodies.mjs          spike: the sweep's bodies and people in Node or the page, for a diff
+blender/checks/node/rand.mjs            spike: Math.random calls per frame and their callers, Node or page
+blender/checks/node/clip.mjs            spike: clip.mjs's floor-office groups run in Node
+blender/checks/node/loaded.mjs          spike: the sweep's sampleLoaded on a snapshot, Node or page
 blender/checks/harness.mjs        the page every render check runs in
 blender/checks/panels.js          the visible-panel reader play.mjs and onscreen.mjs share
 blender/checks/report.mjs         the report format stage.mjs and the sweep share
