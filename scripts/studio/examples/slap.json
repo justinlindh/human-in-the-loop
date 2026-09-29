@@ -1,0 +1,8 @@
+{ "base": "incident",
+  "items": [
+    { "item": "desk", "at": [6, 6], "id": "d1" }
+  ],
+  "robot": { "at": [4, 4], "cause": "unplug" },
+  "people": [
+    { "id": "fixer", "build": 1, "at": [5.5, 4.5], "face": "robot", "gesture": "slap", "t": 0.4 }
+  ] }
