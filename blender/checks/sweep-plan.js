@@ -8,6 +8,9 @@ export function mentions(item, ...texts) {
   return texts.some((t) => t != null && re.test(String(t)));
 }
 
+// A violation of an accepted key that got clearly worse than its accepted depth counts as new.
+export const isWorse = (value, worst) => worst !== undefined && value > worst * 1.25 + 0.005;
+
 // What a previous report's violations need to be checked again: the weeks of each seeded game, the
 // mocks, and the indexed moments (their queries are recorded on the report's windows).
 // `only` narrows it to the named states.
