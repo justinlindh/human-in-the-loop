@@ -58,18 +58,20 @@ import { LANDMARKS } from './pose-landmarks.js';
 import { HELD_READ_MEASURES } from './pose-held.js';
 import { judgeScene, COVER_MEASURE } from './pose-rules.js';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { paramPlugin, paramSpecs, resolveParams } from './param.js';
 import { runSweep } from './param-sweep.js';
+import { runMatrixSweep } from './pose-matrix-sweep.js';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
 const all = (k) => argv.flatMap((a, i) => (a === `--${k}` ? [argv[i + 1]] : []));
 const ROOT = resolve(opt('root', join(import.meta.dirname, '../..')));
 // --sweep runs this script again once per value, so it goes before anything takes a render slot.
-if (opt('sweep')) process.exit(runSweep(argv, fileURLToPath(import.meta.url)));
+if (opt('sweep')) process.exit((opt('matrix') ? runMatrixSweep : runSweep)(argv, fileURLToPath(import.meta.url)));
 let PARAMS = [];
 // A page serves the working directory, so --param there names files under it.
 const IN_PAGE = argv.includes('--scene') || argv.includes('--check-browser');
@@ -347,6 +349,29 @@ const vite = await createServer({ root: ROOT, configFile: false, plugins: PARAMS
 let code = 0;
 try {
   const P = await vite.ssrLoadModule(join(import.meta.dirname, 'pose-measure.js'));
+  if (opt('matrix')) {
+    const X = await vite.ssrLoadModule(join(import.meta.dirname, 'pose-matrix.js'));
+    if (!OPTS.gesture) throw new Error('pose: --matrix needs --gesture <name>');
+    const measures = String(opt('measure', '')).split(',').map((s) => s.trim()).filter(Boolean);
+    const rules = all('expect').map((r) => X.parseRule(r, measures));
+    if (!measures.length) throw new Error('pose: --matrix needs --measure <m1,m2> (e.g. coverHandEyeNear,faceCam,clearance)');
+    const axes = X.parseMatrix(opt('matrix'));
+    const result = await X.runMatrix({ playPose: P.playPose, gesture: OPTS.gesture, axes, measures, rules, seconds: OPTS.seconds, warm: OPTS.warm, fps: OPTS.fps });
+    for (const l of X.formatMatrix(result, rules, OPTS.gesture)) console.log(l);
+    if (opt('json')) writeFileSync(opt('json'), JSON.stringify(result, null, 1));
+    console.log(`pose: ${result.cells.length} cells in ${(performance.now() - t0).toFixed(0)} ms`);
+    code = rules.length && result.cells.some((c) => !c.pass) ? 1 : 0;
+    // One picture, of the worst cell at its worst frame, only when asked (it needs the GPU and its lock).
+    if (opt('crop')) {
+      const w = X.worstOf(result.cells);
+      const v = w.verdicts.find((x) => !x.pass) ?? w.verdicts[0];
+      const args = [join(import.meta.dirname, 'pose-crop.mjs'), '--gesture', OPTS.gesture, '--posture', w.posture, '--build', String(w.build), '--rig', w.rig, '--view', String(w.view), '--accessory', w.accessory, '--t', String(v?.worstT ?? OPTS.warm + 1), '--warm', String(OPTS.warm), '--seconds', String(OPTS.seconds), '--out', opt('crop')];
+      const r = spawnSync(process.execPath, args, { stdio: ['ignore', 'pipe', 'inherit'], encoding: 'utf8' });
+      console.log(`pose: crop of the worst cell (${X.rowLabel(w, axes)} view ${w.view}, t ${v?.worstT ?? '-'}): ${r.status === 0 ? opt('crop') : `failed (exit ${r.status})`}`);
+    }
+    await vite.close();
+    process.exit(code);
+  }
   const { frames, info } = await P.playPose(OPTS);
   const fmt = (v, w = 7) => (v == null ? '-' : String(v)).padStart(w);
   console.log(`POSE ${'t'.padStart(5)} ${'phase'.padEnd(7)} ${'anim'.padEnd(12)}${MEASURES.map((m) => fmt(m, 13)).join('')}`);

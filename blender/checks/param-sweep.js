@@ -32,7 +32,7 @@ export function splitTop(s) {
   return out.map((v) => v.trim()).filter((v) => v !== '');
 }
 
-function parseAxis(spec, what) {
+export function parseAxis(spec, what) {
   const i = spec.indexOf('=');
   if (i < 1) throw new Error(`pose: --${what} wants name=v1,v2 (got "${spec}")`);
   const values = splitTop(spec.slice(i + 1));
@@ -40,7 +40,7 @@ function parseAxis(spec, what) {
   return { name: spec.slice(0, i), values };
 }
 
-const cartesian = (axes) => axes.reduce((acc, ax) => acc.flatMap((c) => ax.values.map((v) => [...c, [ax.name, v]])), [[]]);
+export const cartesian = (axes) => axes.reduce((acc, ax) => acc.flatMap((c) => ax.values.map((v) => [...c, [ax.name, v]])), [[]]);
 
 const collapse = { min: (v) => Math.min(...v), max: (v) => Math.max(...v), mean: (v) => v.reduce((a, b) => a + b, 0) / v.length, median: (v) => [...v].sort((a, b) => a - b)[v.length >> 1] };
 
