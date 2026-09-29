@@ -603,7 +603,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     palm.char.setEmote(null);
     palm.emoteT = 0;
     // Whichever hand's cheek the turn leaves facing the camera.
-    palm.char.gesture('facepalm', POST_REACT_S, Math.sin(turnTo - yaw) >= 0 ? -1 : 1);
+    palm.char.gesture('facepalm', POST_REACT_S, Math.sin(turnTo - yaw) >= 0 ? 1 : -1);
     const near = here.sort((a, b) => a.pos.distanceToSquared(palm.pos) - b.pos.distanceToSquared(palm.pos));
     // The nearest two turn to look. Nobody standing in front of the facepalmer on screen gets a
     // bubble, since it would sit over their face.

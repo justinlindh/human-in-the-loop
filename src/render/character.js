@@ -38,6 +38,9 @@ const LYING = new Set(['lie', 'nap', 'sprawl']);
 // colours in, so face parts must use fixed palette colours only, never a per-person colour.
 const FACE_GEOS = new Map();
 const SLEEPING = new Set(['lie', 'nap', 'desknap']);
+// Facepalm shoulder pitch, lift and spread for the palm hand, standing and seated.
+const PALM_STAND = [-2.75, 0.14, 0.3];
+const PALM_SIT = [-3.05, 0.12, 0.04];
 const SEATED = new Set(['growthpumpsit', 'growthclapsit', 'typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit']);
 
 const roleMats = new Map();
@@ -771,13 +774,15 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.lean = 0.1;
         tgt.headX = -0.75 + s(t * 1.2 + phase) * 0.03;
         const hz = 0.15 + s(t * 0.8) * 0.04;
+        // Seated, the head is turned in profile, so the palm sits closer to the face and further out over the eye.
+        const [ax, ay, az] = anim === 'facepalmsit' ? PALM_SIT : PALM_STAND;
         if (gestureSide > 0) {
           tgt.headZ = hz;
-          tgt.armLX = -2.75; tgt.armLY = 0.14; tgt.armLZ = 0.3;
+          tgt.armLX = ax; tgt.armLY = ay; tgt.armLZ = az;
           tgt.armRX = -0.35; tgt.armRZ = -0.08;
         } else {
           tgt.headZ = -hz;
-          tgt.armRX = -2.75; tgt.armRY = 0.14; tgt.armRZ = -0.3;
+          tgt.armRX = ax; tgt.armRY = ay; tgt.armRZ = -az;
           tgt.armLX = -0.35; tgt.armLZ = 0.08;
         }
         break;
