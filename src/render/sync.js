@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { createCharacter } from './character.js';
 import { PALETTE as P, ROLE_COLORS } from './palette.js';
 import { glow } from './materials.js';
+import { nocLook } from './noc.js';
 import { createPerks } from './perks.js';
 import { createPets } from './pets.js';
 import { createIncentives } from './incentives.js';
@@ -237,6 +238,19 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       const p = openSpot();
       return { x: p.x + (k % 3) * 0.6, z: p.z + Math.floor(k / 3) * 0.6, yaw: Math.PI, anim: 'idle', key: `ov-${k}` };
     }
+    // The NOC crew (security assignment) sits at the NOC while humans watch it: up on their feet during an
+    // alert, and in a quiet stretch the first of them dozes off. Anyone past the seats stands behind.
+    const noc = cur.dyn.noc;
+    if (type === 'security' && noc && roleIndex.noc.mode === 'humans') {
+      const k = roleIndex.security, { alert, quiet } = roleIndex.noc;
+      const seat = !alert && noc.seats[k];
+      if (seat) {
+        const anim = quiet && k === 0 ? 'desknap' : noc.level === 1 ? 'sit' : 'typing';
+        return { x: seat.x, z: seat.z, yaw: seat.yaw, anim, seated: true, dozing: anim === 'desknap', key: `noc-seat-${k}-${noc.id}-${anim}` };
+      }
+      const st = noc.stands[(alert ? k : k - noc.seats.length) % noc.stands.length];
+      return { x: st.x, z: st.z, yaw: st.yaw, anim: 'idle', key: `noc-stand-${k}-${noc.id}-${alert ? 'a' : ''}` };
+    }
     if (type === 'hardProblem') {
       const w = Z.whiteboard ?? { ...openSpot(), yaw: Math.PI };
       const k = roleIndex.hard;
@@ -343,11 +357,13 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (stageChanged) { for (const r of recs.values()) r.seat = null; momentSpeech.clear(); perks.reset(); pets.reset(); incentives.reset(); moments.reset(); spotlights.clear(); }
     assignSeats(list, state);
 
-    const roleIndex = { oversight: 0, hard: 0 };
+    const roleIndex = { oversight: 0, hard: 0, security: 0 };
+    const look = nocLook(state);
     const occupied = new Map();
     for (const s of list) {
       const r = recs.get(s.id);
-      const idx = { oversight: roleIndex.oversight, hard: roleIndex.hard };
+      const idx = { oversight: roleIndex.oversight, hard: roleIndex.hard, security: roleIndex.security, noc: look };
+      if (s.assignment?.type === 'security' && s.mood !== 'away' && !s.remote) roleIndex.security++;
       if (s.assignment?.type === 'oversight') roleIndex.oversight++;
       if (s.assignment?.type === 'hardProblem') roleIndex.hard++;
       const g = goalFor(s, r, idx);
@@ -967,7 +983,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       r.moodEmoteT = rnd(9, 18);
       const m = r.staff.mood;
       if (!c.emote) {
-        if (m === 'burnout') emote(r, 'zzz', 3);
+        if (r.goal?.dozing && !r.path.length) { emote(r, 'zzz', 3); r.moodEmoteT = rnd(4, 7); }
+        else if (m === 'burnout') emote(r, 'zzz', 3);
         else if (isTired(r.staff)) {
           emote(r, 'tired', 2.6);
           // Now and then a tired person nods off at the desk for a few seconds.

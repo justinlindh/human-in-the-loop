@@ -9,7 +9,7 @@ export const PROP_NAMES = [
 
 export const ITEM_IDS = [
   'espresso', 'plant_wall', 'nap_pod', 'arcade', 'standing_desk', 'trophy_case', 'server_rack', 'library',
-  'monitoring_wall', 'whiteboard_wall',
+  'monitoring_wall', 'whiteboard_wall', 'noc',
 ];
 export const itemModelName = (itemId, level) => `${itemId}_l${Math.max(1, Math.min(3, level | 0))}`;
 const ITEM_MODELS = ITEM_IDS.flatMap((id) => [1, 2, 3].map((l) => itemModelName(id, l)));

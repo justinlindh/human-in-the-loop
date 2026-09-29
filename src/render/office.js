@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { mat, color, glow, glass, paletteMaterial, setGlowBase } from './materials.js';
+import { dressNoc } from './noc.js';
 import { ROLE_COLORS } from './palette.js';
 import { roundedBox, roundedCylinder, mesh, mergeStatic, batchMeshes } from './prims.js';
 import { getModel, hasModel, itemModelName } from './models.js';
@@ -242,7 +243,7 @@ const KIND = {
 export const kindOf = (itemId) => KIND[itemId] ?? itemId;
 const FREE_STANDING = new Set(['desk', 'meeting', 'plant', 'couch', 'pingpong', 'foosball']);
 // Models with a piece meant to stand on the tile in front of their footprint.
-const FRONT_ZONE = new Set(['espresso_l3', 'standing_desk_l2', 'standing_desk_l3', 'server_rack_l3']);
+const FRONT_ZONE = new Set(['espresso_l3', 'standing_desk_l2', 'standing_desk_l3', 'server_rack_l3', 'noc_l2', 'noc_l3']);
 const FRONT_ZONE_M = 0.21;
 const LOUNGE = new Set(['couch', 'nap_pod', 'arcade', 'library', 'plant_wall', 'bookshelf']);
 
@@ -425,6 +426,7 @@ function screensFor(obj, screens, seed) {
     if (!c.isMesh || !c.name.endsWith('_screen')) return;
     c.userData.dynamic = true;
     if (c.name.startsWith('wall_screen')) c.material = screens.wallMaterial();
+    else if (c.name.startsWith('noc_')) c.material = screens.nocMaterial(c.name);
     else if (c.name.startsWith('arcade')) c.material = screens.material('game', seed);
     else c.material = screens.material('code', seed + 1);
   });
@@ -485,6 +487,7 @@ export function buildPlacedModel(p, stageIdx, screens = null, seed = 0, era = 'c
   g.userData.table = inner.userData.table ?? null;
   g.userData.screen = inner.userData.screen ?? null;
   g.userData.rug = inner.userData.rug ?? null;
+  if (p.itemId === 'noc') dressNoc(g, inner, f);
   return g;
 }
 
@@ -663,7 +666,7 @@ function buildStage(stageIdx, screens, expansion = 0) {
 
   return {
     stage: stageIdx, expansion, key: `${stageIdx}:${expansion}`, L, root, walls, furniture, columns, columnSet,
-    desks: [], zones: { door: inward(L) }, dyn: { screens: [], racks: [], wallScreens: [], meetingChairs: [] },
+    desks: [], zones: { door: inward(L) }, dyn: { screens: [], racks: [], wallScreens: [], meetingChairs: [], noc: null },
     bounds: new THREE.Box3(new THREE.Vector3(-L.W / 2 - T, 0, -L.D / 2 - T), new THREE.Vector3(L.W / 2 + T, L.wallH, L.D / 2 + T)),
     nav: null,
   };
@@ -902,6 +905,7 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
     cur.dyn.racks = [];
     cur.dyn.meetingChairs = [];
     cur.dyn.screens = [];
+    cur.dyn.noc = null;
     for (const e of placed.values()) {
       const kind = kindOf(e.itemId);
       const t = e.target;
@@ -926,6 +930,11 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
           Z.meeting = { x: t.x, z: t.z, rotY: t.rotY, ...e.obj.userData.table, id: e.id, seats };
         }
         cur.dyn.meetingChairs.push(...e.obj.userData.chairs);
+      } else if (e.itemId === 'noc' && e.obj.userData.noc) {
+        const n = e.obj.userData.noc;
+        const c = Math.cos(t.rotY), sn = Math.sin(t.rotY);
+        const w = (q) => ({ x: t.x + c * q.x + sn * q.z, z: t.z - sn * q.x + c * q.z, yaw: q.yaw + t.rotY });
+        cur.dyn.noc = { id: e.id, level: n.level, look: n, seats: n.seats.map(w), stands: n.stands.map(w) };
       } else if (kind === 'rack' || e.itemId === 'server_rack') {
         cur.dyn.racks.push(e.obj);
       } else if (kind === 'coffee' || e.itemId === 'espresso') {
