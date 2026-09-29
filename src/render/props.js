@@ -88,6 +88,10 @@ export function createProps(office, screens = null) {
       const taken = [...live.values()].filter((l) => !l.gone && l.obj.userData.span).map((l) => l.obj.userData.span);
       // Desk props already up, so another one on the same desk takes a different spot.
       const onDesk = [...live.values()].filter((l) => !l.gone && l.obj.userData.deskRect).map((l) => ({ deskId: l.obj.userData.follow.deskId, ...l.obj.userData.deskRect }));
+      // There is one printer: a printer prop about to go up replaces any other still standing.
+      if (KITCHEN_SWAP.has(w.prop)) {
+        for (const [k2, e2] of live) if (k2 !== w.key && KITCHEN_SWAP.has(e2.prop)) { dispose(e2.obj); live.delete(k2); swapped = true; }
+      }
       const printerAt = () => (printerSpot && printerSpot.kitchen === kk ? printerSpot : null);
       const obj = BUILDERS[w.prop](cur.L, w, { busy: office.wallBusy.concat(taken), state, office, onDesk, printerAt });
       if (!obj) continue;
