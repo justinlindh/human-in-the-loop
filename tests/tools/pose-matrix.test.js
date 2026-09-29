@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
-import { parseMatrix, cellsOf, parseRule, judgeCell, margin, worstOf, formatMatrix, valueOf } from '../../blender/checks/pose-matrix.js';
+import { parseMatrix, cellsOf, parseRule, judgeCell, margin, worstOf, formatMatrix, valueOf, tally, tallyText } from '../../blender/checks/pose-matrix.js';
 
 const POSE = resolve(__dirname, '../../blender/checks/pose.mjs');
 const run = (...args) => spawnSync(process.execPath, [POSE, ...args], { encoding: 'utf8', timeout: 180000 });
@@ -44,11 +44,23 @@ describe('pose matrix judging', () => {
     expect(c.stat.coverHandEyeNear).toEqual({ min: 0.1, median: 0.8, max: 0.9 });
   });
 
-  it('drops frames the condition rules out, and passes a cell with none left', () => {
+  it('drops frames the condition rules out, and marks a cell with none left n/a, not passing', () => {
     const turned = [frame(1, 0, 120), frame(1.1, 0, 130)];
-    expect(judgeCell(turned, [rule()], measures)).toMatchObject({ pass: true });
+    expect(judgeCell(turned, [rule()], measures)).toMatchObject({ pass: true, na: true });
+    expect(judgeCell([frame(1, 0.9, 20)], [rule()], measures).na).toBe(false);
     const mixed = [frame(1, 0, 120), frame(1.1, 0.9, 20)];
     expect(judgeCell(mixed, [rule()], measures).verdicts[0].share).toBe(1);
+  });
+
+  it('counts pass, fail and n/a cells apart, and prints them', () => {
+    const r = rule();
+    const cell = (fs) => ({ view: 0, ...judgeCell(fs, [r], measures) });
+    const cells = [cell([frame(1, 0.9, 20)]), cell([frame(1, 0, 20)]), cell([frame(1, 0, 130)]), cell([frame(1, 0, 130)])];
+    expect(tally(cells)).toEqual({ pass: 1, fail: 1, na: 2, total: 4 });
+    expect(tallyText(cells)).toBe('1 pass, 1 fail, 2 n/a (4 cells)');
+    const axes = parseMatrix('views=0,1,postures=stand,builds=1,rig=on');
+    const two = cellsOf(axes).map((c, i) => ({ ...cells[i + 2], ...c }));
+    expect(formatMatrix({ axes, cells: two }, [r], 'g').join('\n')).toMatch(/stand b1 rig on\s+n\/a\s+n\/a/);
   });
 
   it('reads clearance as the smaller hand-to-head distance', () => {
@@ -70,7 +82,7 @@ describe('pose matrix judging', () => {
     const r = parseRule('coverHandEyeNear>=0.5@0.7', ['coverHandEyeNear']);
     const cells = cellsOf(axes).map((c) => ({ ...c, ...judgeCell([frame(1, c.view ? 0 : 0.9)], [r], ['coverHandEyeNear']) }));
     const text = formatMatrix({ axes, cells }, [r], 'facepalm').join('\n');
-    expect(text).toContain('MATRIX facepalm: 1 of 2 cells pass');
+    expect(text).toContain('MATRIX facepalm: 1 pass, 1 fail, 0 n/a (2 cells)');
     expect(text).toMatch(/stand b1 rig on\s+100%\s+0%\*</);
     expect(text).toContain('MATRIX worst cell: stand b1 rig on view 1');
   });
@@ -82,7 +94,7 @@ describe('pose.mjs --matrix', () => {
   it('passes and fails by exit code, and a broken palm fails where the shipped one passes', () => {
     const ok = run(...base, '--expect', 'coverHandEyeNear>=0.5@0.7');
     expect(ok.status, ok.stdout + ok.stderr).toBe(0);
-    expect(ok.stdout).toContain('MATRIX facepalm: 1 of 1 cells pass');
+    expect(ok.stdout).toContain('MATRIX facepalm: 1 pass, 0 fail, 0 n/a (1 cells)');
     const broken = run(...base, '--expect', 'coverHandEyeNear>=0.5@0.7', '--param', 'PALM_STAND=[-2.75,0.14,0.9,-0.6,0.08]');
     expect(broken.status, broken.stdout + broken.stderr).toBe(1);
     expect(broken.stdout).toContain('MATRIX worst cell: stand b1 rig on view 0');

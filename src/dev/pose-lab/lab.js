@@ -176,7 +176,7 @@ function play(on) {
 // The grid pose.mjs --matrix prints, from the same code (pose-matrix.js runMatrix over playPose): every view,
 // posture, build and rig setting judged by the rules, each cell a button that loads it in the viewport.
 let lastMatrix = null, matrixBusy = false;
-const cellText = (c) => (c.error ? 'err' : `${Math.round(Math.min(...c.verdicts.map((v) => v.share)) * 100)}%`);
+const cellText = (c) => (c.error ? 'err' : c.na ? 'n/a' : `${Math.round(Math.min(...c.verdicts.map((v) => v.share)) * 100)}%`);
 function paintGrid() {
   const box = $('grid'); if (!box) return;
   box.replaceChildren();
@@ -188,14 +188,13 @@ function paintGrid() {
     const mine = cells.filter((c) => c.posture === posture && c.build === build && c.rig === rig && c.accessory === accessory);
     rows.push(el('tr', {}, el('td', { textContent: PM.rowLabel({ posture, build, rig, accessory }, axes) }), ...axes.views.map((v) => {
       const c = mine.find((x) => x.view === v);
-      const b = el('button', { className: `cell ${c.pass ? 'pass' : 'fail'}${c === worst ? ' worst' : ''}`, textContent: cellText(c), title: c.error ?? c.verdicts.map((x) => `${x.rule}: ${Math.round(x.share * 100)}%`).join('\n') });
+      const b = el('button', { className: `cell ${c.na ? 'na' : c.pass ? 'pass' : 'fail'}${c === worst ? ' worst' : ''}`, textContent: cellText(c), title: c.error ?? c.verdicts.map((x) => `${x.rule}: ${x.na ? 'nothing to judge (its if excludes every frame)' : `${Math.round(x.share * 100)}%`}`).join('\n') });
       b.onclick = () => loadCell(c);
       return el('td', {}, b);
     })));
   }
   box.append(el('table', {}, el('tbody', {}, head, ...rows)));
-  const pass = cells.filter((c) => c.pass).length;
-  box.append(el('div', { id: 'mxsum', textContent: `${pass} of ${cells.length} cells pass${worst && !worst.pass ? `; worst: ${PM.rowLabel(worst, axes)} view ${worst.view}` : ''}` }));
+  box.append(el('div', { id: 'mxsum', textContent: `${PM.tallyText(cells)}${worst && !worst.pass ? `; worst: ${PM.rowLabel(worst, axes)} view ${worst.view}` : ''}` }));
 }
 async function runGrid() {
   if (matrixBusy) return;

@@ -65,7 +65,7 @@ try {
     const m = window.__lab.matrix();
     const cell = m.cells.find((c) => c.view === 2);
     await window.__lab.loadCell(cell);
-    return { n: m.cells.length, passing: m.cells.filter((c) => c.pass).length, cells: m.cells.slice(0, 4).map((c) => [c.view, c.pass, c.verdicts[0].share]), loaded: { view: window.__lab.state.view, under: window.__lab.state.under, frame: window.__lab.state.frame }, buttons: document.querySelectorAll('#grid button.cell').length };
+    return { n: m.cells.length, passing: m.cells.filter((c) => c.pass && !c.na).length, na: m.cells.filter((c) => c.na).length, summary: document.getElementById('mxsum').textContent, naButtons: document.querySelectorAll('#grid button.cell.na').length, cells: m.cells.slice(0, 4).map((c) => [c.view, c.pass, c.verdicts[0].share]), loaded: { view: window.__lab.state.view, under: window.__lab.state.under, frame: window.__lab.state.frame }, buttons: document.querySelectorAll('#grid button.cell').length };
   }, opt('axes', 'views=all,postures=sit,builds=1,rig=on'));
   console.log(`lab-smoke: matrix ${JSON.stringify(grid)}`);
   if (opt('grid-out')) { await page.evaluate(() => document.getElementById('grid').scrollIntoView()); await page.screenshot({ path: opt('grid-out') }); }
