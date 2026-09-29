@@ -5,7 +5,7 @@ import { createRuntime } from './runtime.mjs';
 
 const runtime = await createRuntime();
 const THREE = await import('three');
-const { meshContact, castLandmark } = await import('./geometry.mjs');
+const { meshContact, castLandmark, depthAtTol } = await import('./geometry.mjs');
 const { overlaps } = await import('../../blender/checks/intersect.js');
 const { faceLandmarks } = await import('../../blender/checks/pose-landmarks.js');
 const { getTemplate } = await import('../../src/render/models.js');
@@ -37,7 +37,10 @@ check('a slab through the middle of a body reads half the crossing extent', glob
 const body = m => ({ box: new THREE.Box3().setFromObject(m), meshes: [m] });
 const sphere = mesh('sphere', new THREE.SphereGeometry(0.25, 48, 32), 0, 0.25);
 const plate = mesh('plate-through-sphere', new THREE.BoxGeometry(2, 0.1, 2), 0, 0.25);
-check('a plate through a sphere reads the same depth as the sweep', { studio: globalThis.__tool(() => meshContact(sphere, plate)).depthM, sweep: overlaps([body(sphere), body(plate)])[0]?.depth }, r => r.sweep > 0.01 && Math.abs(r.studio - r.sweep) < 1e-6);
+const plateContact = globalThis.__tool(() => meshContact(sphere, plate));
+for (const tol of [0.01, 0.06]) {
+  check(`a plate through a sphere reads the same depth as the sweep at tolerance ${tol}`, { studio: depthAtTol(plateContact, tol), sweep: overlaps([body(sphere), body(plate)], { tol })[0]?.depth }, r => r.sweep > tol && Math.abs(r.studio - r.sweep) < 1e-6);
+}
 const bones = [new THREE.Bone(), new THREE.Bone()];
 bones[1].position.y = 0.5; bones[0].add(bones[1]);
 const barGeometry = new THREE.BoxGeometry(0.1, 1, 0.1, 1, 2, 1); barGeometry.translate(0, 0.5, 0);
