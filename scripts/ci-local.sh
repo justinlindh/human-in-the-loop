@@ -376,6 +376,15 @@ rng_check() {
 # steps run one after another: those open many browsers each, and running them all at once exhausts
 # the GPU's WebGL contexts (Chromium then blocks WebGL for the page).
 browser_t0=$(now)
+# CI_TIER=tests (ci-pr sets it for a change only tests read, scripts/ci-tests-only-paths) leaves out the
+# render, browser and perf checks; the main guard (CI_FULL=1) always runs them.
+if [ "${CI_TIER:-}" = tests ] && [ "${CI_FULL:-}" != 1 ]; then
+  for name in golden lifecycle soak render-checks perf-budget phone-check stage pose-nodraw tool-rng; do
+    record "$name" "skipped: tests tier (only tests read these changes)" 0
+    timing_log kind=step tool=ci-local step="$name" skipped=1 tier=tests wall_s=0 exit=0
+  done
+  note "Tests tier: every changed file is on scripts/ci-skip-paths or scripts/ci-tests-only-paths, so the tests and the light checks ran, and the render, browser and balance checks did not."
+else
 pstep golden render_step golden software "node blender/checks/golden.mjs --jobs=$GOLDEN_JOBS"
 gh_step lifecycle browser bash "$SELF/with-render-lock.sh" --gpu npm run lifecycle -- --quality low --no-shots
 gh_step soak browser bash "$SELF/with-render-lock.sh" --gpu npm run soak
@@ -385,6 +394,7 @@ step phone-check phone_check
 step stage stage_check
 step pose-nodraw nodraw_check
 step tool-rng rng_check
+fi
 pjoin "$browser_t0"
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
 gh_step commits commits commits

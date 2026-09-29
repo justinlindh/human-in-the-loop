@@ -28,6 +28,26 @@ expect full 'blender/characters/chibi.py'
 expect full ''
 [ "$(echo docs/a.md | bash "$HERE/ci-classify.sh" /nonexistent)" = full ] || { echo "FAIL missing list: want full"; fails=$((fails + 1)); }
 
+# The tests-only list: files only tests read get the tests tier when they ride alone or with light paths.
+TESTS="$HERE/ci-tests-only-paths"
+expect_tests() { # <want> <paths separated by |>
+  local got; got="$(printf '%s\n' "$2" | tr '|' '\n' | bash "$HERE/ci-classify.sh" "$LIST" "$TESTS")"
+  [ "$got" = "$1" ] || { echo "FAIL tests tier [$2]: want $1, got $got"; fails=$((fails + 1)); }
+}
+expect_tests tests 'src/contract/contract.md'
+expect_tests tests 'src/contract/contract.md|docs/a.md|README.md'
+expect_tests light 'docs/a.md|README.md'
+expect_tests full 'src/contract/contract.md|src/sim/tick.js'
+expect_tests full 'src/contract/contract.md|src/ui/notes.md'
+expect_tests full 'src/contract/contract.md|scripts/ci-tests-only-paths'
+expect_tests full 'src/contract/contract.md|scripts/ci-skip-paths'
+expect_tests full 'src/contract/contract.md|scripts/ci-classify.sh'
+expect_tests full 'src/contract/other.js'
+expect_tests full ''
+# Without the second list (an older caller) the contract is a full change, as before.
+[ "$(echo src/contract/contract.md | bash "$HERE/ci-classify.sh" "$LIST")" = full ] || { echo "FAIL contract without the tests list: want full"; fails=$((fails + 1)); }
+[ "$(echo src/contract/contract.md | bash "$HERE/ci-classify.sh" "$LIST" /nonexistent)" = full ] || { echo "FAIL contract with a missing tests list: want full"; fails=$((fails + 1)); }
+
 # The balance list: light means the balance suite is skipped.
 BAL="$HERE/ci-balance-skip-paths"
 expect_bal() { # <want> <paths separated by |>
