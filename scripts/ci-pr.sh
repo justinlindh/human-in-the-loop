@@ -166,15 +166,18 @@ status pending "Local CI running"
 mb="$(git -C "$REPO" merge-base "origin/$base" "refs/ci/pr-$pr/head")"
 # --no-renames: a moved file lists its old path too, so moving game code into docs/ is not light.
 changed="$(git -C "$REPO" diff --name-only --no-renames "$mb" "refs/ci/pr-$pr/head")"
-skip_list="$(mktemp)"; classify="$(mktemp)"
+skip_list="$(mktemp)"; tests_list="$(mktemp)"; classify="$(mktemp)"
 git -C "$REPO" show "origin/$base:scripts/ci-skip-paths" >"$skip_list" 2>/dev/null || rm -f "$skip_list"
+git -C "$REPO" show "origin/$base:scripts/ci-tests-only-paths" >"$tests_list" 2>/dev/null || rm -f "$tests_list"
 if git -C "$REPO" show "origin/$base:scripts/ci-classify.sh" >"$classify" 2>/dev/null; then
-  mode="$(printf '%s\n' "$changed" | bash "$classify" "$skip_list")"
+  mode="$(printf '%s\n' "$changed" | bash "$classify" "$skip_list" "$tests_list")"
 else
   mode=full
 fi
-rm -f "$skip_list" "$classify"
+rm -f "$skip_list" "$tests_list" "$classify"
 echo "ci-pr: #$pr gets the $mode gate"
+# The tests tier is the full run without the render, browser and balance checks (see ci-local.sh).
+if [ "$mode" = tests ]; then export CI_TIER=tests; else unset CI_TIER; fi
 if [ "$mode" = light ]; then
   t0=$(date +%s); light_ok=1; table="| step | result |"$'\n'"|---|---|"
   if "$TOOLS/scripts/check-commits.sh" "$mb" "refs/ci/pr-$pr/head" "$title" >/dev/null 2>&1; then table+=$'\n'"| commits | pass |"
