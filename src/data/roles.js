@@ -8,3 +8,14 @@ export const ROLES = {
   security: { id: 'security', name: 'Security', title: 'Security Engineer', color: '#4d6285', automatedBy: { ops: 0.6 }, defaultAssignment: 'security' },
   sales: { id: 'sales', name: 'Sales', title: 'Account Executive', color: '#9b6bff', automatedBy: { sales: 1 }, defaultAssignment: 'sales' },
 };
+
+// The jobs the staff screen offers each role, besides projects, mentoring and idle; a role not listed gets the fallback.
+export const ROLE_JOBS = {
+  engineer: ['maintenance', 'oversight', 'security', 'support'],
+  designer: ['maintenance', 'oversight'],
+  marketer: ['marketing', 'oversight', 'sales'],
+  support: ['support', 'oversight'],
+  security: ['security', 'oversight', 'maintenance'],
+  sales: ['sales', 'marketing', 'oversight'],
+};
+export const ROLE_JOBS_FALLBACK = ['maintenance', 'oversight'];

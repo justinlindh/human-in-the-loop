@@ -11,6 +11,12 @@
 //            --update-baseline [--prune]  --strict (fail on new seed-only violations in fast mode)
 //            --moments 'printer_jam --choice 0; open_plan_office --stage hq'  indexed moments
 //                     (scripts/events/find.js queries), each loaded from its snapshot and played
+//   scoped and repeated runs, for iterating on one item:
+//            --item <id>     only violations that involve this item; its footprint in the floor mock,
+//                            and seeded windows only in weeks it stands (mocks default to floor)
+//            --replay <report.json>  only the states a previous report's violations came from
+//            --against <root|ref>    the same run on another checkout (a worktree path or a git ref),
+//                            in parallel; a violation is new when that run does not have it too
 //
 // Checks:
 //   overlap  two things interpenetrate by more than 1 cm (furniture, desk and floor props, wall
@@ -40,7 +46,11 @@
 import { startHarness, wantGpu } from './harness.mjs';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, resolve, join } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { planReplay, mentions } from './sweep-plan.js';
+import { createWorktree } from '../../scripts/tools/worktree.mjs';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -53,11 +63,29 @@ const MODES = {
   fast: { mocks: ['garage', 'floor', 'hq', 'night'], propMocks: ['floor', 'hq'], propDesks: 3, gridMocks: ['floor'], momentMocks: ['floor'], moments: { open: 10, after: 5, choices: 1 }, mockSeconds: 6, seeds: [1], seedLimit: 300, weeks: 1040, every: 104, seconds: 2, stagedSeconds: 16, maxStaged: 3, step: 1 },
   full: { mocks: ['garage', 'floor', 'hq', 'incident', 'night', 'ending'], propMocks: ['garage', 'floor', 'hq'], propDesks: 8, gridMocks: ['floor'], momentMocks: ['floor', 'hq'], moments: { open: 20, after: 10, choices: 2 }, mockSeconds: 30, seeds: [1, 2, 3, 4], seedLimit: 1200, weeks: 1040, every: 13, seconds: 8, stagedSeconds: 24, maxStaged: 40, step: 0.5 },
 };
-const M = { ...MODES[full ? 'full' : 'fast'] };
+const replayFile = opt('replay');
+const replayed = replayFile ? JSON.parse(readFileSync(resolve(replayFile), 'utf8')) : null;
+const M = { ...MODES[full ? 'full' : (replayed?.mode ?? 'fast')] };
+const item = opt('item') ?? null;
+// With --item, only that item's violations are re-checked.
+if (replayed && item) replayed.violations = replayed.violations.filter((v) => mentions(item, v.a, v.b, v.detail));
 const list = (v) => (v === 'none' ? [] : v.split(',').filter(Boolean));
 if (opt('seeds')) M.seeds = list(opt('seeds')).map(Number);
 if (opt('mocks')) M.mocks = list(opt('mocks'));
 if (opt('seed-limit')) M.seedLimit = Number(opt('seed-limit'));
+// A replay checks the states the report names and nothing else; a scoped run keeps to the mock that
+// holds the footprint pass.
+const plan = replayed ? planReplay(replayed, opt('states') ? list(opt('states')) : null) : null;
+if (plan) {
+  M.seeds = Object.keys(plan.seeds).map(Number);
+  M.mocks = plan.mocks;
+  M.propMocks = M.propMocks.filter((m) => plan.mocks.includes(m));
+  for (const st of plan.skipped) console.log(`sweep: replay cannot re-check state ${st}`);
+  if (!M.seeds.length && !M.mocks.length && !plan.events.length) {
+    console.error(`sweep: the replay has no state to check${opt('states') ? ' (none of --states appears in the report)' : ''}`);
+    process.exit(2);
+  }
+} else if (item && !opt('mocks')) M.mocks = M.gridMocks;
 const outDir = resolve(opt('out', 'shots/sweep'));
 const timeout = Number(opt('timeout', full ? 3600 : 600));
 
@@ -66,17 +94,52 @@ const known = baseline.accepted.map((b) => b.key);
 // The issue tracking each accepted violation, printed beside it, so it comes out when that is fixed.
 const issueOf = new Map(baseline.accepted.filter((b) => b.issue).map((b) => [b.key, b.issue]));
 
+// --against: the same run on another checkout, started now so both run at once. It uses this
+// checkout's sweep files on that checkout's game code, so a checkout that predates --item or
+// --replay still answers the same question.
+const against = opt('against') ?? null;
+const repoRoot = resolve(HERE, '../..');
+async function startControl(spec) {
+  const asRoot = existsSync(spec) && existsSync(join(spec, '.git'));
+  const rev = asRoot ? execFileSync('git', ['-C', spec, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim() : execFileSync('git', ['-C', repoRoot, 'rev-parse', spec], { encoding: 'utf8' }).trim();
+  // A checkout given by path counts with its uncommitted edits to tracked files (a control patch).
+  const patch = asRoot ? execFileSync('git', ['-C', spec, 'diff', 'HEAD', '--binary'], { maxBuffer: 1 << 28 }) : null;
+  const overlay = Object.fromEntries(['sweep.mjs', 'sample.js', 'sweep-plan.js'].map((f) => [`blender/checks/${f}`, join(HERE, f)]));
+  overlay['scripts/tools/worktree.mjs'] = join(repoRoot, 'scripts/tools/worktree.mjs');
+  // The worktree and the control's process group go away however this process ends.
+  const wt = await createWorktree({ repo: repoRoot, rev, label: 'sweep-against', patch, overlay });
+  const drop = new Set(['--update-baseline', '--prune']);
+  const args = [];
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === '--against' || argv[i] === '--out') { i++; continue; }
+    if (!drop.has(argv[i])) args.push(argv[i]);
+  }
+  const out = join(wt.tmp, 'out');
+  const { done } = wt.spawn(process.execPath, [join(wt.path, 'blender/checks/sweep.mjs'), ...args, '--out', out], { stdio: ['ignore', 'ignore', 'inherit'] });
+  return { label: asRoot ? spec.split('/').pop() : spec, rev: rev.slice(0, 8), out, wt, done };
+}
+async function endControl(c) {
+  await c.done;
+  let report = null;
+  try { report = JSON.parse(readFileSync(join(c.out, 'report.json'), 'utf8')); } catch { /* the control run failed */ }
+  c.wt.disposeSync();
+  return report;
+}
+
 const kill = setTimeout(() => { console.error(`sweep: timed out after ${timeout} s`); process.exit(124); }, timeout * 1000);
 const t0 = Date.now();
 // Geometry, not pixels: the GPU is fine here when asked for (--gpu or HITL_GPU=1).
 const H = await startHarness({ gpu: wantGpu() });
+// Started only once this process holds its render lock: the harness re-runs the whole command under
+// the lock and exits the first copy, which must not have started a control of its own.
+const control = against ? await startControl(against) : null;
 const found = [];
 const errors = [];
 const windows = [];
 try {
   for (const name of M.mocks) {
     const { page, errors: e } = await H.openScene(`quality=low&mock=${name}`, { width: 1600, height: 1000 });
-    const r = await page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleMock(o), { name, seconds: M.mockSeconds, every: M.step, known, propDesks: M.propMocks.includes(name) ? M.propDesks : 0, moments: M.momentMocks.includes(name) ? M.moments : null, grid: M.gridMocks.includes(name) });
+    const r = await page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleMock(o), { name, seconds: M.mockSeconds, every: M.step, known, item, propDesks: M.propMocks.includes(name) ? M.propDesks : 0, moments: M.momentMocks.includes(name) ? M.moments : null, grid: M.gridMocks.includes(name) });
     const vs = r.violations;
     found.push(...vs);
     windows.push(...r.windows);
@@ -87,15 +150,15 @@ try {
     await page.close();
   }
   // Indexed moments (scripts/events), each loaded from its snapshot and played through its choice.
-  for (const query of (opt('moments') ?? '').split(';').map((x) => x.trim()).filter(Boolean)) {
+  for (const query of [...(plan?.events ?? []), ...(opt('moments') ?? '').split(';').map((x) => x.trim()).filter(Boolean)]) {
     const target = resolveTarget({ event: query });
     const row = target.row;
     const label = `event:${row.id}:s${row.seed}${row.bot}w${row.week}`;
     const { page, errors: e } = await openAt(H, target, { width: 1600, height: 1000, quality: 'low' });
     const r = await page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleLoaded(o),
-      { label, open: M.stagedSeconds, after: 8, every: M.step, choice: row.choice, known });
+      { label, open: M.stagedSeconds, after: 8, every: M.step, choice: row.choice, known, item });
     found.push(...r.violations);
-    windows.push(...r.windows);
+    windows.push(...r.windows.map((w) => ({ ...w, query })));
     errors.push(...e.map((x) => `${label}: ${x}`));
     console.log(`sweep: ${label} ${r.violations.length} violation(s) (${Math.round((Date.now() - t0) / 1000)} s)`);
     await page.close();
@@ -111,7 +174,7 @@ try {
     let limit;
     const r = await Promise.race([
       page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleSeed(o),
-        { seed, weeks: M.weeks, every: M.every, seconds: M.seconds, stagedSeconds: M.stagedSeconds, maxStaged: M.maxStaged, step: M.step, known }),
+        { seed, weeks: M.weeks, every: M.every, seconds: M.seconds, stagedSeconds: M.stagedSeconds, maxStaged: M.maxStaged, step: M.step, known, item, only: plan?.seeds[seed] ?? null }),
       new Promise((res) => { limit = setTimeout(() => res(null), M.seedLimit * 1000); }),
     ]);
     clearTimeout(limit);
@@ -136,6 +199,13 @@ try {
   clearTimeout(kill);
 }
 
+const controlReport = control ? await endControl(control) : null;
+if (control && !controlReport) { console.error(`sweep: the run on ${control.label} produced no report`); process.exit(1); }
+// What counts as already known: the baseline, or, with --against, what that checkout's run found.
+const ref = controlReport ? controlReport.violations.map((v) => ({ key: v.key, worst: v.value })) : baseline.accepted;
+const refKeys = ref.map((b) => b.key);
+if (controlReport) console.log(`sweep: ${control.label} (${control.rev}) has ${controlReport.violations.length} violation(s) in the same states`);
+
 // One line per distinct violation (worst occurrence), then the new ones' crops.
 const byKey = new Map();
 for (const v of found) {
@@ -152,7 +222,7 @@ mkdirSync(outDir, { recursive: true });
 // Screen findings are a share of a shape; everything else is metres.
 const unit = (v) => (v.check === 'screen' || v.check === 'tooltip' ? ' of the smaller' : ' m');
 // A baselined violation that got clearly worse counts as new.
-const worst = new Map(baseline.accepted.map((b) => [b.key, b.worst]));
+const worst = new Map(ref.map((b) => [b.key, b.worst]));
 const worse = (v) => worst.has(v.key) && v.value > worst.get(v.key) * 1.25 + 0.005;
 // A seeded game replays the sim, so any sim change reshuffles who walks where and which moments
 // play. In fast mode a new violation seen only in seeded states is advisory (printed, not failed);
@@ -162,7 +232,7 @@ const strict = full || argv.includes('--strict');
 const seedOnly = (v) => v.states.every((s) => s.startsWith('seed:') || s.startsWith('event:'));
 const fresh = [], advisory = [];
 for (const v of all) {
-  const isNew = !known.includes(v.key) || worse(v);
+  const isNew = !refKeys.includes(v.key) || worse(v);
   if (isNew) (strict || !seedOnly(v) ? fresh : advisory).push(v);
   let shot = '';
   if (v.crop) {
@@ -175,15 +245,15 @@ for (const v of all) {
 // status: baseline, new (fails), or advisory (new, seen only in seeded games, fast mode). Every
 // check measures render output, so art owns what it finds.
 const status = (v) => (fresh.includes(v) ? 'new' : advisory.includes(v) ? 'advisory' : 'baseline');
-writeFileSync(`${outDir}/report.json`, JSON.stringify({ windows, violations: all.map(({ crop, ...v }) => ({ ...v, status: status(v), owner: 'art' })) }, null, 1));
+writeFileSync(`${outDir}/report.json`, JSON.stringify({ mode: full ? 'full' : (replayed?.mode ?? 'fast'), windows, violations: all.map(({ crop, ...v }) => ({ ...v, status: status(v), owner: 'art' })) }, null, 1));
 // The same as a markdown table, for a PR comment (crops are named by file, not path).
 const md = ['| check | what | value (m, or share on screen) | state | t (s) | status | crop |', '|---|---|---|---|---|---|---|'];
-for (const v of all) md.push(`| ${v.check} | ${v.detail ?? `${v.a} ~ ${v.b}`} | ${v.value} | ${v.state} | ${v.t} | ${known.includes(v.key) && !worse(v) ? 'baseline' : 'NEW'} | ${v.crop ? `${v.key.replace(/[^a-z0-9_-]+/gi, '_')}.png` : ''} |`);
+for (const v of all) md.push(`| ${v.check} | ${v.detail ?? `${v.a} ~ ${v.b}`} | ${v.value} | ${v.state} | ${v.t} | ${refKeys.includes(v.key) && !worse(v) ? (controlReport ? 'control' : 'baseline') : 'NEW'} | ${v.crop ? `${v.key.replace(/[^a-z0-9_-]+/gi, '_')}.png` : ''} |`);
 writeFileSync(`${outDir}/report.md`, md.join('\n') + '\n');
-const gone = known.filter((k) => !byKey.has(k));
+const gone = refKeys.filter((k) => !byKey.has(k));
 // A narrowed run (--mocks, --seeds, --moments) sees only part of the baseline, so only a full run
 // lists what it did not see.
-if (!opt('mocks') && !opt('seeds') && !opt('moments')) for (const k of gone) console.log(`sweep: baseline entry not seen this run: ${k}`);
+if (!opt('mocks') && !opt('seeds') && !opt('moments') && !item && !replayed && !controlReport) for (const k of gone) console.log(`sweep: baseline entry not seen this run: ${k}`);
 
 // Updating keeps accepted entries this run did not see (a seeded moment may not come up every
 // time) unless --prune is given; an entry seen again takes the larger worst value.
@@ -196,6 +266,11 @@ if (argv.includes('--update-baseline')) {
   writeFileSync(BASELINE, JSON.stringify({ accepted }, null, 1) + '\n');
   console.log(`sweep: baseline written with ${accepted.length} entries (${kept.length} kept from before)`);
   console.log(`sweep: a changed baseline needs its media on the PR: commit it, then scripts/baseline-media.sh <pr> --sweep-dir ${outDir}`);
+}
+if (replayed) {
+  const before = new Set(replayed.violations.map((v) => v.key));
+  const again = [...before].filter((k) => byKey.has(k)), fixed = [...before].filter((k) => !byKey.has(k));
+  console.log(`sweep: replay: ${again.length} of ${before.size} reported violation(s) still present, ${fixed.length} gone${fixed.length ? `: ${fixed.slice(0, 12).join('; ')}${fixed.length > 12 ? '; ...' : ''}` : ''}`);
 }
 if (errors.length) console.log(`sweep: page errors: ${errors.slice(0, 5).join('; ')}`);
 console.log(`sweep: ${all.length} distinct violation(s), ${fresh.length} new, ${advisory.length} new in seeds only (advisory), ${gone.length} not seen; ${Math.round((Date.now() - t0) / 1000)} s (${full ? 'full' : 'fast'}${strict ? ', strict' : ''})`);
