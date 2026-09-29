@@ -29,6 +29,15 @@
   .param { display: grid; grid-template-columns: 1fr 64px; gap: 4px 8px; margin: 6px 0; }
   .param b { grid-column: 1 / -1; font-weight: 600; font-size: 12px; color: var(--dim); }
   .param.changed b { color: var(--acc); }
+  #grid td { padding: 2px; text-align: center; }
+  #grid td:first-child { text-align: left; font-size: 12px; color: var(--dim); white-space: nowrap; }
+  button.cell { width: 100%; min-width: 44px; min-height: 40px; padding: 2px; font-variant-numeric: tabular-nums; }
+  button.cell.pass { background: #23452c; border-color: var(--ok); }
+  button.cell.fail { background: #4a2626; border-color: var(--bad); }
+  button.cell.na { background: #2f323a; border-color: #4a4f5c; color: var(--dim); }
+  button.cell.worst { outline: 3px solid var(--acc); }
+  #mxsum { margin: 6px 0; font-size: 12px; color: var(--dim); }
+  textarea { font: inherit; color: var(--fg); background: #2a2e38; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
   #status { color: var(--dim); font-size: 12px; min-height: 16px; }
   #status.err { color: var(--bad); }
   @media (max-width: 820px) {
