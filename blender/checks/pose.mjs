@@ -7,7 +7,7 @@
 //        [--root <checkout>]
 //        [--expect 'hand0Face<=0.05@0.8'] [--expect 'faceCam<=70@0.8'] [--check-browser]
 //   node blender/checks/pose.mjs --under idle --seconds 2          (an animation alone)
-//   node blender/checks/pose.mjs --scene [--mock floor | --moment '<query>' | --snapshot <path>]
+//   node blender/checks/pose.mjs --scene [--mock floor | --seed N [--week W] | --moment '<query>' | --snapshot <path>]
 //        [--patch-js '<js>'] [--event '<json>'] [--warm 30] [--frames 0,15,30 | --clip <s> --every 6]
 //        [--who s3,s5] [--view 0] [--expect 's3:faceCovered<=0.1@0.8'] [--expect 'faceVisible>=0.9']
 //        [--slow-raycast] [--render-reference] [--profile <file>] [--json out.json]
@@ -52,7 +52,7 @@
 import { createServer } from 'vite';
 import { LANDMARKS } from './pose-landmarks.js';
 import { HELD_READ_MEASURES } from './pose-held.js';
-import { judgeScene } from './pose-rules.js';
+import { judgeScene, COVER_MEASURE } from './pose-rules.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { join, resolve } from 'node:path';
@@ -93,6 +93,9 @@ function parseRule(s) {
 }
 const cmp = { '<=': (a, b) => a <= b, '>=': (a, b) => a >= b, '<': (a, b) => a < b, '>': (a, b) => a > b };
 
+// The page query that picks the sim: a real seeded game (played `week` weeks by the bots, as scene.mjs does) or a mock.
+const sceneSource = (req) => (req.seed != null ? `seed=${req.seed}${req.week ? `&weeks=${Number(req.week)}` : ''}` : `mock=${req.mock ?? 'floor'}`);
+
 // Reads scene-mode options from argv flags or a --serve request's camelCase JSON keys, so both feed
 // the same normalizer. get/flag/getAll abstract "a value flag", "a boolean flag" and "a repeated
 // flag" over either source.
@@ -106,7 +109,7 @@ function jsonSource(req) {
 function normalizeSceneRequest({ get, flag, getAll }) {
   const rules = getAll('expect').map((txt) => {
     const m = /^(?:([\w:]+?):)?(\w+)\s*(<=|>=|<|>)\s*(-?[\d.]+)(?:@([\d.]+))?$/.exec(String(txt).replace(/\s+/g, ''));
-    if (!m || !SCENE_MEASURES.includes(m[2])) throw new Error(`pose: can't read scene rule "${txt}" (want e.g. s3:faceCovered<=0.1@0.8, measure one of ${SCENE_MEASURES.join(', ')})`);
+    if (!m || !(SCENE_MEASURES.includes(m[2]) || COVER_MEASURE.test(m[2]))) throw new Error(`pose: can't read scene rule "${txt}" (want e.g. s3:faceCovered<=0.1@0.8, measure one of ${SCENE_MEASURES.join(', ')} or cover<Hand|HandL|HandR|Bubble><EyeNear|EyeFar|EyeL|EyeR|Face>)`);
     return { text: txt, id: m[1] ?? null, measure: m[2], op: m[3], value: Number(m[4]), share: m[5] ? Number(m[5]) : 1 };
   });
   const every = Number(get('every', 6));
@@ -119,10 +122,11 @@ function normalizeSceneRequest({ get, flag, getAll }) {
   // including a missing field, is on).
   const rigRaw = get('rig', 'on');
   return {
-    mock: get('mock', null), moment: get('moment', null), snapshot: get('snapshot', null),
+    seed: get('seed', null), week: get('week', null), mock: get('mock', null), moment: get('moment', null), snapshot: get('snapshot', null),
     rig: rigRaw !== 'off' && rigRaw !== false, view: Number(get('view', 0)), warm: Number(get('warm', 30)),
     frames, who: whoRaw ? (Array.isArray(whoRaw) ? whoRaw : String(whoRaw).split(',')) : null, rules,
     patchJs: get('patch-js', null),
+    cover: [...new Set([...getAll('cover').flatMap((c) => String(c).split(',')), ...rules.map((r) => r.measure).filter((m) => COVER_MEASURE.test(m))])],
     events: eventRaw ? (typeof eventRaw === 'string' ? JSON.parse(eventRaw) : eventRaw) : null,
     renderReference: flag('render-reference'), slowRaycast: flag('slow-raycast'),
     jsonPath: get('json', null), profilePath: get('profile', null),
@@ -158,18 +162,19 @@ async function runSample(page, req) {
     const warmed = window.__drawAudit();
     const skipDraw = !o.renderReference;
     const sampleStart = window.__wallNow();
-    if (o.patchJs) new Function('S', 'R', o.patchJs)(S, R);
+    // Async, so a patch can import the sim and play weeks (await sim.tick) before the frames start.
+    if (o.patchJs) await new (Object.getPrototypeOf(async () => {}).constructor)('S', 'R', o.patchJs)(S, R);
     if (o.events) R.handleEvents([].concat(o.events), S);
     const out = [];
     let at = 0;
     for (const f of o.frames) {
       (skipDraw ? window.__sample : window.__step)(Math.max(0, f - at)); at = f;
-      for (const r of window.__tool(() => M.measureScene(R, S, { who: o.who }))) out.push({ frame: f, ...r });
+      for (const r of window.__tool(() => M.measureScene(R, S, { who: o.who, cover: o.cover }))) out.push({ frame: f, ...r });
     }
     const sampleMs = window.__wallNow() - sampleStart;
     const total = window.__drawAudit();
     return { rows: out, profile: { initialization, warmupDraws: warmed.total - initialization.total, sampleDraws: total.total - warmed.total, total, warmMs, sampleMs, samplingMode: skipDraw ? 'no-draw' : 'rendered' } };
-  }, { view: req.view, warm: req.warm, patchJs: req.patchJs, events: req.events, frames: req.frames, who: req.who, renderReference: req.renderReference, slowRaycast: req.slowRaycast });
+  }, { view: req.view, warm: req.warm, patchJs: req.patchJs, events: req.events, frames: req.frames, who: req.who, cover: req.cover, renderReference: req.renderReference, slowRaycast: req.slowRaycast });
 }
 
 // The table, verdicts and (on failure) exit code a request's rows earn: identical for a single cold
@@ -184,6 +189,7 @@ function printSceneResult(req, rows, profile, errors) {
   const fmt = (v, w) => (v == null ? '-' : String(v)).padStart(w);
   console.log(`POSE ${'frame'.padStart(5)} ${'id'.padEnd(10)} ${'anim'.padEnd(12)} ${'covered'.padStart(8)} ${'faceVis'.padStart(8)} ${'bodyVis'.padStart(8)} ${'faceCam'.padStart(8)} ${'facePx'.padStart(7)}  by / occluder / moment`);
   for (const r of rows) console.log(`POSE ${fmt(r.frame, 5)} ${String(r.id).padEnd(10)} ${String(r.anim ?? '-').padEnd(12)} ${fmt(r.faceCovered, 8)} ${fmt(r.faceVisible, 8)} ${fmt(r.bodyVisible, 8)} ${fmt(r.faceCam, 8)} ${fmt(r.facePx, 7)}  ${[r.coveredBy && `covered by ${r.coveredBy}`, r.occluder && r.faceVisible < 1 ? `hidden by ${r.occluder}` : null, r.moment && `${r.moment}/${r.beat}`].filter(Boolean).join('; ')}`);
+  for (const r of rows) for (const [name, c] of Object.entries(r.covers ?? {})) console.log(`POSE       ${fmt(r.frame, 5)} ${String(r.id).padEnd(10)} ${name} ${c.fraction} (${c.front === 'a' ? 'A in front' : c.front === 'partial' ? 'partly covered' : 'B clear'}; ${c.of}, ${c.onScreen}/${c.samples} samples on screen)`);
   const ids = [...new Set(rows.map((r) => r.id))];
   const judged = judgeScene(rows, req.frames, req.who, req.rules);
   if (!judged.pass) code = 1;
@@ -212,7 +218,7 @@ async function sceneMode() {
   let code = 0;
   try {
     const target = req.snapshot || req.moment ? resolveTarget({ snapshot: req.snapshot, event: req.moment }) : null;
-    const opened = target ? await openAt(H, target, { width: 1280, height: 800, quality: 'medium' }) : await H.openScene(`quality=medium&mock=${req.mock ?? 'floor'}&rig=${req.rig ? 1 : 0}`, { width: 1280, height: 800 });
+    const opened = target ? await openAt(H, target, { width: 1280, height: 800, quality: 'medium' }) : await H.openScene(`quality=medium&${sceneSource(req)}&rig=${req.rig ? 1 : 0}`, { width: 1280, height: 800 });
     const { page, errors } = opened;
     const readyMs = performance.now() - t0;
     const { rows, profile } = await runSample(page, req);
@@ -253,7 +259,7 @@ async function serveMode() {
     const target = req.snapshot || req.moment ? resolveTarget({ snapshot: req.snapshot, event: req.moment }) : null;
     const opened = target
       ? await openAt(H, target, { width: 1280, height: 800, quality: 'medium' })
-      : await H.openScene(`quality=medium&mock=${req.mock ?? 'floor'}&rig=${req.rig ? 1 : 0}`, { width: 1280, height: 800 });
+      : await H.openScene(`quality=medium&${sceneSource(req)}&rig=${req.rig ? 1 : 0}`, { width: 1280, height: 800 });
     const { page, errors } = opened;
     try {
       const readyMs = performance.now() - t0;

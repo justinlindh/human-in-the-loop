@@ -1,3 +1,7 @@
+// The scene measures that name two parts (see pose-cover.js): cover<A><B>, the share of B's sample
+// points that A hides from the camera.
+export const COVER_MEASURE = /^cover(HandL|HandR|Hand|Bubble)(EyeNear|EyeFar|EyeL|EyeR|Face)$/;
+
 // Judge each scene subject against the requested frames, including absent samples.
 export function judgeScene(rows, frames, who, rules) {
   const ids = [...new Set([...(who ?? []), ...rows.map((r) => r.id), ...rules.flatMap((r) => r.id ? [r.id] : [])])];

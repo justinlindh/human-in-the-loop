@@ -12,6 +12,7 @@ import { measureHeldRead } from './pose-held.js';
 import { getTemplate } from '../../src/render/models.js';
 import { faceVisibility } from './pose-visibility.js';
 import { projectedSubject, sceneOverlays } from './pose-projection.js';
+import { measureCovers } from './pose-cover.js';
 
 const area = (r) => Math.max(0, r.right - r.left) * Math.max(0, r.bottom - r.top);
 
@@ -28,7 +29,7 @@ export function measureHeld(R, id, loads = carried(R), grips = held(R), pose = n
   };
 }
 
-export function measureScene(R, S, { who = null, faceTemplate = getTemplate('chibi') } = {}) {
+export function measureScene(R, S, { who = null, cover = [], faceTemplate = getTemplate('chibi') } = {}) {
   R.scene.updateMatrixWorld();
   R.camera.updateMatrixWorld();
   const heads = new Map();
@@ -69,6 +70,7 @@ export function measureScene(R, S, { who = null, faceTemplate = getTemplate('chi
       facePx: +(f.r.bottom - f.r.top).toFixed(1), anim: p.anim ?? null, moment: st?.moment ?? null, beat: st?.beat ?? null,
       ...measureHeld(R, f.id, loads, grips, p),
       projected: projectedSubject(R, character, faceTemplate, canvas, f.r, overlays),
+      ...(cover.length ? (() => { const c = measureCovers(R, character, faceTemplate, cover, overlays, canvas); return { ...c.measures, covers: c.covers }; })() : {}),
     });
   }
   return out;
