@@ -176,8 +176,7 @@ function floatGap(points, targets) {
   return gap;
 }
 
-const HEAD_SOFT_CAP = 3;          // upholstery on a seat item: the head check's limit is 3x the hard one
-const FLOAT_MAX = 0.03;          // resting on furniture: the body comes within 3 cm of it
+const FLOAT_MAX = 0.03;           // resting on furniture: the body comes within 3 cm of it
 const SOFT_SINK = 0.35;           // soft furniture (a beanbag): the body sinks this far below its top
 
 // Furniture poses: send one person to each item and measure how much of them sinks into it.
@@ -208,7 +207,6 @@ export async function runPerkChecks(R, S, items, { settle = 12, frames = 12, dt 
     for (let i = 0; i < settle; i++) R.advance(dt);
     let inside = 0, total = 0, headIn = 0, headTotal = 0, gap = 0, low = Infinity;
     const headHits = {};
-    const softSeat = ['couch', 'nap_pod', 'beanbag'].includes(e.itemId);
     const top = new THREE.Box3().setFromObject(e.obj).max.y;
     for (let f = 0; f < frames; f++) {
       R.advance(dt);
@@ -222,11 +220,7 @@ export async function runPerkChecks(R, S, items, { settle = 12, frames = 12, dt 
       if (head) {
         const hp = vertices(head.parent, 3);
         const frameHits = [];
-        if (exact) exact(head.parent, furniture, undefined, frameHits);
-        // A head resting on upholstery presses into it a little: fabric on a seat item may cross up
-        // to HEAD_SOFT_CAP of the head's triangles where hard parts allow the usual 1%.
-        const exactShare = Math.max(0, ...frameHits.map((h) => (softSeat && /pal_fabric_/.test(h.target) ? h.frac / HEAD_SOFT_CAP : h.frac)));
-        headIn += Math.max(insideCount(hp, furniture), Math.ceil(exactShare * hp.length));
+        headIn += Math.max(insideCount(hp, furniture), exact ? Math.ceil(exact(head.parent, furniture, undefined, frameHits) * hp.length) : 0);
         for (const h of frameHits) { const k = `${h.part} x ${h.target}`; const cur = headHits[k] ?? { frames: 0, maxPct: 0 }; cur.frames++; cur.maxPct = Math.max(cur.maxPct, +(100 * h.frac).toFixed(1)); headHits[k] = cur; }
         headTotal += hp.length;
       }
