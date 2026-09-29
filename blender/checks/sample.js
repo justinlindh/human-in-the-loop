@@ -28,7 +28,7 @@ function skipPair(A, B) {
 
 // With `item`, only violations that involve that item are kept (and cropped). A key in `known` is
 // cropped too when its value is past its accepted depth in `worst`, so the media for a raised entry exists.
-export function createCollector({ state, known, worst = {}, crops, tol, item = null, cropAt = X.crop }) {
+export function createCollector({ state, known, worst = {}, crops, tol, item = null, cropAt = X.crop, screen = !globalThis.__sweepNoDom }) {
   const found = new Map();
   let cropped = 0;
   return {
@@ -46,6 +46,10 @@ export function createCollector({ state, known, worst = {}, crops, tol, item = n
     at(other) { const self = this; return { ...self, add: (R, ...a) => { const s0 = state; state = other; try { self.add(R, ...a); } finally { state = s0; } }, tol }; },
     get list() { return [...found.values()]; },
     tol,
+    // Screen checks read the page's DOM; a run without one (the Node host) turns them off.
+    screen,
+    // How a pair of meshes is measured; the Node host supplies the studio engine's.
+    measure: globalThis.__sweepMeasure,
   };
 }
 
@@ -58,7 +62,7 @@ function checkFrame(R, C, t, memo) {
     memo.sig = sig;
     // One entry per pair of parts (materials), so a new clash on a baselined pair of things (pizza
     // into the monitor where a plant was accepted) still shows as new.
-    for (const o of X.overlaps(list, { tol: C.tol.overlap, skip: skipPair, touch: X.robotTouch })) {
+    for (const o of X.overlaps(list, { tol: C.tol.overlap, skip: skipPair, touch: X.robotTouch, measure: C.measure })) {
       for (const p of o.parts) C.add(R, 'overlap', t, `${o.a.label}/${p.a}`, `${o.b.label}/${p.b}`, p.depth, o.at, `${o.a.label}${o.a.id ? `#${o.a.id}` : ''}[${p.a}] ~ ${o.b.label}${o.b.id ? `#${o.b.id}` : ''}[${p.b}]`);
     }
     for (const s of X.support(list, (b) => b.kind === 'deskProp' || b.kind === 'floorProp' || (b.kind === 'placed' && !b.wallMounted))) {
@@ -79,14 +83,14 @@ function checkPeople(R, C, t, list = X.bodies(R)) {
     return w.kind !== 'person' && p.own.has(w.key);
   };
   const what = (p) => (p.walking ? 'walking' : p.moment ? `moment ${p.moment}` : p.anim ?? 'still');
-  for (const o of X.crossOverlaps(ps, list, { tol: C.tol.person, skip })) {
+  for (const o of X.crossOverlaps(ps, list, { tol: C.tol.person, skip, measure: C.measure })) {
     const [p, w] = o.a.kind === 'person' ? [o.a, o.b] : [o.b, o.a];
     for (const q of o.parts) {
       const [pp, wp] = o.a === p ? [q.a, q.b] : [q.b, q.a];
       C.add(R, 'person', t, `person(${what(p)})/${pp}`, `${w.label}/${wp}`, q.depth, o.at, `${p.id} (${what(p)}) ${pp} in ${w.label}${w.id ? `#${w.id}` : ''}[${wp}]`);
     }
   }
-  for (const o of X.overlaps(ps, { tol: C.tol.person })) {
+  for (const o of X.overlaps(ps, { tol: C.tol.person, measure: C.measure })) {
     C.add(R, 'person', t, 'person', 'person', o.depth, o.at, `${o.a.id} (${what(o.a)}) in ${o.b.id} (${what(o.b)})`);
   }
   // What they hold or carry against their own head and torso (a printer through the carrier's head).
@@ -94,7 +98,7 @@ function checkPeople(R, C, t, list = X.bodies(R)) {
   for (const h of X.carried(R)) {
     const p = byId.get(h.staffId);
     const doing = p ? what(p) : 'still';
-    for (const o of X.crossOverlaps([h.thing], [h.body], { tol: C.tol.self })) {
+    for (const o of X.crossOverlaps([h.thing], [h.body], { tol: C.tol.self, measure: C.measure })) {
       for (const q of o.parts) {
         const [tp, bp] = o.a === h.thing ? [q.a, q.b] : [q.b, q.a];
         C.add(R, 'self', t, `held/${h.thing.label}`, `own ${bp}`, q.depth, o.at, `${h.staffId} (${doing}) holds ${h.thing.label}[${tp}] ${q.depth.toFixed(3)} m into their own ${bp}`);
@@ -187,7 +191,7 @@ function window_(R, S, C, { seconds, every, t0 = 0, quiet = false }) {
   const per = Math.round(PEOPLE_EVERY / DT);
   for (let i = 0; i <= n; i++) {
     // Drawn frames, as the game runs: the labels lay themselves out in render().
-    if (i) for (let f = 0; f < per; f++) { window.__step(1); if (!quiet) checkScreen(R, C, t0 + (i - 1) * PEOPLE_EVERY + (f + 1) * DT, track); }
+    if (i) for (let f = 0; f < per; f++) { window.__step(1); if (!quiet && C.screen !== false) checkScreen(R, C, t0 + (i - 1) * PEOPLE_EVERY + (f + 1) * DT, track); }
     if (quiet) continue;
     const t = t0 + i * PEOPLE_EVERY;
     if (i % k === 0) checkFrame(R, C, t, memo);

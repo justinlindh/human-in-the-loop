@@ -377,8 +377,11 @@ export function robotTouch(A, B, ba, bb) {
 // Pairs of bodies that interpenetrate by more than `tol` metres. skip(a, b) leaves out pairs that
 // are not to be compared at all (wall against wall). touch(A, B, boxA, boxB) marks mesh pairs where
 // any surface crossing counts, however shallow: a thin slab through a mesh leaves no vertex inside
-// either, so such a pair reads at least the thinnest side of the two meshes' shared box.
-export function overlaps(list, { tol = 0.01, skip = () => false, touch = () => false } = {}) {
+// either, so such a pair reads at least the thinnest side of the two meshes' shared box. measure(a, b,
+// tol) replaces how one mesh pair is read (the studio engine's reading, scripts/studio/sweep-host.mjs): it
+// returns null when the meshes do not touch, else [{ depth, at }, ...] as pairDepths does.
+const measureHere = (a, b, tol) => (touching(a, b) ? pairDepths(a, b, tol) : null);
+export function overlaps(list, { tol = 0.01, skip = () => false, touch = () => false, measure = measureHere } = {}) {
   const out = [];
   for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
     const A = list[i], B = list[j];
@@ -387,8 +390,9 @@ export function overlaps(list, { tol = 0.01, skip = () => false, touch = () => f
     const parts = [];
     for (const a of A.meshes) for (const b of B.meshes) {
       const ba = a.geometry.boundingBox.clone().applyMatrix4(a.matrixWorld), bb = b.geometry.boundingBox.clone().applyMatrix4(b.matrixWorld);
-      if (!ba.intersectsBox(bb) || !touching(a, b)) continue;
-      const rs = pairDepths(a, b, tol);
+      if (!ba.intersectsBox(bb)) continue;
+      const rs = measure(a, b, tol);
+      if (!rs) continue;
       let d = Math.max(...rs.map((r) => { if (r.depth > depth) { depth = r.depth; at = r.at; } return r.depth; }));
       if (touch(A, B, ba, bb)) {
         const s = ba.clone().intersect(bb), size = s.getSize(new THREE.Vector3());
