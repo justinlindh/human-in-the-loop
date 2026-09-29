@@ -20,6 +20,17 @@ const DOCK_OUT = 0.45;
 // needs there: the tray may reach over a desk's edge, so the body alone needs clearing.
 const SERVE_RADII = [0.6, 0.75, 0.9, 1.05];
 const SERVE_R = 0.22;
+// Farther rings for when nothing near a seat is clear on the chair's side.
+const SERVE_FAR = [1.2, 1.4, 1.6];
+// Floor clearance of the robot's body and head from any furniture mesh taller than a floor plate:
+// the walk grid is coarser than a desk's edge, and a stop it allows can put the head in a desktop.
+const BODY_R = 0.24;
+const PLATE_H = 0.15;
+const PATH_CLEAR = 0.2;
+// Stuck on a chair: its nose right up to the chair's back.
+const STUCK_R = 0.2;
+// How near a walker's centre may come to the robot's.
+const KEEP_OFF_R = 0.42;
 // Floor clearance round the robot, tray included, and the height and radius of its dock's pad.
 const ROBOT_R = 0.3;
 const PAD_Y = 0.03;
@@ -29,7 +40,7 @@ const EYE = { ok: '#5fe0d0', broken: '#ffb238', off: '#1e2333' };
 // the body), how far they turn so its head sits a little to their right where the hand sweeps, how
 // long the robot waits for them before it recovers on its own, how long it shakes after the slap
 // before heading home, from how far away the fixer jogs over, and how long they square up first.
-const SLAP = { radii: [0.47, 0.51, 0.55], waitS: 20, afterS: 1.4, runFromM: 5, aside: 0.12, turnS: 0.4 };
+const SLAP = { radii: [0.47, 0.51, 0.55], waitS: 20, afterS: 1.4, runFromM: 5, aside: 0.12, turnS: 0.4, clearM: 0.9, holdS: 6 };
 
 function rnd(a, b) { return a + Math.random() * (b - a); }
 function angleLerp(a, b, k) {
@@ -89,20 +100,57 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     return null;
   }
 
-  // The pad the robot parks on, and the floor point in front of it where it turns in, in world space.
-  function dockSpots(e) {
+  // The pad the robot parks on, in world space.
+  function padOf(e) {
     const t = e.target, c = Math.cos(t.rotY), s = Math.sin(t.rotY);
     const p = e.obj.userData.dock ?? { x: 0, z: 0 };
-    const pad = { x: t.x + c * p.x + s * p.z, z: t.z - s * p.x + c * p.z, yaw: t.rotY };
-    // Straight out from the dock, or the nearest open floor to that when furniture stands there.
-    const out = 0.5 + DOCK_OUT;
-    const front = office.nav().freePoint(t.x + s * out, t.z + c * out);
-    return { pad, front: { x: front.x, z: front.z } };
+    return { x: t.x + c * p.x + s * p.z, z: t.z - s * p.x + c * p.z, yaw: t.rotY };
+  }
+
+  // The floor point it drives out to from the pad and turns in from: straight out from the dock, or
+  // the open floor nearest that round the pad. The point and the straight drive to it both clear
+  // every piece of furniture; with no such point (a dock boxed in by furniture) it is null and the
+  // robot stays on its pad. Found once per walk grid.
+  const frontMemo = { nav: null, id: null, front: null };
+  function frontOf(e) {
+    const nav = office.nav();
+    if (frontMemo.nav === nav && frontMemo.id === e.id) return frontMemo.front;
+    const t = e.target, pad = padOf(e), out = 0.5 + DOCK_OUT;
+    const want = { x: t.x + Math.sin(t.rotY) * out, z: t.z + Math.cos(t.rotY) * out };
+    const boxes = furnitureBoxes();
+    const leg = (q) => {
+      const n = Math.ceil(Math.hypot(q.x - pad.x, q.z - pad.z) / 0.1);
+      for (let i = 1; i <= n; i++) if (!clearOf({ x: pad.x + ((q.x - pad.x) * i) / n, z: pad.z + ((q.z - pad.z) * i) / n }, boxes)) return false;
+      return true;
+    };
+    const ok = (q) => !nav.isBlocked(q.x, q.z, SERVE_R) && leg(q);
+    const front = ok(want) ? want : pickSpot(pad, {
+      ring: { radii: [0.8, 1.0, 1.25, 1.5, 2.0], count: 16 },
+      needs: ['clear'],
+      checks: { clear: (q) => ok(q) || 'furniture' },
+      score: (q) => Math.hypot(q.x - want.x, q.z - want.z),
+      debug: spotDebug(office), moment: 'robot', search: 'front',
+    });
+    Object.assign(frontMemo, { nav, id: e.id, front: front && { x: front.x, z: front.z } });
+    return frontMemo.front;
+  }
+
+  // Where a robot already off its pad heads to get back on: the front, or the open floor nearest the
+  // pad when there is none (the furniture moved round it meanwhile).
+  function wayHome(e) {
+    const pad = padOf(e);
+    return frontOf(e) ?? office.nav().freePoint(pad.x, pad.z);
+  }
+
+  // The robot is wider than a walker's corner-cutting allows: its way keeps PATH_CLEAR from anything
+  // blocked, or where no way does, stays as far off as it can.
+  function route(a, b) {
+    const nav = office.nav();
+    return nav.path(a, b, PATH_CLEAR) ?? nav.path(a, b, PATH_CLEAR, { soft: true });
   }
 
   function walkTo(r, x, z) {
-    const nav = office.nav();
-    r.path = nav.path({ x: r.pos.x, z: r.pos.z }, { x, z });
+    r.path = route({ x: r.pos.x, z: r.pos.z }, { x, z });
     r.path.shift();
     if (!r.path.length && Math.hypot(x - r.pos.x, z - r.pos.z) > 0.05) r.path = [{ x, z }];
   }
@@ -118,7 +166,7 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
   function spawn(e) {
     const rig = buildRig();
     parent.add(rig.root);
-    const { pad } = dockSpots(e);
+    const pad = padOf(e);
     rec = { rig, dockId: e.id, pos: new THREE.Vector3(pad.x, 0, pad.z), yaw: pad.yaw, path: [], plan: 'dock', t: rnd(3, 6), stops: [], emoteT: 0, docked: true, level: e.level ?? 1 };
   }
 
@@ -163,20 +211,42 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
   // Open floor as near a desk's seat as the robot fits, in view, facing the sitter. The chair's side
   // of the seat comes first: on the desk's side the robot's head sits level with the desktop and
   // reads as poking through it.
+  // Nothing beside it on the chair's side: farther out, still on that side, or no stop at all.
   function besideSeat(desk) {
     const c = desk.seat, fx = Math.sin(c.rotY ?? 0), fz = Math.cos(c.rotY ?? 0);
     const score = (p) => Math.hypot(p.x - c.x, p.z - c.z);
-    const side = (p) => (p.x - c.x) * fx + (p.z - c.z) * fz <= 0.05 || 'desk side';
+    const boxes = furnitureBoxes();
+    const side = (p) => ((p.x - c.x) * fx + (p.z - c.z) * fz > 0.05 ? 'desk side' : clearOf(p, boxes) || 'furniture');
     const q = openSpot(c, 'serve', { radii: SERVE_RADII, clearR: SERVE_R, score, side })
-      ?? openSpot(c, 'serve', { radii: SERVE_RADII, clearR: SERVE_R, score });
+      ?? openSpot(c, 'serveFar', { radii: SERVE_FAR, clearR: SERVE_R, score, side });
     return q ? { x: q.x, z: q.z, face: { x: c.x, z: c.z } } : null;
+  }
+
+  // World boxes of every furniture mesh standing above a floor plate, the robot's own dock aside.
+  function furnitureBoxes() {
+    const out = [];
+    for (const e of office.placed.values()) {
+      if (e.itemId === 'office_robot' || !e.obj.parent) continue;
+      e.obj.updateMatrixWorld(true);
+      e.obj.traverse((m) => {
+        if (!m.isMesh || m.isSprite || !m.geometry?.attributes?.position) return;
+        if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+        const b = m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld);
+        if (b.max.y > PLATE_H) out.push(b);
+      });
+    }
+    return out;
+  }
+  function clearOf(p, boxes, r = BODY_R) {
+    return boxes.every((b) => p.x < b.min.x - r || p.x > b.max.x + r || p.z < b.min.z - r || p.z > b.max.z + r);
   }
 
   // Open floor near a point, clear for the robot (and a second point along with it, when given),
   // and in view: the first ring candidate that passes, else null.
-  function openSpot(center, search, { radii = [0.4, 0.7, 1.0, 1.4, 1.8, 2.4], partner = null, clearR = 0.28, score = null, side = null } = {}) {
-    const nav = office.nav();
-    const clear = (x, z) => !nav.isBlocked(x, z, clearR);
+  // A robot stop also clears every piece of furniture by BODY_R (robot: false for a person's spot).
+  function openSpot(center, search, { radii = [0.4, 0.7, 1.0, 1.4, 1.8, 2.4], partner = null, clearR = 0.28, score = null, side = null, robot = true } = {}) {
+    const nav = office.nav(), boxes = robot ? furnitureBoxes() : [];
+    const clear = (x, z) => !nav.isBlocked(x, z, clearR) && clearOf({ x, z }, boxes);
     return pickSpot(center, {
       ring: { radii, count: 12 },
       needs: side ? ['side', 'clear', 'inView'] : ['clear', 'inView'],
@@ -193,10 +263,9 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     const plants = [...office.placed.values()].filter((e) => e.itemId === 'plant_wall' || e.obj.userData.kind === 'plant');
     if (!plants.length) return null;
     const e = plants[Math.floor(Math.random() * plants.length)];
-    const nav = office.nav();
     const t = e.target, out = 0.5 + 0.45;
-    const p = nav.freePoint(t.x + Math.sin(t.rotY) * out, t.z + Math.cos(t.rotY) * out);
-    return { x: p.x, z: p.z, face: { x: t.x, z: t.z }, water: true };
+    const p = openSpot({ x: t.x + Math.sin(t.rotY) * out, z: t.z + Math.cos(t.rotY) * out }, 'plant', { radii: [0.2, 0.4, 0.6, 0.9], clearR: SERVE_R });
+    return p ? { x: p.x, z: p.z, face: { x: t.x, z: t.z }, water: true } : null;
   }
 
   // The away person's desk from the breakdown event; else anyone away's, else any desk nobody sits at.
@@ -212,16 +281,18 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     return d ? besideSeat(d) : null;
   }
 
-  // A desk chair to get stuck on, an empty desk's first: the robot noses into its back from the aisle.
+  // An empty desk's chair to get stuck on: the robot noses up to its back from the aisle.
   function chairStop() {
     const taken = new Set([...recs.values()].map((w) => w.seat).filter((x) => x != null));
-    const desks = [...(office.current?.desks ?? [])].sort((a, b) => taken.has(a.id) - taken.has(b.id));
-    const nav = office.nav();
+    // Only a chair nobody sits in: a sitter stands up backwards, straight into whatever is behind it.
+    const desks = (office.current?.desks ?? []).filter((d) => !taken.has(d.id));
+    const nav = office.nav(), boxes = furnitureBoxes();
     for (const d of desks) {
       const f = d.seat.rotY;
-      for (const back of [0.55, 0.65, 0.75]) {
+      for (const back of [0.55, 0.65, 0.75, 0.85]) {
         const x = d.seat.x - Math.sin(f) * back, z = d.seat.z - Math.cos(f) * back;
-        if (!nav.isBlocked(x, z, 0.18) && inView({ x, z })) return { x, z, face: { x: d.seat.x, z: d.seat.z } };
+        // Up against the chair back, never into it.
+        if (!nav.isBlocked(x, z, 0.18) && clearOf({ x, z }, boxes, STUCK_R) && inView({ x, z })) return { x, z, face: { x: d.seat.x, z: d.seat.z } };
       }
     }
     return null;
@@ -244,7 +315,15 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     const r = rec;
     const e = dockEntry();
     if (!e) return;
-    const { pad, front } = dockSpots(e);
+    const pad = padOf(e);
+    // Boxed in on its pad: rounds become a rest, and a breakdown plays out where it stands.
+    const boxed = r.docked && !frontOf(e);
+    const front = boxed ? pad : wayHome(e);
+    if (boxed && (plan === 'rounds' || plan === 'broken:decaf')) {
+      r.plan = plan === 'rounds' ? 'dock' : plan; r.t = rnd(6, 12); r.path = []; r.stop = null;
+      if (plan === 'broken:decaf') r.decafRest = true;
+      return;
+    }
     r.plan = plan; r.stop = null; r.arrived = false; r.spin = false; r.bump = false;
     const g = r.rig;
     g.cone.removeFromParent();
@@ -253,7 +332,8 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     g.tray.visible = true;
     g.cup.visible = true;
     setEyes('ok');
-    const undock = () => { if (r.docked) { r.docked = false; r.path = [front]; } else r.path = []; };
+    const undock = () => { if (boxed) r.path = []; else if (r.docked) { r.docked = false; r.path = [front]; } else r.path = []; };
+    const stopsOr = (list) => (boxed ? [] : list);
     switch (plan) {
       case 'home':
         if (r.docked) { r.plan = 'dock'; r.t = rnd(6, 12); return; }
@@ -264,21 +344,21 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
         if (r.level >= 2 && Math.random() < 0.35) { const p = plantStop(); if (p) r.stops.push(p); }
         nextStop(); return;
       case 'broken:spin': {
-        const p = spinStop(front);
-        undock(); r.stops = [p ?? { x: front.x, z: front.z }]; nextStop(); setEyes('broken'); return;
+        const p = !boxed && spinStop(front);
+        undock(); r.stops = stopsOr([p || { x: front.x, z: front.z }]); nextStop(); setEyes('broken'); return;
       }
       case 'broken:stuck': {
-        const s = chairStop();
-        undock(); r.stops = s ? [s] : [{ x: front.x, z: front.z }]; nextStop(); setEyes('broken'); return;
+        const s = !boxed && chairStop();
+        undock(); r.stops = stopsOr([s || { x: front.x, z: front.z }]); nextStop(); setEyes('broken'); return;
       }
       case 'broken:emptyDesk': {
-        const s = emptyDeskStop();
-        undock(); r.stops = s ? [s] : [{ x: front.x, z: front.z }]; nextStop(); return;
+        const s = !boxed && emptyDeskStop();
+        undock(); r.stops = stopsOr([s || { x: front.x, z: front.z }]); nextStop(); return;
       }
       case 'broken:cone': {
-        const q = coneStop(front);
+        const q = !boxed && coneStop(front);
         undock();
-        if (q) { g.cone.position.set(q.cone.x, 0, q.cone.z); parent.add(g.cone); r.stops = [q]; } else r.stops = [{ x: front.x, z: front.z }];
+        if (q) { g.cone.position.set(q.cone.x, 0, q.cone.z); parent.add(g.cone); r.stops = [q]; } else r.stops = stopsOr([{ x: front.x, z: front.z }]);
         nextStop(); setEyes('broken'); return;
       }
       case 'broken:decaf':
@@ -299,8 +379,7 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     r.arrived = false;
     if (r.stop) {
       const from = r.path.length ? r.path[r.path.length - 1] : r.pos;
-      const nav = office.nav();
-      const leg = nav.path({ x: from.x, z: from.z }, { x: r.stop.x, z: r.stop.z });
+      const leg = route({ x: from.x, z: from.z }, { x: r.stop.x, z: r.stop.z });
       leg.shift();
       r.path.push(...leg);
       if (!leg.length) r.path.push({ x: r.stop.x, z: r.stop.z });
@@ -311,9 +390,9 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     if (r.plan.startsWith('broken:') && r.plan !== 'broken:decaf') return;
     // Rounds done: back to the dock.
     const e = dockEntry();
-    const { pad, front } = dockSpots(e);
+    const pad = padOf(e), front = wayHome(e);
     const from = r.path.length ? r.path[r.path.length - 1] : r.pos;
-    const leg = office.nav().path({ x: from.x, z: from.z }, front);
+    const leg = route({ x: from.x, z: from.z }, front);
     leg.shift();
     r.path.push(...leg, pad);
     r.plan = r.plan === 'broken:decaf' ? 'broken:decaf' : 'return';
@@ -379,13 +458,13 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     } else if (r.plan === 'dock') {
       r.docked = true;
       const e = dockEntry();
-      if (e) r.yaw = angleLerp(r.yaw, dockSpots(e).pad.yaw, 1 - Math.exp(-dt * 4));
+      if (e) r.yaw = angleLerp(r.yaw, padOf(e).yaw, 1 - Math.exp(-dt * 4));
       if ((r.t -= dt) <= 0) startPlan('rounds');
     } else if (r.plan === 'return' || r.plan === 'broken:unplug' || (r.plan === 'broken:decaf' && !r.stop)) {
       r.docked = true;
       if (r.plan === 'broken:unplug') {
         const e = dockEntry();
-        if (e) r.yaw = angleLerp(r.yaw, dockSpots(e).pad.yaw, 1 - Math.exp(-dt * 4));
+        if (e) r.yaw = angleLerp(r.yaw, padOf(e).yaw, 1 - Math.exp(-dt * 4));
       } else if (r.plan === 'broken:decaf') { r.plan = 'broken:decaf'; r.t = rnd(6, 10); r.decafRest = true; }
       else { r.plan = 'dock'; r.t = rnd(8, 14); g.cup.visible = true; }
     } else {
@@ -399,7 +478,7 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     pose(r, dt, moving);
     // Up on the dock's pad when parked on it.
     const e = dockEntry();
-    const pad = e && dockSpots(e).pad;
+    const pad = e && padOf(e);
     const onPad = pad && Math.hypot(r.pos.x - pad.x, r.pos.z - pad.z) < PAD_R ? PAD_Y : 0;
     r.y = (r.y ?? 0) + (onPad - (r.y ?? 0)) * (1 - Math.exp(-dt * 12));
     g.root.position.set(r.pos.x, r.y, r.pos.z);
@@ -452,7 +531,7 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     const free = who && !who.hidden && who.mode === 'placed' && !who.temp;
     // Side-on to the camera, so the swing reads across the screen and neither hides the other.
     const cy = camYaw(), vx = Math.sin(cy), vz = Math.cos(cy);
-    const spot = free && openSpot(r.pos, 'slap', { radii: SLAP.radii, clearR: 0.2,
+    const spot = free && openSpot(r.pos, 'slap', { radii: SLAP.radii, clearR: 0.2, robot: false,
       score: (q) => Math.abs((q.x - r.pos.x) * vx + (q.z - r.pos.z) * vz) / Math.hypot(q.x - r.pos.x, q.z - r.pos.z) });
     if (!spot) { r.fix = { t: 0, slapped: true, after: SLAP.afterS }; recover(); return; }
     const toRobot = Math.atan2(r.pos.x - spot.x, r.pos.z - spot.z);
@@ -495,6 +574,9 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
       return;
     }
     if ((f.after -= dt) > 0) return;
+    // It drives off once the fixer has stepped away, so it never rolls through them.
+    const w = f.who;
+    if (w && !w.hidden && Math.hypot(w.pos.x - r.pos.x, w.pos.z - r.pos.z) < SLAP.clearM && (f.held = (f.held ?? 0) + dt) < SLAP.holdS) return;
     r.fix = null;
     r.faceYaw = null;
     const cause = lastState?.robot?.status === 'broken' ? lastState.robot.cause : null;
@@ -538,5 +620,7 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
       return true;
     },
     get root() { return rec?.rig.root ?? null; },
+    // The floor circle walkers keep out of: the robot's body plus a walker's, off its dock only.
+    blocker() { return rec && !rec.docked ? { x: rec.pos.x, z: rec.pos.z, r: KEEP_OFF_R } : null; },
   };
 }

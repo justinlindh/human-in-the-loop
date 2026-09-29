@@ -81,17 +81,18 @@ can = [cyl('rb_can', 0.055, 0.1, (0, -0.2, 0.26), 'fabric_teal', verts=14, bevel
        torus('rb_handle', 0.04, 0.008, (0, -0.18, 0.32), 'metal_soft', rot=(0, math.pi / 2, 0), major_seg=12, minor_seg=4)]
 join(can, 'robot_can')
 
-# A charging cable from the back of the base, trailing across the floor to a loose plug.
+# A charging cable from the back of the base, curling round to the side to a loose plug on the
+# floor: it stays within the dock's own tile, clear of a wall behind the dock.
 cable = []
-pts = [(0, 0.19, 0.1), (0, 0.27, 0.05), (0.05, 0.36, 0.015), (0.14, 0.44, 0.015), (0.2, 0.52, 0.015)]
+pts = [(0, 0.19, 0.1), (0, 0.25, 0.05), (0.07, 0.3, 0.015), (0.18, 0.32, 0.015), (0.28, 0.29, 0.015)]
 for i, (a, b) in enumerate(zip(pts, pts[1:])):
     dx, dy, dz = b[0] - a[0], b[1] - a[1], b[2] - a[2]
     L = math.sqrt(dx * dx + dy * dy + dz * dz)
     aim = Vector((dx, dy, dz)).to_track_quat('Z', 'Y').to_euler()
     cable.append(cyl(f'rb_cab{i}', 0.01, L + 0.01, ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2), 'plastic_charcoal', verts=6, bevel=0, rot=tuple(aim)))
-cable.append(box('rb_plug', (0.05, 0.07, 0.035), (0.23, 0.57, 0.02), 'plastic_white', bevel=0.01, rot=(0, 0, math.radians(-35))))
+cable.append(box('rb_plug', (0.05, 0.07, 0.035), (0.32, 0.28, 0.02), 'plastic_white', bevel=0.01, rot=(0, 0, math.radians(-75))))
 for sx in (-1, 1):
-    cable.append(box(f'rb_prong{sx}', (0.008, 0.03, 0.004), (0.25 + sx * 0.012, 0.61, 0.02), 'metal_soft', bevel=0, rot=(0, 0, math.radians(-35))))
+    cable.append(box(f'rb_prong{sx}', (0.008, 0.03, 0.004), (0.365, 0.27 + sx * 0.012, 0.02), 'metal_soft', bevel=0, rot=(0, 0, math.radians(-75))))
 join(cable, 'robot_cable')
 
 # A sticky note slapped on the chest, slightly crooked.

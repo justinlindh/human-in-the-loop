@@ -991,8 +991,28 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       r.pos.addScaledVector(dir, step);
       r.yaw = angleLerp(r.yaw, r.temp?.walkYaw ?? Math.atan2(dir.x, dir.z), 1 - Math.exp(-dt * 12));
     }
+    keepOffRobot(r, target);
     r.char.setMoveSpeed(r.speed);
     r.char.setAnim(anim);
+  }
+
+  // The walk grid doesn't know where the office robot is: a walker whose step lands inside its
+  // circle slides round it to the open floor on its edge nearest where they are, favouring the side
+  // toward their target. One heading for a point inside the circle walks on.
+  const ROUND = [0, 0.5, -0.5, 1, -1, 1.5, -1.5, 2, -2];
+  function keepOffRobot(r, target) {
+    const b = robot.blocker();
+    if (!b) return;
+    const dx = r.pos.x - b.x, dz = r.pos.z - b.z;
+    if (Math.hypot(dx, dz) >= b.r || Math.hypot(target.x - b.x, target.z - b.z) < b.r) return;
+    const a0 = Math.atan2(dz, dx), toward = Math.atan2(target.z - b.z, target.x - b.x);
+    const side = Math.sin(toward - a0) >= 0 ? 1 : -1;
+    const nav = office.nav();
+    for (const k of ROUND) {
+      const a = a0 + k * side;
+      const x = b.x + Math.cos(a) * b.r, z = b.z + Math.sin(a) * b.r;
+      if (!nav.isBlocked(x, z)) { r.pos.set(x, 0, z); return; }
+    }
   }
 
   function updateRec(r, dt) {
