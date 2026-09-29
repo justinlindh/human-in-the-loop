@@ -6,13 +6,13 @@
 //        [--weeks 12] [--max-seconds 120] [--until '<js over S>'] [--tail 3]
 //        [--choose 'event_id=1,other=0'] [--default-choice 0] [--decision-hold 2]
 //        [--out clip.mp4] [--log log.json] [--log-js '<js over S, R>'] [--every 1]
-//        [--focus-yield] [--keep-frames] [--size 1280x720] [--software] [--timeout 600]
+//        [--no-focus-yield] [--ease-rate 4] [--keep-frames] [--size 1280x720] [--software] [--timeout 600]
 //
 // The snapshot loads through the title screen's Continue path and the game's own loop runs on
 // virtual time (loop-page.mjs), so decision freezes, spotlights and the UI behave as for a player.
 // Each frame: decisions are answered (--choose per event id, else --default-choice, after
 // --decision-hold seconds so the card shows), "Got it" cards are dismissed, and the camera follows
-// --focus (a staff id follows that person, at --zoom; `hub` is the outage rack, else the first responder).
+// --focus (re-aimed every frame, eased; a staff id follows that person, at --zoom; `hub` is the outage rack, else the first responder).
 // It stops when --until (a predicate over the state S) has held and --tail seconds have passed, or
 // after --weeks weeks or --max-seconds of game time.
 //
@@ -75,7 +75,7 @@ try {
   let recorded = 0, untilAt = null, frame = 0, decisionFor = 0, reason = 'max-seconds';
   const startWeek = started.week;
   for (; frame < maxFrames; frame++) {
-    const row = await page.evaluate(({ frame, choices, defaultChoice, hold, decisionFor, until, logJs, recording, yieldFocus }) => {
+    const row = await page.evaluate(({ frame, choices, defaultChoice, hold, decisionFor, until, logJs, recording, yieldFocus, rate }) => {
       const H = window.__HITL, R = window.__hitlRender, S = H.state, THREE = R.THREE;
       window.__frame(1);
       // The camera: a staff id follows that person; other targets are a point eased onto now and then.
@@ -97,10 +97,12 @@ try {
         return null;
       };
       const target = point();
-      // The first frame cuts onto the target; after that the camera eases (R.easeTo), following a
-      // staff member or a moving point, and steps aside while a spotlight moment plays (--focus-yield).
-      if (target?.p && (frame === 0 || (frame % 5 === 0 && !(yieldFocus && R.spotlight?.())))) {
-        if (frame === 0) R.focusAt(target.p.x, target.p.z, zoom); else R.easeTo(target.p.x, target.p.z, zoom);
+      // The first frame cuts onto the target; after that the camera is re-aimed every frame with
+      // R.easeTo, so the game's own per-frame camera never gets a stretch to itself. While a spotlight
+      // moment plays the moment's camera keeps the framing (--no-focus-yield aims through it), and the
+      // aim resumes the frame it ends.
+      if (target?.p && (frame === 0 || !(yieldFocus && R.spotlight?.()))) {
+        if (frame === 0) R.focusAt(target.p.x, target.p.z, zoom); else R.easeTo(target.p.x, target.p.z, zoom, rate);
       }
       // Decisions: the card shows for `hold` frames, then the chosen option is taken.
       let answered = null, held = decisionFor;
@@ -138,7 +140,7 @@ try {
         },
         held, stop, busy: !!clock.busy && !S.pendingDecision, gameOver: !!S.gameOver,
       };
-    }, { frame, choices, defaultChoice, hold, decisionFor, until, logJs: opt('log-js') ?? null, recording: !!opt('log'), yieldFocus: argv.includes('--focus-yield') });
+    }, { frame, choices, defaultChoice, hold, decisionFor, until, logJs: opt('log-js') ?? null, recording: !!opt('log'), yieldFocus: !argv.includes('--no-focus-yield'), rate: Number(opt('ease-rate', 4)) });
     decisionFor = row.held;
     log.push(row.row);
     // A "Got it" card (a toast card the UI holds the game on) is dismissed like a player would.
