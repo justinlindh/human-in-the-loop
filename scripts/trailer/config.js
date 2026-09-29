@@ -97,7 +97,7 @@ const NOC_CAPTURE = { query: 'seed=13&speed=1', setup: NOC_SETUP, still: false, 
 export const BEATS = [
   { id: 'title', card: 'title', dur: 2.0 },
   // The founders' first desks, with a slow in-engine push-in.
-  { id: 'garage', item: 'growth-garage', capture: { seconds: 8, camera: [{ at: 1, target: VIEW0, zoom: 1.0 }, { at: 7, target: VIEW0, zoom: 1.35 }] }, from: 1.0, dur: 6.0 },
+  { id: 'garage', item: 'growth-garage', capture: { seconds: 8, setup: GROW(4), camera: [{ at: 1, target: VIEW0, zoom: 1.0 }, { at: 7, target: VIEW0, zoom: 1.35 }] }, from: 1.0, dur: 6.0 },
   // From just before the move, so the new floor drops onto the garage on screen.
   { id: 'office', item: '2-2-office-move', capture: { seconds: 9 }, actions: [LATER(0.1), NO_ERA_CARD(0)], from: 1.8, dur: 3.5 },
   // The player places a foosball table (the build bar is the one interface kept), and people come to play.
@@ -106,15 +106,15 @@ export const BEATS = [
   { id: 'hire', item: 'trail-hire', from: 0.9, dur: 2.2 },
   // The first launch on the Office Floor, so the story never steps back into the garage.
   { id: 'launch', item: 'trail-launch', from: 72.0, dur: 2.4 },
-  { id: 'noc-watch', item: 'site-yak-backfire', capture: NOC_CAPTURE, from: 4.0, dur: 4.2 },
-  { id: 'incident', item: 'site-yak-backfire', capture: NOC_CAPTURE, from: 8.2, dur: 2.2 },
+  { id: 'noc-watch', item: 'site-yak-backfire', capture: NOC_CAPTURE, from: 5.1, dur: 4.2 },
+  { id: 'incident', item: 'site-yak-backfire', capture: NOC_CAPTURE, from: 9.3, dur: 2.2 },
   // A meme posted mid-outage, and the reactions.
   // The thread includes the backfired post and its reply; speech bubbles stay hidden.
   { id: 'yak', item: 'site-yak-backfire', capture: { query: 'seed=13&speed=1', setup: YAK_SETUP, still: false, seconds: 64, screenshots: [] }, actions: [NO_SAY_T(0), ...CARDS_EVERY(13, 58, 1.5), YAK_CHECK(61.5), YAK_CHECK(63.06)], from: 60.1, dur: 3.1 },
   { id: 'yak-react', item: 'site-yak-backfire', capture: { query: 'seed=13&speed=1', setup: YAK_SETUP, still: false, seconds: 16, screenshots: [11.2, 11.6, 12.4, 13.2, 14, 14.8, 15.6], camera: [{ at: 0, target: VIEW0, zoom: 1 }, { at: 11, target: VIEW0, zoom: 1 }, { at: 11.2, target: FACEPALMER, zoom: 4.2 }] }, actions: [...CAMLOG(16), NO_SAY_T(0), { at: 11, js: "document.querySelector('#ui').style.display = 'none'" }, { at: 11.3, js: "if (!window.__facepalmer) throw new Error('trailer: the post has no facepalmer')" }], from: 11.2, dur: 2.0 },
-  // PC LOAD LETTER from the flying camera: the wind-up and hits, to the rap's last word. No narration.
-  { id: 'printer-meme', item: 'site-yak-backfire', capture: { query: 'seed=62&speed=1', setup: MEME_SETUP, still: false, seconds: 7, screenshots: [], actions: MEME_ACTIONS }, from: 2.6, dur: 2.5 },
-  { id: 'printer', item: 'trail-fly-printer', capture: { seconds: 34 }, from: 27 + 2 / 30, dur: 5.7 },
+  // The PC LOAD LETTER meme held full size from its first frame, so the sign reads. No narration.
+  { id: 'printer-meme', item: 'site-yak-backfire', capture: { query: 'seed=62&speed=1', setup: MEME_SETUP, still: false, seconds: 8, screenshots: [], actions: MEME_ACTIONS }, from: 3.65, dur: 3.5 },
+  { id: 'printer', item: 'trail-fly-printer', capture: { seconds: 36 }, from: 27 + 2 / 30, dur: 7.0 },
   { id: 'era-chatgbt', item: 'real-era-chatgbt', actions: [NO_ERA_CARD(0)], from: 9.0, dur: 4.1 },
   { id: 'era-agents', item: 'real-era-agents', actions: [NO_ERA_CARD(0)], from: 9.0, dur: 2.4 },
   // The runaway cloud bill: the hot rack smoking behind the card.
@@ -136,8 +136,8 @@ export const BEATS = [
 // `duck` ({ db, attack, release }: a dip under each narrator line).
 export const MUSIC = {
   bed: { file: 'public/audio/music/classic/a_full.ogg', gain: -8, fadeIn: 0.3 },
-  // The printer's own cue replaces the bed for its beat: 9.9 s of the cue lands on the beat's cut.
-  swaps: [{ file: 'public/audio/moments/printer_smash.ogg', seek: 7.4, at: { beat: 'printer-meme' }, until: { beat: 'era-chatgbt' }, fade: 0.3, gain: -6 }],
+  // The printer's own cue replaces the bed for its beat and lands on the printer beat's cut.
+  swaps: [{ file: 'public/audio/moments/printer_smash.ogg', seek: 9.9, at: { beat: 'printer' }, until: { beat: 'era-chatgbt' }, fade: 0.3, gain: -6 }],
   // The foosball rally once both players are at the table: the game plays its cue once per use, so
   // the trailer places a few hits of the same sound under the bed.
   stingers: [5.15, 5.7, 6.35, 6.9, 7.6].map((offset) => ({ file: 'public/audio/sfx/foosball.ogg', at: { beat: 'build', offset }, gain: -12 })),
