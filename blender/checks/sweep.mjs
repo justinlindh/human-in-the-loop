@@ -149,6 +149,10 @@ const control = against ? await startControl(against) : null;
 const found = [];
 const errors = [];
 const windows = [];
+// A moment query or snapshot that does not resolve ends the run with its own message, not a stack trace.
+const target_ = (spec) => {
+  try { return resolveTarget(spec); } catch (e) { console.error(`sweep: ${e.message}`); process.exit(2); }
+};
 try {
   for (const name of M.mocks) {
     const o = { name, seconds: M.mockSeconds, every: M.step, known, worst: acceptedWorst, item, propDesks: M.propMocks.includes(name) ? M.propDesks : 0, moments: M.momentMocks.includes(name) ? M.moments : null, grid: M.gridMocks.includes(name) };
@@ -165,7 +169,7 @@ try {
   }
   // Indexed moments (scripts/events), each loaded from its snapshot and played through its choice.
   for (const query of [...(plan?.events ?? []), ...(opt('moments') ?? '').split(';').map((x) => x.trim()).filter(Boolean)]) {
-    const target = resolveTarget({ event: query });
+    const target = target_({ event: query });
     const row = target.row;
     const label = `event:${row.id}:s${row.seed}${row.bot}w${row.week}`;
     const o = { label, open: M.stagedSeconds, after: 8, every: M.step, choice: row.choice, known, worst: acceptedWorst, item };
@@ -180,7 +184,7 @@ try {
   // Saved states from find.js scans (--snapshots a.json.gz,b.json.gz), each loaded and played as a
   // moment is, with no decision to answer.
   for (const file of (opt('snapshots') ?? '').split(',').map((x) => x.trim()).filter(Boolean)) {
-    const target = resolveTarget({ snapshot: file });
+    const target = target_({ snapshot: file });
     const label = `snap:${basename(file).replace(/\.json(\.gz)?$/, '')}`;
     const o = { label, open: M.stagedSeconds, after: 8, every: M.step, choice: null, known, item };
     const { page, errors: e } = engine ? { page: null, errors: [] } : await openAt(H, target, { width: 1600, height: 1000, quality: 'low' });
