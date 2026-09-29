@@ -10,7 +10,8 @@
 //   --param [file:]NAME[idx]=value       override a module-level const in game code for this run (see param.js)
 //   --patch-js '<js>'                    statements run with S (the state) and R (the renderer) at patch time
 //   --event '<json>'                     an event or list of events handed to the renderer with --patch
-//   --focus x,y,z [--zoom Z]             ease the camera onto a world point
+//   --focus x,y,z [--zoom Z]             put the camera on a world point; Z is the camera's zoom, 0.7 to 3.2,
+//                                        larger is closer (default 2.5; 1 frames the whole office)
 //   --frames N                           a clip of N frames (30 fps) after the patch; else one still
 //   --before N                           clip frames captured before the patch (default 0)
 //   --warm N                             frames stepped before anything is captured (default 60)
@@ -85,7 +86,8 @@ export async function renderScene(H, o) {
     };
     apply(o.pre);
     if (o.paused) R.setSpeed(0);
-    window.__step(o.warm ?? 60);
+    // At least one step with --focus: the stage builds on the first, and building it re-frames the office.
+    window.__step(Math.max(o.warm ?? 60, o.focus ? 1 : 0));
     // After warm-up: building the stage frames the camera on the whole office.
     if (o.focus) { R.focusAt(o.focus[0], o.focus[2], o.zoom ?? 2.5); window.__step(1); }
     // Textures that load asynchronously (the era emblems) get a turn of the event loop.
