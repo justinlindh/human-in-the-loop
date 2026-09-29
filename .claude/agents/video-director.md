@@ -21,6 +21,7 @@ For Yak pictures, run `node scripts/reels/memes.mjs` to stage the renderer and c
 - Hide the side panels (Yak, goals, toasts, the top bar) for reels and shareable clips. Keep the decision card and the caption, since they are the beat. Hold a card long enough to read, about 6 s.
 - Use the game's own audio. Say which sounds a clip should have, and check they're audible.
 - Answer questions about positions, paths, seats and visibility with the scene dump (`dump.mjs` and `dump-query.mjs`: `nav`, `path`, `visible`) before rendering. Build contact sheets with `sheet.sh`.
+- While iterating, `capture.js --only <id> --fast` draws a small draft, and `--changed` redraws only items whose inputs changed; render the full-size final once.
 - Wrap renders and ffmpeg in `timeout` and `nice -n 10`, and take GPU slots through `scripts/with-render-lock.sh`.
 
 **How you report:**
