@@ -73,11 +73,13 @@ describe('sweep-parity', () => {
 describe('sweep --engine', () => {
   it('runs the mocks on the studio engine and finds what the browser sweep finds there', () => {
     const out = mkdtempSync(join(tmpdir(), 'sweep-engine-'));
-    const r = spawnSync(process.execPath, [script('blender/checks/sweep.mjs'), '--engine', '--mocks', 'garage,night', '--seeds', 'none', '--out', out], { encoding: 'utf8', timeout: 240000 });
+    const r = spawnSync(process.execPath, [script('blender/checks/sweep.mjs'), '--mocks', 'garage,night', '--seeds', 'none', '--out', out], { encoding: 'utf8', timeout: 240000 });
     rmSync(out, { recursive: true, force: true });
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toMatch(/mock:garage 0 violation/);
     expect(r.stdout).toMatch(/mock:night 0 violation/);
+    // The page checks come from the small browser step.
+    expect(r.stdout).toMatch(/screen and tooltip \(browser\) \d+ violation/);
   }, 260000);
 
   it('replays one state from a report in seconds, and refuses an indexed moment', () => {

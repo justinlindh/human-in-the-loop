@@ -7,7 +7,10 @@
 //                                            and every item against its sim footprint
 //   node blender/checks/sweep.mjs --full     every mock for longer, several seeds, sampled often
 //   options: --seeds 1,2,3|none  --mocks floor,hq|none  --out <dir>  --timeout <s>  --gpu
-//            --seed-limit <s> (per seed: 300 fast, 1200 full; a seed past it is skipped and fails)
+//            --browser  run the samplers in a browser instead of on the studio engine (the default;
+//                     the engine run adds a small browser step for the screen and tooltip checks,
+//                     --no-screen skips it)
+//            --seed-limit <s> (browser runs, per seed: 300 fast, 1200 full; a seed past it is skipped and fails)
 //            --update-baseline [--prune]  --strict (fail on new seed-only violations in fast mode)
 //            --moments 'printer_jam --choice 0; open_plan_office --stage hq'  indexed moments
 //                     (scripts/events/find.js queries), each loaded from its snapshot and played
@@ -47,7 +50,7 @@ import { startHarness, wantGpu } from './harness.mjs';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { dirname, resolve, join, basename } from 'node:path';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { planReplay, mentions, isWorse } from './sweep-plan.js';
 import { createWorktree } from '../../scripts/tools/worktree.mjs';
@@ -59,8 +62,10 @@ const BASELINE = resolve(HERE, 'sweep-baseline.json');
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
 const full = argv.includes('--full');
-// --engine runs the samplers on the studio engine (scripts/studio/sweep-host.mjs) instead of in a browser.
-const engine = argv.includes('--engine');
+// The samplers run on the studio engine (scripts/studio/sweep-host.mjs) unless --browser asks for a
+// browser. --screen-only is the small browser step the engine run hands the page checks to.
+const screenOnly = argv.includes('--screen-only');
+const engine = !argv.includes('--browser') && !screenOnly;
 // Milliseconds on the process's own clock: the engine replaces Date.now with a game clock.
 const wall = () => Number(process.hrtime.bigint() / 1000000n);
 const MODES = {
@@ -155,7 +160,7 @@ const target_ = (spec) => {
 };
 try {
   for (const name of M.mocks) {
-    const o = { name, seconds: M.mockSeconds, every: M.step, known, worst: acceptedWorst, item, propDesks: M.propMocks.includes(name) ? M.propDesks : 0, moments: M.momentMocks.includes(name) ? M.moments : null, grid: M.gridMocks.includes(name) };
+    const o = { name, seconds: M.mockSeconds, every: M.step, known, worst: acceptedWorst, item, propDesks: M.propMocks.includes(name) ? M.propDesks : 0, moments: M.momentMocks.includes(name) ? M.moments : null, grid: M.gridMocks.includes(name), screenOnly };
     const { page, errors: e } = engine ? { page: null, errors: [] } : await H.openScene(`quality=low&mock=${name}`, { width: 1600, height: 1000 });
     const r = engine ? await host.hostMock(o) : await page.evaluate(async (o2) => (await import('/blender/checks/sample.js')).sampleMock(o2), o);
     const vs = r.violations;
@@ -167,8 +172,9 @@ try {
     console.log(`sweep: mock:${name} ${vs.length} violation(s) (${Math.round((wall() - t0) / 1000)} s)`);
     await page?.close();
   }
+  if (screenOnly) M.seeds = [];
   // Indexed moments (scripts/events), each loaded from its snapshot and played through its choice.
-  for (const query of [...(plan?.events ?? []), ...(opt('moments') ?? '').split(';').map((x) => x.trim()).filter(Boolean)]) {
+  for (const query of screenOnly ? [] : [...(plan?.events ?? []), ...(opt('moments') ?? '').split(';').map((x) => x.trim()).filter(Boolean)]) {
     const target = target_({ event: query });
     const row = target.row;
     const label = `event:${row.id}:s${row.seed}${row.bot}w${row.week}`;
@@ -183,7 +189,7 @@ try {
   }
   // Saved states from find.js scans (--snapshots a.json.gz,b.json.gz), each loaded and played as a
   // moment is, with no decision to answer.
-  for (const file of (opt('snapshots') ?? '').split(',').map((x) => x.trim()).filter(Boolean)) {
+  for (const file of screenOnly ? [] : (opt('snapshots') ?? '').split(',').map((x) => x.trim()).filter(Boolean)) {
     const target = target_({ snapshot: file });
     const label = `snap:${basename(file).replace(/\.json(\.gz)?$/, '')}`;
     const o = { label, open: M.stagedSeconds, after: 8, every: M.step, choice: null, known, item };
@@ -235,6 +241,20 @@ try {
     errors.push(...e.map((x) => `seed:${seed}: ${x}`));
     console.log(`sweep: seed:${seed} ${vs.length} violation(s) in ${Math.round((wall() - s0) / 1000)} s (${Math.round((wall() - t0) / 1000)} s)`);
     await HS.close();
+  }
+  // The page checks (screen, tooltip) need a browser: the mocks' office windows run there as a small
+  // step of their own, and its rows join this run's.
+  if (engine && M.mocks.length && !argv.includes('--no-screen')) {
+    const sub = join(outDir, 'screen');
+    const args = [fileURLToPath(import.meta.url), '--screen-only', '--mocks', M.mocks.join(','), '--out', sub, ...(item ? ['--item', item] : []), ...(full ? ['--full'] : []), ...(argv.includes('--gpu') ? ['--gpu'] : [])];
+    const s0 = wall();
+    const child = spawnSync(process.execPath, args, { stdio: ['ignore', 'ignore', 'inherit'] });
+    let sr = null;
+    try { sr = JSON.parse(readFileSync(join(sub, 'report.json'), 'utf8')); } catch { /* reported below */ }
+    if (!sr) { errors.push(`screen and tooltip step failed (exit ${child.status})`); console.log('sweep: the screen and tooltip step produced no report'); } else {
+      found.push(...sr.violations.filter((v) => v.check === 'screen' || v.check === 'tooltip').map(({ status, owner, states, count, ...v }) => ({ ...v, seen: count ?? 1, crop: null })));
+      console.log(`sweep: screen and tooltip (browser) ${sr.violations.length} violation(s) (${Math.round((wall() - s0) / 1000)} s)`);
+    }
   }
 } finally {
   await H?.close();
@@ -307,7 +327,7 @@ if (argv.includes('--update-baseline')) {
   const accepted = [...kept, ...seen.values()].sort((a, b) => a.key.localeCompare(b.key));
   writeFileSync(BASELINE, JSON.stringify({ accepted }, null, 1) + '\n');
   console.log(`sweep: baseline written with ${accepted.length} entries (${kept.length} kept from before)`);
-  console.log(`sweep: a changed baseline needs its media on the PR: commit it, then scripts/baseline-media.sh <pr> --sweep-dir ${outDir}`);
+  console.log(`sweep: a changed baseline needs its media on the PR: commit it, then scripts/baseline-media.sh <pr> --sweep-dir ${outDir}${engine ? ' (its crops come from a --browser run)' : ''}`);
 }
 if (replayed) {
   const before = new Set(replayed.violations.map((v) => v.key));

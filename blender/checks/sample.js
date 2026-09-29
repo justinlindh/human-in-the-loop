@@ -181,7 +181,7 @@ function tooltipPass(R, C) {
 const PEOPLE_EVERY = 0.2;
 // `quiet` steps the world exactly as a checked window does and checks nothing, so a run that skips a
 // window still reaches the next one in the same state.
-function window_(R, S, C, { seconds, every, t0 = 0, quiet = false }) {
+function window_(R, S, C, { seconds, every, t0 = 0, quiet = false, screenOnly = false }) {
   const memo = {};
   // One drawn frame settles the camera on the office as it is now, so crops frame the spot.
   R.render(0);
@@ -192,7 +192,7 @@ function window_(R, S, C, { seconds, every, t0 = 0, quiet = false }) {
   for (let i = 0; i <= n; i++) {
     // Drawn frames, as the game runs: the labels lay themselves out in render().
     if (i) for (let f = 0; f < per; f++) { window.__step(1); if (!quiet && C.screen !== false) checkScreen(R, C, t0 + (i - 1) * PEOPLE_EVERY + (f + 1) * DT, track); }
-    if (quiet) continue;
+    if (quiet || screenOnly) continue;
     const t = t0 + i * PEOPLE_EVERY;
     if (i % k === 0) checkFrame(R, C, t, memo);
     checkPeople(R, C, t);
@@ -358,12 +358,19 @@ async function gridPass(R, S, C, { rots = [0, 1, 2, 3], only = null } = {}) {
 }
 
 
-export async function sampleMock({ name, seconds = 20, every = 1, known = [], worst = {}, crops = 60, propDesks = 0, moments = null, grid = false, item = null }) {
+export async function sampleMock({ name, seconds = 20, every = 1, known = [], worst = {}, crops = 60, propDesks = 0, moments = null, grid = false, item = null, screenOnly = false }) {
   const R = window.__hitlRender, S = window.__HITL.state;
   R.moments.full = true;
   const C = createCollector({ state: `mock:${name}`, known, worst, crops, tol: TOL, item });
   stepWorld(R, S, 90);
   R.render(0);
+  // The page checks only (the collision rows come from the engine run): the office window's drawn
+  // frames, then the tooltips.
+  if (screenOnly) {
+    window_(R, S, C, { seconds, every, screenOnly: true });
+    const tips = item ? 0 : tooltipPass(R, C);
+    return { violations: C.list, windows: [{ state: `mock:${name}`, why: 'screen', tooltips: tips }] };
+  }
   // Scoped to an item: its footprint pass, and the office window only where the item stands.
   if (item) { propDesks = 0; moments = null; }
   if (propDesks) { R.perks.hold = true; await propsPass(R, S, C, propDesks); R.perks.hold = false; }
