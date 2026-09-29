@@ -86,6 +86,22 @@ for c in '{"error":"no index for this sim code","kind":"no-index"}|2|no-index' '
   [ $rc -eq 2 ] && [[ "$out" == *"couldn't answer for printer_jam"*"$want"* ]] && [[ "$out" != *"| test |"* ]] || fail "find.js refusing ($fo, exit $frc) should stop gates with exit 2 naming $want (rc $rc: $(tail -2 <<<"$out"))"
 done
 
+# The clip gate gets the case name moment:<stage scenario>, or the whole clip run when no such case exists.
+mkdir -p "$r/src/render"
+cat >"$r/blender/checks/clip.mjs" <<'JS'
+import { writeFileSync } from 'node:fs';
+writeFileSync(`${process.env.SRC}/../clip-args`, process.argv.slice(2).join(' '));
+// --only
+JS
+printf "results.push({ name: 'moment:printer', pass: true });\n" >"$r/src/render/checks.js"
+rm -f "$tmp/clip-args"
+out="$(cd "$r" && FIND_OUT='[]' FIND_RC=1 bash scripts/gates.sh --moment printer_jam --only clip 2>&1)"; rc=$?
+[ $rc -eq 0 ] && [ "$(cat "$tmp/clip-args" 2>/dev/null)" = "--only=moment:printer" ] || fail "--moment printer_jam should run clip --only=moment:printer (rc $rc, args '$(cat "$tmp/clip-args" 2>/dev/null)')"
+printf "results.push({ name: 'moment:other', pass: true });\n" >"$r/src/render/checks.js"
+rm -f "$tmp/clip-args"
+out="$(cd "$r" && FIND_OUT='[]' FIND_RC=1 bash scripts/gates.sh --moment printer_jam --only clip 2>&1)"; rc=$?
+[ $rc -eq 0 ] && [[ "$out" == *"no clip case moment:printer; running all of clip"* ]] && [ -z "$(cat "$tmp/clip-args" 2>/dev/null)" ] && [ -f "$tmp/clip-args" ] || fail "a moment with no clip case should run all of clip (rc $rc: $out)"
+
 out="$(cd "$r" && bash scripts/gates.sh --only nosuch 2>&1)"; rc=$?
 [ $rc -eq 2 ] || fail "an unknown gate should exit 2 (rc $rc)"
 
