@@ -50,7 +50,7 @@ export function presentationMetadata() {
     const entries = Object.entries(rules).find(([suffix]) => id.split('?')[0].endsWith(suffix))?.[1];
     if (!entries) return;
     for (const [from, to] of entries) {
-      if (!code.includes(from)) throw new Error(`pace: metadata hook missing in ${id}: ${from}`);
+      if (!code.includes(from)) throw new Error(`pace: metadata hook missing in ${id}. Expected source line: ${from}. Update scripts/pace-browser.js to match the UI source.`);
       code = code.replace(from, to);
     }
     return { code, map: null };

@@ -1,7 +1,7 @@
 ---
 tool: `node scripts/pace.js ...`
 section: sim
-who: sim, integrator, reviewer
+who: sim, integrator, reviewer, ui
 covers: scripts/pace.js scripts/pace-browser.js scripts/pace-browser.test.mjs
 ---
 The default mode plays the real sim through a presentation model with a simulated player. Its elapsed time and presentation counts are estimates. `--browser` instead observes the real browser UI on an unaccelerated wall clock, through the shared Chromium launcher and render lock used by `drive.mjs`.
@@ -25,6 +25,8 @@ Counts are **visible presentation episodes**, sampled every 100 ms plus browser/
 Kinds are `decision`, `toast`, `yak`, `yak-prompt`, `advisor-prompt` (a peek or visible advice row), `office-prompt` (the Needs you office move row), `panel`, `card`, and `tutorial`. Yak and its reply prompt overlap, as do advisor panels and their prompts. Do not sum them into required actions. Optional reaction controls count only when actually enabled and visible; the game's reaction totals are decorative. Rates divide `shown` counts by the entire observed elapsed exposure, including pauses, and split player/game origin and actionable counts.
 
 Origin follows synchronous player callbacks and bot events, with metadata carried through the toast queue and Yak delivery. It is not inferred from proximity to a click. Game announcements stay game-origin even when a player dismissal lets the next queued announcement appear. Panel follow-through from a toast, advisor or announcement button is player-origin. The Vite plugin attaches identities and provenance only for this measuring session; it does not edit or ship game files, and fails if its source hooks no longer match.
+
+A missing metadata hook reports the source file, the expected source line, and the instruction to update `scripts/pace-browser.js`. When a UI refactor moves that line, update the corresponding `presentationMetadata` rule to match the UI source and preserve its measurement metadata. Run `npx vitest run tests/tools/pace-browser.test.js` and the browser controls below to verify the hook and presentation behavior.
 
 `--sample-minute N` (one-based, default 2) takes a full screenshot whenever the sampled surfaces change in that minute. `sample.frames` links each frame to the active and newly shown record sequences. A screenshot is taken immediately after each observation, while the real clock keeps running, so its capture can lag the observation. Inspect the frames, compare newly visible rows with the `shown` records in the half-open minute, and make a sheet with the existing `scripts/sheet.sh grid`. This is a visual cross-check, not an independent sensor. `progress.json` is a periodic checkpoint; the complete trace is written on normal completion. Interrupted runs must not be reported as complete.
 
