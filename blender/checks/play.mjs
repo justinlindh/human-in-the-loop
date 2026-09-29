@@ -6,7 +6,7 @@
 //        [--weeks 12] [--max-seconds 120] [--until '<js over S>'] [--tail 3]
 //        [--choose 'event_id=1,other=0'] [--default-choice 0] [--decision-hold 2]
 //        [--out clip.mp4] [--log log.json] [--log-js '<js over S, R>'] [--every 1]
-//        [--focus-yield] [--ease-rate 4] [--keep-frames] [--size 1280x720] [--software] [--timeout 600]
+//        [--focus-yield] [--panels] [--ease-rate 4] [--keep-frames] [--size 1280x720] [--software] [--timeout 600]
 //
 // The snapshot loads through the title screen's Continue path and the game's own loop runs on
 // virtual time (loop-page.mjs), so decision freezes, spotlights and the UI behave as for a player.
@@ -19,7 +19,8 @@
 // Output: --out is an mp4 (every --every-th frame is recorded, 30 fps; the frames in <out>-frames/ are
 // removed unless --keep-frames).
 // --log is JSON, one row per frame: week, clock, decision, outage, camera, the focus's screen box,
-// the people on screen with their boxes, and anything --log-js returns (an object merged in). Boxes
+// the people on screen with their boxes, with --panels the visible UI panels (element, first line of
+// text, rect) as onscreen.mjs lists them, and anything --log-js returns (an object merged in). Boxes
 // are pixels [left, top, width, height] on the canvas, as onscreen.mjs reports them.
 // Exit codes: 0 done (and --until held, if given); 1 --until never held; 2 could not run.
 import { createServer } from 'vite';
@@ -75,7 +76,7 @@ try {
   let recorded = 0, untilAt = null, frame = 0, decisionFor = 0, reason = 'max-seconds';
   const startWeek = started.week;
   for (; frame < maxFrames; frame++) {
-    const row = await page.evaluate(({ frame, choices, defaultChoice, hold, decisionFor, until, logJs, recording, yieldFocus, rate }) => {
+    const row = await page.evaluate(({ frame, choices, defaultChoice, hold, decisionFor, until, logJs, recording, yieldFocus, rate, wantPanels }) => {
       const H = window.__HITL, R = window.__hitlRender, S = H.state, THREE = R.THREE;
       window.__frame(1);
       // The camera: a staff id follows that person; other targets are a point eased onto now and then.
@@ -124,6 +125,27 @@ try {
         people = [];
         R.scene.traverse((c) => { if (c.name === 'character' && c.visible) { let id = null; c.traverse((x) => { if (x.userData.staffId !== undefined) id = x.userData.staffId; }); const b = boxOf(c); if (b) people.push({ id: id ?? 'extra', rect: b.map(Math.round) }); } });
       }
+      // Visible named UI panels (not buttons) up to three levels under #ui, as onscreen.mjs lists them,
+      // read as they are (no transitions are finished, so playback is untouched).
+      let panels = null;
+      if (wantPanels) {
+        panels = [];
+        const shown = (el) => el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
+        const visit = (el, depth) => {
+          for (const c of el.children) {
+            if (!shown(c) || c.tagName === 'BUTTON' || /\bspacer\b/.test(c.className)) continue;
+            const r = c.getBoundingClientRect();
+            const named = c.id || (typeof c.className === 'string' && c.className.trim());
+            const whole = r.width * r.height > 0.8 * innerWidth * innerHeight;
+            if (named && !whole && r.width >= 24 && r.height >= 12 && r.right > 0 && r.bottom > 0 && r.left < innerWidth && r.top < innerHeight) {
+              panels.push({ el: c.id ? `#${c.id}` : `.${c.className.trim().split(/\s+/).join('.')}`, text: (c.innerText || '').trim().split('\n')[0].slice(0, 70), rect: [r.left, r.top, r.width, r.height].map(Math.round) });
+            }
+            if (depth < 2) visit(c, depth + 1);
+          }
+        };
+        const root = document.getElementById('ui');
+        if (root) visit(root, 0);
+      }
       const at = target?.p ? (() => { const v = new THREE.Vector3(target.p.x, target.p.y ?? 0.4, target.p.z); const [x, y] = box(v); return [x, y]; })() : null;
       const clock = H.clock;
       const o = S.outage;
@@ -136,11 +158,11 @@ try {
           f: frame, week: S.week, decision: S.pendingDecision?.eventId ?? null, answered,
           outage: o ? { kind: o.kind, weeks: o.weeks, eta: o.etaWeeks ?? null, responders: o.responderIds ?? [] } : null,
           clock: { frozen: clock.frozen ?? null, spotlight: clock.spotlight ? `${clock.spotlight.kind ?? ''} ${clock.spotlight.key ?? ''}`.trim() : null, busy: clock.busy ?? null },
-          camera: { zoom: +R.view().zoom.toFixed(2) }, focus: at, people, ...extra,
+          camera: { zoom: +R.view().zoom.toFixed(2) }, focus: at, people, ...(panels ? { panels } : {}), ...extra,
         },
         held, stop, busy: !!clock.busy && !S.pendingDecision, gameOver: !!S.gameOver,
       };
-    }, { frame, choices, defaultChoice, hold, decisionFor, until, logJs: opt('log-js') ?? null, recording: !!opt('log'), yieldFocus: argv.includes('--focus-yield'), rate: Number(opt('ease-rate', 4)) });
+    }, { frame, choices, defaultChoice, hold, decisionFor, until, logJs: opt('log-js') ?? null, recording: !!opt('log'), yieldFocus: argv.includes('--focus-yield'), rate: Number(opt('ease-rate', 4)), wantPanels: argv.includes('--panels') });
     decisionFor = row.held;
     log.push(row.row);
     // A "Got it" card (a toast card the UI holds the game on) is dismissed like a player would.
