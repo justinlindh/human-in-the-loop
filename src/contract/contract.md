@@ -96,6 +96,7 @@ Product = {
 { type: 'chat', id, week, channel, from, fromId, text, replyTo, reactions }
                                           // channel: general|incidents|wins|random|standup; from: staff name or a bot handle like '@pagerbot'
                                           // fromId: staff id or null for bots; replyTo: chat id or null; reactions: { [emoji]: count }
+                                          // priority: optional, set by main.js's Yak pacer (not the sim) on a reply it shows early because it answers an earlier post; ui counts it as new at the Important level
                                           // important: optional true promotes a post that wouldn't otherwise count as important (a bot post that matters, a running joke, big news);
                                           // at Yak's "Important only" level every message is still logged, and only important ones (incidents, wins, or flagged) raise unread counts; a bot post counts only when flagged
                                           // image: optional { id, alt } on posts that carry a picture (a meme); id is a meme image id from src/data/memes.js, and ui maps it to its files;
@@ -442,14 +443,19 @@ Advice = {
   since          // the game week this topic's current episode began: when its key started applying. A key that stops applying and later returns starts a new episode; a tier change within an episode keeps since
   options        // [{ text, target }]: two or three things the player could do about it, each a real action available now
                  // text: short, a suggestion not an order ('Put someone on sales', 'Send Priya on time off'); no menu name in it, the target names the place
-                 // target: { panel, arg? } as in Advice.target: the menu where it's done, arg e.g. a staffId, policyId or productId
+                 // target: { panel, arg?, assign?, tab?, focus?, note? }: the menu where it's done, as in Advice.target, plus optional landing hints for ui:
+                 //   assign: { type, targetId|null }, with panel 'staff' and a staffId arg: the assignment ui preselects and highlights in that person's work picker
+                 //   tab: 'hire', with panel 'staff' and no arg: open the Hire tab
+                 //   focus: 'training'|'timeOff', with panel 'staff' and a staffId arg: highlight that control on the person's screen
+                 //   note: one line ui shows beside the control saying why ('Working next to Priya on Ledgerly v2 spreads what she knows.')
 }
 ```
 
 - Each trigger reads a number some panel already shows (runway, burnout count, comprehension debt, one person's share of the team's know-how, juniors without a mentor, a product's migration date, the current era, MRR share, unlocked but unused policies).
 - A key the player dismissed at its current tier or lower is left out.
 - Options only name actions that exist and are open to the player now: a policy option appears only when that policy is unlocked; a person option names someone who's in.
-- Options are offered, never taken: nothing in the sim acts on one. Choosing an option only opens its panel (ui).
+- Options are offered, never taken: nothing in the sim acts on one. Choosing an option only opens its panel (ui); a preselected `assign` is a suggestion that takes effect only when the player confirms it.
+- An option lands on a control that does what its text says. When no control can (nobody free, nothing to assign), the option is left out or offers the Hire tab instead.
 - `'fine'` offers one or two light options (start a project, look at hiring); every other key offers two or three.
 - `target.arg` by panel: a staffId for `staff`, a policyId for `policies`, a productId for `reports`, `marketing` and `build`, an itemId for `office` (enters placement of that item), a squadId for `squads` (the Squads tab in Staff, scrolled to that squad); other panels take no arg.
 - Line choice uses its own stream seeded from (seed, week, key), so advice never moves the game's course.
@@ -536,7 +542,8 @@ state.outage = null | { productId, kind, severity, weeks, unrecoverable,
                         responderIds: [staffId],   // up to B.fixersCounted: the engineers and founders the fix relies on, the same ranking fixCapacity uses; refreshed weekly (someone away or gone is replaced)
                         etaWeeks,                  // weeks left at the current fix capacity; null while unrecoverable
                         cost: { cash, brand, customers },   // running totals since the incident: its cash and brand hit plus customers lost to outage churn
-                        cause }                    // short plain words, e.g. 'credential stuffing got past a security posture of 42'
+                        cause,                     // short plain words, e.g. 'credential stuffing got past a security posture of 42'
+                        misread }                  // true when the NOC's agents read the alert as routine (see NOC)
 ```
 
 - Responders leave their work while the outage lasts: their project or maintenance output is skipped. Their assignment isn't changed, so they return on the all-clear with nothing to reassign. ui and render show them as responding.
@@ -565,7 +572,7 @@ state.ops.noc: null | 'humans' | 'agents'   // null until noc_bet is answered, a
 state.ops.nocSince: null | week             // week the mode was last set; null in old saves
 ```
 
-- New item field `levelStage`, usable on any item: level N needs `officeStage >= levelStage[N - 1]`; absent means no limit. `unique: true` means one copy per office and replaces the shop cap for that item, so the refusal is 'You already have one' instead of 'You already have two'. The existing `requires` field gains the value `'ops'` (needs `unlocks.ops`, refused as 'Needs Ops and Security'). `upgradeItem` gains the refusal 'Needs a bigger office'. `outage.misread` and the incident event's `misread` load as false in old saves.
+- New item field `levelStage`, usable on any item: level N needs `officeStage >= levelStage[N - 1]`; absent means no limit. `unique: true` means one copy per office and replaces the shop cap for that item, so the refusal is 'You already have one' instead of 'You already have two'. The existing `requires` field gains the value `'ops'` (needs `unlocks.ops`, refused as 'Needs Ops and Security'). `upgradeItem` gains the refusal 'Needs a bigger office'. `outage.misread` loads as false in old saves.
 - Looks by level: 1 a pager and a TV on a cart; 2 a darkened corner with a screen wall and a curved desk; 3 a full operations floor wall.
 - Effects, through itemBonus: `outageFix` multiplies outage fix capacity (the key research already uses), so outages end sooner and are less often unrecoverable. `nocCatch` is a chance to catch a breach from a cyber attack early (without a NOC a breach is never caught), cutting its damage like any caught incident; from the Agents era it also adds to the agent-incident catch chance, even with nobody overseeing. `nocCatch` goes through itemBonus, so `B.itemBonusCap` clamps it as well as `B.catchMax`. Catch and misread rolls come from their own stream derived from seed, week and incident count, so a company without a NOC plays exactly as before.
 - Mode `null` or `'humans'`: the `nocCatch` bonus scales by `min(1, n / B.nocCrew)`, where n counts staff on the `security` assignment and not away (as `onSecurity` counts them); no misreads. Mode `'agents'`: the `nocCatch` bonus times `B.nocAgentCatch`, no staff needed, and every incident rolls `B.nocMisreadChance`: on a hit it lands uncaught at severity +1 (max 5) with `misread: true`. A misread outage's `cause` says so in plain words, `incidentResolved.hurt` names it, and pagerbot posts it in Yak.
