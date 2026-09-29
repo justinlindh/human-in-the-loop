@@ -1,0 +1,5 @@
+.hitl .card.noc { display: flex; flex-direction: column; gap: 0.4em; }
+.hitl .nocseg { display: flex; }
+.hitl .nocseg .segb { flex: 1; font-family: inherit; font-weight: 700; font-size: 0.85em; padding: 0.45em 0.6em; cursor: pointer; }
+.hitl .nocseg .segb.on { background: var(--ink); color: #fff; }
+.hitl .nocstatus { font-weight: 700; }
