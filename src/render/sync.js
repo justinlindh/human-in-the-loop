@@ -37,6 +37,13 @@ const WAVE_S = 1.1;            // someone leaving waves goodbye this long before
 const LEAVE_SPEED = 1.0;       // and walks to the door at this speed
 const ENTER_S = 0.7;           // sliding from the front of a couch or chair onto the spot
 const PERSON_GAP = 0.45;       // two people's centres nearer than this overlap
+const PASS_R = 1.2;            // walkers closing on each other within this start to pass (passWalkers)
+const PASS_K = 0.8;            // how fast they drift aside, as a share of walking speed
+const PASS_SIDE_M = 0.55;      // until the other is this far to one side of their line
+const PASS_DOT = 0.2;          // headings more alike than this (cosine) are going the same way
+const PASS_MEET_M = 0.6;       // a walk ending this near the other person is walking to meet them
+const PASS_FOLLOW_M = 0.55;    // someone following another holds back to this far behind
+const PASS_CLEAR_M = 0.3;      // and nobody drifts aside to within this of furniture
 const STEP_WAIT_S = 0.4;       // how long someone waits before trying to step out again
 const STEP_WAITS = 6;          // and how many times
 const STEP_IN_NEAR_M = 0.9;    // someone walking in stops this far short of a taken step-in point
@@ -1069,8 +1076,60 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       r.yaw = angleLerp(r.yaw, r.temp?.walkYaw ?? Math.atan2(dir.x, dir.z), 1 - Math.exp(-dt * 12));
     }
     keepOffRobot(r, target);
+    passWalkers(r, dt);
     r.char.setMoveSpeed(r.speed);
     r.char.setAnim(anim);
+  }
+
+  // The walk grid doesn't know where people are: two walkers closing on each other each drift to
+  // their own right, as people passing in a corridor do, and rejoin their route once past. Anyone
+  // walking to meet the other is left alone.
+  function passWalkers(r, dt) {
+    if (!r.path.length) return;
+    const h = heading(r);
+    if (!h) return;
+    const end = r.path[r.path.length - 1];
+    for (const o of recs.values()) {
+      if (o === r || o.hidden || !o.path.length || !o.char?.root.visible) continue;
+      const dx = o.pos.x - r.pos.x, dz = o.pos.z - r.pos.z, d = Math.hypot(dx, dz);
+      if (d >= PASS_R || d < 1e-4) continue;
+      const oEnd = o.path[o.path.length - 1];
+      if (Math.hypot(end.x - o.pos.x, end.z - o.pos.z) < PASS_MEET_M || Math.hypot(oEnd.x - r.pos.x, oEnd.z - r.pos.z) < PASS_MEET_M) continue;
+      const oh = heading(o);
+      if (!oh) continue;
+      const lat = h.x * dz - h.z * dx;
+      const lon = h.x * dx + h.z * dz;
+      if (h.x * oh.x + h.z * oh.z > PASS_DOT && Math.abs(lon) > Math.abs(lat)) {
+        // Going the same way, right behind the other: hold back this step rather than walk into them.
+        if (lon > 0 && d < PASS_FOLLOW_M) {
+          const k = Math.min(r.speed * dt, PASS_FOLLOW_M - d);
+          r.pos.set(r.pos.x - h.x * k, 0, r.pos.z - h.z * k);
+        }
+        continue;
+      }
+      // closing: their velocities bring them nearer
+      if ((h.x * r.speed - oh.x * o.speed) * dx + (h.z * r.speed - oh.z * o.speed) * dz <= 0) continue;
+      let sx, sz;
+      if (h.x * oh.x + h.z * oh.z > PASS_DOT) {
+        // Going the same way side by side and converging: each steps away from the other.
+        if (d > PASS_SIDE_M + 0.1) continue;
+        sx = -dx / d; sz = -dz / d;
+      } else {
+        // Head-on or crossing: to their own right, until the other is clear of their line.
+        if (Math.abs(lat) > PASS_SIDE_M) continue;
+        sx = -h.z; sz = h.x;
+      }
+      const k = r.speed * dt * PASS_K;
+      const x = r.pos.x + sx * k, z = r.pos.z + sz * k;
+      if (!office.nav().isBlocked(x, z, PASS_CLEAR_M)) r.pos.set(x, 0, z);
+    }
+  }
+
+  function heading(r) {
+    const t = r.path[0];
+    if (!t) return null;
+    const dx = t.x - r.pos.x, dz = t.z - r.pos.z, d = Math.hypot(dx, dz);
+    return d > 1e-4 ? { x: dx / d, z: dz / d } : null;
   }
 
   // The walk grid doesn't know where the office robot is: a walker whose step lands inside its
