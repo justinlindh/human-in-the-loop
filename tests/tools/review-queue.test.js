@@ -3,29 +3,45 @@ import { spawn, spawnSync } from 'node:child_process';
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { waiting, line } from '../../scripts/tools/review-queue.mjs';
+import { queue, line } from '../../scripts/tools/review-queue.mjs';
 
 const QUEUE = resolve(__dirname, '../../scripts/tools/review-queue.mjs');
 
 const pr = (number, over = {}, ci = 'SUCCESS', review = null) => ({
   number, title: `t${number}`, isDraft: false, isCrossRepository: false, labels: [], headRefOid: `${number}`.padEnd(40, 'a'), headRefName: `tools/x${number}`,
   author: { login: 'justinlindh' },
-  statusCheckRollup: [{ __typename: 'StatusContext', context: 'local-ci', state: ci }, ...(review ? [{ __typename: 'StatusContext', context: 'review', state: review }] : [])],
+  statusCheckRollup: [...(ci ? [{ __typename: 'StatusContext', context: 'local-ci', state: ci }] : []), ...(review ? [{ __typename: 'StatusContext', context: 'review', state: review }] : [])],
   ...over,
 });
 
-describe('who is waiting', () => {
+describe('who is waiting, and in which group', () => {
   const trusted = ['justinlindh'];
-  it('holds a green, unreviewed, trusted PR and drops the rest', () => {
+  const groups = (list) => queue(list, trusted).map((w) => `${w.group}#${w.number}`);
+
+  it('sorts ready, dependabot, outside and ci-not-green PRs into groups and drops the rest', () => {
     const list = [
-      pr(5), pr(3), pr(4, { isDraft: true }), pr(6, { labels: [{ name: 'awaiting-user' }] }), pr(7, { isCrossRepository: true }),
-      pr(8, { author: { login: 'someone' } }), pr(9, {}, 'PENDING'), pr(10, {}, 'FAILURE'), pr(11, {}, 'SUCCESS', 'SUCCESS'), pr(12, {}, 'SUCCESS', 'FAILURE'), pr(13, {}, 'SUCCESS', 'PENDING'),
+      pr(5), pr(3), pr(4, { isDraft: true }), pr(6, { labels: [{ name: 'awaiting-user' }] }),
+      pr(7, { isCrossRepository: true }), pr(8, { author: { login: 'someone' } }),
+      pr(9, {}, 'PENDING'), pr(10, {}, 'FAILURE'), pr(14, {}, null),
+      pr(11, {}, 'SUCCESS', 'SUCCESS'), pr(12, {}, 'SUCCESS', 'FAILURE'), pr(13, {}, 'SUCCESS', 'PENDING'),
+      pr(15, { author: { login: 'app/dependabot' } }, null), pr(16, { author: { login: 'dependabot[bot]' } }, 'FAILURE'),
+      pr(17, { author: { login: 'app/dependabot' }, isCrossRepository: true }, null),
     ];
-    expect(waiting(list, trusted).map((w) => w.number)).toEqual([3, 5, 13]);
+    expect(groups(list)).toEqual(['READY#3', 'READY#5', 'READY#13', 'DEPENDABOT#15', 'DEPENDABOT#16', 'OUTSIDE#7', 'OUTSIDE#8', 'OUTSIDE#17', 'CI#9', 'CI#10', 'CI#14']);
   });
 
-  it('prints number, short head, branch and title', () => {
-    expect(line(waiting([pr(5)], ['justinlindh'])[0])).toBe('#5 5aaaaaaa tools/x5: t5');
+  it('only a failing CI wakes a waiter; a pending or missing one is listed but waits', () => {
+    const w = (n, ci) => queue([pr(n, {}, ci)], trusted)[0];
+    expect(w(1, 'FAILURE').wake).toBe(true);
+    expect(w(2, 'PENDING').wake).toBe(false);
+    expect(w(3, null).wake).toBe(false);
+    expect(queue([pr(4, { author: { login: 'x' } }, null)], trusted)[0].wake).toBe(true);
+  });
+
+  it('prints group, number, short head, branch and title, with the reason for a CI line and the repo when given', () => {
+    expect(line(queue([pr(5)], ['justinlindh'])[0])).toBe('READY #5 5aaaaaaa tools/x5: t5');
+    expect(line(queue([pr(9, {}, 'PENDING')], ['justinlindh'])[0])).toBe('CI #9 9aaaaaaa tools/x9: t9 (local-ci pending)');
+    expect(line(queue([pr(5)], ['justinlindh'], 'me/site')[0])).toBe('READY me/site#5 5aaaaaaa tools/x5: t5');
   });
 });
 
@@ -41,19 +57,29 @@ describe('review-queue command', () => {
   const run = (env, ...args) => spawnSync(process.execPath, [QUEUE, ...args], { encoding: 'utf8', env, timeout: 30000 });
 
   it('lists every waiting PR and exits 0, or exits 3 when the queue is empty', () => {
-    const t = setup([pr(4), pr(2)]);
+    const t = setup([pr(4), pr(2), pr(6, { author: { login: 'app/dependabot' } }, null)]);
     try {
       const r = run(t.env);
       expect(r.status).toBe(0);
-      expect(r.stdout.trim().split('\n')).toEqual(['#2 2aaaaaaa tools/x2: t2', '#4 4aaaaaaa tools/x4: t4']);
+      expect(r.stdout.trim().split('\n')).toEqual(['READY #2 2aaaaaaa tools/x2: t2', 'READY #4 4aaaaaaa tools/x4: t4', 'DEPENDABOT #6 6aaaaaaa tools/x6: t6']);
       t.set([pr(4, {}, 'SUCCESS', 'SUCCESS')]);
       expect(run(t.env).status).toBe(3);
       expect(JSON.parse(run(t.env, '--json').stdout)).toEqual([]);
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
   });
 
-  it('--wait blocks until something is waiting and then prints all of it', async () => {
-    const t = setup([]);
+  it('looks in each --repo and names it on the line', () => {
+    const t = setup([pr(4)]);
+    try {
+      const r = run(t.env, '--repo', 'me/site', '--repo', 'me/game');
+      expect(r.status).toBe(0);
+      expect(r.stdout.trim().split('\n')).toEqual(['READY me/site#4 4aaaaaaa tools/x4: t4', 'READY me/game#4 4aaaaaaa tools/x4: t4']);
+      expect(run(t.env, '--repo', 'nonsense').status).toBe(2);
+    } finally { rmSync(t.dir, { recursive: true, force: true }); }
+  });
+
+  it('--wait blocks until something wakes it and then prints all of it, pending CI included', async () => {
+    const t = setup([pr(3, {}, 'PENDING')]);
     try {
       const child = spawn(process.execPath, [QUEUE, '--wait', '--interval', '0.2'], { env: t.env });
       let out = '';
@@ -61,13 +87,13 @@ describe('review-queue command', () => {
       const closed = new Promise((res) => child.on('close', (code) => res(code)));
       await new Promise((r) => setTimeout(r, 600));
       expect(out).toBe('');
-      t.set([pr(7), pr(8)]);
+      t.set([pr(3, {}, 'PENDING'), pr(7), pr(8)]);
       expect(await closed).toBe(0);
-      expect(out.trim().split('\n').length).toBe(2);
+      expect(out.trim().split('\n').length).toBe(3);
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
   }, 20000);
 
-  it('--drain prints each PR once and exits only when none is left', async () => {
+  it('--drain prints each PR once and exits only when none is left that needs a look', async () => {
     const t = setup([pr(7)]);
     try {
       const child = spawn(process.execPath, [QUEUE, '--drain', '--interval', '0.2'], { env: t.env });
@@ -76,12 +102,12 @@ describe('review-queue command', () => {
       let code = null;
       child.on('close', (c) => { code = c; });
       await new Promise((r) => setTimeout(r, 700));
-      expect(out.trim().split('\n')).toEqual(['#7 7aaaaaaa tools/x7: t7']);
+      expect(out.trim().split('\n')).toEqual(['READY #7 7aaaaaaa tools/x7: t7']);
       expect(code).toBeNull();
       t.set([pr(7), pr(9)]);
       await new Promise((r) => setTimeout(r, 700));
-      expect(out.trim().split('\n')).toEqual(['#7 7aaaaaaa tools/x7: t7', '#9 9aaaaaaa tools/x9: t9']);
-      t.set([]);
+      expect(out.trim().split('\n')).toEqual(['READY #7 7aaaaaaa tools/x7: t7', 'READY #9 9aaaaaaa tools/x9: t9']);
+      t.set([pr(11, {}, 'PENDING')]);
       for (let i = 0; i < 50 && code === null; i++) await new Promise((r) => setTimeout(r, 100));
       expect(code).toBe(0);
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
