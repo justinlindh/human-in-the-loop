@@ -24,6 +24,10 @@ describe('pose matrix parsing', () => {
     expect(cellsOf(parseMatrix('', 'slap'))).toHaveLength(2 * 1 * 3 * 2);
     expect(parseMatrix('views=1,3', 'slap').views).toEqual([1, 3]);
     expect(parseMatrix('postures=lie', 'slap').postures).toEqual(['stand']);
+    expect(parseMatrix('', 'slap').cause).toEqual(['unplug']);
+    expect(parseMatrix('cause=none,emptyDesk', 'slap').cause).toEqual(['none', 'emptyDesk']);
+    expect(parseMatrix('').cause).toEqual(['none']);
+    expect(() => parseMatrix('cause=fire', 'slap')).toThrow(/cause/);
   });
 
   it('expands all and lists, one cell per combination', () => {
