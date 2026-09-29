@@ -28,6 +28,7 @@ import { chromium } from 'playwright';
 import { glMode, holdRenderLock, launchChromium } from '../../scripts/lib/gl.js';
 import { resolveTarget } from '../../scripts/events/load.js';
 import { openLoopPage } from './loop-page.mjs';
+import { PANELS_INSTALL } from './panels.js';
 import { mkdirSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
@@ -70,6 +71,7 @@ try {
     return { week: H.state.week };
   }, { focus: opt('focus') ?? null, zoom: Number(opt('zoom', 2)) });
   if (started.error) fail(started.error);
+  await page.evaluate(PANELS_INSTALL);
   if (out) { rmSync(`${out}-frames`, { recursive: true, force: true }); mkdirSync(`${out}-frames`, { recursive: true }); }
 
   const log = [];
@@ -125,27 +127,8 @@ try {
         people = [];
         R.scene.traverse((c) => { if (c.name === 'character' && c.visible) { let id = null; c.traverse((x) => { if (x.userData.staffId !== undefined) id = x.userData.staffId; }); const b = boxOf(c); if (b) people.push({ id: id ?? 'extra', rect: b.map(Math.round) }); } });
       }
-      // Visible named UI panels (not buttons) up to three levels under #ui, as onscreen.mjs lists them,
-      // read as they are (no transitions are finished, so playback is untouched).
-      let panels = null;
-      if (wantPanels) {
-        panels = [];
-        const shown = (el) => el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
-        const visit = (el, depth) => {
-          for (const c of el.children) {
-            if (!shown(c) || c.tagName === 'BUTTON' || /\bspacer\b/.test(c.className)) continue;
-            const r = c.getBoundingClientRect();
-            const named = c.id || (typeof c.className === 'string' && c.className.trim());
-            const whole = r.width * r.height > 0.8 * innerWidth * innerHeight;
-            if (named && !whole && r.width >= 24 && r.height >= 12 && r.right > 0 && r.bottom > 0 && r.left < innerWidth && r.top < innerHeight) {
-              panels.push({ el: c.id ? `#${c.id}` : `.${c.className.trim().split(/\s+/).join('.')}`, text: (c.innerText || '').trim().split('\n')[0].slice(0, 70), rect: [r.left, r.top, r.width, r.height].map(Math.round) });
-            }
-            if (depth < 2) visit(c, depth + 1);
-          }
-        };
-        const root = document.getElementById('ui');
-        if (root) visit(root, 0);
-      }
+      // The visible UI panels, as onscreen.mjs lists them (blender/checks/panels.js), read as they are.
+      const panels = wantPanels ? window.__listPanels(false) : null;
       const at = target?.p ? (() => { const v = new THREE.Vector3(target.p.x, target.p.y ?? 0.4, target.p.z); const [x, y] = box(v); return [x, y]; })() : null;
       const clock = H.clock;
       const o = S.outage;

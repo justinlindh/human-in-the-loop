@@ -52,10 +52,21 @@ fi
 # so it only runs PRs from a branch of this repository by an author listed in scripts/ci-trusted.
 # Nothing is fetched, checked out or posted for any other PR.
 TRUSTED="${CI_TRUSTED_FILE:-}"
+TRUSTED_BOTS="${CI_TRUSTED_BOTS_FILE:-}"
+# The list's lines, without comments or blanks.
+trust_lines() { tr -d '\r' <"$1" 2>/dev/null | sed -e 's/#.*//' -e 's/[[:blank:]]//g' | grep -v '^$'; }
 pr_trusted() { # <isCrossRepository> <head repo owner> <author> <repo owner>
   [ "$1" = false ] || { echo "ci-pr: #$pr comes from a fork ($2); not running it" >&2; return 1; }
   [ "$2" = "$4" ] || { echo "ci-pr: #$pr head repository belongs to $2, not $4; not running it" >&2; return 1; }
-  grep -qxF -- "$3" <(tr -d '\r' <"$TRUSTED" 2>/dev/null | sed -e 's/#.*//' -e 's/[[:blank:]]//g' | grep -v '^$') \
+  if [[ "$3" == app/* ]]; then
+    # An app author: gh shows app/<name>; the REST login (<name>[bot], type Bot) is what the list names.
+    local rest_login rest_type
+    IFS=$'\037' read -r rest_login rest_type < <(gh api "repos/{owner}/{repo}/pulls/$pr" --jq '[.user.login, .user.type] | join("\u001f")')
+    [ "${rest_type:-}" = Bot ] && [ "${rest_login:-}" = "${3#app/}[bot]" ] && grep -qxF -- "$rest_login" <(trust_lines "$TRUSTED_BOTS") \
+      || { echo "ci-pr: #$pr is by $3, which is not an app in scripts/ci-trusted-bots; not running it" >&2; return 1; }
+    return 0
+  fi
+  grep -qxF -- "$3" <(trust_lines "$TRUSTED") \
     || { echo "ci-pr: #$pr is by $3, who is not in scripts/ci-trusted; not running it" >&2; return 1; }
 }
 # Fields are split on the unit separator, which read never merges: an empty field stays empty
@@ -71,6 +82,11 @@ if [ -z "$TRUSTED" ]; then
   git -C "$REPO" fetch -q origin "$pr_base" 2>/dev/null
   git -C "$REPO" show "origin/$pr_base:scripts/ci-trusted" >"$trusted_tmp" 2>/dev/null
 fi
+bots_tmp=""
+if [ -z "$TRUSTED_BOTS" ]; then
+  bots_tmp="$(mktemp)"; TRUSTED_BOTS="$bots_tmp"
+  git -C "$REPO" show "origin/$pr_base:scripts/ci-trusted-bots" >"$bots_tmp" 2>/dev/null
+fi
 repo_owner="$(gh repo view --json owner --jq .owner.login)"
 [ -n "${cross:-}" ] && [ -n "$repo_owner" ] || { echo "ci-pr: cannot read PR #$pr" >&2; exit 2; }
 if [ "$allow_bot" = 1 ]; then
@@ -79,9 +95,9 @@ if [ "$allow_bot" = 1 ]; then
   [ "${bot_login:-}" = 'dependabot[bot]' ] && [ "${bot_type:-}" = Bot ] \
     || { echo "ci-pr: --allow-bot is only for Dependabot PRs; #$pr is by ${bot_login:-unknown}" >&2; exit 2; }
 else
-  pr_trusted "$cross" "$owner" "$author" "$repo_owner" || { rm -f "$trusted_tmp"; exit 2; }
+  pr_trusted "$cross" "$owner" "$author" "$repo_owner" || { rm -f "$trusted_tmp" "$bots_tmp"; exit 2; }
 fi
-rm -f "$trusted_tmp"
+rm -f "$trusted_tmp" "$bots_tmp"
 mkdir -p "$ROOT"
 # One run per PR at a time, each in its own worktree: overlapping runs sharing a path deleted
 # each other's trees mid-run.
@@ -166,15 +182,18 @@ status pending "Local CI running"
 mb="$(git -C "$REPO" merge-base "origin/$base" "refs/ci/pr-$pr/head")"
 # --no-renames: a moved file lists its old path too, so moving game code into docs/ is not light.
 changed="$(git -C "$REPO" diff --name-only --no-renames "$mb" "refs/ci/pr-$pr/head")"
-skip_list="$(mktemp)"; classify="$(mktemp)"
+skip_list="$(mktemp)"; tests_list="$(mktemp)"; classify="$(mktemp)"
 git -C "$REPO" show "origin/$base:scripts/ci-skip-paths" >"$skip_list" 2>/dev/null || rm -f "$skip_list"
+git -C "$REPO" show "origin/$base:scripts/ci-tests-only-paths" >"$tests_list" 2>/dev/null || rm -f "$tests_list"
 if git -C "$REPO" show "origin/$base:scripts/ci-classify.sh" >"$classify" 2>/dev/null; then
-  mode="$(printf '%s\n' "$changed" | bash "$classify" "$skip_list")"
+  mode="$(printf '%s\n' "$changed" | bash "$classify" "$skip_list" "$tests_list")"
 else
   mode=full
 fi
-rm -f "$skip_list" "$classify"
+rm -f "$skip_list" "$tests_list" "$classify"
 echo "ci-pr: #$pr gets the $mode gate"
+# The tests tier is the full run without the render, browser and balance checks (see ci-local.sh).
+if [ "$mode" = tests ]; then export CI_TIER=tests; else unset CI_TIER; fi
 if [ "$mode" = light ]; then
   t0=$(date +%s); light_ok=1; table="| step | result |"$'\n'"|---|---|"
   if "$TOOLS/scripts/check-commits.sh" "$mb" "refs/ci/pr-$pr/head" "$title" >/dev/null 2>&1; then table+=$'\n'"| commits | pass |"

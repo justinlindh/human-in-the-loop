@@ -1,6 +1,7 @@
 import { ASSIGNMENT_LABEL, B } from '../content.js';
 import { productName } from '../../data/product-names.js';
 import { ERA_IDS } from '../../data/eras.js';
+import { ROLE_JOBS, ROLE_JOBS_FALLBACK } from '../../data/roles.js';
 
 export const KIND_LABEL = { new: 'New product', update: 'Update', migration: 'Migration', refactor: 'Refactor', craft: 'Craft project', research: 'Internal tool' };
 
@@ -68,14 +69,7 @@ export function assignmentOptions(state, p) {
   const out = [];
   const add = (type, targetId, label, group) => out.push({ value: `${type}:${targetId ?? ''}`, type, targetId: targetId ?? null, label, group });
   for (const j of state.projects) add('project', j.id, `Build: ${projectLabel(state, j)}`, 'Projects');
-  const byRole = {
-    engineer: ['maintenance', 'oversight', 'security', 'support'],
-    designer: ['maintenance', 'oversight'],
-    marketer: ['marketing', 'oversight', 'sales'],
-    support: ['support', 'oversight'],
-    security: ['security', 'oversight', 'maintenance'],
-    sales: ['sales', 'marketing', 'oversight'],
-  }[p.role] ?? ['maintenance', 'oversight'];
+  const byRole = ROLE_JOBS[p.role] ?? ROLE_JOBS_FALLBACK;
   for (const t of byRole) add(t, null, ASSIGNMENT_LABEL[t], 'Jobs');
   if (p.seniority === 'senior') add('hardProblem', null, 'Hard Problem', 'Growth');
   if (p.seniority !== 'junior') {
