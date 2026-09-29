@@ -7,6 +7,7 @@
 //     script  what a game state cannot say, applied by the runtime after each step (`applyScript`), through
 //             the game's own character and robot calls:
 //               { frame, who, op: 'place',   at: [x, y], dir: [dx, dy] }   stand at a tile position, facing a direction
+//               { frame, who, op: 'place',   at: [x, y], toward: 'robot' }  ... or facing the robot where it rests (the runtime aims)
 //               { frame, who, op: 'gesture', name }                        play a gesture or pose
 //
 // The file:
@@ -140,14 +141,16 @@ export function compose(input) {
     const where = `people "${id}"`, at = spots.get(id);
     const frame = Math.round((p.t ?? 0) * FPS);
     if (p.at != null && at) {
-      let dir = null;
+      let dir = null, towardRobot = false;
       const f = p.face ?? 'south';
       if (typeof f === 'string' && COMPASS[f]) dir = COMPASS[f];
       else if (typeof f === 'number') dir = [Math.sin((f * Math.PI) / 180), Math.cos((f * Math.PI) / 180)];
-      else if (f === 'robot' && robot && isPoint(robot.at)) dir = [robot.at[0] + 0.5 - at[0], robot.at[1] + 0.5 - at[1]];
+      else if (f === 'robot' && robot && isPoint(robot.at)) towardRobot = true;
       else if (spots.has(f) && f !== id) dir = [spots.get(f)[0] - at[0], spots.get(f)[1] - at[1]];
       else problems.push(`${where}: face "${f}" is not north, east, south, west, a degree, "robot" or a person id`);
-      if (dir) {
+      // The runtime aims a face at the robot from where the robot rests, which its plan decides.
+      if (towardRobot) script.push({ frame: 0, who: id, op: 'place', at: [...at], toward: 'robot' });
+      else if (dir) {
         const len = Math.hypot(...dir);
         if (len < 1e-6) problems.push(`${where}: face points at their own position`);
         else script.push({ frame: 0, who: id, op: 'place', at: [...at], dir: dir.map((v) => +(v / len).toFixed(6)) });

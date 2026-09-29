@@ -46,7 +46,11 @@ export async function createRuntime({ state, mock = 'floor', quality = 'low', ri
       const x = -L.W / 2 + e.at[0], z = -L.D / 2 + e.at[1];
       // standAt teleports; the temp it makes is then replaced by one that holds for the whole scene.
       if (!R.standAt(e.who, x, z)) throw new Error(`scene-engine: compose place: no such person ${e.who}`);
-      R.catchFor(e.who, { anim: 'idle', t: HOLD_S, goal: { x, z, yaw: Math.atan2(e.dir[0], e.dir[1]), anim: 'idle' }, back: true });
+      // Facing the robot means where it rests after its plan (its dock), not the tile the item sits on.
+      const rest = e.toward === 'robot' ? R.robot.peek()?.pos : null;
+      if (e.toward === 'robot' && !rest) throw new Error('scene-engine: compose place: face "robot" but the scene has no robot');
+      const dir = rest ? [rest[0] - x, rest[1] - z] : e.dir;
+      R.catchFor(e.who, { anim: 'idle', t: HOLD_S, goal: { x, z, yaw: Math.atan2(dir[0], dir[1]), anim: 'idle' }, back: true });
     }
     for (let n = 0; n < 45; n++) advance();
   }
@@ -55,7 +59,7 @@ export async function createRuntime({ state, mock = 'floor', quality = 'low', ri
     R.scene.traverse((o) => { if (!root && o.userData.staffId === id) root = o.parent; });
     return root && globalThis.__sceneCharacters?.get(root);
   };
-  // Gestures whose frame has come; called before each step, so a gesture at frame f plays from frame f.
+  // Gestures whose frame has come; called on reaching each frame, so a sample at frame f already shows it.
   const applyScript = (at) => {
     for (const e of pending) {
       if (e.done || e.frame > at) continue;
@@ -69,7 +73,7 @@ export async function createRuntime({ state, mock = 'floor', quality = 'low', ri
   return { R, S, randomTrace, get frame() { return frame; }, applyScript,
     stepTo(target) {
       if (!Number.isInteger(target) || target < frame) throw new Error('scene-engine: frames must increase; open a fresh scene to rewind');
-      while (frame < target) { applyScript(frame); advance(); frame++; }
+      while (frame < target) { advance(); frame++; applyScript(frame); }
       R.scene.updateMatrixWorld(); R.camera.updateMatrixWorld();
     },
     async loadMeasurements() {
