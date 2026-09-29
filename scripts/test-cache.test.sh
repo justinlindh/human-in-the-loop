@@ -36,8 +36,9 @@ HITL_NO_TEST_CACHE=1 t >/dev/null; [ "$(runs)" -eq $((n + 2)) ] || fail "HITL_NO
 # Paths no test reads don't count as part of the tree; docs/effects (a test reads it) does.
 : >"$COUNT"; mkdir -p "$r/docs/effects" "$r/.claude"; t >/dev/null; n=$(runs)
 echo d >"$r/docs/a.md"; echo d >"$r/.claude/b.md"; echo r >"$r/README.md"; t >/dev/null; [ "$(runs)" -eq "$n" ] || fail "docs, .claude and markdown don't count"
-echo e >"$r/docs/effects/e.md"; t >/dev/null; [ "$(runs)" -eq $((n + 1)) ] || fail "docs/effects does count: runs $(runs) of $n"
-HITL_TEST_CACHE_HASH_ALL=1 t >/dev/null; [ "$(runs)" -eq $((n + 2)) ] || fail "HASH_ALL sees docs"
+mkdir -p "$r/src/contract"; echo c >"$r/src/contract/contract.md"; t >/dev/null; [ "$(runs)" -eq $((n + 1)) ] || fail "a markdown file under src (the contract) counts: runs $(runs) of $n"; n=$((n + 1))
+echo e >"$r/docs/effects/e.md"; t >/dev/null; [ "$(runs)" -eq $((n + 1)) ] || fail "docs/effects does count: runs $(runs) of $n"; n=$((n + 1))
+HITL_TEST_CACHE_HASH_ALL=1 t >/dev/null; [ "$(runs)" -eq $((n + 1)) ] || fail "HASH_ALL sees docs"
 # The ledger records each cached call.
 [ "$(wc -l <"$tmp/repo/.git/hitl-test-cache.log")" -gt 5 ] && grep -q "$(printf '\thit\t')" "$tmp/repo/.git/hitl-test-cache.log" && grep -q "$(printf '\tpass\t')" "$tmp/repo/.git/hitl-test-cache.log" || fail "the ledger has hit and pass rows"
 

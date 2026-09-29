@@ -4,7 +4,7 @@
 # installed packages (node_modules/.package-lock.json) and the node version. A skip prints the
 # earlier result and exits 0. Only passes are cached, and each for 12 hours.
 # It never skips in CI: CI set (GitHub Actions), HITL_NO_TEST_CACHE=1 (local CI exports it), or a
-# checkout with no git. Files no test reads (.claude, docs other than docs/effects, *.md) don't
+# checkout with no git. Files no test reads (.claude, docs other than docs/effects, top-level *.md) don't
 # count as part of the tree. package.json's test:fast runs through it.
 # Every cached call also appends a row to <git common dir>/hitl-test-cache.log.
 # HITL_TEST_CACHE_DEBUG=1 prints the key's inputs and what happened (hit, run, fallback) to stderr.
@@ -28,7 +28,7 @@ cp -p "$gitdir/index" "$idx" 2>/dev/null || : >"$idx"
 why="git add or write-tree failed on the index copy"
 # Paths no test reads (agent briefs, docs other than docs/effects, markdown) are left out of the
 # tree, so editing them doesn't turn a passed run into a miss. HITL_TEST_CACHE_HASH_ALL=1 keeps them.
-inert=(.claude docs ':(exclude)docs/effects' '*.md')
+inert=(.claude docs ':(exclude)docs/effects' ':(glob)*.md')
 tree="$(GIT_INDEX_FILE="$idx" git add -A . 2>/dev/null \
   && { [ "${HITL_TEST_CACHE_HASH_ALL:-}" = 1 ] || GIT_INDEX_FILE="$idx" git rm -r -q --cached --ignore-unmatch -- "${inert[@]}" 2>/dev/null; } \
   && GIT_INDEX_FILE="$idx" git write-tree 2>/dev/null)" || run "$@"

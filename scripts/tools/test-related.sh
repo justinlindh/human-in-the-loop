@@ -7,7 +7,7 @@
 #   scripts/tools/test-related.sh [--list] [--files <path>...]
 # --list prints the changed files and the decision only; --files names the changed files instead of
 # reading them from git.
-# Files no test reads (.claude, markdown, docs other than docs/effects) are ignored.
+# Files no test reads (.claude, docs other than docs/effects, top-level markdown) are ignored.
 # Exit status is the test run's.
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel)"
@@ -23,9 +23,10 @@ keep=''
 while read -r f; do
   case "$f" in
     docs/effects/*) full "$f is read by the effects test" ;;
-    .claude/* | *.md) continue ;; # no test reads these
-    docs/*) continue ;;
+    .claude/* | docs/*) continue ;; # no test reads these
     src/*.js | src/*/*.js | src/*/*/*.js | tests/*.js | tests/*/*.js | tests/*/*/*.js | scripts/*.js | scripts/*.mjs | scripts/*/*.js | scripts/*/*.mjs) ;;
+    */*) full "$f is not plain JS under src, tests or scripts" ;;
+    *.md) continue ;; # a top-level markdown file
     *) full "$f is not plain JS under src, tests or scripts" ;;
   esac
   keep+="$f"$'\n'
