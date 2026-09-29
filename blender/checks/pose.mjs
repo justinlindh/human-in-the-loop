@@ -4,7 +4,7 @@
 //
 //   node blender/checks/pose.mjs --gesture facepalm [--under typing] [--seconds 2.2] [--warm 1]
 //        [--yaw-to-camera 0] [--view 0] [--rig on|off] [--every 6] [--json out.json]
-//        [--root <checkout>]
+//        [--root <checkout>] [--param [file:]NAME[idx]=value]... [--sweep NAME=a,b,c --measure <m> ...]
 //        [--expect 'hand0Face<=0.05@0.8'] [--expect 'faceCam<=70@0.8'] [--check-browser]
 //   node blender/checks/pose.mjs --under idle --seconds 2          (an animation alone)
 //   node blender/checks/pose.mjs --scene [--mock floor | --seed N [--week W] | --moment '<query>' | --snapshot <path>]
@@ -23,6 +23,10 @@
 // as Medium and High do. --root measures another checkout's render code (a lane's worktree or a
 // PR's) with this checkout's tool. --check-browser runs the same measures in a harness page and
 // compares every number.
+//
+// --param overrides a module-level const in game code for the run, with no source edit (see
+// param.js); --sweep NAME=a,b,c runs the measurement once per value and prints one table (see
+// param-sweep.js: --across, --measure, --rows, --pick). Neither works with --serve.
 //
 // --scene runs in a harness page under the render lock, drawing nothing: warm-up and sampling both
 // run through the update path with no draw call. For each person: faceCovered (how much of the head
@@ -56,11 +60,22 @@ import { judgeScene, COVER_MEASURE } from './pose-rules.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { paramPlugin, paramSpecs, resolveParams } from './param.js';
+import { runSweep } from './param-sweep.js';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
 const all = (k) => argv.flatMap((a, i) => (a === `--${k}` ? [argv[i + 1]] : []));
 const ROOT = resolve(opt('root', join(import.meta.dirname, '../..')));
+// --sweep runs this script again once per value, so it goes before anything takes a render slot.
+if (opt('sweep')) process.exit(runSweep(argv, fileURLToPath(import.meta.url)));
+let PARAMS = [];
+// A page serves the working directory, so --param there names files under it.
+const IN_PAGE = argv.includes('--scene') || argv.includes('--check-browser');
+if (IN_PAGE && paramSpecs(argv).length && resolve(process.cwd()) !== ROOT) { console.error(`pose: --param with --scene measures the working directory's code: run pose.mjs from ${ROOT}`); process.exit(2); }
+try { PARAMS = resolveParams(paramSpecs(argv), ROOT); } catch (e) { console.error(e.message); process.exit(2); }
+if (PARAMS.length && argv.includes('--serve')) { console.error('pose: --param needs a cold run: --serve keeps one server across requests'); process.exit(2); }
 const OPTS = {
   under: opt('under', opt('gesture') ? 'typing' : 'idle'), gesture: opt('gesture', null), seconds: Number(opt('seconds', 2.2)),
   warm: Number(opt('warm', 1)), yawToCamera: Number(opt('yaw-to-camera', 0)), view: Number(opt('view', 0)), fps: 30, rig: opt('rig', 'on') !== 'off',
@@ -214,7 +229,7 @@ async function sceneMode() {
   const { startHarness } = await import('./harness.mjs');
   const { resolveTarget, openAt } = await import('../../scripts/events/load.js');
   const req = normalizeSceneRequest(cliSource());
-  const H = await startHarness({ auditDraws: true });
+  const H = await startHarness({ auditDraws: true, params: PARAMS });
   let code = 0;
   try {
     const target = req.snapshot || req.moment ? resolveTarget({ snapshot: req.snapshot, event: req.moment }) : null;
@@ -294,7 +309,7 @@ async function serveMode() {
 
 async function checkBrowser(frames) {
   const { startHarness } = await import('./harness.mjs');
-  const H = await startHarness();
+  const H = await startHarness({ params: PARAMS });
   try {
     const { page } = await H.openScene('quality=medium&mock=floor', { width: 320, height: 200 });
     const b = await page.evaluate(async (o) => (await import('/blender/checks/pose-measure.js')).playPose(o), OPTS);
@@ -328,7 +343,7 @@ if (argv.includes('--check-browser')) {
 }
 const t0 = performance.now();
 standIns();
-const vite = await createServer({ root: ROOT, configFile: false, server: { middlewareMode: true, hmr: false }, appType: 'custom', logLevel: 'error', optimizeDeps: { noDiscovery: true, include: [] } });
+const vite = await createServer({ root: ROOT, configFile: false, plugins: PARAMS.length ? [paramPlugin(PARAMS)] : [], server: { middlewareMode: true, hmr: false }, appType: 'custom', logLevel: 'error', optimizeDeps: { noDiscovery: true, include: [] } });
 let code = 0;
 try {
   const P = await vite.ssrLoadModule(join(import.meta.dirname, 'pose-measure.js'));

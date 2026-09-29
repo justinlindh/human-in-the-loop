@@ -178,6 +178,18 @@ describe('issue #339: office classics', () => {
     expect(s.office.props).toEqual([]);
   });
 
+  it('printer: printing less leaves the OUT OF ORDER sign at the kitchen for good', () => {
+    const s = company(10, 6);
+    raise(s, 'printer_jam', s.staff[0].id);
+    const anchor = s.pendingDecision.stage;
+    choose(s, 'Print less');
+    expect(s.office.props).toHaveLength(1);
+    expect(s.office.props[0]).toMatchObject({ prop: 'printer_out_of_order', until: null, x: anchor.x, y: anchor.y });
+    s.week += 500;
+    propsSystem(makeCtx(s));
+    expect(s.office.props.map((p) => p.prop)).toEqual(['printer_out_of_order']);
+  });
+
   it('Saturday: saying yes strains everyone; saying no costs the asker a little', () => {
     const s = company(11, 10);
     const boss = addStaff(s, 'engineer', 'senior', { hiredWeek: 0 });
