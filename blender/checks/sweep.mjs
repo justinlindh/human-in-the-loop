@@ -65,8 +65,7 @@ const full = argv.includes('--full');
 // The samplers run on the studio engine (scripts/studio/sweep-host.mjs) unless --browser asks for a
 // browser. --screen-only is the small browser step the engine run hands the page checks to.
 const screenOnly = argv.includes('--screen-only');
-// --strict is the guard's run of record, so it keeps every check (screen and tooltip in moments and seeds too).
-const engine = !argv.includes('--browser') && !argv.includes('--strict') && !screenOnly;
+const engine = !argv.includes('--browser') && !screenOnly;
 // Milliseconds on the process's own clock: the engine replaces Date.now with a game clock.
 const wall = () => Number(process.hrtime.bigint() / 1000000n);
 const MODES = {
@@ -173,13 +172,12 @@ try {
     console.log(`sweep: mock:${name} ${vs.length} violation(s) (${Math.round((wall() - t0) / 1000)} s)`);
     await page?.close();
   }
-  if (screenOnly) M.seeds = [];
   // Indexed moments (scripts/events), each loaded from its snapshot and played through its choice.
-  for (const query of screenOnly ? [] : [...(plan?.events ?? []), ...(opt('moments') ?? '').split(';').map((x) => x.trim()).filter(Boolean)]) {
+  for (const query of [...(plan?.events ?? []), ...(opt('moments') ?? '').split(';').map((x) => x.trim()).filter(Boolean)]) {
     const target = target_({ event: query });
     const row = target.row;
     const label = `event:${row.id}:s${row.seed}${row.bot}w${row.week}`;
-    const o = { label, open: M.stagedSeconds, after: 8, every: M.step, choice: row.choice, known, worst: acceptedWorst, item };
+    const o = { label, open: M.stagedSeconds, after: 8, every: M.step, choice: row.choice, known, worst: acceptedWorst, item, screenOnly };
     const { page, errors: e } = engine ? { page: null, errors: [] } : await openAt(H, target, { width: 1600, height: 1000, quality: 'low' });
     const r = engine ? await host.hostLoaded({ file: target.file, ...o }) : await page.evaluate(async (o2) => (await import('/blender/checks/sample.js')).sampleLoaded(o2), o);
     found.push(...r.violations);
@@ -190,10 +188,10 @@ try {
   }
   // Saved states from find.js scans (--snapshots a.json.gz,b.json.gz), each loaded and played as a
   // moment is, with no decision to answer.
-  for (const file of screenOnly ? [] : (opt('snapshots') ?? '').split(',').map((x) => x.trim()).filter(Boolean)) {
+  for (const file of (opt('snapshots') ?? '').split(',').map((x) => x.trim()).filter(Boolean)) {
     const target = target_({ snapshot: file });
     const label = `snap:${basename(file).replace(/\.json(\.gz)?$/, '')}`;
-    const o = { label, open: M.stagedSeconds, after: 8, every: M.step, choice: null, known, item };
+    const o = { label, open: M.stagedSeconds, after: 8, every: M.step, choice: null, known, item, screenOnly };
     const { page, errors: e } = engine ? { page: null, errors: [] } : await openAt(H, target, { width: 1600, height: 1000, quality: 'low' });
     const r = engine ? await host.hostLoaded({ file: target.file, ...o }) : await page.evaluate(async (o2) => (await import('/blender/checks/sample.js')).sampleLoaded(o2), o);
     found.push(...r.violations);
@@ -223,7 +221,7 @@ try {
     let limit;
     const r = await Promise.race([
       page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleSeed(o),
-        { seed, weeks: M.weeks, every: M.every, seconds: M.seconds, stagedSeconds: M.stagedSeconds, maxStaged: M.maxStaged, step: M.step, known, worst: acceptedWorst, item, only: plan?.seeds[seed] ?? null }),
+        { seed, weeks: M.weeks, every: M.every, seconds: M.seconds, stagedSeconds: M.stagedSeconds, maxStaged: M.maxStaged, step: M.step, known, worst: acceptedWorst, item, only: plan?.seeds[seed] ?? null, screenOnly }),
       new Promise((res) => { limit = setTimeout(() => res(null), M.seedLimit * 1000); }),
     ]);
     clearTimeout(limit);
@@ -243,11 +241,18 @@ try {
     console.log(`sweep: seed:${seed} ${vs.length} violation(s) in ${Math.round((wall() - s0) / 1000)} s (${Math.round((wall() - t0) / 1000)} s)`);
     await HS.close();
   }
-  // The page checks (screen, tooltip) need a browser: the mocks' office windows run there as a small
-  // step of their own, and its rows join this run's.
-  if (engine && M.mocks.length && !argv.includes('--no-screen')) {
+  // The page checks (screen, tooltip) need a browser: the same run's states (mocks and their moments,
+  // indexed moments, snapshots, seeds) are played again there with the page checks alone, and its rows
+  // join this run's.
+  if (engine && !argv.includes('--no-screen')) {
     const sub = join(outDir, 'screen');
-    const args = [fileURLToPath(import.meta.url), '--screen-only', '--mocks', M.mocks.join(','), '--out', sub, ...(item ? ['--item', item] : []), ...(full ? ['--full'] : []), ...(argv.includes('--gpu') ? ['--gpu'] : [])];
+    const skip = new Set(['--update-baseline', '--prune', '--engine', '--no-screen', '--strict']);
+    const rest = [];
+    for (let i = 0; i < argv.length; i++) {
+      if (argv[i] === '--against' || argv[i] === '--out') { i++; continue; }
+      if (!skip.has(argv[i])) rest.push(argv[i]);
+    }
+    const args = [fileURLToPath(import.meta.url), ...rest, '--screen-only', '--out', sub];
     const s0 = wall();
     const child = spawnSync(process.execPath, args, { stdio: ['ignore', 'ignore', 'inherit'] });
     let sr = null;

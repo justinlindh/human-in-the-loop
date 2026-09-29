@@ -181,7 +181,10 @@ function tooltipPass(R, C) {
 const PEOPLE_EVERY = 0.2;
 // `quiet` steps the world exactly as a checked window does and checks nothing, so a run that skips a
 // window still reaches the next one in the same state.
-function window_(R, S, C, { seconds, every, t0 = 0, quiet = false, screenOnly = false }) {
+// A screen-only run (the browser step beside the engine's collision rows) makes only the page checks in
+// every window it plays.
+let SCREEN_ONLY = false;
+function window_(R, S, C, { seconds, every, t0 = 0, quiet = false, screenOnly = SCREEN_ONLY }) {
   const memo = {};
   // One drawn frame settles the camera on the office as it is now, so crops frame the spot.
   R.render(0);
@@ -364,13 +367,10 @@ export async function sampleMock({ name, seconds = 20, every = 1, known = [], wo
   const C = createCollector({ state: `mock:${name}`, known, worst, crops, tol: TOL, item });
   stepWorld(R, S, 90);
   R.render(0);
-  // The page checks only (the collision rows come from the engine run): the office window's drawn
-  // frames, then the tooltips.
-  if (screenOnly) {
-    window_(R, S, C, { seconds, every, screenOnly: true });
-    const tips = item ? 0 : tooltipPass(R, C);
-    return { violations: C.list, windows: [{ state: `mock:${name}`, why: 'screen', tooltips: tips }] };
-  }
+  // A screen-only run makes the page checks alone (the collision rows come from the engine run), so the
+  // passes that only sample collisions are left out.
+  SCREEN_ONLY = screenOnly;
+  if (screenOnly) { propDesks = 0; grid = false; }
   // Scoped to an item: its footprint pass, and the office window only where the item stands.
   if (item) { propDesks = 0; moments = null; }
   if (propDesks) { R.perks.hold = true; await propsPass(R, S, C, propDesks); R.perks.hold = false; }
@@ -391,8 +391,9 @@ export async function sampleMock({ name, seconds = 20, every = 1, known = [], wo
 // A loaded snapshot of an indexed moment (scripts/events): `open` seconds as loaded (the decision
 // open, its prop staged), then, if a decision is open, the choice made (the index's, or 0) and
 // `after` seconds more.
-export async function sampleLoaded({ label, open = 16, after = 8, every = 1, choice = 0, known = [], worst = {}, crops = 60, item = null }) {
+export async function sampleLoaded({ label, open = 16, after = 8, every = 1, choice = 0, known = [], worst = {}, crops = 60, item = null, screenOnly = false }) {
   const R = window.__hitlRender, H = window.__HITL;
+  SCREEN_ONLY = screenOnly;
   R.moments.full = true;
   const C = createCollector({ state: label, known, worst, crops, tol: TOL, item });
   // The loaded office builds on the first sync; a second settles it.
@@ -405,8 +406,9 @@ export async function sampleLoaded({ label, open = 16, after = 8, every = 1, cho
   return { violations: C.list, windows: [{ state: label, why: 'event', bodies: X.bodies(R).length, staff: H.state.staff.length }] };
 }
 
-export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every = 52, seconds = 6, stagedSeconds = 20, step = 1, known = [], worst = {}, crops = 60, maxStaged = 6, item = null, only = null }) {
+export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every = 52, seconds = 6, stagedSeconds = 20, step = 1, known = [], worst = {}, crops = 60, maxStaged = 6, item = null, only = null, screenOnly = false }) {
   const R = window.__hitlRender, H = window.__HITL;
+  SCREEN_ONLY = screenOnly;
   const { botDecide, botTurn } = await import('/src/sim/bots.js');
   R.moments.full = true;
   const out = [], windows = [];
