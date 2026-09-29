@@ -23,7 +23,7 @@ cwd="$(jq -r '.cwd // empty' <<<"$input" 2>/dev/null)"
 deny() { echo "Blocked by the team's hook (scripts/hooks/claude/bash-guard.sh): $1" >&2; exit 2; }
 
 if grep -qE '(^|[^[:alnum:]_./-])(pkill|pgrep)([[:space:]]+-[^[:space:]]+)*[[:space:]]+(-[[:alnum:]]*f[[:alnum:]]*|--full)([[:space:]]|$)' <<<"$cmd"; then
-  deny "pkill -f and pgrep -f match their own command line (and your shell's), so they find or kill the wrong process. Stop a process by PID, wait on a lock, or match /proc/<pid>/cmdline by exact prefix."
+  deny "pkill -f and pgrep -f match their own command line (and your shell's), so they find or kill the wrong process. Start long jobs by name with scripts/tools/job.sh (start, wait, tail, ls, stop) so there is no PID to hunt; otherwise stop a process by PID, wait on a lock, or match /proc/<pid>/cmdline by exact prefix."
 fi
 
 # ci-pr.sh run on a PR (ci-pr.sh <number>), outside heredoc bodies and quoted text.

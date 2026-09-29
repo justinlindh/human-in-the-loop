@@ -1,0 +1,7 @@
+---
+tool: `scripts/tools/job.sh start|run|wait|tail|ls|stop <name> [--timeout s] [--nice n] -- <cmd>`
+section: run
+who: all
+covers: scripts/tools/job.sh tests/tools/job.test.js
+---
+Named background jobs, in place of `timeout 590 bash -c "until grep -q '^exit ' log; do sleep ..."` loops and `ps | grep "[b]alance.js"` PID hunts. `job.sh start balance -- node scripts/balance.js --seeds 300` runs the command in the background under `nice` (default 10) and `timeout` (default 3600 s, `--timeout`), in its own session, with stdout and stderr in one log and the exit code recorded when it ends (124 when the timeout killed it). `job.sh wait balance` blocks until it ends, prints the end of the log (`--lines`) and `job balance exit <code>`, and exits with the job's code; `wait --timeout 60` gives up after a minute with 124 and leaves the job running. `job.sh run <name> -- <cmd>` is start then wait in one call: give that one call to the Bash tool's `run_in_background` and the harness wakes you when the job ends, so nothing polls. `job.sh tail <name> [-n 40] [-f]` reads the log, `job.sh ls` lists every job with its state (running, exit code, or lost when its process vanished), and `job.sh stop <name>` ends the job and everything it spawned. A name that is still running is refused; a finished name is replaced by the new run. State lives in `~/.cache/hitl-jobs/<name>/` (`HITL_JOBS_DIR` changes it): `cmd`, `log`, `pid`, `exit`, `started`.

@@ -21,6 +21,7 @@ How you work:
 - For daily conversation changes, `node blender/checks/standup-live.mjs` checks generated speech through actual game ticks, including outage recovery and two-speaker completion.
 - Every visual change is verified by looking at it: `npm run snap`, then Read the PNG. Critique it against the art-direction checklist before you commit. Never report visual work done without screenshot paths.
 - Prefer Blender for anything the player looks at closely (characters, hero furniture); use procedural Three.js geometry for walls, floors, and repeated clutter.
+- Long renders and sweeps (a full sweep, gates, captures) go through `scripts/tools/job.sh run <name> -- <cmd>` as one `run_in_background` call: the harness wakes you when the job ends, with its exit code and log tail, so nothing polls and no PID is hunted.
 - Keep performance in mind from the start: shared materials, merged static geometry, pooled labels and particles, bounded texture updates.
 - After each task: open a PR per CLAUDE.md (a fresh `<lane>/<topic>` branch from `origin/main`, auto-merge on, local CI from auto CI, evidence media via `scripts/pr-media.sh`, description sections updated with `scripts/pr-body.sh`), then end your turn with the report: the PR link, the commit hash, and the evidence. Media that needs the user's eyes goes to team-lead. For visual work, include screenshot paths and your own top three remaining weaknesses.
 
