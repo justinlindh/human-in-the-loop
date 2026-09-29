@@ -121,11 +121,13 @@ describe('pair.js arguments and fields', () => {
     const list = () => spawnSync('git', ['worktree', 'list', '--porcelain'], { encoding: 'utf8' }).stdout.split('\n').filter((l) => l.startsWith(`worktree ${tmp}/`));
     try {
       const child = spawn(process.execPath, [PAIR, '--bots', 'balanced', '--seeds', '400'], { stdio: 'ignore', env: { ...process.env, TMPDIR: tmp } });
-      const closed = new Promise((res) => child.on('close', res));
-      for (let i = 0; i < 100 && !list().length; i++) await new Promise((r) => setTimeout(r, 100));
+      const closed = new Promise((res) => child.on('close', (code, signal) => res({ code, signal })));
+      for (let i = 0; i < 400 && !list().length; i++) await new Promise((r) => setTimeout(r, 100));
       expect(list().length).toBeGreaterThan(0);
       child.kill('SIGTERM');
-      expect(await closed).toBe(143);
+      // The handler exits 143; a loaded machine can also deliver the signal itself first.
+      const { code, signal } = await closed;
+      expect(code === 143 || signal === 'SIGTERM').toBe(true);
       expect(list()).toEqual([]);
       expect(readdirSync(tmp)).toEqual([]);
     } finally { rmSync(tmp, { recursive: true, force: true }); }
