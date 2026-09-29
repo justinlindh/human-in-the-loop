@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
 const CLIP = resolve(__dirname, '../../scripts/studio/clip.mjs');
@@ -23,6 +23,19 @@ describe('studio clip', () => {
     const r = spawnSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8', timeout: 120000 });
     expect(r.stdout.trim().split('\n').pop(), r.stderr).toBe('{"low":false,"medium":true}');
   }, 130000);
+
+  it('stops its group processes when interrupted', async () => {
+    const left = () => spawnSync('sh', ['-c', "ps -eo args | grep -c '[c]lip.mjs --one'"], { encoding: 'utf8' }).stdout.trim();
+    const child = spawn(process.execPath, [CLIP, '--jobs', '2', '--group', 'seats,perks'], { stdio: 'ignore' });
+    const closed = new Promise((res) => child.on('close', (code, signal) => res({ code, signal })));
+    for (let i = 0; i < 200 && left() === '0'; i++) await new Promise((r) => setTimeout(r, 50));
+    expect(Number(left())).toBeGreaterThan(0);
+    child.kill('SIGTERM');
+    const { code, signal } = await closed;
+    expect(code === 143 || signal === 'SIGTERM').toBe(true);
+    for (let i = 0; i < 60 && left() !== '0'; i++) await new Promise((r) => setTimeout(r, 50));
+    expect(left()).toBe('0');
+  }, 60000);
 
   it('refuses a group it does not run', () => {
     const r = run('--group', 'sky');
