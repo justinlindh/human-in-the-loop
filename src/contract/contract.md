@@ -602,7 +602,7 @@ state.robot = null | {
 
 - `state.robot` is null until the item is placed, and loads as null in old saves.
 - Effects go through itemBonus (staminaRecovery, meaningRecovery; L2 also scales Potted Plant adjacency by `B.robot.plantBoost`), count toward `B.itemBonusCap`, and pay nothing while `status === 'broken'`. Every number lives in `B.robot`.
-- Breakdowns: `B.robot.breakChance` a week (x`l3BreakMult` at level 3), one at a time. The next week a fixer slaps it back to `'ok'`; a fixer with the `percussive` trait (Agents era) fixes it the same week. A breakdown never pauses the clock.
+- Breakdowns: `B.robot.breakChance` a week (x`l3BreakMult` at level 3), one at a time. The next week a fixer slaps it back to `'ok'`. Someone who has fixed it twice earns the `percussive` trait (Percussive Maintenance; the count lives in `flags`), and a fixer with it fixes it the same week. It is never rolled on hire, so hiring plays exactly as before. A breakdown never pauses the clock.
 - Resentment follows the automation share (the mean automation level the Automation panel shows). From `B.robot.grumbleFrom`, people with `automationExposure >= 0.5` get no meaningRecovery from the robot. From `B.robot.sabotageFrom`, sabotage causes a breakdown with a chance scaled by the share, never while `week < calmUntil`, and halved for good by googly eyes.
 - The first sabotage raises the one-time decision `robot_kicked` through `raiseDecision`: a blameless meeting sets `calmUntil = week + B.robot.calmWeeks`, googly eyes sets `googly`, or let it go. The Waffle Party and music night also set `calmUntil`.
 - The robot draws from its own stream (seed, week, a salt), so a company without one plays exactly as before.
