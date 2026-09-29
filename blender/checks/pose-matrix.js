@@ -91,9 +91,9 @@ export function judgeCell(frames, rules, measures) {
   const stat = Object.fromEntries(measures.map((m) => [m, stats(judged.map((f) => valueOf(f, m)))]));
   const verdicts = rules.map((r) => {
     // `if` keeps only the frames where the condition holds (a face turned away has nothing to cover);
-    // a cell with none of them has nothing to judge and passes.
+    // a cell with none of them has nothing to judge: it fails nothing and is marked n/a, not a pass.
     const mine = r.when ? judged.filter((f) => { const v = valueOf(f, r.when.measure); return Number.isFinite(v) && cmp[r.when.op](v, r.when.value); }) : judged;
-    if (r.when && !mine.length) return { rule: r.text, measure: r.measure, share: 1, want: r.share, pass: true, gap: 0, frames: 0 };
+    if (r.when && !mine.length) return { rule: r.text, measure: r.measure, share: 1, want: r.share, pass: true, na: true, gap: 0, frames: 0 };
     const vals = mine.map((f) => valueOf(f, r.measure)).filter(Number.isFinite);
     const share = mine.length ? vals.filter((v) => cmp[r.op](v, r.value)).length / mine.length : 0;
     // How far the best frame is from the bound: positive when no frame reaches it.
@@ -102,8 +102,16 @@ export function judgeCell(frames, rules, measures) {
     const extreme = mine.filter((f) => Number.isFinite(valueOf(f, r.measure))).reduce((w, f) => (!w || (r.op[0] === '>' ? valueOf(f, r.measure) < valueOf(w, r.measure) : valueOf(f, r.measure) > valueOf(w, r.measure)) ? f : w), null);
     return { rule: r.text, measure: r.measure, share: +share.toFixed(3), want: r.share, pass: mine.length > 0 && share >= r.share, gap: +Math.max(0, gap).toFixed(4), frames: mine.length, worstT: extreme?.t ?? null };
   });
-  return { judged: judged.length, stat, verdicts, pass: verdicts.every((v) => v.pass) };
+  // na: every rule had no frame to judge (a cell is n/a only when nothing in it was measured).
+  return { judged: judged.length, stat, verdicts, pass: verdicts.every((v) => v.pass), na: verdicts.length > 0 && verdicts.every((v) => v.na) };
 }
+
+// The three-way count of a matrix: cells that held, cells that failed, and cells with nothing to judge.
+export function tally(cells) {
+  const fail = cells.filter((c) => !c.pass).length, na = cells.filter((c) => c.pass && c.na).length;
+  return { pass: cells.length - fail - na, fail, na, total: cells.length };
+}
+export const tallyText = (cells) => { const t = tally(cells); return `${t.pass} pass, ${t.fail} fail, ${t.na} n/a (${t.total} cells)`; };
 
 // How far a cell is from passing its worst rule: negative when it fails (share short of the want),
 // with the distance of its best frame from the bound as the tie-break among cells at the same share.
@@ -151,13 +159,12 @@ export function formatMatrix({ axes, cells }, rules, gesture) {
         const c = at(row, v);
         if (!c) return ''.padStart(9);
         const ver = c.verdicts[i];
-        const txt = c.error ? 'error' : `${Math.round(ver.share * 100)}%${ver.pass ? '' : '*'}${c === worst ? '<' : ''}`;
+        const txt = c.error ? 'error' : ver.na ? 'n/a' : `${Math.round(ver.share * 100)}%${ver.pass ? '' : '*'}${c === worst ? '<' : ''}`;
         return txt.padStart(9);
       }).join(' ')}`);
     }
   }
-  const failing = cells.filter((c) => !c.pass);
-  lines.push(`MATRIX ${gesture ?? 'pose'}: ${cells.length - failing.length} of ${cells.length} cells pass`);
+  lines.push(`MATRIX ${gesture ?? 'pose'}: ${tallyText(cells)}`);
   if (worst && !worst.pass) {
     const ver = worst.verdicts.filter((v) => !v.pass).map((v) => `${v.rule}: ${Math.round(v.share * 100)}%`).join('; ');
     const ranges = Object.entries(worst.stat).filter(([, s]) => s).map(([m, s]) => `${m} ${s.min}..${s.max}`).join(', ');
