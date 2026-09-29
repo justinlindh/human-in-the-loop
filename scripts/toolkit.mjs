@@ -4,7 +4,8 @@
 // PRs that add or change different tools never conflict. docs/toolkit.md has the prose around them.
 //   npm run toolkit                          every section's table (markdown)
 //   npm run toolkit -- --section render      one section
-//   npm run toolkit -- --grep <text>         entries whose tool or text mentions <text>
+//   npm run toolkit -- --grep <text>         one short line per entry whose tool or text mentions <text>: what it is and
+//                                            the path of its entry (read that file for the rest); add --full for the tables
 //   npm run toolkit -- --check               every script and check has an entry, and every entry is well formed
 //                                            (scripts/, its tool folders, the reel kit, the git and Claude hooks, blender/checks/)
 // Header keys: tool (how it's run, in backticks), section (one of SECTIONS), who (optional), and
@@ -54,6 +55,22 @@ export function readEntries(dir = DIR) {
     out.push(e);
   }
   return out;
+}
+
+// An entry may keep long topic pages in docs/toolkit/<entry name>/; a grep looks in them too.
+export function topics(e, dir = DIR) {
+  const name = e.file.replace(/\.md$/, '');
+  const d = join(dir, name);
+  if (!existsSync(d) || !statSync(d).isDirectory()) return [];
+  return readdirSync(d).filter((n) => n.endsWith('.md')).sort().map((n) => ({ path: `docs/toolkit/${name}/${n}`, text: readFileSync(join(d, n), 'utf8') }));
+}
+
+const clip = (s, n) => (s.length > n ? `${s.slice(0, n - 3).trimEnd()}...` : s);
+// One line: the tool, its section, the first sentence, the entry's path, and the topic pages that mention `g`.
+export function shortLine(e, g = '', dir = DIR) {
+  const first = (e.body.match(/^[\s\S]*?\.(?=\s|$)/)?.[0] ?? e.body).replace(/\s+/g, ' ');
+  const pages = g ? topics(e, dir).filter((t) => t.text.toLowerCase().includes(g)).map((t) => t.path) : [];
+  return `${clip(e.tool, 90)} [${e.section}]: ${clip(first, 140)} -> docs/toolkit/${e.file}${pages.length ? `, see ${pages.join(' ')}` : ''}`;
 }
 
 const cell = (s) => String(s ?? '').replace(/\|/g, '\\|').replace(/\n+/g, ' ');
@@ -108,7 +125,11 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   }
   let entries = readEntries();
   const g = opt('grep')?.toLowerCase();
-  if (g) entries = entries.filter((e) => `${e.tool} ${e.body} ${e.covers.join(' ')}`.toLowerCase().includes(g));
+  if (g) entries = entries.filter((e) => `${e.tool} ${e.body} ${e.covers.join(' ')} ${topics(e).map((t) => t.text).join(' ')}`.toLowerCase().includes(g));
+  if (g && !argv.includes('--full')) {
+    console.log(entries.length ? entries.map((e) => shortLine(e, g)).join('\n') : `no toolkit entry mentions "${g}"`);
+    process.exit(0);
+  }
   const only = opt('section');
   const sections = only ? [only] : Object.keys(SECTIONS);
   console.log(sections.map((s) => table(entries, s)).filter(Boolean).join('\n'));

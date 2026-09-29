@@ -1,6 +1,6 @@
 # Toolkit
 
-Every tool the team uses, what it's for, and who reaches for it: `npm run toolkit` prints them as tables by section, from one file per tool in `docs/toolkit/` (`npm run toolkit -- --grep <word>` to find one, `--section <s>` for one section). Each script's header comment has the full usage; the toolkit is the map. A PR that adds, removes or changes a tool adds or edits that tool's own file, `docs/toolkit/<name>.md`, in the same PR: a header of `tool`, `section`, optional `who` and `covers` (the files it documents), then what it does. Local CI's `toolkit` step fails when a script or check has no entry. This page has the guidance around the tools, which changes rarely.
+Every tool the team uses, what it's for, and who reaches for it: `npm run toolkit` prints them as tables by section, from one file per tool in `docs/toolkit/` (`npm run toolkit -- --grep <word>` prints one short line per match with the path of its entry, `--full` with it prints the whole entries, `--section <s>` one section). Each script's header comment has the full usage; the toolkit is the map. A PR that adds, removes or changes a tool adds or edits that tool's own file, `docs/toolkit/<name>.md`, in the same PR: a header of `tool`, `section`, optional `who` and `covers` (the files it documents), then what it does. Local CI's `toolkit` step fails when a script or check has no entry. This page has the guidance around the tools, which changes rarely.
 
 ## When you need to...
 
