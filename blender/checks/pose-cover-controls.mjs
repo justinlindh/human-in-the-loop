@@ -32,5 +32,8 @@ control('the far eye is a different target from the near one', () => { assert.eq
 r = scene('--who', 's3', '--expect', 's3:coverHandNothing>=0.5');
 control('an unknown cover measure is refused', () => { assert.notEqual(r.code, 0); assert.match(r.out, /can't read scene rule/); });
 
+r = spawnSync(process.execPath, [POSE, '--scene', '--seed', '62', '--week', '40', '--warm', '0', '--frames', '1', '--patch-js', 'throw new Error("WEEK=" + S.week)'], { encoding: 'utf8', timeout: 300000 });
+control('--week stages the seeded game at that week', () => { assert.match(`${r.stdout}${r.stderr}`, /WEEK=40/); });
+
 console.log(failures ? `pose-cover-controls: ${failures} control(s) failed` : 'pose-cover-controls: all controls pass');
 process.exit(failures ? 1 : 0);

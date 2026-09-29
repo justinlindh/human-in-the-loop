@@ -7,7 +7,7 @@
 //        [--root <checkout>]
 //        [--expect 'hand0Face<=0.05@0.8'] [--expect 'faceCam<=70@0.8'] [--check-browser]
 //   node blender/checks/pose.mjs --under idle --seconds 2          (an animation alone)
-//   node blender/checks/pose.mjs --scene [--mock floor | --seed N | --moment '<query>' | --snapshot <path>]
+//   node blender/checks/pose.mjs --scene [--mock floor | --seed N [--week W] | --moment '<query>' | --snapshot <path>]
 //        [--patch-js '<js>'] [--event '<json>'] [--warm 30] [--frames 0,15,30 | --clip <s> --every 6]
 //        [--who s3,s5] [--view 0] [--expect 's3:faceCovered<=0.1@0.8'] [--expect 'faceVisible>=0.9']
 //        [--slow-raycast] [--render-reference] [--profile <file>] [--json out.json]
@@ -93,6 +93,9 @@ function parseRule(s) {
 }
 const cmp = { '<=': (a, b) => a <= b, '>=': (a, b) => a >= b, '<': (a, b) => a < b, '>': (a, b) => a > b };
 
+// The page query that picks the sim: a real seeded game (played `week` weeks by the bots, as scene.mjs does) or a mock.
+const sceneSource = (req) => (req.seed != null ? `seed=${req.seed}${req.week ? `&weeks=${Number(req.week)}` : ''}` : `mock=${req.mock ?? 'floor'}`);
+
 // Reads scene-mode options from argv flags or a --serve request's camelCase JSON keys, so both feed
 // the same normalizer. get/flag/getAll abstract "a value flag", "a boolean flag" and "a repeated
 // flag" over either source.
@@ -119,7 +122,7 @@ function normalizeSceneRequest({ get, flag, getAll }) {
   // including a missing field, is on).
   const rigRaw = get('rig', 'on');
   return {
-    seed: get('seed', null), mock: get('mock', null), moment: get('moment', null), snapshot: get('snapshot', null),
+    seed: get('seed', null), week: get('week', null), mock: get('mock', null), moment: get('moment', null), snapshot: get('snapshot', null),
     rig: rigRaw !== 'off' && rigRaw !== false, view: Number(get('view', 0)), warm: Number(get('warm', 30)),
     frames, who: whoRaw ? (Array.isArray(whoRaw) ? whoRaw : String(whoRaw).split(',')) : null, rules,
     patchJs: get('patch-js', null),
@@ -215,7 +218,7 @@ async function sceneMode() {
   let code = 0;
   try {
     const target = req.snapshot || req.moment ? resolveTarget({ snapshot: req.snapshot, event: req.moment }) : null;
-    const opened = target ? await openAt(H, target, { width: 1280, height: 800, quality: 'medium' }) : await H.openScene(`quality=medium&${req.seed != null ? `seed=${req.seed}` : `mock=${req.mock ?? 'floor'}`}&rig=${req.rig ? 1 : 0}`, { width: 1280, height: 800 });
+    const opened = target ? await openAt(H, target, { width: 1280, height: 800, quality: 'medium' }) : await H.openScene(`quality=medium&${sceneSource(req)}&rig=${req.rig ? 1 : 0}`, { width: 1280, height: 800 });
     const { page, errors } = opened;
     const readyMs = performance.now() - t0;
     const { rows, profile } = await runSample(page, req);
@@ -256,7 +259,7 @@ async function serveMode() {
     const target = req.snapshot || req.moment ? resolveTarget({ snapshot: req.snapshot, event: req.moment }) : null;
     const opened = target
       ? await openAt(H, target, { width: 1280, height: 800, quality: 'medium' })
-      : await H.openScene(`quality=medium&${req.seed != null ? `seed=${req.seed}` : `mock=${req.mock ?? 'floor'}`}&rig=${req.rig ? 1 : 0}`, { width: 1280, height: 800 });
+      : await H.openScene(`quality=medium&${sceneSource(req)}&rig=${req.rig ? 1 : 0}`, { width: 1280, height: 800 });
     const { page, errors } = opened;
     try {
       const readyMs = performance.now() - t0;
