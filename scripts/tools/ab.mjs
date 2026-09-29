@@ -31,7 +31,12 @@ const entry = join(cacheRoot, baseSha, `${key}.json`);
 const lock = `${entry}.lock`;
 
 const live = new Set();
-process.on('exit', () => { for (const c of live) { try { process.kill(-c.pid, 'SIGKILL'); } catch { /* gone */ } } });
+let ownsLock = false;
+// A signal handler exits without running finally blocks, so the lock and the children go here.
+process.on('exit', () => {
+  for (const c of live) { try { process.kill(-c.pid, 'SIGKILL'); } catch { /* gone */ } }
+  if (ownsLock) rmSync(lock, { recursive: true, force: true });
+});
 for (const s of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(s, () => process.exit(130));
 
 // Runs the command with nice, in its own process group, killed after `timeout` seconds.
@@ -61,11 +66,15 @@ async function baseResult() {
   if (!flag('no-cache')) {
     mkdirSync(join(cacheRoot, baseSha), { recursive: true });
     for (;;) {
-      try { mkdirSync(lock); writeFileSync(join(lock, 'pid'), String(process.pid)); break; } catch { /* held */ }
-      let owner = 0; try { owner = Number(readFileSync(join(lock, 'pid'), 'utf8')); } catch { /* being written */ }
-      if (owner && !alive(owner)) { rmSync(lock, { recursive: true, force: true }); continue; }
+      try { mkdirSync(lock); ownsLock = true; writeFileSync(join(lock, 'pid'), String(process.pid)); break; } catch { /* held */ }
+      const ownerOf = () => { try { return Number(readFileSync(join(lock, 'pid'), 'utf8')); } catch { return 0; } };
+      if (ownerOf() && !alive(ownerOf())) { rmSync(lock, { recursive: true, force: true }); continue; }
       console.error('ab: another run is computing the base result; waiting for it');
-      while (existsSync(lock)) await sleep(2000);
+      // The owner can die without finishing (killed, crashed): watch for that too, then take over.
+      while (existsSync(lock)) {
+        if (ownerOf() && !alive(ownerOf())) { rmSync(lock, { recursive: true, force: true }); break; }
+        await sleep(500);
+      }
       const hit = readEntry();
       if (hit) return { ...hit, cached: true };
     }
@@ -79,7 +88,7 @@ async function baseResult() {
     if (!flag('no-cache') && r.code === 0) writeFileSync(entry, JSON.stringify(result));
     return { ...result, cached: false };
   } finally {
-    rmSync(lock, { recursive: true, force: true });
+    if (ownsLock) { rmSync(lock, { recursive: true, force: true }); ownsLock = false; }
   }
 }
 

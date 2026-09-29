@@ -1,5 +1,5 @@
 ---
-tool: `scripts/tools/ab.sh [--base <ref>] [--key <text>] [--refresh] [--no-cache] [--tol x] [--id field] [--ignore <regex>] [--max n] [--fail-on-diff] [--json <file>] -- <cmd...>`
+tool: `scripts/tools/ab.sh [--base <ref>] [--key <text>] [--refresh] [--no-cache] [--timeout s] [--force] [--tol x] [--id field] [--ignore <regex>] [--max n] [--fail-on-diff] [--json <file>] -- <cmd...>`
 section: run
 who: sim, art, reviewer, all
 covers: scripts/tools/ab.sh scripts/tools/ab.mjs scripts/tools/ab-diff.mjs tests/tools/ab.test.js

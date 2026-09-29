@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { spawnSync, execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { spawn, spawnSync, execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { jsonDiff } from '../../scripts/tools/ab-diff.mjs';
@@ -18,6 +18,7 @@ beforeAll(() => {
   writeFileSync(join(repo, 'out.js'), 'console.log(JSON.stringify({ a: 1, b: { c: 2 }, rows: [{ id: "x", v: 1 }, { id: "y", v: 2 }] }));\n');
   writeFileSync(join(repo, 'txt.js'), 'console.log("line one\\nline two");\n');
   writeFileSync(join(repo, 'fail.js'), 'console.error("nope"); process.exit(4);\n');
+  writeFileSync(join(repo, 'slow.js'), 'setTimeout(() => console.log("one"), 5000);\n');
   git('add', '.');
   git('commit', '-q', '-m', 'base');
   base = git('rev-parse', 'HEAD');
@@ -79,4 +80,31 @@ describe('ab.sh', () => {
     expect(r.status).toBe(0);
     expect(r.stdout).toContain('nothing to compare');
   });
+
+  it('a run waiting on the base result takes over when the run computing it is killed', async () => {
+    const start = () => {
+      const c = spawn('bash', [AB, '--base', base, '--', 'node', 'slow.js'], { cwd: repo, env: { ...process.env, HITL_AB_DIR: cache }, stdio: ['ignore', 'pipe', 'pipe'] });
+      let out = '', err = '';
+      c.stdout.on('data', (d) => { out += d; });
+      c.stderr.on('data', (d) => { err += d; });
+      return { c, done: new Promise((res) => c.on('close', (code) => res({ code, out, err }))), err: () => err };
+    };
+    const lockDir = join(cache, base);
+    const locked = () => existsSync(lockDir) && readdirSync(lockDir).some((f) => f.endsWith('.lock'));
+    const wait = async (cond, ms = 15000) => { for (let t = 0; t < ms && !cond(); t += 100) await new Promise((r) => setTimeout(r, 100)); };
+    const a = start();
+    await wait(locked);
+    expect(locked()).toBe(true);
+    const b = start();
+    await wait(() => /waiting for it/.test(b.err()));
+    expect(b.err()).toContain('waiting for it');
+    a.c.kill('SIGINT');
+    expect((await a.done).code).toBe(130);
+    // The killed run's lock is gone at once, and the waiting run computes the base itself.
+    const r = await b.done;
+    expect(r.code).toBe(0);
+    expect(r.out).toContain('base computed in');
+    expect(locked()).toBe(false);
+    expect(worktrees()).toBe(1);
+  }, 60000);
 });
