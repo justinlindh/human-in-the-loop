@@ -19,6 +19,14 @@ want=$'## What\n\nold\n\n## Evidence\n\n- a\n\n## Affects\n\n- x\nn1\nn2'
 put_section Closes "$tmp/n" 0 "$body" | tail -4 | tr '\n' '|' | grep -qx '## Closes||n1|n2|' || fail "add a missing section"
 [ "$(put_section Evidence "$tmp/n" 0 "$body" | grep -c '^## ')" -eq 3 ] || fail "a replace keeps the other headings"
 
+fenced=$'## What\n\nx\n\n## Evidence\n\n```\n## not a heading\nlog\n```\n\n## Affects\n\n- y\n'
+[ "$(show_section Evidence "$fenced" | grep -c 'log')" -eq 1 ] && [ "$(show_section Evidence "$fenced" | grep -c '^```')" -eq 2 ] || fail "show keeps a fenced ## line in its section"
+got="$(put_section Evidence "$tmp/n" 0 "$fenced")"
+[ "$got" = $'## What\n\nx\n\n## Evidence\n\nn1\nn2\n\n## Affects\n\n- y' ] || fail "replace drops the whole fenced section: [$got]"
+got="$(put_section Evidence "$tmp/n" 1 "$fenced")"
+[ "$(grep -c '^```' <<<"$got")" -eq 2 ] && [ "$(grep -c '^## ' <<<"$got")" -eq 4 ] && grep -q '^n2$' <<<"$got" || fail "append past a fenced ## line: [$got]"
+[ "$(put_section evidence "$tmp/n" 0 "$body" | grep -c '^## Evidence$')" -eq 1 ] || fail "a replace keeps the heading as written"
+
 # Command paths, with gh stubbed: view returns $tmp/body, edit records what it was given.
 mkdir -p "$tmp/bin"
 printf '%s' "$body" >"$tmp/body"

@@ -9,9 +9,10 @@
 set -euo pipefail
 LOCAL_PATH='(/home/|/tmp/)'
 
+# Lines inside a code fence never start or end a section.
 # The section under "## <heading>" (heading match ignores case), without its heading line.
 show_section() { # <heading> <body>
-  awk -v h="$1" 'BEGIN { h = tolower(h) } /^## / { t = tolower(substr($0, 4)); sub(/[[:space:]]+$/, "", t); if (on) exit; if (t == h) { on = 1; next } } on' <<<"$2"
+  awk -v h="$1" 'BEGIN { h = tolower(h) } /^(```|~~~)/ { fence = !fence } !fence && /^## / { t = tolower(substr($0, 4)); sub(/[[:space:]]+$/, "", t); if (on) exit; if (t == h) { on = 1; next } } on' <<<"$2"
 }
 # The body with the section replaced by the text in <file>, or extended with it (--append).
 # Absent, the section is added at the end.
@@ -19,13 +20,14 @@ put_section() { # <heading> <file> <append: 0|1> <body>
   awk -v h="$1" -v f="$2" -v app="$3" '
     function emit(   l, first) { while ((getline l < f) > 0) print l; close(f) }
     BEGIN { hl = tolower(h) }
-    /^## / {
+    /^(```|~~~)/ { fence = !fence }
+    !fence && /^## / {
       t = tolower(substr($0, 4)); sub(/[[:space:]]+$/, "", t)
       skip = 0
       if (t == hl && !done) {
         done = 1
         if (app) { print; inapp = 1; next }
-        print "## " h; print ""; emit(); print ""; skip = 1; next
+        print; print ""; emit(); print ""; skip = 1; next
       }
       if (inapp) { flush() }
     }
