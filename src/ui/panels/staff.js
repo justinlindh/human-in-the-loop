@@ -322,7 +322,7 @@ export function staffPanel(ctx, arg) {
     const landingCard = landing && (suggested || landing.note || landing.focus) ? h('div.card.landing', null,
       icon('idea', { size: 20 }),
       h('div', { style: { flex: 1, minWidth: 0 } },
-        suggested ? h('b', { text: `Suggested: ${suggested.label}` }) : h('b', { text: landing.focus === 'training' ? 'Suggested: training' : landing.focus === 'timeOff' ? 'Suggested: time off' : 'Advisor' }),
+        suggested ? h("b", { text: `Suggested for ${p.name.split(" ")[0]}: ${suggested.label}` }) : h('b', { text: landing.focus === 'training' ? 'Suggested: training' : landing.focus === 'timeOff' ? 'Suggested: time off' : 'Advisor' }),
         landing.note ? h('div.small', { text: landing.note }) : null,
         suggested ? h('div.small.muted', { text: 'Nothing changes until you confirm.' }) : null),
       suggested ? h('div.row.wrap', null,
