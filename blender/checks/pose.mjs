@@ -71,6 +71,9 @@ const ROOT = resolve(opt('root', join(import.meta.dirname, '../..')));
 // --sweep runs this script again once per value, so it goes before anything takes a render slot.
 if (opt('sweep')) process.exit(runSweep(argv, fileURLToPath(import.meta.url)));
 let PARAMS = [];
+// A page serves the working directory, so --param there names files under it.
+const IN_PAGE = argv.includes('--scene') || argv.includes('--check-browser');
+if (IN_PAGE && paramSpecs(argv).length && resolve(process.cwd()) !== ROOT) { console.error(`pose: --param with --scene measures the working directory's code: run pose.mjs from ${ROOT}`); process.exit(2); }
 try { PARAMS = resolveParams(paramSpecs(argv), ROOT); } catch (e) { console.error(e.message); process.exit(2); }
 if (PARAMS.length && argv.includes('--serve')) { console.error('pose: --param needs a cold run: --serve keeps one server across requests'); process.exit(2); }
 const OPTS = {

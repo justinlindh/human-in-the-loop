@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { parseAst } from 'vite';
+import { readdirSync, readFileSync } from 'node:fs';
 import { applyParams, resolveParams, paramSpecs, paramPlugin } from '../../blender/checks/param.js';
 import { splitTop, cellValue, flatRows } from '../../blender/checks/param-sweep.js';
 
@@ -61,6 +63,34 @@ describe('param', () => {
       expect(plugin.transform(SRC, join(root, 'src/other.js'))).toBeNull();
       expect(paramPlugin([])).toBeNull();
     } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+});
+
+describe('param on declarations as they are written', () => {
+  const src = 'const A = 1;   // note\nconst B = 2; // other\nconst C = [1, // first\n  2]; /* x */\nconst D = 4;\n';
+  it('keeps a trailing comment and never touches the lines after', () => {
+    expect(applyParams(src, [{ name: 'A', index: null, value: '9' }])).toBe(src.replace('A = 1;', 'A = 9;'));
+    expect(applyParams(src, [{ name: 'B', index: null, value: '7' }])).toContain('const B = 7; // other\nconst C');
+    expect(applyParams(src, [{ name: 'C', index: 1, value: '5' }])).toContain('2]; /* x */\nC[1] = 5;');
+  });
+  it('refuses a declaration with no semicolon rather than swallowing what follows', () => {
+    expect(() => applyParams('const A = 1\nconst B = 2;\n', [{ name: 'A', index: null, value: '9' }])).toThrow(/where A's declaration ends/);
+  });
+  it('rewrites every top-level const under src/render to source that still parses, and only that one statement', () => {
+    const files = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(join(d, e.name)) : /\.m?js$/.test(e.name) ? [join(d, e.name)] : []));
+    let n = 0;
+    for (const f of files('src/render')) {
+      const text = readFileSync(f, 'utf8');
+      for (const m of text.matchAll(/^(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=/gm)) {
+        let out;
+        try { out = applyParams(text, [{ name: m[1], index: null, value: '0' }]); } catch (e) { expect(String(e.message), `${f} ${m[1]}`).toMatch(/where .* declaration ends/); continue; }
+        expect(() => parseAst(out), `${f} ${m[1]}`).not.toThrow();
+        expect(out.split('\n').length, `${f} ${m[1]} line count`).toBeLessThanOrEqual(text.split('\n').length);
+        expect((out.match(/^(?:export\s+)?const\s/gm) ?? []).length, `${f} ${m[1]} const count`).toBe((text.match(/^(?:export\s+)?const\s/gm) ?? []).length);
+        n++;
+      }
+    }
+    expect(n).toBeGreaterThan(100);
   });
 });
 

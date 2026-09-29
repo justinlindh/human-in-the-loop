@@ -69,10 +69,12 @@ export function runSweep(argv, script) {
     cols = cartesian(all('sweep').map((s) => parseAxis(s, 'sweep')));
     rowsAxes = cartesian(all('across').map((s) => parseAxis(s, 'across')));
   } catch (e) { console.error(e.message); return 2; }
+  const varied = new Set(all('across').map((s) => s.split('=')[0]));
   const base = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a.startsWith('--') && VALUE_FLAGS.has(a.slice(2))) { i++; continue; }
+    // The flags a sweep owns, and any flag an --across axis varies (the first copy would win over the axis).
+    if (a.startsWith('--') && (VALUE_FLAGS.has(a.slice(2)) || varied.has(a.slice(2)))) { i++; continue; }
     base.push(a);
   }
   if (COVER_MEASURE.test(measure) && !base.includes('--cover') && base.includes('--scene')) base.push('--cover', measure);
