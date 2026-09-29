@@ -1,6 +1,7 @@
 import { h, clear, setText, setWidth, toggleClass } from './dom.js';
 import { roleColor, roleName, traitInfo, MOOD_INFO } from './content.js';
 import { icon } from './icons.js';
+import { confirmGate } from './confirm-gate.js';
 import { characterLook } from '../render/look.js';
 
 
@@ -397,21 +398,11 @@ export function liveView(sigFn, buildFn) {
   return { el, update, invalidate: () => { sig = null; } };
 }
 
-// Two-step confirm: first click arms, second click within 3 s runs.
+// Two-step confirm: the first click arms, the second runs (see confirm-gate.js for how long it holds).
 export function confirmButton(label, armedLabel, cls, onConfirm) {
-  let armed = 0;
   const b = h(`button.btn.${cls}`, { text: label });
-  b.addEventListener('click', () => {
-    if (armed && performance.now() - armed < 3000) {
-      armed = 0;
-      setText(b, label);
-      onConfirm();
-      return;
-    }
-    armed = performance.now();
-    setText(b, armedLabel);
-    setTimeout(() => { if (armed) { armed = 0; setText(b, label); } }, 3000);
-  });
+  const gate = confirmGate({ outsideOf: b, onChange: (on) => setText(b, on ? armedLabel : label) });
+  b.addEventListener('click', () => { if (gate.tap()) onConfirm(); });
   return b;
 }
 
