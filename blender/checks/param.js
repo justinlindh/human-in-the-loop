@@ -83,6 +83,23 @@ export function applyParams(code, params) {
   return out;
 }
 
+// The numeric top-level consts of a file, as { name, value } where value is a number or an array of
+// numbers: what --param can reach and a slider can drive. Anything else (objects, strings, calls) is left out.
+export function listConsts(code) {
+  const out = [];
+  for (const m of code.matchAll(/^(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=\s*/gm)) {
+    const span = valueSpan(code, m[1]);
+    if (!span || span.head !== m.index) continue;
+    const text = code.slice(span.start, span.end).trim();
+    if (!/^[-+\d.eE,\s[\]]+$/.test(text)) continue;
+    try {
+      const value = JSON.parse(text);
+      if (typeof value === 'number' || (Array.isArray(value) && value.length && value.every((v) => typeof v === 'number'))) out.push({ name: m[1], value });
+    } catch { /* not plain JSON numbers (a leading + or a bare .5) */ }
+  }
+  return out;
+}
+
 // A Vite plugin applying the params to their files.
 export function paramPlugin(params) {
   if (!params?.length) return null;
