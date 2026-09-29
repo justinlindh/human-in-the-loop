@@ -198,10 +198,16 @@ red_steps() { # <short>: the failing parts of the gate just run
 }
 
 # One open issue per kind of finding: opened, commented on when the findings change, closed when clean.
+# The open issues under a label that this guard opened: each carries a hidden marker line, so an issue
+# a lane filed by hand under the same label is never closed or commented on.
+own_issues() { # <label>
+  gh issue list --state open --label "$1" --limit 100 --json number,body \
+    | jq -r --arg m "<!-- main-guard:$1 -->" '.[] | select((.body // "") | contains($m)) | .number'
+}
 finding() { # <label> <description> <title> <failed: 0|1> <body file>
   local label="$1" desc="$2" title="$3" failed="$4" bodyf="$5"
   [ $post = 1 ] || return 0
-  local open; open="$(gh issue list --state open --label "$label" --json number --jq '.[0].number // ""')"
+  local open; open="$(own_issues "$label" | head -n 1)"
   if [ "$failed" = 0 ]; then
     [ -n "$open" ] && gh issue close "$open" --comment "Clean at $short." >/dev/null && echo "main-guard: closed #$open ($label)"
     rm -f "$STATE/$label.last"; return 0
@@ -209,7 +215,7 @@ finding() { # <label> <description> <title> <failed: 0|1> <body file>
   local print; print="$(md5sum <"$bodyf" | cut -c1-12)"
   [ -n "$open" ] && [ "$(cat "$STATE/$label.last" 2>/dev/null)" = "$print" ] && return 0
   local body; body="$(mktemp)"
-  { echo "Main guard, \`$short\`: $title."; echo; echo '```'; cat "$bodyf"; echo '```'; } >"$body"
+  { echo "<!-- main-guard:$label -->"; echo "Main guard, \`$short\`: $title."; echo; echo '```'; cat "$bodyf"; echo '```'; } >"$body"
   gh label create "$label" --color fbca04 --description "$desc" >/dev/null 2>&1
   if [ -n "$open" ]; then gh issue comment "$open" --body-file "$body" >/dev/null && echo "main-guard: updated #$open ($label)"
   else gh issue create --title "$title at $short" --label "$label" --body-file "$body" >/dev/null && echo "main-guard: opened a $label issue"; fi
@@ -303,7 +309,7 @@ if [ -z "$what" ]; then
   else pw_rc=0; fi
   case $pw_rc in 0) ;; 124) echo "main-guard: prewarm was killed after its time limit (see $STATE/$short.prewarm.log)" ;; 2) echo "main-guard: prewarm could not build the event index (see $STATE/$short.prewarm.log)" ;; *) echo "main-guard: prewarm left a query unanswered (see $STATE/$short.prewarm.log)" ;; esac
   if [ $post = 1 ]; then
-    for n in $(gh issue list --state open --label main-red --json number --jq '.[].number'); do
+    for n in $(own_issues main-red); do
       gh issue close "$n" --comment "Green again at $short: the full suite and the sweep pass." >/dev/null
     done
   fi
@@ -331,6 +337,7 @@ issue=""
 if [ $post = 1 ]; then
   body="$(mktemp)"
   {
+    echo "<!-- main-guard:main-red -->"
     echo "Main guard: \`$short\` ($(git -C "$REPO" log -1 --format=%s "$sha")) is red: **$what**."
     echo
     [ -s "$STATE/$short.md" ] && { cat "$STATE/$short.md"; echo; }
@@ -351,7 +358,7 @@ if [ $post = 1 ]; then
     fi
   } >"$body"
   gh label create main-red --color b60205 --description "main fails the main guard" >/dev/null 2>&1
-  issue="$(gh issue list --state open --label main-red --json number --jq '.[0].number // ""')"
+  issue="$(own_issues main-red | head -n 1)"
   if [ -n "$issue" ]; then
     gh issue comment "$issue" --body-file "$body" >/dev/null && echo "main-guard: commented on #$issue"
   else
