@@ -130,7 +130,11 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
     if (target === 'goals') { openGoals(); return; }
     if (target === 'squads') { ctx.open('staff', { tab: 'squads', squadId: arg ?? null }); return; }
     if (!target || !panels[target]) return;
-    if (target === 'staff') { ctx.open('staff', arg ? { staffId: arg } : undefined); return; }
+    if (target === 'staff') {
+      const t = item.target ?? {};
+      ctx.open('staff', arg || t.tab ? { staffId: arg, tab: t.tab, assign: t.assign, focus: t.focus, note: t.note } : undefined);
+      return;
+    }
     if (target === 'office' && typeof arg === 'string' && arg) { startPlacing(ctx, arg); return; }
     const kind = target === 'policies' ? 'policy' : 'product';
     ctx.open(target, arg ? { [`${kind}Id`]: arg } : undefined);

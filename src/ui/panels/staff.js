@@ -94,7 +94,7 @@ const COLS = [
   { id: 'traits', label: 'Traits', key: (p) => p.traits.length },
 ];
 
-function assignSelect(ctx, s, p) {
+function assignSelect(ctx, s, p, highlight = false) {
   const opts = assignmentOptions(s, p);
   const groups = {};
   for (const o of opts) (groups[o.group] ??= []).push(o);
@@ -107,16 +107,26 @@ function assignSelect(ctx, s, p) {
     options: Object.values(groups).flat(),
     onChange: (v, o) => ctx.act({ type: 'assign', staffId: p.id, assignment: { type: o.type, targetId: o.targetId } }),
   });
+  if (highlight) pk.el.classList.add('advhi');
   return pk.el;
+}
+
+// The landing hints an advisor option's target carries (assign, focus, note); null when it has none.
+export function landingOf(a) {
+  if (!a || !(a.assign || a.focus || a.note)) return null;
+  return { assign: a.assign ?? null, focus: ['training', 'timeOff'].includes(a.focus) ? a.focus : null, note: typeof a.note === 'string' ? a.note : '' };
 }
 
 export function staffPanel(ctx, arg) {
   let tab = ['hire', 'squads'].includes(arg?.tab) ? arg.tab : 'team';
   let detailId = arg?.staffId ?? null;
+  // An advisor's landing on a person: the assignment it suggests (applied only on Confirm), a control to
+  // highlight and a one-line reason. Cleared when the player confirms, dismisses or leaves the person.
+  let landing = landingOf(arg);
   let sinceFor = null, sinceList = [];
   let sort = { col: 'role', dir: 1 };
 
-  const t = tabs([{ id: 'team', icon: 'menu.staff', label: 'Team' }, { id: 'squads', icon: 'team', label: 'Squads' }, { id: 'hire', icon: 'hire', label: 'Hire' }], tab, (id) => { tab = id; detailId = null; t.set(id); render(); });
+  const t = tabs([{ id: 'team', icon: 'menu.staff', label: 'Team' }, { id: 'squads', icon: 'team', label: 'Squads' }, { id: 'hire', icon: 'hire', label: 'Hire' }], tab, (id) => { tab = id; detailId = null; landing = null; t.set(id); render(); });
   const host = h('div');
 
   const table = liveView(
@@ -125,7 +135,7 @@ export function staffPanel(ctx, arg) {
       s.staff.map((p) => `${p.id}${p.assignment.type}${p.assignment.targetId}${p.mood}${p.seniority}${p.level}${p.path}${p.pathPending}${p.legend}${p.remote ? 'r' : ''}`).join()].join('|'),
     (s, bind) => renderTable(s, bind));
   const detail = liveView(
-    (s) => { const p = s.staff.find((x) => x.id === detailId); return p ? [p.id, p.assignment.type, p.assignment.targetId, p.mood, p.level, p.seniority, p.path, p.pathPending, p.legend, p.traits.join(), s.projects.length, s.staff.length, s.policies?.sabbatical ? 1 : 0, s.week, Math.round(strainOf(p) / 5)].join('|') : 'gone'; },
+    (s) => { const p = s.staff.find((x) => x.id === detailId); return p ? [p.id, p.assignment.type, p.assignment.targetId, p.mood, p.level, p.seniority, p.path, p.pathPending, p.legend, p.traits.join(), landing ? `${landing.assign?.type}${landing.assign?.targetId}${landing.focus}` : '', s.projects.length, s.staff.length, s.policies?.sabbatical ? 1 : 0, s.week, Math.round(strainOf(p) / 5)].join('|') : 'gone'; },
     (s, bind) => renderDetail(s, bind));
   const hire = hireView(ctx);
   const squads = squadsView(ctx, { openCard: (id) => { tab = 'team'; detailId = id; t.set('team'); render(); } });
@@ -223,7 +233,7 @@ export function staffPanel(ctx, arg) {
 
   function renderDetail(s, bind) {
     const p = s.staff.find((x) => x.id === detailId);
-    const back = h('button.btn.small', { onclick: () => { detailId = null; sinceFor = null; render(); } }, icon('arrow.back'), ' Back to team');
+    const back = h('button.btn.small', { onclick: () => { detailId = null; sinceFor = null; landing = null; render(); } }, icon('arrow.back'), ' Back to team');
     if (!p) return [back, h('div.empty', { text: 'They are no longer with the company.' })];
 
     // What grew since the last look, then mark it seen; and the person's growth timeline.
@@ -307,6 +317,18 @@ export function staffPanel(ctx, arg) {
       : confirmButton('Let go', 'Really? Click again', 'small.danger', () => { if (ctx.act({ type: 'fire', staffId: p.id }).ok) { detailId = null; render(); } });
     acts.append(h('div.act', null, h('b', null, icon('letgo'), ' Let go'), h('span.small.muted', { text: 'Their knowledge walks out the door with them.' }), fire));
 
+    if (landing?.focus === 'training') acts.querySelector('.act .btn.blue')?.classList.add('advhi');
+    const suggested = landing?.assign ? assignmentOptions(s, p).find((o) => o.type === landing.assign.type && (o.targetId ?? null) === (landing.assign.targetId ?? null)) : null;
+    const landingCard = landing && (suggested || landing.note || landing.focus) ? h('div.card.landing', null,
+      icon('idea', { size: 20 }),
+      h('div', { style: { flex: 1, minWidth: 0 } },
+        suggested ? h("b", { text: `Suggested for ${p.name.split(" ")[0]}: ${suggested.label}` }) : h('b', { text: landing.focus === 'training' ? 'Suggested: training' : landing.focus === 'timeOff' ? 'Suggested: time off' : 'Advisor' }),
+        landing.note ? h('div.small', { text: landing.note }) : null,
+        suggested ? h('div.small.muted', { text: 'Nothing changes until you confirm.' }) : null),
+      suggested ? h('div.row.wrap', null,
+        h('button.btn.small.go', { onclick: () => { if (ctx.act({ type: 'assign', staffId: p.id, assignment: { type: suggested.type, targetId: suggested.targetId } }).ok) { ctx.sfx('confirm'); landing = null; render(); } } }, 'Confirm'),
+        h('button.btn.small', { onclick: () => { landing = null; render(); } }, 'Not now')) : null) : null;
+
     const mood = MOOD_INFO[p.mood] ?? MOOD_INFO.ok;
     const showM = meaningShown(s);
     // Running on empty for a while: say so, with the two levers that help right now.
@@ -319,8 +341,17 @@ export function staffPanel(ctx, arg) {
       h('div.row.wrap', null,
         h('button.btn.small', { disabled: p.assignment.type === 'idle', title: onProject ? 'Take them off their project for now' : '', onclick: () => { if (assign('idle').ok) ctx.sfx('click'); } }, 'Lighter load'),
         h('button.btn.small.go', { disabled: away, title: 'Two weeks away. Strain drops fast.', onclick: () => { if (ctx.act({ type: 'timeOff', staffId: p.id }).ok) ctx.sfx('confirm'); } }, 'Time off'))) : null;
+    // Time off is offered on the running-on-empty card, and here for a burnt-out person or when an advisor points at it.
+    const hiTime = landing?.focus === 'timeOff' ? '.advhi' : '';
+    if (!emptyCard && (p.mood === 'burnout' || landing?.focus === 'timeOff')) {
+      acts.append(h('div.act', null, h('b', null, icon('sabbatical'), ' Time off'), h('span.small.muted', { text: 'Two weeks away. Strain drops fast.' }),
+        h(`button.btn.small.go${hiTime}`, { disabled: away, onclick: () => { if (ctx.act({ type: 'timeOff', staffId: p.id }).ok) ctx.sfx('confirm'); } }, away ? 'Away' : 'Send')));
+    }
+    if (landing?.focus === 'timeOff') emptyCard?.querySelector('.btn.go')?.classList.add('advhi');
+    if (landing?.focus && landing.note) (acts.querySelector('.advhi') ?? emptyCard?.querySelector('.advhi'))?.before(h('div.small.advnote', { text: landing.note }));
     return [
       h('div.row', null, back, h('span.spacer'), h('span.faint.small', { text: 'Tip: click people in the office to open this.' })),
+      landingCard,
       emptyCard,
       h('div.detail', null,
         h('div.dleft', null,
@@ -335,7 +366,7 @@ export function staffPanel(ctx, arg) {
             : p.path ? h('div.pathinfo', null, h('b', null, p.legend ? icon('legend') : icon('path'), ` ${p.legend ? 'Legend ' : ''}${PATHS[p.path]?.name ?? p.path}`),
               h('div.small.muted', { text: PATHS[p.path]?.desc ?? '' })) : null,
           h('div.small', null, h('b', { text: 'Doing: ' }), doingText(s, p)),
-          assignSelect(ctx, s, p)),
+          assignSelect(ctx, s, p, !!landing?.assign)),
         h('div.dmid', null,
           h('div.section', null, h('h3', null, 'Skills', h('span.aside', null, strengthChip(p))),
             ...STATS.map((st) => statBar(h('span.skname', null, icon(st.icon, { size: 14 }), ` ${st.skill}`), (c) => c.skills[st.id], st.color, 100, (v) => Math.round(v), `drives ${st.product}`))),
@@ -356,6 +387,9 @@ export function staffPanel(ctx, arg) {
 
   render();
   if (tab === 'squads') squads.focus(arg?.squadId);
+  // Brings the control an advisor pointed at into view (Time off sits at the bottom of Actions).
+  const showFocus = () => { if (landing?.focus) requestAnimationFrame(() => requestAnimationFrame(() => host.querySelector('.advhi')?.scrollIntoView({ block: 'center', behavior: 'smooth' }))); };
+  showFocus();
   if (arg?.pickPath && arg.staffId) setTimeout(() => openPathPicker(ctx, arg.staffId), 0);
   return {
     el: host,
@@ -371,7 +405,8 @@ export function staffPanel(ctx, arg) {
     },
     show(a) {
       if (a?.tab === 'squads') { if (tab !== 'squads') { tab = 'squads'; detailId = null; t.set('squads'); render(); } squads.focus(a.squadId); }
-      else if (a?.staffId) { tab = 'team'; detailId = a.staffId; t.set('team'); render(); }
+      else if (a?.tab === 'hire') { tab = 'hire'; detailId = null; landing = null; t.set('hire'); render(); }
+      else if (a?.staffId) { tab = 'team'; detailId = a.staffId; landing = landingOf(a); t.set('team'); render(); showFocus(); }
     },
   };
 }

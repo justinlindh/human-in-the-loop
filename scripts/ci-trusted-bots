@@ -1,0 +1,6 @@
+# GitHub App logins (REST form, ending in [bot]) whose pull requests local CI and the review tools treat as
+# a trusted author, on top of scripts/ci-trusted. One per line; a lane's app is one line here.
+# A bot is trusted as an author only: it never counts as the owner (pr-owner, pr-status, baseline-media read
+# scripts/ci-trusted alone). Forks are refused whoever opens them, and a bot must be an app (type Bot) with
+# exactly this login.
+loop-reviewer-justinlindh[bot]

@@ -16,6 +16,7 @@
 import { writeFileSync } from 'node:fs';
 import { startHarness } from './harness.mjs';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
+import { PANELS_INSTALL } from './panels.js';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
@@ -27,6 +28,7 @@ let code = 0;
 try {
   const target = opt('snapshot') || opt('moment') ? resolveTarget({ snapshot: opt('snapshot'), event: opt('moment') }) : null;
   const { page, errors } = target ? await openAt(H, target, { width: W, height: H_PX, quality: 'medium' }) : await H.openScene(`quality=medium&mock=${opt('mock', 'floor')}`, { width: W, height: H_PX });
+  await page.evaluate(PANELS_INSTALL);
   const shots = await page.evaluate(async (o) => {
     const R = window.__hitlRender, G = window.__HITL, THREE = R.THREE;
     window.__settle(o.warm);
@@ -46,27 +48,7 @@ try {
       const on = x1 > 0 && y1 > 0 && x0 < cr.width && y0 < cr.height;
       return { on, rect: [x0, y0, x1 - x0, y1 - y0].map((v) => Math.round(v)) };
     };
-    const shown = (el) => el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
-    const panels = () => {
-      const root = document.getElementById('ui');
-      // CSS transitions run on wall time, not the harness clock: read each panel as it settles.
-      for (const a of document.getAnimations()) { try { a.finish(); } catch { /* an endless animation stays */ } }
-      const out = [];
-      const visit = (el, depth) => {
-        for (const c of el.children) {
-          if (!shown(c) || c.tagName === "BUTTON" || /\bspacer\b/.test(c.className)) continue;
-          const r = c.getBoundingClientRect();
-          const named = c.id || (typeof c.className === 'string' && c.className.trim());
-          const whole = r.width * r.height > 0.8 * innerWidth * innerHeight;
-          if (named && !whole && r.width >= 24 && r.height >= 12 && r.right > 0 && r.bottom > 0 && r.left < innerWidth && r.top < innerHeight) {
-            out.push({ el: c.id ? `#${c.id}` : `.${c.className.trim().split(/\s+/).join('.')}`, text: (c.innerText || '').trim().split('\n')[0].slice(0, 70), rect: [r.left, r.top, r.width, r.height].map((v) => Math.round(v)) });
-          }
-          if (depth < 2) visit(c, depth + 1);
-        }
-      };
-      if (root) visit(root, 0);
-      return out;
-    };
+    const panels = () => window.__listPanels(true);
     if (o.speed != null) G.setSpeed(o.speed);
     const render = R.render;
     const play = (n) => {

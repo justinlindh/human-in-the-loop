@@ -1,6 +1,7 @@
 # Scripts that are modules or data for the tools, not tools themselves, so they need no toolkit
 # entry. One path per line, then what uses it. `npm run toolkit -- --check` reads this.
 blender/checks/harness.mjs        the page every render check runs in
+blender/checks/panels.js          the visible-panel reader play.mjs and onscreen.mjs share
 blender/checks/report.mjs         the report format stage.mjs and the sweep share
 blender/checks/diag.mjs           failure detail shared by loop.mjs and clip.mjs
 scripts/events/lib.js             the event index's location and key, for build.js and find.js

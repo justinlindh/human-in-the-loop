@@ -53,9 +53,11 @@ alive() { kill -0 -- "-$1" 2>/dev/null; }
 
 # Open PRs: number, draft or untrusted, head, local-ci state on the head, rerun label, review state,
 # and whether auto-merge is still to be turned on (not a draft, no awaiting-user label, not on yet).
+# Trusted app authors (scripts/ci-trusted-bots) show up in gh as app/<login without [bot]>.
+bots="$(grep -Ev '^[[:space:]]*(#|$)' "$HERE/ci-trusted-bots" 2>/dev/null | sed -e 's/[[:space:]]//g' -e 's/\[bot\]$//' -e 's#^#app/#' | jq -Rnc '[inputs]')"
 list="$("$GH" pr list --state open --limit 100 \
   --json number,isDraft,isCrossRepository,author,headRefOid,statusCheckRollup,labels,autoMergeRequest \
-  --jq '.[] | [.number, (.isDraft or .isCrossRepository or (.author.login != "justinlindh")),
+  --jq '.[] | [.number, (.isDraft or .isCrossRepository or (.author.login != "justinlindh" and ((.author.login as $a | '"$bots"' | index($a)) == null))),
         .headRefOid, ([.statusCheckRollup[]? | select(.context == "local-ci") | .state][0] // "none"),
         ([.labels[]?.name] | index("ci-rerun") != null),
         ([.statusCheckRollup[]? | select(.context == "review") | .state][0] // "none"),
