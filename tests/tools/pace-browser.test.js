@@ -23,6 +23,17 @@ describe('observed pacing arguments and metadata', () => {
     expect(() => plugin.transform('', '/src/ui/toasts.js')).toThrow('metadata hook missing');
   });
 
+  it('names the source line and repair location when one hook is removed', () => {
+    const file = '/src/ui/toasts.js';
+    const line = '{ action, glyph, person, player, timed } = {}';
+    const source = readFileSync(file.slice(1), 'utf8');
+    expect(source).toContain(line);
+    const withoutHook = source.replace(line, 'opts = {}');
+    expect(() => presentationMetadata().transform(withoutHook, file)).toThrow(
+      `pace: metadata hook missing in ${file}. Expected source line: ${line}. Update scripts/pace-browser.js to match the UI source.`,
+    );
+  });
+
   it('does not count closing or actionability updates as new attention', () => {
     const records = [
       { kind: 'toast', sequence: 1, transition: 'shown', origin: 'player', actionable: true },
