@@ -98,6 +98,18 @@ const SPECS = {
     share('robotVisible', 'robot >= 60% unblocked', (x) => x.robotVisible >= 0.6, 0.9),
     visibleRule, noFade,
   ] },
+  // At a waffle party the robot serves by the cart, turned toward the winner as far as keeps its
+  // face in view; at a music night it plays DJ behind the speaker cart, facing the floor. Either
+  // way it shows.
+  'robot_party.serve': { moment: 'robot', scenario: 'robot_party', beat: 'serve', role: 'robot', rules: [
+    share('robotVisible', 'robot >= 60% unblocked', (x) => x.robotVisible >= 0.6, 0.9),
+    share('faceShows', 'faces within 105 deg of the camera', (x) => x.robotFaceCam <= 105, 0.9),
+    share('towardWinner', 'turned within 90 deg of the winner', (x) => x.robotFaceTarget <= 90, 0.9),
+  ] },
+  'robot_dj.dj': { moment: 'robot', scenario: 'robot_dj', beat: 'dj', role: 'robot', rules: [
+    share('robotVisible', 'robot >= 60% unblocked', (x) => x.robotVisible >= 0.6, 0.9),
+    share('faceCam', 'faces within 60 deg of the camera', (x) => x.robotFaceCam <= 60, 0.9),
+  ] },
   'letter.read': { moment: 'letter', beat: 'read', rules: [
     share('gazeOnLetter', 'line of sight meets the letter', (x) => x.gaze.hit === 'held', 0.8),
     share('letterNear', 'letter <= 0.25 m from the eyes, within 30 deg of the face', (x) => x.held && x.held.dist <= 0.25 && x.held.ahead <= 30, 0.8),
@@ -228,6 +240,11 @@ const SCENARIOS = {
     setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'dog', 2.104, 1.0)" },
   robot: { query: 'mock=floor', patch: {}, seconds: 14,
     setup: "(await import('/src/render/checks.js')).setupRobotFix(R, S)" },
+  // The robot itself is the actor here (robot: true samples it).
+  robot_party: { moment: 'robot', robot: true, query: 'mock=floor', patch: {}, seconds: 14,
+    setup: "(await import('/src/render/checks.js')).setupRobotParty(R, S, 'waffle_party')" },
+  robot_dj: { moment: 'robot', robot: true, query: 'mock=floor', patch: {}, seconds: 14,
+    setup: "(await import('/src/render/checks.js')).setupRobotParty(R, S, 'music_night')" },
   petcat: { moment: 'pet', query: 'mock=floor', patch: {}, seconds: 6,
     setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'cat', 2.104, 1.0)" },
   letter: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'resignation_letter', subjectId: 's6', stage: { prop: 'envelope', anchor: 'subjectDesk', x: 12, y: 2 } } }, seconds: 16 },
@@ -309,7 +326,7 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
     const { moment, view } = task;
     const sc = SCENARIOS[task.scenario];
     const { page, errors } = await H.openScene(`quality=medium&${sc.query}`, { width: 960, height: 600, slot });
-    const res = await page.evaluate(async ({ moment, patch, steps, setup, seconds, turns, arrive, arriveSeconds, beatSeconds }) => {
+    const res = await page.evaluate(async ({ moment, patch, steps, setup, seconds, turns, arrive, arriveSeconds, beatSeconds, robotActor }) => {
       const R = window.__hitlRender, S = window.__HITL.state;
       const THREE = R.THREE;
       // The probe raycasts every actor every frame; a tree per mesh makes that cheap (harness.mjs).
@@ -381,12 +398,25 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
             if (m.beat === 'walk') sawWalk = true;
           }
         }
+        // The robot as the actor (a party it joins): its post is its beat once it has turned to face
+        // the way it will; the way there and the turn are 'walk'.
+        const rp = robotActor && R.robot?.peek();
+        if (rp?.party && R.robot.root) {
+          live++;
+          const root = R.robot.root, at = root.getWorldPosition(new THREE.Vector3());
+          const fwd = { x: Math.sin(rp.yaw), z: Math.cos(rp.yaw) };
+          const deg = (x, z) => { const l = Math.hypot(x, z) || 1; return Math.acos(Math.max(-1, Math.min(1, (fwd.x * x + fwd.z * z) / l))) * 180 / Math.PI; };
+          const cam = R.camera.getWorldPosition(new THREE.Vector3());
+          samples.push({ t: f / 30, actor: 'robot', role: 'robot', beat: rp.settled ? rp.party : 'walk',
+            robotVisible: petProbe.seen(root)[0].visible, robotFaceCam: deg(cam.x - at.x, cam.z - at.z),
+            robotFaceTarget: rp.partyFace ? deg(rp.partyFace.x - at.x, rp.partyFace.z - at.z) : null });
+        }
         if (arrive && arrivedAt === null && f >= arriveSeconds * 30 - 1) return { actors: [...actors], samples, spots: R.debug?.spots ?? {}, arriveTimedOut: true };
         if (arrive && arrivedAt !== null && f >= arrivedAt + beatSeconds * 30 - 1) break;
         if (samples.length && !live) break;
       }
       return { actors: [...actors], samples, spots: R.debug?.spots ?? {} };
-    }, { moment, patch: sc.patch, steps: sc.steps, setup: sc.setup, seconds: sc.seconds, turns: view.turns, arrive: sc.arrive ?? null, arriveSeconds: sc.arriveSeconds ?? sc.seconds, beatSeconds: sc.beatSeconds ?? 0 });
+    }, { moment, patch: sc.patch, steps: sc.steps, setup: sc.setup, seconds: sc.seconds, turns: view.turns, arrive: sc.arrive ?? null, arriveSeconds: sc.arriveSeconds ?? sc.seconds, beatSeconds: sc.beatSeconds ?? 0, robotActor: !!sc.robot });
     await page.close();
     results.set(task, { res, errors });
   }

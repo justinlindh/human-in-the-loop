@@ -1,0 +1,7 @@
+{ "base": "floor",
+  "items": [
+    { "item": "coffee_corner", "at": [6, 6], "id": "c1" }
+  ],
+  "people": [
+    { "id": "ada", "build": 1, "free": true, "at": [7.5, 6.5], "face": "north" }
+  ] }

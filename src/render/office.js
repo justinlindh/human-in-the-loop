@@ -233,6 +233,11 @@ function openingModel(L, o, screens) {
   return place(g, wx, 0, wz, rot);
 }
 
+// Kinds whose widest part is at head height (leaves, a board), and the walk grid's margin round
+// them (see createNav).
+const HEAD_HIGH = new Set(['plant', 'whiteboard']);
+const HEAD_MARGIN = 0.24;
+
 // Furniture ids the sim may use for the same thing, mapped to how the renderer builds it.
 const KIND = {
   desk: 'desk', desk_set: 'desk', meeting_table: 'meeting', meeting: 'meeting', whiteboard: 'whiteboard',
@@ -791,7 +796,9 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
     // The NOC's desk reaches onto its front zone, and its chairs further; those block too.
     const front = e.itemId === 'noc' && e.obj.userData.noc?.level >= 2 ? FRONT_ZONE_M : 0;
     const box = e.itemId === 'noc' ? nocBox(e) : b;
-    return [rect(cl(box.min.x, f.w / 2 + 0.1), cl(box.min.z, f.h / 2), cl(box.max.x, f.w / 2 + 0.1), cl(box.max.z, f.h / 2 + front)),
+    // Leaves and a board stand at head height, where a chibi is widest: walkers keep further off.
+    const margin = HEAD_HIGH.has(kind) ? HEAD_MARGIN : undefined;
+    return [{ ...rect(cl(box.min.x, f.w / 2 + 0.1), cl(box.min.z, f.h / 2), cl(box.max.x, f.w / 2 + 0.1), cl(box.max.z, f.h / 2 + front)), margin },
       ...(e.itemId === 'noc' ? nocObstacles(e.obj).map(([x0, z0, x1, z1]) => rect(x0, z0, x1, z1)) : [])];
   }
 

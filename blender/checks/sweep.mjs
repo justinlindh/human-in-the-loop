@@ -59,6 +59,10 @@ const BASELINE = resolve(HERE, 'sweep-baseline.json');
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
 const full = argv.includes('--full');
+// --engine runs the samplers on the studio engine (scripts/studio/sweep-host.mjs) instead of in a browser.
+const engine = argv.includes('--engine');
+// Milliseconds on the process's own clock: the engine replaces Date.now with a game clock.
+const wall = () => Number(process.hrtime.bigint() / 1000000n);
 const MODES = {
   fast: { mocks: ['garage', 'floor', 'hq', 'night'], propMocks: ['floor', 'hq'], propDesks: 3, gridMocks: ['floor'], momentMocks: ['floor'], moments: { open: 10, after: 5, choices: 1 }, mockSeconds: 6, seeds: [1], seedLimit: 300, weeks: 1040, every: 104, seconds: 2, stagedSeconds: 16, maxStaged: 3, step: 1 },
   full: { mocks: ['garage', 'floor', 'hq', 'incident', 'night', 'ending'], propMocks: ['garage', 'floor', 'hq'], propDesks: 8, gridMocks: ['floor'], momentMocks: ['floor', 'hq'], moments: { open: 20, after: 10, choices: 2 }, mockSeconds: 30, seeds: [1, 2, 3, 4], seedLimit: 1200, weeks: 1040, every: 13, seconds: 8, stagedSeconds: 24, maxStaged: 40, step: 0.5 },
@@ -86,6 +90,10 @@ if (plan) {
     process.exit(2);
   }
 } else if (item && !opt('mocks')) M.mocks = M.gridMocks;
+if (engine) {
+  const unsupported = ['moments', 'snapshots', 'replay', 'against'].filter((k) => opt(k));
+  if (unsupported.length) { console.error(`sweep: --engine does not run --${unsupported.join(', --')} yet`); process.exit(2); }
+}
 const outDir = resolve(opt('out', 'shots/sweep'));
 const timeout = Number(opt('timeout', full ? 3600 : 600));
 
@@ -128,9 +136,10 @@ async function endControl(c) {
 }
 
 const kill = setTimeout(() => { console.error(`sweep: timed out after ${timeout} s`); process.exit(124); }, timeout * 1000);
-const t0 = Date.now();
+const t0 = wall();
 // Geometry, not pixels: the GPU is fine here when asked for (--gpu or HITL_GPU=1).
-const H = await startHarness({ gpu: wantGpu() });
+const H = engine ? null : await startHarness({ gpu: wantGpu() });
+const host = engine ? await import('../../scripts/studio/sweep-host.mjs') : null;
 // Started only once this process holds its render lock: the harness re-runs the whole command under
 // the lock and exits the first copy, which must not have started a control of its own.
 const control = against ? await startControl(against) : null;
@@ -139,16 +148,17 @@ const errors = [];
 const windows = [];
 try {
   for (const name of M.mocks) {
-    const { page, errors: e } = await H.openScene(`quality=low&mock=${name}`, { width: 1600, height: 1000 });
-    const r = await page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleMock(o), { name, seconds: M.mockSeconds, every: M.step, known, worst: acceptedWorst, item, propDesks: M.propMocks.includes(name) ? M.propDesks : 0, moments: M.momentMocks.includes(name) ? M.moments : null, grid: M.gridMocks.includes(name) });
+    const o = { name, seconds: M.mockSeconds, every: M.step, known, worst: acceptedWorst, item, propDesks: M.propMocks.includes(name) ? M.propDesks : 0, moments: M.momentMocks.includes(name) ? M.moments : null, grid: M.gridMocks.includes(name) };
+    const { page, errors: e } = engine ? { page: null, errors: [] } : await H.openScene(`quality=low&mock=${name}`, { width: 1600, height: 1000 });
+    const r = engine ? await host.hostMock(o) : await page.evaluate(async (o2) => (await import('/blender/checks/sample.js')).sampleMock(o2), o);
     const vs = r.violations;
     found.push(...vs);
     windows.push(...r.windows);
     errors.push(...e.map((x) => `mock:${name}: ${x}`));
     const played = r.windows.find((w) => w.why === 'moments')?.played;
     if (played) console.log(`sweep: mock:${name} played ${played.length} moments: ${played.join(', ')}`);
-    console.log(`sweep: mock:${name} ${vs.length} violation(s) (${Math.round((Date.now() - t0) / 1000)} s)`);
-    await page.close();
+    console.log(`sweep: mock:${name} ${vs.length} violation(s) (${Math.round((wall() - t0) / 1000)} s)`);
+    await page?.close();
   }
   // Indexed moments (scripts/events), each loaded from its snapshot and played through its choice.
   for (const query of [...(plan?.events ?? []), ...(opt('moments') ?? '').split(';').map((x) => x.trim()).filter(Boolean)]) {
@@ -161,7 +171,7 @@ try {
     found.push(...r.violations);
     windows.push(...r.windows.map((w) => ({ ...w, query })));
     errors.push(...e.map((x) => `${label}: ${x}`));
-    console.log(`sweep: ${label} ${r.violations.length} violation(s) (${Math.round((Date.now() - t0) / 1000)} s)`);
+    console.log(`sweep: ${label} ${r.violations.length} violation(s) (${Math.round((wall() - t0) / 1000)} s)`);
     await page.close();
   }
   // Saved states from find.js scans (--snapshots a.json.gz,b.json.gz), each loaded and played as a
@@ -175,17 +185,27 @@ try {
     found.push(...r.violations);
     windows.push(...r.windows.map((w) => ({ ...w, snapshot: basename(file) })));
     errors.push(...e.map((x) => `${label}: ${x}`));
-    console.log(`sweep: ${label} ${r.violations.length} violation(s) (${Math.round((Date.now() - t0) / 1000)} s)`);
+    console.log(`sweep: ${label} ${r.violations.length} violation(s) (${Math.round((wall() - t0) / 1000)} s)`);
     await page.close();
   }
   // Each seed runs in a browser of its own, with a time limit, so a slow or stuck seed can neither
   // slow the ones after it nor use up the whole run; the page reports the week it has reached.
   for (const seed of M.seeds) {
+    if (engine) {
+      // In this process, so no time limit can cut a seed short; the seed limit applies to browser runs.
+      const s0 = wall();
+      const r = await host.hostSeed({ seed, weeks: M.weeks, every: M.every, seconds: M.seconds, stagedSeconds: M.stagedSeconds, maxStaged: M.maxStaged, step: M.step, known, worst: acceptedWorst, item, only: plan?.seeds[seed] ?? null });
+      found.push(...r.violations);
+      windows.push(...r.windows);
+      console.log(`sweep: seed:${seed} played to week ${r.end.week}${r.end.over ? ` (${r.end.over})` : ''}; windows: ${r.windows.map((w) => `w${w.state.split(':w')[1]} ${w.why}`).join(', ')}`);
+      console.log(`sweep: seed:${seed} ${r.violations.length} violation(s) in ${Math.round((wall() - s0) / 1000)} s (${Math.round((wall() - t0) / 1000)} s)`);
+      continue;
+    }
     const HS = await startHarness({ gpu: wantGpu() });
     const { page, errors: e } = await HS.openScene(`quality=low&seed=${seed}`, { width: 1600, height: 1000 });
     let week = 0;
     page.on('console', (m) => { const w = /^sweep-progress w(\d+)$/.exec(m.text()); if (w) week = Number(w[1]); });
-    const s0 = Date.now();
+    const s0 = wall();
     let limit;
     const r = await Promise.race([
       page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleSeed(o),
@@ -206,11 +226,11 @@ try {
     windows.push(...r.windows);
     console.log(`sweep: seed:${seed} played to week ${r.end.week}${r.end.over ? ` (${r.end.over})` : ''}; windows: ${r.windows.map((w) => `w${w.state.split(':w')[1]} ${w.why}`).join(', ')}`);
     errors.push(...e.map((x) => `seed:${seed}: ${x}`));
-    console.log(`sweep: seed:${seed} ${vs.length} violation(s) in ${Math.round((Date.now() - s0) / 1000)} s (${Math.round((Date.now() - t0) / 1000)} s)`);
+    console.log(`sweep: seed:${seed} ${vs.length} violation(s) in ${Math.round((wall() - s0) / 1000)} s (${Math.round((wall() - t0) / 1000)} s)`);
     await HS.close();
   }
 } finally {
-  await H.close();
+  await H?.close();
   clearTimeout(kill);
 }
 
@@ -288,5 +308,5 @@ if (replayed) {
   console.log(`sweep: replay: ${again.length} of ${before.size} reported violation(s) still present, ${fixed.length} gone${fixed.length ? `: ${fixed.slice(0, 12).join('; ')}${fixed.length > 12 ? '; ...' : ''}` : ''}`);
 }
 if (errors.length) console.log(`sweep: page errors: ${errors.slice(0, 5).join('; ')}`);
-console.log(`sweep: ${all.length} distinct violation(s), ${fresh.length} new, ${advisory.length} new in seeds only (advisory), ${gone.length} not seen; ${Math.round((Date.now() - t0) / 1000)} s (${full ? 'full' : 'fast'}${strict ? ', strict' : ''})`);
+console.log(`sweep: ${all.length} distinct violation(s), ${fresh.length} new, ${advisory.length} new in seeds only (advisory), ${gone.length} not seen; ${Math.round((wall() - t0) / 1000)} s (${full ? 'full' : 'fast'}${strict ? ', strict' : ''})`);
 process.exit(fresh.length && !argv.includes('--update-baseline') || errors.length ? 1 : 0);
