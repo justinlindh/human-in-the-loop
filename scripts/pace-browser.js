@@ -5,6 +5,7 @@ import { chromium } from 'playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { glMode, holdRenderLock, launchChromium } from './lib/gl.js';
+import { waitForBoot } from './lib/boot.js';
 import { parseSize } from './tools/drive.mjs';
 import { BOTS } from '../src/sim/bots.js';
 
@@ -197,7 +198,7 @@ export async function runBrowserPacing(args) {
     page.on('pageerror', e => errors.push(e.message));
     page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
     await page.goto(`${server.resolvedUrls.local[0]}?seed=${seed}&speed=0&snap=1&quality=low`, { waitUntil: 'load' });
-    await page.waitForFunction(() => window.__HITL_READY, null, { timeout: 60000 });
+    await waitForBoot(page);
     await page.evaluate(async ({ bot, speed, reader }) => {
       const bots = await import('/src/sim/bots.js');
       const P = window.__pace, H = window.__HITL;

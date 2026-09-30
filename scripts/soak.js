@@ -5,6 +5,7 @@
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { glMode, holdRenderLock, launchChromium } from './lib/gl.js';
+import { waitForBoot } from './lib/boot.js';
 
 const argv = process.argv.slice(2);
 const arg = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] ? argv[i + 1] : d; };
@@ -38,7 +39,7 @@ try {
     let res = null;
     try {
       await page.goto(`${base}?${run.query}&speed=${run.speed}&quality=${QUALITY}`);
-      await page.waitForFunction(() => window.__HITL_READY === true, null, { timeout: 60000 });
+      await waitForBoot(page);
       // One week at a time: resolve any decision, tick with events routed, then let a frame render.
       res = await page.evaluate(async (weeks) => {
         const H = window.__HITL;
