@@ -2,8 +2,9 @@
 // whether it matches the code, and reading it back.
 //
 // The index is keyed by a hash of everything that decides what a seeded game does or what the index
-// holds: src/sim (with balance.js and the bots), src/data, src/save (the snapshot format) and build.js. Rendering
-// never touches sim state, so render changes keep the index valid. A query against code whose hash
+// holds: src/sim (with balance.js and the bots), src/data, and the index builder. Snapshots are raw
+// state JSON; the save/load adapter does not produce them. Rendering never touches sim state, so
+// render and save/load changes keep the index valid. A query against code whose hash
 // has no index refuses (or rebuilds with --build) rather than answer from old sim code.
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
@@ -14,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const CACHE = process.env.HITL_EVENTS_DIR ?? join(process.env.CI_WORKTREE_ROOT ?? join(homedir(), '.cache/hitl-ci'), 'events');
-const INPUTS = ['src/sim', 'src/data', 'src/save', 'scripts/events/build.js'];
+const INPUTS = ['src/sim', 'src/data', 'scripts/events/build.js'];
 
 function files(dir) {
   if (statSync(dir).isFile()) return [dir];
@@ -30,7 +31,10 @@ function files(dir) {
 // A short hash of the sim's inputs in this checkout.
 export function simHash(root = ROOT) {
   const h = createHash('sha256');
-  for (const f of INPUTS.flatMap((d) => files(join(root, d))).sort()) {
+  // Older checkouts keep the per-seed runner inside build.js.
+  const runner = join(root, 'scripts/events/play.js');
+  const inputs = [...INPUTS.flatMap((d) => files(join(root, d))), ...(existsSync(runner) ? [runner] : [])];
+  for (const f of inputs.sort()) {
     h.update(relative(root, f));
     h.update(readFileSync(f));
   }

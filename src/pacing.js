@@ -9,7 +9,35 @@ export const WEEK_SECONDS = 8.0;
 export const SPREAD = 0.85;
 // Events that land the moment they happen; everything else trickles out across the week.
 export const IMMEDIATE = new Set(['decision', 'incident', 'launch', 'gameOver', 'officeUpgrade', 'standup', 'era', 'unlock', 'goal', 'incidentResolved']);
-// Longest frame step honoured, so a stalled tab cannot jump weeks but slow machines keep real time.
+// Seconds per logic step of the game loop (createFrameClock). Small enough that no step spans a pacer
+// boundary that matters (a week is at least two seconds), large enough that a slow frame's catch-up
+// stays a few dozen steps. A power of two, so the clocks sum it without rounding error and a week
+// ends on the step that reaches it.
+export const LOGIC_STEP = 1 / 64;
+// The most real time one frame may replay. A stalled or hidden tab resumes with this much at most, so
+// coming back to it cannot jump weeks; frame rates under 1 / MAX_CATCHUP per second lose the rest.
+export const MAX_CATCHUP = 1;
+
+// Turns real frame time into whole fixed logic steps, so game time follows the wall clock at any frame
+// rate: a slow machine runs several steps per frame instead of losing the time.
+export function createFrameClock({ step = LOGIC_STEP, maxCatchup = MAX_CATCHUP } = {}) {
+  let acc = 0;
+  return {
+    step,
+    // Adds a frame's real seconds; returns how many whole steps to run now.
+    advance(realSeconds) {
+      acc += Math.min(Math.max(Number(realSeconds) || 0, 0), maxCatchup);
+      const n = Math.floor(acc / step + 1e-9);
+      acc = Math.max(0, acc - n * step);
+      return n;
+    },
+    // Drops the time not yet stepped (the page came back to view, a new game began).
+    reset() { acc = 0; },
+    get pending() { return acc; },
+  };
+}
+
+// Longest single pacer step honoured, so a stalled tab cannot jump weeks but slow machines keep real time.
 export const MAX_STEP = 0.25;
 // How long a speech bubble stays up, in real seconds: long enough to read at a relaxed pace. Faster
 // game speeds shorten it a little, but never below the time it takes to read the line

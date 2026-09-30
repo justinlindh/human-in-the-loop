@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createPacer, WEEK_SECONDS, MAX_STEP, readSeconds } from './pacing.js';
+import { createPacer, createFrameClock, LOGIC_STEP, MAX_CATCHUP, WEEK_SECONDS, MAX_STEP, readSeconds } from './pacing.js';
 import { B } from './sim/balance.js';
 
 const say = (id, staffId, text, replyTo = null) => ({ type: 'say', id, week: 0, staffId, text, toId: null, replyTo });
@@ -139,4 +139,57 @@ it('hands tagged dialogue to the renderer while the weekly clock is held', () =>
   expect(run(p, 20, { running: false })).toEqual([]);
   expect(p.queued).toBe(0);
   expect(p.takeDropped()).toEqual([]);
+});
+
+describe('fixed-step game loop', () => {
+  // The loop as main.js runs it: a frame's real time goes through the frame clock, and every whole
+  // logic step advances the pacer.
+  function weeksIn(seconds, fps, speed = 1) {
+    const p = createPacer(); const clock = createFrameClock();
+    let weeks = 0;
+    const frames = Math.round(seconds * fps);
+    for (let f = 0; f < frames; f++) {
+      const n = clock.advance(1 / fps);
+      for (let i = 0; i < n; i++) if (p.step(clock.step, { speed, running: true })) weeks++;
+    }
+    return { weeks, gameT: p.gameT };
+  }
+
+  it('gives the same game time at any frame rate', () => {
+    for (const speed of [1, 2, 4]) {
+      const at = [2, 5, 15, 32, 60, 144].map((fps) => weeksIn(64, fps, speed));
+      for (const r of at) {
+        expect(r.weeks).toBe(at[0].weeks);
+        expect(r.gameT).toBeCloseTo(64 * speed, 1);
+      }
+    }
+    // 16 s at 1x is two weeks whether the machine draws 32 frames a second or 2.
+    expect(weeksIn(16, 32).weeks).toBe(2);
+    expect(weeksIn(16, 2).weeks).toBe(2);
+  });
+
+  it('runs the steps a slow frame is owed, and no more than the catch-up cap', () => {
+    const c = createFrameClock();
+    expect(c.advance(0.5)).toBe(32);
+    expect(c.advance(MAX_CATCHUP * 10)).toBe(Math.floor(MAX_CATCHUP / LOGIC_STEP + 1e-9));
+    expect(c.advance(600)).toBe(Math.floor(MAX_CATCHUP / LOGIC_STEP + 1e-9));
+  });
+
+  it('carries the remainder of a fast frame to the next one', () => {
+    const c = createFrameClock();
+    let steps = 0;
+    for (let f = 0; f < 144; f++) steps += c.advance(1 / 144);
+    expect(steps).toBe(64);
+  });
+
+  it('ignores negative and non-numeric time, and reset drops the pending remainder', () => {
+    const c = createFrameClock();
+    expect(c.advance(-5)).toBe(0);
+    expect(c.advance(NaN)).toBe(0);
+    expect(c.advance(undefined)).toBe(0);
+    c.advance(LOGIC_STEP / 2);
+    expect(c.pending).toBeGreaterThan(0);
+    c.reset();
+    expect(c.pending).toBe(0);
+  });
 });

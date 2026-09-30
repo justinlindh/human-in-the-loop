@@ -27,9 +27,10 @@ const PRESETS = {
     old: 'node blender/checks/stage.mjs --browser --rows', new: 'node blender/checks/stage.mjs --rows',
     grep: '^STAGEROW', tolerance: 0.005,
   },
-  // The pose matrices in a harness page against the engine, every cell's verdicts and measure ranges.
-  facepalm: matrixPreset("--gesture facepalm --matrix views=all,postures=all,builds=all,rig=on,off --measure hand0Eye,hand1Eye,faceCam,coverHandEyeNear,clearance --expect 'coverHandEyeNear>=0.5@0.7 if faceCam<=80'"),
-  slap: matrixPreset("--gesture slap --matrix cause=none,unplug,emptyDesk --measure robotContact,robotDepth,robotAngle,faceVisible --expect 'robotContact<=0.06@0.01' --expect 'robotAngle<=35@0.8'"),
+  // The pose matrices in a harness page against the engine, every cell's verdicts and measure ranges,
+  // judged by each gesture's own pass rule (pose-matrix.js PRESETS).
+  facepalm: matrixPreset('--gesture facepalm --matrix views=all,postures=all,builds=all,rig=on,off'),
+  slap: matrixPreset('--gesture slap --matrix cause=none,unplug,emptyDesk'),
 };
 
 function matrixPreset(flags) {
