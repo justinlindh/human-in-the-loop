@@ -44,7 +44,9 @@ for part in parts:
     # One bevel segment reads the same at the game camera; only the desktop and screen bezel keep
     # their rounded silhouettes, since every desk in an office repeats this model.
     bevel = part.modifiers.get('bevel')
-    if bevel and part.name not in ('crt_desk_top', 'crt_bezel'):
+    if bevel and part.name == 'crt_desk_top':
+        bevel.segments = 2
+    elif bevel and part.name != 'crt_bezel':
         bevel.segments = 1
 for y in (0.27, 0.42):
     parts.append(box(f'tower_foot_{y}', (0.14, 0.05, 0.02), (0.26, y, 0.01), 'plastic_charcoal', 0.004, segments=1))

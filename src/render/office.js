@@ -322,7 +322,10 @@ function deskSet(i, stageIdx, screens, era, freeChair = false, artEra = era) {
   const desk = getModel(crt ? 'era_crt_desk' : 'desk');
   if (crt) {
     g.add(desk);
-    g.add(place(getModel('era_cubicle'), 0, 0, -0.575));
+    // The low divider sits behind the desk, which already shades the floor there: no shadow pass.
+    const cubicle = place(getModel('era_cubicle'), 0, 0, -0.575);
+    cubicle.traverse((c) => { if (c.isMesh) c.castShadow = false; });
+    g.add(cubicle);
   } else {
     desk.scale.set(0.96 / 1.3, TOP / 0.62, 1);
     g.add(place(desk, 0, 0, DESK_Z));
