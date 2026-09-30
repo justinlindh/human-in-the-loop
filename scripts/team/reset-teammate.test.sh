@@ -58,5 +58,10 @@ cp "$proj/sim1.jsonl" "$home/.claude/projects/$enc/"
 : >"$SENT"; out="$(env -u CLAUDE_PROJECTS_DIR HOME="$home" TRANSCRIPT="$home/.claude/projects/$enc/sim1.jsonl" bash "$HERE/reset-teammate.sh" sim compact 5 2>&1)"; rc=$?
 [ $rc -eq 0 ] && grep -q 'context before' <<<"$out" || fail "the transcript directory comes from the main checkout's path: rc $rc: $out"
 
+# A copy outside any repository takes the repository of the directory it is run from.
+mkdir -p "$tmp/loose"; cp "$HERE/reset-teammate.sh" "$tmp/loose/copy.sh"
+: >"$SENT"; out="$(cd "$REPO" && env -u CLAUDE_PROJECTS_DIR HOME="$home" TRANSCRIPT="$home/.claude/projects/$enc/sim1.jsonl" bash "$tmp/loose/copy.sh" sim compact 5 2>&1)"; rc=$?
+[ $rc -eq 0 ] && grep -q 'context before' <<<"$out" || fail "a copied script uses the repository it is run from: rc $rc: $out"
+
 [ $fails -eq 0 ] && echo "reset-teammate: all cases pass"
 exit $fails

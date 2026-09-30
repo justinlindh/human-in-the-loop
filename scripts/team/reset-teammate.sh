@@ -31,7 +31,9 @@ case "$name" in *[!A-Za-z0-9_-]*) echo "name must be letters, digits, dash or un
 # The main checkout (the parent of the shared .git), so running this from any worktree finds the
 # transcripts of sessions started at the repository's root.
 here="$(cd "$(dirname "$0")/../.." && pwd)"
-common="$(git -C "$here" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" && repo="$(dirname "$common")" || repo="$here"
+# A copy of this script outside any repository uses the git repository of the directory it is run from.
+if common="$(git -C "$here" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" \
+  || common="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"; then repo="$(dirname "$common")"; else repo="$here"; fi
 proj="${CLAUDE_PROJECTS_DIR:-$HOME/.claude/projects/$(printf '%s' "$repo" | sed 's/[^A-Za-z0-9]/-/g')}"
 [ -d "$proj" ] || { echo "no transcript directory at $proj" >&2; exit 1; }
 
