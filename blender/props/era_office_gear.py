@@ -82,9 +82,9 @@ cx, cw, ch = 0.25, 0.3, 0.44
 parts += [b('cal', (cw, 0.006, ch), (cx, face, 0.33), 'paper_sheet', 0.002),
           b('cal_head', (cw - 0.01, 0.007, 0.066), (cx, face - 0.002, 0.33 + ch / 2 - 0.038), 'fabric_terracotta', 0.002)]
 for i in range(1, 5):
-    parts.append(b(f'cal_row_{i}', (cw - 0.03, 0.004, 0.006), (cx, face - 0.004, 0.14 + i * 0.058), 'ink', 0.0))
+    parts.append(b(f'cal_row_{i}', (cw - 0.03, 0.004, 0.009), (cx, face - 0.004, 0.14 + i * 0.058), 'wall_warm', 0.0))
 for i in range(1, 6):
-    parts.append(b(f'cal_col_{i}', (0.006, 0.004, 0.29), (cx - cw / 2 + 0.015 + i * 0.045, face - 0.004, 0.28), 'ink', 0.0))
+    parts.append(b(f'cal_col_{i}', (0.009, 0.004, 0.29), (cx - cw / 2 + 0.015 + i * 0.045, face - 0.004, 0.28), 'wall_warm', 0.0))
 parts.append(b('cal_circle', (0.04, 0.005, 0.04), (cx + 0.06, face - 0.009, 0.26), 'fabric_terracotta', 0.003))
 # Memos and a business card, each with a pin.
 for i, (x, z, w, h, a, pin) in enumerate([(-0.32, 0.47, 0.2, 0.16, 0.08, 'fabric_teal'), (-0.1, 0.5, 0.14, 0.14, -0.1, 'fabric_slate'),
