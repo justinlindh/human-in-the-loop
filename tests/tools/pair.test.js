@@ -75,6 +75,14 @@ describe('pair.js', () => {
     }
   });
 
+  it('exits 2 when a flag has no value, before playing anything', () => {
+    for (const args of [['--a'], ['--seeds', '2', '--bots', 'balanced', '--b'], ['--seeds', '--bots', 'balanced']]) {
+      const r = spawnSync(process.execPath, [PAIR, ...args], { encoding: 'utf8', timeout: 20000 });
+      expect(r.status).toBe(2);
+      expect(r.stderr).toMatch(/needs a value[\s\S]*usage:/);
+    }
+  });
+
   it('exits 2 on a bare --start-era', () => {
     const r = spawnSync(process.execPath, [PAIR, '--a', '.', '--seeds', '1', '--start-era'], { encoding: 'utf8', timeout: 60000 });
     expect(r.status).toBe(2);

@@ -76,7 +76,9 @@ if (!isMainThread) {
   for (let i = 0; i < argv.length; i++) {
     const m = /^--([^=]+)$/.exec(argv[i]);
     if (!m || !KNOWN.has(m[1])) { console.error(`pair: unrecognised argument ${argv[i]}\n${USAGE}`); process.exit(2); }
-    i++; // every flag takes a value
+    const v = argv[i + 1];
+    if (v === undefined || v.startsWith('--')) { console.error(`pair: --${m[1]} needs a value\n${USAGE}`); process.exit(2); }
+    i++;
   }
   const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
   const seeds = Number(opt('seeds', 300));
