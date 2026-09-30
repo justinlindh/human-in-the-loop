@@ -559,5 +559,25 @@ describe('audio director', () => {
     // A second message inside the cooldown stays quiet.
     expect(cue(d.events([chat], state({ era: { id: 'web2' } }), 121))).toBeUndefined();
   });
+
+  it('adds the period context cues: bust sting, disk seek, CD tray, retail box and the bell', () => {
+    const plays = (cmds) => cmds.filter((c) => c.op === 'play' && !c.cue.startsWith('voice.')).map((c) => c.cue);
+    const d = createDirector();
+    const pre = state({ era: { id: 'preinternet' }, products: [{ id: 'p1', version: 1, angle: 'web' }, { id: 'p2', version: 1, angle: 'onprem' }] });
+    expect(plays(d.events([{ type: 'launch', productId: 'p1' }], pre, 10))).toEqual(['stinger.launch', 'sfx.disk_seek']);
+    expect(plays(d.events([{ type: 'launch', productId: 'p2' }], pre, 100))).toEqual(['stinger.launch', 'sfx.retail_box']);
+    const dot = { ...pre, era: { id: 'dotcom' } };
+    expect(plays(d.events([{ type: 'launch', productId: 'p1' }], dot, 200))).toEqual(['stinger.launch', 'sfx.cd_tray']);
+    expect(plays(d.events([{ type: 'launch', productId: 'p1' }], state({ products: pre.products }), 300))).toEqual(['stinger.launch']);
+    expect(plays(d.events([{ type: 'decisionResolved', eventId: 'dotcom_ipo_frenzy', choice: 1 }], dot, 400))).toEqual(['sfx.dotcom_bell']);
+    expect(plays(d.events([{ type: 'decisionResolved', eventId: 'dotcom_ipo_frenzy', choice: 0 }], dot, 500))).toEqual([]);
+    // The bust stings when the market turns in play, not when a save loads into it.
+    const dd = createDirector();
+    const phase = (p) => state({ era: { id: 'dotcom' }, flags: { dotcom: { phase: p } } });
+    expect(plays(dd.update(phase('bust'), 1))).toEqual([]);
+    const live = createDirector();
+    live.update(phase('boom'), 1);
+    expect(plays(live.update(phase('bust'), 50))).toEqual(['stinger.dotcom_bust']);
+  });
 });
 

@@ -371,6 +371,10 @@
   "era_web2": {
    "file": "stingers/era_web2.ogg",
    "duration": 4.04
+  },
+  "dotcom_bust": {
+   "file": "stingers/dotcom_bust.ogg",
+   "duration": 4.57
   }
  },
  "ui": {
@@ -566,6 +570,22 @@
   "trait": {
    "file": "sfx/growth/trait.ogg",
    "duration": 0.191
+  },
+  "disk_seek": {
+   "file": "sfx/disk_seek.ogg",
+   "duration": 1.084
+  },
+  "cd_tray": {
+   "file": "sfx/cd_tray.ogg",
+   "duration": 1.5
+  },
+  "retail_box": {
+   "file": "sfx/retail_box.ogg",
+   "duration": 0.4
+  },
+  "dotcom_bell": {
+   "file": "sfx/dotcom_bell.ogg",
+   "duration": 1.72
   }
  },
  "voice": {
