@@ -1,0 +1,137 @@
+Head: 7c7f5b27a0e97d0fa8236cf34ef4b658bbde7d4f
+Before control (PR with main merged): cf9607268f8acbba9d078cc6c21291efc319f353
+
+tee-frozen-commit
+Command: bash -c npm run test:fast && git diff --check && git add blender/props/era_attire.py public/models/era_attire.glb src/render/character.js src/render/prints.js src/render/wardrobe.js docs/features/eras.md && git commit -m "fix(art): vary parody tee prints and shirt cuts"
+Exit: 0
+ Test Files  194 passed (194)
+      Tests  1585 passed (1585)
+
+tee-model-clean2
+Command: blender -b --factory-startup --python-exit-code 1 -P blender/props/era_attire.py -- --out public/models/era_attire.glb
+Exit: 0
+MODEL era_attire: 6658 tris (OK, budget 8000)
+
+tee-frozen-rebuild
+Command: bash -c blender -b --factory-startup --python-exit-code 1 -P blender/props/era_attire.py -- --out shots/tee-rework/rebuilt.glb && cmp public/models/era_attire.glb shots/tee-rework/rebuilt.glb && sha256sum public/models/era_attire.glb
+Exit: 0
+MODEL rebuilt: 6658 tris (OK, budget 8000)
+79d0c7808b37548bf1629d108a73b20832954c7a5c601fecc3d681a78628b961  public/models/era_attire.glb
+
+tee-frozen-geometry
+Command: node shots/tee-rework/geometry-check.mjs . shots/tee-rework/geometry-after.json shots/tee-rework/geometry-before.json
+Exit: 0
+Unchanged period and modern controls: 270 exact matches
+Tee builds and print variants: 24; six body draws, zero textures; four pose transitions each pass
+Tee body triangle range: 2452..3172
+
+tee-frozen-pose
+Command: bash shots/tee-rework/pose-tees.sh
+Exit: 0
+MATRIX facepalm: 36 pass, 0 fail, 12 n/a (48 cells)
+MATRIX facepalm: 36 pass, 0 fail, 12 n/a (48 cells)
+MATRIX facepalm: 36 pass, 0 fail, 12 n/a (48 cells)
+MATRIX facepalm: 36 pass, 0 fail, 12 n/a (48 cells)
+MATRIX facepalm: 36 pass, 0 fail, 12 n/a (48 cells)
+MATRIX facepalm: 36 pass, 0 fail, 12 n/a (48 cells)
+MATRIX facepalm: 36 pass, 0 fail, 12 n/a (48 cells)
+MATRIX facepalm: 36 pass, 0 fail, 12 n/a (48 cells)
+
+tee-frozen-stage
+Command: node blender/checks/stage.mjs
+Exit: 0
+stage: 284 of 284 passed
+
+tee-frozen-clip-web
+Command: env ATTIRE_ERA=web2 HITL_NO_CHECK_CACHE=1 HITL_VITE_CACHE=.vite/tee-clip-web-final NODE_OPTIONS=--import=<worktree>/shots/attire/preview-loader.mjs node blender/checks/clip.mjs
+Exit: 0
+clip: 161 of 161 passed
+
+tee-frozen-clip-dot
+Command: env ATTIRE_ERA=dotcom HITL_NO_CHECK_CACHE=1 HITL_VITE_CACHE=.vite/tee-clip-dot-final NODE_OPTIONS=--import=<worktree>/shots/attire/preview-loader.mjs node blender/checks/clip.mjs
+Exit: 0
+clip: 161 of 161 passed
+
+tee-frozen-rig-dot
+Command: env ATTIRE_ERA=dotcom HITL_NO_CHECK_CACHE=1 HITL_VITE_CACHE=.vite/tee-rig-dot NODE_OPTIONS=--import=<worktree>/shots/attire/preview-loader.mjs node blender/checks/clip.mjs --rig
+Exit: 1
+CLIP FAIL moment:letter {"desks":10,"samples":818,"insidePct":4.96,"worstWho":"s1 in desk:f1 [pal_wood_honey:5.0] path 2"}
+clip: 160 of 161 passed
+
+tee-frozen-sweep-web
+Command: env ATTIRE_ERA=web2 HITL_VITE_CACHE=.vite/tee-sweep-web NODE_OPTIONS=--import=<worktree>/shots/attire/preview-loader.mjs node blender/checks/sweep.mjs --against <control> --out shots/tee-rework/sweep-web2
+Exit: 0
+sweep: 9 distinct violation(s), 0 new, 0 new in seeds only (advisory), 0 not seen; 77 s (fast)
+
+tee-frozen-sweep-dot
+Command: env ATTIRE_ERA=dotcom HITL_VITE_CACHE=.vite/tee-sweep-dot NODE_OPTIONS=--import=<worktree>/shots/attire/preview-loader.mjs node blender/checks/sweep.mjs --against <control> --out shots/tee-rework/sweep-dotcom
+Exit: 0
+sweep: 8 distinct violation(s), 0 new, 0 new in seeds only (advisory), 0 not seen; 82 s (fast)
+
+tee-frozen-stills
+Command: env HITL_VITE_CACHE=.vite/tee-final-detail bash -c bash shots/tee-rework/capture-tees.sh shots/tee-rework && bash shots/tee-rework/crop-sheets.sh && bash shots/tee-rework/capture-lineups.sh
+Exit: 0
+snap: <worktree>/shots/tee-rework/tees-build0-day.png
+snap: <worktree>/shots/tee-rework/tees-build0-night.png
+snap: <worktree>/shots/tee-rework/tees-build1-day.png
+snap: <worktree>/shots/tee-rework/tees-build1-night.png
+snap: <worktree>/shots/tee-rework/tees-build2-day.png
+snap: <worktree>/shots/tee-rework/tees-build2-night.png
+snap: <worktree>/shots/tee-rework/lineup-preinternet-day-low.png
+snap: <worktree>/shots/tee-rework/lineup-preinternet-night-low.png
+snap: <worktree>/shots/tee-rework/lineup-dotcom-day-low.png
+snap: <worktree>/shots/tee-rework/lineup-dotcom-night-low.png
+snap: <worktree>/shots/tee-rework/lineup-dotcom-bust-day-low.png
+snap: <worktree>/shots/tee-rework/lineup-dotcom-bust-night-low.png
+snap: <worktree>/shots/tee-rework/lineup-web2-day-low.png
+snap: <worktree>/shots/tee-rework/lineup-web2-night-low.png
+snap: <worktree>/shots/tee-rework/lineup-classic-day-low.png
+snap: <worktree>/shots/tee-rework/lineup-classic-night-low.png
+snap: <worktree>/shots/tee-rework/lineup-chatgbt-day-low.png
+snap: <worktree>/shots/tee-rework/lineup-chatgbt-night-low.png
+snap: <worktree>/shots/tee-rework/lineup-agents-day-low.png
+snap: <worktree>/shots/tee-rework/lineup-agents-night-low.png
+snap: <worktree>/shots/tee-rework/lineup-consolidation-day-low.png
+snap: <worktree>/shots/tee-rework/lineup-consolidation-night-low.png
+snap: <worktree>/shots/tee-rework/lineup-plateau-day-low.png
+snap: <worktree>/shots/tee-rework/lineup-plateau-night-low.png
+
+tee-frozen-motion
+Command: env HITL_VITE_CACHE=.vite/tee-motion npm run capture -- --manifest shots/tee-rework/capture-manifest.mjs --out shots/tee-rework/capture --quality low --no-webm
+Exit: 0
+ok   tees-game-camera-day: 1 still(s) (0.016666666666666666s at 60 fps, 1920x1080, low; rendered in 2s on ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+ok   tees-game-camera-night: 1 still(s) (0.016666666666666666s at 60 fps, 1920x1080, low; rendered in 2s on ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+ok   wardrobe-motion: <worktree>/shots/tee-rework/capture/wardrobe-motion.mp4 (15s at 30 fps, 1920x1080, low; rendered in 25s on ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+ok   tee-motion: <worktree>/shots/tee-rework/capture/tee-motion.mp4 (12s at 30 fps, 1920x1080, low; rendered in 33s on ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+
+tee-head-back
+Command: env HITL_VITE_CACHE=.vite/tee-back npm run snap -- --scenario floor --quality low --time day --width 3840 --height 2160 --query eras&eraArt=web2&chars=4&build=1&zoom=1.25 --eval document.getElementById('ui').style.display='none'; window.__hitlRender.scene.traverse(o => { if (o.name === 'character') o.rotation.y += Math.PI; }) --out shots/tee-rework/tees-back.png
+Exit: 0
+snap: <worktree>/shots/tee-rework/tees-back.png
+
+tee-rig-control
+Command: env ATTIRE_ERA=dotcom HITL_NO_CHECK_CACHE=1 HITL_VITE_CACHE=.vite/tee-rig-control NODE_OPTIONS=--import=<worktree>/shots/attire/preview-loader.mjs node blender/checks/clip.mjs --rig
+Exit: 1
+CLIP FAIL moment:letter {"desks":10,"samples":818,"insidePct":4.96,"worstWho":"s1 in desk:f1 [pal_wood_honey:5.0] path 2"}
+clip: 160 of 161 passed
+
+tee-before-captures
+Command: bash <worktree>/shots/tee-rework/capture-tees.sh <worktree>/shots/tee-rework/before
+Exit: 0
+snap: <worktree>/shots/tee-rework/before/tees-build0-day.png
+snap: <worktree>/shots/tee-rework/before/tees-build0-night.png
+snap: <worktree>/shots/tee-rework/before/tees-build1-day.png
+snap: <worktree>/shots/tee-rework/before/tees-build1-night.png
+snap: <worktree>/shots/tee-rework/before/tees-build2-day.png
+snap: <worktree>/shots/tee-rework/before/tees-build2-night.png
+
+tee-before-camera
+Command: env HITL_VITE_CACHE=.vite/tee-before-camera npm run capture -- --manifest <worktree>/shots/tee-rework/capture-manifest.mjs --only tees-game-camera-day,tees-game-camera-night --out <worktree>/shots/tee-rework/before --quality low --no-webm
+Exit: 0
+ok   tees-game-camera-day: 1 still(s) (0.016666666666666666s at 60 fps, 1920x1080, low; rendered in 1s on ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+ok   tees-game-camera-night: 1 still(s) (0.016666666666666666s at 60 fps, 1920x1080, low; rendered in 1s on ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+
+Model kit: 6658 triangles / 8000 budget; 235436 bytes; zero texture pixels / bytes. No ZFIGHT lines in the clothing build. Byte-for-byte rebuild comparison exits 0.
+Every one of the eight tee pose matrices judges 36 passing, 0 failing, 12 not-applicable cells across standing/seated postures, three builds, four views, and both rigs.
+Known control findings remain visible in the raw sweeps. No collision rule or baseline was changed. The previous full lying-pose control failures are documented in the original PR evidence; this run scopes the pose matrices to standing and seated poses.
+Authored-rig paired controls: all 161 case IDs and verdicts match; the one failing case has an identical payload (moment:letter, insidePct 4.96).

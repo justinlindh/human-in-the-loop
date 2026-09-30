@@ -1,0 +1,1770 @@
+{
+  "period": {
+    "engineer/0/null/0": {
+      "hash": "df98e6ed5cdb6d39411e5e8d860ffda2baa23a6932e59a5544adb499aab493ce",
+      "triangles": 3412,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/0/null/1": {
+      "hash": "df98e6ed5cdb6d39411e5e8d860ffda2baa23a6932e59a5544adb499aab493ce",
+      "triangles": 3412,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/0/null/2": {
+      "hash": "df98e6ed5cdb6d39411e5e8d860ffda2baa23a6932e59a5544adb499aab493ce",
+      "triangles": 3412,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/0/preinternet/0": {
+      "hash": "4794b5d03df12dfa1b24d09afc9b6729df591183492517c0e6168d2ded72c136",
+      "triangles": 3202,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/0/preinternet/1": {
+      "hash": "4794b5d03df12dfa1b24d09afc9b6729df591183492517c0e6168d2ded72c136",
+      "triangles": 3202,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/0/preinternet/2": {
+      "hash": "4794b5d03df12dfa1b24d09afc9b6729df591183492517c0e6168d2ded72c136",
+      "triangles": 3202,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/0/dotcom/0": {
+      "hash": "f61b2d36cf3219573186141d99b6e525565789ac96b55396bc855749de7ed2a0",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/0/dotcom/1": {
+      "hash": "f61b2d36cf3219573186141d99b6e525565789ac96b55396bc855749de7ed2a0",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/0/dotcom/2": {
+      "hash": "a673b4b4364ce10f70a29be4b5c6348f834b49a55b6044f9f6bf300de5e3700c",
+      "triangles": 4096,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/0/dotcom-bust/0": {
+      "hash": "f61b2d36cf3219573186141d99b6e525565789ac96b55396bc855749de7ed2a0",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/0/dotcom-bust/1": {
+      "hash": "f61b2d36cf3219573186141d99b6e525565789ac96b55396bc855749de7ed2a0",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/0/dotcom-bust/2": {
+      "hash": "a673b4b4364ce10f70a29be4b5c6348f834b49a55b6044f9f6bf300de5e3700c",
+      "triangles": 4096,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/0/web2/0": {
+      "hash": "edafe99312476cab7f1971a93d5e904c30a270d02b5eb6f151861f46f90c3964",
+      "triangles": 2686,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/0/web2/1": {
+      "hash": "edafe99312476cab7f1971a93d5e904c30a270d02b5eb6f151861f46f90c3964",
+      "triangles": 2686,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/0/web2/2": {
+      "hash": "edafe99312476cab7f1971a93d5e904c30a270d02b5eb6f151861f46f90c3964",
+      "triangles": 2686,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/1/null/0": {
+      "hash": "f40b703bbce2b599c7cfeff7f8e5f0f77b00741da2e86f224350e71ab9380a72",
+      "triangles": 3516,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/1/null/1": {
+      "hash": "f40b703bbce2b599c7cfeff7f8e5f0f77b00741da2e86f224350e71ab9380a72",
+      "triangles": 3516,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/1/null/2": {
+      "hash": "f40b703bbce2b599c7cfeff7f8e5f0f77b00741da2e86f224350e71ab9380a72",
+      "triangles": 3516,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/1/preinternet/0": {
+      "hash": "92bc3425285a2e621d8f31de6ca6f88932f4d6b83ac21030411cd837013a2762",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/1/preinternet/1": {
+      "hash": "92bc3425285a2e621d8f31de6ca6f88932f4d6b83ac21030411cd837013a2762",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/1/preinternet/2": {
+      "hash": "92bc3425285a2e621d8f31de6ca6f88932f4d6b83ac21030411cd837013a2762",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/1/dotcom/0": {
+      "hash": "7f7739a32ba6ad7a1f9ec6f6c48558d9674fb9f41399fa7519f59540619d9e63",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/1/dotcom/1": {
+      "hash": "7f7739a32ba6ad7a1f9ec6f6c48558d9674fb9f41399fa7519f59540619d9e63",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/1/dotcom/2": {
+      "hash": "972548546065a5d9b6fbb33a83ac4cdd5c8a48adf72b41e5f153ce5aedf8cbd1",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/1/dotcom-bust/0": {
+      "hash": "7f7739a32ba6ad7a1f9ec6f6c48558d9674fb9f41399fa7519f59540619d9e63",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/1/dotcom-bust/1": {
+      "hash": "7f7739a32ba6ad7a1f9ec6f6c48558d9674fb9f41399fa7519f59540619d9e63",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/1/dotcom-bust/2": {
+      "hash": "972548546065a5d9b6fbb33a83ac4cdd5c8a48adf72b41e5f153ce5aedf8cbd1",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/1/web2/0": {
+      "hash": "b12634b8fadd0c7113fb3454e41a4926768626c1248eec76dbf8f9d2611e7e3d",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/1/web2/1": {
+      "hash": "b12634b8fadd0c7113fb3454e41a4926768626c1248eec76dbf8f9d2611e7e3d",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/1/web2/2": {
+      "hash": "b12634b8fadd0c7113fb3454e41a4926768626c1248eec76dbf8f9d2611e7e3d",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/2/null/0": {
+      "hash": "24f49d5d4fd8f1097875ad3b3de7276aa02d245daae335ad5d3a6c1768d08fc6",
+      "triangles": 2266,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/2/null/1": {
+      "hash": "24f49d5d4fd8f1097875ad3b3de7276aa02d245daae335ad5d3a6c1768d08fc6",
+      "triangles": 2266,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/2/null/2": {
+      "hash": "24f49d5d4fd8f1097875ad3b3de7276aa02d245daae335ad5d3a6c1768d08fc6",
+      "triangles": 2266,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/2/preinternet/0": {
+      "hash": "b8b6110b4a647cae96852d3eacb1262a049ca585d0b5c34a8358bd74716bc20e",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/2/preinternet/1": {
+      "hash": "b8b6110b4a647cae96852d3eacb1262a049ca585d0b5c34a8358bd74716bc20e",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/2/preinternet/2": {
+      "hash": "b8b6110b4a647cae96852d3eacb1262a049ca585d0b5c34a8358bd74716bc20e",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/2/dotcom/0": {
+      "hash": "7a091a36716d155f71388433394bda0b171bf78428bcfdcb3a37bf369de3f1af",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/2/dotcom/1": {
+      "hash": "7a091a36716d155f71388433394bda0b171bf78428bcfdcb3a37bf369de3f1af",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/2/dotcom/2": {
+      "hash": "2465e764e38d45bd79a1d5d5d304f560cb196c93b976d4e56062cee32eb03732",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/2/dotcom-bust/0": {
+      "hash": "7a091a36716d155f71388433394bda0b171bf78428bcfdcb3a37bf369de3f1af",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/2/dotcom-bust/1": {
+      "hash": "7a091a36716d155f71388433394bda0b171bf78428bcfdcb3a37bf369de3f1af",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/2/dotcom-bust/2": {
+      "hash": "2465e764e38d45bd79a1d5d5d304f560cb196c93b976d4e56062cee32eb03732",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/2/web2/0": {
+      "hash": "6f930320f576b7ee05743caf72501e62590842d8acda9f9d9a33c2fd641613fd",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/2/web2/1": {
+      "hash": "6f930320f576b7ee05743caf72501e62590842d8acda9f9d9a33c2fd641613fd",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "engineer/2/web2/2": {
+      "hash": "6f930320f576b7ee05743caf72501e62590842d8acda9f9d9a33c2fd641613fd",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/0/null/0": {
+      "hash": "5b41f6564ddbcb5bf321a1c98ccde21abead7d70f601098b099cc8d9da8aad1a",
+      "triangles": 4523,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/0/null/1": {
+      "hash": "5b41f6564ddbcb5bf321a1c98ccde21abead7d70f601098b099cc8d9da8aad1a",
+      "triangles": 4523,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/0/null/2": {
+      "hash": "5b41f6564ddbcb5bf321a1c98ccde21abead7d70f601098b099cc8d9da8aad1a",
+      "triangles": 4523,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/0/preinternet/0": {
+      "hash": "7acc6924d1add0d1bf17fc97229e58e41892e41557f9568b114dfcede50d6e3b",
+      "triangles": 3202,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/0/preinternet/1": {
+      "hash": "7acc6924d1add0d1bf17fc97229e58e41892e41557f9568b114dfcede50d6e3b",
+      "triangles": 3202,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/0/preinternet/2": {
+      "hash": "7acc6924d1add0d1bf17fc97229e58e41892e41557f9568b114dfcede50d6e3b",
+      "triangles": 3202,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/0/dotcom/0": {
+      "hash": "17f324084cf753d35c0c2b1f6f1e0ed67013f375833448a632efb2fa1dfee6b2",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/0/dotcom/1": {
+      "hash": "17f324084cf753d35c0c2b1f6f1e0ed67013f375833448a632efb2fa1dfee6b2",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/0/dotcom/2": {
+      "hash": "addc279842cf7b75562473180ac56dcc96b719fd0660968936b2d7ce046d34eb",
+      "triangles": 4096,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/0/dotcom-bust/0": {
+      "hash": "17f324084cf753d35c0c2b1f6f1e0ed67013f375833448a632efb2fa1dfee6b2",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/0/dotcom-bust/1": {
+      "hash": "17f324084cf753d35c0c2b1f6f1e0ed67013f375833448a632efb2fa1dfee6b2",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/0/dotcom-bust/2": {
+      "hash": "addc279842cf7b75562473180ac56dcc96b719fd0660968936b2d7ce046d34eb",
+      "triangles": 4096,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/0/web2/0": {
+      "hash": "6da573113c022149cd4b726d4b09fd726c3d80e73370f97badc9ebcbdb6e303e",
+      "triangles": 2686,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/0/web2/1": {
+      "hash": "6da573113c022149cd4b726d4b09fd726c3d80e73370f97badc9ebcbdb6e303e",
+      "triangles": 2686,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/0/web2/2": {
+      "hash": "6da573113c022149cd4b726d4b09fd726c3d80e73370f97badc9ebcbdb6e303e",
+      "triangles": 2686,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/1/null/0": {
+      "hash": "7e3ea5dd0b97536566bbcddf83d2f6d5a6582c80107d934ca831716fa2e404aa",
+      "triangles": 4627,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/1/null/1": {
+      "hash": "7e3ea5dd0b97536566bbcddf83d2f6d5a6582c80107d934ca831716fa2e404aa",
+      "triangles": 4627,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/1/null/2": {
+      "hash": "7e3ea5dd0b97536566bbcddf83d2f6d5a6582c80107d934ca831716fa2e404aa",
+      "triangles": 4627,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/1/preinternet/0": {
+      "hash": "07944d45f66b818de5c18d30d2f9b7b57750943b525f3e49b73de0ffcfbb99b7",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/1/preinternet/1": {
+      "hash": "07944d45f66b818de5c18d30d2f9b7b57750943b525f3e49b73de0ffcfbb99b7",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/1/preinternet/2": {
+      "hash": "07944d45f66b818de5c18d30d2f9b7b57750943b525f3e49b73de0ffcfbb99b7",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/1/dotcom/0": {
+      "hash": "d7aa7875c6edd57985504ced2e8e5888954ef864461de23142a4d9808441504d",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/1/dotcom/1": {
+      "hash": "d7aa7875c6edd57985504ced2e8e5888954ef864461de23142a4d9808441504d",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/1/dotcom/2": {
+      "hash": "3ee828a7b84085d018920185ec2a53d3960b47bf9fd612f6820d5705bdd925fa",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/1/dotcom-bust/0": {
+      "hash": "d7aa7875c6edd57985504ced2e8e5888954ef864461de23142a4d9808441504d",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/1/dotcom-bust/1": {
+      "hash": "d7aa7875c6edd57985504ced2e8e5888954ef864461de23142a4d9808441504d",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/1/dotcom-bust/2": {
+      "hash": "3ee828a7b84085d018920185ec2a53d3960b47bf9fd612f6820d5705bdd925fa",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/1/web2/0": {
+      "hash": "fdc36bfc2cb9c0de04f48d1812a1483d87496b1eb17b3611b3fcd78eecf32562",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/1/web2/1": {
+      "hash": "fdc36bfc2cb9c0de04f48d1812a1483d87496b1eb17b3611b3fcd78eecf32562",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/1/web2/2": {
+      "hash": "fdc36bfc2cb9c0de04f48d1812a1483d87496b1eb17b3611b3fcd78eecf32562",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/2/null/0": {
+      "hash": "ff73aa978da6846163b736249d0e456a412b9689b911640d88e8ec326e38155a",
+      "triangles": 2266,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/2/null/1": {
+      "hash": "ff73aa978da6846163b736249d0e456a412b9689b911640d88e8ec326e38155a",
+      "triangles": 2266,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/2/null/2": {
+      "hash": "ff73aa978da6846163b736249d0e456a412b9689b911640d88e8ec326e38155a",
+      "triangles": 2266,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/2/preinternet/0": {
+      "hash": "89b6534d9e17c2ff257b198bde25b549cad0ce8fabfec20d4842985c6f1ea3b6",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/2/preinternet/1": {
+      "hash": "89b6534d9e17c2ff257b198bde25b549cad0ce8fabfec20d4842985c6f1ea3b6",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/2/preinternet/2": {
+      "hash": "89b6534d9e17c2ff257b198bde25b549cad0ce8fabfec20d4842985c6f1ea3b6",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/2/dotcom/0": {
+      "hash": "e24a00c63347ea163959dab3c6aa2dd66c69213c604a97f0e9a87cf2b4065ed6",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/2/dotcom/1": {
+      "hash": "e24a00c63347ea163959dab3c6aa2dd66c69213c604a97f0e9a87cf2b4065ed6",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/2/dotcom/2": {
+      "hash": "a05ad6cc3eca55c5fbe00102143e2e40177750e00190dd2098c31e0db39e0517",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/2/dotcom-bust/0": {
+      "hash": "e24a00c63347ea163959dab3c6aa2dd66c69213c604a97f0e9a87cf2b4065ed6",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/2/dotcom-bust/1": {
+      "hash": "e24a00c63347ea163959dab3c6aa2dd66c69213c604a97f0e9a87cf2b4065ed6",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/2/dotcom-bust/2": {
+      "hash": "a05ad6cc3eca55c5fbe00102143e2e40177750e00190dd2098c31e0db39e0517",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/2/web2/0": {
+      "hash": "bccdbeba488664650360f2fe70ec620673a1702b399f35f2a2c2dbce08f4fdb2",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/2/web2/1": {
+      "hash": "bccdbeba488664650360f2fe70ec620673a1702b399f35f2a2c2dbce08f4fdb2",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "designer/2/web2/2": {
+      "hash": "bccdbeba488664650360f2fe70ec620673a1702b399f35f2a2c2dbce08f4fdb2",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/0/null/0": {
+      "hash": "408d9c875d3c11f0c08ecfefd7fe70cedec6659af58548d741e3e9d261a9b7bc",
+      "triangles": 2174,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/0/null/1": {
+      "hash": "408d9c875d3c11f0c08ecfefd7fe70cedec6659af58548d741e3e9d261a9b7bc",
+      "triangles": 2174,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/0/null/2": {
+      "hash": "408d9c875d3c11f0c08ecfefd7fe70cedec6659af58548d741e3e9d261a9b7bc",
+      "triangles": 2174,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/0/preinternet/0": {
+      "hash": "5750d2d7ed0e04f26c75b85f02aabb797875fc847200ec5357624339d4e68b6f",
+      "triangles": 3202,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/0/preinternet/1": {
+      "hash": "5750d2d7ed0e04f26c75b85f02aabb797875fc847200ec5357624339d4e68b6f",
+      "triangles": 3202,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/0/preinternet/2": {
+      "hash": "5750d2d7ed0e04f26c75b85f02aabb797875fc847200ec5357624339d4e68b6f",
+      "triangles": 3202,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/0/dotcom/0": {
+      "hash": "cd0bc1dbcc62fb38ae999bb9bc11a747ccdce6904ae751fecc532f68331f7a14",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/0/dotcom/1": {
+      "hash": "cd0bc1dbcc62fb38ae999bb9bc11a747ccdce6904ae751fecc532f68331f7a14",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/0/dotcom/2": {
+      "hash": "62f5af1959e8904a13eb6fc124c9cef2b8ae43c96c07a8588172126023370d71",
+      "triangles": 4096,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/0/dotcom-bust/0": {
+      "hash": "cd0bc1dbcc62fb38ae999bb9bc11a747ccdce6904ae751fecc532f68331f7a14",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/0/dotcom-bust/1": {
+      "hash": "cd0bc1dbcc62fb38ae999bb9bc11a747ccdce6904ae751fecc532f68331f7a14",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/0/dotcom-bust/2": {
+      "hash": "62f5af1959e8904a13eb6fc124c9cef2b8ae43c96c07a8588172126023370d71",
+      "triangles": 4096,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/0/web2/0": {
+      "hash": "aa484d39c0e2db65d9699dc410d7457b3daa8bad8a4f5c04e1807fa3aeb32ec5",
+      "triangles": 2686,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/0/web2/1": {
+      "hash": "aa484d39c0e2db65d9699dc410d7457b3daa8bad8a4f5c04e1807fa3aeb32ec5",
+      "triangles": 2686,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/0/web2/2": {
+      "hash": "aa484d39c0e2db65d9699dc410d7457b3daa8bad8a4f5c04e1807fa3aeb32ec5",
+      "triangles": 2686,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/1/null/0": {
+      "hash": "ad5b30fe7056ff630904fd99f10af4fccbeba2f0c4284943fa8b7d9e9b8dbe8e",
+      "triangles": 2278,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/1/null/1": {
+      "hash": "ad5b30fe7056ff630904fd99f10af4fccbeba2f0c4284943fa8b7d9e9b8dbe8e",
+      "triangles": 2278,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/1/null/2": {
+      "hash": "ad5b30fe7056ff630904fd99f10af4fccbeba2f0c4284943fa8b7d9e9b8dbe8e",
+      "triangles": 2278,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/1/preinternet/0": {
+      "hash": "68afb77bb50cc0c14c959805e3967b79e7c8fd0c5f9e63b5ca8a2c46ef028a30",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/1/preinternet/1": {
+      "hash": "68afb77bb50cc0c14c959805e3967b79e7c8fd0c5f9e63b5ca8a2c46ef028a30",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/1/preinternet/2": {
+      "hash": "68afb77bb50cc0c14c959805e3967b79e7c8fd0c5f9e63b5ca8a2c46ef028a30",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/1/dotcom/0": {
+      "hash": "2644d06fc5d5c54de625d056d528ebd318a2c59377b9d5fd44df5c44d4354bb1",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/1/dotcom/1": {
+      "hash": "2644d06fc5d5c54de625d056d528ebd318a2c59377b9d5fd44df5c44d4354bb1",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/1/dotcom/2": {
+      "hash": "ce4ebbe003f79edcb4dda9fb209b44a313af498a62538ad47e2cc149e8cac8fa",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/1/dotcom-bust/0": {
+      "hash": "2644d06fc5d5c54de625d056d528ebd318a2c59377b9d5fd44df5c44d4354bb1",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/1/dotcom-bust/1": {
+      "hash": "2644d06fc5d5c54de625d056d528ebd318a2c59377b9d5fd44df5c44d4354bb1",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/1/dotcom-bust/2": {
+      "hash": "ce4ebbe003f79edcb4dda9fb209b44a313af498a62538ad47e2cc149e8cac8fa",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/1/web2/0": {
+      "hash": "55ae23ed0006f52df147b686d42d286277e0424542fc9e46dfac37b067dcac48",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/1/web2/1": {
+      "hash": "55ae23ed0006f52df147b686d42d286277e0424542fc9e46dfac37b067dcac48",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/1/web2/2": {
+      "hash": "55ae23ed0006f52df147b686d42d286277e0424542fc9e46dfac37b067dcac48",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/2/null/0": {
+      "hash": "db2d3dd0961ef6f47ca49b0a687d6c199bedec5724f3027408e7b038b823d7a0",
+      "triangles": 2278,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/2/null/1": {
+      "hash": "db2d3dd0961ef6f47ca49b0a687d6c199bedec5724f3027408e7b038b823d7a0",
+      "triangles": 2278,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/2/null/2": {
+      "hash": "db2d3dd0961ef6f47ca49b0a687d6c199bedec5724f3027408e7b038b823d7a0",
+      "triangles": 2278,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/2/preinternet/0": {
+      "hash": "e1f9c928316d13c7e980e32f467963cfcddef841c9f75755be7d5f7a965817cd",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/2/preinternet/1": {
+      "hash": "e1f9c928316d13c7e980e32f467963cfcddef841c9f75755be7d5f7a965817cd",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/2/preinternet/2": {
+      "hash": "e1f9c928316d13c7e980e32f467963cfcddef841c9f75755be7d5f7a965817cd",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/2/dotcom/0": {
+      "hash": "7409328fb62248f3309a2985cd6e28cc8d6b916a02c8a4e361d3342c25f6b13e",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/2/dotcom/1": {
+      "hash": "7409328fb62248f3309a2985cd6e28cc8d6b916a02c8a4e361d3342c25f6b13e",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/2/dotcom/2": {
+      "hash": "6de60712645eeb9fea8150c3695e41b37d09bd3df158037f98364e9290ba2715",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/2/dotcom-bust/0": {
+      "hash": "7409328fb62248f3309a2985cd6e28cc8d6b916a02c8a4e361d3342c25f6b13e",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/2/dotcom-bust/1": {
+      "hash": "7409328fb62248f3309a2985cd6e28cc8d6b916a02c8a4e361d3342c25f6b13e",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/2/dotcom-bust/2": {
+      "hash": "6de60712645eeb9fea8150c3695e41b37d09bd3df158037f98364e9290ba2715",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/2/web2/0": {
+      "hash": "26194da1fa0ca1d2db8164769a2d7320733387d3a7bd457b3a8ef1ac3eb2ae67",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/2/web2/1": {
+      "hash": "26194da1fa0ca1d2db8164769a2d7320733387d3a7bd457b3a8ef1ac3eb2ae67",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "marketer/2/web2/2": {
+      "hash": "26194da1fa0ca1d2db8164769a2d7320733387d3a7bd457b3a8ef1ac3eb2ae67",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/0/null/0": {
+      "hash": "97987174081a9eb364ef9b60a4616da44f0fe5b8e677757cad027630c6bdc31f",
+      "triangles": 5141,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/0/null/1": {
+      "hash": "97987174081a9eb364ef9b60a4616da44f0fe5b8e677757cad027630c6bdc31f",
+      "triangles": 5141,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/0/null/2": {
+      "hash": "97987174081a9eb364ef9b60a4616da44f0fe5b8e677757cad027630c6bdc31f",
+      "triangles": 5141,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/0/preinternet/0": {
+      "hash": "a920e36e2c8a404bbda949a0d84ee57d715a006200c20acc266146410cf82ded",
+      "triangles": 3574,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/0/preinternet/1": {
+      "hash": "a920e36e2c8a404bbda949a0d84ee57d715a006200c20acc266146410cf82ded",
+      "triangles": 3574,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/0/preinternet/2": {
+      "hash": "a920e36e2c8a404bbda949a0d84ee57d715a006200c20acc266146410cf82ded",
+      "triangles": 3574,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/0/dotcom/0": {
+      "hash": "16ce665cb108a30a7d6bbfe382ae51ee292577bbf5e6afcb4ae487f30b6802b8",
+      "triangles": 4852,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/0/dotcom/1": {
+      "hash": "16ce665cb108a30a7d6bbfe382ae51ee292577bbf5e6afcb4ae487f30b6802b8",
+      "triangles": 4852,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/0/dotcom/2": {
+      "hash": "61f2259786602dc7e843679c7eaa2ecc7b927abdc4245b6888d9f05a6347f242",
+      "triangles": 4468,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/0/dotcom-bust/0": {
+      "hash": "16ce665cb108a30a7d6bbfe382ae51ee292577bbf5e6afcb4ae487f30b6802b8",
+      "triangles": 4852,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/0/dotcom-bust/1": {
+      "hash": "16ce665cb108a30a7d6bbfe382ae51ee292577bbf5e6afcb4ae487f30b6802b8",
+      "triangles": 4852,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/0/dotcom-bust/2": {
+      "hash": "61f2259786602dc7e843679c7eaa2ecc7b927abdc4245b6888d9f05a6347f242",
+      "triangles": 4468,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/0/web2/0": {
+      "hash": "2ae28d059a01c6afeea578e253e174c728f0902d791a055a1407dd0646fed1f2",
+      "triangles": 3058,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/0/web2/1": {
+      "hash": "2ae28d059a01c6afeea578e253e174c728f0902d791a055a1407dd0646fed1f2",
+      "triangles": 3058,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/0/web2/2": {
+      "hash": "2ae28d059a01c6afeea578e253e174c728f0902d791a055a1407dd0646fed1f2",
+      "triangles": 3058,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/1/null/0": {
+      "hash": "98f4cf802144bdb180dbcd54db40007deeadd6d1a8e77f1047e9afe00aa977b1",
+      "triangles": 5245,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/1/null/1": {
+      "hash": "98f4cf802144bdb180dbcd54db40007deeadd6d1a8e77f1047e9afe00aa977b1",
+      "triangles": 5245,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/1/null/2": {
+      "hash": "98f4cf802144bdb180dbcd54db40007deeadd6d1a8e77f1047e9afe00aa977b1",
+      "triangles": 5245,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/1/preinternet/0": {
+      "hash": "1b9fb2d25efd3c0f183d8199430d104de8a6052b4f5f139bbfcafda3aa54fc57",
+      "triangles": 3678,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/1/preinternet/1": {
+      "hash": "1b9fb2d25efd3c0f183d8199430d104de8a6052b4f5f139bbfcafda3aa54fc57",
+      "triangles": 3678,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/1/preinternet/2": {
+      "hash": "1b9fb2d25efd3c0f183d8199430d104de8a6052b4f5f139bbfcafda3aa54fc57",
+      "triangles": 3678,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/1/dotcom/0": {
+      "hash": "00b52634cad1f7b5598893f604adb3b75a603b94950a79a3b328a9774d97f9ae",
+      "triangles": 4956,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/1/dotcom/1": {
+      "hash": "00b52634cad1f7b5598893f604adb3b75a603b94950a79a3b328a9774d97f9ae",
+      "triangles": 4956,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/1/dotcom/2": {
+      "hash": "8ddcd4a1c4582f71900ab37f7908e2bbb6a30681013e764204de896c4abb5bd2",
+      "triangles": 4572,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/1/dotcom-bust/0": {
+      "hash": "00b52634cad1f7b5598893f604adb3b75a603b94950a79a3b328a9774d97f9ae",
+      "triangles": 4956,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/1/dotcom-bust/1": {
+      "hash": "00b52634cad1f7b5598893f604adb3b75a603b94950a79a3b328a9774d97f9ae",
+      "triangles": 4956,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/1/dotcom-bust/2": {
+      "hash": "8ddcd4a1c4582f71900ab37f7908e2bbb6a30681013e764204de896c4abb5bd2",
+      "triangles": 4572,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/1/web2/0": {
+      "hash": "c33f5f50dc936473e2e9c7f2a26e26180cf05af2da11f0bb01f7083d590ebc1f",
+      "triangles": 3162,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/1/web2/1": {
+      "hash": "c33f5f50dc936473e2e9c7f2a26e26180cf05af2da11f0bb01f7083d590ebc1f",
+      "triangles": 3162,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/1/web2/2": {
+      "hash": "c33f5f50dc936473e2e9c7f2a26e26180cf05af2da11f0bb01f7083d590ebc1f",
+      "triangles": 3162,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/2/null/0": {
+      "hash": "b5a0ac470a984cf47c4917ac45bc090913cf5ed29e5ea72efe146c5c6bccf28b",
+      "triangles": 2410,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/2/null/1": {
+      "hash": "b5a0ac470a984cf47c4917ac45bc090913cf5ed29e5ea72efe146c5c6bccf28b",
+      "triangles": 2410,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/2/null/2": {
+      "hash": "b5a0ac470a984cf47c4917ac45bc090913cf5ed29e5ea72efe146c5c6bccf28b",
+      "triangles": 2410,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/2/preinternet/0": {
+      "hash": "c1ac8b31df4d1c27856332ff332d3ef6cd9b4e013a0f27d30610bdafd7b88204",
+      "triangles": 3678,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/2/preinternet/1": {
+      "hash": "c1ac8b31df4d1c27856332ff332d3ef6cd9b4e013a0f27d30610bdafd7b88204",
+      "triangles": 3678,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/2/preinternet/2": {
+      "hash": "c1ac8b31df4d1c27856332ff332d3ef6cd9b4e013a0f27d30610bdafd7b88204",
+      "triangles": 3678,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/2/dotcom/0": {
+      "hash": "0c2a276fe0f7bffc0a43150fd491a8c6a9e73f6efabdfeeb484198f8afbf3fba",
+      "triangles": 4956,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/2/dotcom/1": {
+      "hash": "0c2a276fe0f7bffc0a43150fd491a8c6a9e73f6efabdfeeb484198f8afbf3fba",
+      "triangles": 4956,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/2/dotcom/2": {
+      "hash": "207af3fed927637cdfb1dcea78f5ca60f56da74b6ae5ab1712a7123f99f4c770",
+      "triangles": 4572,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/2/dotcom-bust/0": {
+      "hash": "0c2a276fe0f7bffc0a43150fd491a8c6a9e73f6efabdfeeb484198f8afbf3fba",
+      "triangles": 4956,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/2/dotcom-bust/1": {
+      "hash": "0c2a276fe0f7bffc0a43150fd491a8c6a9e73f6efabdfeeb484198f8afbf3fba",
+      "triangles": 4956,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/2/dotcom-bust/2": {
+      "hash": "207af3fed927637cdfb1dcea78f5ca60f56da74b6ae5ab1712a7123f99f4c770",
+      "triangles": 4572,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/2/web2/0": {
+      "hash": "7db27a681011fbb5e1342e73e4961cdbd4170b686df9c9b7451a8ac8244566bd",
+      "triangles": 3162,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/2/web2/1": {
+      "hash": "7db27a681011fbb5e1342e73e4961cdbd4170b686df9c9b7451a8ac8244566bd",
+      "triangles": 3162,
+      "draws": 6,
+      "textures": 0
+    },
+    "support/2/web2/2": {
+      "hash": "7db27a681011fbb5e1342e73e4961cdbd4170b686df9c9b7451a8ac8244566bd",
+      "triangles": 3162,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/0/null/0": {
+      "hash": "79aa71c82e21a3f30578d3a8b1753434a77ef2aa812d9842a63fa77a30070d2f",
+      "triangles": 2410,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/0/null/1": {
+      "hash": "79aa71c82e21a3f30578d3a8b1753434a77ef2aa812d9842a63fa77a30070d2f",
+      "triangles": 2410,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/0/null/2": {
+      "hash": "79aa71c82e21a3f30578d3a8b1753434a77ef2aa812d9842a63fa77a30070d2f",
+      "triangles": 2410,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/0/preinternet/0": {
+      "hash": "6407d2ee74f87b30a9a8b2420740b111cceb8c4975b91a83a1ce18c52d74af44",
+      "triangles": 3202,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/0/preinternet/1": {
+      "hash": "6407d2ee74f87b30a9a8b2420740b111cceb8c4975b91a83a1ce18c52d74af44",
+      "triangles": 3202,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/0/preinternet/2": {
+      "hash": "6407d2ee74f87b30a9a8b2420740b111cceb8c4975b91a83a1ce18c52d74af44",
+      "triangles": 3202,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/0/dotcom/0": {
+      "hash": "1ca8cd853311a21a42de7120efcd3d1fc588d15b13f3aed0152cd3a81d8af807",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/0/dotcom/1": {
+      "hash": "1ca8cd853311a21a42de7120efcd3d1fc588d15b13f3aed0152cd3a81d8af807",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/0/dotcom/2": {
+      "hash": "d262843af48cb0cf2326bb905bed5068dd374465eef82f6c148d41a0b9762f9d",
+      "triangles": 4096,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/0/dotcom-bust/0": {
+      "hash": "1ca8cd853311a21a42de7120efcd3d1fc588d15b13f3aed0152cd3a81d8af807",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/0/dotcom-bust/1": {
+      "hash": "1ca8cd853311a21a42de7120efcd3d1fc588d15b13f3aed0152cd3a81d8af807",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/0/dotcom-bust/2": {
+      "hash": "d262843af48cb0cf2326bb905bed5068dd374465eef82f6c148d41a0b9762f9d",
+      "triangles": 4096,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/0/web2/0": {
+      "hash": "a72ac8d87e258b420ec58310faee7fe0741061154a7a08e06061c31852b1c84b",
+      "triangles": 2686,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/0/web2/1": {
+      "hash": "a72ac8d87e258b420ec58310faee7fe0741061154a7a08e06061c31852b1c84b",
+      "triangles": 2686,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/0/web2/2": {
+      "hash": "a72ac8d87e258b420ec58310faee7fe0741061154a7a08e06061c31852b1c84b",
+      "triangles": 2686,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/1/null/0": {
+      "hash": "1c915c7b84e0b001a556a9fb08e512c10dba31e4e9151a31540775adaca59299",
+      "triangles": 2514,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/1/null/1": {
+      "hash": "1c915c7b84e0b001a556a9fb08e512c10dba31e4e9151a31540775adaca59299",
+      "triangles": 2514,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/1/null/2": {
+      "hash": "1c915c7b84e0b001a556a9fb08e512c10dba31e4e9151a31540775adaca59299",
+      "triangles": 2514,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/1/preinternet/0": {
+      "hash": "420e7bc041a137799732a34053460d0a78d0eeed5efb3d98ff0b76610f87ff51",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/1/preinternet/1": {
+      "hash": "420e7bc041a137799732a34053460d0a78d0eeed5efb3d98ff0b76610f87ff51",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/1/preinternet/2": {
+      "hash": "420e7bc041a137799732a34053460d0a78d0eeed5efb3d98ff0b76610f87ff51",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/1/dotcom/0": {
+      "hash": "77ea0c22d1f271a7855d98b2e7908a337242b5c644028f04f1eb602c4b38ff40",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/1/dotcom/1": {
+      "hash": "77ea0c22d1f271a7855d98b2e7908a337242b5c644028f04f1eb602c4b38ff40",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/1/dotcom/2": {
+      "hash": "2d339c858f9aaac4b2fea4af67740e435aad3bb1db95dc6c372306db51a5343c",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/1/dotcom-bust/0": {
+      "hash": "77ea0c22d1f271a7855d98b2e7908a337242b5c644028f04f1eb602c4b38ff40",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/1/dotcom-bust/1": {
+      "hash": "77ea0c22d1f271a7855d98b2e7908a337242b5c644028f04f1eb602c4b38ff40",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/1/dotcom-bust/2": {
+      "hash": "2d339c858f9aaac4b2fea4af67740e435aad3bb1db95dc6c372306db51a5343c",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/1/web2/0": {
+      "hash": "0e29b410d1bfef1500457805a1fd4bd0d1a5ace5e13753a30a19d60cd6dd765b",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/1/web2/1": {
+      "hash": "0e29b410d1bfef1500457805a1fd4bd0d1a5ace5e13753a30a19d60cd6dd765b",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/1/web2/2": {
+      "hash": "0e29b410d1bfef1500457805a1fd4bd0d1a5ace5e13753a30a19d60cd6dd765b",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/2/null/0": {
+      "hash": "f93bb1abbaa356fc69827291dde5122dd435455a926147d5a417f1b6bd7adc20",
+      "triangles": 2514,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/2/null/1": {
+      "hash": "f93bb1abbaa356fc69827291dde5122dd435455a926147d5a417f1b6bd7adc20",
+      "triangles": 2514,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/2/null/2": {
+      "hash": "f93bb1abbaa356fc69827291dde5122dd435455a926147d5a417f1b6bd7adc20",
+      "triangles": 2514,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/2/preinternet/0": {
+      "hash": "77771d5821d6631000f31400d3451309c276cce599a9fc58913f0f3201e1e1ab",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/2/preinternet/1": {
+      "hash": "77771d5821d6631000f31400d3451309c276cce599a9fc58913f0f3201e1e1ab",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/2/preinternet/2": {
+      "hash": "77771d5821d6631000f31400d3451309c276cce599a9fc58913f0f3201e1e1ab",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/2/dotcom/0": {
+      "hash": "013e5458e5134f3b8164b870889dfb7f16a1d0e20780467d0e97ac4124c8bf5a",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/2/dotcom/1": {
+      "hash": "013e5458e5134f3b8164b870889dfb7f16a1d0e20780467d0e97ac4124c8bf5a",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/2/dotcom/2": {
+      "hash": "b88c9dea24810de90bcec97580be040b1e959f2f9eb79a990225bd14bd884a2d",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/2/dotcom-bust/0": {
+      "hash": "013e5458e5134f3b8164b870889dfb7f16a1d0e20780467d0e97ac4124c8bf5a",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/2/dotcom-bust/1": {
+      "hash": "013e5458e5134f3b8164b870889dfb7f16a1d0e20780467d0e97ac4124c8bf5a",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/2/dotcom-bust/2": {
+      "hash": "b88c9dea24810de90bcec97580be040b1e959f2f9eb79a990225bd14bd884a2d",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/2/web2/0": {
+      "hash": "720bff8b16abc1d185a42abbbac3a21cbab3842af7331cf5d9032b3276f08e2b",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/2/web2/1": {
+      "hash": "720bff8b16abc1d185a42abbbac3a21cbab3842af7331cf5d9032b3276f08e2b",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "security/2/web2/2": {
+      "hash": "720bff8b16abc1d185a42abbbac3a21cbab3842af7331cf5d9032b3276f08e2b",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/0/null/0": {
+      "hash": "bd3383035594246ffe834d7352c59848ff1f02f6c04b0044723de411607913a8",
+      "triangles": 2218,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/0/null/1": {
+      "hash": "bd3383035594246ffe834d7352c59848ff1f02f6c04b0044723de411607913a8",
+      "triangles": 2218,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/0/null/2": {
+      "hash": "bd3383035594246ffe834d7352c59848ff1f02f6c04b0044723de411607913a8",
+      "triangles": 2218,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/0/preinternet/0": {
+      "hash": "4698077d229bc77920560c7efaed53c6ad1515b71d7c2e2ffc44c7a2f5e1d23e",
+      "triangles": 3202,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/0/preinternet/1": {
+      "hash": "4698077d229bc77920560c7efaed53c6ad1515b71d7c2e2ffc44c7a2f5e1d23e",
+      "triangles": 3202,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/0/preinternet/2": {
+      "hash": "4698077d229bc77920560c7efaed53c6ad1515b71d7c2e2ffc44c7a2f5e1d23e",
+      "triangles": 3202,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/0/dotcom/0": {
+      "hash": "cec663f7ef620483b17c9d947de932d2ba69b9add59d446ec6db6d84604e55fd",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/0/dotcom/1": {
+      "hash": "cec663f7ef620483b17c9d947de932d2ba69b9add59d446ec6db6d84604e55fd",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/0/dotcom/2": {
+      "hash": "e74cdfb9abb3029a6632333c564e2e014f56f96bd52131468b707f12013a1cbb",
+      "triangles": 4096,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/0/dotcom-bust/0": {
+      "hash": "cec663f7ef620483b17c9d947de932d2ba69b9add59d446ec6db6d84604e55fd",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/0/dotcom-bust/1": {
+      "hash": "cec663f7ef620483b17c9d947de932d2ba69b9add59d446ec6db6d84604e55fd",
+      "triangles": 4480,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/0/dotcom-bust/2": {
+      "hash": "e74cdfb9abb3029a6632333c564e2e014f56f96bd52131468b707f12013a1cbb",
+      "triangles": 4096,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/0/web2/0": {
+      "hash": "f4452ea6d3ce527c502cd3eff8721d442181c4bc7b6c795ed851a8733c1f5c59",
+      "triangles": 2686,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/0/web2/1": {
+      "hash": "f4452ea6d3ce527c502cd3eff8721d442181c4bc7b6c795ed851a8733c1f5c59",
+      "triangles": 2686,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/0/web2/2": {
+      "hash": "f4452ea6d3ce527c502cd3eff8721d442181c4bc7b6c795ed851a8733c1f5c59",
+      "triangles": 2686,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/1/null/0": {
+      "hash": "325211d3d7742ed406e8c11d02bb1195370d6234ae73591ef6250ec8af760384",
+      "triangles": 2322,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/1/null/1": {
+      "hash": "325211d3d7742ed406e8c11d02bb1195370d6234ae73591ef6250ec8af760384",
+      "triangles": 2322,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/1/null/2": {
+      "hash": "325211d3d7742ed406e8c11d02bb1195370d6234ae73591ef6250ec8af760384",
+      "triangles": 2322,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/1/preinternet/0": {
+      "hash": "9b7a0db718ecadfec2d8f8fb72bfca0d440e2d694f0137a76dda41c51e7396d3",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/1/preinternet/1": {
+      "hash": "9b7a0db718ecadfec2d8f8fb72bfca0d440e2d694f0137a76dda41c51e7396d3",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/1/preinternet/2": {
+      "hash": "9b7a0db718ecadfec2d8f8fb72bfca0d440e2d694f0137a76dda41c51e7396d3",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/1/dotcom/0": {
+      "hash": "27c4e4e61b24995a6b060cce011eb4393b1305760d11d7781d391c6f9159fa4c",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/1/dotcom/1": {
+      "hash": "27c4e4e61b24995a6b060cce011eb4393b1305760d11d7781d391c6f9159fa4c",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/1/dotcom/2": {
+      "hash": "bc815866a84a264129c05135a77d2175d5d66dda77b5199e1a106ec7a9276e9d",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/1/dotcom-bust/0": {
+      "hash": "27c4e4e61b24995a6b060cce011eb4393b1305760d11d7781d391c6f9159fa4c",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/1/dotcom-bust/1": {
+      "hash": "27c4e4e61b24995a6b060cce011eb4393b1305760d11d7781d391c6f9159fa4c",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/1/dotcom-bust/2": {
+      "hash": "bc815866a84a264129c05135a77d2175d5d66dda77b5199e1a106ec7a9276e9d",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/1/web2/0": {
+      "hash": "06ea6e91f9730c414c4df5f7a37c77bc5bce32caf62f64cbaf9470ac122b5a5f",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/1/web2/1": {
+      "hash": "06ea6e91f9730c414c4df5f7a37c77bc5bce32caf62f64cbaf9470ac122b5a5f",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/1/web2/2": {
+      "hash": "06ea6e91f9730c414c4df5f7a37c77bc5bce32caf62f64cbaf9470ac122b5a5f",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/2/null/0": {
+      "hash": "044b07b53e458908998511a865cf71ae7fa8fc518cf3b6097e2adb1d3bf936a8",
+      "triangles": 2322,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/2/null/1": {
+      "hash": "044b07b53e458908998511a865cf71ae7fa8fc518cf3b6097e2adb1d3bf936a8",
+      "triangles": 2322,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/2/null/2": {
+      "hash": "044b07b53e458908998511a865cf71ae7fa8fc518cf3b6097e2adb1d3bf936a8",
+      "triangles": 2322,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/2/preinternet/0": {
+      "hash": "13a19462cb964c065d008c666208a5f0981731784df63b3c2682883a183d384d",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/2/preinternet/1": {
+      "hash": "13a19462cb964c065d008c666208a5f0981731784df63b3c2682883a183d384d",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/2/preinternet/2": {
+      "hash": "13a19462cb964c065d008c666208a5f0981731784df63b3c2682883a183d384d",
+      "triangles": 3306,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/2/dotcom/0": {
+      "hash": "c2f9e87ef3566983841333a5e882d6a9ed0bd426a69b2c5990379a863be127c0",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/2/dotcom/1": {
+      "hash": "c2f9e87ef3566983841333a5e882d6a9ed0bd426a69b2c5990379a863be127c0",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/2/dotcom/2": {
+      "hash": "81d93ead8ee77786b18630b5595c85b21c79aa5930319cdd365f11a3457708c7",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/2/dotcom-bust/0": {
+      "hash": "c2f9e87ef3566983841333a5e882d6a9ed0bd426a69b2c5990379a863be127c0",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/2/dotcom-bust/1": {
+      "hash": "c2f9e87ef3566983841333a5e882d6a9ed0bd426a69b2c5990379a863be127c0",
+      "triangles": 4584,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/2/dotcom-bust/2": {
+      "hash": "81d93ead8ee77786b18630b5595c85b21c79aa5930319cdd365f11a3457708c7",
+      "triangles": 4200,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/2/web2/0": {
+      "hash": "5deac177cb92de3a1684f2553d6044c009a21402aac2f32c8db27995beaa6d14",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/2/web2/1": {
+      "hash": "5deac177cb92de3a1684f2553d6044c009a21402aac2f32c8db27995beaa6d14",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    },
+    "sales/2/web2/2": {
+      "hash": "5deac177cb92de3a1684f2553d6044c009a21402aac2f32c8db27995beaa6d14",
+      "triangles": 2790,
+      "draws": 6,
+      "textures": 0
+    }
+  },
+  "tees": {
+    "0/parcel_paws": {
+      "hash": "e30256d4de79f9a7ac9807c41c99cc840375b1bfe36bcd17aa8fadc8360c30f1",
+      "triangles": 3068,
+      "draws": 6,
+      "textures": 0
+    },
+    "0/onlineland": {
+      "hash": "604def8267801ae5ef96bffc58d60b797babd7820c0e352819e49991f5bd7ade",
+      "triangles": 2452,
+      "draws": 6,
+      "textures": 0
+    },
+    "0/y2k": {
+      "hash": "be9e8fe2ccbab94bfcd33156660c1b3103d86722f9b36513d81555e3a6c805f5",
+      "triangles": 2691,
+      "draws": 6,
+      "textures": 0
+    },
+    "0/shoutbook": {
+      "hash": "0b466d0437a249ffa0c1de65481cc11ce85adf0c83d72a2a95bd69813c1625ec",
+      "triangles": 2598,
+      "draws": 6,
+      "textures": 0
+    },
+    "0/tuesday": {
+      "hash": "947c57cafa39e41d6400dc6664fc78d8931c2701e49d03fc1afe6c54f162bfae",
+      "triangles": 2930,
+      "draws": 6,
+      "textures": 0
+    },
+    "0/beta_forever": {
+      "hash": "a49c29b201a6023fe425ba8edf90f3f6979e902083aefaabb75abc392d3312b2",
+      "triangles": 2934,
+      "draws": 6,
+      "textures": 0
+    },
+    "0/weekend": {
+      "hash": "b4807f311b1473599d6755b24e6f0800e21f1996ba56cc436a7d2585fb2dd0d3",
+      "triangles": 2956,
+      "draws": 6,
+      "textures": 0
+    },
+    "0/ship_it": {
+      "hash": "15a96bec546256009df1af013b02056f1a915194578ea7c496d5336d56322a1c",
+      "triangles": 2927,
+      "draws": 6,
+      "textures": 0
+    },
+    "1/parcel_paws": {
+      "hash": "c539fe903a5530fd0f4976903249f0d955adcc06e018fe3d9d6a9e6fd2faee11",
+      "triangles": 3172,
+      "draws": 6,
+      "textures": 0
+    },
+    "1/onlineland": {
+      "hash": "9bd28672a56380d96f6dd2f3e4007dfd9f253eafd5fc0dffed46251dd5d7c4b9",
+      "triangles": 2556,
+      "draws": 6,
+      "textures": 0
+    },
+    "1/y2k": {
+      "hash": "19683e5fb40616a46335fb98edc3bd00b4f6fe6929cb018c42d7a62969642e08",
+      "triangles": 2795,
+      "draws": 6,
+      "textures": 0
+    },
+    "1/shoutbook": {
+      "hash": "c025db5c80708055d1b66bf12e6f5641fdd0d72817b32a87932dcb09310a8ec5",
+      "triangles": 2702,
+      "draws": 6,
+      "textures": 0
+    },
+    "1/tuesday": {
+      "hash": "8bba4014903ebed3e885010518e86cf3e7148106e67694a9d40287fe65ab4d71",
+      "triangles": 3034,
+      "draws": 6,
+      "textures": 0
+    },
+    "1/beta_forever": {
+      "hash": "1ce2afd472ddb4355dbd00621569c647c52e5845db23d5aa957640fdfe2021f9",
+      "triangles": 3038,
+      "draws": 6,
+      "textures": 0
+    },
+    "1/weekend": {
+      "hash": "1e718c25ab6040cb80b775cfbc4370d116991710870d81d3501774ff952bc130",
+      "triangles": 3060,
+      "draws": 6,
+      "textures": 0
+    },
+    "1/ship_it": {
+      "hash": "59f5d4c49dc7b2ff4b7e804dbca895e4bb85f4a494874c3b99018dc8791d4dbe",
+      "triangles": 3031,
+      "draws": 6,
+      "textures": 0
+    },
+    "2/parcel_paws": {
+      "hash": "ea1a9382961aadeac8e6ad56fd9ba9703811eeaaa63fc79cf3f9ab555c20f477",
+      "triangles": 3172,
+      "draws": 6,
+      "textures": 0
+    },
+    "2/onlineland": {
+      "hash": "0fb67f3dbb644cd1d03a0e5f350508ec9c792a467d76f3d7a09c6b724d52fc30",
+      "triangles": 2556,
+      "draws": 6,
+      "textures": 0
+    },
+    "2/y2k": {
+      "hash": "ba889576e95ac05bfff867a9b4ab46816ea152d58613c7e0badf87ca39fea457",
+      "triangles": 2795,
+      "draws": 6,
+      "textures": 0
+    },
+    "2/shoutbook": {
+      "hash": "e90e89fe55f61971627e76c600beccc27d5d868d7d2317e9cec0414f7c188fc1",
+      "triangles": 2702,
+      "draws": 6,
+      "textures": 0
+    },
+    "2/tuesday": {
+      "hash": "0abe3ad28727971a05d5647bf85ca53d15f25290bd06ad0a579b53d5a1f38acb",
+      "triangles": 3034,
+      "draws": 6,
+      "textures": 0
+    },
+    "2/beta_forever": {
+      "hash": "974dbcb1af7d928e3c0043fb90d91604daf66fd4cad168da6912eafa35e3bb65",
+      "triangles": 3038,
+      "draws": 6,
+      "textures": 0
+    },
+    "2/weekend": {
+      "hash": "82e8bce1e646caf9fa81b8db9c424e63f9ad88b0d6cbcb32f4de57243ee8c15b",
+      "triangles": 3060,
+      "draws": 6,
+      "textures": 0
+    },
+    "2/ship_it": {
+      "hash": "f9db75b602c4c98c608ae4b503d4e4761abda3a220e2c80e24016460058b1248",
+      "triangles": 3031,
+      "draws": 6,
+      "textures": 0
+    }
+  }
+}

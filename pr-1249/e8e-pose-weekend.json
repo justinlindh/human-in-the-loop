@@ -1,0 +1,2482 @@
+{
+ "axes": {
+  "views": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "postures": [
+   "stand",
+   "sit"
+  ],
+  "builds": [
+   0,
+   1,
+   2
+  ],
+  "rig": [
+   "on",
+   "off"
+  ],
+  "accessory": [
+   "none"
+  ],
+  "side": [
+   "game"
+  ],
+  "cause": [
+   "none"
+  ]
+ },
+ "cells": [
+  {
+   "posture": "stand",
+   "build": 0,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 0,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 4.7,
+     "median": 6.8,
+     "max": 37.2
+    },
+    "hand0Eye": {
+     "min": 0.0667,
+     "median": 0.0687,
+     "max": 0.5474
+    },
+    "hand1Eye": {
+     "min": 0.5784,
+     "median": 0.5965,
+     "max": 0.5975
+    },
+    "clearance": {
+     "min": 0.0583,
+     "median": 0.0609,
+     "max": 0.3031
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.879,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 66,
+     "worstT": 1.033323
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 0,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 1,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 0.947,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 71.9,
+     "median": 73.9,
+     "max": 74.5
+    },
+    "hand0Eye": {
+     "min": 0.0667,
+     "median": 0.0687,
+     "max": 0.5474
+    },
+    "hand1Eye": {
+     "min": 0.5784,
+     "median": 0.5965,
+     "max": 0.5975
+    },
+    "clearance": {
+     "min": 0.0583,
+     "median": 0.0609,
+     "max": 0.3031
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.879,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 66,
+     "worstT": 1.033323
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 0,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 2,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "faceCam": {
+     "min": 114.2,
+     "median": 116.3,
+     "max": 137.4
+    },
+    "hand0Eye": {
+     "min": 0.0667,
+     "median": 0.0687,
+     "max": 0.5474
+    },
+    "hand1Eye": {
+     "min": 0.5784,
+     "median": 0.5965,
+     "max": 0.5975
+    },
+    "clearance": {
+     "min": 0.0583,
+     "median": 0.0609,
+     "max": 0.3031
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "na": true,
+     "gap": 0,
+     "frames": 0
+    }
+   ],
+   "pass": true,
+   "na": true
+  },
+  {
+   "posture": "stand",
+   "build": 0,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": -1,
+   "view": 3,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 104.4
+    },
+    "hand0Eye": {
+     "min": 0.5474,
+     "median": 0.5965,
+     "max": 0.5975
+    },
+    "hand1Eye": {
+     "min": 0.0667,
+     "median": 0.0687,
+     "max": 0.5785
+    },
+    "clearance": {
+     "min": 0.0583,
+     "median": 0.0609,
+     "max": 0.3031
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.983,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 59,
+     "worstT": 1.266654
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 0,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 0,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 4.7,
+     "median": 6.8,
+     "max": 35.3
+    },
+    "hand0Eye": {
+     "min": 0.0666,
+     "median": 0.0685,
+     "max": 0.5541
+    },
+    "hand1Eye": {
+     "min": 0.5599,
+     "median": 0.5965,
+     "max": 0.5975
+    },
+    "clearance": {
+     "min": 0.0583,
+     "median": 0.0607,
+     "max": 0.3063
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.924,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 66,
+     "worstT": 1.033323
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 0,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 1,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 0.947,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 90
+    },
+    "hand0Eye": {
+     "min": 0.0666,
+     "median": 0.0685,
+     "max": 0.5541
+    },
+    "hand1Eye": {
+     "min": 0.5599,
+     "median": 0.5965,
+     "max": 0.5975
+    },
+    "clearance": {
+     "min": 0.0583,
+     "median": 0.0607,
+     "max": 0.3063
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.938,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 64,
+     "worstT": 1.099989
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 0,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 2,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "faceCam": {
+     "min": 114.2,
+     "median": 116.3,
+     "max": 144.7
+    },
+    "hand0Eye": {
+     "min": 0.0666,
+     "median": 0.0685,
+     "max": 0.5541
+    },
+    "hand1Eye": {
+     "min": 0.5599,
+     "median": 0.5965,
+     "max": 0.5975
+    },
+    "clearance": {
+     "min": 0.0583,
+     "median": 0.0607,
+     "max": 0.3063
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "na": true,
+     "gap": 0,
+     "frames": 0
+    }
+   ],
+   "pass": true,
+   "na": true
+  },
+  {
+   "posture": "stand",
+   "build": 0,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": -1,
+   "view": 3,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 90
+    },
+    "hand0Eye": {
+     "min": 0.5541,
+     "median": 0.5965,
+     "max": 0.5975
+    },
+    "hand1Eye": {
+     "min": 0.0666,
+     "median": 0.0685,
+     "max": 0.5599
+    },
+    "clearance": {
+     "min": 0.0583,
+     "median": 0.0607,
+     "max": 0.3063
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.938,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 64,
+     "worstT": 1.099989
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 1,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 0,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 4.7,
+     "median": 6.8,
+     "max": 37.2
+    },
+    "hand0Eye": {
+     "min": 0.0631,
+     "median": 0.065,
+     "max": 0.5477
+    },
+    "hand1Eye": {
+     "min": 0.5826,
+     "median": 0.6004,
+     "max": 0.6014
+    },
+    "clearance": {
+     "min": 0.0553,
+     "median": 0.0572,
+     "max": 0.3083
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.879,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 66,
+     "worstT": 1.033323
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 1,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 1,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 71.9,
+     "median": 73.9,
+     "max": 74.5
+    },
+    "hand0Eye": {
+     "min": 0.0631,
+     "median": 0.065,
+     "max": 0.5477
+    },
+    "hand1Eye": {
+     "min": 0.5826,
+     "median": 0.6004,
+     "max": 0.6014
+    },
+    "clearance": {
+     "min": 0.0553,
+     "median": 0.0572,
+     "max": 0.3083
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.879,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 66,
+     "worstT": 1.033323
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 1,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 2,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "faceCam": {
+     "min": 114.2,
+     "median": 116.3,
+     "max": 137.4
+    },
+    "hand0Eye": {
+     "min": 0.0631,
+     "median": 0.065,
+     "max": 0.5477
+    },
+    "hand1Eye": {
+     "min": 0.5826,
+     "median": 0.6004,
+     "max": 0.6014
+    },
+    "clearance": {
+     "min": 0.0553,
+     "median": 0.0572,
+     "max": 0.3083
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "na": true,
+     "gap": 0,
+     "frames": 0
+    }
+   ],
+   "pass": true,
+   "na": true
+  },
+  {
+   "posture": "stand",
+   "build": 1,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": -1,
+   "view": 3,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 104.4
+    },
+    "hand0Eye": {
+     "min": 0.5477,
+     "median": 0.6004,
+     "max": 0.6014
+    },
+    "hand1Eye": {
+     "min": 0.0631,
+     "median": 0.065,
+     "max": 0.5828
+    },
+    "clearance": {
+     "min": 0.0553,
+     "median": 0.0572,
+     "max": 0.3083
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.983,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 59,
+     "worstT": 1.266654
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 1,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 0,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 4.7,
+     "median": 6.8,
+     "max": 35.3
+    },
+    "hand0Eye": {
+     "min": 0.0631,
+     "median": 0.0648,
+     "max": 0.5564
+    },
+    "hand1Eye": {
+     "min": 0.5624,
+     "median": 0.6004,
+     "max": 0.6014
+    },
+    "clearance": {
+     "min": 0.0553,
+     "median": 0.057,
+     "max": 0.3117
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.924,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 66,
+     "worstT": 1.033323
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 1,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 1,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 90
+    },
+    "hand0Eye": {
+     "min": 0.0631,
+     "median": 0.0648,
+     "max": 0.5564
+    },
+    "hand1Eye": {
+     "min": 0.5624,
+     "median": 0.6004,
+     "max": 0.6014
+    },
+    "clearance": {
+     "min": 0.0553,
+     "median": 0.057,
+     "max": 0.3117
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.938,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 64,
+     "worstT": 1.099989
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 1,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 2,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "faceCam": {
+     "min": 114.2,
+     "median": 116.3,
+     "max": 144.7
+    },
+    "hand0Eye": {
+     "min": 0.0631,
+     "median": 0.0648,
+     "max": 0.5564
+    },
+    "hand1Eye": {
+     "min": 0.5624,
+     "median": 0.6004,
+     "max": 0.6014
+    },
+    "clearance": {
+     "min": 0.0553,
+     "median": 0.057,
+     "max": 0.3117
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "na": true,
+     "gap": 0,
+     "frames": 0
+    }
+   ],
+   "pass": true,
+   "na": true
+  },
+  {
+   "posture": "stand",
+   "build": 1,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": -1,
+   "view": 3,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 90
+    },
+    "hand0Eye": {
+     "min": 0.5564,
+     "median": 0.6004,
+     "max": 0.6014
+    },
+    "hand1Eye": {
+     "min": 0.0631,
+     "median": 0.0648,
+     "max": 0.5624
+    },
+    "clearance": {
+     "min": 0.0553,
+     "median": 0.057,
+     "max": 0.3117
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.938,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 64,
+     "worstT": 1.099989
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 2,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 0,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 4.7,
+     "median": 6.8,
+     "max": 37.2
+    },
+    "hand0Eye": {
+     "min": 0.0568,
+     "median": 0.0586,
+     "max": 0.5494
+    },
+    "hand1Eye": {
+     "min": 0.5903,
+     "median": 0.6075,
+     "max": 0.6083
+    },
+    "clearance": {
+     "min": 0.0491,
+     "median": 0.0509,
+     "max": 0.3184
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.879,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 66,
+     "worstT": 1.033323
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 2,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 1,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 71.9,
+     "median": 73.9,
+     "max": 74.5
+    },
+    "hand0Eye": {
+     "min": 0.0568,
+     "median": 0.0586,
+     "max": 0.5494
+    },
+    "hand1Eye": {
+     "min": 0.5903,
+     "median": 0.6075,
+     "max": 0.6083
+    },
+    "clearance": {
+     "min": 0.0491,
+     "median": 0.0509,
+     "max": 0.3184
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.879,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 66,
+     "worstT": 1.033323
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 2,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 2,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "faceCam": {
+     "min": 114.2,
+     "median": 116.3,
+     "max": 137.4
+    },
+    "hand0Eye": {
+     "min": 0.0568,
+     "median": 0.0586,
+     "max": 0.5494
+    },
+    "hand1Eye": {
+     "min": 0.5903,
+     "median": 0.6075,
+     "max": 0.6083
+    },
+    "clearance": {
+     "min": 0.0491,
+     "median": 0.0509,
+     "max": 0.3184
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "na": true,
+     "gap": 0,
+     "frames": 0
+    }
+   ],
+   "pass": true,
+   "na": true
+  },
+  {
+   "posture": "stand",
+   "build": 2,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": -1,
+   "view": 3,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 104.4
+    },
+    "hand0Eye": {
+     "min": 0.5494,
+     "median": 0.6075,
+     "max": 0.6083
+    },
+    "hand1Eye": {
+     "min": 0.0568,
+     "median": 0.0586,
+     "max": 0.5905
+    },
+    "clearance": {
+     "min": 0.0491,
+     "median": 0.0509,
+     "max": 0.3184
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.983,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 59,
+     "worstT": 1.266654
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 2,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 0,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 4.7,
+     "median": 6.8,
+     "max": 35.3
+    },
+    "hand0Eye": {
+     "min": 0.0568,
+     "median": 0.0584,
+     "max": 0.5611
+    },
+    "hand1Eye": {
+     "min": 0.5675,
+     "median": 0.6075,
+     "max": 0.6083
+    },
+    "clearance": {
+     "min": 0.0491,
+     "median": 0.0506,
+     "max": 0.322
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.924,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 66,
+     "worstT": 1.033323
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 2,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 1,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 90
+    },
+    "hand0Eye": {
+     "min": 0.0568,
+     "median": 0.0584,
+     "max": 0.5611
+    },
+    "hand1Eye": {
+     "min": 0.5675,
+     "median": 0.6075,
+     "max": 0.6083
+    },
+    "clearance": {
+     "min": 0.0491,
+     "median": 0.0506,
+     "max": 0.322
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.938,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 64,
+     "worstT": 1.099989
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 2,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 2,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "faceCam": {
+     "min": 114.2,
+     "median": 116.3,
+     "max": 144.7
+    },
+    "hand0Eye": {
+     "min": 0.0568,
+     "median": 0.0584,
+     "max": 0.5611
+    },
+    "hand1Eye": {
+     "min": 0.5675,
+     "median": 0.6075,
+     "max": 0.6083
+    },
+    "clearance": {
+     "min": 0.0491,
+     "median": 0.0506,
+     "max": 0.322
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "na": true,
+     "gap": 0,
+     "frames": 0
+    }
+   ],
+   "pass": true,
+   "na": true
+  },
+  {
+   "posture": "stand",
+   "build": 2,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": -1,
+   "view": 3,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 90
+    },
+    "hand0Eye": {
+     "min": 0.5611,
+     "median": 0.6075,
+     "max": 0.6083
+    },
+    "hand1Eye": {
+     "min": 0.0568,
+     "median": 0.0584,
+     "max": 0.5675
+    },
+    "clearance": {
+     "min": 0.0491,
+     "median": 0.0506,
+     "max": 0.322
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.938,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 64,
+     "worstT": 1.099989
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "sit",
+   "build": 0,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 0,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 4.7,
+     "median": 6.8,
+     "max": 45.6
+    },
+    "hand0Eye": {
+     "min": 0.0568,
+     "median": 0.0675,
+     "max": 0.2546
+    },
+    "hand1Eye": {
+     "min": 0.2676,
+     "median": 0.5965,
+     "max": 0.5975
+    },
+    "clearance": {
+     "min": 0.0489,
+     "median": 0.0558,
+     "max": 0.1716
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.909,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 66,
+     "worstT": 1.033323
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "sit",
+   "build": 0,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 1,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 0.842,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 95.3
+    },
+    "hand0Eye": {
+     "min": 0.0568,
+     "median": 0.0675,
+     "max": 0.2546
+    },
+    "hand1Eye": {
+     "min": 0.2676,
+     "median": 0.5965,
+     "max": 0.5975
+    },
+    "clearance": {
+     "min": 0.0489,
+     "median": 0.0558,
+     "max": 0.1716
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 59,
+     "worstT": 3.199968
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "sit",
+   "build": 0,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 2,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "faceCam": {
+     "min": 114.2,
+     "median": 116.3,
+     "max": 155
+    },
+    "hand0Eye": {
+     "min": 0.0568,
+     "median": 0.0675,
+     "max": 0.2546
+    },
+    "hand1Eye": {
+     "min": 0.2676,
+     "median": 0.5965,
+     "max": 0.5975
+    },
+    "clearance": {
+     "min": 0.0489,
+     "median": 0.0558,
+     "max": 0.1716
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "na": true,
+     "gap": 0,
+     "frames": 0
+    }
+   ],
+   "pass": true,
+   "na": true
+  },
+  {
+   "posture": "sit",
+   "build": 0,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": -1,
+   "view": 3,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 96.6
+    },
+    "hand0Eye": {
+     "min": 0.2546,
+     "median": 0.5965,
+     "max": 0.5975
+    },
+    "hand1Eye": {
+     "min": 0.0562,
+     "median": 0.0675,
+     "max": 0.2676
+    },
+    "clearance": {
+     "min": 0.0486,
+     "median": 0.0561,
+     "max": 0.1716
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 59,
+     "worstT": 1.266654
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "sit",
+   "build": 0,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 0,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 4.7,
+     "median": 6.8,
+     "max": 54.6
+    },
+    "hand0Eye": {
+     "min": 0.0526,
+     "median": 0.0673,
+     "max": 0.2402
+    },
+    "hand1Eye": {
+     "min": 0.2421,
+     "median": 0.5965,
+     "max": 0.5975
+    },
+    "clearance": {
+     "min": 0.0448,
+     "median": 0.055,
+     "max": 0.1653
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.955,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 66,
+     "worstT": 1.033323
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "sit",
+   "build": 0,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 1,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 0.842,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 101
+    },
+    "hand0Eye": {
+     "min": 0.0526,
+     "median": 0.0673,
+     "max": 0.2402
+    },
+    "hand1Eye": {
+     "min": 0.2421,
+     "median": 0.5965,
+     "max": 0.5975
+    },
+    "clearance": {
+     "min": 0.0448,
+     "median": 0.055,
+     "max": 0.1653
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 63,
+     "worstT": 3.199968
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "sit",
+   "build": 0,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 2,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "faceCam": {
+     "min": 114.2,
+     "median": 116.3,
+     "max": 164.1
+    },
+    "hand0Eye": {
+     "min": 0.0526,
+     "median": 0.0673,
+     "max": 0.2402
+    },
+    "hand1Eye": {
+     "min": 0.2421,
+     "median": 0.5965,
+     "max": 0.5975
+    },
+    "clearance": {
+     "min": 0.0448,
+     "median": 0.055,
+     "max": 0.1653
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "na": true,
+     "gap": 0,
+     "frames": 0
+    }
+   ],
+   "pass": true,
+   "na": true
+  },
+  {
+   "posture": "sit",
+   "build": 0,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": -1,
+   "view": 3,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 101
+    },
+    "hand0Eye": {
+     "min": 0.2402,
+     "median": 0.5965,
+     "max": 0.5975
+    },
+    "hand1Eye": {
+     "min": 0.0529,
+     "median": 0.0673,
+     "max": 0.2421
+    },
+    "clearance": {
+     "min": 0.0451,
+     "median": 0.055,
+     "max": 0.1653
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 63,
+     "worstT": 1.133322
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "sit",
+   "build": 1,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 0,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 4.7,
+     "median": 6.8,
+     "max": 45.6
+    },
+    "hand0Eye": {
+     "min": 0.0561,
+     "median": 0.0647,
+     "max": 0.257
+    },
+    "hand1Eye": {
+     "min": 0.2715,
+     "median": 0.6004,
+     "max": 0.6014
+    },
+    "clearance": {
+     "min": 0.0485,
+     "median": 0.0569,
+     "max": 0.1774
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.894,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 66,
+     "worstT": 1.033323
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "sit",
+   "build": 1,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 1,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 95.3
+    },
+    "hand0Eye": {
+     "min": 0.0561,
+     "median": 0.0647,
+     "max": 0.257
+    },
+    "hand1Eye": {
+     "min": 0.2715,
+     "median": 0.6004,
+     "max": 0.6014
+    },
+    "clearance": {
+     "min": 0.0485,
+     "median": 0.0569,
+     "max": 0.1774
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 59,
+     "worstT": 1.266654
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "sit",
+   "build": 1,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 2,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "faceCam": {
+     "min": 114.2,
+     "median": 116.3,
+     "max": 155
+    },
+    "hand0Eye": {
+     "min": 0.0561,
+     "median": 0.0647,
+     "max": 0.257
+    },
+    "hand1Eye": {
+     "min": 0.2715,
+     "median": 0.6004,
+     "max": 0.6014
+    },
+    "clearance": {
+     "min": 0.0485,
+     "median": 0.0569,
+     "max": 0.1774
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "na": true,
+     "gap": 0,
+     "frames": 0
+    }
+   ],
+   "pass": true,
+   "na": true
+  },
+  {
+   "posture": "sit",
+   "build": 1,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": -1,
+   "view": 3,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 96.6
+    },
+    "hand0Eye": {
+     "min": 0.257,
+     "median": 0.6004,
+     "max": 0.6014
+    },
+    "hand1Eye": {
+     "min": 0.0568,
+     "median": 0.0648,
+     "max": 0.2715
+    },
+    "clearance": {
+     "min": 0.0489,
+     "median": 0.0569,
+     "max": 0.1774
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 59,
+     "worstT": 1.266654
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "sit",
+   "build": 1,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 0,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 4.7,
+     "median": 6.8,
+     "max": 54.6
+    },
+    "hand0Eye": {
+     "min": 0.0528,
+     "median": 0.0644,
+     "max": 0.2444
+    },
+    "hand1Eye": {
+     "min": 0.2463,
+     "median": 0.6004,
+     "max": 0.6014
+    },
+    "clearance": {
+     "min": 0.045,
+     "median": 0.0567,
+     "max": 0.1723
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.955,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 66,
+     "worstT": 1.033323
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "sit",
+   "build": 1,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 1,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 101
+    },
+    "hand0Eye": {
+     "min": 0.0528,
+     "median": 0.0644,
+     "max": 0.2444
+    },
+    "hand1Eye": {
+     "min": 0.2463,
+     "median": 0.6004,
+     "max": 0.6014
+    },
+    "clearance": {
+     "min": 0.045,
+     "median": 0.0567,
+     "max": 0.1723
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 63,
+     "worstT": 1.133322
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "sit",
+   "build": 1,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 2,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "faceCam": {
+     "min": 114.2,
+     "median": 116.3,
+     "max": 164.1
+    },
+    "hand0Eye": {
+     "min": 0.0528,
+     "median": 0.0644,
+     "max": 0.2444
+    },
+    "hand1Eye": {
+     "min": 0.2463,
+     "median": 0.6004,
+     "max": 0.6014
+    },
+    "clearance": {
+     "min": 0.045,
+     "median": 0.0567,
+     "max": 0.1723
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "na": true,
+     "gap": 0,
+     "frames": 0
+    }
+   ],
+   "pass": true,
+   "na": true
+  },
+  {
+   "posture": "sit",
+   "build": 1,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": -1,
+   "view": 3,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 101
+    },
+    "hand0Eye": {
+     "min": 0.2444,
+     "median": 0.6004,
+     "max": 0.6014
+    },
+    "hand1Eye": {
+     "min": 0.0529,
+     "median": 0.0644,
+     "max": 0.2463
+    },
+    "clearance": {
+     "min": 0.0453,
+     "median": 0.0567,
+     "max": 0.1723
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 63,
+     "worstT": 1.133322
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "sit",
+   "build": 2,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 0,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 0.632,
+     "max": 0.632
+    },
+    "faceCam": {
+     "min": 4.7,
+     "median": 6.8,
+     "max": 45.6
+    },
+    "hand0Eye": {
+     "min": 0.0673,
+     "median": 0.0717,
+     "max": 0.2634
+    },
+    "hand1Eye": {
+     "min": 0.2799,
+     "median": 0.6075,
+     "max": 0.6083
+    },
+    "clearance": {
+     "min": 0.0539,
+     "median": 0.0612,
+     "max": 0.186
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.879,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 66,
+     "worstT": 1.033323
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "sit",
+   "build": 2,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 1,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 95.3
+    },
+    "hand0Eye": {
+     "min": 0.0673,
+     "median": 0.0717,
+     "max": 0.2634
+    },
+    "hand1Eye": {
+     "min": 0.2799,
+     "median": 0.6075,
+     "max": 0.6083
+    },
+    "clearance": {
+     "min": 0.0539,
+     "median": 0.0612,
+     "max": 0.186
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 59,
+     "worstT": 1.266654
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "sit",
+   "build": 2,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 2,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "faceCam": {
+     "min": 114.2,
+     "median": 116.3,
+     "max": 155
+    },
+    "hand0Eye": {
+     "min": 0.0673,
+     "median": 0.0717,
+     "max": 0.2634
+    },
+    "hand1Eye": {
+     "min": 0.2799,
+     "median": 0.6075,
+     "max": 0.6083
+    },
+    "clearance": {
+     "min": 0.0539,
+     "median": 0.0612,
+     "max": 0.186
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "na": true,
+     "gap": 0,
+     "frames": 0
+    }
+   ],
+   "pass": true,
+   "na": true
+  },
+  {
+   "posture": "sit",
+   "build": 2,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "none",
+   "side": -1,
+   "view": 3,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 96.6
+    },
+    "hand0Eye": {
+     "min": 0.2634,
+     "median": 0.6075,
+     "max": 0.6083
+    },
+    "hand1Eye": {
+     "min": 0.0684,
+     "median": 0.0717,
+     "max": 0.2799
+    },
+    "clearance": {
+     "min": 0.0553,
+     "median": 0.0613,
+     "max": 0.186
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 59,
+     "worstT": 1.266654
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "sit",
+   "build": 2,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 0,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 0.632,
+     "max": 0.632
+    },
+    "faceCam": {
+     "min": 4.7,
+     "median": 6.8,
+     "max": 54.6
+    },
+    "hand0Eye": {
+     "min": 0.0649,
+     "median": 0.0712,
+     "max": 0.2537
+    },
+    "hand1Eye": {
+     "min": 0.2555,
+     "median": 0.6075,
+     "max": 0.6083
+    },
+    "clearance": {
+     "min": 0.0511,
+     "median": 0.061,
+     "max": 0.1829
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.924,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 66,
+     "worstT": 1.033323
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "sit",
+   "build": 2,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 1,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 101
+    },
+    "hand0Eye": {
+     "min": 0.0649,
+     "median": 0.0712,
+     "max": 0.2537
+    },
+    "hand1Eye": {
+     "min": 0.2555,
+     "median": 0.6075,
+     "max": 0.6083
+    },
+    "clearance": {
+     "min": 0.0511,
+     "median": 0.061,
+     "max": 0.1829
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.984,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 63,
+     "worstT": 1.133322
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "sit",
+   "build": 2,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": 1,
+   "view": 2,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "faceCam": {
+     "min": 114.2,
+     "median": 116.3,
+     "max": 164.1
+    },
+    "hand0Eye": {
+     "min": 0.0649,
+     "median": 0.0712,
+     "max": 0.2537
+    },
+    "hand1Eye": {
+     "min": 0.2555,
+     "median": 0.6075,
+     "max": 0.6083
+    },
+    "clearance": {
+     "min": 0.0511,
+     "median": 0.061,
+     "max": 0.1829
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 1,
+     "want": 0.7,
+     "pass": true,
+     "na": true,
+     "gap": 0,
+     "frames": 0
+    }
+   ],
+   "pass": true,
+   "na": true
+  },
+  {
+   "posture": "sit",
+   "build": 2,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "none",
+   "side": -1,
+   "view": 3,
+   "judged": 66,
+   "stat": {
+    "coverHandEyeNear": {
+     "min": 0,
+     "median": 1,
+     "max": 1
+    },
+    "faceCam": {
+     "min": 72.9,
+     "median": 74,
+     "max": 101
+    },
+    "hand0Eye": {
+     "min": 0.2537,
+     "median": 0.6075,
+     "max": 0.6083
+    },
+    "hand1Eye": {
+     "min": 0.065,
+     "median": 0.0712,
+     "max": 0.2555
+    },
+    "clearance": {
+     "min": 0.0512,
+     "median": 0.061,
+     "max": 0.1829
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "coverHandEyeNear>=0.5@0.7 if faceCam<=80",
+     "measure": "coverHandEyeNear",
+     "share": 0.984,
+     "want": 0.7,
+     "pass": true,
+     "gap": 0,
+     "frames": 63,
+     "worstT": 1.133322
+    }
+   ],
+   "pass": true,
+   "na": false
+  }
+ ]
+}
