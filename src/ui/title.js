@@ -400,9 +400,12 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       if (!canTakeOver(draft.startEra)) draft.startMode = 'garage';
       const takeover = draft.startMode === 'takeover';
       if (modeCards) {
-        modeCards.hidden = !canTakeOver(draft.startEra);
         modeCards.querySelectorAll('button').forEach((b) => {
           const selected = b.dataset.startMode === draft.startMode;
+          b.disabled = b.dataset.startMode === 'takeover' && !canTakeOver(draft.startEra);
+          if (b.dataset.startMode === 'takeover') setText(b.lastElementChild, b.disabled
+            ? 'Takeover starts from ChatGBT. Choose ChatGBT or Agents.'
+            : 'Inherit the people, products and history of a company already running.');
           b.classList.toggle('on', selected);
           b.setAttribute('aria-pressed', String(selected));
         });
@@ -422,9 +425,10 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
         card.setAttribute('aria-pressed', String(selected));
         const cardKit = B.eraStarts[id];
         const inherited = takeover && canTakeOver(id);
+        card.disabled = takeover && !canTakeOver(id);
         setText(card.children[1], inherited
           ? 'Inherit a company built from Classic, with its existing people, products and history.'
-          : ERA_STARTS[id].blurb);
+          : card.disabled ? 'Choose Found a company to start in this era.' : ERA_STARTS[id].blurb);
         setText(card.lastElementChild, inherited
           ? `Existing company · ${shareText({ scoreShare: B.takeover.scoreShare[id] })}`
           : `${OFFICE_STAGES[cardKit.officeStage].name} · ${cardKit.desks} desks · ${shareText(cardKit)}`);

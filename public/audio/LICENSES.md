@@ -89,6 +89,10 @@ Generated with ACE-Step 1.5 using the same model and settings as the music (XL-s
 | `stingers/waffle.ogg` | Waffle Party | 9.6 s |
 | `stingers/win.ogg` | win | 8.4 s |
 | `stingers/gameover.ogg` | game over | 7.5 s |
+| `stingers/era_preinternet.ogg` | pre-internet era arrival (ACE-Step XL-sft plus 4B planner, seed 9914) | 4.3 s |
+| `stingers/era_dotcom.ogg` | dot-com era arrival (same pipeline, seed 9922) | 4.8 s |
+| `stingers/era_web2.ogg` | Web 2.0 era arrival (same pipeline, seed 9931) | 4.3 s |
+| `stingers/dotcom_bust.ogg` | the dot-com bust begins (same pipeline, seed 9941) | 4.6 s |
 
 ## UI sounds (candidates)
 
@@ -106,6 +110,14 @@ From Kenney's "Interface Sounds" pack, CC0 1.0 (public domain; credit to Kenney,
 | `ui/decision.ogg` | question_001 |
 | `ui/goal.ogg` | confirmation_004 |
 | `ui/unlock.ogg` | maximize_008 |
+
+The three period chat pings are original synthesis (no samples), mono, with a soft high shelf and peaks at or below -3 dBFS, released CC0 by the project:
+
+| File | Used for |
+|---|---|
+| `ui/desknet_ping.ogg` | a new message in DeskNet (pre-internet): a two-tone square-wave terminal beep |
+| `ui/awayim_ping.ogg` | a new message in AwayIM (dot-com): a rising three-note triangle pluck |
+| `ui/hipcheck_ping.ogg` | a new message in HipCheck (Web 2.0): a short glass FM-bell tap |
 
 ## Sound effects and ambience (candidates)
 
@@ -146,6 +158,10 @@ All are CC0 1.0 (public domain), from Kenney's packs (kenney.nl) and from freeso
 | `sfx/growth/level_up.ogg` | own synthesis (additive), CC0 1.0 |
 | `sfx/growth/promotion.ogg` | own synthesis (additive), CC0 1.0 |
 | `sfx/growth/trait.ogg` | Kenney (kenney.nl), CC0 1.0: interface-sounds drop_002 |
+| `sfx/disk_seek.ogg` | own synthesis (noise bursts and a motor tone), CC0 1.0: a floppy drive seeking |
+| `sfx/cd_tray.ogg` | own synthesis (motor whir and clicks), CC0 1.0: a CD tray sliding out |
+| `sfx/retail_box.ogg` | own synthesis (filtered noise), CC0 1.0: a cardboard box set down |
+| `sfx/dotcom_bell.ogg` | own synthesis (inharmonic partials), CC0 1.0: a desk bell |
 | `ambience/typing.ogg` | freesound.org 'Keyboard typing.WAV' by beansqueso31, CC0 1.0 (https://freesound.org/people/beansqueso31/sounds/223101/) |
 
 ## Voices (candidates)

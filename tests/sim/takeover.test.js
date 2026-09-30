@@ -8,6 +8,12 @@ import { helpers } from '../../src/sim/events.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
 
 describe('era takeover', () => {
+  it.each([['chatgbt', 0.5], ['agents', 0.3]])('targets a %s share below its garage start', (era, share) => {
+    expect(B.takeover.scoreShare[era]).toBe(share);
+    expect(B.takeover.scoreShare[era]).toBeGreaterThan(0);
+    expect(B.takeover.scoreShare[era]).toBeLessThan(B.eraStarts[era].scoreShare);
+  });
+
   it.each(['chatgbt', 'agents'])('reads Classic exit bars for a %s takeover, including after reload', (startEra) => {
     const original = createGame({ seed: 1, startEra, startMode: 'takeover' });
     const data = new Map();

@@ -34,10 +34,12 @@ function founding(seedText = '1') {
   return { layer, newGame, onStart };
 }
 
-it('defaults to founding in every era and resets takeover when moving to an earlier era', () => {
+it('keeps both modes discoverable and requires garage mode before picking an earlier era', () => {
   founding();
   const choices = document.querySelector('.takeover-choices');
-  expect(choices.hidden).toBe(true);
+  expect(choices.hidden).toBe(false);
+  expect(choices.querySelector('[data-start-mode="takeover"]').disabled).toBe(true);
+  expect(choices.textContent).toContain('Takeover starts from ChatGBT');
   for (const era of ['chatgbt', 'agents']) {
     document.querySelector(`[data-era="${era}"]`).click();
     expect(choices.hidden).toBe(false);
@@ -45,8 +47,17 @@ it('defaults to founding in every era and resets takeover when moving to an earl
   }
   choices.querySelector('[data-start-mode="takeover"]').click();
   expect(document.querySelector('.era-start-summary').textContent).toContain('No era kit');
+  for (const era of ['dotcom', 'web2', 'classic']) {
+    const card = document.querySelector(`[data-era="${era}"]`);
+    expect(card.disabled).toBe(true);
+    expect(card.textContent).toContain('Choose Found a company');
+    card.click();
+    expect(choices.querySelector('[data-start-mode="takeover"]').getAttribute('aria-pressed')).toBe('true');
+  }
+  choices.querySelector('[data-start-mode="garage"]').click();
   document.querySelector('[data-era="web2"]').click();
-  expect(choices.hidden).toBe(true);
+  expect(choices.hidden).toBe(false);
+  expect(choices.querySelector('[data-start-mode="takeover"]').disabled).toBe(true);
   document.querySelector('[data-era="agents"]').click();
   expect(choices.querySelector('[data-start-mode="garage"]').getAttribute('aria-pressed')).toBe('true');
 });

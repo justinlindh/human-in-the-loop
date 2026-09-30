@@ -359,6 +359,22 @@
    "file": "stingers/gameover.ogg",
    "duration": 7.47,
    "candidate": true
+  },
+  "era_preinternet": {
+   "file": "stingers/era_preinternet.ogg",
+   "duration": 5.06
+  },
+  "era_dotcom": {
+   "file": "stingers/era_dotcom.ogg",
+   "duration": 4.86
+  },
+  "era_web2": {
+   "file": "stingers/era_web2.ogg",
+   "duration": 4.04
+  },
+  "dotcom_bust": {
+   "file": "stingers/dotcom_bust.ogg",
+   "duration": 4.57
   }
  },
  "ui": {
@@ -411,6 +427,18 @@
    "file": "ui/unlock.ogg",
    "duration": 0.225,
    "candidate": true
+  },
+  "desknet_ping": {
+   "file": "ui/desknet_ping.ogg",
+   "duration": 0.25
+  },
+  "awayim_ping": {
+   "file": "ui/awayim_ping.ogg",
+   "duration": 0.5
+  },
+  "hipcheck_ping": {
+   "file": "ui/hipcheck_ping.ogg",
+   "duration": 0.6
   }
  },
  "sfx": {
@@ -542,6 +570,22 @@
   "trait": {
    "file": "sfx/growth/trait.ogg",
    "duration": 0.191
+  },
+  "disk_seek": {
+   "file": "sfx/disk_seek.ogg",
+   "duration": 1.084
+  },
+  "cd_tray": {
+   "file": "sfx/cd_tray.ogg",
+   "duration": 1.5
+  },
+  "retail_box": {
+   "file": "sfx/retail_box.ogg",
+   "duration": 0.4
+  },
+  "dotcom_bell": {
+   "file": "sfx/dotcom_bell.ogg",
+   "duration": 1.72
   }
  },
  "voice": {
