@@ -138,9 +138,9 @@ const ray = new THREE.Raycaster();
 const _o = new THREE.Vector3(), _d = new THREE.Vector3(), _n = new THREE.Vector3();
 
 // Blender's flat shirt artwork follows the same surface projection as the role graphics.
-export function wardrobePrintParts(source, torso, targets, key, wScale, polo = false) {
+export function wardrobePrintParts(source, torso, targets, key, wScale, polo = false, back = false) {
   return isolated(() => {
-    const ck = `wardrobe|${key}|${polo}`;
+    const ck = `wardrobe|${key}|${polo}|${back}`;
     let layers = cache.get(ck);
     if (!layers) {
       torso.updateMatrixWorld(true);
@@ -154,11 +154,11 @@ export function wardrobePrintParts(source, torso, targets, key, wScale, polo = f
         flat.dispose();
         const p = g.attributes.position;
         for (let i = 0; i < p.count; i++) {
-          const x = (p.getX(i) * (polo ? 0.38 : 1) + (polo ? -0.07 : 0)) * wScale;
+          const x = (p.getX(i) * (polo ? 0.38 : 1) + (polo ? -0.07 : 0)) * wScale * (back ? -1 : 1);
           const y = polo ? (p.getY(i) - 0.145) * 0.38 + 0.18 : p.getY(i);
           const lift = 0.0015 + p.getZ(i);
-          _o.set(x, y, 0.5).applyMatrix4(torso.matrixWorld);
-          _d.set(0, 0, -1).transformDirection(torso.matrixWorld);
+          _o.set(x, y, back ? -0.5 : 0.5).applyMatrix4(torso.matrixWorld);
+          _d.set(0, 0, back ? 1 : -1).transformDirection(torso.matrixWorld);
           ray.set(_o, _d);
           const hit = ray.intersectObjects(targets, true)[0];
           if (!hit) throw new Error(`Wardrobe print misses shirt: ${key}`);

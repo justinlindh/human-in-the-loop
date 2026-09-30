@@ -6,6 +6,17 @@ const query = new URLSearchParams(globalThis.location?.search ?? '');
 export const WARDROBE_MODELS = query.has('eras') ? ['era_attire'] : [];
 export const TEE_PRINTS = ['parcel_paws', 'onlineland', 'y2k', 'shoutbook', 'tuesday', 'beta_forever', 'weekend', 'ship_it'];
 
+const TEES = {
+  parcel_paws: { shirt: 'fabric_teal', trim: 'wall_cream', neckline: 'ringer' },
+  onlineland: { shirt: 'wall_cream', trim: 'fabric_slate', neckline: 'raglan', longSleeve: true },
+  y2k: { shirt: 'fabric_mustard', trim: 'ink', neckline: 'ringer' },
+  shoutbook: { shirt: 'fabric_sage', trim: 'fabric_sage' },
+  tuesday: { shirt: 'fabric_terracotta', trim: 'wall_cream', neckline: 'ringer' },
+  beta_forever: { shirt: 'fabric_slate', trim: 'fabric_slate', allOver: true, longSleeve: true },
+  weekend: { shirt: 'plastic_charcoal', trim: 'plastic_charcoal' },
+  ship_it: { shirt: 'paper', trim: 'fabric_teal', neckline: 'raglan' },
+};
+
 export function wardrobeEra(state) {
   if (!query.has('eras')) return null;
   const era = ERA_ART_PREVIEW ? eraArtEra(state) : state?.founding?.startEra ? state.era?.id : null;
@@ -24,10 +35,12 @@ export function wardrobeLook(appearance, era) {
   const web = era === 'web2';
   const cut = variant === 3 ? 'tee' : web ? 'hoodie' : variant === 2 ? 'polo' : 'fleece';
   const prints = web ? TEE_PRINTS.slice(3) : TEE_PRINTS.slice(0, 3);
+  const print = appearance.eraPrint ?? prints[(h >>> 5) % prints.length];
+  const tee = cut === 'tee' ? TEES[print] : null;
   return {
     era, cut, leg: web ? 'jeans' : 'cargo', glasses: false,
-    shirt: PALETTE[['fabric_sage', 'fabric_slate', 'wall_cream', 'fabric_teal'][h % 4]],
+    shirt: PALETTE[tee?.shirt ?? ['fabric_sage', 'fabric_slate', 'wall_cream', 'fabric_teal'][h % 4]],
     pants: PALETTE[web ? 'plastic_charcoal' : 'wall_trim'],
-    print: appearance.eraPrint ?? prints[(h >>> 5) % prints.length],
+    print, tee,
   };
 }

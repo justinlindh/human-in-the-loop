@@ -227,6 +227,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         if (n.startsWith('pal_shirt')) return own.shirt;
         if (n.startsWith('pal_pants')) return own.pants;
         if (n.startsWith('pal_role')) return roleMat;
+        if (n.startsWith('pal_trim')) return mat(wardrobe?.tee?.trim ?? 'paper');
         return paletteMaterial(mm?.name) ?? mm;
       };
       m.material = Array.isArray(m.material) ? m.material.map(pick) : pick(m.material);
@@ -293,11 +294,27 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       torso.add(id); torsoParts.push(id);
     }
     if (wardrobe.print && wardrobe.cut !== 'hoodie' && attire) {
-      const art = part(attire, `print_${wardrobe.print}`);
+      const art = part(attire, `${wardrobe.cut === 'tee' ? 'print' : 'badge'}_${wardrobe.print}`);
       const targets = garment && wardrobe.cut === 'fleece' ? [garment] : [torsoMesh];
       const polo = wardrobe.cut !== 'tee';
       for (const m of wardrobePrintParts(art, torso, targets, `${build}|${wardrobe.cut}|${wardrobe.print}`, wScale, polo)) {
         torso.add(m); torsoParts.push(m);
+      }
+      if (wardrobe.tee?.allOver) {
+        for (const m of wardrobePrintParts(art, torso, targets, `${build}|back|${wardrobe.print}`, wScale, false, true)) {
+          torso.add(m); torsoParts.push(m);
+        }
+      }
+      if (wardrobe.tee?.neckline) {
+        if (wardrobe.tee.neckline === 'raglan') {
+          const trim = E(`raglan_${build}`);
+          torso.add(trim); torsoParts.push(trim);
+        } else {
+          const trim = E('ringer');
+          for (const m of wardrobePrintParts(trim, torso, targets, `${build}|ringer|${wardrobe.tee.trim}`, wScale)) {
+            torso.add(m); torsoParts.push(m);
+          }
+        }
       }
     }
   } else if (role && role !== 'support') {
@@ -349,16 +366,26 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const arms = [-1, 1].map((sx) => {
     const shoulder = new THREE.Group();
     shoulder.position.set(sx * (BUILD_W[build] / 2 + 0.03), TORSO_H - 0.06, 0);
-    const arm = P('arm');
+    const tee = wardrobe?.tee;
+    const arm = tee && !tee.longSleeve ? E('tee_arm') : P('arm');
+    if (tee?.neckline === 'raglan') arm.traverse(o => {
+      if (o.isMesh && o.material === own.shirt) o.material = mat(tee.trim);
+    });
     const wrist = new THREE.Group();
     wrist.position.y = -0.2;
     const hand = P('hand');
     wrist.add(hand);
     shoulder.add(arm, wrist);
     const cuff = wardrobe ? E('cuff') : null;
+    if (cuff && tee) {
+      if (tee.neckline === 'ringer') cuff.traverse(o => { if (o.isMesh) o.material = mat(tee.trim); });
+      else { cuff.scale.y = 0.45; cuff.position.y = tee.longSleeve ? -0.139 : -0.05; }
+    }
     if (cuff) shoulder.add(cuff);
+    const pattern = tee?.allOver ? E('pattern_sleeve') : null;
+    if (pattern) shoulder.add(pattern);
     torso.add(shoulder);
-    return { shoulder, wrist, parts: [arm, hand, ...(cuff ? [cuff] : [])] };
+    return { shoulder, wrist, parts: [arm, hand, ...(cuff ? [cuff] : []), ...(pattern ? [pattern] : [])] };
   });
   const mug = P('mug');
   mug.position.set(0, -0.06, 0.04);
