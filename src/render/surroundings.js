@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { mat } from './materials.js';
 import { roundedBox, roundedCylinder, mesh, mergeStatic } from './prims.js';
+import { getModel } from './models.js';
+import { ERA_ART_PREVIEW } from './era-art.js';
 
 // The world round the office diorama, per stage: a garage on a suburban lot with a street out
 // front; the Office Floor as a storey of a building above a plaza, among neighbouring towers; HQ on
@@ -324,6 +326,12 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
         for (const x of [-hw + 4, 0, hw - 4]) { const l = lamp(); l.position.y = gy; bulbs.push(l.children[1]); tall(l, x, sz - 2.5); }
         movers.push({ make: () => car(COL.car[Math.floor(rnd() * 4)]), z: sz + 0.85, x0: -BW / 2 + 1, x1: BW / 2 - 1, speed: 3.4, gap: [6, 12] });
       }
+    }
+
+    if (ERA_ART_PREVIEW && stage === 0) {
+      const sign = getModel('era_sock_billboard');
+      sign.position.y = gy;
+      tall(sign, -hw - 2.5, -hd + 3.2);
     }
 
     // The diorama board covers everything that stands on it: at least the stage's margin round the
