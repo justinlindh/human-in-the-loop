@@ -57,7 +57,7 @@ if [ -s "$LOGS/changes.patch" ]; then
 fi
 (cd "$src" && git ls-files -z --others --exclude-standard | tar --null -T - -cf -) | tar -C "$snap" -xf - || { echo "gates: could not copy untracked files" >&2; exit 2; }
 if [ -d "$src/node_modules" ] && cmp -s "$src/package-lock.json" "$snap/package-lock.json"; then
-  ln -s "$(readlink -f "$src/node_modules")" "$snap/node_modules"
+  [ -e "$snap/node_modules" ] || ln -s "$(readlink -f "$src/node_modules")" "$snap/node_modules"
 else
   (cd "$snap" && npm ci --no-audit --no-fund >"$LOGS/deps.log" 2>&1) || { echo "gates: npm ci failed (see $LOGS/deps.log)" >&2; exit 2; }
 fi
@@ -75,8 +75,8 @@ if [ -n "$moment" ]; then
   scen="$(node -e '
     const src = require("fs").readFileSync("blender/checks/stage.mjs", "utf8");
     const want = process.argv[1];
-    const rows = [...src.matchAll(/^  ([a-z_]+): \{.*?eventId: \x27([a-z_0-9]+)\x27.*?prop: \x27([a-z_0-9]+)\x27/gm)].map((m) => ({ name: m[1], event: m[2], prop: m[3] }));
-    const hit = rows.find((r) => r.name === want) ?? rows.find((r) => r.event === want || r.prop.includes(want));
+    const rows = [...src.matchAll(/^  ([a-z_0-9]+): \{[^\n]*?\bquery: \x27[^\n]*$/gm)].map((m) => ({ name: m[1], event: /eventId: \x27([a-z_0-9]+)\x27/.exec(m[0])?.[1] ?? "-", prop: /prop: \x27([a-z_0-9]+)\x27/.exec(m[0])?.[1] ?? "" }));
+    const hit = rows.find((r) => r.name === want) ?? rows.find((r) => r.event === want || (r.prop && r.prop.includes(want)));
     console.log(hit ? `${hit.name} ${hit.event}` : `- - ${rows.map((r) => r.name).join(",")}`);
   ' "$moment")"
   read -r sname sevent known <<<"$scen"
@@ -94,7 +94,8 @@ if [ -n "$moment" ]; then
   # list for none) or, exiting 2, { error, kind } when it can't (an index it couldn't build or
   # read); --build refreshes a stale index first. A refusal stops gates: a sweep of the wrong thing
   # would pass for the wrong reason. Which path the sweep took is printed on every run.
-  found="$(timeout 300 node scripts/events/find.js "$sevent" --snapshot --json --limit 1 --build 2>/dev/null)"; frc=$?
+  # A scenario with no decision event (y2k, pets, the robot) has nothing to index: the floor pass covers it.
+  if [ "$sevent" = - ]; then found='[]'; frc=0; else found="$(timeout 300 node scripts/events/find.js "$sevent" --snapshot --json --limit 1 --build 2>/dev/null)"; frc=$?; fi
   path="$(node -e '
     let v; try { v = JSON.parse(process.argv[1]); } catch { console.log("error: find.js gave no JSON"); process.exit(0); }
     if (Array.isArray(v)) console.log(v.some((r) => r.snapshot) ? "snapshot" : "none");
@@ -105,7 +106,7 @@ if [ -n "$moment" ]; then
       echo "gates: sweep: $sevent from its indexed snapshot"
       CMD[sweep]="$(gpu node blender/checks/sweep.mjs --gpu --mocks none --seeds none --moments "'$sevent'" --out "$LOGS/sweep")" ;;
     none)
-      echo "gates: sweep: no indexed snapshot of $sevent, so the floor mock's pass, which stages every moment"
+      echo "gates: sweep: no indexed snapshot of ${sevent/#-/a decision event (this scenario has none)}, so the floor mock's pass, which stages every moment"
       CMD[sweep]="$(gpu node blender/checks/sweep.mjs --gpu --mocks floor --seeds none --out "$LOGS/sweep")" ;;
     *)
       echo "gates: the event index couldn't answer for $sevent ($path; find.js exit $frc); fix the index (node scripts/events/build.js) and run gates again" >&2
