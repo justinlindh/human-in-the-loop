@@ -1,0 +1,5 @@
+with-render-lock: waited 0s for GPU render slot 3
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+{
+  "duplicates": []
+}

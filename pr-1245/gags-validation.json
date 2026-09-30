@@ -1,0 +1,2338 @@
+[
+  {
+    "kind": "opt-in",
+    "query": "",
+    "models": [],
+    "billboard": null
+  },
+  {
+    "kind": "opt-in",
+    "query": "&eras",
+    "models": [],
+    "billboard": null
+  },
+  {
+    "kind": "opt-in",
+    "query": "&eraArt=dotcom",
+    "models": [],
+    "billboard": null
+  },
+  {
+    "kind": "opt-in",
+    "query": "&eras&eraArt=invalid",
+    "models": [],
+    "billboard": null
+  },
+  {
+    "kind": "exterior",
+    "mock": "garage",
+    "era": "preinternet",
+    "quality": "high",
+    "hits": [],
+    "samples": 1130,
+    "nearest": 1.995,
+    "lights": 11,
+    "exterior": {
+      "era": "preinternet",
+      "billboard": "era_pager_billboard",
+      "fascia": {
+        "x": 8.33,
+        "y": 1.4,
+        "z": -7.42
+      },
+      "feet": [
+        {
+          "id": "parkedCar",
+          "x0": -8.475,
+          "x1": -7.425,
+          "z0": -2.1,
+          "z1": 0.10000000000000009
+        },
+        {
+          "id": "bin",
+          "x0": -6.25,
+          "x1": -5.65,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "hedge",
+          "x0": -6.95,
+          "x1": -6.3500000000000005,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "billboard",
+          "x0": -8.65,
+          "x1": -5.25,
+          "z0": 4.62,
+          "z1": 5.28
+        },
+        {
+          "id": "payphone",
+          "x0": -5.92,
+          "x1": -5.279999999999999,
+          "z0": 3.67,
+          "z1": 4.23
+        }
+      ],
+      "cars": [],
+      "lanes": [
+        {
+          "z0": 8.975,
+          "z1": 10.025,
+          "x0": -16.411525181769566,
+          "x1": 13.85
+        },
+        {
+          "z0": 7.275,
+          "z1": 8.325000000000001,
+          "x0": -16.411525181769566,
+          "x1": 13.85
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "garage",
+    "era": "preinternet",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "preinternet",
+      "billboard": "era_pager_billboard",
+      "fascia": {
+        "x": 8.33,
+        "y": 1.4,
+        "z": -7.42
+      },
+      "feet": [
+        {
+          "id": "bin",
+          "x0": -6.25,
+          "x1": -5.65,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "hedge",
+          "x0": -6.95,
+          "x1": -6.3500000000000005,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "billboard",
+          "x0": -8.65,
+          "x1": -5.25,
+          "z0": 4.62,
+          "z1": 5.28
+        },
+        {
+          "id": "payphone",
+          "x0": -5.92,
+          "x1": -5.279999999999999,
+          "z0": 3.67,
+          "z1": 4.23
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "garage",
+    "era": "dotcom",
+    "quality": "high",
+    "hits": [],
+    "samples": 565,
+    "nearest": 1.995,
+    "lights": 11,
+    "exterior": {
+      "era": "dotcom",
+      "billboard": "era_sock_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "parkedCar",
+          "x0": -8.475,
+          "x1": -7.425,
+          "z0": -2.1,
+          "z1": 0.10000000000000009
+        },
+        {
+          "id": "bin",
+          "x0": -6.25,
+          "x1": -5.65,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "hedge",
+          "x0": -6.95,
+          "x1": -6.3500000000000005,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "billboard",
+          "x0": -8.65,
+          "x1": -5.25,
+          "z0": 4.62,
+          "z1": 5.28
+        }
+      ],
+      "cars": [],
+      "lanes": [
+        {
+          "z0": 8.975,
+          "z1": 10.025,
+          "x0": -16.411525181769566,
+          "x1": 13.85
+        },
+        {
+          "z0": 7.275,
+          "z1": 8.325000000000001,
+          "x0": -16.411525181769566,
+          "x1": 13.85
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "garage",
+    "era": "dotcom",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "dotcom",
+      "billboard": "era_sock_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "bin",
+          "x0": -6.25,
+          "x1": -5.65,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "hedge",
+          "x0": -6.95,
+          "x1": -6.3500000000000005,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "billboard",
+          "x0": -8.65,
+          "x1": -5.25,
+          "z0": 4.62,
+          "z1": 5.28
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "garage",
+    "era": "dotcom-bust",
+    "quality": "high",
+    "hits": [],
+    "samples": 565,
+    "nearest": 1.995,
+    "lights": 11,
+    "exterior": {
+      "era": "dotcom-bust",
+      "billboard": "era_lease_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "parkedCar",
+          "x0": -8.475,
+          "x1": -7.425,
+          "z0": -2.1,
+          "z1": 0.10000000000000009
+        },
+        {
+          "id": "bin",
+          "x0": -6.25,
+          "x1": -5.65,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "hedge",
+          "x0": -6.95,
+          "x1": -6.3500000000000005,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "billboard",
+          "x0": -8.65,
+          "x1": -5.25,
+          "z0": 4.62,
+          "z1": 5.28
+        }
+      ],
+      "cars": [],
+      "lanes": [
+        {
+          "z0": 8.975,
+          "z1": 10.025,
+          "x0": -16.411525181769566,
+          "x1": 13.85
+        },
+        {
+          "z0": 7.275,
+          "z1": 8.325000000000001,
+          "x0": -16.411525181769566,
+          "x1": 13.85
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "garage",
+    "era": "dotcom-bust",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "dotcom-bust",
+      "billboard": "era_lease_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "bin",
+          "x0": -6.25,
+          "x1": -5.65,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "hedge",
+          "x0": -6.95,
+          "x1": -6.3500000000000005,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "billboard",
+          "x0": -8.65,
+          "x1": -5.25,
+          "z0": 4.62,
+          "z1": 5.28
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "garage",
+    "era": "web2",
+    "quality": "high",
+    "hits": [],
+    "samples": 565,
+    "nearest": 1.995,
+    "lights": 11,
+    "exterior": {
+      "era": "web2",
+      "billboard": "era_beta_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "parkedCar",
+          "x0": -8.475,
+          "x1": -7.425,
+          "z0": -2.1,
+          "z1": 0.10000000000000009
+        },
+        {
+          "id": "bin",
+          "x0": -6.25,
+          "x1": -5.65,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "hedge",
+          "x0": -6.95,
+          "x1": -6.3500000000000005,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "billboard",
+          "x0": -8.65,
+          "x1": -5.25,
+          "z0": 4.62,
+          "z1": 5.28
+        }
+      ],
+      "cars": [],
+      "lanes": [
+        {
+          "z0": 8.975,
+          "z1": 10.025,
+          "x0": -16.411525181769566,
+          "x1": 13.85
+        },
+        {
+          "z0": 7.275,
+          "z1": 8.325000000000001,
+          "x0": -16.411525181769566,
+          "x1": 13.85
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "garage",
+    "era": "web2",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "web2",
+      "billboard": "era_beta_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "bin",
+          "x0": -6.25,
+          "x1": -5.65,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "hedge",
+          "x0": -6.95,
+          "x1": -6.3500000000000005,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "billboard",
+          "x0": -8.65,
+          "x1": -5.25,
+          "z0": 4.62,
+          "z1": 5.28
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "garage",
+    "era": "classic",
+    "quality": "high",
+    "hits": [],
+    "samples": 565,
+    "nearest": 1.995,
+    "lights": 11,
+    "exterior": {
+      "era": "classic",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "parkedCar",
+          "x0": -8.475,
+          "x1": -7.425,
+          "z0": -2.1,
+          "z1": 0.10000000000000009
+        },
+        {
+          "id": "bin",
+          "x0": -6.25,
+          "x1": -5.65,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "hedge",
+          "x0": -6.95,
+          "x1": -6.3500000000000005,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "billboard",
+          "x0": -8.65,
+          "x1": -5.25,
+          "z0": 4.62,
+          "z1": 5.28
+        }
+      ],
+      "cars": [],
+      "lanes": [
+        {
+          "z0": 8.975,
+          "z1": 10.025,
+          "x0": -16.411525181769566,
+          "x1": 13.85
+        },
+        {
+          "z0": 7.275,
+          "z1": 8.325000000000001,
+          "x0": -16.411525181769566,
+          "x1": 13.85
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "garage",
+    "era": "classic",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "classic",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "bin",
+          "x0": -6.25,
+          "x1": -5.65,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "hedge",
+          "x0": -6.95,
+          "x1": -6.3500000000000005,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "billboard",
+          "x0": -8.65,
+          "x1": -5.25,
+          "z0": 4.62,
+          "z1": 5.28
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "garage",
+    "era": "chatgbt",
+    "quality": "high",
+    "hits": [],
+    "samples": 565,
+    "nearest": 1.995,
+    "lights": 11,
+    "exterior": {
+      "era": "chatgbt",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "parkedCar",
+          "x0": -8.475,
+          "x1": -7.425,
+          "z0": -2.1,
+          "z1": 0.10000000000000009
+        },
+        {
+          "id": "bin",
+          "x0": -6.25,
+          "x1": -5.65,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "hedge",
+          "x0": -6.95,
+          "x1": -6.3500000000000005,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "billboard",
+          "x0": -8.65,
+          "x1": -5.25,
+          "z0": 4.62,
+          "z1": 5.28
+        }
+      ],
+      "cars": [],
+      "lanes": [
+        {
+          "z0": 8.975,
+          "z1": 10.025,
+          "x0": -16.411525181769566,
+          "x1": 13.85
+        },
+        {
+          "z0": 7.275,
+          "z1": 8.325000000000001,
+          "x0": -16.411525181769566,
+          "x1": 13.85
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "garage",
+    "era": "chatgbt",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "chatgbt",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "bin",
+          "x0": -6.25,
+          "x1": -5.65,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "hedge",
+          "x0": -6.95,
+          "x1": -6.3500000000000005,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "billboard",
+          "x0": -8.65,
+          "x1": -5.25,
+          "z0": 4.62,
+          "z1": 5.28
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "garage",
+    "era": "agents",
+    "quality": "high",
+    "hits": [],
+    "samples": 565,
+    "nearest": 1.995,
+    "lights": 11,
+    "exterior": {
+      "era": "agents",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "parkedCar",
+          "x0": -8.475,
+          "x1": -7.425,
+          "z0": -2.1,
+          "z1": 0.10000000000000009
+        },
+        {
+          "id": "bin",
+          "x0": -6.25,
+          "x1": -5.65,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "hedge",
+          "x0": -6.95,
+          "x1": -6.3500000000000005,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "billboard",
+          "x0": -8.65,
+          "x1": -5.25,
+          "z0": 4.62,
+          "z1": 5.28
+        }
+      ],
+      "cars": [],
+      "lanes": [
+        {
+          "z0": 8.975,
+          "z1": 10.025,
+          "x0": -16.411525181769566,
+          "x1": 13.85
+        },
+        {
+          "z0": 7.275,
+          "z1": 8.325000000000001,
+          "x0": -16.411525181769566,
+          "x1": 13.85
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "garage",
+    "era": "agents",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "agents",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "bin",
+          "x0": -6.25,
+          "x1": -5.65,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "hedge",
+          "x0": -6.95,
+          "x1": -6.3500000000000005,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "billboard",
+          "x0": -8.65,
+          "x1": -5.25,
+          "z0": 4.62,
+          "z1": 5.28
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "garage",
+    "era": "consolidation",
+    "quality": "high",
+    "hits": [],
+    "samples": 565,
+    "nearest": 1.995,
+    "lights": 11,
+    "exterior": {
+      "era": "consolidation",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "parkedCar",
+          "x0": -8.475,
+          "x1": -7.425,
+          "z0": -2.1,
+          "z1": 0.10000000000000009
+        },
+        {
+          "id": "bin",
+          "x0": -6.25,
+          "x1": -5.65,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "hedge",
+          "x0": -6.95,
+          "x1": -6.3500000000000005,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "billboard",
+          "x0": -8.65,
+          "x1": -5.25,
+          "z0": 4.62,
+          "z1": 5.28
+        }
+      ],
+      "cars": [],
+      "lanes": [
+        {
+          "z0": 8.975,
+          "z1": 10.025,
+          "x0": -16.411525181769566,
+          "x1": 13.85
+        },
+        {
+          "z0": 7.275,
+          "z1": 8.325000000000001,
+          "x0": -16.411525181769566,
+          "x1": 13.85
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "garage",
+    "era": "consolidation",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "consolidation",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "bin",
+          "x0": -6.25,
+          "x1": -5.65,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "hedge",
+          "x0": -6.95,
+          "x1": -6.3500000000000005,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "billboard",
+          "x0": -8.65,
+          "x1": -5.25,
+          "z0": 4.62,
+          "z1": 5.28
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "garage",
+    "era": "plateau",
+    "quality": "high",
+    "hits": [],
+    "samples": 565,
+    "nearest": 1.995,
+    "lights": 11,
+    "exterior": {
+      "era": "plateau",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "parkedCar",
+          "x0": -8.475,
+          "x1": -7.425,
+          "z0": -2.1,
+          "z1": 0.10000000000000009
+        },
+        {
+          "id": "bin",
+          "x0": -6.25,
+          "x1": -5.65,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "hedge",
+          "x0": -6.95,
+          "x1": -6.3500000000000005,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "billboard",
+          "x0": -8.65,
+          "x1": -5.25,
+          "z0": 4.62,
+          "z1": 5.28
+        }
+      ],
+      "cars": [],
+      "lanes": [
+        {
+          "z0": 8.975,
+          "z1": 10.025,
+          "x0": -16.411525181769566,
+          "x1": 13.85
+        },
+        {
+          "z0": 7.275,
+          "z1": 8.325000000000001,
+          "x0": -16.411525181769566,
+          "x1": 13.85
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "garage",
+    "era": "plateau",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "plateau",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "bin",
+          "x0": -6.25,
+          "x1": -5.65,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "hedge",
+          "x0": -6.95,
+          "x1": -6.3500000000000005,
+          "z0": 0.8750000000000002,
+          "z1": 1.5250000000000001
+        },
+        {
+          "id": "billboard",
+          "x0": -8.65,
+          "x1": -5.25,
+          "z0": 4.62,
+          "z1": 5.28
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "floor",
+    "era": "preinternet",
+    "quality": "high",
+    "hits": [],
+    "samples": 2174,
+    "nearest": 3.4449999999999994,
+    "lights": 11,
+    "exterior": {
+      "era": "preinternet",
+      "billboard": "era_pager_billboard",
+      "fascia": {
+        "x": -16.75,
+        "y": -4.8,
+        "z": 0.58
+      },
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -11.649999999999999,
+          "x1": -8.25,
+          "z0": 7.12,
+          "z1": 7.78
+        },
+        {
+          "id": "payphone",
+          "x0": -8.92,
+          "x1": -8.28,
+          "z0": 6.17,
+          "z1": 6.73
+        }
+      ],
+      "cars": [
+        {
+          "x0": 7.530000057220484,
+          "x1": 9.730000057220483,
+          "z0": 13.225,
+          "z1": 14.275
+        },
+        {
+          "x0": 7.943333333333316,
+          "x1": 10.143333333333315,
+          "z0": 11.225,
+          "z1": 12.275
+        }
+      ],
+      "lanes": [
+        {
+          "z0": 13.225,
+          "z1": 14.275,
+          "x0": -25.709999942779543,
+          "x1": 19.85
+        },
+        {
+          "z0": 11.225,
+          "z1": 12.275,
+          "x0": -25.709999942779543,
+          "x1": 19.85
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "floor",
+    "era": "preinternet",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "preinternet",
+      "billboard": "era_pager_billboard",
+      "fascia": {
+        "x": -16.75,
+        "y": -4.8,
+        "z": 0.58
+      },
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -11.649999999999999,
+          "x1": -8.25,
+          "z0": 7.12,
+          "z1": 7.78
+        },
+        {
+          "id": "payphone",
+          "x0": -8.92,
+          "x1": -8.28,
+          "z0": 6.17,
+          "z1": 6.73
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "floor",
+    "era": "dotcom",
+    "quality": "high",
+    "hits": [],
+    "samples": 1087,
+    "nearest": 3.4449999999999994,
+    "lights": 11,
+    "exterior": {
+      "era": "dotcom",
+      "billboard": "era_sock_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -11.649999999999999,
+          "x1": -8.25,
+          "z0": 7.12,
+          "z1": 7.78
+        }
+      ],
+      "cars": [
+        {
+          "x0": 7.530000057220484,
+          "x1": 9.730000057220483,
+          "z0": 13.225,
+          "z1": 14.275
+        },
+        {
+          "x0": 7.943333333333316,
+          "x1": 10.143333333333315,
+          "z0": 11.225,
+          "z1": 12.275
+        }
+      ],
+      "lanes": [
+        {
+          "z0": 13.225,
+          "z1": 14.275,
+          "x0": -25.709999942779543,
+          "x1": 19.85
+        },
+        {
+          "z0": 11.225,
+          "z1": 12.275,
+          "x0": -25.709999942779543,
+          "x1": 19.85
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "floor",
+    "era": "dotcom",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "dotcom",
+      "billboard": "era_sock_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -11.649999999999999,
+          "x1": -8.25,
+          "z0": 7.12,
+          "z1": 7.78
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "floor",
+    "era": "dotcom-bust",
+    "quality": "high",
+    "hits": [],
+    "samples": 1087,
+    "nearest": 3.4449999999999994,
+    "lights": 11,
+    "exterior": {
+      "era": "dotcom-bust",
+      "billboard": "era_lease_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -11.649999999999999,
+          "x1": -8.25,
+          "z0": 7.12,
+          "z1": 7.78
+        }
+      ],
+      "cars": [
+        {
+          "x0": 7.530000057220484,
+          "x1": 9.730000057220483,
+          "z0": 13.225,
+          "z1": 14.275
+        },
+        {
+          "x0": 7.943333333333316,
+          "x1": 10.143333333333315,
+          "z0": 11.225,
+          "z1": 12.275
+        }
+      ],
+      "lanes": [
+        {
+          "z0": 13.225,
+          "z1": 14.275,
+          "x0": -25.709999942779543,
+          "x1": 19.85
+        },
+        {
+          "z0": 11.225,
+          "z1": 12.275,
+          "x0": -25.709999942779543,
+          "x1": 19.85
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "floor",
+    "era": "dotcom-bust",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "dotcom-bust",
+      "billboard": "era_lease_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -11.649999999999999,
+          "x1": -8.25,
+          "z0": 7.12,
+          "z1": 7.78
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "floor",
+    "era": "web2",
+    "quality": "high",
+    "hits": [],
+    "samples": 1087,
+    "nearest": 3.4449999999999994,
+    "lights": 11,
+    "exterior": {
+      "era": "web2",
+      "billboard": "era_beta_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -11.649999999999999,
+          "x1": -8.25,
+          "z0": 7.12,
+          "z1": 7.78
+        }
+      ],
+      "cars": [
+        {
+          "x0": 7.530000057220484,
+          "x1": 9.730000057220483,
+          "z0": 13.225,
+          "z1": 14.275
+        },
+        {
+          "x0": 7.943333333333316,
+          "x1": 10.143333333333315,
+          "z0": 11.225,
+          "z1": 12.275
+        }
+      ],
+      "lanes": [
+        {
+          "z0": 13.225,
+          "z1": 14.275,
+          "x0": -25.709999942779543,
+          "x1": 19.85
+        },
+        {
+          "z0": 11.225,
+          "z1": 12.275,
+          "x0": -25.709999942779543,
+          "x1": 19.85
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "floor",
+    "era": "web2",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "web2",
+      "billboard": "era_beta_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -11.649999999999999,
+          "x1": -8.25,
+          "z0": 7.12,
+          "z1": 7.78
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "floor",
+    "era": "classic",
+    "quality": "high",
+    "hits": [],
+    "samples": 1087,
+    "nearest": 3.4449999999999994,
+    "lights": 11,
+    "exterior": {
+      "era": "classic",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -11.649999999999999,
+          "x1": -8.25,
+          "z0": 7.12,
+          "z1": 7.78
+        }
+      ],
+      "cars": [
+        {
+          "x0": 7.530000057220484,
+          "x1": 9.730000057220483,
+          "z0": 13.225,
+          "z1": 14.275
+        },
+        {
+          "x0": 7.943333333333316,
+          "x1": 10.143333333333315,
+          "z0": 11.225,
+          "z1": 12.275
+        }
+      ],
+      "lanes": [
+        {
+          "z0": 13.225,
+          "z1": 14.275,
+          "x0": -25.709999942779543,
+          "x1": 19.85
+        },
+        {
+          "z0": 11.225,
+          "z1": 12.275,
+          "x0": -25.709999942779543,
+          "x1": 19.85
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "floor",
+    "era": "classic",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "classic",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -11.649999999999999,
+          "x1": -8.25,
+          "z0": 7.12,
+          "z1": 7.78
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "floor",
+    "era": "chatgbt",
+    "quality": "high",
+    "hits": [],
+    "samples": 1087,
+    "nearest": 3.4449999999999994,
+    "lights": 11,
+    "exterior": {
+      "era": "chatgbt",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -11.649999999999999,
+          "x1": -8.25,
+          "z0": 7.12,
+          "z1": 7.78
+        }
+      ],
+      "cars": [
+        {
+          "x0": 7.530000057220484,
+          "x1": 9.730000057220483,
+          "z0": 13.225,
+          "z1": 14.275
+        },
+        {
+          "x0": 7.943333333333316,
+          "x1": 10.143333333333315,
+          "z0": 11.225,
+          "z1": 12.275
+        }
+      ],
+      "lanes": [
+        {
+          "z0": 13.225,
+          "z1": 14.275,
+          "x0": -25.709999942779543,
+          "x1": 19.85
+        },
+        {
+          "z0": 11.225,
+          "z1": 12.275,
+          "x0": -25.709999942779543,
+          "x1": 19.85
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "floor",
+    "era": "chatgbt",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "chatgbt",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -11.649999999999999,
+          "x1": -8.25,
+          "z0": 7.12,
+          "z1": 7.78
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "floor",
+    "era": "agents",
+    "quality": "high",
+    "hits": [],
+    "samples": 1087,
+    "nearest": 3.4449999999999994,
+    "lights": 11,
+    "exterior": {
+      "era": "agents",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -11.649999999999999,
+          "x1": -8.25,
+          "z0": 7.12,
+          "z1": 7.78
+        }
+      ],
+      "cars": [
+        {
+          "x0": 7.530000057220484,
+          "x1": 9.730000057220483,
+          "z0": 13.225,
+          "z1": 14.275
+        },
+        {
+          "x0": 7.943333333333316,
+          "x1": 10.143333333333315,
+          "z0": 11.225,
+          "z1": 12.275
+        }
+      ],
+      "lanes": [
+        {
+          "z0": 13.225,
+          "z1": 14.275,
+          "x0": -25.709999942779543,
+          "x1": 19.85
+        },
+        {
+          "z0": 11.225,
+          "z1": 12.275,
+          "x0": -25.709999942779543,
+          "x1": 19.85
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "floor",
+    "era": "agents",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "agents",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -11.649999999999999,
+          "x1": -8.25,
+          "z0": 7.12,
+          "z1": 7.78
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "floor",
+    "era": "consolidation",
+    "quality": "high",
+    "hits": [],
+    "samples": 1087,
+    "nearest": 3.4449999999999994,
+    "lights": 11,
+    "exterior": {
+      "era": "consolidation",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -11.649999999999999,
+          "x1": -8.25,
+          "z0": 7.12,
+          "z1": 7.78
+        }
+      ],
+      "cars": [
+        {
+          "x0": 7.530000057220484,
+          "x1": 9.730000057220483,
+          "z0": 13.225,
+          "z1": 14.275
+        },
+        {
+          "x0": 7.943333333333316,
+          "x1": 10.143333333333315,
+          "z0": 11.225,
+          "z1": 12.275
+        }
+      ],
+      "lanes": [
+        {
+          "z0": 13.225,
+          "z1": 14.275,
+          "x0": -25.709999942779543,
+          "x1": 19.85
+        },
+        {
+          "z0": 11.225,
+          "z1": 12.275,
+          "x0": -25.709999942779543,
+          "x1": 19.85
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "floor",
+    "era": "consolidation",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "consolidation",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -11.649999999999999,
+          "x1": -8.25,
+          "z0": 7.12,
+          "z1": 7.78
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "floor",
+    "era": "plateau",
+    "quality": "high",
+    "hits": [],
+    "samples": 1087,
+    "nearest": 3.4449999999999994,
+    "lights": 11,
+    "exterior": {
+      "era": "plateau",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -11.649999999999999,
+          "x1": -8.25,
+          "z0": 7.12,
+          "z1": 7.78
+        }
+      ],
+      "cars": [
+        {
+          "x0": 7.530000057220484,
+          "x1": 9.730000057220483,
+          "z0": 13.225,
+          "z1": 14.275
+        },
+        {
+          "x0": 7.943333333333316,
+          "x1": 10.143333333333315,
+          "z0": 11.225,
+          "z1": 12.275
+        }
+      ],
+      "lanes": [
+        {
+          "z0": 13.225,
+          "z1": 14.275,
+          "x0": -25.709999942779543,
+          "x1": 19.85
+        },
+        {
+          "z0": 11.225,
+          "z1": 12.275,
+          "x0": -25.709999942779543,
+          "x1": 19.85
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "floor",
+    "era": "plateau",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "plateau",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -11.649999999999999,
+          "x1": -8.25,
+          "z0": 7.12,
+          "z1": 7.78
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "hq",
+    "era": "preinternet",
+    "quality": "high",
+    "hits": [],
+    "samples": 1064,
+    "nearest": 10.095000000000004,
+    "lights": 11,
+    "exterior": {
+      "era": "preinternet",
+      "billboard": "era_pager_billboard",
+      "fascia": {
+        "x": -21.06498138714348,
+        "y": 2.7,
+        "z": 8.944003193384969
+      },
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -14.649999999999999,
+          "x1": -11.25,
+          "z0": 9.12,
+          "z1": 9.78
+        },
+        {
+          "id": "payphone",
+          "x0": -11.92,
+          "x1": -11.28,
+          "z0": 8.17,
+          "z1": 8.729999999999999
+        }
+      ],
+      "cars": [
+        {
+          "x0": -12.723333333333338,
+          "x1": -10.523333333333339,
+          "z0": 19.875000000000004,
+          "z1": 20.925
+        }
+      ],
+      "lanes": [
+        {
+          "z0": 19.875000000000004,
+          "z1": 20.925,
+          "x0": -24.85,
+          "x1": 25.340938234329226
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "hq",
+    "era": "preinternet",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "preinternet",
+      "billboard": "era_pager_billboard",
+      "fascia": {
+        "x": -18.75479010679051,
+        "y": 2.7,
+        "z": 8.374431971872427
+      },
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -14.649999999999999,
+          "x1": -11.25,
+          "z0": 9.12,
+          "z1": 9.78
+        },
+        {
+          "id": "payphone",
+          "x0": -11.92,
+          "x1": -11.28,
+          "z0": 8.17,
+          "z1": 8.729999999999999
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "hq",
+    "era": "dotcom",
+    "quality": "high",
+    "hits": [],
+    "samples": 532,
+    "nearest": 10.095000000000004,
+    "lights": 11,
+    "exterior": {
+      "era": "dotcom",
+      "billboard": "era_sock_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -14.649999999999999,
+          "x1": -11.25,
+          "z0": 9.12,
+          "z1": 9.78
+        }
+      ],
+      "cars": [
+        {
+          "x0": -12.723333333333338,
+          "x1": -10.523333333333339,
+          "z0": 19.875000000000004,
+          "z1": 20.925
+        }
+      ],
+      "lanes": [
+        {
+          "z0": 19.875000000000004,
+          "z1": 20.925,
+          "x0": -24.85,
+          "x1": 25.340938234329226
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "hq",
+    "era": "dotcom",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "dotcom",
+      "billboard": "era_sock_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -14.649999999999999,
+          "x1": -11.25,
+          "z0": 9.12,
+          "z1": 9.78
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "hq",
+    "era": "dotcom-bust",
+    "quality": "high",
+    "hits": [],
+    "samples": 532,
+    "nearest": 10.095000000000004,
+    "lights": 11,
+    "exterior": {
+      "era": "dotcom-bust",
+      "billboard": "era_lease_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -14.649999999999999,
+          "x1": -11.25,
+          "z0": 9.12,
+          "z1": 9.78
+        }
+      ],
+      "cars": [
+        {
+          "x0": -12.723333333333338,
+          "x1": -10.523333333333339,
+          "z0": 19.875000000000004,
+          "z1": 20.925
+        }
+      ],
+      "lanes": [
+        {
+          "z0": 19.875000000000004,
+          "z1": 20.925,
+          "x0": -24.85,
+          "x1": 25.340938234329226
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "hq",
+    "era": "dotcom-bust",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "dotcom-bust",
+      "billboard": "era_lease_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -14.649999999999999,
+          "x1": -11.25,
+          "z0": 9.12,
+          "z1": 9.78
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "hq",
+    "era": "web2",
+    "quality": "high",
+    "hits": [],
+    "samples": 532,
+    "nearest": 10.095000000000004,
+    "lights": 11,
+    "exterior": {
+      "era": "web2",
+      "billboard": "era_beta_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -14.649999999999999,
+          "x1": -11.25,
+          "z0": 9.12,
+          "z1": 9.78
+        }
+      ],
+      "cars": [
+        {
+          "x0": -12.723333333333338,
+          "x1": -10.523333333333339,
+          "z0": 19.875000000000004,
+          "z1": 20.925
+        }
+      ],
+      "lanes": [
+        {
+          "z0": 19.875000000000004,
+          "z1": 20.925,
+          "x0": -24.85,
+          "x1": 25.340938234329226
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "hq",
+    "era": "web2",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "web2",
+      "billboard": "era_beta_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -14.649999999999999,
+          "x1": -11.25,
+          "z0": 9.12,
+          "z1": 9.78
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "hq",
+    "era": "classic",
+    "quality": "high",
+    "hits": [],
+    "samples": 532,
+    "nearest": 10.095000000000004,
+    "lights": 11,
+    "exterior": {
+      "era": "classic",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -14.649999999999999,
+          "x1": -11.25,
+          "z0": 9.12,
+          "z1": 9.78
+        }
+      ],
+      "cars": [
+        {
+          "x0": -12.723333333333338,
+          "x1": -10.523333333333339,
+          "z0": 19.875000000000004,
+          "z1": 20.925
+        }
+      ],
+      "lanes": [
+        {
+          "z0": 19.875000000000004,
+          "z1": 20.925,
+          "x0": -24.85,
+          "x1": 25.340938234329226
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "hq",
+    "era": "classic",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "classic",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -14.649999999999999,
+          "x1": -11.25,
+          "z0": 9.12,
+          "z1": 9.78
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "hq",
+    "era": "chatgbt",
+    "quality": "high",
+    "hits": [],
+    "samples": 532,
+    "nearest": 10.095000000000004,
+    "lights": 11,
+    "exterior": {
+      "era": "chatgbt",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -14.649999999999999,
+          "x1": -11.25,
+          "z0": 9.12,
+          "z1": 9.78
+        }
+      ],
+      "cars": [
+        {
+          "x0": -12.723333333333338,
+          "x1": -10.523333333333339,
+          "z0": 19.875000000000004,
+          "z1": 20.925
+        }
+      ],
+      "lanes": [
+        {
+          "z0": 19.875000000000004,
+          "z1": 20.925,
+          "x0": -24.85,
+          "x1": 25.340938234329226
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "hq",
+    "era": "chatgbt",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "chatgbt",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -14.649999999999999,
+          "x1": -11.25,
+          "z0": 9.12,
+          "z1": 9.78
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "hq",
+    "era": "agents",
+    "quality": "high",
+    "hits": [],
+    "samples": 532,
+    "nearest": 10.095000000000004,
+    "lights": 11,
+    "exterior": {
+      "era": "agents",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -14.649999999999999,
+          "x1": -11.25,
+          "z0": 9.12,
+          "z1": 9.78
+        }
+      ],
+      "cars": [
+        {
+          "x0": -12.723333333333338,
+          "x1": -10.523333333333339,
+          "z0": 19.875000000000004,
+          "z1": 20.925
+        }
+      ],
+      "lanes": [
+        {
+          "z0": 19.875000000000004,
+          "z1": 20.925,
+          "x0": -24.85,
+          "x1": 25.340938234329226
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "hq",
+    "era": "agents",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "agents",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -14.649999999999999,
+          "x1": -11.25,
+          "z0": 9.12,
+          "z1": 9.78
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "hq",
+    "era": "consolidation",
+    "quality": "high",
+    "hits": [],
+    "samples": 532,
+    "nearest": 10.095000000000004,
+    "lights": 11,
+    "exterior": {
+      "era": "consolidation",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -14.649999999999999,
+          "x1": -11.25,
+          "z0": 9.12,
+          "z1": 9.78
+        }
+      ],
+      "cars": [
+        {
+          "x0": -12.723333333333338,
+          "x1": -10.523333333333339,
+          "z0": 19.875000000000004,
+          "z1": 20.925
+        }
+      ],
+      "lanes": [
+        {
+          "z0": 19.875000000000004,
+          "z1": 20.925,
+          "x0": -24.85,
+          "x1": 25.340938234329226
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "hq",
+    "era": "consolidation",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "consolidation",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -14.649999999999999,
+          "x1": -11.25,
+          "z0": 9.12,
+          "z1": 9.78
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "hq",
+    "era": "plateau",
+    "quality": "high",
+    "hits": [],
+    "samples": 532,
+    "nearest": 10.095000000000004,
+    "lights": 11,
+    "exterior": {
+      "era": "plateau",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -14.649999999999999,
+          "x1": -11.25,
+          "z0": 9.12,
+          "z1": 9.78
+        }
+      ],
+      "cars": [
+        {
+          "x0": -12.723333333333338,
+          "x1": -10.523333333333339,
+          "z0": 19.875000000000004,
+          "z1": 20.925
+        }
+      ],
+      "lanes": [
+        {
+          "z0": 19.875000000000004,
+          "z1": 20.925,
+          "x0": -24.85,
+          "x1": 25.340938234329226
+        }
+      ]
+    }
+  },
+  {
+    "kind": "exterior",
+    "mock": "hq",
+    "era": "plateau",
+    "quality": "low",
+    "hits": [],
+    "samples": 0,
+    "nearest": null,
+    "lights": 11,
+    "exterior": {
+      "era": "plateau",
+      "billboard": "era_led_billboard",
+      "fascia": null,
+      "feet": [
+        {
+          "id": "billboard",
+          "x0": -14.649999999999999,
+          "x1": -11.25,
+          "z0": 9.12,
+          "z1": 9.78
+        }
+      ],
+      "cars": [],
+      "lanes": []
+    }
+  },
+  {
+    "kind": "calendar",
+    "rows": [
+      {
+        "year": 1991,
+        "era": "preinternet",
+        "billboard": "era_pager_billboard"
+      },
+      {
+        "year": 1998,
+        "era": "dotcom",
+        "billboard": "era_sock_billboard"
+      },
+      {
+        "year": 2002,
+        "era": "dotcom-bust",
+        "billboard": "era_lease_billboard"
+      },
+      {
+        "year": 2008,
+        "era": "web2",
+        "billboard": "era_beta_billboard"
+      },
+      {
+        "year": 2019,
+        "era": "classic",
+        "billboard": "era_led_billboard"
+      },
+      {
+        "year": 2023,
+        "era": "chatgbt",
+        "billboard": "era_led_billboard"
+      },
+      {
+        "year": 2025,
+        "era": "agents",
+        "billboard": "era_led_billboard"
+      },
+      {
+        "year": 2030,
+        "era": "consolidation",
+        "billboard": "era_led_billboard"
+      },
+      {
+        "year": 2035,
+        "era": "plateau",
+        "billboard": "era_led_billboard"
+      }
+    ]
+  }
+]

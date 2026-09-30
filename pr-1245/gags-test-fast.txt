@@ -1,0 +1,7 @@
+
+> human-in-the-loop@1.0.0 test:fast
+> bash scripts/test-cache.sh vitest run --exclude tests/sim/balance.test.js --exclude 'tests/**/*.full.test.js'
+
+test-cache: skipped: this command passed on this exact tree (b9a607dbd8) at 01:19; HITL_NO_TEST_CACHE=1 runs it anyway
+  Test Files  190 passed (190)
+  Tests  1555 passed (1555)

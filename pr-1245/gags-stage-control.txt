@@ -1,0 +1,23 @@
+spots (visitor/turned): visitor/hide: 384 candidates; selected {"x":-3.5556349186104046,"z":1.2356349186104048}; clear: 160, lower-ranked candidate: 176, partnerClear: 35, partnerInView: 4, inView: 8
+spots (visitor/turned): visitor/seatBack: 1 candidates; selected {"x":-2,"z":0.43}; no rejections
+spots (visitor/turned): visitor/explain: 24 candidates; selected {"x":-1.5500000000000003,"z":0.459422863405995}; clear: 9, lower-ranked candidate: 14
+STAGE      check            view     beat            metric        value  want                                                                       
+STAGE ok   visitor.hide     default  hide (18.0s)    facingCamera  0.976  >= 0.8 of frames (face within 70 deg of the camera)                        
+STAGE ok   visitor.hide     default  hide (18.0s)    watching      0.924  >= 0.8 of frames (face within 60 deg of the visitor)                       
+STAGE ok   visitor.hide     default  hide (18.0s)    visible       0.989  >= 0.9 of frames (body >= 70% unblocked)                                   
+STAGE ok   visitor.hide     default  hide (18.0s)    noFade        1      >= 1 of frames (no faded column over them)                                 
+STAGE ok   visitor.test     default  test (13.4s)    atScreen      1      >= 0.8 of frames (face within 45 deg of the screen)                        
+STAGE ok   visitor.test     default  test (13.4s)    visible       1      >= 0.9 of frames (body >= 70% unblocked)                                   
+STAGE ok   visitor.explain  default  explain (4.9s)  atScreen      0.939  >= 0.8 of frames (face within 45 deg of the screen in front of the visitor)
+STAGE ok   visitor.explain  default  explain (4.9s)  visible       1      >= 0.9 of frames (body >= 70% unblocked)                                   
+STAGE ok   visitor.explain  default  explain (4.9s)  noFade        1      >= 1 of frames (no faded column over them)                                 
+STAGE ok   visitor.hide     turned   hide (19.6s)    facingCamera  0.98   >= 0.8 of frames (face within 70 deg of the camera)                        
+STAGE ok   visitor.hide     turned   hide (19.6s)    watching      0.927  >= 0.8 of frames (face within 60 deg of the visitor)                       
+STAGE ok   visitor.hide     turned   hide (19.6s)    visible       0.934  >= 0.9 of frames (body >= 70% unblocked)                                   
+STAGE ok   visitor.hide     turned   hide (19.6s)    noFade        1      >= 1 of frames (no faded column over them)                                 
+STAGE ok   visitor.test     turned   test (13.4s)    atScreen      1      >= 0.8 of frames (face within 45 deg of the screen)                        
+STAGE FAIL visitor.test     turned   test (13.4s)    visible       0      >= 0.9 of frames (body >= 70% unblocked)                                   
+STAGE ok   visitor.explain  turned   explain (5.2s)  atScreen      0.962  >= 0.8 of frames (face within 45 deg of the screen in front of the visitor)
+STAGE ok   visitor.explain  turned   explain (5.2s)  visible       1      >= 0.9 of frames (body >= 70% unblocked)                                   
+STAGE ok   visitor.explain  turned   explain (5.2s)  noFade        1      >= 1 of frames (no faded column over them)                                 
+stage: 17 of 18 passed
