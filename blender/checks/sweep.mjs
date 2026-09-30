@@ -66,6 +66,10 @@ const full = argv.includes('--full');
 // browser. --screen-only is the small browser step the engine run hands the page checks to.
 const screenOnly = argv.includes('--screen-only');
 const engine = !argv.includes('--browser') && !screenOnly;
+// Importing the browser harness makes playwright handle SIGINT, SIGTERM and SIGHUP in JavaScript, which
+// only runs between turns of the event loop; the engine samples in long synchronous stretches and starts no
+// browser here, so those signals take their default action (the screen step ends with the run below).
+if (engine) for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.removeAllListeners(sig);
 // Milliseconds on the process's own clock: the engine replaces Date.now with a game clock.
 const wall = () => Number(process.hrtime.bigint() / 1000000n);
 const MODES = {
