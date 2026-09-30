@@ -21,6 +21,7 @@ import { roleName } from './content.js';
 import { icon } from './icons.js';
 import { createSettings } from './settings.js';
 import { createTitle } from './title.js';
+import { erasPreview } from './eraPreview.js';
 import { createGameOver } from './gameover.js';
 import { createTutorial, tutorialDone } from './tutorial.js';
 import { createBuildMode } from './buildmode.js';
@@ -247,7 +248,7 @@ export function createUI({ root, getState, dispatch, controls }) {
 
   function goalsModal() {
     const s = getState();
-    const list = GOALS.filter((g) => s.goals?.[g.id]);
+    const list = GOALS.filter((g) => s.goals?.[g.id] && (erasPreview || !s.goals[g.id].skipped));
     let group = null;
     const body = h('div.goallist', null, ...list.flatMap((g) => {
       const st = s.goals[g.id];

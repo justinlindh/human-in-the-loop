@@ -2,6 +2,7 @@
 import { afterAll, afterEach, expect, it, vi } from 'vitest';
 import { createTitle } from './title.js';
 import { createGame } from '../sim/state.js';
+vi.mock('./eraPreview.js', () => ({ erasPreview: true }));
 
 vi.hoisted(() => vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({}) }))));
 afterAll(() => vi.unstubAllGlobals());
