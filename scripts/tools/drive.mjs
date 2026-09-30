@@ -26,6 +26,7 @@
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { glMode, holdRenderLock, launchChromium } from '../lib/gl.js';
+import { waitForBoot } from '../lib/boot.js';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -177,7 +178,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       const ctx = { touch: sz.touch, out, name, size: sz.name, results: { _n: 0 }, fails: [] };
       try {
         await page.goto(url, { waitUntil: 'load' });
-        await page.waitForFunction(() => window.__HITL_READY === true, null, { timeout: 60000 });
+        await waitForBoot(page);
         await page.waitForTimeout(Number(args.wait ?? 1500));
         await page.evaluate((speed) => { window.__HITL_UI?.hideTitle?.(); window.__HITL.setSpeed(speed); }, Number(args.speed ?? 0));
         if (args.play) { const [bot, weeks] = String(args.play).split(':'); ctx.results.play = await play(page, { bot, weeks: Number(weeks), until: args.until }); }
