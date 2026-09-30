@@ -1,0 +1,1303 @@
+## letter-guard-commit
+
+
+> human-in-the-loop@1.0.0 test:fast
+> bash scripts/test-cache.sh vitest run --exclude tests/sim/balance.test.js --exclude 'tests/**/*.full.test.js'
+
+
+ RUN  v5.0.1 WORKTREE
+
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+
+ Test Files  185 passed (185)
+      Tests  1518 passed (1518)
+   Start at  22:45:39
+   Duration  42.01s (tests 87%, transform 8%, import 5%)
+
+[codex/era-art-trial 42f760c1] fix(render): wait for ambient letter readers to reach their seat
+ 2 files changed, 6 insertions(+), 3 deletions(-)
+
+
+## push-gate
+
+
+> human-in-the-loop@1.0.0 test:fast
+> bash scripts/test-cache.sh vitest run --exclude tests/sim/balance.test.js --exclude 'tests/**/*.full.test.js'
+
+test-cache: skipped: this command passed on this exact tree (06de2becc2) at 22:46; HITL_NO_TEST_CACHE=1 runs it anyway
+  Test Files  185 passed (185)
+  Tests  1518 passed (1518)
+pre-push: test-cache: skipped: this command passed on this exact tree (06de2becc2) at 22:46; HITL_NO_TEST_CACHE=1 runs it anyway
+pre-push: Tests  1518 passed (1518)
+remote: 
+remote: Create a pull request for 'codex/era-art-trial' on GitHub by visiting:        
+remote:      https://github.com/justinlindh/human-in-the-loop/pull/new/codex/era-art-trial        
+remote: 
+remote: GitHub found 5 vulnerabilities on justinlindh/human-in-the-loop's default branch (4 moderate, 1 low). To find out more, visit:        
+remote:      https://github.com/justinlindh/human-in-the-loop/security/dependabot        
+remote: 
+To github.com:justinlindh/human-in-the-loop.git
+ * [new branch]        codex/era-art-trial -> codex/era-art-trial
+branch 'codex/era-art-trial' set up to track 'origin/codex/era-art-trial'.
+
+
+## models-evidence
+
+
+> human-in-the-loop@1.0.0 models
+> bash scripts/build-models.sh
+
+MODEL balloons: 1268 tris (OK, budget 3000)
+MODEL bookshelf: 1512 tris (OK, budget 3000)
+MODEL chair: 2212 tris (OK, budget 3000)
+MODEL coffee_machine: 2556 tris (OK, budget 3000)
+MODEL couch: 1616 tris (OK, budget 3000)
+MODEL desk: 1188 tris (OK, budget 3000)
+MODEL era_crt_desk: 2630 tris (OK, budget 3000)
+MODEL era_cubicle: 1080 tris (OK, budget 3000)
+MODEL era_sock_billboard: 2559 tris (OK, budget 3000)
+MODEL foosball: 2812 tris (OK, budget 3000)
+MODEL garage_door: 1560 tris (OK, budget 3000)
+MODEL kitchenette: 2856 tris (OK, budget 3000)
+MODEL laptop: 230 tris (OK, budget 3000)
+MODEL monitor: 434 tris (OK, budget 3000)
+MODEL monitoring_wall: 1010 tris (OK, budget 3000)
+MODEL ping_pong_table: 1692 tris (OK, budget 3000)
+MODEL plant_small: 708 tris (OK, budget 3000)
+MODEL plant_tall: 992 tris (OK, budget 3000)
+MODEL robot: 4656 tris (OK, budget 5000)
+MODEL server_rack: 1284 tris (OK, budget 3000)
+MODEL trophy: 588 tris (OK, budget 3000)
+MODEL waffle_station: 2956 tris (OK, budget 3000)
+MODEL water_cooler: 1588 tris (OK, budget 3000)
+MODEL whiteboard: 1612 tris (OK, budget 3000)
+MODEL window_frame: 650 tris (OK, budget 3000)
+MODEL arcade_l1: 1654 tris (OK, budget 3000)
+MODEL arcade_l2: 2322 tris (OK, budget 4000)
+MODEL arcade_l3: 4168 tris (OK, budget 6000)
+MODEL espresso_l1: 1940 tris (OK, budget 3000)
+MODEL espresso_l2: 2680 tris (OK, budget 4000)
+MODEL espresso_l3: 5316 tris (OK, budget 6000)
+MODEL library_l1: 1512 tris (OK, budget 3000)
+MODEL library_l2: 3208 tris (OK, budget 4000)
+MODEL library_l3: 5824 tris (OK, budget 6000)
+MODEL monitoring_wall_l1: 1716 tris (OK, budget 3000)
+MODEL monitoring_wall_l2: 1010 tris (OK, budget 4000)
+MODEL monitoring_wall_l3: 2146 tris (OK, budget 6000)
+MODEL nap_pod_l1: 704 tris (OK, budget 3000)
+MODEL nap_pod_l2: 2740 tris (OK, budget 4000)
+MODEL nap_pod_l3: 1560 tris (OK, budget 6000)
+MODEL noc_l1: 1826 tris (OK, budget 3000)
+MODEL noc_l2: 4428 tris (OK, budget 5000)
+MODEL noc_l3: 7042 tris (OK, budget 7500)
+MODEL office_robot_l1: 1108 tris (OK, budget 1500)
+MODEL office_robot_l2: 1940 tris (OK, budget 2200)
+MODEL office_robot_l3: 3398 tris (OK, budget 3500)
+MODEL plant_wall_l1: 1700 tris (OK, budget 3000)
+MODEL plant_wall_l2: 3276 tris (OK, budget 4000)
+MODEL plant_wall_l3: 1556 tris (OK, budget 6000)
+MODEL server_rack_l1: 1284 tris (OK, budget 3000)
+MODEL server_rack_l2: 3204 tris (OK, budget 4000)
+MODEL server_rack_l3: 4926 tris (OK, budget 6000)
+MODEL standing_desk_l1: 1782 tris (OK, budget 3000)
+MODEL standing_desk_l2: 2302 tris (OK, budget 4000)
+MODEL standing_desk_l3: 2746 tris (OK, budget 6000)
+MODEL trophy_case_l1: 1272 tris (OK, budget 3000)
+MODEL trophy_case_l2: 3802 tris (OK, budget 4000)
+MODEL trophy_case_l3: 5292 tris (OK, budget 6000)
+MODEL whiteboard_wall_l1: 1612 tris (OK, budget 3000)
+MODEL whiteboard_wall_l2: 1236 tris (OK, budget 4000)
+MODEL whiteboard_wall_l3: 880 tris (OK, budget 6000)
+MODEL chibi: 11214 tris (OK, budget 12000)
+MODEL chibi_rig: 0 tris (rig, 8 bones, 13 clips)
+MODEL pets: 5104 tris (OK, budget 6000)
+built 64 models from 40 scripts
+z-fighting report (2 pairs):
+  ZFIGHT library_l3[pal_wood_honey] vs library_l3[pal_wood_light]: 4 tris, 0.3 cm2 near (-0.01, 0.14, 1.90)
+  ZFIGHT trophy_case_l2[pal_fabric_slate] vs trophy_case_l2[pal_wood_walnut]: 1 tris, 0.3 cm2 near (0.45, 0.46, 1.70)
+contact sheets: 37 in shots/sheets
+rendered 40 icons
+
+
+## rotations-evidence
+
+with-render-lock: waited 0s for GPU render slot 2
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+rotation matrix rig=0 preview=false: 16/16 seated poses passed
+rotation matrix rig=0 preview=true: 16/16 seated poses passed
+rotation matrix rig=1 preview=false: 16/16 seated poses passed
+rotation matrix rig=1 preview=true: 16/16 seated poses passed
+Seat positions and facing identical for all four rotations, both rigs.
+
+
+## clip-letter-final
+
+with-render-lock: waited 0s for GPU render slot 3
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+CLIP ok   moment:letter {"desks":10,"samples":818,"insidePct":0,"worstWho":null}
+CLIP ok   moment:behind-card {"desk":"f1","sitter":"s1","actors":["s1"],"beats":["readpaper","typing"],"strays":[],"drift":[]}
+CLIP ok   prop:stageStaff {"staffId":"s2","desk":"f2"}
+CLIP ok   moment:letter-claim {"standup":{"id":"s1","read":true},"party":{"id":"s1","read":true},"walking":{"id":"s1","read":true}}
+CLIP ok   moment:letter-lifecycle {"cancel":{"pass":true,"claimed":true,"released":true,"hidden":false,"fallback":false,"read":false,"slump":false,"returned":false},"low":{"pass":true,"claimed":true,"released":true,"hidden":false,"fallback":false,"read":false,"slump":false,"returned":false},"away":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":false,"slump":false,"returned":false},"away-read":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":true,"slump":false,"returned":false},"cancel-away":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":false,"slump":false,"returned":false},"fallback":{"pass":true,"claimed":true,"released":false,"hidden":false,"fallback":true,"read":true,"slump":true,"returned":true}}
+clip: 5 of 5 passed (--only=moment:letter,moment:behind-card,prop:stageStaff)
+
+
+## stage-final
+
+STAGE      check         view     beat          metric        value  want                                                                        
+STAGE ok   letter.read   default  read (2.2s)   gazeOnLetter  1      >= 0.8 of frames (line of sight meets the letter)                           
+STAGE ok   letter.read   default  read (2.2s)   letterNear    0.938  >= 0.8 of frames (letter <= 0.25 m from the eyes, within 30 deg of the face)
+STAGE ok   letter.read   default  read (2.2s)   facingCamera  1      >= 0.8 of frames (face within 70 deg of the camera)                         
+STAGE ok   letter.read   default  read (2.2s)   visible       1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   letter.read   default  read (2.2s)   noFade        1      >= 1 of frames (no faded column over them)                                  
+STAGE ok   letter.slump  default  slump (2.0s)  facingCamera  1      >= 0.8 of frames (face within 70 deg of the camera)                         
+STAGE ok   letter.slump  default  slump (2.0s)  headDrop      0.039  >= 0.03 m below the reading head height                                     
+STAGE ok   letter.slump  default  slump (2.0s)  visible       1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   letter.slump  default  slump (2.0s)  noFade        1      >= 1 of frames (no faded column over them)                                  
+STAGE ok   letter.read   turned   read (2.2s)   gazeOnLetter  1      >= 0.8 of frames (line of sight meets the letter)                           
+STAGE ok   letter.read   turned   read (2.2s)   letterNear    0.938  >= 0.8 of frames (letter <= 0.25 m from the eyes, within 30 deg of the face)
+STAGE ok   letter.read   turned   read (2.2s)   facingCamera  0.969  >= 0.8 of frames (face within 70 deg of the camera)                         
+STAGE ok   letter.read   turned   read (2.2s)   visible       1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   letter.read   turned   read (2.2s)   noFade        1      >= 1 of frames (no faded column over them)                                  
+STAGE ok   letter.slump  turned   slump (2.0s)  facingCamera  1      >= 0.8 of frames (face within 70 deg of the camera)                         
+STAGE ok   letter.slump  turned   slump (2.0s)  headDrop      0.039  >= 0.03 m below the reading head height                                     
+STAGE ok   letter.slump  turned   slump (2.0s)  visible       1      >= 0.9 of frames (body >= 70% unblocked)                                    
+STAGE ok   letter.slump  turned   slump (2.0s)  noFade        1      >= 1 of frames (no faded column over them)                                  
+stage: 18 of 18 passed
+
+
+## sweep-evidence
+
+with-render-lock: waited 0s for GPU render slot 4
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+sweep: mock:garage 0 violation(s) (1 s)
+with-render-lock: waited 0s for GPU render slot 5
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+sweep: mock:floor played 52 moments: resignation_letter, hackathon, team_offsite, no_show, junior_overwhelmed, pivot_pitch, open_plan_office, hackathon_week, founder_burnout, enterprise_rfp, bridge_loan, agent_runaway_spend, ransomware, phishing_ceo, first_user_test, lockdown_start, pet_request, cat_request, pet_mishap, agent_invoice, floor_next_door, mission_test_support, hearing_summons, cloud_bill, onprem_bank, ping_pong, investor_demo_day, moonshot_pitch, conference_expo, coffee_machine_broke, coffee_wanted, coffee_wanted_corner, banner_company, cover_sheets, the_stapler, efficiency_consultants, printer_jam, incubator_house, the_box, oat_milk, pizza_boxes, smoke_puff, rack_hot, pet:dog, pet:cat, robot:spin, robot:stuck, robot:cone, robot:emptyDesk, robot:unplug, robot:waffle_party, robot:music_night
+sweep: mock:floor 2 violation(s) (13 s)
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+sweep: mock:hq 0 violation(s) (24 s)
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+sweep: mock:night 0 violation(s) (24 s)
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.
+sweep: seed:1 played to week 803 (retired); windows: w0 stage 0, w5 decision first_user_test, w25 decision team_offsite, w33 decision onprem_bank, w104 every, w112 stage 1, w198 era chatgbt, w208 every, w261 stage 2, w312 every, w328 era agents, w416 every, w520 every, w535 era consolidation, w624 every, w728 every, w791 era plateau
+sweep: seed:1 27 violation(s) in 20 s (44 s)
+sweep: screen and tooltip (browser) 1 violation(s) (43 s)
+sweep: origin/main (2223bd43) has 9 violation(s) in the same states
+SWEEP base person s60 (moment growth) in s692 (moment company_party) 0.267 m at seed:1:w416 t=0.2s [0.04,0.77,6.71] x301 in 14 state(s) (#1137)
+SWEEP base person s618 (walking) head in coffee_corner#f720[pal_wood_light] 0.189 m at seed:1:w520 t=1.8s [-1.7,0.82,-5.8] x1 in 1 state(s) (#1138)
+SWEEP base person s618 (walking) torso in coffee_corner#f720[pal_plastic_white] 0.082 m at seed:1:w520 t=1.8s [-1.7,0.82,-5.8] x1 in 1 state(s)
+SWEEP base person s618 (walking) head in coffee_corner#f720[pal_plastic_white] 0.051 m at seed:1:w520 t=1.8s [-1.7,0.82,-5.8] x4 in 2 state(s) (#1138)
+SWEEP base person s655 (walking) head in desk#f681[pal_fabric_slate] 0.035 m at seed:1:w312 t=1.6s [-3.98,0.76,-3.5] x33 in 9 state(s) (#1138)
+SWEEP base person s618 (walking) head in noc#f710[pal_fabric_slate] 0.034 m at seed:1:w520 t=1.8s [-1.57,0.75,-6.3] x2 in 1 state(s)
+SWEEP base person s618 (walking) torso in noc#f710[pal_fabric_slate] 0.031 m at seed:1:w520 t=2s [-1.73,0.5,-6.33] x1 in 1 state(s)
+SWEEP base screen bubble "The interface now comes with a founder." over s1's emote 0.83 of the smaller at seed:1:w25 t=2.9s null x56 in 1 state(s)
+sweep: 8 distinct violation(s), 0 new, 0 new in seeds only (advisory), 1 not seen; 44 s (fast)
+
+
+## perf-gpu
+
+post-checkout: linked node_modules to the main checkout's
+post-checkout: linked node_modules to the main checkout's
+perf: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+perf  gl=gpu size=1280x720 runs=3 warmup=2s seconds=5 cpus=all/32 load=5.8
+build origin/main(2223bd43) js 2159KB (gz 714KB)  css 111KB (gz 20KB)
+build 02fc247b     js 2159KB (gz 714KB)  css 111KB (gz 20KB)
+with-render-lock: waited 0s for GPU render slot 4
+origin/main(2223bd43) garage/low  p50    0.6  p95    0.7  cpu   0.5  render    0.5  best    0.5  calls  128  tris   59k  meshes   91  geo  120  tex  15  prog  10  heap  13.7MB  dom   654  mut/s    0.0  load 4.1
+02fc247b     garage/low  p50    0.6  p95    0.8  cpu   0.6  render    0.5  best    0.5  calls  150  tris   70k  meshes  107  geo  148  tex  15  prog  10  heap  13.8MB  dom   781  mut/s    0.0  load 4.1
+with-render-lock: waited 0s for GPU render slot 2
+origin/main(2223bd43) floor/low   p50    1.2  p95    2.2  cpu   1.1  render    1.0  best    0.9  calls  252  tris  188k  meshes  208  geo  317  tex  33  prog  16  heap  15.6MB  dom   748  mut/s    0.0  load 5.6
+02fc247b     floor/low   p50    1.0  p95    1.5  cpu   1.0  render    0.9  best    0.9  calls  256  tris  209k  meshes  208  geo  348  tex  33  prog  16  heap  15.9MB  dom   748  mut/s    0.0  load 5.6
+
+
+## perf-software
+
+post-checkout: linked node_modules to the main checkout's
+post-checkout: linked node_modules to the main checkout's
+perf: GL software (ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver))
+perf  gl=software size=1280x720 runs=3 warmup=2s seconds=5 cpus=30-31/32 load=5.7
+build origin/main(2223bd43) js 2159KB (gz 714KB)  css 111KB (gz 20KB)
+build 02fc247b     js 2159KB (gz 714KB)  css 111KB (gz 20KB)
+with-render-lock: waited 0s for the software render lock
+origin/main(2223bd43) garage/low  p50  160.1  p95  172.1  cpu 157.8  render  157.4  best  155.8  calls  128  tris   59k  meshes   91  geo  120  tex  15  prog  10  heap  11.9MB  dom   744  mut/s    0.0  load 21.2
+02fc247b     garage/low  p50  160.3  p95  168.7  cpu 159.8  render  159.5  best  158.4  calls  150  tris   70k  meshes  107  geo  148  tex  15  prog  10  heap  12.2MB  dom   854  mut/s    0.0  load 21.2
+with-render-lock: waited 0s for the software render lock
+origin/main(2223bd43) floor/low   p50  239.9  p95  300.8  cpu 240.0  render  239.4  best  232.3  calls  252  tris  188k  meshes  208  geo  317  tex  33  prog  16  heap  14.3MB  dom   980  mut/s   27.6  load 16.5
+02fc247b     floor/low   p50  241.0  p95  289.1  cpu 239.7  render  239.3  best  238.8  calls  256  tris  209k  meshes  208  geo  348  tex  33  prog  16  heap  14.5MB  dom   983  mut/s   27.6  load 16.5
+
+
+## photos-evidence
+
+
+> human-in-the-loop@1.0.0 snap
+> node scripts/snap.js --scenario garage --quality low --time day --query eras&eraArt=dotcom --out shots/era/garage-day-low.png
+
+with-render-lock: waited 0s for GPU render slot 2
+snap: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+snap: WORKTREE/shots/era/garage-day-low.png
+url: http://localhost:40085/?snap=1&mock=garage&quality=low&time=day&eras=&eraArt=dotcom
+
+> human-in-the-loop@1.0.0 snap
+> node scripts/snap.js --scenario floor --quality low --time day --query eras&eraArt=dotcom --out shots/era/floor-day-low.png
+
+with-render-lock: waited 0s for GPU render slot 2
+snap: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+snap: WORKTREE/shots/era/floor-day-low.png
+url: http://localhost:35905/?snap=1&mock=floor&quality=low&time=day&eras=&eraArt=dotcom
+
+> human-in-the-loop@1.0.0 snap
+> node scripts/snap.js --scenario garage --quality low --time day --query eras&eraArt=dotcom --eval window.__hitlRender.rotateView(1); window.__hitlRender.render(10); window.__hitlRender.render(0.033) --out shots/era/garage-turned-day-low.png
+
+with-render-lock: waited 0s for GPU render slot 2
+snap: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+eval: undefined
+snap: WORKTREE/shots/era/garage-turned-day-low.png
+url: http://localhost:43645/?snap=1&mock=garage&quality=low&time=day&eras=&eraArt=dotcom
+
+> human-in-the-loop@1.0.0 snap
+> node scripts/snap.js --scenario garage --quality low --time night --query eras&eraArt=dotcom --out shots/era/garage-night-low.png
+
+with-render-lock: waited 0s for GPU render slot 2
+snap: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+snap: WORKTREE/shots/era/garage-night-low.png
+url: http://localhost:43273/?snap=1&mock=garage&quality=low&time=night&eras=&eraArt=dotcom
+
+> human-in-the-loop@1.0.0 snap
+> node scripts/snap.js --scenario floor --quality low --time night --query eras&eraArt=dotcom --out shots/era/floor-night-low.png
+
+with-render-lock: waited 0s for GPU render slot 2
+snap: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+snap: WORKTREE/shots/era/floor-night-low.png
+url: http://localhost:34257/?snap=1&mock=floor&quality=low&time=night&eras=&eraArt=dotcom
+
+> human-in-the-loop@1.0.0 snap
+> node scripts/snap.js --scenario garage --quality low --time night --query eras&eraArt=dotcom --eval window.__hitlRender.rotateView(1); window.__hitlRender.render(10); window.__hitlRender.render(0.033) --out shots/era/garage-turned-night-low.png
+
+with-render-lock: waited 0s for GPU render slot 2
+snap: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+eval: undefined
+snap: WORKTREE/shots/era/garage-turned-night-low.png
+url: http://localhost:45531/?snap=1&mock=garage&quality=low&time=night&eras=&eraArt=dotcom
+
+
+## clip-complete
+
+with-render-lock: waited 0s for GPU render slot 3
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+CLIP ok   moment:pet:dog:heading-0 {"yaw":null,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-1 {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-2 {"yaw":0,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-3 {"yaw":0.2617993877991494,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-4 {"yaw":0.5235987755982988,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-5 {"yaw":0.7853981633974483,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-6 {"yaw":1.0471975511965976,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-7 {"yaw":1.3089969389957472,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-8 {"yaw":1.5707963267948966,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-9 {"yaw":1.832595714594046,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-10 {"yaw":2.0943951023931953,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-11 {"yaw":2.356194490192345,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-12 {"yaw":2.6179938779914944,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-13 {"yaw":2.8797932657906435,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-14 {"yaw":3.141592653589793,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-15 {"yaw":3.4033920413889427,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-16 {"yaw":3.665191429188092,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-17 {"yaw":3.926990816987241,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-18 {"yaw":4.1887902047863905,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-19 {"yaw":4.4505895925855405,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-20 {"yaw":4.71238898038469,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-21 {"yaw":4.974188368183839,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-22 {"yaw":5.235987755982989,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-23 {"yaw":5.497787143782138,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-24 {"yaw":5.759586531581287,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:heading-25 {"yaw":6.021385919380436,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:approach {"yaw":null,"samples":115,"stroke":90,"resumed":true,"resumedDistance":2.04,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:near {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:near-side-turn {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:pet-turn-1.5707963267948966 {"yaw":2.104,"samples":115,"stroke":90,"resumed":true,"resumedDistance":2.67,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:pet-turn-3.141592653589793 {"yaw":2.104,"samples":115,"stroke":90,"resumed":true,"resumedDistance":2.67,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:dog:pet-turn--1.5707963267948966 {"yaw":2.104,"samples":115,"stroke":90,"resumed":true,"resumedDistance":2.67,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-0 {"yaw":null,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-1 {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-2 {"yaw":0,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-3 {"yaw":0.2617993877991494,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-4 {"yaw":0.5235987755982988,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-5 {"yaw":0.7853981633974483,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-6 {"yaw":1.0471975511965976,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-7 {"yaw":1.3089969389957472,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-8 {"yaw":1.5707963267948966,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-9 {"yaw":1.832595714594046,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-10 {"yaw":2.0943951023931953,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-11 {"yaw":2.356194490192345,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-12 {"yaw":2.6179938779914944,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-13 {"yaw":2.8797932657906435,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-14 {"yaw":3.141592653589793,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-15 {"yaw":3.4033920413889427,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-16 {"yaw":3.665191429188092,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-17 {"yaw":3.926990816987241,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-18 {"yaw":4.1887902047863905,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-19 {"yaw":4.4505895925855405,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-20 {"yaw":4.71238898038469,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-21 {"yaw":4.974188368183839,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-22 {"yaw":5.235987755982989,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-23 {"yaw":5.497787143782138,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-24 {"yaw":5.759586531581287,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:heading-25 {"yaw":6.021385919380436,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:approach {"yaw":null,"samples":117,"stroke":90,"resumed":true,"resumedDistance":1.96,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:near {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:near-side-turn {"yaw":2.104,"samples":107,"stroke":90,"resumed":true,"resumedDistance":3,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:pet-turn-1.5707963267948966 {"yaw":2.104,"samples":117,"stroke":90,"resumed":true,"resumedDistance":2.58,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:pet-turn-3.141592653589793 {"yaw":2.104,"samples":117,"stroke":90,"resumed":true,"resumedDistance":2.58,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:cat:pet-turn--1.5707963267948966 {"yaw":2.104,"samples":117,"stroke":90,"resumed":true,"resumedDistance":2.58,"firstInsidePct":0,"petInsidePct":0,"insidePct":0,"worstFrame":null,"worstActor":null}
+CLIP ok   moment:pet:turn:remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:staff-remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:away {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:priority {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:decision {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:turn:low {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:staff-remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:away {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:priority {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:decision {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:approach:low {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:staff-remove {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:away {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:priority {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:decision {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:stroke:low {"started":true,"ended":true,"priority":true}
+CLIP ok   moment:pet:skip-busy {}
+CLIP ok   moment:pet:skip-stationary {}
+CLIP ok   moment:pet:skip-distant {}
+CLIP ok   moment:pet:low-skip {}
+CLIP ok   moment:robot:spin {"slapped":true,"ended":true,"insidePct":0,"worstFrame":null,"inRobotPct":0,"robotInsidePct":0}
+CLIP ok   moment:robot:stuck {"slapped":true,"ended":true,"insidePct":0,"worstFrame":null,"inRobotPct":0,"robotInsidePct":0}
+CLIP ok   moment:robot:cone {"slapped":true,"ended":true,"insidePct":0,"worstFrame":null,"inRobotPct":0,"robotInsidePct":0}
+CLIP ok   moment:robot:emptyDesk {"slapped":true,"ended":true,"insidePct":0,"worstFrame":null,"inRobotPct":0,"robotInsidePct":0}
+CLIP ok   moment:robot:unplug {"slapped":true,"ended":true,"insidePct":0,"worstFrame":null,"inRobotPct":0,"robotInsidePct":0}
+CLIP ok   moment:robot:waffle_party {"joined":true,"posted":true,"home":true,"robotInsidePct":0,"worstFrame":null,"peopleInRobotPct":0.81}
+CLIP ok   moment:robot:music_night {"joined":true,"posted":true,"home":true,"robotInsidePct":0,"worstFrame":null,"peopleInRobotPct":0}
+CLIP ok   desks:all-seated {"unseated":[]}
+CLIP ok   desk:f1:typing {"handGapMin":0.013,"handGapMax":0.019,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f2:slumped {"handGapMin":0.007,"handGapMax":0.037,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f3:burnout {"handGapMin":0.203,"handGapMax":0.255,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f4:desknap {"handGapMin":0.012,"handGapMax":0.204,"insidePct":0.58,"byPart":{"head":0,"torso":36,"armL":0,"armR":0}}
+CLIP ok   desk:f5:typing {"handGapMin":0.016,"handGapMax":0.03,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f6:slumped {"handGapMin":0.006,"handGapMax":0.037,"insidePct":0.6,"byPart":{"head":37,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f7:burnout {"handGapMin":0.203,"handGapMax":0.211,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f8:tired {"handGapMin":0.012,"handGapMax":0.023,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f9:typing {"handGapMin":0.017,"handGapMax":0.03,"insidePct":0,"byPart":{"head":0,"torso":0,"armL":0,"armR":0}}
+CLIP ok   desk:f10:slumped {"handGapMin":0.006,"handGapMax":0.037,"insidePct":0.53,"byPart":{"head":43,"torso":0,"armL":0,"armR":0}}
+CLIP ok   head:s1:none:3 {"side":0.228,"front":0.208,"top":0.228}
+CLIP ok   head:s2:headphones:5 {"side":0.265,"front":0.208,"top":0.31}
+CLIP ok   head:s3:headphones:0 {"side":0.265,"front":0.213,"top":0.238}
+CLIP ok   head:s4:beanie:5 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s5:glasses:7 {"side":0.257,"front":0.228,"top":0.228}
+CLIP ok   head:s6:beanie:7 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s7:none:3 {"side":0.228,"front":0.208,"top":0.228}
+CLIP ok   head:s8:beanie:5 {"side":0.239,"front":0.224,"top":0.328}
+CLIP ok   head:s9:cap:7 {"side":0.238,"front":0.307,"top":0.252}
+CLIP ok   head:s10:glasses:2 {"side":0.228,"front":0.228,"top":0.228}
+CLIP ok   couch:sit {"anim":"sit","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":1.69}
+CLIP ok   couch:nap {"anim":"nap","insidePct":0,"headInsidePct":0,"floatGap":0,"walkInsidePct":0,"enterUpperInsidePct":0}
+CLIP ok   beanbag:sprawl {"anim":"sprawl","insidePct":2.69,"headInsidePct":0,"floatGap":0,"walkInsidePct":0,"enterUpperInsidePct":2.74,"sunkBelowTop":0.46}
+CLIP ok   napPod:lie {"anim":"lie","insidePct":0,"headInsidePct":0,"floatGap":0.016,"walkInsidePct":0,"enterUpperInsidePct":1.07}
+CLIP ok   arcade:stool {"anim":"playsit","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":0.57}
+CLIP ok   library:armchair {"anim":"read","insidePct":0,"headInsidePct":0,"floatGap":0.004,"walkInsidePct":0,"enterUpperInsidePct":2.25}
+CLIP ok   dance:motivational_polka {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:corporate_synthwave {"dancers":4,"insidePct":0,"minGap":0.6,"notBackAtDesk":[]}
+CLIP ok   dance:aggressive_bossa_nova {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:sad_lofi {"dancers":4,"insidePct":0,"minGap":0.85,"notBackAtDesk":[]}
+CLIP ok   dance:trackLength {"noTrackS":16.03,"withTrackS":20.27}
+CLIP ok   walk:dropOnWalk {"insidePct":0,"tile":[4,4],"void":0}
+CLIP ok   walk:dropOnStand {"insidePct":0,"before":{"x":3.96,"z":-0.77,"blocked":false,"path":1},"after":{"x":3.85,"z":-0.96,"path":0,"temp":"idle"}}
+CLIP ok   walk:walkers {"worstInsidePct":0,"worstWho":null,"samples":107}
+CLIP ok   prop:dropOnWalk {"insidePct":0,"tile":[5,1]}
+CLIP ok   prop:dropOnStand {"insidePct":0,"tile":[12,5]}
+CLIP ok   moment:pizza {"eaters":2,"insidePct":0,"worstWho":null}
+CLIP ok   prop:groupOnMovedTable {"onTable":[true,true],"tile":{"x":9,"y":5}}
+CLIP ok   moment:hammer {"phases":["fetch","carry","hold","swing"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:letter {"desks":10,"samples":818,"insidePct":0,"worstWho":null}
+CLIP ok   moment:printer {"phases":["gather","lift","carry","down","smash","off"],"hits":[0,1,2,3],"quiet":true,"spotlight":{"seen":true,"events":["start printer_jam","end printer_jam"]},"samples":302,"insidePct":0,"worstWho":null,"chinGap":0.147,"chinWho":"s1 (lift)"}
+CLIP ok   moment:visitor:flinch {"samples":282,"beats":["hide","walk","flinch"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:visitor:explain {"samples":282,"beats":["hide","walk","explain"],"insidePct":0,"worstWho":null}
+CLIP ok   moment:behind-card {"desk":"f1","sitter":"s1","actors":["s1"],"beats":["readpaper","typing"],"strays":[],"drift":[]}
+CLIP ok   moment:prompt-stage {"drawn":true,"fanned":true,"phases":["fetch","carry","hold","swing"],"swingSpot":"open_plan_office","skipped":true}
+CLIP ok   prop:stageStaff {"staffId":"s2","desk":"f2"}
+CLIP ok   prop:pivotBoard {"front":{"x":1,"y":11},"frontResult":{"onWall":true,"recorded":true,"reasons":["insufficient room in front of face","face points away from camera"]},"back":{"x":1,"y":1},"backResult":{"onWall":false,"recorded":true,"reasons":[]}}
+CLIP ok   moment:letter-claim {"standup":{"id":"s1","read":true},"party":{"id":"s1","read":true},"walking":{"id":"s1","read":true}}
+CLIP ok   moment:letter-lifecycle {"cancel":{"pass":true,"claimed":true,"released":true,"hidden":false,"fallback":false,"read":false,"slump":false,"returned":false},"low":{"pass":true,"claimed":true,"released":true,"hidden":false,"fallback":false,"read":false,"slump":false,"returned":false},"away":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":false,"slump":false,"returned":false},"away-read":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":true,"slump":false,"returned":false},"cancel-away":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":false,"slump":false,"returned":false},"fallback":{"pass":true,"claimed":true,"released":false,"hidden":false,"fallback":true,"read":true,"slump":true,"returned":true}}
+CLIP ok   pairs:floor {"staff":10,"readyAt":0,"playedAt":12.5,"table":{"x":11,"y":5},"ballTravel":3.32,"offPitch":0,"rodTurn":1.05,"newToyAt":0.4}
+CLIP ok   use:espresso_l1 {"frontGap":0.4,"across":-0.45,"insidePct":0}
+CLIP ok   use:espresso_l2 {"frontGap":0.4,"across":-0.45,"insidePct":0}
+CLIP ok   use:espresso_l3 {"frontGap":0.4,"across":-0.45,"insidePct":0}
+CLIP ok   use:coffee_corner_l1 {"frontGap":0.4,"across":-0.45,"insidePct":0}
+CLIP ok   use:plant_wall_l1 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   use:plant_wall_l3 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   use:bookshelf_l1 {"frontGap":0.4,"across":0,"insidePct":0}
+CLIP ok   waffle:crowd {"watchers":3,"behindTable":0,"insideFurniture":0}
+CLIP ok   sky:trailing {"day":"191,210,222","last":"49,52,81","night":"49,52,81"}
+CLIP ok   pairs:garage {"staff":2,"readyAt":12.2,"playedAt":6.3,"table":{"x":6,"y":2},"ballTravel":3.53,"offPitch":0,"rodTurn":1.41,"newToyAt":5.93}
+CLIP ok   moment:growth {"seen":true,"ended":true,"samples":127,"insidePct":0,"worstWho":null}
+CLIP ok   moment:company_party {"seen":true,"ended":true,"samples":202,"insidePct":0,"worstWho":null}
+CLIP ok   moment:respond:rack {"gathered":3,"ended":true,"samples":600,"insidePct":0,"worstWho":null}
+CLIP ok   moment:respond:desk {"gathered":3,"ended":true,"samples":524,"insidePct":0,"worstWho":null}
+CLIP ok   control:head-through-slab {"vertexShare":0,"exactShare":0.0821}
+clip: 159 of 159 passed
+
+
+## clip-normal-final
+
+with-render-lock: waited 0s for GPU render slot 2
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+CLIP ok   moment:letter {"desks":10,"samples":908,"insidePct":0,"worstWho":null}
+CLIP ok   moment:behind-card {"desk":"f1","sitter":"s1","actors":["s1"],"beats":["readpaper","typing"],"strays":[],"drift":[]}
+CLIP ok   prop:stageStaff {"staffId":"s2","desk":"f2"}
+CLIP ok   moment:letter-claim {"standup":{"id":"s1","read":true},"party":{"id":"s1","read":true},"walking":{"id":"s1","read":true}}
+CLIP ok   moment:letter-lifecycle {"cancel":{"pass":true,"claimed":true,"released":true,"hidden":false,"fallback":false,"read":false,"slump":false,"returned":false},"low":{"pass":true,"claimed":true,"released":true,"hidden":false,"fallback":false,"read":false,"slump":false,"returned":false},"away":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":false,"slump":false,"returned":false},"away-read":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":true,"slump":false,"returned":false},"cancel-away":{"pass":true,"claimed":true,"released":true,"hidden":true,"fallback":false,"read":false,"slump":false,"returned":false},"fallback":{"pass":true,"claimed":true,"released":false,"hidden":false,"fallback":true,"read":true,"slump":true,"returned":true}}
+clip: 5 of 5 passed (--only=moment:letter,moment:behind-card,prop:stageStaff)

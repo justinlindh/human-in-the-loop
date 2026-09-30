@@ -1,0 +1,1929 @@
+[
+  {
+    "rig": 0,
+    "preview": false,
+    "moods": [
+      {
+        "mood": "ok",
+        "results": [
+          {
+            "name": "desk:rot0:typing",
+            "pass": true,
+            "handGapMin": 0.016,
+            "handGapMax": 0.021,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot1:typing",
+            "pass": true,
+            "handGapMin": 0.019,
+            "handGapMax": 0.028,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot2:typing",
+            "pass": true,
+            "handGapMin": 0.015,
+            "handGapMax": 0.021,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot3:typing",
+            "pass": true,
+            "handGapMin": 0.02,
+            "handGapMax": 0.027,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          }
+        ]
+      },
+      {
+        "mood": "coasting",
+        "results": [
+          {
+            "name": "desk:rot0:slumped",
+            "pass": true,
+            "handGapMin": 0.009,
+            "handGapMax": 0.037,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot1:slumped",
+            "pass": true,
+            "handGapMin": 0.009,
+            "handGapMax": 0.037,
+            "insidePct": 0.08,
+            "byPart": {
+              "head": 0,
+              "torso": 8,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot2:slumped",
+            "pass": true,
+            "handGapMin": 0.009,
+            "handGapMax": 0.037,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot3:slumped",
+            "pass": true,
+            "handGapMin": 0.009,
+            "handGapMax": 0.037,
+            "insidePct": 0.39,
+            "byPart": {
+              "head": 0,
+              "torso": 24,
+              "armL": 0,
+              "armR": 0
+            }
+          }
+        ]
+      },
+      {
+        "mood": "burnout",
+        "results": [
+          {
+            "name": "desk:rot0:burnout",
+            "pass": true,
+            "handGapMin": 0.203,
+            "handGapMax": 0.237,
+            "insidePct": 0.32,
+            "byPart": {
+              "head": 0,
+              "torso": 30,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot1:burnout",
+            "pass": true,
+            "handGapMin": 0.203,
+            "handGapMax": 0.255,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot2:burnout",
+            "pass": true,
+            "handGapMin": 0.203,
+            "handGapMax": 0.213,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot3:burnout",
+            "pass": true,
+            "handGapMin": 0.203,
+            "handGapMax": 0.203,
+            "insidePct": 0.39,
+            "byPart": {
+              "head": 0,
+              "torso": 24,
+              "armL": 0,
+              "armR": 0
+            }
+          }
+        ]
+      },
+      {
+        "mood": "tired",
+        "results": [
+          {
+            "name": "desk:rot0:tired",
+            "pass": true,
+            "handGapMin": 0.01,
+            "handGapMax": 0.026,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot1:tired",
+            "pass": true,
+            "handGapMin": 0.011,
+            "handGapMax": 0.026,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot2:tired",
+            "pass": true,
+            "handGapMin": 0.01,
+            "handGapMax": 0.026,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot3:tired",
+            "pass": true,
+            "handGapMin": 0.011,
+            "handGapMax": 0.026,
+            "insidePct": 0.78,
+            "byPart": {
+              "head": 0,
+              "torso": 48,
+              "armL": 0,
+              "armR": 0
+            }
+          }
+        ]
+      }
+    ],
+    "anchors": [
+      {
+        "id": "rot0",
+        "seat": {
+          "x": -4,
+          "z": -1.82,
+          "rotY": 3.141592653589793
+        },
+        "face": 3.141592653589793
+      },
+      {
+        "id": "rot1",
+        "seat": {
+          "x": 0.32,
+          "z": -2.5,
+          "rotY": 1.5707963267948966
+        },
+        "face": 1.5707963267948966
+      },
+      {
+        "id": "rot2",
+        "seat": {
+          "x": -4,
+          "z": 1.82,
+          "rotY": 0
+        },
+        "face": 0
+      },
+      {
+        "id": "rot3",
+        "seat": {
+          "x": 0.6799999999999999,
+          "z": 1.5,
+          "rotY": -1.5707963267948966
+        },
+        "face": -1.5707963267948966
+      }
+    ],
+    "visibility": [
+      {
+        "id": "s1",
+        "views": [
+          {
+            "view": 0,
+            "visible": 0.021,
+            "occluder": "rot2 desk",
+            "blocked": {
+              "rot2 desk": 27,
+              "s3": 20
+            }
+          },
+          {
+            "view": 1,
+            "visible": 0.833,
+            "occluder": "rot0 desk",
+            "blocked": {
+              "rot0 desk": 6,
+              "column": 2
+            }
+          },
+          {
+            "view": 2,
+            "visible": 0.479,
+            "occluder": "rot0 desk",
+            "blocked": {
+              "rot0 desk": 25
+            }
+          },
+          {
+            "view": 3,
+            "visible": 0.854,
+            "occluder": "rot0 desk",
+            "blocked": {
+              "rot0 desk": 7
+            }
+          }
+        ]
+      },
+      {
+        "id": "s2",
+        "views": [
+          {
+            "view": 0,
+            "visible": 0.163,
+            "occluder": "s4",
+            "blocked": {
+              "s4": 24,
+              "rot1 desk": 3,
+              "rot3 desk": 10,
+              "wall": 4
+            }
+          },
+          {
+            "view": 1,
+            "visible": 0.429,
+            "occluder": "rot1 desk",
+            "blocked": {
+              "rot1 desk": 28
+            }
+          },
+          {
+            "view": 2,
+            "visible": 0.816,
+            "occluder": "rot1 desk",
+            "blocked": {
+              "rot1 desk": 9
+            }
+          },
+          {
+            "view": 3,
+            "visible": 0.327,
+            "occluder": "rot1 desk",
+            "blocked": {
+              "rot1 desk": 33
+            }
+          }
+        ]
+      },
+      {
+        "id": "s3",
+        "views": [
+          {
+            "view": 0,
+            "visible": 0.469,
+            "occluder": "rot2 desk",
+            "blocked": {
+              "rot2 desk": 26
+            }
+          },
+          {
+            "view": 1,
+            "visible": 0.755,
+            "occluder": "rot2 desk",
+            "blocked": {
+              "rot2 desk": 12
+            }
+          },
+          {
+            "view": 2,
+            "visible": 0.286,
+            "occluder": "rot2 desk",
+            "blocked": {
+              "rot2 desk": 35
+            }
+          },
+          {
+            "view": 3,
+            "visible": 0.735,
+            "occluder": "rot2 desk",
+            "blocked": {
+              "rot2 desk": 13
+            }
+          }
+        ]
+      },
+      {
+        "id": "s4",
+        "views": [
+          {
+            "view": 0,
+            "visible": 0.833,
+            "occluder": "rot3 desk",
+            "blocked": {
+              "rot3 desk": 6,
+              "wall": 2
+            }
+          },
+          {
+            "view": 1,
+            "visible": 0.375,
+            "occluder": "rot3 desk",
+            "blocked": {
+              "rot3 desk": 30
+            }
+          },
+          {
+            "view": 2,
+            "visible": 0.813,
+            "occluder": "rot3 desk",
+            "blocked": {
+              "rot3 desk": 9
+            }
+          },
+          {
+            "view": 3,
+            "visible": 0.5,
+            "occluder": "rot3 desk",
+            "blocked": {
+              "rot3 desk": 24
+            }
+          }
+        ]
+      }
+    ],
+    "bounds": [
+      {
+        "id": "rot0",
+        "min": {
+          "x": -4.479999989271164,
+          "y": 0,
+          "z": -2.949999988079071
+        },
+        "max": {
+          "x": -3.520000010728836,
+          "y": 1.1299999952316284,
+          "z": -1.050000011920929
+        }
+      },
+      {
+        "id": "rot1",
+        "min": {
+          "x": -0.44999998807907116,
+          "y": 0,
+          "z": -2.979999989271164
+        },
+        "max": {
+          "x": 1.449999988079071,
+          "y": 1.1299999952316284,
+          "z": -2.020000010728836
+        }
+      },
+      {
+        "id": "rot2",
+        "min": {
+          "x": -4.479999989271164,
+          "y": 0,
+          "z": 1.050000011920929
+        },
+        "max": {
+          "x": -3.520000010728836,
+          "y": 1.1299999952316284,
+          "z": 2.949999988079071
+        }
+      },
+      {
+        "id": "rot3",
+        "min": {
+          "x": -0.44999998807907116,
+          "y": 0,
+          "z": 1.020000010728836
+        },
+        "max": {
+          "x": 1.449999988079071,
+          "y": 1.1299999952316284,
+          "z": 1.9799999892711642
+        }
+      }
+    ]
+  },
+  {
+    "rig": 0,
+    "preview": true,
+    "moods": [
+      {
+        "mood": "ok",
+        "results": [
+          {
+            "name": "desk:rot0:typing",
+            "pass": true,
+            "handGapMin": 0.013,
+            "handGapMax": 0.018,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot1:typing",
+            "pass": true,
+            "handGapMin": 0.016,
+            "handGapMax": 0.03,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot2:typing",
+            "pass": true,
+            "handGapMin": 0.012,
+            "handGapMax": 0.018,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot3:typing",
+            "pass": true,
+            "handGapMin": 0.017,
+            "handGapMax": 0.03,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          }
+        ]
+      },
+      {
+        "mood": "coasting",
+        "results": [
+          {
+            "name": "desk:rot0:slumped",
+            "pass": true,
+            "handGapMin": 0.006,
+            "handGapMax": 0.037,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot1:slumped",
+            "pass": true,
+            "handGapMin": 0.007,
+            "handGapMax": 0.037,
+            "insidePct": 0.05,
+            "byPart": {
+              "head": 5,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot2:slumped",
+            "pass": true,
+            "handGapMin": 0.006,
+            "handGapMax": 0.037,
+            "insidePct": 0.49,
+            "byPart": {
+              "head": 65,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot3:slumped",
+            "pass": true,
+            "handGapMin": 0.007,
+            "handGapMax": 0.037,
+            "insidePct": 0.94,
+            "byPart": {
+              "head": 34,
+              "torso": 24,
+              "armL": 0,
+              "armR": 0
+            }
+          }
+        ]
+      },
+      {
+        "mood": "burnout",
+        "results": [
+          {
+            "name": "desk:rot0:burnout",
+            "pass": true,
+            "handGapMin": 0.203,
+            "handGapMax": 0.237,
+            "insidePct": 0.32,
+            "byPart": {
+              "head": 0,
+              "torso": 30,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot1:burnout",
+            "pass": true,
+            "handGapMin": 0.203,
+            "handGapMax": 0.255,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot2:burnout",
+            "pass": true,
+            "handGapMin": 0.203,
+            "handGapMax": 0.213,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot3:burnout",
+            "pass": true,
+            "handGapMin": 0.203,
+            "handGapMax": 0.203,
+            "insidePct": 0.39,
+            "byPart": {
+              "head": 0,
+              "torso": 24,
+              "armL": 0,
+              "armR": 0
+            }
+          }
+        ]
+      },
+      {
+        "mood": "tired",
+        "results": [
+          {
+            "name": "desk:rot0:tired",
+            "pass": true,
+            "handGapMin": 0.012,
+            "handGapMax": 0.023,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot1:tired",
+            "pass": true,
+            "handGapMin": 0.012,
+            "handGapMax": 0.023,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot2:tired",
+            "pass": true,
+            "handGapMin": 0.012,
+            "handGapMax": 0.023,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot3:tired",
+            "pass": true,
+            "handGapMin": 0.012,
+            "handGapMax": 0.023,
+            "insidePct": 0.78,
+            "byPart": {
+              "head": 0,
+              "torso": 48,
+              "armL": 0,
+              "armR": 0
+            }
+          }
+        ]
+      }
+    ],
+    "anchors": [
+      {
+        "id": "rot0",
+        "seat": {
+          "x": -4,
+          "z": -1.82,
+          "rotY": 3.141592653589793
+        },
+        "face": 3.141592653589793
+      },
+      {
+        "id": "rot1",
+        "seat": {
+          "x": 0.32,
+          "z": -2.5,
+          "rotY": 1.5707963267948966
+        },
+        "face": 1.5707963267948966
+      },
+      {
+        "id": "rot2",
+        "seat": {
+          "x": -4,
+          "z": 1.82,
+          "rotY": 0
+        },
+        "face": 0
+      },
+      {
+        "id": "rot3",
+        "seat": {
+          "x": 0.6799999999999999,
+          "z": 1.5,
+          "rotY": -1.5707963267948966
+        },
+        "face": -1.5707963267948966
+      }
+    ],
+    "visibility": [
+      {
+        "id": "s1",
+        "views": [
+          {
+            "view": 0,
+            "visible": 0.021,
+            "occluder": "rot2 desk",
+            "blocked": {
+              "rot2 desk": 45,
+              "s3": 2
+            }
+          },
+          {
+            "view": 1,
+            "visible": 0.833,
+            "occluder": "rot0 desk",
+            "blocked": {
+              "rot0 desk": 6,
+              "column": 2
+            }
+          },
+          {
+            "view": 2,
+            "visible": 0.063,
+            "occluder": "rot0 desk",
+            "blocked": {
+              "rot0 desk": 45
+            }
+          },
+          {
+            "view": 3,
+            "visible": 0.854,
+            "occluder": "rot0 desk",
+            "blocked": {
+              "rot0 desk": 7
+            }
+          }
+        ]
+      },
+      {
+        "id": "s2",
+        "views": [
+          {
+            "view": 0,
+            "visible": 0.163,
+            "occluder": "s4",
+            "blocked": {
+              "s4": 24,
+              "rot3 desk": 12,
+              "rot1 desk": 1,
+              "wall": 4
+            }
+          },
+          {
+            "view": 1,
+            "visible": 0.041,
+            "occluder": "rot1 desk",
+            "blocked": {
+              "rot1 desk": 47
+            }
+          },
+          {
+            "view": 2,
+            "visible": 0.816,
+            "occluder": "rot1 desk",
+            "blocked": {
+              "rot1 desk": 9
+            }
+          },
+          {
+            "view": 3,
+            "visible": 0.327,
+            "occluder": "rot1 desk",
+            "blocked": {
+              "rot1 desk": 33
+            }
+          }
+        ]
+      },
+      {
+        "id": "s3",
+        "views": [
+          {
+            "view": 0,
+            "visible": 0.02,
+            "occluder": "rot2 desk",
+            "blocked": {
+              "rot2 desk": 48
+            }
+          },
+          {
+            "view": 1,
+            "visible": 0.755,
+            "occluder": "rot2 desk",
+            "blocked": {
+              "rot2 desk": 12
+            }
+          },
+          {
+            "view": 2,
+            "visible": 0.286,
+            "occluder": "rot2 desk",
+            "blocked": {
+              "rot2 desk": 35
+            }
+          },
+          {
+            "view": 3,
+            "visible": 0.735,
+            "occluder": "rot2 desk",
+            "blocked": {
+              "rot2 desk": 13
+            }
+          }
+        ]
+      },
+      {
+        "id": "s4",
+        "views": [
+          {
+            "view": 0,
+            "visible": 0.833,
+            "occluder": "rot3 desk",
+            "blocked": {
+              "rot3 desk": 6,
+              "wall": 2
+            }
+          },
+          {
+            "view": 1,
+            "visible": 0.375,
+            "occluder": "rot3 desk",
+            "blocked": {
+              "rot3 desk": 30
+            }
+          },
+          {
+            "view": 2,
+            "visible": 0.813,
+            "occluder": "rot3 desk",
+            "blocked": {
+              "rot3 desk": 9
+            }
+          },
+          {
+            "view": 3,
+            "visible": 0.083,
+            "occluder": "rot3 desk",
+            "blocked": {
+              "rot3 desk": 44
+            }
+          }
+        ]
+      }
+    ],
+    "bounds": [
+      {
+        "id": "rot0",
+        "min": {
+          "x": -4.479999989271164,
+          "y": 0,
+          "z": -2.949999988079071
+        },
+        "max": {
+          "x": -3.520000010728836,
+          "y": 1.0099999904632568,
+          "z": -1.050000011920929
+        }
+      },
+      {
+        "id": "rot1",
+        "min": {
+          "x": -0.44999998807907116,
+          "y": 0,
+          "z": -2.979999989271164
+        },
+        "max": {
+          "x": 1.449999988079071,
+          "y": 1.0099999904632568,
+          "z": -2.020000010728836
+        }
+      },
+      {
+        "id": "rot2",
+        "min": {
+          "x": -4.479999989271164,
+          "y": 0,
+          "z": 1.050000011920929
+        },
+        "max": {
+          "x": -3.520000010728836,
+          "y": 1.0099999904632568,
+          "z": 2.949999988079071
+        }
+      },
+      {
+        "id": "rot3",
+        "min": {
+          "x": -0.44999998807907116,
+          "y": 0,
+          "z": 1.020000010728836
+        },
+        "max": {
+          "x": 1.449999988079071,
+          "y": 1.0099999904632568,
+          "z": 1.979999989271164
+        }
+      }
+    ]
+  },
+  {
+    "rig": 1,
+    "preview": false,
+    "moods": [
+      {
+        "mood": "ok",
+        "results": [
+          {
+            "name": "desk:rot0:typing",
+            "pass": true,
+            "handGapMin": 0.01,
+            "handGapMax": 0.034,
+            "insidePct": 0.04,
+            "byPart": {
+              "head": 4,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot1:typing",
+            "pass": true,
+            "handGapMin": 0.008,
+            "handGapMax": 0.043,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot2:typing",
+            "pass": true,
+            "handGapMin": 0.013,
+            "handGapMax": 0.034,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot3:typing",
+            "pass": true,
+            "handGapMin": 0.013,
+            "handGapMax": 0.047,
+            "insidePct": 0.32,
+            "byPart": {
+              "head": 0,
+              "torso": 20,
+              "armL": 0,
+              "armR": 0
+            }
+          }
+        ]
+      },
+      {
+        "mood": "coasting",
+        "results": [
+          {
+            "name": "desk:rot0:slumped",
+            "pass": true,
+            "handGapMin": 0.012,
+            "handGapMax": 0.19,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot1:slumped",
+            "pass": true,
+            "handGapMin": 0.006,
+            "handGapMax": 0.187,
+            "insidePct": 0.08,
+            "byPart": {
+              "head": 0,
+              "torso": 8,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot2:slumped",
+            "pass": true,
+            "handGapMin": 0.007,
+            "handGapMax": 0.185,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot3:slumped",
+            "pass": true,
+            "handGapMin": 0.009,
+            "handGapMax": 0.187,
+            "insidePct": 0.39,
+            "byPart": {
+              "head": 0,
+              "torso": 24,
+              "armL": 0,
+              "armR": 0
+            }
+          }
+        ]
+      },
+      {
+        "mood": "burnout",
+        "results": [
+          {
+            "name": "desk:rot0:burnout",
+            "pass": true,
+            "handGapMin": 0.203,
+            "handGapMax": 0.247,
+            "insidePct": 0.11,
+            "byPart": {
+              "head": 0,
+              "torso": 10,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot1:burnout",
+            "pass": true,
+            "handGapMin": 0.056,
+            "handGapMax": 0.237,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot2:burnout",
+            "pass": true,
+            "handGapMin": 0.2,
+            "handGapMax": 0.205,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot3:burnout",
+            "pass": true,
+            "handGapMin": 0.203,
+            "handGapMax": 0.249,
+            "insidePct": 0.65,
+            "byPart": {
+              "head": 0,
+              "torso": 40,
+              "armL": 0,
+              "armR": 0
+            }
+          }
+        ]
+      },
+      {
+        "mood": "tired",
+        "results": [
+          {
+            "name": "desk:rot0:tired",
+            "pass": true,
+            "handGapMin": 0.008,
+            "handGapMax": 0.226,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot1:tired",
+            "pass": true,
+            "handGapMin": 0.003,
+            "handGapMax": 0.225,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot2:tired",
+            "pass": true,
+            "handGapMin": 0.009,
+            "handGapMax": 0.225,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot3:tired",
+            "pass": true,
+            "handGapMin": 0.003,
+            "handGapMax": 0.226,
+            "insidePct": 0.62,
+            "byPart": {
+              "head": 0,
+              "torso": 38,
+              "armL": 0,
+              "armR": 0
+            }
+          }
+        ]
+      }
+    ],
+    "anchors": [
+      {
+        "id": "rot0",
+        "seat": {
+          "x": -4,
+          "z": -1.82,
+          "rotY": 3.141592653589793
+        },
+        "face": 3.141592653589793
+      },
+      {
+        "id": "rot1",
+        "seat": {
+          "x": 0.32,
+          "z": -2.5,
+          "rotY": 1.5707963267948966
+        },
+        "face": 1.5707963267948966
+      },
+      {
+        "id": "rot2",
+        "seat": {
+          "x": -4,
+          "z": 1.82,
+          "rotY": 0
+        },
+        "face": 0
+      },
+      {
+        "id": "rot3",
+        "seat": {
+          "x": 0.6799999999999999,
+          "z": 1.5,
+          "rotY": -1.5707963267948966
+        },
+        "face": -1.5707963267948966
+      }
+    ],
+    "visibility": [
+      {
+        "id": "s1",
+        "views": [
+          {
+            "view": 0,
+            "visible": 0.021,
+            "occluder": "s3",
+            "blocked": {
+              "rot2 desk": 22,
+              "s3": 25
+            }
+          },
+          {
+            "view": 1,
+            "visible": 0.833,
+            "occluder": "rot0 desk",
+            "blocked": {
+              "rot0 desk": 6,
+              "column": 2
+            }
+          },
+          {
+            "view": 2,
+            "visible": 0.583,
+            "occluder": "rot0 desk",
+            "blocked": {
+              "rot0 desk": 20
+            }
+          },
+          {
+            "view": 3,
+            "visible": 0.854,
+            "occluder": "rot0 desk",
+            "blocked": {
+              "rot0 desk": 7
+            }
+          }
+        ]
+      },
+      {
+        "id": "s2",
+        "views": [
+          {
+            "view": 0,
+            "visible": 0.224,
+            "occluder": "s4",
+            "blocked": {
+              "s4": 24,
+              "rot1 desk": 4,
+              "rot3 desk": 6,
+              "wall": 4
+            }
+          },
+          {
+            "view": 1,
+            "visible": 0.388,
+            "occluder": "rot1 desk",
+            "blocked": {
+              "rot1 desk": 30
+            }
+          },
+          {
+            "view": 2,
+            "visible": 0.796,
+            "occluder": "rot1 desk",
+            "blocked": {
+              "rot1 desk": 10
+            }
+          },
+          {
+            "view": 3,
+            "visible": 0.347,
+            "occluder": "rot1 desk",
+            "blocked": {
+              "rot1 desk": 32
+            }
+          }
+        ]
+      },
+      {
+        "id": "s3",
+        "views": [
+          {
+            "view": 0,
+            "visible": 0.469,
+            "occluder": "rot2 desk",
+            "blocked": {
+              "rot2 desk": 26
+            }
+          },
+          {
+            "view": 1,
+            "visible": 0.755,
+            "occluder": "rot2 desk",
+            "blocked": {
+              "rot2 desk": 12
+            }
+          },
+          {
+            "view": 2,
+            "visible": 0.286,
+            "occluder": "rot2 desk",
+            "blocked": {
+              "rot2 desk": 35
+            }
+          },
+          {
+            "view": 3,
+            "visible": 0.735,
+            "occluder": "rot2 desk",
+            "blocked": {
+              "rot2 desk": 13
+            }
+          }
+        ]
+      },
+      {
+        "id": "s4",
+        "views": [
+          {
+            "view": 0,
+            "visible": 0.833,
+            "occluder": "rot3 desk",
+            "blocked": {
+              "rot3 desk": 6,
+              "wall": 2
+            }
+          },
+          {
+            "view": 1,
+            "visible": 0.375,
+            "occluder": "rot3 desk",
+            "blocked": {
+              "rot3 desk": 30
+            }
+          },
+          {
+            "view": 2,
+            "visible": 0.813,
+            "occluder": "rot3 desk",
+            "blocked": {
+              "rot3 desk": 9
+            }
+          },
+          {
+            "view": 3,
+            "visible": 0.5,
+            "occluder": "rot3 desk",
+            "blocked": {
+              "rot3 desk": 24
+            }
+          }
+        ]
+      }
+    ],
+    "bounds": [
+      {
+        "id": "rot0",
+        "min": {
+          "x": -4.479999989271164,
+          "y": 0,
+          "z": -2.949999988079071
+        },
+        "max": {
+          "x": -3.520000010728836,
+          "y": 1.1299999952316284,
+          "z": -1.050000011920929
+        }
+      },
+      {
+        "id": "rot1",
+        "min": {
+          "x": -0.44999998807907116,
+          "y": 0,
+          "z": -2.979999989271164
+        },
+        "max": {
+          "x": 1.449999988079071,
+          "y": 1.1299999952316284,
+          "z": -2.020000010728836
+        }
+      },
+      {
+        "id": "rot2",
+        "min": {
+          "x": -4.479999989271164,
+          "y": 0,
+          "z": 1.050000011920929
+        },
+        "max": {
+          "x": -3.520000010728836,
+          "y": 1.1299999952316284,
+          "z": 2.949999988079071
+        }
+      },
+      {
+        "id": "rot3",
+        "min": {
+          "x": -0.44999998807907116,
+          "y": 0,
+          "z": 1.020000010728836
+        },
+        "max": {
+          "x": 1.449999988079071,
+          "y": 1.1299999952316284,
+          "z": 1.9799999892711642
+        }
+      }
+    ]
+  },
+  {
+    "rig": 1,
+    "preview": true,
+    "moods": [
+      {
+        "mood": "ok",
+        "results": [
+          {
+            "name": "desk:rot0:typing",
+            "pass": true,
+            "handGapMin": 0.007,
+            "handGapMax": 0.031,
+            "insidePct": 0.04,
+            "byPart": {
+              "head": 4,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot1:typing",
+            "pass": true,
+            "handGapMin": 0.009,
+            "handGapMax": 0.043,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot2:typing",
+            "pass": true,
+            "handGapMin": 0.01,
+            "handGapMax": 0.031,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot3:typing",
+            "pass": true,
+            "handGapMin": 0.014,
+            "handGapMax": 0.047,
+            "insidePct": 0.32,
+            "byPart": {
+              "head": 0,
+              "torso": 20,
+              "armL": 0,
+              "armR": 0
+            }
+          }
+        ]
+      },
+      {
+        "mood": "coasting",
+        "results": [
+          {
+            "name": "desk:rot0:slumped",
+            "pass": true,
+            "handGapMin": 0.009,
+            "handGapMax": 0.19,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot1:slumped",
+            "pass": true,
+            "handGapMin": 0.003,
+            "handGapMax": 0.187,
+            "insidePct": 0.23,
+            "byPart": {
+              "head": 17,
+              "torso": 6,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot2:slumped",
+            "pass": true,
+            "handGapMin": 0.004,
+            "handGapMax": 0.185,
+            "insidePct": 0.45,
+            "byPart": {
+              "head": 60,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot3:slumped",
+            "pass": true,
+            "handGapMin": 0.006,
+            "handGapMax": 0.187,
+            "insidePct": 0.81,
+            "byPart": {
+              "head": 26,
+              "torso": 24,
+              "armL": 0,
+              "armR": 0
+            }
+          }
+        ]
+      },
+      {
+        "mood": "burnout",
+        "results": [
+          {
+            "name": "desk:rot0:burnout",
+            "pass": true,
+            "handGapMin": 0.203,
+            "handGapMax": 0.247,
+            "insidePct": 0.11,
+            "byPart": {
+              "head": 0,
+              "torso": 10,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot1:burnout",
+            "pass": true,
+            "handGapMin": 0.056,
+            "handGapMax": 0.237,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot2:burnout",
+            "pass": true,
+            "handGapMin": 0.2,
+            "handGapMax": 0.205,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot3:burnout",
+            "pass": true,
+            "handGapMin": 0.203,
+            "handGapMax": 0.249,
+            "insidePct": 0.65,
+            "byPart": {
+              "head": 0,
+              "torso": 40,
+              "armL": 0,
+              "armR": 0
+            }
+          }
+        ]
+      },
+      {
+        "mood": "tired",
+        "results": [
+          {
+            "name": "desk:rot0:tired",
+            "pass": true,
+            "handGapMin": 0.01,
+            "handGapMax": 0.226,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot1:tired",
+            "pass": true,
+            "handGapMin": 0,
+            "handGapMax": 0.225,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot2:tired",
+            "pass": true,
+            "handGapMin": 0.01,
+            "handGapMax": 0.225,
+            "insidePct": 0,
+            "byPart": {
+              "head": 0,
+              "torso": 0,
+              "armL": 0,
+              "armR": 0
+            }
+          },
+          {
+            "name": "desk:rot3:tired",
+            "pass": true,
+            "handGapMin": 0,
+            "handGapMax": 0.226,
+            "insidePct": 0.62,
+            "byPart": {
+              "head": 0,
+              "torso": 38,
+              "armL": 0,
+              "armR": 0
+            }
+          }
+        ]
+      }
+    ],
+    "anchors": [
+      {
+        "id": "rot0",
+        "seat": {
+          "x": -4,
+          "z": -1.82,
+          "rotY": 3.141592653589793
+        },
+        "face": 3.141592653589793
+      },
+      {
+        "id": "rot1",
+        "seat": {
+          "x": 0.32,
+          "z": -2.5,
+          "rotY": 1.5707963267948966
+        },
+        "face": 1.5707963267948966
+      },
+      {
+        "id": "rot2",
+        "seat": {
+          "x": -4,
+          "z": 1.82,
+          "rotY": 0
+        },
+        "face": 0
+      },
+      {
+        "id": "rot3",
+        "seat": {
+          "x": 0.6799999999999999,
+          "z": 1.5,
+          "rotY": -1.5707963267948966
+        },
+        "face": -1.5707963267948966
+      }
+    ],
+    "visibility": [
+      {
+        "id": "s1",
+        "views": [
+          {
+            "view": 0,
+            "visible": 0,
+            "occluder": "rot2 desk",
+            "blocked": {
+              "rot2 desk": 48
+            }
+          },
+          {
+            "view": 1,
+            "visible": 0.833,
+            "occluder": "rot0 desk",
+            "blocked": {
+              "rot0 desk": 6,
+              "column": 2
+            }
+          },
+          {
+            "view": 2,
+            "visible": 0.021,
+            "occluder": "rot0 desk",
+            "blocked": {
+              "rot0 desk": 47
+            }
+          },
+          {
+            "view": 3,
+            "visible": 0.854,
+            "occluder": "rot0 desk",
+            "blocked": {
+              "rot0 desk": 7
+            }
+          }
+        ]
+      },
+      {
+        "id": "s2",
+        "views": [
+          {
+            "view": 0,
+            "visible": 0.163,
+            "occluder": "s4",
+            "blocked": {
+              "s4": 24,
+              "rot3 desk": 11,
+              "rot1 desk": 2,
+              "wall": 4
+            }
+          },
+          {
+            "view": 1,
+            "visible": 0.082,
+            "occluder": "rot1 desk",
+            "blocked": {
+              "rot1 desk": 45
+            }
+          },
+          {
+            "view": 2,
+            "visible": 0.796,
+            "occluder": "rot1 desk",
+            "blocked": {
+              "rot1 desk": 10
+            }
+          },
+          {
+            "view": 3,
+            "visible": 0.347,
+            "occluder": "rot1 desk",
+            "blocked": {
+              "rot1 desk": 32
+            }
+          }
+        ]
+      },
+      {
+        "id": "s3",
+        "views": [
+          {
+            "view": 0,
+            "visible": 0.02,
+            "occluder": "rot2 desk",
+            "blocked": {
+              "rot2 desk": 48
+            }
+          },
+          {
+            "view": 1,
+            "visible": 0.755,
+            "occluder": "rot2 desk",
+            "blocked": {
+              "rot2 desk": 12
+            }
+          },
+          {
+            "view": 2,
+            "visible": 0.286,
+            "occluder": "rot2 desk",
+            "blocked": {
+              "rot2 desk": 35
+            }
+          },
+          {
+            "view": 3,
+            "visible": 0.735,
+            "occluder": "rot2 desk",
+            "blocked": {
+              "rot2 desk": 13
+            }
+          }
+        ]
+      },
+      {
+        "id": "s4",
+        "views": [
+          {
+            "view": 0,
+            "visible": 0.833,
+            "occluder": "rot3 desk",
+            "blocked": {
+              "rot3 desk": 6,
+              "wall": 2
+            }
+          },
+          {
+            "view": 1,
+            "visible": 0.375,
+            "occluder": "rot3 desk",
+            "blocked": {
+              "rot3 desk": 30
+            }
+          },
+          {
+            "view": 2,
+            "visible": 0.813,
+            "occluder": "rot3 desk",
+            "blocked": {
+              "rot3 desk": 9
+            }
+          },
+          {
+            "view": 3,
+            "visible": 0.083,
+            "occluder": "rot3 desk",
+            "blocked": {
+              "rot3 desk": 44
+            }
+          }
+        ]
+      }
+    ],
+    "bounds": [
+      {
+        "id": "rot0",
+        "min": {
+          "x": -4.479999989271164,
+          "y": 0,
+          "z": -2.949999988079071
+        },
+        "max": {
+          "x": -3.520000010728836,
+          "y": 1.0099999904632568,
+          "z": -1.050000011920929
+        }
+      },
+      {
+        "id": "rot1",
+        "min": {
+          "x": -0.44999998807907116,
+          "y": 0,
+          "z": -2.979999989271164
+        },
+        "max": {
+          "x": 1.449999988079071,
+          "y": 1.0099999904632568,
+          "z": -2.020000010728836
+        }
+      },
+      {
+        "id": "rot2",
+        "min": {
+          "x": -4.479999989271164,
+          "y": 0,
+          "z": 1.050000011920929
+        },
+        "max": {
+          "x": -3.520000010728836,
+          "y": 1.0099999904632568,
+          "z": 2.949999988079071
+        }
+      },
+      {
+        "id": "rot3",
+        "min": {
+          "x": -0.44999998807907116,
+          "y": 0,
+          "z": 1.020000010728836
+        },
+        "max": {
+          "x": 1.449999988079071,
+          "y": 1.0099999904632568,
+          "z": 1.979999989271164
+        }
+      }
+    ]
+  }
+]
