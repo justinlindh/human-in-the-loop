@@ -50,7 +50,7 @@ import { startHarness, wantGpu } from './harness.mjs';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { dirname, resolve, join, basename } from 'node:path';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { planReplay, mentions, isWorse } from './sweep-plan.js';
 import { createWorktree } from '../../scripts/tools/worktree.mjs';
@@ -151,6 +151,26 @@ const host = engine ? await import('../../scripts/studio/sweep-host.mjs') : null
 // Started only once this process holds its render lock: the harness re-runs the whole command under
 // the lock and exits the first copy, which must not have started a control of its own.
 const control = against ? await startControl(against) : null;
+// The page checks (screen, tooltip) need a browser and do not depend on the engine's sampling, so that
+// step starts now and runs alongside it (its rows are added below): the same run's states (mocks and
+// their moments, indexed moments, snapshots, seeds) are played there with the page checks alone.
+const screen = (() => {
+  if (!engine || argv.includes('--no-screen')) return null;
+  const sub = join(outDir, 'screen');
+  const skip = new Set(['--update-baseline', '--prune', '--engine', '--no-screen', '--strict']);
+  const rest = [];
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === '--against' || argv[i] === '--out') { i++; continue; }
+    if (!skip.has(argv[i])) rest.push(argv[i]);
+  }
+  const child = spawn(process.execPath, [fileURLToPath(import.meta.url), ...rest, '--screen-only', '--out', sub], { stdio: ['ignore', 'ignore', 'inherit'] });
+  // The step ends with this process however it ends.
+  const stop = () => { if (child.exitCode === null) child.kill('SIGKILL'); };
+  process.on('exit', stop);
+  for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { stop(); process.exit(sig === 'SIGINT' ? 130 : 143); });
+  const done = new Promise((res) => { child.on('exit', (status) => res({ status })); child.on('error', () => res({ status: 'spawn failed' })); });
+  return { sub, s0: wall(), done };
+})();
 const found = [];
 const errors = [];
 const windows = [];
@@ -244,17 +264,9 @@ try {
   // The page checks (screen, tooltip) need a browser: the same run's states (mocks and their moments,
   // indexed moments, snapshots, seeds) are played again there with the page checks alone, and its rows
   // join this run's.
-  if (engine && !argv.includes('--no-screen')) {
-    const sub = join(outDir, 'screen');
-    const skip = new Set(['--update-baseline', '--prune', '--engine', '--no-screen', '--strict']);
-    const rest = [];
-    for (let i = 0; i < argv.length; i++) {
-      if (argv[i] === '--against' || argv[i] === '--out') { i++; continue; }
-      if (!skip.has(argv[i])) rest.push(argv[i]);
-    }
-    const args = [fileURLToPath(import.meta.url), ...rest, '--screen-only', '--out', sub];
-    const s0 = wall();
-    const child = spawnSync(process.execPath, args, { stdio: ['ignore', 'ignore', 'inherit'] });
+  if (screen) {
+    const child = await screen.done;
+    const { sub, s0 } = screen;
     let sr = null;
     try { sr = JSON.parse(readFileSync(join(sub, 'report.json'), 'utf8')); } catch { /* reported below */ }
     if (!sr) { errors.push(`screen and tooltip step failed (exit ${child.status})`); console.log('sweep: the screen and tooltip step produced no report'); } else {
