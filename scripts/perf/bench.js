@@ -193,6 +193,7 @@ function checkout(ref) {
   if (!existsSync(dir)) {
     mkdirSync(REF_DIR, { recursive: true });
     execFileSync('git', ['-C', ROOT, 'worktree', 'add', '--detach', '--quiet', dir, sha]);
+    rmSync(join(dir, 'node_modules'), { force: true, recursive: true }); // the post-checkout hook may have linked one already
     symlinkSync(join(ROOT, 'node_modules'), join(dir, 'node_modules'));
   }
   return { label: ref === sha ? sha : `${ref}(${sha})`, root: dir };
