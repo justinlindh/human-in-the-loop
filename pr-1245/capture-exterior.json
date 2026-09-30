@@ -1,0 +1,98 @@
+[
+  {
+    "name": "payphone-day",
+    "era": "preinternet"
+  },
+  {
+    "name": "payphone-night",
+    "era": "preinternet"
+  },
+  {
+    "name": "payphone-low",
+    "era": "preinternet"
+  },
+  {
+    "name": "video_sign-day",
+    "era": "preinternet"
+  },
+  {
+    "name": "video_sign-night",
+    "era": "preinternet"
+  },
+  {
+    "name": "video_sign-low",
+    "era": "preinternet"
+  },
+  {
+    "name": "video_sign-floor-day",
+    "era": "preinternet"
+  },
+  {
+    "name": "video_sign-floor-night",
+    "era": "preinternet"
+  },
+  {
+    "name": "video_sign-floor-low",
+    "era": "preinternet"
+  },
+  {
+    "name": "video_sign-hq-day",
+    "era": "preinternet"
+  },
+  {
+    "name": "video_sign-hq-night",
+    "era": "preinternet"
+  },
+  {
+    "name": "video_sign-hq-low",
+    "era": "preinternet"
+  },
+  {
+    "name": "preinternet-garage-turned-low",
+    "era": "preinternet"
+  },
+  {
+    "name": "preinternet-floor-turned-low",
+    "era": "preinternet"
+  },
+  {
+    "name": "preinternet-hq-turned-low",
+    "era": "preinternet"
+  },
+  {
+    "name": "dotcom-garage-turned-low",
+    "era": "dotcom"
+  },
+  {
+    "name": "dotcom-floor-turned-low",
+    "era": "dotcom"
+  },
+  {
+    "name": "dotcom-hq-turned-low",
+    "era": "dotcom"
+  },
+  {
+    "name": "web2-garage-turned-low",
+    "era": "web2"
+  },
+  {
+    "name": "web2-floor-turned-low",
+    "era": "web2"
+  },
+  {
+    "name": "web2-hq-turned-low",
+    "era": "web2"
+  },
+  {
+    "name": "classic-garage-turned-low",
+    "era": "classic"
+  },
+  {
+    "name": "classic-floor-turned-low",
+    "era": "classic"
+  },
+  {
+    "name": "classic-hq-turned-low",
+    "era": "classic"
+  }
+]
