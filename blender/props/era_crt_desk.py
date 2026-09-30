@@ -41,8 +41,10 @@ for part in parts:
         part.scale.z *= 1.17
     if part.name.startswith('crt_') and not part.name.startswith('crt_desk_'):
         part.location.x -= 0.03
+    # One bevel segment reads the same at the game camera; only the desktop and screen bezel keep
+    # their rounded silhouettes, since every desk in an office repeats this model.
     bevel = part.modifiers.get('bevel')
-    if bevel and part.name.startswith(('tower_', 'crt_power', 'keyboard_')):
+    if bevel and part.name not in ('crt_desk_top', 'crt_bezel'):
         bevel.segments = 1
 for y in (0.27, 0.42):
     parts.append(box(f'tower_foot_{y}', (0.14, 0.05, 0.02), (0.26, y, 0.01), 'plastic_charcoal', 0.004, segments=1))
