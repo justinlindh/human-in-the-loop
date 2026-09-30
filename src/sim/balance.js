@@ -157,12 +157,14 @@ export const B = {
     family: { cash: 150000, scoreMult: 0.97, brand: 0, seniorCandidates: 0 },
     preseed: { cash: 300000, scoreMult: 0.96, brand: 8, seniorCandidates: 2 },
   },
+  // scoreShare: a start's pooled median final score (six bots, 200 seeds) as a share of Classic's, for the
+  // founding screen. It follows from scoreMult and the bots' raw scores, so recalibrating one means re-measuring it.
   eraStarts: {
-    web2: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 0.75 },
-    dotcom: { cash: 140000, officeStage: 0, desks: 4, scoreMult: 0.9 },
-    classic: { cash: 0, officeStage: 0, desks: 2, scoreMult: 1 },
-    chatgbt: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 0.75 },
-    agents: { cash: 240000, officeStage: 0, desks: 4, scoreMult: 0.4, incidentGraceWeeks: 260, incidentSeverityCap: 2 },
+    web2: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 0.56, scoreShare: 0.75, exitMrrMult: 1.2 },
+    dotcom: { cash: 140000, officeStage: 0, desks: 4, scoreMult: 0.61, scoreShare: 0.9, exitMrrMult: 1.35 },
+    classic: { cash: 0, officeStage: 0, desks: 2, scoreMult: 1, scoreShare: 1, exitMrrMult: 1 },
+    chatgbt: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 1, scoreShare: 0.67, exitMrrMult: 0.8 },
+    agents: { cash: 240000, officeStage: 0, desks: 4, scoreMult: 0.81, scoreShare: 0.4, exitMrrMult: 0.7, incidentGraceWeeks: 260, incidentSeverityCap: 2 },
   },
   founderStrengthBonus: 3, founderIkWeight: 0.4, founderGeneralistWeights: { features: 0.3, polish: 0.15, reliability: 0.2, novelty: 0.1 },
   botBuildersPerProject: 6, botTimeOffStrain: 70, botCancelUnstaffedWeeks: 2, botExpandCushion: 2, botDialCash: 3000000, botAcquireCushion: 4, botAcquireDesks: 3, botMoonshotCushion: 3, botFameBelow: 30, botFameCushion: 6,

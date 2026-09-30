@@ -149,10 +149,14 @@ export function historySystem(ctx) {
 registerSystem('endgame', endgameSystem, 90);
 registerSystem('history', historySystem, 95);
 
+// An exit's MRR bar for this company: era starts scale it, since each meets a different market.
+export const exitMrr = (state, base) => Math.round(base * (B.eraStarts[state.founding?.startEra]?.exitMrrMult ?? 1));
+
 // Why an IPO is not available yet, or null when it is.
 export function ipoBlocker(state) {
   if (state.week < B.retireFromWeek) return 'Opens in year 10';
-  if (totalMrr(state) < B.ipoMrr) return `Needs $${B.ipoMrr.toLocaleString('en-US')} MRR`;
+  const bar = exitMrr(state, B.ipoMrr);
+  if (totalMrr(state) < bar) return `Needs $${bar.toLocaleString('en-US')} MRR`;
   if (state.brand < B.ipoBrand) return `Needs brand ${B.ipoBrand}`;
   if (state.officeStage < 2) return 'Needs the HQ Building';
   return null;

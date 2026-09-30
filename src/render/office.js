@@ -322,7 +322,16 @@ function deskSet(i, stageIdx, screens, era, freeChair = false, artEra = era) {
   const desk = getModel(crt ? 'era_crt_desk' : 'desk');
   if (crt) {
     g.add(desk);
-    g.add(place(getModel('era_cubicle'), 0, 0, -0.575));
+    // The low divider sits behind the desk, which already shades the floor there: no shadow pass.
+    const cubicle = place(getModel('era_cubicle'), 0, 0, -0.575);
+    cubicle.traverse((c) => { if (c.isMesh) c.castShadow = false; });
+    g.add(cubicle);
+    // Period gear in the desktop's free corners: the back right takes a phone, a dot-matrix or a fax
+    // in turn, and every third desk keeps a Rolodex left of the monitor. Shadows this small barely
+    // show, so the gear stays out of the shadow pass.
+    const gear = [place(getModel(['era_desk_phone', 'era_dot_matrix', 'era_fax'][i % 3]), 0.29, TOP, -0.33)];
+    if (i % 3 === 0) gear.push(place(getModel('era_rolodex'), -0.41, TOP, -0.3, 0.25));
+    for (const o of gear) { o.traverse((c) => { if (c.isMesh) c.castShadow = false; }); g.add(o); }
   } else {
     desk.scale.set(0.96 / 1.3, TOP / 0.62, 1);
     g.add(place(desk, 0, 0, DESK_Z));
@@ -1471,9 +1480,9 @@ function bandRuns(L, wall) {
   if (len / 2 - cur > 0.05) runs.push([cur, len / 2]);
   return runs;
 }
-// Emblems are ui's era glyphs, drawn onto framed paper. All five start loading with this module so
+// Emblems are ui's era glyphs, drawn onto framed paper. They all start loading with this module so
 // they are ready long before the office is first dressed.
-const ERAS = ['classic', 'chatgbt', 'agents', 'consolidation', 'plateau'];
+const ERAS = ['classic', 'chatgbt', 'agents', 'consolidation', 'plateau', 'preinternet', 'dotcom', 'web2'];
 const emblemTex = new Map();
 for (const era of typeof Image === 'undefined' || typeof document === 'undefined' ? [] : ERAS) {
   const c = document.createElement('canvas');
@@ -1524,7 +1533,11 @@ function eraDressing(L, era, blockers = [], artEra = era) {
       at += pc.w + gap;
     }
   }
-  return g;
+  // Nothing on the wall moves, so the bands, rails and pieces draw as one mesh per material.
+  const merged = mergeStatic(g);
+  merged.name = 'era';
+  merged.userData.spans = g.userData.spans;
+  return merged;
 }
 
 function eraArtPieces(era) {
@@ -1533,6 +1546,8 @@ function eraArtPieces(era) {
     o.name = name + '_display';
     o.add(getModel(name));
     decorate?.(o);
+    // Flat against the wall, their shadows barely show and would cost a shadow pass per material.
+    o.traverse((c) => { if (c.isMesh) c.castShadow = false; });
     o.userData.shared = true;
     if (sl.wall === 'z') o.position.set(sl.at, y, -L.D / 2 + 0.11);
     else { o.position.set(-L.W / 2 + 0.11, y, sl.at); o.rotation.y = Math.PI / 2; }
@@ -1545,16 +1560,17 @@ function eraArtPieces(era) {
     o.add(place(getModel('era_cd_spindle'), 0.39, 0, 0.14));
     o.add(mesh(roundedBox(1.25, 0.055, 0.38, 0.018), mat('wood_honey'), 0, -0.0275, 0.12));
   });
+  const cork = model('era_corkboard', 1.0, 1.2);
   if (era === 'dotcom' || era === 'dotcom-bust') return [model('era_dotcom_board', 1.24, 1.40), shelf,
-    model('era_y2k_clock', 0.78, 1.55, (o) => o.add(place(getModel('era_y2k_sticker'), 0, 0.40, -0.103)))];
+    model('era_y2k_clock', 0.78, 1.55, (o) => o.add(place(getModel('era_y2k_sticker'), 0, 0.40, -0.103))), cork];
   if (era === 'web2') return [model('era_web2_badge', 1.25, 1.50), shelf];
-  if (era === 'preinternet') return [shelf];
+  if (era === 'preinternet') return [shelf, cork];
   return [];
 }
-// Frees the dressing's own planes and textured materials; prims geometry is cached and shared.
+// Frees the dressing's merged geometry and textured materials; palette materials are shared.
 function disposeDressing(o) {
   if (o.userData.shared) return;
-  if (o.isMesh) { if (o.geometry?.type === 'PlaneGeometry' || o.geometry?.type === 'CircleGeometry') o.geometry.dispose(); if (o.material?.map) o.material.dispose(); }
+  if (o.isMesh) { if (o.geometry?.userData.merged) o.geometry.dispose(); if (o.material?.map) o.material.dispose(); }
   for (const c of o.children) disposeDressing(c);
 }
 // Hard floors take a faint accent wash; carpet carries its own era palette and motif.

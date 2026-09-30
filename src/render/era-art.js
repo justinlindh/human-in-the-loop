@@ -14,6 +14,7 @@ export const ERA_ART_MODELS = ERAS_ON ? [
   'era_retail_boxes', 'era_floppy_stack', 'era_cd_spindle', 'era_dotcom_board',
   'era_web2_badge', 'era_y2k_clock', 'era_y2k_sticker', 'era_payphone', 'era_video_sign',
   'era_pager_billboard', 'era_lease_billboard', 'era_beta_billboard', 'era_led_billboard',
+  'era_desk_phone', 'era_dot_matrix', 'era_fax', 'era_rolodex', 'era_corkboard',
 ] : [];
 
 const eraArtOn = (state) => ERA_ART_PREVIEW || (ERAS_ON && !!state.founding?.startEra);
