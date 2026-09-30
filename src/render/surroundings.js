@@ -231,15 +231,74 @@ function haloTexture() {
 function advertTexture(era) {
   const c = document.createElement('canvas'); c.width = 768; c.height = 384;
   const x = c.getContext('2d');
-  const [title, tagline] = ERA_ADS[era] ?? ERA_ADS.classic;
-  x.fillStyle = P.screen_bg; x.fillRect(0, 0, c.width, c.height);
-  x.fillStyle = era === 'plateau' ? P.wall_warm : P.screen_cyan;
-  x.fillRect(52, 66, 664, 8);
-  x.textAlign = 'center'; x.textBaseline = 'middle';
-  x.font = 'bold 66px sans-serif'; x.fillText(title, 384, 177);
-  x.fillStyle = P.paper_sheet; x.font = '26px sans-serif'; x.fillText(tagline, 384, 263);
+  const [title, second, third] = ERA_ADS[era] ?? ERA_ADS.classic;
+  const paper = era === 'consolidation' || era === 'plateau';
+  const bg = paper ? P.paper_sheet : P.screen_bg;
+  const ink = paper ? P.ink : P.paper_sheet;
+  const accent = era === 'plateau' ? P.fabric_teal : paper ? P.fabric_slate : P.screen_cyan;
+  x.fillStyle = bg; x.fillRect(0, 0, c.width, c.height);
+  x.textBaseline = 'middle';
+  const text = (label, px, py, size, color = ink, align = 'left') => {
+    x.fillStyle = color; x.textAlign = align; x.font = `bold ${size}px sans-serif`; x.fillText(label, px, py);
+  };
+  const rect = (px, py, w, h, radius, color) => {
+    x.fillStyle = color; x.beginPath(); x.roundRect(px, py, w, h, radius); x.fill();
+  };
+  const line = (points, color, width = 10) => {
+    x.strokeStyle = color; x.lineWidth = width; x.lineCap = 'round'; x.lineJoin = 'round';
+    x.beginPath(); points.forEach(([px, py], i) => i ? x.lineTo(px, py) : x.moveTo(px, py)); x.stroke();
+  };
+  if (era === 'chatgbt') {
+    // A briefcase with a prompt cursor makes the salary read as a hiring ad.
+    rect(78, 120, 100, 70, 15, accent); rect(94, 136, 68, 46, 8, bg);
+    rect(38, 164, 190, 142, 19, accent);
+    text('>_', 132, 230, 76, bg, 'center');
+    text(title, 263, 115, 52);
+    text(second, 258, 230, 132, accent);
+  } else if (era === 'agents') {
+    // The thinking bot prints an overlong receipt below its meter.
+    rect(40, 128, 145, 95, 20, accent);
+    rect(63, 150, 100, 42, 9, bg); text('$$$', 113, 173, 35, accent, 'center');
+    line([[113, 128], [113, 105]], accent, 8);
+    for (const [cx, cy, r] of [[131, 81, 12], [153, 53, 17], [183, 37, 21]]) {
+      x.fillStyle = accent; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fill();
+    }
+    rect(75, 208, 78, 66, 2, P.paper_sheet);
+    line([[93, 225], [135, 225]], P.ink, 5); line([[93, 244], [125, 244]], P.ink, 5);
+    text(title, 217, 132, 62, accent);
+    text(second, 217, 205, 53);
+    text(third, 217, 275, 67);
+  } else if (era === 'consolidation') {
+    // A rubber stamp covers a stack of deeds.
+    rect(32, 181, 172, 132, 6, P.wall_trim); rect(45, 165, 172, 132, 6, P.wall_warm);
+    rect(76, 130, 124, 51, 7, accent); rect(111, 56, 53, 92, 15, accent);
+    line([[70, 245], [182, 245]], accent, 12);
+    text(title, 245, 89, 56);
+    text(second, 245, 167, 61);
+    text(third, 241, 265, 96, accent);
+  } else if (era === 'plateau') {
+    // Uneven finger lengths and a palm print make the human claim visible.
+    x.fillStyle = accent;
+    x.beginPath(); x.ellipse(133, 236, 54, 66, -0.1, 0, Math.PI * 2); x.fill();
+    for (const [px, py, h, angle] of [[68, 130, 101, -0.25], [100, 98, 126, -0.08], [133, 91, 130, 0.06], [167, 120, 109, 0.19], [38, 199, 77, -0.65]]) {
+      x.save(); x.translate(px, py); x.rotate(angle); rect(0, 0, 25, h, 12, accent); x.restore();
+    }
+    text(title, 250, 116, 78);
+    text(second, 247, 211, 85, accent);
+    text(third, 707, 315, 33, ink, 'right');
+  } else {
+    // An ordinary Tuesday calendar gets the obligatory growth arrow.
+    rect(35, 99, 177, 214, 16, P.paper_sheet); rect(35, 99, 177, 49, 12, accent);
+    line([[73, 84], [73, 119]], P.fabric_mustard, 13);
+    line([[174, 84], [174, 119]], P.fabric_mustard, 13);
+    text('TUE', 123, 185, 43, P.ink, 'center');
+    line([[68, 281], [111, 250], [143, 268], [186, 219]], P.fabric_teal, 14);
+    line([[161, 220], [186, 219], [186, 244]], P.fabric_teal, 12);
+    text(title, 245, 130, 86);
+    text(second, 245, 235, 96, accent);
+  }
   // A faint pixel grid suggests a panel without adding geometry or an animated texture.
-  x.fillStyle = P.screen_bg; x.globalAlpha = 0.18;
+  x.fillStyle = bg; x.globalAlpha = 0.18;
   for (let y = 0; y < 384; y += 6) x.fillRect(0, y, 768, 1);
   const texture = new THREE.CanvasTexture(c); texture.colorSpace = THREE.SRGBColorSpace;
   texture.flipY = false;

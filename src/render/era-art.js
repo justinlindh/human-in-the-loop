@@ -37,9 +37,9 @@ export function eraBillboard(era) {
 }
 
 export const ERA_ADS = {
-  classic: ['LUNCH LOOP', 'GOOD FOOD. ONE TAP.'],
-  chatgbt: ['DRAFT BUDDY', 'A SECOND PAIR OF WORDS.'],
-  agents: ['ERRAND CLOUD', 'LET THE LITTLE BOTS DO IT.'],
-  consolidation: ['ONE SUITE', 'EVERY TAB UNDER ONE ROOF.'],
-  plateau: ['MADE HERE', 'PEOPLE. TASTE. TIME.'],
+  classic: ['Disrupting', 'Tuesday.'],
+  chatgbt: ['Prompt Engineer.', '$400K.'],
+  agents: ['Pay-per-thought.', 'Our agents', 'think a LOT.'],
+  consolidation: ['This billboard', 'has been', 'acquired.'],
+  plateau: ['MADE BY', 'HUMANS*', '*mostly'],
 };
