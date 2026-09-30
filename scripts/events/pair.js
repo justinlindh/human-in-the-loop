@@ -70,6 +70,14 @@ if (!isMainThread) {
   process.exit(0);
 } else {
   const argv = process.argv.slice(2);
+  const USAGE = 'usage: node scripts/events/pair.js [--a <root>] [--b <root>] [--bots x,y] [--seeds 300] [--start-era <era>] [--fields \'<js>\'] [--jobs N] [--json out.json] [--timeout 3600]';
+  if (argv.includes('--help') || argv.includes('-h')) { console.log(USAGE); process.exit(0); }
+  const KNOWN = new Set(['a', 'b', 'bots', 'seeds', 'start-era', 'fields', 'jobs', 'json', 'timeout']);
+  for (let i = 0; i < argv.length; i++) {
+    const m = /^--([^=]+)$/.exec(argv[i]);
+    if (!m || !KNOWN.has(m[1])) { console.error(`pair: unrecognised argument ${argv[i]}\n${USAGE}`); process.exit(2); }
+    i++; // every flag takes a value
+  }
   const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
   const seeds = Number(opt('seeds', 300));
   const fields = opt('fields', '');

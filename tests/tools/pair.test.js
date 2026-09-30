@@ -59,6 +59,22 @@ describe('pair.js', () => {
     expect(r.status).not.toBe(0);
   });
 
+  it('prints usage and exits 0 for --help and -h without playing', () => {
+    for (const flag of ['--help', '-h']) {
+      const r = spawnSync(process.execPath, [PAIR, flag], { encoding: 'utf8', timeout: 20000 });
+      expect(r.status).toBe(0);
+      expect(r.stdout).toMatch(/usage: node scripts\/events\/pair\.js/);
+    }
+  });
+
+  it('exits 2 with the usage on an unrecognised flag or stray argument', () => {
+    for (const args of [['--seed', '5'], ['--seeds', '1', 'extra']]) {
+      const r = spawnSync(process.execPath, [PAIR, ...args], { encoding: 'utf8', timeout: 20000 });
+      expect(r.status).toBe(2);
+      expect(r.stderr).toMatch(/unrecognised argument[\s\S]*usage:/);
+    }
+  });
+
   it('exits 2 on a bare --start-era', () => {
     const r = spawnSync(process.execPath, [PAIR, '--a', '.', '--seeds', '1', '--start-era'], { encoding: 'utf8', timeout: 60000 });
     expect(r.status).toBe(2);
