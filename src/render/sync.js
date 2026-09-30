@@ -1358,15 +1358,16 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       r.wait = { kind: 'stepIn', timer: r.temp?.inWait ?? 0 };
       c.setMoveSpeed(0);
       c.setAnim('idle');
-    } else if (r.path.length && waitsForAisle(r, dt)) {
+    // Someone at a standup or on a moment keeps its timing and walks on through the holds below.
+    } else if (r.path.length && !taken(r) && waitsForAisle(r, dt)) {
       r.wait = { kind: 'aisle', timer: r.aisleWait ?? 0 };
       c.setMoveSpeed(0);
       c.setAnim('idle');
-    } else if (r.path.length && waitsToCross(r, dt)) {
+    } else if (r.path.length && !taken(r) && waitsToCross(r, dt)) {
       r.wait = { kind: 'cross', timer: r.crossWait };
       c.setMoveSpeed(0);
       c.setAnim('idle');
-    } else if (r.path.length && waitsForStander(r, dt)) {
+    } else if (r.path.length && !taken(r) && waitsForStander(r, dt)) {
       r.wait = { kind: 'stander', timer: r.standHold.t };
       c.setMoveSpeed(0);
       c.setAnim('idle');
