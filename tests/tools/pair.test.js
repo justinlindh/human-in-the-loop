@@ -58,6 +58,17 @@ describe('pair.js', () => {
     const r = spawnSync(process.execPath, [resolve('scripts/events/pair.js'), '--a', '.', '--bots', 'balanced', '--seeds', '1', '--fields', '({ '], { encoding: 'utf8', timeout: 60000 });
     expect(r.status).not.toBe(0);
   });
+
+  it('exits 2 on a bare --start-era', () => {
+    const r = spawnSync(process.execPath, [PAIR, '--a', '.', '--seeds', '1', '--start-era'], { encoding: 'utf8', timeout: 60000 });
+    expect(r.status).toBe(2);
+  });
+
+  it('exits 2 on an unknown --start-era before playing anything', () => {
+    const r = spawnSync(process.execPath, [PAIR, '--a', '.', '--bots', 'balanced', '--seeds', '1', '--start-era', 'nope'], { encoding: 'utf8', timeout: 60000 });
+    expect(r.status).toBe(2);
+    expect(r.stderr).toMatch(/unknown starting era/);
+  });
 });
 
 describe('pair-report field and run-set handling', () => {

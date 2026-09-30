@@ -5,6 +5,7 @@
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { glMode, holdRenderLock, launchChromium } from './lib/gl.js';
+import { waitForBoot } from './lib/boot.js';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
@@ -56,7 +57,7 @@ try {
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
   await page.goto(url, { waitUntil: 'load' });
-  await page.waitForFunction(() => window.__HITL_READY === true, null, { timeout: 60000 });
+  await waitForBoot(page);
   await page.waitForTimeout(wait);
   if (typeof args.eval === 'string') {
     const val = await page.evaluate(args.eval);
