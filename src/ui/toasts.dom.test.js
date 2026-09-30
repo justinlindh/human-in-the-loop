@@ -63,6 +63,7 @@ it('shows the queued toast after presentation time, not after the wall clock sta
   toasts.push('First note', 'info');
   toasts.push('Second note', 'info');
   const shown = () => [...root.querySelectorAll('.toast .tt')].map((n) => n.textContent);
+  vi.advanceTimersByTime(0);
   pTick(16);
   expect(shown()).toEqual(['First note']);
 
