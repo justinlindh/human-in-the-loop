@@ -24,6 +24,15 @@ describe('browser pacing presentations', () => {
   });
   after(async () => { await browser?.close(); await server?.close(); });
 
+  // A toast's text carries its glyph, so rows are found by the words the test pushed.
+  const withText = (rows, words) => rows.find(r => r.text?.includes(words));
+  // The toast queue advances on the presentation clock, which the UI ticks once per drawn frame; this
+  // fixture draws none, so a wait for a toast to appear ticks the clock by hand, in frame-sized steps.
+  const advancePresentation = (ms) => page.evaluate(async (total) => {
+    const { pTick } = await import('/src/ui/pclock.js');
+    for (let left = total; left > 0; left -= 50) pTick(Math.min(50, left));
+  }, ms);
+
   async function fixture(html = '') {
     await page?.close();
     page = await browser.newPage({ viewport: { width: 1000, height: 800 } });
@@ -71,12 +80,12 @@ describe('browser pacing presentations', () => {
       window.__pace.player(() => window.testToasts.push('Player confirmation', 'good'));
       window.testToasts.push('Game warning', 'warn');
     });
-    await page.waitForTimeout(800);
+    await advancePresentation(800);
     let rows = (await page.evaluate(collectPresentations)).fresh;
     assert.equal(rows.filter(r => r.kind === 'toast').length, 2);
-    assert.equal(rows.find(r => r.text === 'Player confirmation').origin, 'player');
-    assert.equal(rows.find(r => r.text === 'Game warning').origin, 'game');
-    const gameId = rows.find(r => r.text === 'Game warning').id;
+    assert.equal(withText(rows, 'Player confirmation').origin, 'player');
+    assert.equal(withText(rows, 'Game warning').origin, 'game');
+    const gameId = withText(rows, 'Game warning').id;
     await page.evaluate(() => {
       window.dock = document.createElement('div'); document.body.append(window.dock);
       window.testToasts.setDock(window.dock);
@@ -127,14 +136,14 @@ describe('browser pacing presentations', () => {
       window.__pace.player(() => window.testToasts.push('Queued confirmation', 'good'));
       window.testToasts.push('Queued warning', 'warn');
     });
-    await page.waitForTimeout(800);
+    await advancePresentation(800);
     assert.deepEqual((await page.evaluate(collectPresentations)).fresh, []);
     await page.evaluate(() => { window.gateOpen = true; });
-    await page.waitForTimeout(1600);
+    await advancePresentation(1600);
     const rows = (await page.evaluate(collectPresentations)).fresh;
     assert.equal(rows.length, 2);
-    assert.equal(rows.find(r => r.text === 'Queued confirmation').origin, 'player');
-    assert.equal(rows.find(r => r.text === 'Queued warning').origin, 'game');
+    assert.equal(withText(rows, 'Queued confirmation').origin, 'player');
+    assert.equal(withText(rows, 'Queued warning').origin, 'game');
   });
 
   it('fails closed when metadata hooks move', () => {
