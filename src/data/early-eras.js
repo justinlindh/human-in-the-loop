@@ -4,13 +4,25 @@ export const EARLY_ERAS = [{
   id: 'dotcom', name: 'The Dot-com Boom',
   blurb: 'Every company needs a website. Every website apparently needs an IPO.',
   changes: ['Build web and on-prem products', 'A boom brings customers, a float brings cash and dilution', 'Keep runway for the bust; recovery leads into Classic'],
+}, {
+  id: 'web2', name: 'Web 2.0: The IE6 Years',
+  blurb: 'The browser is the platform. The approved browser is the problem.',
+  changes: ['New web products include old-browser QA work', 'Experienced senior engineers can earn Legacy Whisperer', 'Keep the company through the transition to Classic'],
 }];
 
 export const PERIOD_MARKETS = {
   dotcom: { categories: ['notes', 'email', 'pm', 'support'], angles: ['web', 'onprem'], trends: ['steady', 'budget_cuts', 'security_scare'] },
+  web2: { categories: ['notes', 'email', 'pm', 'support', 'crm', 'analytics', 'design', 'devtools'], angles: ['web', 'onprem', 'api', 'freemium'], trends: ['steady', 'budget_cuts', 'security_scare'] },
 };
 export const DOTCOM_NAMES = ['Under Construction', 'Portal Combat', 'Click And Mortar', 'Eyeballs Enterprise'];
-export const chatAppName = (state) => state.era?.id === 'dotcom' ? 'AwayIM' : 'Yak';
+export const chatAppName = (state) => ({ dotcom: 'AwayIM', web2: 'HipCheck' })[state.era?.id] ?? 'Yak';
+export const WEB2_CHAT = [
+  'The box model hack is done. The box is wider inside the client demo.',
+  'The conditional comment has conditions. I respect its boundaries.',
+  'Added a shim, a polyfill and a clearfix. The page now qualifies as infrastructure.',
+  'It works on my machine. We are considering mailing my machine to the client.',
+  'Foxfire is not approved. Internet Exploder 6 has seniority.',
+];
 export const DOTCOM_CHAT = [
   'Away message: building the future. Back after lunch.',
   'The website has a visitor counter. We have agreed not to refresh it during board meetings.',
@@ -21,6 +33,14 @@ export const DOTCOM_CHAT = [
 
 // Keep campaign mechanics stable while period copy describes the channel the company actually buys.
 export const PERIOD_CHANNELS = {
+  web2: {
+    launch: { name: 'Directory Launch', desc: 'A listing, a demo and a comments section with opinions about both.' },
+    content: { name: 'Company Blog', desc: 'An RSS feed and useful advice. The gradient is optional.' },
+    community: { name: 'Community Forum', desc: 'A place for users to help each other and discuss your rounded corners.' },
+    ads: { name: 'Search Ads', desc: 'Buy a few words beside the results. Finance has discovered keywords.' },
+    conference: { name: 'Web Conference', desc: 'A live demo, a lanyard and a very shiny logo.' },
+    enterprise: { name: 'Enterprise Sales', desc: 'Procurement likes the product. IT would like it to run in the approved browser.' },
+  },
   dotcom: {
     launch: { name: 'Web Directory Launch', desc: 'A directory listing, a demo and a press release with a very long fax number.' },
     content: { name: 'Email Newsletter', desc: 'Useful tips delivered directly to an inbox. Please stop forwarding the test issue.' },

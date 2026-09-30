@@ -21,7 +21,7 @@ export const DOTCOM_EVENTS = [
       { label: 'Call every customer', hint: `Spend up to $${B.dotcom.retainCostCap / 1000}K, capped at ${B.dotcom.retainCashShare * 100}% of cash; lose ${B.dotcom.retainLoss * 100}% of customers`, effects: { dotcom: 'retain' }, outcome: 'A human picks up the phone. Customers remember that.' },
     ] },
   { ...triggered, id: 'dotcom_recovery', title: 'A business model, at last',
-    text: 'We have a business model now. It is invoices. The boom and bust are over. This bridge career skips the intervening years and continues in Classic SaaS with your people, products and cash intact.',
+    text: 'We have a business model now. It is invoices. The boom and bust are over. Your people, products and cash carry into the next chapter.',
     auto: {} },
   { ...triggered, id: 'dotcom_sock_pivot', kind: 'misc', random: true, weight: B.dotcom.sockWeight, cooldownWeeks: B.dotcom.sockCooldown,
     title: 'PetParcel wants a partnership', text: 'They sell pet supplies and a very confident sock. The sock has better media training than the board.',

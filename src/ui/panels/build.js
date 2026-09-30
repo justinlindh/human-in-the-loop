@@ -9,6 +9,7 @@ import { picker, personOption } from '../picker.js';
 import { openStaffUp, staffUpPool } from './bulkAssign.js';
 import { marketSize } from '../../sim/products.js';
 import { modelCostPerCustomer } from '../../sim/economy.js';
+import { compatibilityMult } from '../../sim/web2.js';
 import { projectLabel, KIND_LABEL, isAvailable, assignmentText, suggestName, automatedProject, NAME_MAX } from './common.js';
 
 // Product stats as the player sees them (Freshness is stored as novelty).
@@ -155,7 +156,7 @@ export function buildPanel(ctx, arg) {
     const sizeRow = h('div.row.sizes');
     for (const [id, sz] of Object.entries(B.sizes)) {
       const locked = s.officeStage < (sz.minStage ?? 0);
-      const pts = Math.round(sz.points * (1 + (B.pointsGrowthPerYear ?? 0.1) * dateOf(s.week).yearIndex));
+      const pts = Math.round(sz.points * (1 + (B.pointsGrowthPerYear ?? 0.1) * dateOf(s.week).yearIndex) * compatibilityMult(s, form.angle));
       const btn = h('button.tile.size', {
         disabled: locked,
         title: locked ? 'Needs a bigger office' : `${pts} work points to finish`,
@@ -218,7 +219,8 @@ export function buildPanel(ctx, arg) {
         h('div.section', null, h('h3', null, '2. Category', h('span.aside', { text: 'price per customer per month' })), catGrid),
         h('div.section', null, h('h3', null, `3. ${!hasEras ? 'AI angle' : ANGLES.some((a) => a.ai && s.market.unlockedAngles.includes(a.id)) ? 'Angle' : 'Approach'}`, h('span.aside', null, icon('star', { size: 12 }), ' = combos you have launched')), angGrid),
         needsModel ? h('div.section', null, h('h3', null, '4. Model vendor'), modelGrid) : null,
-        h('div.section', null, h('h3', null, `${needsModel ? 5 : 4}. Size`), sizeRow)),
+        h('div.section', null, h('h3', null, `${needsModel ? 5 : 4}. Size`), sizeRow,
+          compatibilityMult(s, form.angle) > 1 ? h('div.small.legacy-compat', { text: `Internet Exploder 6 compatibility: +${Math.round((compatibilityMult(s, form.angle) - 1) * 100)}% work included. A present senior Legacy Whisperer reduces the extra work. The estimate locks when you start.` }) : null)),
       h('div.buildside', null,
         h('div.section', null, h('h3', null, `${needsModel ? 6 : 5}. Team`, countEl), avail.length ? team : h('div.empty', { text: 'Everyone is away.' }),
           h('div.small.muted.teamhint', { text: 'Stronger people make a better product. More people make it faster.' })),
@@ -302,6 +304,7 @@ export function buildPanel(ctx, arg) {
           confirmButton('Cancel', 'Lose progress?', 'small.danger.pcancel', () => { if (ctx.act({ type: 'cancelProject', projectId: j.id }).ok) ctx.sfx('close'); })),
         h('div.bar.thick', null, fill),
         j.kind === 'new' || j.kind === 'update' ? h('div.pstats', null, ...statEls.map((x) => x.el)) : null,
+        j.compatibility ? h('div.small.legacy-compat', { text: `Old Browser Compatibility: +${Math.round((j.compatibility.factor - 1) * 100)}% work, included in the total. Best viewed in whichever browser finance approved.` }) : null,
         crew));
       bind((st) => {
         const cur = st.projects.find((x) => x.id === j.id);

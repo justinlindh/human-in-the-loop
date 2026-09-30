@@ -1314,3 +1314,31 @@ misc · weight 2 · cooldown 52 weeks
 |---|---|
 | Sponsor the sock | cash -$3,000; hype on your newest product +5 |
 | Wish the sock well | nothing |
+
+## The revenue slide contains revenue `web2_recovery`
+
+era · weight 2 · cooldown 52 weeks
+
+| Choice | Effects |
+|---|---|
+| Fund the QA bench | cash -$8,000; tech debt -5 |
+| Keep the runway | nothing |
+
+## An Active-ish control `web2_activex`
+
+misc · weight 2 · cooldown 52 weeks
+
+| Choice | Effects |
+|---|---|
+| Build a sandbox | cash -$5,000; tech debt -2 |
+| Approve an exception | tech debt +5 |
+| Offer an ordinary form | nothing |
+
+## Transparency, in grey `web2_grey_png`
+
+misc · weight 2 · cooldown 52 weeks · about a live product with old-browser compatibility
+
+| Choice | Effects |
+|---|---|
+| Patch the image loader | cash -$1,000; compatible product polish +3 |
+| Keep the rectangle | nothing |

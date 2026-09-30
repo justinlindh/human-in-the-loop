@@ -45,6 +45,7 @@ const SPECIAL = {
   dotcom: (v) => v === 'float' ? `cash +${money(B.dotcom.floatCash)}; dilution score x0.8; public-company bust cost`
     : v === 'private' ? `brand +${B.dotcom.privateBrand}; stay private`
       : `lose ${Math.round((v === 'retain' ? B.dotcom.retainLoss : B.dotcom.preserveLoss) * 100)}% of live-product customers once; ${v === 'retain' ? `retention costs the lesser of ${money(B.dotcom.retainCostCap)} and ${B.dotcom.retainCashShare * 100}% of cash; ` : ''}if public, first pay the lesser of ${money(B.dotcom.floatCostCap)} and ${B.dotcom.floatCashShare * 100}% of cash`,
+  legacyPolish: (v) => `compatible product polish +${v}`,
   assign: (v) => ASSIGN[v.type] ?? `they're assigned to ${v.type}`,
   startCraft: () => 'a craft project starts, if none is running',
   pivot: () => 'your newest product pivots',
@@ -176,7 +177,9 @@ function peopleFile() {
   const roles = table(['Role', 'Default work', 'Automated by'], list(ROLES).map((r) => [r.name, r.defaultAssignment, Object.entries(r.automatedBy ?? {}).map(([f, v]) => `${f} ${v}`).join(', ') || 'nothing']));
   const pay = table(['Seniority', 'Salary a week', 'Output'], Object.entries(B.salary).map(([s, v]) => [s, money(v), mult(B.seniorityOutput[s])]));
   const modText = (mods) => Object.entries(mods ?? {}).map(([k, v]) => `${TRAIT_MOD_LABELS[k] ?? k} ${mult(v)}`).join(', ');
-  const traits = table(['Trait', 'Effects', 'Era'], list(TRAITS).map((t) => [t.name, modText(t.mods), t.era ?? 'any']));
+  const traits = table(['Trait', 'Effects', 'Era'], list(TRAITS).map((t) => [t.name, t.id === 'legacy_whisperer'
+    ? `present senior engineer: new Web 2.0 web-project work x${B.web2.whispererWorkMult} instead of x${B.web2.workMult}; earned after ${B.web2.legacyLaunches} contributed compatible launches, with a free trait slot`
+    : modText(t.mods), t.era ?? 'any']));
   const training = table(['Program', 'Cost', 'Gains', 'Away'], list(TRAINING).map((t) => [t.name, money(t.cost),
     [t.xp && `XP +${t.xp}`, t.skill && `skill +${t.skill}`, t.meaning && `meaning +${t.meaning}`, t.brand && `brand +${t.brand}`, t.knowledge && `knowledge +${t.knowledge}`].filter(Boolean).join(', '), t.awayWeeks ? `${t.awayWeeks} weeks` : '-']));
   const paths = table(['Path', 'Role', 'Effects'], list(PATHS).map((p) => [p.name, ROLES[p.role]?.name ?? p.role, modText(p.mods)]));

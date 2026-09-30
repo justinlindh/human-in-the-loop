@@ -1,5 +1,6 @@
 import { B } from './balance.js';
 import { dotcomEffect } from './dotcom.js';
+import { applyCompatibility } from './web2.js';
 import { chance, pick } from './rng.js';
 import { clamp, newId, dateOf } from './util.js';
 import { sunsetProduct } from './products.js';
@@ -126,6 +127,7 @@ function pivot(ctx) {
     pointsNeeded: B.sizes.medium.points * (1 + B.pointsGrowthPerYear * dateOf(state.week).yearIndex), progress: 0, stats: { features: 0, polish: 0, reliability: 0, novelty: 0 },
     productId: null, startedWeek: state.week, bankedHype: 0,
   });
+  applyCompatibility(state, state.projects.at(-1));
   const dropped = cancelled.length ? ` Cancelled: ${cancelled.map((j) => j.name).join(', ')}.` : '';
   ctx.emit({ type: 'toast', text: `${weakest.name} is sunset.${dropped} The new plan: ${weakest.name} 2.`, tone: 'info' });
 }
@@ -138,6 +140,7 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
   const person = findStaff(state, subjectId);
   const subjectProduct = findProduct(state, subjectId);
   const product = subjectProduct && !subjectProduct.killed ? subjectProduct : newestLive(state);
+  if (fx.legacyPolish && subjectProduct?.legacyCompatible && !subjectProduct.killed) subjectProduct.stats.polish += fx.legacyPolish;
 
   if (fx.cash) state.cash += fx.cash;
   if (fx.brand) state.brand = clamp(state.brand + fx.brand, 0, 100);

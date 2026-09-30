@@ -17,6 +17,7 @@ import { emitChat } from './chat.js';
 import { squadsAfterProject } from './squads.js';
 import { bumpDebt } from './debt.js';
 import { raiseDecision } from './events.js';
+import { applyCompatibility, compatibleLaunch } from './web2.js';
 
 const STAT_LABEL = { features: 'Features', polish: 'Polish', reliability: 'Reliability', novelty: 'Freshness' };
 
@@ -156,6 +157,7 @@ registerAction('startProject', (ctx, a) => {
   } else {
     return { ok: false, reason: 'Unknown project kind' };
   }
+  applyCompatibility(state, project);
   state.projects.push(project);
   ctx.emit({ type: 'toast', text: `Started: ${project.name}`, tone: 'info' });
   return { ok: true, projectId: project.id };
@@ -182,6 +184,7 @@ function launchNew(ctx, j) {
     copied: false, wrapperHit: false, ownerId: null, migrationDueWeek: null, killed: false,
   };
   state.products.push(product);
+  compatibleLaunch(state, j, product);
   const combo = `${j.category}:${j.angle}`;
   if (!(combo in state.discoveredCombos)) state.discoveredCombos[combo] = round(review.fit, 2);
   for (const c of state.campaigns) if (c.projectId === j.id) { c.projectId = null; c.productId = product.id; }
@@ -254,6 +257,9 @@ export function projectsSystem(ctx) {
   const reviews = !!state.policies.comprehension_reviews;
   const speed = reviews ? B.comprehensionReviewSpeed : 1;
   for (const j of [...state.projects]) {
+    if (j.compatibility) for (const c of ctx.contributors?.[j.id] ?? []) {
+      if (sum(STATS, (st) => c.pts[st]) > 0 && state.staff.some((p) => p.id === c.staffId && p.role === 'engineer') && !j.compatibility.contributors.includes(c.staffId)) j.compatibility.contributors.push(c.staffId);
+    }
     const effort = ctx.weekEffort?.[j.id] ?? zeroPoints();
     const gained = ctx.weekStats?.[j.id] ?? zeroPoints();
     const step = sum(STATS, (st) => effort[st]) * speed;

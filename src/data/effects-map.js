@@ -48,6 +48,7 @@ export const CONDITION_LABELS = {
 
 // Who or what an event is about (its `subject`).
 export const SUBJECT_LABELS = {
+  compatibleProduct: 'a live product with old-browser compatibility',
   randomStaff: 'anyone in', seniorStaff: 'a senior', juniorStaff: 'a junior', unmentoredJunior: 'a junior without a mentor',
   burnoutStaff: 'someone burnt out', coastingStaff: 'someone coasting', workingStaff: 'someone at work (not a founder)',
   automatedSenior: 'a senior whose work is at least half automated', mentorStaff: 'a mentor', founder: 'a founder',

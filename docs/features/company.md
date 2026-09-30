@@ -1,5 +1,7 @@
 # Company and progression
 
+- **Historical founding**: choose dot-com for the boom, bust and Web 2.0 chapters, or Web 2.0 for the Internet Exploder 6 years. Both continue into Classic and the modern eras. Historical chapter lengths are saved with the company so an existing direct bridge keeps its route. `id: dotcom` `id: web2`
+
 - **Dot-com marketing**: web-directory launches, email newsletters, message boards, banner ads, trade shows and enterprise sales use the campaign system. Product Hunch and influencer campaigns are unavailable in dot-com. `id: launch` `id: content` `id: community` `id: ads` `id: conference` `id: enterprise`
 
 - **Founding**: name the company, pick a logo colour and tagline, choose two founders and a funding source; a pair with no builder gets a plain warning. `capture 1-2-founding`

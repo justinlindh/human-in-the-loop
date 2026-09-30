@@ -19,6 +19,7 @@ export const ICONS = {
   'menu.automation': I('🤖', 'Bottom menu button', 30),
   'era.classic': I('☕', 'Era emblem: arrival card and HUD', 24),
   'era.dotcom': { ...I('☕', 'Era emblem: arrival card and HUD', 24), alias: 'era.classic' },
+  'era.web2': { ...I('☕', 'Era emblem: arrival card and HUD', 24), alias: 'era.classic' },
   'era.chatgbt': I('💬', 'Era emblem: arrival card and HUD', 24),
   'era.agents': I('🤖', 'Era emblem: arrival card and HUD', 24),
   'era.consolidation': I('🧲', 'Era emblem: arrival card and HUD', 24),

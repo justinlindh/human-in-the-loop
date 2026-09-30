@@ -1,3 +1,5 @@
+import { B } from '../sim/balance.js';
+
 // Mods are multipliers (default 1) except catch, which is additive (default 0).
 export const TRAIT_MOD_KEYS = [
   'output', 'meaningDrain', 'meaningRecovery', 'mentorBonus', 'xp', 'hype', 'oversight', 'stamina',
@@ -5,6 +7,7 @@ export const TRAIT_MOD_KEYS = [
 ];
 
 const rows = [
+  ['legacy_whisperer', 'Legacy Whisperer', 'Earned by shipping compatible web products. Knows which conditional comment must never be removed.', {}],
   ['craftsperson', 'Craftsperson', 'Sweats the details. Takes it personally when the craft gets rushed.', { polish: 1.3, meaningDrain: 1.5, meaningRecovery: 1.2 }],
   ['hype_machine', 'Hype Machine', 'Can make a settings page sound like the moon landing.', { hype: 1.5 }],
   ['paranoid', 'Paranoid', 'Reads every agent log. Has been right twice.', { oversight: 1.4, catch: 0.15 }],
@@ -32,10 +35,11 @@ const rows = [
 ];
 
 // Traits nobody is hired with: natural_mentor comes from mentoring, percussive from slapping the office robot back to life.
-export const NEVER_HIRED = new Set(['natural_mentor', 'percussive']);
+export const NEVER_HIRED = new Set(['natural_mentor', 'percussive', 'legacy_whisperer']);
 
 // Traits people earn from experience rather than arrive with.
 export const EARNED_TRAITS = [
+  { trait: 'legacy_whisperer', counter: 'compatibleLaunches', threshold: B.web2.legacyLaunches, when: (p) => p.role === 'engineer' && p.seniority === 'senior' },
   { trait: 'natural_mentor', counter: 'mentorWeeks', threshold: 20 },
   { trait: 'paranoid', counter: 'catches', threshold: 3 },
   { trait: 'visionary', counter: 'hardProblemWeeks', threshold: 20 },
