@@ -82,7 +82,7 @@ export function buildEpilogue(state, outcome) {
   const lines = picked.map((e) => {
     let text = e.text;
     if (state.founding?.earlyChapters?.length) text = text.replaceAll('turned twenty', 'completed its long career');
-    if (B.eraStarts[state.founding?.startEra]?.officeStage > 0) text = text.replaceAll('started in a garage', 'started on an office floor').replaceAll('garage days', 'founding days');
+    if (state.goals.office_floor?.skipped) text = text.replaceAll('started in a garage', 'started on an office floor').replaceAll('garage days', 'founding days');
     return fill(state, text, x);
   });
   for (const g of shuffle(state.rng, GENERIC_EPILOGUES.filter((e) => e.when(state, x) && eraOnlyAllowsText(state, e.text)))) {
