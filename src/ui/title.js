@@ -43,6 +43,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
   const root = h('div.title');
   root.style.display = 'none';
   layer.append(root);
+  let preparedTakeover = null;
 
   function lockup() {
     return h('div.lockup', null,
@@ -214,6 +215,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
   const MAX_SAVES = 6;
 
   function newGameView() {
+    preparedTakeover = null;
     draft = { companyName: suggestCompany(), logoColor: LOGO_COLORS[0], tagline: TAGLINES[0], seed: '', founders: [], funding: 'bootstrapped', startEra: 'classic', startMode: 'garage', replaceId: null };
     const list = controls.listSaves?.();
     if (Array.isArray(list) && list.length >= (controls.maxSaves ?? MAX_SAVES)) replaceView(list);
@@ -444,7 +446,12 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       if (draft.startMode !== 'takeover') { start(); return; }
       if (!draft.seed.trim()) draft.seed = String(Math.floor(Math.random() * 1e9));
       prepare(nextBtn, () => {
-        try { takeoverStep(createGame(gameOptions())); }
+        try {
+          const options = gameOptions();
+          const key = JSON.stringify(options);
+          if (preparedTakeover?.key !== key) preparedTakeover = { key, state: createGame(options) };
+          takeoverStep(preparedTakeover.state);
+        }
         catch (e) { setText(error, e.message); error.hidden = false; sfx('error'); }
       });
     }, 'Start the company');
@@ -457,7 +464,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     const content = [...button.childNodes];
     buttons.forEach(([b]) => { b.disabled = true; });
     card.setAttribute('aria-busy', 'true');
-    setText(button, 'Preparing the company...');
+    button.replaceChildren(h('span', { role: 'status', text: 'Reading the books...' }));
     // Give the progress label a painted frame before running the predecessor.
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     try { if (card.isConnected) build(); }
@@ -499,28 +506,29 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
           fact('Cash', fmtMoney(s.cash)), fact('Weekly burn', burn > 0 ? `${fmtMoney(burn)}/wk` : `$0 (${fmtMoney(-burn)}/wk surplus)`),
           fact('Office', OFFICE_STAGES[s.officeStage].name), fact('Weekly costs', fmtMoney(costs))),
         h('details.takeover-detail', null, h('summary', { text: `Meet the team (${s.staff.length})` }),
-          h('ul', null, ...s.staff.map((p) => h('li', { text: `${p.name}, ${p.seniority} ${p.role}` })))),
+          h('ul', { tabindex: 0, 'aria-label': 'Team' }, ...s.staff.map((p) => h('li', { text: `${p.name}, ${p.seniority} ${p.role}` })))),
         h('details.takeover-detail', null, h('summary', { text: `See the products (${products.length})` }),
-          h('ul', null, ...products.map((p) => h('li', { text: `${p.name}: ${p.customers} customers, ${fmtMoney(p.mrr)} MRR` })))),
+          h('ul', { tabindex: 0, 'aria-label': 'Products' }, ...products.map((p) => h('li', { text: `${p.name}: ${p.customers} customers, ${fmtMoney(p.mrr)} MRR` })))),
         h('p.small', { text: `The company keeps its projects, policies, debts, incidents and history. Its twentieth-anniversary checkpoint is in ${Math.max(0, B.anniversaryWeek - s.week)} weeks.` }),
         h('p.small', { text: `Score factors: ${factors.join(', ')}. Combined x${Math.round(mult * 10000) / 10000}.` }),
         s.pendingDecision ? h('p.small', { text: `Waiting for you: ${s.pendingDecision.title}` }) : null,
         h('div.row.takeover-actions', null,
           h('button.btn.big', { onclick: () => { sfx('click'); fundingStep(); } }, 'Back'),
-          h('button.btn.go.big', { onclick: (e) => prepare(e.currentTarget, start) }, 'Take over and play')))));
+          h('button.btn.go.big', { onclick: () => start(s) }, 'Take over and play')))));
   }
 
-  function start() {
+  function start(preparedState) {
     const options = gameOptions();
     sfx('confirm');
     if (draft.replaceId) controls.deleteSave?.(draft.replaceId);
-    controls.newGame?.(options);
+    controls.newGame?.(options, preparedState);
+    preparedTakeover = null;
     onStart({ fresh: true });
   }
 
   return {
     show() { menuView(); root.style.display = ''; layer.classList.add('title-mode'); },
-    hide() { root.style.display = 'none'; root.replaceChildren(); layer.classList.remove('title-mode'); },
+    hide() { preparedTakeover = null; root.style.display = 'none'; root.replaceChildren(); layer.classList.remove('title-mode'); },
     get isOpen() { return root.style.display !== 'none'; },
   };
 }

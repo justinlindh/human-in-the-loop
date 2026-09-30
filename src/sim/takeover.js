@@ -15,6 +15,8 @@ export function buildTakeover({ startEra, funding, ...options }) {
   if (state.gameOver || state.era.id !== startEra) {
     throw new Error(`This company did not reach ${startEra === 'chatgbt' ? 'ChatGBT' : 'Agents'} under its previous management. Try another seed, founder pair or funding source, or found a company.`);
   }
+  delete state.flags.botDecorFull;
+  delete state.flags.botStandup;
   Object.assign(state.founding, {
     startMode: 'takeover', takeoverEra: startEra, takeoverWeek: state.week, takeoverBot: bot,
     eraScoreMult: B.takeover.scoreMult[startEra],

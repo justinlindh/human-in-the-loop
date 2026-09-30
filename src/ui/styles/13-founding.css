@@ -44,9 +44,10 @@
 .hitl .takeover-fact { display: flex; flex-direction: column; gap: 0.25em; padding: 0.65em; background: var(--cream-3); border-radius: 0.5em; overflow-wrap: anywhere; }
 .hitl .takeover-detail summary { cursor: pointer; padding: 0.7em; min-height: 44px; border: var(--bw) solid var(--ink); border-radius: 0.5em; }
 .hitl .takeover-detail li { margin: 0.4em 0; overflow-wrap: anywhere; }
-.hitl .takeover-actions { flex-wrap: wrap; }
+.hitl .takeover-detail ul { max-height: min(12em, 25vh); overflow-y: auto; overscroll-behavior: contain; }
+.hitl .takeover-actions { flex-wrap: wrap; position: sticky; bottom: 0; padding: 0.6em 0; background: var(--cream); z-index: 1; }
 .hitl .takeover h2, .hitl .takeover p { margin: 0; }
-@media (max-width: 600px) { .hitl .era-starts { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .hitl .era-starts, .hitl .takeover-choices, .hitl .takeover-facts { grid-template-columns: 1fr; } }
 .hitl .tray-card.goals { cursor: default; }
 .hitl .tray-card.goals .t span:first-child { display: inline-flex; align-items: center; gap: 0.3em; }
 .hitl .goal { display: flex; gap: 0.45em; align-items: flex-start; margin-top: 0.3em; font-size: 0.9em; line-height: 1.2; }

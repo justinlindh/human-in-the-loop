@@ -19,8 +19,12 @@ describe('era takeover', () => {
     expect(first.staff.length).toBeGreaterThan(2);
     expect(first.products.some((p) => !p.killed)).toBe(true);
     expect(first.gameOver).toBeNull();
-    const { founding, ...company } = first;
-    const { founding: oldFounding, ...oldCompany } = original;
+    expect(first.flags).not.toHaveProperty('botDecorFull');
+    expect(first.flags).not.toHaveProperty('botStandup');
+    const { founding, flags, ...company } = first;
+    const { founding: oldFounding, flags: oldFlags, ...oldCompany } = original;
+    const { botDecorFull, botStandup, ...playerFlags } = oldFlags;
+    expect(flags).toEqual(playerFlags);
     expect(company).toEqual(oldCompany);
     expect(founding).toEqual({ ...oldFounding, startMode: 'takeover', takeoverEra: startEra,
       takeoverWeek: first.week, takeoverBot: 'sensible', eraScoreMult: B.takeover.scoreMult[startEra] });
@@ -41,6 +45,21 @@ describe('era takeover', () => {
 
   it('refuses unknown takeover funding', () => {
     expect(() => createGame({ startEra: 'agents', startMode: 'takeover', funding: 'unknown' })).toThrow(/funding/);
+  });
+
+  it('removes both predecessor bookkeeping flags while retaining earned flags', () => {
+    const predecessor = createGame({ seed: 1, startEra: 'agents' });
+    predecessor.flags.botDecorFull = 2;
+    predecessor.flags.botStandup = 'async_standups';
+    predecessor.flags.diluted = true;
+    predecessor.flags.incubatorCut = 0.1;
+    const run = vi.spyOn(bots, 'runBot').mockReturnValueOnce({ state: predecessor });
+    try {
+      const state = createGame({ seed: 1, startEra: 'agents', startMode: 'takeover' });
+      expect(state.flags).not.toHaveProperty('botDecorFull');
+      expect(state.flags).not.toHaveProperty('botStandup');
+      expect(state.flags).toMatchObject({ diluted: true, incubatorCut: 0.1 });
+    } finally { run.mockRestore(); }
   });
 
   it('refuses a predecessor that fails rather than changing its seed or repairing its books', () => {
@@ -69,6 +88,8 @@ describe('era takeover', () => {
     const loaded = loadGame(storage);
     expect(loaded.ok).toBe(true);
     expect(loaded.state).toEqual(s);
+    expect(loaded.state.flags).not.toHaveProperty('botDecorFull');
+    expect(loaded.state.flags).not.toHaveProperty('botStandup');
     for (let i = 0; i < 20; i++) {
       for (const state of [s, loaded.state]) {
         botDecide('balanced', state);

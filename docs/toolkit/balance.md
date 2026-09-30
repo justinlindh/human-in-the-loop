@@ -12,6 +12,8 @@ Seeded bot games with a win and exit table, plus era by era arrival stats. Use p
 
 The takeover table includes inherited launches and office milestones. Era arrival rows cover the entry era and subsequent play; incident totals and ending scores include the inherited company history. Use `playedWeeks` for time under the measured bot and `weeks` for company age.
 
+The sensible predecessor is player-facing game content. Changes to its bot strategy or balance need a paired `--start-mode takeover` comparison in both supported eras on the same 200 or more seeds. Calibrate takeover score factors from `automateAll,allHumans,recklessHumans,squads`, equally weighted: multiply the probe factor by their pooled garage median divided by their pooled takeover median, then round down to two decimals. Exclude sensible and balanced from that calibration because they share the predecessor's base strategy; keep their rows as continuity diagnostics. Strip predecessor bot memory before handing the company to its new manager.
+
 Run Classic with `--seeds 200 --json classic.json`, then each other era with `--seeds 200 --start-era agents --json agents.json --baseline classic.json`. All differences in these comparisons include the kit and era choice; they are not estimates of one mechanic's effect.
 
 Historical careers include their saved early chapters before the twenty-year modern checkpoint. Bots keep their strategies. Read first-launch and ending-reason columns alongside exit percentages.

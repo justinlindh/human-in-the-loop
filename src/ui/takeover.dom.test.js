@@ -1,13 +1,12 @@
 // @vitest-environment happy-dom
 import { afterAll, afterEach, expect, it, vi } from 'vitest';
 import { createTitle } from './title.js';
-import { createGame } from '../sim/state.js';
 import * as sim from '../sim/state.js';
 import { fmtMoney } from './dom.js';
 vi.mock('./eraPreview.js', () => ({ erasPreview: true }));
 vi.hoisted(() => vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({}) }))));
 afterAll(() => vi.unstubAllGlobals());
-afterEach(() => { document.body.replaceChildren(); vi.clearAllTimers(); vi.useRealTimers(); });
+afterEach(() => { document.body.replaceChildren(); vi.clearAllTimers(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 function click(text) {
   const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim().endsWith(text));
@@ -85,17 +84,21 @@ it('shows a failed predecessor reason without starting play and allows another c
 it.each(['chatgbt', 'agents'])('previews the exact %s company before starting and preserves Back choices', async (era) => {
   const { layer, newGame, onStart } = founding();
   document.querySelector(`[data-era="${era}"]`).click();
+  const build = vi.spyOn(sim, 'createGame');
   document.querySelector('[data-start-mode="takeover"]').click();
   document.querySelectorAll('.fund')[2].click();
   expect(document.querySelector('.fund.on .fcash').textContent).toBe('$300K');
   click('Review the company');
   expect(document.querySelector('.founding').getAttribute('aria-busy')).toBe('true');
+  expect(document.querySelector('[role="status"]').textContent).toBe('Reading the books...');
+  expect(build).not.toHaveBeenCalled();
   await vi.runAllTimersAsync();
   expect(newGame).not.toHaveBeenCalled();
   expect(onStart).not.toHaveBeenCalled();
   const summary = document.querySelector('.takeover').textContent;
   for (const label of ['People', 'Live products', 'Cash', 'Weekly burn', 'Office', 'Entering']) expect(summary).toContain(label);
   expect(document.querySelectorAll('details summary')).toHaveLength(2);
+  for (const list of document.querySelectorAll('details ul')) expect(list.tabIndex).toBe(0);
   click('Back');
   expect(document.querySelector('[data-start-mode="takeover"]').getAttribute('aria-pressed')).toBe('true');
   expect(document.querySelectorAll('.fund')[2].getAttribute('aria-pressed')).toBe('true');
@@ -106,10 +109,31 @@ it.each(['chatgbt', 'agents'])('previews the exact %s company before starting an
   await vi.runAllTimersAsync();
   const options = newGame.mock.calls[0][0];
   expect(options).toMatchObject({ seed: 1, startMode: 'takeover', startEra: era, funding: 'preseed' });
-  const s = createGame(options);
+  expect(build.mock.calls.filter(([options]) => options.startMode === 'takeover')).toHaveLength(1);
+  const s = newGame.mock.calls[0][1];
+  expect(s).toBe(build.mock.results[0].value);
+  build.mockRestore();
   expect(summary).toContain(fmtMoney(s.cash));
   expect(summary).toContain(`People${s.staff.length}`);
   expect(summary).toContain(`${s.week} weeks`);
   expect(onStart).toHaveBeenCalledWith({ fresh: true });
   expect(layer.textContent).toContain(s.staff[0].name);
+});
+
+it('rebuilds the reviewed company after funding changes', async () => {
+  const { newGame } = founding();
+  document.querySelector('[data-era="agents"]').click();
+  document.querySelector('[data-start-mode="takeover"]').click();
+  const build = vi.spyOn(sim, 'createGame');
+  click('Review the company');
+  await vi.runAllTimersAsync();
+  const first = build.mock.results[0].value;
+  click('Back');
+  document.querySelectorAll('.fund')[2].click();
+  click('Review the company');
+  await vi.runAllTimersAsync();
+  click('Take over and play');
+  expect(build.mock.calls.filter(([options]) => options.startMode === 'takeover')).toHaveLength(2);
+  expect(newGame.mock.calls[0][1]).not.toBe(first);
+  expect(newGame.mock.calls[0][1].founding.funding).toBe('preseed');
 });
