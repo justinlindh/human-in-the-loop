@@ -10,7 +10,7 @@ import { chapterStart } from './util.js';
 // Physical installations are never subscription customers. Inventory survives every era transition.
 export const newInventory = () => ({
   stock: 0, stockCost: 0, installed: 0, deliveries: [], unitsOrdered: 0, unitsSold: 0, returns: 0,
-  returnRemainder: 0, grossSales: 0, retailerFees: 0, refunds: 0, manufacturingCost: 0,
+  returnUnits: 0, salesHistory: [], grossSales: 0, retailerFees: 0, refunds: 0, manufacturingCost: 0,
   patchCost: 0, patches: 0, patchedVersion: 0, weeklyNet: 0, salesWeek: null,
   delivered: 0, buybackCost: 0, withdrawn: 0, buybackWeek: null, returnsSettled: false, master: null,
 });
@@ -19,6 +19,11 @@ export const installedCustomers = (p) => p.customers + (p.boxed?.installed ?? 0)
 export const boxRevenue = (state) => state.products.reduce((n, p) => n + (p.boxed && !p.killed
   && (p.boxed.salesWeek === state.week || p.boxed.salesWeek === state.week - 1) ? p.boxed.weeklyNet : 0), 0);
 const liveBox = (p) => !!p?.boxed && !p.killed;
+
+// Value realized net sales over a trailing year, without treating installations as subscribers.
+export const boxAnnualSales = (state) => state.products.filter(liveBox).reduce((total, p) => total
+  + (p.boxed.salesHistory ?? []).filter((sale) => sale.week >= state.week - B.preinternet.valuationWeeks && sale.week <= state.week)
+    .reduce((n, sale) => n + sale.net, 0), 0);
 
 export function batchQuote(state, p, requested) {
   const reason = !liveBox(p) ? 'No live boxed product' : !B.preinternet.batches.includes(requested) ? 'Choose a listed batch size'
@@ -78,14 +83,21 @@ export function sellBoxes(ctx, p, demand) {
   const sold = Math.min(inv.stock, Math.max(0, Math.floor(demand)));
   inv.stockCost *= inv.stock > 0 ? (inv.stock - sold) / inv.stock : 0;
   inv.stock -= sold; inv.unitsSold += sold;
-  const returnDue = inv.returnRemainder + (p.score < B.preinternet.returnScore ? sold * B.preinternet.returnRate : 0);
-  const returned = Math.min(sold, Math.floor(returnDue + Number.EPSILON * B.preinternet.batches.at(-1)));
-  inv.returnRemainder = Math.max(0, returnDue - returned);
+  // Whole eligible units avoid rounding drift when retailers sell only a few copies at a time.
+  inv.returnUnits ??= Math.round((inv.returnRemainder ?? 0) * B.preinternet.returnEvery);
+  delete inv.returnRemainder;
+  const returnDue = inv.returnUnits + (p.score < B.preinternet.returnScore ? sold : 0);
+  const returned = Math.min(sold, Math.floor(returnDue / B.preinternet.returnEvery));
+  inv.returnUnits = returnDue - returned * B.preinternet.returnEvery;
   inv.returns += returned; inv.installed += sold - returned;
   const gross = sold * B.preinternet.price, fees = gross * B.preinternet.retailerShare;
   const refund = returned * B.preinternet.price * (1 - B.preinternet.retailerShare);
   inv.grossSales += gross; inv.retailerFees += fees; inv.refunds += refund;
   inv.weeklyNet = gross - fees - refund; inv.salesWeek = state.week;
+  inv.salesHistory = (inv.salesHistory ?? []).filter((sale) => sale.week > state.week - B.preinternet.valuationWeeks);
+  const sale = inv.salesHistory.at(-1);
+  if (sale?.week === state.week) sale.net += inv.weeklyNet;
+  else inv.salesHistory.push({ week: state.week, net: inv.weeklyNet });
   p.customers = 0; p.mrr = 0;
 }
 

@@ -13,6 +13,7 @@ import { economySystem, weeklyCosts, weeklyRevenue, recurringRevenue } from '../
 import { dotcomStep, dotcomDecisionOpen } from '../../src/sim/dotcom.js';
 import { assertFinite } from '../../src/sim/bots.js';
 import { raiseDecision } from '../../src/sim/events.js';
+import { scoreRun } from '../../src/sim/endgame.js';
 
 const game = () => createGame({ seed: 17, startEra: 'preinternet' });
 const product = (s) => {
@@ -58,6 +59,41 @@ describe('pre-internet founding and chapters', () => {
 });
 
 describe('physical distribution arithmetic', () => {
+  it('values trailing box receipts after retailer fees and refunds without inventing MRR', () => {
+    const s = game(), p = product(s); p.score = 5; p.boxed.stock = 100;
+    const before = scoreRun(s).valuation;
+    sellBoxes(makeCtx(s), p, 100);
+    const receipts = 95 * B.preinternet.price * (1 - B.preinternet.retailerShare);
+    expect(scoreRun(s).valuation - before).toBeCloseTo(receipts * (4 + 8 * s.brand / 100));
+    expect(totalMrr(s)).toBe(0);
+    s.week = 52;
+    expect(scoreRun(s).valuation - before).toBeCloseTo(receipts * (4 + 8 * s.brand / 100));
+    s.week = 53;
+    expect(scoreRun(s).valuation).toBe(before);
+    expect(p.boxed.grossSales).toBe(100 * B.preinternet.price);
+  });
+
+  it('bounds the sales ledger, preserves it in saves and excludes sunset products from valuation', () => {
+    const s = game(), p = product(s); p.score = 8; p.boxed.stock = 1000;
+    for (let week = 0; week < 100; week++) { s.week = week; sellBoxes(makeCtx(s), p, 1); }
+    expect(p.boxed.salesHistory).toHaveLength(52);
+    const loaded = roundtrip(s);
+    expect(scoreRun(loaded)).toEqual(scoreRun(s));
+    p.killed = true;
+    expect(scoreRun(s).valuation).toBe(s.cash);
+  });
+
+  it('converts a saved fractional return obligation to whole eligible units once', () => {
+    const s = game(), p = product(s); p.score = 5; p.boxed.stock = 21;
+    delete p.boxed.returnUnits;
+    p.boxed.returnRemainder = 0.95;
+    sellBoxes(makeCtx(s), p, 1);
+    expect(p.boxed.returns).toBe(1); expect(p.boxed.returnUnits).toBe(0);
+    expect(p.boxed.returnRemainder).toBeUndefined();
+    sellBoxes(makeCtx(s), p, 20);
+    expect(p.boxed.returns).toBe(2); expect(p.boxed.returnUnits).toBe(0);
+  });
+
   it('offers CD mastering at the chapter midpoint and refuses an unaffordable choice without a charge', () => {
     const s = game();
     s.week = B.preinternet.cdWeek - 1; preinternetStep(makeCtx(s));
@@ -112,9 +148,9 @@ describe('physical distribution arithmetic', () => {
     service.mrr = 5200; service.customers = 100;
     p.boxed.stock = 100; p.boxed.stockCost = 800; p.score = 8;
     sellBoxes(makeCtx(s), p, 100);
-    expect(recurringRevenue(s)).toBe(1200); expect(weeklyRevenue(s)).toBe(3300);
+    expect(recurringRevenue(s)).toBe(1200); expect(weeklyRevenue(s)).toBe(36200);
     const before = s.cash, costs = Object.values(weeklyCosts(s)).reduce((a, b) => a + b, 0);
-    economySystem(makeCtx(s)); expect(s.cash).toBe(before + 3300 - costs);
+    economySystem(makeCtx(s)); expect(s.cash).toBe(before + 36200 - costs);
     s.week++; sellBoxes(makeCtx(s), p, 100);
     const after = s.cash; economySystem(makeCtx(s)); expect(s.cash).toBe(after + 1200 - costs);
     expect(p.mrr).toBe(0); expect(p.customers).toBe(0); expect(service.mrr).toBe(5200);
@@ -158,9 +194,9 @@ describe('physical distribution arithmetic', () => {
     const s = game(), p = product(s); p.boxed.stock = 100; p.boxed.stockCost = 800; p.score = 5;
     sellBoxes(makeCtx(s), p, 200);
     expect(p.boxed.stock).toBe(0); expect(p.boxed.unitsSold).toBe(100); expect(p.boxed.returns).toBe(5);
-    expect(p.boxed.installed).toBe(95); expect(p.boxed.grossSales).toBe(3000);
-    expect(p.boxed.retailerFees).toBe(900); expect(p.boxed.refunds).toBe(105);
-    expect(p.boxed.weeklyNet).toBe(1995); expect(p.mrr).toBe(0); expect(p.customers).toBe(0);
+    expect(p.boxed.installed).toBe(95); expect(p.boxed.grossSales).toBe(50000);
+    expect(p.boxed.retailerFees).toBe(15000); expect(p.boxed.refunds).toBe(1750);
+    expect(p.boxed.weeklyNet).toBe(33250); expect(p.mrr).toBe(0); expect(p.customers).toBe(0);
     sellBoxes(makeCtx(s), p, 200); expect(p.boxed.weeklyNet).toBe(0); expect(p.boxed.unitsSold).toBe(100);
   });
 

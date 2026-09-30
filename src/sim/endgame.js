@@ -9,10 +9,11 @@ import { EPILOGUES, GENERIC_EPILOGUES } from '../data/epilogues.js';
 import { eraOnlyAllowsText, eraIndex } from './eras.js';
 import { OFFICE_STAGES } from '../data/office.js';
 import { periodCopy } from '../data/period-content.js';
+import { boxAnnualSales } from './boxed.js';
 
 export function scoreRun(state) {
   const mrr = totalMrr(state);
-  const valuation = mrr * 12 * (4 + (8 * state.brand) / 100) + Math.max(0, state.cash);
+  const valuation = (mrr * 12 + boxAnnualSales(state)) * (4 + (8 * state.brand) / 100) + Math.max(0, state.cash);
   const wellbeing = avg(state.staff, (p) => p.meaning) * state.staff.length;
   // A company that never shipped earns nothing for brand or a happy team: there was nothing to be good at.
   const shipped = state.stats.launches > 0 ? 1 : 0;

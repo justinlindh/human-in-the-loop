@@ -14,3 +14,15 @@ describe.each(FUNDING_IDS)('pre-internet opening with %s funding', (funding) => 
     if (bot !== 'automateAll') expect(survivors).toBeGreaterThan(100);
   }, 300000);
 });
+
+describe('pre-internet handoff through the dot-com chapter', () => {
+  it.each(['balanced', 'sensible'])('%s reaches Web 2.0 in at least 98 percent of seeds', (bot) => {
+    let survivors = 0;
+    for (let seed = 1; seed <= 200; seed++) {
+      const run = runBot(bot, seed, B.preinternet.weeks + B.dotcom.weeks + 1, { founding: { startEra: 'preinternet' } });
+      assertFinite(run.state);
+      if (run.eras.web2 && !run.state.gameOver) survivors++;
+    }
+    expect(survivors).toBeGreaterThanOrEqual(196);
+  }, 300000);
+});

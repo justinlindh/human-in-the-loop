@@ -41,6 +41,7 @@ export function buildPanel(ctx, arg) {
   if (u0 && !u0.research) { t.setHidden('research', true); if (tab === 'research') { tab = 'new'; t.set(tab); } }
   let focusProject = arg?.projectId ?? null;
   const host = h('div');
+  const inventoryLink = h('button.btn.inventory-link', { onclick: () => ctx.open('reports', { tab: 'inventory' }) }, 'Inventory and box sales: open Reports');
 
   const newView = liveView(
     (s) => [form.category, form.angle, form.model, form.size, s.market.unlockedCategories.join(), s.market.unlockedAngles.join(),
@@ -58,7 +59,8 @@ export function buildPanel(ctx, arg) {
   const viewFor = () => (tab === 'new' ? newView : tab === 'research' ? resView : projView);
 
   function render() {
-    host.replaceChildren(viewFor().el);
+    inventoryLink.hidden = !hasInventory(ctx.getState());
+    host.replaceChildren(inventoryLink, viewFor().el);
     viewFor().update(ctx.getState(), true);
     if (tab === 'projects' && focusProject) {
       const card = host.querySelector(`[data-project="${focusProject}"]`);
@@ -367,9 +369,10 @@ export function buildPanel(ctx, arg) {
 
   render();
   return {
-    el: hasInventory(ctx.getState()) ? h('div', null, h('button.btn.inventory-link', { onclick: () => ctx.open('reports', { tab: 'inventory' }) }, 'Inventory and box sales: open Reports'), host) : host,
+    el: host,
     tabs: t.el,
     update(s) {
+      inventoryLink.hidden = !hasInventory(s);
       t.setLabel('projects', `Projects (${s.projects.length})`);
       viewFor().update(s);
     },

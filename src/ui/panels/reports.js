@@ -44,7 +44,7 @@ export function reportsPanel(ctx, arg) {
     { id: 'overview', icon: 'chart', label: 'Money' },
     { id: 'people', icon: 'team', label: 'People' },
     { id: 'products', icon: 'product', label: 'Products' },
-    { id: 'inventory', icon: 'product', label: 'Inventory' },
+    { id: 'inventory', icon: 'research.agent_sandbox', label: 'Inventory' },
     { id: 'combos', icon: 'star', label: 'Combos' },
     { id: 'acquire', icon: 'money', label: 'Acquisitions' },
   ], tab, (id) => { tab = id; t.set(id); render(); });
