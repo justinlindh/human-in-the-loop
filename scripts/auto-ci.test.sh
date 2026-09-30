@@ -158,7 +158,8 @@ for f in "$tmp"/state/jobs/*; do [ -e "$f" ] && read -r p _ <"$f" && kill -KILL 
 : >"$tmp/started"
 fixture "$(pr 40 a40 none false justinlindh '' FAILURE)" "$(pr 41 a41 none)" "$(pr 42 a42 none false justinlindh '' SUCCESS)" "$(pr 43 a43 none false justinlindh '' SUCCESS)"
 run
-[ "$(head -2 "$tmp/started" | tr '\n' ' ')" = "42 a42 43 a43 " ] || fail "reviewed PRs should start first (started: $(tr '\n' ' ' <"$tmp/started"))"
+# The two jobs of one pass append their own lines, in either order.
+[ "$(head -2 "$tmp/started" | sort | tr '\n' ' ')" = "42 a42 43 a43 " ] || fail "reviewed PRs should start first (started: $(tr '\n' ' ' <"$tmp/started"))"
 has started "40 a40" && fail "a PR with changes requested should wait behind the others"
 # A docs-only PR starts at once, past the cap.
 printf 'docs/x.md\nCLAUDE.md\n' >"$tmp/files-44"
