@@ -160,7 +160,9 @@ function tree(h = 2.6) {
 }
 
 const CAR_L = 2.2, CAR_W = 1.05; // a car's body, along and across its heading
-const BILLBOARD_W = 3.4, BILLBOARD_D = 0.66; // era_sock_billboard's frame width and its feet's depth
+// era_sock_billboard's frame width and its feet's depth, and the scale that keeps the whole board clear of the
+// HUD's left column at the default garage camera.
+const BILLBOARD_W = 3.4, BILLBOARD_D = 0.66, BILLBOARD_SCALE = 0.8;
 function car(hex) {
   const g = new THREE.Group();
   g.add(mesh(roundedBox(CAR_L, 0.55, CAR_W, 0.14, 3), m(hex), 0, 0.42, 0));
@@ -285,7 +287,7 @@ function advertTexture(era) {
     }
     text(title, 250, 116, 78);
     text(second, 247, 211, 85, accent);
-    text(third, 707, 315, 33, ink, 'right');
+    text(third, 250, 305, 62);
   } else {
     // An ordinary Tuesday calendar gets the obligatory growth arrow.
     rect(35, 99, 177, 214, 16, P.paper_sheet); rect(35, 99, 177, 49, 12, accent);
@@ -339,7 +341,7 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     const flat = new THREE.Group();
     const sides = { px: new THREE.Group(), nx: new THREE.Group(), pz: new THREE.Group(), nz: new THREE.Group() };
     const dyn = new THREE.Group();
-    const facadeMats = new Set(), bulbs = [], movers = [], clouds = [], glows = [], owned = [], signMats = [];
+    const facadeMats = new Set(), bulbs = [], movers = [], clouds = [], glows = [], owned = [], signMats = [], paintMats = [];
     let rentalFront = null;
     // Floor rectangles of the larger standing things (for checks): { id, x0, x1, z0, z1 }.
     const feet = [];
@@ -482,7 +484,24 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
         // The wash sits between the painted face and its raised lettering, preserving dark ink.
         const lens = new THREE.MeshStandardMaterial({ color: new THREE.Color(P.lamp_warm), emissive: new THREE.Color(P.lamp_warm), emissiveIntensity: 0 });
         owned.push(lens);
-        sign.traverse((o) => { if (o.isMesh && o.material?.name === 'pal_lamp_warm') o.material = lens; });
+        // The raised pictures and lettering stand in front of the wash, so they take the lamps as a self-tint
+        // instead: emissive in their own colour, which keeps ink dark relative to the paint.
+        const paint = new Map();
+        sign.traverse((o) => {
+          if (!o.isMesh) return;
+          if (o.material?.name === 'pal_lamp_warm') { o.material = lens; return; }
+          if (['pal_wood_dark', 'pal_slab_edge', 'pal_metal_dark', 'pal_wood_honey', 'pal_wall_cream'].includes(o.material?.name)) return;
+          let material = paint.get(o.material);
+          if (!material) {
+            material = o.material.clone();
+            material.emissive = o.material.color.clone();
+            material.emissiveIntensity = 0;
+            material.userData.keepLit = true;
+            paint.set(o.material, material); owned.push(material); paintMats.push(material);
+          }
+          o.material = material;
+        });
+        lens.userData.keepLit = true;
         const wash = new THREE.Mesh(new THREE.PlaneGeometry(3.25, 1.65), new THREE.MeshBasicMaterial({ map: washTexture(), color: new THREE.Color(P.lamp_warm), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
         owned.push(wash.geometry, wash.material);
         wash.position.set(0, 2.05, 0.133);
@@ -503,8 +522,9 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
         }
       }
       // On the front lawn past the driveway, facing the street, clear of the parked car and bins.
-      tall(sign, -hw - 2.2, hd + 1.2);
-      foot('billboard', -hw - 2.2, hd + 1.2, BILLBOARD_W, BILLBOARD_D);
+      sign.scale.setScalar(BILLBOARD_SCALE);
+      tall(sign, -hw - 1.7, hd + 1.2);
+      foot('billboard', -hw - 1.7, hd + 1.2, BILLBOARD_W * BILLBOARD_SCALE, BILLBOARD_D * BILLBOARD_SCALE);
       if (era === 'preinternet') {
         const phone = getModel('era_payphone'); phone.position.y = gy;
         tall(phone, -hw - 0.85, hd + 0.20);
@@ -569,13 +589,13 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
       g.traverse((o) => {
         if (!o.isMesh) return;
         o.castShadow = false; o.receiveShadow = false;
-        if (lite && lighting && o.material.isMeshStandardMaterial) o.material = backdropMaterial(o.material);
+        if (lite && lighting && o.material.isMeshStandardMaterial && !o.material.userData.keepLit) o.material = backdropMaterial(o.material);
       });
     }
     group.add(merged.flat, merged.px, merged.nx, merged.pz, merged.nz, dyn);
     // Bulbs are emissive and change at night: they stay separate (mergeStatic keeps dynamic ones).
     root.add(group);
-    cur = { group, sides: { px: merged.px, nx: merged.nx, pz: merged.pz, nz: merged.nz }, facadeMats, bulbs: collectBulbs(group), movers: movers.map((mv) => ({ ...mv, t: rnd() * mv.gap[1], car: null })), clouds, glows, feet, dyn, gy, owned, signMats, rentalFront };
+    cur = { group, sides: { px: merged.px, nx: merged.nx, pz: merged.pz, nz: merged.nz }, facadeMats, bulbs: collectBulbs(group), movers: movers.map((mv) => ({ ...mv, t: rnd() * mv.gap[1], car: null })), clouds, glows, feet, dyn, gy, owned, signMats, paintMats, rentalFront };
     applyYaw();
   }
 
@@ -617,6 +637,7 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     if ((built?.lite || era) && lighting) updateBacklight(lighting, night);
     for (const fm of cur.facadeMats) fm.emissiveIntensity = night * 1.1;
     for (const b of cur.bulbs) b.material.emissiveIntensity = night * 2.2;
+    for (const pm of cur.paintMats) pm.emissiveIntensity = night * 0.35;
     for (const w of cur.glows) { w.material.opacity = night * (w.isSprite ? 0.9 : 0.7); w.visible = night > 0.02; }
     // Clouds stay in the half of the sky behind the office from wherever the camera looks, drifting
     // across the view, so a turned view never puts one between the camera and the office.
