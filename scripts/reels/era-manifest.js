@@ -24,7 +24,7 @@ const LOAD = (name) => `(async () => {
 })()`;
 
 const clip = (id, title, snap, extra = {}) => ({
-  id, title, query: 'seed=1&speed=1&eras&eraArt=calendar', seconds: 14, screenshots: [2, 6, 10, 13],
+  id, title, query: 'seed=1&speed=1&eras', seconds: 14, screenshots: [2, 6, 10, 13],
   setup: LOAD(snap),
   actions: [...Array.from({ length: 30 }, (_, i) => ({ at: i + 0.2, js: CLEAR_CARDS })), ...CHOOSE_WHEN(null, 0, 1, 30, 3)],
   ...extra,
