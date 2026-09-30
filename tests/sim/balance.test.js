@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { Worker } from 'node:worker_threads';
-import { runBot } from '../../src/sim/bots.js';
+import { BOTS as STRATEGIES, runBot } from '../../src/sim/bots.js';
 import { B } from '../../src/sim/balance.js';
 import { ARCHETYPES, foundingWarning } from '../../src/data/founders.js';
 
@@ -19,6 +19,17 @@ beforeAll(() => Promise.all(BOTS.map((name) => new Promise((resolve, reject) => 
 }))), 300000);
 const share = (list, pred) => list.filter(pred).length / list.length;
 const median = (xs) => [...xs].sort((a, b) => a - b)[xs.length >> 1];
+
+describe('Agents founding five-year runway (200 seeds per strategy)', () => {
+  it.each(Object.keys(STRATEGIES))('%s survives five company years in at least 80% of runs', (name) => {
+    let survived = 0;
+    for (let seed = 1; seed <= 200; seed++) {
+      const r = runBot(name, seed, 260, { founding: { startEra: 'agents' } });
+      if (r.weeks === 260 && !r.state.gameOver) survived++;
+    }
+    expect(survived).toBeGreaterThanOrEqual(160);
+  }, 180000);
+});
 
 describe('balance thresholds (40 seeds per bot, 20 years each; an exit is retiring by IPO or acquisition)', () => {
   it('runs last 20 years', () => {

@@ -7,6 +7,7 @@ import { roundedBox, roundedCylinder, mesh, mergeStatic, batchMeshes } from './p
 import { getModel, hasModel, itemModelName } from './models.js';
 import { stageLayout, createNav, placedTransform, footprint, tileCenter } from './layout.js';
 import { carpetTexture } from './carpet.js';
+import { ERA_ART_PREVIEW } from './era-art.js';
 
 const T = 0.2;            // wall thickness
 const SILL_Z = 0.18;       // a window sill's centre, out from the wall's centre line (0.15 m into the room)
@@ -317,9 +318,14 @@ function oldMonitor(g) {
 function deskSet(i, stageIdx, screens, era, freeChair = false) {
   const g = new THREE.Group();
   // Desk sets are one tile wide, so neighbours butt together into a bench.
-  const desk = getModel('desk');
-  desk.scale.set(0.96 / 1.3, TOP / 0.62, 1);
-  g.add(place(desk, 0, 0, DESK_Z));
+  const desk = getModel(ERA_ART_PREVIEW ? 'era_crt_desk' : 'desk');
+  if (ERA_ART_PREVIEW) {
+    g.add(desk);
+    g.add(place(getModel('era_cubicle'), 0, 0, -0.575));
+  } else {
+    desk.scale.set(0.96 / 1.3, TOP / 0.62, 1);
+    g.add(place(desk, 0, 0, DESK_Z));
+  }
   const onTop = new THREE.Group();
   onTop.position.y = DY;
   g.add(onTop);
@@ -330,15 +336,17 @@ function deskSet(i, stageIdx, screens, era, freeChair = false) {
   const laptop = stageIdx === 0;
   // The keys sit about 0.3 m in front of the sitter, where chibi arms reach: a laptop is pulled
   // to the front of the desk; a monitor stays at the back with a keyboard and mouse in front.
-  const mon = place(getModel(laptop ? 'laptop' : 'monitor'), 0, 0.62, laptop ? KEYS_Z + 0.02 : DESK_Z - 0.14);
-  if (!laptop) {
+  const mon = ERA_ART_PREVIEW ? desk : place(getModel(laptop ? 'laptop' : 'monitor'), 0, 0.62, laptop ? KEYS_Z + 0.02 : DESK_Z - 0.14);
+  if (!ERA_ART_PREVIEW && !laptop) {
     onTop.add(mesh(roundedBox(0.36, 0.018, 0.13, 0.006), mat('plastic_charcoal'), 0, 0.629, KEYS_Z));
     onTop.add(mesh(roundedBox(0.33, 0.006, 0.1, 0.002, 1), mat('metal_soft'), 0, 0.64, KEYS_Z, { cast: false }));
     onTop.add(mesh(roundedBox(0.055, 0.02, 0.085, 0.02), mat('plastic_charcoal'), 0.27, 0.63, KEYS_Z + 0.01));
   }
-  if (era === 'classic' && !laptop) oldMonitor(mon);
-  onTop.add(mon);
-  deskEra(onTop, i, era, laptop);
+  if (!ERA_ART_PREVIEW) {
+    if (era === 'classic' && !laptop) oldMonitor(mon);
+    onTop.add(mon);
+    deskEra(onTop, i, era, laptop);
+  }
   // Team mat under the whole set, tinted by whoever sits here (hidden until someone does).
   const rug = mesh(roundedBox(0.92, 0.012, 1.9, 0.006, 1), mat('laminate'), 0, 0.008, 0, { cast: false });
   rug.userData.dynamic = true;
@@ -356,13 +364,13 @@ function deskSet(i, stageIdx, screens, era, freeChair = false) {
     }
   });
   const side = i % 2 ? 1 : -1;
-  if (i % 3 === 0) onTop.add(mesh(roundedCylinder(0.04, 0.035, 0.09, 0.008, 12), mat('mug'), side * 0.36, 0.62, DESK_Z + 0.12));
-  if (i % 4 === 1 && era !== 'plateau') {
+  if (!ERA_ART_PREVIEW && i % 3 === 0) onTop.add(mesh(roundedCylinder(0.04, 0.035, 0.09, 0.008, 12), mat('mug'), side * 0.36, 0.62, DESK_Z + 0.12));
+  if (!ERA_ART_PREVIEW && i % 4 === 1 && era !== 'plateau') {
     const p = mesh(roundedBox(0.16, 0.02, 0.22, 0.006), mat('paper_sheet'), -side * 0.38, 0.63, DESK_Z + 0.08);
     p.rotation.y = 0.2;
     onTop.add(p);
   }
-  if (i % 5 === 2) {
+  if (!ERA_ART_PREVIEW && i % 5 === 2) {
     const pl = getModel('plant_small');
     pl.scale.setScalar(0.45);
     onTop.add(place(pl, side * 0.36, 0.62, DESK_Z - 0.16));

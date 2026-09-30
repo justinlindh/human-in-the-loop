@@ -461,6 +461,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     isSeated(id) { return staff?.isSeated(id) ?? false; },
     walkOf(id) { return staff?.walkOf(id) ?? null; },
     walkDebug(id) { return staff?.walkDebug(id) ?? null; },
+    // Test hook: the scenery's standing footprints and moving cars (surroundings.exterior).
+    exterior() { return surroundings?.exterior() ?? null; },
     // The moment ownership trace (sync.js): trace.on = true, then trace.lines(n).
     get debug() { return office ? spotDebug(office) : null; },
     // Record every spot search's candidates and rejection reasons (checks and traces turn it on).
