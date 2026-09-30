@@ -292,13 +292,24 @@ export function createNav(L, obstacles, cell = 0.35) {
   // When the start and goal cells don't connect (a sitter whose nearest free cell is a pocket
   // between desks), the smaller side is swapped for its nearest cell in the larger one, so nobody
   // walks a straight line through the furniture.
-  function path(from, to, clear = 0, { soft = false } = {}) {
+  // avoid: circles ({ x, z, r }) the way must also keep out of; with no such way, the result is null.
+  function path(from, to, clear = 0, { soft = false, avoid = null } = {}) {
     const near = soft && clear > 0 ? gridFor(clear) : null;
-    const blocked = near ? grid0 : gridFor(clear);
+    let blocked = near ? grid0 : gridFor(clear);
+    if (avoid?.length) {
+      blocked = Uint8Array.from(blocked);
+      for (const c of avoid) {
+        for (let i = Math.max(0, ix(c.x - c.r)); i <= Math.min(nx - 1, ix(c.x + c.r)); i++) for (let k = Math.max(0, iz(c.z - c.r)); k <= Math.min(nz - 1, iz(c.z + c.r)); k++) {
+          const p = center(i, k);
+          if (Math.hypot(p.x - c.x, p.z - c.z) < c.r) blocked[i + k * nx] = 1;
+        }
+      }
+    }
     let [si, sk] = nearestFree(Math.max(0, Math.min(nx - 1, ix(from.x))), Math.max(0, Math.min(nz - 1, iz(from.z))), blocked);
     let [gi, gk] = nearestFree(Math.max(0, Math.min(nx - 1, ix(to.x))), Math.max(0, Math.min(nz - 1, iz(to.z))), blocked);
     let res = search(si, sk, gi, gk, blocked, near);
     let end = to;
+    if (!res.found && avoid?.length) return null;
     if (!res.found) {
       if (clear > 0 && !near) return null;
       const fromStart = res.closed;

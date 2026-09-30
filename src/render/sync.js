@@ -41,10 +41,24 @@ const PARTY_MERGE_S = 1.5;     // two company-wide celebrations this close make 
 const PASS_R = 1.2;            // walkers closing on each other within this start to pass (passWalkers)
 const PASS_K = 0.8;            // how fast they drift aside, as a share of walking speed
 const PASS_SIDE_M = 0.55;      // until the other is this far to one side of their line
-const PASS_DOT = 0.2;          // headings more alike than this (cosine) are going the same way
+const PASS_STAND_M = 0.65;     // or, passing someone standing still, this far
+const STAND_HOLD_M = 0.75;     // a walker who can't get round someone standing holds this far short
+const STAND_WAIT_S = 3;        // for this long at most
+const STAND_MEET_M = 1;        // nobody drifts round or holds for someone their walk ends this near, or on a moment
+const CROSS_R = 2;             // walkers whose lines cross within this of each other
+const CROSS_DOT = 0.5;         // (headings no more alike or opposed than this, as a cosine)
+const CROSS_LOOK_S = 1.2;      // and who would meet within this long: the later one holds
+const CROSS_WAIT_S = 3;        // for this long at most
+const PASS_DOT = 0.2;        // headings more alike than this (cosine) are going the same way
 const PASS_MEET_M = 0.6;       // a walk ending this near the other person is walking to meet them
 const PASS_FOLLOW_M = 0.55;    // someone following another holds back to this far behind
 const PASS_CLEAR_M = 0.3;      // and nobody drifts aside to within this of furniture
+const AISLE_HALF_M = 0.35;     // the way is too narrow for two where a body this far out either side hits furniture
+const AISLE_STEP_M = 0.25;     // how finely a route ahead is checked for that
+const AISLE_LOOK_M = 4;        // and how far ahead
+const AISLE_MOUTH_M = 0.6;     // a walker waits once this near a narrow stretch someone is coming through
+const AISLE_BEYOND_M = 1.5;    // someone this far past its far end, heading in, counts as coming through
+const AISLE_WAIT_S = 6;        // the longest they wait before going on regardless
 const STEP_WAIT_S = 0.4;       // how long someone waits before trying to step out again
 const STEP_WAITS = 6;          // and how many times
 const STEP_IN_NEAR_M = 0.9;    // someone walking in stops this far short of a taken step-in point
@@ -1094,9 +1108,10 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (!h) return;
     const end = r.path[r.path.length - 1];
     for (const o of recs.values()) {
-      if (o === r || o.hidden || !o.path.length || !o.char?.root.visible) continue;
+      if (o === r || o.hidden || !o.char?.root.visible) continue;
       const dx = o.pos.x - r.pos.x, dz = o.pos.z - r.pos.z, d = Math.hypot(dx, dz);
       if (d >= PASS_R || d < 1e-4) continue;
+      if (!o.path.length || o.wait) { passStander(r, o, h, end, dx, dz, dt); continue; }
       const oEnd = o.path[o.path.length - 1];
       if (Math.hypot(end.x - o.pos.x, end.z - o.pos.z) < PASS_MEET_M || Math.hypot(oEnd.x - r.pos.x, oEnd.z - r.pos.z) < PASS_MEET_M) continue;
       const oh = heading(o);
@@ -1132,11 +1147,159 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     }
   }
 
+  // A standing, unseated person ahead on a walker's line whom the walk doesn't end at, as
+  // { lon, lat, sx, sz }: how far ahead and to the side, and the unit step away from them.
+  function standerAhead(r, o, h, end) {
+    if (o.path.length && !o.wait || o.char?.seated || r.temp?.moment || Math.hypot(end.x - o.pos.x, end.z - o.pos.z) < STAND_MEET_M) return null;
+    const dx = o.pos.x - r.pos.x, dz = o.pos.z - r.pos.z;
+    const lon = h.x * dx + h.z * dz, lat = h.x * dz - h.z * dx;
+    if (lon <= 0 || Math.abs(lat) > PASS_STAND_M) return null;
+    const s = lat > 0 ? -1 : 1;
+    return { lon, lat, sx: -h.z * s, sz: h.x * s };
+  }
+
+  // A walker drifts away from someone standing on their line until clear of them, when furniture
+  // leaves room on that side (waitsForStander holds them when it doesn't).
+  function passStander(r, o, h, end, dx, dz, dt) {
+    const a = standerAhead(r, o, h, end);
+    if (!a) return;
+    const k = r.speed * dt * PASS_K, nav = office.nav();
+    const x = r.pos.x + a.sx * k, z = r.pos.z + a.sz * k;
+    const refused = nav.isBlocked(x, z, PASS_CLEAR_M);
+    if (!refused) r.pos.set(x, 0, z);
+    r.drift = { rule: 'pass-stander', other: o.id, step: refused ? null : [a.sx * k, a.sz * k], refused };
+  }
+
+  // Two walkers whose lines bring them within PERSON_GAP of each other within CROSS_LOOK_S: the one
+  // who reaches that closest point later (the higher id on a tie) holds, CROSS_WAIT_S at most.
+  function waitsToCross(r, dt) {
+    const h = heading(r);
+    if (!h) return false;
+    const end = r.path[r.path.length - 1];
+    for (const o of recs.values()) {
+      if (o === r || o.hidden || !o.path.length || !o.char?.root.visible) continue;
+      const dx = o.pos.x - r.pos.x, dz = o.pos.z - r.pos.z;
+      if (Math.hypot(dx, dz) > CROSS_R) continue;
+      const oEnd = o.path[o.path.length - 1];
+      if (Math.hypot(end.x - o.pos.x, end.z - o.pos.z) < PASS_MEET_M || Math.hypot(oEnd.x - r.pos.x, oEnd.z - r.pos.z) < PASS_MEET_M) continue;
+      const oh = heading(o);
+      if (!oh || Math.abs(h.x * oh.x + h.z * oh.z) > CROSS_DOT) continue;
+      const vs = r.speed ?? 0, vo = o.wait ? 0 : o.speed ?? 0;
+      const rvx = oh.x * vo - h.x * vs, rvz = oh.z * vo - h.z * vs, rv2 = rvx * rvx + rvz * rvz;
+      if (rv2 < 1e-6) continue;
+      const t = -(dx * rvx + dz * rvz) / rv2;
+      if (t <= 0 || t > CROSS_LOOK_S) continue;
+      if (Math.hypot(dx + rvx * t, dz + rvz * t) >= PERSON_GAP) continue;
+      // each one's distance along their own line to where their lines cross
+      const den = h.x * oh.z - h.z * oh.x;
+      if (Math.abs(den) < 1e-4) continue;
+      const mine = (dx * oh.z - dz * oh.x) / den, theirs = (dx * h.z - dz * h.x) / den;
+      const myT = mine / Math.max(vs, 1e-3), theirT = theirs / Math.max(vo, 1e-3);
+      if (myT < theirT || myT === theirT && r.id < o.id) continue;
+      r.crossWait = (r.crossWait ?? 0) + dt;
+      return r.crossWait < CROSS_WAIT_S;
+    }
+    r.crossWait = 0;
+    return false;
+  }
+
+  // Someone standing close ahead with no room to step round them on the far side: the walker takes
+  // another way round them on the walk grid, or, with none, holds STAND_HOLD_M short of them,
+  // STAND_WAIT_S at most for each encounter (which lasts until they are PASS_R apart), then goes on.
+  function waitsForStander(r, dt) {
+    const hold = r.standHold;
+    if (hold) {
+      const o = recs.get(hold.id);
+      if (!o || o.hidden || Math.hypot(o.pos.x - r.pos.x, o.pos.z - r.pos.z) > PASS_R) r.standHold = null;
+    }
+    const h = heading(r);
+    if (!h) return false;
+    const end = r.path[r.path.length - 1], nav = office.nav();
+    for (const o of recs.values()) {
+      if (o === r || o.hidden || !o.char?.root.visible) continue;
+      const a = standerAhead(r, o, h, end);
+      if (!a || a.lon > STAND_HOLD_M || Math.abs(a.lat) > PERSON_GAP) continue;
+      const need = PERSON_GAP - Math.abs(a.lat);
+      const x = r.pos.x + a.sx * need, z = r.pos.z + a.sz * need;
+      if (!nav.isBlocked(x, z, PASS_CLEAR_M)) continue;
+      if (r.standHold?.id !== o.id) {
+        // First try another way round them; hold only when there is none.
+        r.standHold = { id: o.id, t: 0 };
+        const way = nav.path(r.pos, end, 0, { avoid: [{ x: o.pos.x, z: o.pos.z, r: PERSON_GAP + BODY_R }] });
+        if (way && way.length >= 2) {
+          r.path = [...way.slice(1, -1), end];
+          r.standHold.rerouted = true;
+          return false;
+        }
+      }
+      if (r.standHold.rerouted) return false;
+      r.standHold.t += dt;
+      return r.standHold.t < STAND_WAIT_S;
+    }
+    return false;
+  }
+
   function heading(r) {
     const t = r.path[0];
     if (!t) return null;
     const dx = t.x - r.pos.x, dz = t.z - r.pos.z, d = Math.hypot(dx, dz);
     return d > 1e-4 ? { x: dx / d, z: dz / d } : null;
+  }
+
+  // Points every AISLE_STEP_M along someone's route ahead, up to AISLE_LOOK_M, each with the
+  // distance to it and whether the way is too narrow there for two to pass (furniture both sides).
+  function routeAhead(r) {
+    const nav = office.nav(), out = [];
+    let a = r.pos, s = 0;
+    for (const b of r.path) {
+      const dx = b.x - a.x, dz = b.z - a.z, l = Math.hypot(dx, dz);
+      if (l < 1e-4) continue;
+      const ux = dx / l, uz = dz / l;
+      for (let t = out.length ? AISLE_STEP_M - (s % AISLE_STEP_M) : 0; t <= l; t += AISLE_STEP_M) {
+        const x = a.x + ux * t, z = a.z + uz * t;
+        const narrow = nav.isBlocked(x - uz * AISLE_HALF_M, z + ux * AISLE_HALF_M, BODY_R) && nav.isBlocked(x + uz * AISLE_HALF_M, z - ux * AISLE_HALF_M, BODY_R);
+        out.push({ x, z, s: s + t, narrow });
+        if (s + t > AISLE_LOOK_M) return out;
+      }
+      s += l;
+      a = b;
+    }
+    return out;
+  }
+
+  // Walking up to a stretch too narrow for two while someone comes the other way through it (or
+  // will reach it first from the far end): they wait at its mouth until it is clear, AISLE_WAIT_S at
+  // most. Someone already in the narrow stretch keeps going.
+  function waitsForAisle(r, dt) {
+    const pts = routeAhead(r);
+    r.narrow = pts.map((p) => p.narrow);
+    const i0 = pts.findIndex((p) => p.narrow);
+    if (i0 < 0 || pts[i0].s > AISLE_MOUTH_M || pts[0]?.narrow) { r.aisleWait = 0; return false; }
+    let i1 = i0;
+    while (i1 + 1 < pts.length && pts[i1 + 1].narrow) i1++;
+    const h = heading(r);
+    if (!h) return false;
+    const onWay = (o) => {
+      for (let i = i0; i < pts.length && pts[i].s <= pts[i1].s + AISLE_BEYOND_M; i++) {
+        if (Math.hypot(o.pos.x - pts[i].x, o.pos.z - pts[i].z) < AISLE_STEP_M) return pts[i];
+      }
+      return null;
+    };
+    for (const o of recs.values()) {
+      if (o === r || o.hidden || !o.path.length || !o.char?.root.visible) continue;
+      const oh = heading(o);
+      if (!oh || h.x * oh.x + h.z * oh.z > -PASS_DOT) continue;
+      const at = onWay(o);
+      if (!at) continue;
+      // Inside the stretch, or nearer its far end than this walker is to its near end: they go first.
+      const inside = at.s <= pts[i1].s;
+      const theirs = at.s - pts[i1].s, mine = pts[i0].s;
+      if (!inside && (theirs > mine || theirs === mine && o.id > r.id)) continue;
+      r.aisleWait = (r.aisleWait ?? 0) + dt;
+      return r.aisleWait < AISLE_WAIT_S;
+    }
+    r.aisleWait = 0;
+    return false;
   }
 
   // The walk grid doesn't know where the office robot is: a walker whose step lands inside its
@@ -1193,6 +1356,18 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       r.yaw = angleLerp(r.yaw, r.face.yaw, 1 - Math.exp(-dt * 8));
     } else if (r.path.length && waitsToStepIn(r, dt)) {
       r.wait = { kind: 'stepIn', timer: r.temp?.inWait ?? 0 };
+      c.setMoveSpeed(0);
+      c.setAnim('idle');
+    } else if (r.path.length && waitsForAisle(r, dt)) {
+      r.wait = { kind: 'aisle', timer: r.aisleWait ?? 0 };
+      c.setMoveSpeed(0);
+      c.setAnim('idle');
+    } else if (r.path.length && waitsToCross(r, dt)) {
+      r.wait = { kind: 'cross', timer: r.crossWait };
+      c.setMoveSpeed(0);
+      c.setAnim('idle');
+    } else if (r.path.length && waitsForStander(r, dt)) {
+      r.wait = { kind: 'stander', timer: r.standHold.t };
       c.setMoveSpeed(0);
       c.setAnim('idle');
     } else if (r.path.length) {
@@ -1777,7 +1952,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     },
     // Test hook: what a walker decided this frame (for checks and the studio's walker fact), or null
     // when they aren't walking. drift is passWalkers' rule, the other person, the step it applied
-    // and whether furniture refused it; wait is a hold before a taken step-in point.
+    // (null when refused) and whether furniture refused it; wait is a hold (stepIn, aisle, cross or
+    // stander) and how long it has lasted; narrow marks the route ahead too narrow for two.
     walkDebug(id) {
       const r = recs.get(id);
       if (!r || r.hidden || !r.path.length) return null;
@@ -1788,9 +1964,9 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         target: [n(r.path[0].x), n(r.path[0].z)],
         heading: h ? [n(h.x), n(h.z)] : null,
         speed: r.speed ?? null,
-        drift: r.drift ? { ...r.drift, step: r.drift.step.map(n) } : { rule: null, other: null, step: null, refused: false },
+        drift: r.drift ? { ...r.drift, step: r.drift.step?.map(n) ?? null } : { rule: null, other: null, step: null, refused: false },
         wait: r.wait ? { kind: r.wait.kind, timer: n(r.wait.timer) } : { kind: null, timer: 0 },
-        narrow: [],
+        narrow: r.narrow ?? [],
       };
     },
     // Whether someone is in a seated pose (for checks).
