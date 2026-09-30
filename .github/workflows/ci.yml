@@ -210,7 +210,7 @@ jobs:
       - name: Renderer counts against the budget
         if: steps.cls.outputs.mode == 'full'
         run: |
-          node scripts/perf/bench.js --scenes garage,floor,hq,music --quality low,high --runs 1 --warmup 2 --seconds 1 --json "$RUNNER_TEMP/perf-counts.json"
+          node scripts/perf/bench.js --scenes garage,floor,hq,music,floor-eras,floor-dotcom,floor-web2,hq-eras,hq-dotcom,hq-web2 --quality low,high --runs 1 --warmup 2 --seconds 1 --json "$RUNNER_TEMP/perf-counts.json"
           node scripts/perf/budget.js "$RUNNER_TEMP/perf-counts.json" --counts-only
 
   commits:
