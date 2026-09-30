@@ -27,7 +27,7 @@ export function checkGoals(ctx) {
   const h = goalHelpers(state);
   for (const g of GOALS) {
     const entry = state.goals[g.id] ??= { done: false, week: null };
-    if (entry.done || !g.done(state, h)) continue;
+    if (entry.done || entry.skipped || !g.done(state, h)) continue;
     entry.done = true;
     entry.week = state.week;
     state.cash += g.reward.cash;

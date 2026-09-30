@@ -597,12 +597,16 @@ export function botTurn(name, s, { onEvents = null } = {}) {
 export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek, onEvents = null, setup, founding = {}, stopWhen = null } = {}) {
   const s = createGame({ seed, companyName: `Bot ${name}`, ...founding });
   setup?.(s);
-  let maxStage = 0;
+  let maxStage = s.officeStage;
   let firstLaunch = null;
   let crises = 0;
   let wasUnrecoverable = false;
   const eras = {};
   const stageWeeks = { 0: 0 };
+  if (s.founding?.startEra) {
+    eras[s.era.id] = { week: 0, cash: s.cash, staff: s.staff.length, mrr: totalMrr(s) };
+    stageWeeks[s.officeStage] = 0;
+  }
   while (!s.gameOver && s.week < maxWeeks) {
     crises += botDecide(name, s, { onEvents });
     if (s.gameOver) break;

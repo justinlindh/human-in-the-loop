@@ -1,7 +1,7 @@
 // localStorage persistence for the sim state. storage defaults to globalThis.localStorage;
 // tests pass any object with getItem/setItem/removeItem.
 import { SAVE_VERSION } from '../sim/state.js';
-import { dateOf } from '../sim/util.js';
+import { calendarDate } from '../sim/util.js';
 import { EVENTS } from '../data/events.js';
 import { MODELS } from '../data/models.js';
 import { INCUMBENTS } from '../data/incumbents.js';
@@ -48,7 +48,7 @@ const writeIndex = (storage, idx) => store(storage).setItem(INDEX_KEY, JSON.stri
 export function saveMeta(state, id) {
   return {
     id, companyName: state.companyName, logoColor: state.founding?.logoColor ?? null, week: state.week,
-    year: dateOf(state.week).year, eraId: state.era?.id ?? 'classic', over: !!state.gameOver, savedAt: Date.now(), version: state.version,
+    year: calendarDate(state).year, eraId: state.era?.id ?? 'classic', over: !!state.gameOver, savedAt: Date.now(), version: state.version,
   };
 }
 

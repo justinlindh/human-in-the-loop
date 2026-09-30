@@ -1,6 +1,6 @@
 import { B } from './balance.js';
 import { chance, pick } from './rng.js';
-import { dateOf } from './util.js';
+import { calendarDate, calendarWeek } from './util.js';
 import { registerSystem } from './registry.js';
 import { emitChat } from './chat.js';
 import { processScheduled } from './effects.js';
@@ -22,7 +22,7 @@ const VENDOR_LINES = [
 // Opens the categories, angles, and models that the current year and era allow.
 function openMarkets(ctx) {
   const { state } = ctx;
-  const { year } = dateOf(state.week);
+  const { year } = calendarDate(state);
   const m = state.market;
   for (const c of Object.values(CATEGORIES)) {
     if (c.unlockYear <= year && !m.unlockedCategories.includes(c.id)) {
@@ -105,7 +105,7 @@ export function calendarStart(ctx) {
   const { week } = ctx.state;
   processScheduled(ctx);
   eraStep(ctx);
-  if (week > 0 && week % 52 === 0) openMarkets(ctx);
+  if (week > 0 && calendarWeek(ctx.state) % 52 === 0) openMarkets(ctx);
   trendStep(ctx);
   const every = eraAtLeast(ctx.state, 'consolidation') ? B.consolidationVendorEveryWeeks : B.vendorReleaseEveryWeeks;
   if (week > 0 && week % every === 0) vendorRelease(ctx);

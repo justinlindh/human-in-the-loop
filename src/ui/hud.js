@@ -3,7 +3,7 @@ import { phoneLayout } from './media.js';
 import { SIMX } from './simapi.js';
 import { progressBar, goalsDoneText } from './goalProgress.js';
 import { setTip } from './tooltip.js';
-import { h, setText, setWidth, toggleClass, setClass, fmtMoney, fmtNum, dateOf, clear } from './dom.js';
+import { h, setText, setWidth, toggleClass, setClass, fmtMoney, fmtNum, calendarDate, clear } from './dom.js';
 import { B, trendName, trendText, trendEffects, trendPct, capacityOf } from './content.js';
 import { icon } from './icons.js';
 import { debtReadout, fmtRate } from './debtFlow.js';
@@ -229,7 +229,7 @@ export function createHud({ root, controls, ui }) {
     trayBinds = [];
     const needs = allNeeds(s);
     {
-      const goals = Object.values(s.goals ?? {});
+      const goals = Object.values(s.goals ?? {}).filter((g) => !g.skipped);
       badge(stripNeeds, 'warn', needs.length ? String(needs.length) : null, needs.length > 0);
       badge(stripWork, 'project', s.projects.length ? String(s.projects.length) : null);
       badge(stripGoals, 'star', goals.length ? `${goals.filter((g) => g.done).length}/${goals.length}` : null);
@@ -274,7 +274,7 @@ export function createHud({ root, controls, ui }) {
     }
     // Goals: the next couple of milestones, from state.goals in the data's order.
     if (s.goals) {
-      const all = GOALS.filter((g) => s.goals[g.id]);
+      const all = GOALS.filter((g) => s.goals[g.id] && !s.goals[g.id].skipped);
       const done = all.filter((g) => s.goals[g.id].done).length;
       const next = all.filter((g) => !s.goals[g.id].done).slice(0, 2);
       if (next.length) {
@@ -324,7 +324,7 @@ export function createHud({ root, controls, ui }) {
   let lastLogoColor = '';
   function update(s) {
     syncMute();
-    const d = dateOf(s.week);
+    const d = calendarDate(s);
     const era = s.era?.id ?? null;
     if (era !== lastEra) {
       lastEra = era;
@@ -453,4 +453,3 @@ export function createHud({ root, controls, ui }) {
 
   return { update, el: bar };
 }
-

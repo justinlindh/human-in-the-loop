@@ -6,6 +6,7 @@ import { SIMX } from './simapi.js';
 const short = (n) => (n >= 1e6 ? `${+(n / 1e6).toFixed(1)}M` : n >= 1e4 ? `${Math.round(n / 1e3)}K` : n >= 1e3 ? `${+(n / 1e3).toFixed(1)}K` : `${Math.round(n)}`);
 
 export function goalProgress(s, g) {
+  if (s.goals?.[g.id]?.skipped) return null;
   if (typeof g.progress !== 'function' || !SIMX.goalHelpers) return null;
   try {
     const p = g.progress(s, SIMX.goalHelpers(s));

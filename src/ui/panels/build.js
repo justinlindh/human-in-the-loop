@@ -1,4 +1,4 @@
-import { h, setText, setWidth, setClass, fmtMoney, fmtNum, dateOf, toggleClass } from '../dom.js';
+import { h, setText, setWidth, setClass, fmtMoney, fmtNum, dateOf, calendarDate, toggleClass } from '../dom.js';
 import { CATEGORIES, ANGLES, MODELS, B, MODEL, CATEGORY, ROLES, trendMult, trendPct } from '../content.js';
 import { portrait, liveView, stars, tabs, confirmButton } from '../widgets.js';
 import { icon } from '../icons.js';
@@ -65,7 +65,7 @@ export function buildPanel(ctx, arg) {
   function refreshNew() { newView.update(ctx.getState(), true); }
 
   function renderNew(s, bind) {
-    const year = dateOf(s.week).year;
+    const year = calendarDate(s).year;
     if (!form.team) {
       // Builders who are free, plus the founders; with nobody like that, whoever is idle.
       const free = (p) => isAvailable(p) && (p.assignment.type === 'idle' || (p.founder && p.assignment.type !== 'project'));

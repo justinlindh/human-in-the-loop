@@ -1,6 +1,6 @@
 // "Welcome back" card shown on Continue: where the company stands, what is waiting, and what
 // happened most recently. Everything is read from the loaded state; nothing is stored for it.
-import { h, fmtMoney, fmtNum, dateOf } from './dom.js';
+import { h, fmtMoney, fmtNum, calendarDate } from './dom.js';
 import { icon } from './icons.js';
 import { capacityOf } from './content.js';
 import { ERA, ERAS, GOAL, incidentLabel } from './v2content.js';
@@ -8,9 +8,9 @@ import { needsYou, weeklyNet, liveProducts, totalMrr, totalCustomers } from './h
 
 const RECENT = 4;
 
-const when = (week, now) => {
-  const ago = now - week;
-  return ago <= 0 ? 'this week' : ago === 1 ? 'last week' : ago < 9 ? `${ago} weeks ago` : `${dateOf(week).year} Q${dateOf(week).quarter}`;
+const when = (week, s) => {
+  const ago = s.week - week;
+  return ago <= 0 ? 'this week' : ago === 1 ? 'last week' : ago < 9 ? `${ago} weeks ago` : `${calendarDate(s, week).year} Q${calendarDate(s, week).quarter}`;
 };
 
 // The most recent notable moments: launches, era arrivals, goals, and incidents, newest first.
@@ -54,7 +54,7 @@ function tile(label, value, sub, cls = '') {
 export function openRecap(ctx) {
   const s = ctx.getState();
   if (!s || s.gameOver) return;
-  const d = dateOf(s.week);
+  const d = calendarDate(s);
   const net = weeklyNet(s);
   const runway = s.cash < 0 ? 'In the red' : net !== null && net < 0 ? `${Math.floor(s.cash / -net)} wk runway` : 'Cash is growing';
   const live = liveProducts(s);
@@ -84,7 +84,7 @@ export function openRecap(ctx) {
     waiting.length ? h('div.rsec', null, h('h3', { text: 'Waiting on you' }),
       h('div.rlist', null, ...waiting.map((w) => h('div.ritem.warn', null, icon(w.icon, { size: 14 }), h('span', { text: w.text }))))) : null,
     moments.length ? h('div.rsec', null, h('h3', { text: 'Last time' }),
-      h('div.rlist', null, ...moments.map((m) => h('div.ritem', null, icon(m.icon, { size: 14 }), h('span', { text: m.text }), h('span.rwhen', { text: when(m.week, s.week) }))))) : null,
+      h('div.rlist', null, ...moments.map((m) => h('div.ritem', null, icon(m.icon, { size: 14 }), h('span', { text: m.text }), h('span.rwhen', { text: when(m.week, s) }))))) : null,
     h('div.row', null, h('span.small.muted', { text: 'The game is paused until you close this.' }), h('span.spacer'), go));
   // The recap goes first: decision, launch, era, and unlock popups wait behind it until it closes.
   const layer = document.querySelector('.hitl');

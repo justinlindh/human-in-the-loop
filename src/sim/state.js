@@ -12,6 +12,8 @@ import { ARCHETYPES, DEFAULT_FOUNDERS } from '../data/founders.js';
 import { FUNDING } from '../data/funding.js';
 import { rollEraSchedule } from './eras.js';
 import { findSpot, assignSeats } from './office.js';
+import { applyEraStart } from './era-start.js';
+import { startEraId } from '../data/era-modes.js';
 
 export const FUNCTIONS = ['engineering', 'support', 'sales', 'marketing', 'qa', 'ops'];
 // state.robot from the week an office robot is placed.
@@ -24,7 +26,7 @@ function founderPair(founders) {
   return ok ? [...founders] : [...DEFAULT_FOUNDERS];
 }
 
-export function createGame({ seed = 1, companyName = 'Loopworks', logoColor = '#ffb020', tagline = '', founders, funding = 'bootstrapped' } = {}) {
+export function createGame({ seed = 1, companyName = 'Loopworks', logoColor = '#ffb020', tagline = '', founders, funding = 'bootstrapped', startEra = 'classic' } = {}) {
   const fundingId = FUNDING[funding] ? funding : 'bootstrapped';
   const pair = founderPair(founders);
   const state = {
@@ -74,6 +76,9 @@ export function createGame({ seed = 1, companyName = 'Loopworks', logoColor = '#
     history: [],
     gameOver: null,
   };
+  // A side stream keeps era timing independent of the people and events drawn by the main stream.
+  state.eraSchedule = rollEraSchedule(createRng(seed * 7919 + 13), B.eraJitterWeeks);
+  applyEraStart(state, startEra);
   for (const id of pair) {
     const arch = ARCHETYPES[id];
     let p = generateStaff(state, { role: arch.role, seniority: arch.seniority });
@@ -86,14 +91,12 @@ export function createGame({ seed = 1, companyName = 'Loopworks', logoColor = '#
     });
     state.staff.push(p);
   }
-  // Each founder brings a desk to the garage, so the first hire needs only one more.
-  for (let i = 0; i < state.staff.length; i++) {
-    const spot = findSpot(0, state.office.placed, 'desk', [0, 2, 1, 3]);
+  // The kit includes a desk for each founder and may leave free desks for hiring.
+  for (let i = 0; i < B.eraStarts[startEraId(startEra)].desks; i++) {
+    const spot = findSpot(state.officeStage, state.office.placed, 'desk', [0, 2, 1, 3]);
     state.office.placed.push({ id: newId(state, 'f'), itemId: 'desk', level: 1, x: spot.x, y: spot.y, rot: spot.rot });
   }
   assignSeats(state);
-  // A side stream, so the era jitter does not shift every other roll in the run.
-  state.eraSchedule = rollEraSchedule(createRng(seed * 7919 + 13), B.eraJitterWeeks);
   refreshCandidates(state);
   // Investor intros: a little press and a couple of senior candidates who would not look at a garage otherwise.
   const perks = B.funding[fundingId];

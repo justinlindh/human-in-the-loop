@@ -1,5 +1,7 @@
 # Eras and time of day
 
+- **Later-era founding**: ChatGBT and Agents can be selected when founding. The calendar starts at that era's seeded arrival, future arrivals keep their relative spacing, and company age begins at zero. The new company does not replay past lockdown or era decisions. Its twentieth anniversary is twenty years after founding. `id: chatgbt` `id: agents`
+
 - ★ **Era arrival**: a big era card, a stinger, a group cheer, a swell of window light, and the office redresses itself piece by piece. `capture 2-5-era-arrival`
 - **Classic SaaS**: boxy pre-AI monitors, a "HANG IN THERE" cat poster, an employee-of-the-month board ("still you, Dave") and a wall clock. `id: classic`
 - **The ChatGBT Moment**: prompt sticky notes on desks, a "TRY AI (*results may vary)" poster, a glowing "now with AI!" sign, and a "PROMPT OF THE DAY" poster with a tip jar for tokens. `id: chatgbt` `id: era_chatgbt`

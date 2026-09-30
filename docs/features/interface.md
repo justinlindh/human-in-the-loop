@@ -12,6 +12,7 @@
 - **Scene tips**: hover (or long-press) a person or item in the office for a tooltip; clicking a person opens them in Staff, clicking an item opens its card to move, upgrade or sell.
 - **Coach marks**: dismissible tips for the HUD and speed controls.
 - **Game over**: a headline, a score breakdown and epilogue lines revealed one at a time. `?mock=ending`
+- **Era-start record**: Reports keeps the chosen later start and era score factor visible. The ending lists the era factor, funding factor and incubator cut alongside dilution and the loss factor. HUD, goals, incident history, recap and chart dates follow the company's calendar start. `id: chatgbt` `id: agents`
 - **Settings**: Auto, Low or High quality, tilt-shift, pause while menus are open, pause on focus loss, "Camera follows big moments", default speed, how much Yak asks for attention, and volume per bus (music, ambience, effects, interface, voices). `capture 4-7-settings`
 - **Yak level**: All, Important or Off, in Settings and on a button in Yak's header. Important counts only incidents, wins, bot posts and replies to a post you are waiting on as new; Off keeps Yak shut with no unread count. A reply prompt still shows its Reply mark at every level. Routine posts Yak skipped to keep its pace stay skipped after a reload.
 - **Camera**: drag to pan, wheel to zoom, Q and E to turn the view in 90 degree steps.

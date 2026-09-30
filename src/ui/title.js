@@ -7,9 +7,18 @@ import { confirmGate } from './confirm-gate.js';
 import { SAVE_NOTE, SAVE_NOTE_SHORT } from './saveNote.js';
 import { downloadSave, pickSaveFile } from './saveFiles.js';
 import { STAT } from './stats.js';
+import { ERA_STARTS } from '../data/era-modes.js';
+import { B } from '../sim/balance.js';
+import { OFFICE_STAGES } from '../data/office.js';
+import { GOALS } from '../data/goals.js';
 
 const NAME_A = ['Loop', 'Pair', 'Kindly', 'Tiny', 'Candor', 'Hearth', 'Paper', 'Lantern', 'Honest', 'Maple', 'Orbit', 'Quiet'];
 const NAME_B = ['works', 'labs', ' & Co', ' Software', 'craft', ' Systems', 'house', ' Collective', 'forge', ' Studio'];
+const KIT_FUNDING = {
+  bootstrapped: 'Savings and a credit card, plus the era kit. Nobody to answer to.',
+  family: 'Money from people who love you, plus the era kit. More runway, with dinner-table questions.',
+  preseed: 'Outside money, a little press and two senior introductions, plus the era kit.',
+};
 
 // The release version, injected at build time; 'dev' in a local build.
 /* global __HITL_VERSION__ */
@@ -200,7 +209,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
   const MAX_SAVES = 6;
 
   function newGameView() {
-    draft = { companyName: suggestCompany(), logoColor: LOGO_COLORS[0], tagline: TAGLINES[0], seed: '', founders: [], funding: 'bootstrapped', replaceId: null };
+    draft = { companyName: suggestCompany(), logoColor: LOGO_COLORS[0], tagline: TAGLINES[0], seed: '', founders: [], funding: 'bootstrapped', startEra: 'classic', replaceId: null };
     const list = controls.listSaves?.();
     if (Array.isArray(list) && list.length >= (controls.maxSaves ?? MAX_SAVES)) replaceView(list);
     else identityStep();
@@ -329,25 +338,49 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
   }
 
   function fundingStep() {
+    const kit = B.eraStarts[draft.startEra];
+    const eraCards = h('div.era-starts', { role: 'group', 'aria-label': 'Starting era' }, ...Object.values(ERA_STARTS).map((e) => {
+      const k = B.eraStarts[e.id];
+      return h(`button.era-start${e.id === draft.startEra ? '.on' : ''}`, {
+        'aria-pressed': String(e.id === draft.startEra), dataset: { era: e.id },
+        onclick: () => { draft.startEra = e.id; sfx('click'); fundingStep(); root.querySelector(`[data-era="${e.id}"]`)?.focus(); },
+      }, h('b', { text: e.name }), h('span.small', { text: e.blurb }),
+      h('span.small', { text: `${OFFICE_STAGES[k.officeStage].name} · ${k.desks} desks · score x${k.scoreMult}` }));
+    }));
+    const skipped = ERA_STARTS[draft.startEra].skippedGoals.map((id) => GOALS.find((g) => g.id === id)?.name).join(', ');
+    const unlocks = ERA_STARTS[draft.startEra].unlocks.map((key) => key === 'policy.pair' ? 'AI as Pair' : key[0].toUpperCase() + key.slice(1)).join(', ');
+    const summary = h('div.era-start-summary', { 'aria-live': 'polite' });
+    const refreshSummary = () => {
+      const total = B.funding[draft.funding].cash + kit.cash;
+      const mult = Math.round(B.funding[draft.funding].scoreMult * kit.scoreMult * 10000) / 10000;
+      setText(summary, `${ERA_STARTS[draft.startEra].name}: ${fmtMoney(total)} starting cash, ${OFFICE_STAGES[kit.officeStage].name}, ${kit.desks} desks. Final score x${mult}. Two founders, no products yet. A twenty-year company career.`);
+    };
     const cards = FUNDING.map((f) => {
       const mult = fundingMult(f);
       const card = h('button.fund', {
-        onclick: () => { draft.funding = f.id; cardsEl.querySelectorAll('.fund').forEach((c, j) => c.classList.toggle('on', FUNDING[j].id === f.id)); sfx('click'); },
+        onclick: () => { draft.funding = f.id; cardsEl.querySelectorAll('.fund').forEach((c, j) => { c.classList.toggle('on', FUNDING[j].id === f.id); c.setAttribute('aria-pressed', String(FUNDING[j].id === f.id)); }); refreshSummary(); sfx('click'); },
+        'aria-pressed': String(f.id === draft.funding),
       },
       h('b.fname', { text: f.name }),
-      h('span.fcash.num', { text: fmtMoney(fundingCash(f)) }),
-      h('span', { class: mult < 1 ? 'pill warn' : 'pill good', text: mult < 1 ? `Final score x${mult}` : 'Full final score',
+      h('span.fcash.num', { text: fmtMoney(fundingCash(f) + kit.cash) }),
+      h('span', { class: mult < 1 ? 'pill warn' : 'pill good', text: mult < 1 ? `Funding score x${mult}` : 'Funding score x1',
         title: mult < 1 ? `Final score\nWhen the game ends, your company is scored on what it built. Outside money means that score is multiplied by ${mult}.` : 'Final score\nWhen the game ends, your company is scored on what it built. Bootstrapping keeps all of it.' }),
-      h('span.small', { text: f.desc ?? '' }),
+      h('span.small', { text: draft.startEra === 'classic' ? f.desc ?? '' : KIT_FUNDING[f.id] }),
+      kit.cash ? h('span.small', { text: `Includes ${fmtMoney(kit.cash)} era kit` }) : null,
       f.pressure ? h('span.small.fpress', null, icon('warn', { size: 12 }), ` ${f.pressure}`) : null);
       if (f.id === draft.funding) card.classList.add('on');
       return card;
     });
     const cardsEl = h('div.funds', null, ...cards);
     frame(2, h('div.fbody', null,
+      h('b', { text: 'When does your company begin?' }), eraCards,
+      h('div.small.muted', { text: unlocks ? `Already open: ${unlocks}. Policies start off.` : 'Classic is the full modern run, with the ordinary unlocks and goals.' }),
+      skipped ? h('div.small.muted', { text: `Skipped without rewards: ${skipped}.` }) : null,
       h('b', { text: 'How are you paying for this?' }),
       cardsEl,
-      h('div.small.muted', { text: 'When the game ends, your company gets a final score. More money now means a slightly smaller score later.' })), start, 'Start the company');
+      summary,
+      h('div.small.muted', { text: 'Funding and starting-era score factors multiply. Classic keeps the full era score.' })), start, 'Start the company');
+    refreshSummary();
   }
 
   function start() {
@@ -357,7 +390,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     if (draft.replaceId) controls.deleteSave?.(draft.replaceId);
     controls.newGame?.({
       companyName: draft.companyName.trim(), seed, logoColor: draft.logoColor, tagline: draft.tagline.trim(),
-      founders: [...draft.founders], funding: draft.funding,
+      founders: [...draft.founders], funding: draft.funding, startEra: draft.startEra,
     });
     onStart({ fresh: true });
   }

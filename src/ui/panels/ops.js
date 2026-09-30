@@ -1,4 +1,4 @@
-import { h, setText, setWidth, fmtMoney, toggleClass, setClass, dateOf } from '../dom.js';
+import { h, setText, setWidth, fmtMoney, toggleClass, setClass, calendarDate } from '../dom.js';
 import { B } from '../content.js';
 import { incidentLabel } from '../v2content.js';
 import { postureParts as simPostureParts } from '../../sim/incidents.js';
@@ -128,7 +128,7 @@ export function opsPanel(ctx) {
       const logEl = log.length ? h('table.inclog', null,
         h('thead', null, h('tr', null, ...['When', 'What', 'Product', 'Severity', ''].map((t) => h('th', { text: t })))),
         h('tbody', null, ...log.map((e) => {
-          const d = dateOf(e.week);
+          const d = calendarDate(s, e.week);
           const p = s.products.find((x) => x.id === e.productId);
           return h(`tr${e.caught ? '.caught' : ''}`, null,
             h('td.num', { text: `${d.year} W${d.week}` }),
