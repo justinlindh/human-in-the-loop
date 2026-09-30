@@ -28,6 +28,7 @@
 //              the game
 // Uses CDP Input.dispatchTouchEvent for real multi-touch. GL follows scripts/lib/gl.js, and the run
 // holds the matching render lock.
+import { waitForBoot } from './lib/boot.js';
 import { createServer } from 'vite';
 import { chromium, devices } from 'playwright';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -169,9 +170,7 @@ async function openGameOnce(deviceName, extraQuery = '') {
   for (const [k, v] of new URLSearchParams(extraQuery)) q.set(k, v);
   try {
     await page.goto(`${base}?${q}`, { waitUntil: 'load', timeout: 90000 });
-    await page.waitForFunction(() => window.__HITL_READY === true, null, { timeout: 90000 });
-    // A boot that throws still sets the ready flag, without the test hook; report what it logged.
-    if (!(await page.evaluate(() => !!window.__HITL))) throw new Error(`boot failed without the test hook: ${errors[0] ?? 'no console error'}`);
+    await waitForBoot(page, { timeout: 90000 });
   } catch (e) {
     await ctx.close().catch(() => {});
     const err = new Error(`the game did not come up (${String(e.message ?? e).split('\n')[0]})`);

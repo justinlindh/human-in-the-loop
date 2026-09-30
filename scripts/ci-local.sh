@@ -200,6 +200,7 @@ step toolkit toolkit_check
 # (scripts/baseline-media.sh); without a PR number it only says so.
 step baseline-media env BASE="$BASE" bash "$SELF/baseline-media.sh" --check
 tool_step ci-classify bash "$SELF/ci-classify.test.sh"
+tool_step ci-keep-logs bash "$SELF/ci-keep-logs.test.sh"
 tool_step ci-pr-selftest bash "$SELF/ci-pr-selftest.test.sh"
 tool_step wait-for bash "$SELF/wait-for.test.sh"
 tool_step check-commits bash "$SELF/check-commits.test.sh"
@@ -483,11 +484,23 @@ tests="$(grep -hE '^ +Tests ' "$LOGS/test:fast.log" "$LOGS/test:balance.log" 2>/
 notes=""
 NOTES=(); [ -f "$LOGS/notes" ] && mapfile -t NOTES <"$LOGS/notes"
 for n in "${NOTES[@]}"; do notes+="**Note:** $n"$'\n'; done
+# A failed step's full log is kept in CI_KEEP_DIR (set by ci-pr, which prunes it) and its last
+# 30 lines go in the summary with the log's location, since the run's own log directory is removed.
+failtext=""
+if [ -n "${CI_KEEP_DIR:-}" ]; then
+  for i in "${!NAMES[@]}"; do
+    case "${RESULTS[$i]}" in pass|skipped:*) continue ;; esac
+    lg="$LOGS/${NAMES[$i]}.log"; [ -f "$lg" ] || continue
+    mkdir -p "$CI_KEEP_DIR" && cp "$lg" "$CI_KEEP_DIR/${NAMES[$i]}.log" || continue
+    failtext+=$'\n'"**${NAMES[$i]}** failed; last 30 lines (full log: \`${CI_KEEP_DIR/#$HOME/\~}/${NAMES[$i]}.log\`):"$'\n\n```\n'"$(tail -n 30 "$lg" | cut -c1-300)"$'\n```\n'
+  done
+fi
 echo
 echo "$table"
 echo "vitest: $tests"
 [ -n "$notes" ] && printf '\n%s' "$notes"
-if [ -n "$SUMMARY" ]; then { echo "$table"; echo; echo "vitest: $tests"; [ -n "$notes" ] && printf '\n%s' "$notes"; } >"$SUMMARY"; fi
+[ -n "$failtext" ] && printf '%s' "$failtext"
+if [ -n "$SUMMARY" ]; then { echo "$table"; echo; echo "vitest: $tests"; [ -n "$notes" ] && printf '\n%s' "$notes"; [ -n "$failtext" ] && printf '%s' "$failtext"; } >"$SUMMARY"; fi
 [ -n "${CI_LOGS:-}" ] || rm -rf "$LOGS"
 rc=$failed; [ $failed = 0 ] && [ $machine = 1 ] && rc=3
 timing_log kind=run tool=ci-local wall_s=$SECONDS exit="$rc" load1_start="$run_load0" load1_end="$(load1)" runs_start="$run_going0" slot_wait_s="${CI_SLOT_WAITED:-0}"

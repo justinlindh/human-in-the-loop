@@ -270,22 +270,24 @@ fi
 # The gate is main's local CI (from the base worktree) run on the tree under test, so a PR can never
 # loosen the checks it is judged by. A PR that changes local CI itself (ci-local.sh, the scripts it
 # runs, its path lists) is also run through its own version, and both must pass.
-run_ci() { # <ci-local.sh> <summary file>
-  CI_PR_SELFTESTS=1 CI_DIR="$WT" setsid bash "$1" --base "origin/$base" --title "$title" --summary "$2" 9>&- &
+run_ci() { # <ci-local.sh> <summary file> <kept-log suffix>
+  CI_KEEP_DIR="$ROOT/failed/pr$pr-${head:0:7}$3" CI_PR_SELFTESTS=1 CI_DIR="$WT" setsid bash "$1" --base "origin/$base" --title "$title" --summary "$2" 9>&- &
   ci_pid=$!
   wait "$ci_pid"; local r=$?
   ci_pid=""
   return $r
 }
 summary="$(mktemp)"; own_summary=""
+# Failed steps' full logs (CI_KEEP_DIR) are kept for a few days, then pruned.
+find "$ROOT/failed" -mindepth 1 -maxdepth 1 -mtime +"${CI_KEEP_DAYS:-4}" -exec rm -rf {} + 2>/dev/null || true
 t0=$(date +%s)
-run_ci "$TOOLS/scripts/ci-local.sh" "$summary"
+run_ci "$TOOLS/scripts/ci-local.sh" "$summary" ""
 rc=$?
 ci_changes="$(printf '%s\n' "$changed" | grep -E '^scripts/([^/]+\.sh|lib/.+|ci-[a-z-]+-paths)$' || true)"
 if [ -n "$ci_changes" ]; then
   echo "ci-pr: #$pr changes local CI itself; running its own version too"
   own_summary="$(mktemp)"
-  run_ci "$WT/scripts/ci-local.sh" "$own_summary"
+  run_ci "$WT/scripts/ci-local.sh" "$own_summary" -own
   own_rc=$?
   # A code failure in either run outranks a machine failure (3), which outranks a pass.
   if [ $rc -ne 0 ] && [ $rc -ne 3 ]; then :; elif [ $own_rc -ne 0 ] && [ $own_rc -ne 3 ]; then rc=$own_rc

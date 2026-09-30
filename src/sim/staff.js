@@ -1,6 +1,6 @@
 import { B } from './balance.js';
 import { int, range, pick, shuffle, weighted, next } from './rng.js';
-import { clamp, round, newId } from './util.js';
+import { clamp, round, newId, marketYear } from './util.js';
 import { ROLES } from '../data/roles.js';
 import { TRAITS, NEVER_HIRED } from '../data/traits.js';
 import { emptyRecord, addToRecord } from './record.js';
@@ -131,7 +131,7 @@ export function generateStaff(state, { role, seniority }) {
   const skills = {};
   // The talent pool improves over the years as people grow up with the tools.
   // A company with real Purpose draws better people once AI is everywhere.
-  const growth = B.candidateSkillPerYear * Math.floor(state.week / 52) + (state.era?.id === 'plateau' ? B.purposeHiring * purposeLift(state) : 0);
+  const growth = B.candidateSkillPerYear * marketYear(state) + (state.era?.id === 'plateau' ? B.purposeHiring * purposeLift(state) : 0);
   for (const st of STATS) {
     const base = (int(r, lo, hi) + growth) * (top.includes(st) ? 1.3 : 1);
     skills[st] = Math.round(clamp(base, 1, 100));
