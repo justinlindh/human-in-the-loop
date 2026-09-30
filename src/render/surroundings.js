@@ -281,6 +281,7 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     const sides = { px: new THREE.Group(), nx: new THREE.Group(), pz: new THREE.Group(), nz: new THREE.Group() };
     const dyn = new THREE.Group();
     const facadeMats = new Set(), bulbs = [], movers = [], clouds = [], glows = [], owned = [], signMats = [];
+    let rentalFront = null;
     // Floor rectangles of the larger standing things (for checks): { id, x0, x1, z0, z1 }.
     const feet = [];
     const foot = (id, x, z, w, d) => feet.push({ id, x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2 });
@@ -328,6 +329,7 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
         const h = house(w, d, COL.house[i % 3], COL.roof[i % 3]);
         h.position.y = gy;
         tall(h, x, z);
+        if (i === 1) rentalFront = { x: x + w * 0.18, y: gy + 1.7, z: z + d / 2 + 0.08 };
       });
       if (!lite) {
         for (const [x, z, s] of [[hw + 1.6, -hd - 1.2, 2.6], [-hw - 2.2, -hd - 1.4, 3], [hw + M - 2, hd - 1, 2.4], [-hw - M + 2.5, hd + 0.5, 2.8], [hw + 2.8, 1, 2.2]]) {
@@ -350,7 +352,10 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
       // Neighbours: a near row a storey or two taller than this floor, a hazier row further back.
       const towers = [[-hw - 3, -hd - 8, 5, 12, 5, 0], [hw - 4, -hd - 9, 6, 10, 5, 0], [0, -hd - 15, 8, 16, 6, 0.35], [hw + 6, -hd - 14, 6, 14, 6, 0.35],
         [-hw - 9, -2, 5, 11, 5, 0], [-hw - 14, hd - 4, 6, 15, 6, 0.35], [-hw - 8, -hd - 4, 4, 8, 4, 0]];
-      towers.forEach(([x, z, w, h, d, hz], i) => { const b = building(w, h, d, COL.tower[i % COL.tower.length], hz); b.position.y = gy + h / 2; tall(b, x, z); });
+      towers.forEach(([x, z, w, h, d, hz], i) => {
+        const b = building(w, h, d, COL.tower[i % COL.tower.length], hz); b.position.y = gy + h / 2; tall(b, x, z);
+        if (i === 4) rentalFront = { x, y: gy + 3, z: z + d / 2 + 0.08 };
+      });
       if (!lite) {
         for (const [x, z] of [[hw + 2, hd + 1.5], [-hw - 1.5, hd + 1.8], [hw + 3, -hd + 2]]) { const t = tree(2.4); t.position.y = gy; tall(t, x, z); }
         for (const x of [-hw, 0, hw]) { const l = lamp(); l.position.y = gy; bulbs.push(l.children[1]); tall(l, x, sz - 2.6); }
@@ -368,7 +373,10 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
       for (let i = 0; i < 9; i++) sky.push([-hw - 2 + (i / 8) * (2 * hw + 6), -hd - 9 - rnd() * 3, 4 + rnd() * 2, 7 + rnd() * 8, 4 + rnd() * 2, 0]);
       for (let i = 0; i < 6; i++) sky.push([-hw - 8 - rnd() * 3, -hd + (i / 5) * (2 * hd - 2), 4 + rnd() * 2, 6 + rnd() * 7, 4 + rnd() * 2, 0]);
       for (let i = 0; i < 10; i++) sky.push([-hw - 6 + (i / 9) * (2 * hw + 16), -hd - 17 - rnd() * 4, 5 + rnd() * 3, 16 + rnd() * 16, 5 + rnd() * 3, 0.45]);
-      sky.forEach(([x, z, w, h, d, hz], i) => { const b = building(w, h, d, COL.tower[i % COL.tower.length], hz); b.position.y = gy + h / 2; tall(b, x, z); });
+      sky.forEach(([x, z, w, h, d, hz], i) => {
+        const b = building(w, h, d, COL.tower[i % COL.tower.length], hz); b.position.y = gy + h / 2; tall(b, x, z);
+        if (i === 14) rentalFront = { x, y: gy + 3, z: z + d / 2 + 0.08 };
+      });
       // Lawn beds on the plaza in front (flat) and a green strip behind for the trees.
       for (const [x, z, w, d] of [[-hw + 3, hd + 2.3, 5, 1.6], [hw - 3, hd + 2.3, 5, 1.6], [hw + 2.4, 0, 1.6, 6]]) onFlat(mesh(roundedBox(w, 0.08, d, 0.04, 2), m(COL.grass), 0, 0, 0, { cast: false }), x, gy + 0.02, z);
       onFlat(mesh(roundedBox(2 * hw + 4, 0.08, 3, 0.04, 2), m(COL.grass), 0, 0, 0, { cast: false }), 0, gy + 0.02, -hd - 3);
@@ -445,8 +453,8 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
         // A rental-shop fascia on the neighbouring building, above its front windows.
         const video = getModel('era_video_sign');
         video.traverse((o) => { if (o.isMesh) o.material = backdropMaterial(o.material); });
-        video.position.y = gy + (stage === 0 ? 1.7 : 3.0);
-        tall(video, stage === 0 ? hw + 3.6 : -hw - 9, stage === 0 ? -hd - 3.70 : 0.58);
+        video.position.y = rentalFront.y;
+        tall(video, rentalFront.x, rentalFront.z);
       }
     }
 
@@ -508,7 +516,7 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     group.add(merged.flat, merged.px, merged.nx, merged.pz, merged.nz, dyn);
     // Bulbs are emissive and change at night: they stay separate (mergeStatic keeps dynamic ones).
     root.add(group);
-    cur = { group, sides: { px: merged.px, nx: merged.nx, pz: merged.pz, nz: merged.nz }, facadeMats, bulbs: collectBulbs(group), movers: movers.map((mv) => ({ ...mv, t: rnd() * mv.gap[1], car: null })), clouds, glows, feet, dyn, gy, owned, signMats };
+    cur = { group, sides: { px: merged.px, nx: merged.nx, pz: merged.pz, nz: merged.nz }, facadeMats, bulbs: collectBulbs(group), movers: movers.map((mv) => ({ ...mv, t: rnd() * mv.gap[1], car: null })), clouds, glows, feet, dyn, gy, owned, signMats, rentalFront };
     applyYaw();
   }
 
@@ -585,7 +593,7 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
   function exterior() {
     if (!cur) return null;
     const cars = cur.movers.filter((mv) => mv.car).map((mv) => ({ x0: mv.car.position.x - CAR_L / 2, x1: mv.car.position.x + CAR_L / 2, z0: mv.z - CAR_W / 2, z1: mv.z + CAR_W / 2 }));
-    return { era, billboard: ERA_ART_PREVIEW ? eraBillboard(era)[0] : null, feet: cur.feet, cars, lanes: cur.movers.map((mv) => ({ z0: mv.z - CAR_W / 2, z1: mv.z + CAR_W / 2, x0: Math.min(mv.x0, mv.x1) - CAR_L / 2, x1: Math.max(mv.x0, mv.x1) + CAR_L / 2 })) };
+    return { era, billboard: ERA_ART_PREVIEW ? eraBillboard(era)[0] : null, fascia: ERA_ART_PREVIEW && era === 'preinternet' ? cur.rentalFront : null, feet: cur.feet, cars, lanes: cur.movers.map((mv) => ({ z0: mv.z - CAR_W / 2, z1: mv.z + CAR_W / 2, x0: Math.min(mv.x0, mv.x1) - CAR_L / 2, x1: Math.max(mv.x0, mv.x1) + CAR_L / 2 })) };
   }
 
   return { setStage, setEra, setQuality, setViewYaw, update, exterior, get group() { return root; } };
