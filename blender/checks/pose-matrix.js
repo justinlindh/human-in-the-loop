@@ -15,6 +15,15 @@
 // or clearance (the smaller of either hand's distance to the head surface).
 
 export const POSTURES = { stand: 'idle', sit: 'typing', lie: 'lie' };
+
+// Each gesture's pass rule: what --matrix measures and judges when given neither --measure nor --expect.
+// The facepalm: a hand covers the near eye in at least 70% of the frames the face shows (faceCam <= 80).
+// The slap: the right hand reaches the robot head (0.06 m) at some frame, the face within 35 degrees of
+// the head for 80% of the frames (stage.mjs's robot.slap and robot.windup rules).
+export const PRESETS = {
+  facepalm: { measures: ['coverHandEyeNear', 'faceCam', 'hand0Eye', 'hand1Eye', 'clearance'], rules: ['coverHandEyeNear>=0.5@0.7 if faceCam<=80'] },
+  slap: { measures: ['robotContact', 'robotDepth', 'robotAngle', 'faceVisible'], rules: ['robotContact<=0.06@0.01', 'robotAngle<=35@0.8'] },
+};
 const ACCESSORIES = ['none', 'glasses', 'headphones', 'beanie', 'cap'];
 
 const list = (v, all) => (v === 'all' ? all : v);

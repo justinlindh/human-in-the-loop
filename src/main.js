@@ -1,6 +1,6 @@
 import { createYakPacer } from './yak-pacing.js';
 import { createMockSim } from './dev/mockSim.js';
-import { createPacer, MAX_STEP } from './pacing.js';
+import { createPacer, createFrameClock, MAX_CATCHUP, MAX_STEP } from './pacing.js';
 import { autoQuality, deviceTraits, glRendererName } from './quality.js';
 
 // Optional layers: each lane's worktree renders whatever layers exist there.
@@ -226,6 +226,14 @@ async function boot() {
     dispatch,
     setSpeed: controls.setSpeed,
     tickN: (n) => { for (let i = 0; i < n; i++) route(sim.tick(), sim.state); },
+    // Advances the game clocks (pacer, Yak pacer, day, spotlight hold) by `seconds` of real time in fixed
+    // logic steps, without drawing: the same clock a frame runs, for checks that drive time by hand.
+    // Returns the number of steps taken.
+    step: (seconds) => {
+      let steps = 0;
+      for (let left = Math.max(0, Number(seconds) || 0); left > 0; left -= MAX_CATCHUP) steps += stepClocks(Math.min(left, MAX_CATCHUP));
+      return steps;
+    },
     // Presents events as if the sim had emitted them (capture scenarios, playtests).
     emit: (events) => route(events, sim.state),
     controls,
@@ -246,7 +254,11 @@ async function boot() {
     save();
   }
   addEventListener('blur', leftPage);
-  document.addEventListener('visibilitychange', () => { if (document.hidden) leftPage(); });
+  // Coming back to the page starts the clock afresh: the time it was hidden is not replayed.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) leftPage();
+    else { last = performance.now(); frameClock.reset(); }
+  });
 
   let last = performance.now();
   let dayClock = 0.35;
@@ -279,11 +291,12 @@ async function boot() {
     }
     return true;
   }
-  function frame(now) {
-    frameCount++;
-    // Capped so a stalled or hidden tab resumes smoothly instead of jumping.
-    const dt = Math.min(MAX_STEP, (now - last) / 1000);
-    last = now;
+  // The game's clocks advance in fixed logic steps (createFrameClock), so game time follows the wall
+  // clock whatever the frame rate: a frame that took 500 ms runs its 30 steps instead of losing them.
+  // Everything that reads the clock lives in logicStep; a frame draws once with its real elapsed time.
+  const frameClock = createFrameClock();
+  let logic = { menuPause: false, running: false, held: false };
+  function logicStep(dt) {
     // The UI reports busy while a panel or modal is open (auto-pause for menus).
     const menuPause = ui?.isBusy?.() === true;
     const free = playing && !menuPause && !sim.state.pendingDecision && !sim.state.gameOver && !document.hidden;
@@ -301,6 +314,24 @@ async function boot() {
     present(yakPacer.step(dt, playing && speed > 0 && !menuPause && !held && !document.hidden,
       { gameTime: pacer.gameT, state: sim.state }), sim.state);
     if (!frozen && !held) dayClock = (dayClock + dt / DAY_SECONDS) % 1;
+    logic = { menuPause, running, held };
+  }
+  // Advances the game clocks by `seconds` of real time in fixed steps, with no drawing; a frame with
+  // no whole step due still reads the pause picture once (a zero-length step).
+  function stepClocks(seconds) {
+    const n = frameClock.advance(seconds);
+    for (let i = 0; i < n; i++) logicStep(frameClock.step);
+    if (n === 0) logicStep(0);
+    return n;
+  }
+  function frame(now) {
+    frameCount++;
+    const real = (now - last) / 1000;
+    last = now;
+    stepClocks(real);
+    // The drawn frame's own step, capped so a stalled tab doesn't make the animation jump.
+    const dt = Math.min(MAX_STEP, real);
+    const { menuPause, running, held } = logic;
     renderer?.setPaused?.(frozen);
     if (renderer) {
       renderer.setTimeOfDay(forcedTime === 'night' ? 0.95 : forcedTime === 'day' ? 0.45 : dayClock);

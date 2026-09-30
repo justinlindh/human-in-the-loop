@@ -8,7 +8,7 @@ Standalone pose checks from geometry, with no rendering: `pose.mjs` plays a char
 
 Tune a gesture:
 - [gesture](pose/gesture.md): one gesture run, its measures (hand to face and eye distances, face angle) and `--expect` rules.
-- [matrix](pose/matrix.md): `--matrix` over views, postures, builds, rig and side; `--param`, `--sweep`, `--crop`.
+- [matrix](pose/matrix.md): each gesture's pass rule (the facepalm's and the slap's, used when `--matrix` gets no `--measure`); `--matrix` over views, postures, builds, rig and side; `--param`, `--sweep`, `--crop`.
 - [constants map](pose/constants-map.md): which constant moves which measure.
 
 Check a staged scene (a bubble or emote over a face, a held prop):
