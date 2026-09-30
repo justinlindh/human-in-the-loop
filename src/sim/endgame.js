@@ -26,7 +26,7 @@ export function scoreRun(state) {
   // The incubator house's cut, if the founders took the free rent.
   const incubator = 1 - (state.flags.incubatorCut ?? 0);
   const era = state.founding?.eraScoreMult ?? 1;
-  const score = Math.round(Math.max(0, raw) * (won ? 1 : 0.5) * (state.flags.diluted ? 0.8 : 1) * funding * incubator * era);
+  const score = Math.round(Math.max(0, raw) * (won ? 1 : 0.5) * (state.flags.diluted ? B.dilutionScoreMult : 1) * funding * incubator * era);
   return { score, valuation, breakdown };
 }
 
@@ -149,8 +149,11 @@ export function historySystem(ctx) {
 registerSystem('endgame', endgameSystem, 90);
 registerSystem('history', historySystem, 95);
 
-// An exit's MRR bar for this company: era starts scale it, since each meets a different market.
-export const exitMrr = (state, base) => Math.round(base * (B.eraStarts[state.founding?.startEra]?.exitMrrMult ?? 1));
+// Use the founding start, so a Classic company's takeover keeps its original exit bars.
+export function exitMrr(state, base) {
+  const start = B.eraStarts[state.founding?.startEra ?? 'classic'] ?? B.eraStarts.classic;
+  return Math.round(base * start.exitMrrMult);
+}
 
 // Why an IPO is not available yet, or null when it is.
 export function ipoBlocker(state) {
