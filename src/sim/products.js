@@ -18,6 +18,7 @@ import { autoArrange, spentOn } from './office.js';
 import { rivalPressure } from './ladder.js';
 import { purposeLift } from './purpose.js';
 import { outageProductGone } from './incidents.js';
+import { installedCustomers, sellBoxes } from './boxed.js';
 
 // Addressable customers in a category right now: the AI market grows toward full size over the early years.
 export function marketSize(state, category) {
@@ -68,7 +69,7 @@ export function productsSystem(ctx) {
   const { state } = ctx;
   const live = liveProducts(state);
 
-  const customers = sum(live, (p) => p.customers);
+  const customers = sum(live, installedCustomers);
   const supportNeed = customers * B.supportHoursPerCustomer;
   const supporters = onAssignment(state, 'support').map((p) => [p, B.supportHoursPerPerson * outputMult(state, p) * staffMods(p).supportHours]);
   const peopleHours = sum(supporters, ([, h]) => h);
@@ -78,7 +79,7 @@ export function productsSystem(ctx) {
   for (const [p, h] of supporters) if (peopleHours > 0) addToRecord(state, p, 'tickets', (handled * h / peopleHours) / B.recordTicketHours);
   state.ops.supportShortfall = supportNeed > 0 ? clamp(1 - supportHave / supportNeed, 0, 1) : 0;
 
-  const maintNeed = sum(live, (p) => B.maintenancePerProduct + p.customers * B.maintenancePerCustomer) * Math.max(0, 1 + perk(state, 'maintenanceNeed'));
+  const maintNeed = sum(live, (p) => B.maintenancePerProduct + installedCustomers(p) * B.maintenancePerCustomer) * Math.max(0, 1 + perk(state, 'maintenanceNeed'));
   const shortfall = maintNeed > 0 ? clamp(1 - state.ops.maintenanceCapacity / maintNeed, 0, 1) : 0;
   state.ops.maintenanceShortfall = shortfall;
 
@@ -101,7 +102,12 @@ export function productsSystem(ctx) {
   live.forEach((p, i) => {
     const tam = marketSize(state, p.category);
     const target = targets[i];
-    if (p.customers < target) {
+    if (p.boxed) {
+      const rate = (B.acquisitionRate + B.hypeAcquisition * p.hype + salesBoost) * (1 + state.brand / 200)
+        * Math.max(0, 1 + modifierBonus(state, 'acquisition')) * pathAcquisition * dotcomAcquisition(state);
+      const demand = Math.max(0, target - p.boxed.installed) * Math.min(1, rate) * (1 + itemBonus(state, 'retailDemand'));
+      sellBoxes(ctx, p, state.outage?.productId === p.id ? 0 : demand);
+    } else if (p.customers < target) {
       const rate = (B.acquisitionRate + B.hypeAcquisition * p.hype + salesBoost) * (1 + state.brand / 200)
         * Math.max(0, 1 + modifierBonus(state, 'acquisition')) * pathAcquisition
         * dotcomAcquisition(state) * (1 + (state.era.id === 'dotcom' ? itemBonus(state, 'bannerAcquisition') : 0));
@@ -125,7 +131,7 @@ export function productsSystem(ctx) {
     p.customers = kept;
 
     if (shortfall > 0) p.health -= decay * shortfall;
-    else p.health = Math.min(p.baseHealth, p.health + B.healthRecovery);
+    else if (!p.boxed) p.health = Math.min(p.baseHealth, p.health + B.healthRecovery);
     if (p.migrationDueWeek !== null && state.week > p.migrationDueWeek) p.health -= B.missedMigrationHealth;
     p.health = clamp(p.health, 0, 100);
     p.uptime = inOutage ? 0 : uptimeFloor + (1 - uptimeFloor) * p.health / 100;
@@ -156,6 +162,10 @@ registerAction('killProduct', (ctx, { productId }) => {
 export function sunsetProduct(ctx, p, { quiet = false } = {}) {
   const { state } = ctx;
   Object.assign(p, { killed: true, customers: 0, mrr: 0 });
+  if (p.boxed) {
+    p.boxed.withdrawn += p.boxed.stock + sum(p.boxed.deliveries, (d) => d.units);
+    Object.assign(p.boxed, { stock: 0, stockCost: 0, deliveries: [], weeklyNet: 0 });
+  }
   for (const s of state.staff) {
     const builder = (s.role === 'engineer' || s.role === 'designer') && s.hiredWeek <= p.launchedWeek;
     if (builder || s.id === p.ownerId) s.meaning = Math.max(0, s.meaning - 10);

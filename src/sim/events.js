@@ -20,6 +20,8 @@ import { emitChat } from './chat.js';
 import { eraOnlyAllowsText, eraAtLeast, currentEra, eraIndex } from './eras.js';
 import { openEventPrompt, promptSlotFree } from './prompts.js';
 import { dotcomDecisionOpen } from './dotcom.js';
+import { preinternetChoiceReason } from './boxed.js';
+import { EARLY_ORDER } from '../data/early-eras.js';
 import { periodAllows, periodText } from '../data/period-content.js';
 
 // What attackers ask for: sized to the company's cash and revenue, between a floor and a cap, and never
@@ -78,6 +80,10 @@ export function fillText(state, rng, text, subjectId, vars = null) {
 
 // Why a choice cannot be picked right now (its requirement, or a grant that cannot happen), or null.
 function choiceBlocker(state, c, subjectId) {
+  if (c.effects?.preinternet) {
+    const reason = preinternetChoiceReason(state, c.effects.preinternet, subjectId);
+    if (reason) return reason;
+  }
   if (c.requires && !checkCondition(state, c.requires, subjectId)) return requireReason(state, c.requires);
   return grantBlocker(state, c);
 }
@@ -101,7 +107,7 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
   if (!ev || !ev.choices) return false;
   if (!periodAllows(state, 'events', eventId)) return false;
   if (!dotcomDecisionOpen(state, eventId)) return false;
-  if (eventId.startsWith('web2_') && state.era.id !== 'web2') return false;
+  if (ev.eras?.every((id) => EARLY_ORDER.includes(id)) && !ev.eras.includes(state.era.id)) return false;
   if (state.pendingDecision) {
     if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: state.week, kind: 'event', payload: { eventId, subjectId } });
     return false;

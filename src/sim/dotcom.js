@@ -7,6 +7,8 @@ import { DOTCOM_CHAT } from '../data/early-eras.js';
 import { EVENTS } from '../data/events.js';
 import { y2kSeason, y2kStep, y2kOnCall } from './y2k.js';
 
+const dotcomWeek = (state) => state.week - (state.eraSchedule.dotcom ?? 0);
+
 export function dotcomDecisionOpen(state, id) {
   if (!id.startsWith('dotcom_')) return true;
   const f = state.flags.dotcom;
@@ -14,8 +16,8 @@ export function dotcomDecisionOpen(state, id) {
   if (id === 'dotcom_y2k_oncall') return y2kSeason(state) && !state.flags.y2k?.onCall;
   if (id === 'dotcom_recovery') return f.recovered;
   if (f.recovered || state.era.id !== 'dotcom') return false;
-  if (id === 'dotcom_ipo_frenzy') return state.week < B.dotcom.bustWeek && f.float === null;
-  if (id === 'dotcom_eyeballs' || id === 'dotcom_warning') return state.week < B.dotcom.bustWeek;
+  if (id === 'dotcom_ipo_frenzy') return dotcomWeek(state) < B.dotcom.bustWeek && f.float === null;
+  if (id === 'dotcom_eyeballs' || id === 'dotcom_warning') return dotcomWeek(state) < B.dotcom.bustWeek;
   if (id === 'dotcom_bust') return !f.settled;
   return true;
 }
@@ -31,7 +33,7 @@ export function dotcomEffect(ctx, choice) {
     f.float = choice === 'float';
     if (f.float) { state.cash += B.dotcom.floatCash; state.flags.diluted = true; }
     else state.brand = clamp(state.brand + B.dotcom.privateBrand, 0, 100);
-  } else if ((choice === 'retain' || choice === 'preserve') && !f.settled && state.week >= B.dotcom.bustWeek) {
+  } else if ((choice === 'retain' || choice === 'preserve') && !f.settled && dotcomWeek(state) >= B.dotcom.bustWeek) {
     f.settled = true;
     f.settlement = choice;
     if (f.float) state.cash -= Math.min(B.dotcom.floatCostCap, Math.max(0, state.cash) * B.dotcom.floatCashShare);
@@ -58,8 +60,9 @@ export function dotcomStep(ctx) {
   y2kStep(ctx);
   if (state.era.id === 'dotcom' && state.products.some((p) => p.angle === 'web')) f.webLaunched = true;
   const end = state.eraSchedule.web2 ?? state.eraSchedule.classic;
-  const phase = state.week >= end ? 'recovery' : state.week >= B.dotcom.bustWeek ? 'bust'
-    : state.week >= B.dotcom.warningWeek ? 'warning' : state.week >= B.dotcom.boomWeek ? 'boom' : 'growth';
+  const elapsed = dotcomWeek(state);
+  const phase = state.week >= end ? 'recovery' : elapsed >= B.dotcom.bustWeek ? 'bust'
+    : elapsed >= B.dotcom.warningWeek ? 'warning' : elapsed >= B.dotcom.boomWeek ? 'boom' : 'growth';
   if (phase !== f.phase) { f.phase = phase; f.entered = state.week; }
   const seen = f.seen ??= {};
   if (phase === 'recovery') {
@@ -69,9 +72,9 @@ export function dotcomStep(ctx) {
   }
   const milestones = [
     ['dotcom_eyeballs', B.dotcom.boomWeek], ['dotcom_ipo_frenzy', B.dotcom.ipoWeek],
-    ['dotcom_warning', B.dotcom.warningWeek], ['dotcom_bust', B.dotcom.bustWeek], ['dotcom_recovery', end],
+    ['dotcom_warning', B.dotcom.warningWeek], ['dotcom_bust', B.dotcom.bustWeek], ['dotcom_recovery', end - (state.eraSchedule.dotcom ?? 0)],
   ];
-  for (const [id, week] of milestones) if (state.week >= week && !seen[id]) {
+  for (const [id, week] of milestones) if (elapsed >= week && !seen[id]) {
     seen[id] = true;
     if (dotcomDecisionOpen(state, id)) {
       const ev = EVENTS[id];

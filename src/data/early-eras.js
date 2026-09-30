@@ -1,6 +1,10 @@
 // Earlier eras use negative ordinals; Classic and every AI gate keep their modern ordinal.
 export const EARLY_ORDER = ['preinternet', 'dotcom', 'web2'];
 export const EARLY_ERAS = [{
+  id: 'preinternet', name: 'Pre-internet: Boxed Software',
+  blurb: 'The box is part of the product. So is the manual nobody can find.',
+  changes: ['Order paid batches and wait for delivery', 'Retail sales use stock; poor releases bring returns', 'Mail patches to installed customers; service revenue stays separate'],
+}, {
   id: 'dotcom', name: 'The Dot-com Boom',
   blurb: 'Every company needs a website. Every website apparently needs an IPO.',
   changes: ['Build web and on-prem products', 'A boom brings customers, a float brings cash and dilution', 'Keep runway for the bust; recovery carries your company forward'],
@@ -11,6 +15,7 @@ export const EARLY_ERAS = [{
 }];
 
 export const PERIOD_MARKETS = {
+  preinternet: { categories: ['notes', 'email', 'pm', 'accounting'], angles: ['boxed', 'onprem'], trends: ['steady', 'budget_cuts', 'security_scare'] },
   dotcom: { categories: ['notes', 'email', 'pm', 'support'], angles: ['web', 'onprem'], trends: ['steady', 'budget_cuts', 'security_scare'] },
   web2: { categories: ['notes', 'email', 'pm', 'support', 'crm', 'analytics', 'design', 'devtools'], angles: ['web', 'onprem', 'api', 'freemium'], trends: ['steady', 'budget_cuts', 'security_scare'] },
 };
@@ -46,6 +51,14 @@ export const DOTCOM_CHAT = [
 
 // Keep campaign mechanics stable while period copy describes the channel the company actually buys.
 export const PERIOD_CHANNELS = {
+  preinternet: {
+    launch: { name: 'Magazine Launch', desc: 'A review copy, a printed advert and a phone number for orders.' },
+    content: { name: 'Printed Newsletter', desc: 'Useful tips, mailed to people who ticked the box.' },
+    community: { name: 'User Group', desc: 'Meet at the library. Bring your own extension lead.' },
+    ads: { name: 'Magazine Adverts', desc: 'Buy a rectangle between the reviews and the classified ads.' },
+    conference: { name: 'Software Trade Show', desc: 'Boxed demos, printed manuals and a suitcase full of disks.' },
+    enterprise: { name: 'On-prem Sales', desc: 'A demonstration in the client office, followed by a paper contract.' },
+  },
   web2: {
     launch: { name: 'Directory Launch', desc: 'A listing, a demo and a comments section with opinions about both.' },
     content: { name: 'Company Blog', desc: 'An RSS feed and useful advice. The gradient is optional.' },

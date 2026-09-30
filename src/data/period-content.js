@@ -36,7 +36,11 @@ const SHARED = {
 };
 
 export const PERIOD_COPY = {
-  preinternet: SHARED,
+  preinternet: { ...SHARED, trends: {
+    steady: { name: 'Shelf Space', text: 'Orders are steady. The distributor would like a shorter manual and a larger box.' },
+    budget_cuts: { name: 'Purchasing Freeze', text: 'The purchase orders are waiting for a signature. The pen is in another meeting.' },
+    security_scare: { name: 'Disk Virus Scare', text: 'A borrowed disk brought an unwanted program. The office has labelled the clean backups.' },
+  } },
   dotcom: { ...SHARED, trends: {
     steady: { name: 'Steady Traffic', text: 'The visitor counter is moving at an ordinary speed. The board has asked whether it is broken.' },
     budget_cuts: { name: 'Procurement Freeze', text: 'Customers are extending their licences. Your fax machine has become a negotiation tool.' },
@@ -74,6 +78,10 @@ const OFFICE_CHATTER = {
   farewell: ['Signing off. My notes are in the top drawer.', 'Keep the backups. Please keep the backups.'],
 };
 export const PERIOD_CHATTER = {
+  preinternet: { ...OFFICE_CHATTER,
+    happy: ['/me labels the master disk VERY FINAL', 'The manual has an index. We are showing off.'],
+    idle: ['/me checks the LAN noticeboard', 'Counting floppies. Losing count. Starting again.'],
+  },
   dotcom: { ...OFFICE_CHATTER,
     happy: ['Our guestbook has a compliment from a stranger.', 'The page loads before the modem finishes singing.'],
     idle: ['Adding a visitor counter to the visitor counter.', 'brb, untangling the cable behind the CRT.'],
@@ -134,7 +142,7 @@ const PERIOD_TEXT = {
 };
 export function periodText(state, text) {
   if (!isPeriod(state) || typeof text !== 'string') return text;
-  if (state.era.id === 'dotcom') text = text
+  if (state.era.id === 'dotcom' || state.era.id === 'preinternet') text = text
     .replaceAll('office Wi-Fi', 'office file server').replace(/\bwi-?fi\b/gi, 'network');
   return (PERIOD_TEXT[text] ?? text).replaceAll('Yak', PERIOD_CHAT_APPS[state.era.id].name)
     .replaceAll('TechCrunchy', SHARED.press.techcrunchy.name).replaceAll('The Vergence', SHARED.press.vergence.name)

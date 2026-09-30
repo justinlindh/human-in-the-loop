@@ -6,6 +6,7 @@ import { trackRun } from './lib/timing.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { ERA_STARTS } from '../src/data/era-modes.js';
+import { EARLY_ORDER } from '../src/data/early-eras.js';
 import { compare, markdown } from './events/pair-report.js';
 
 const args = process.argv.slice(2);
@@ -54,6 +55,7 @@ for (const name of bots) {
     reasons: Object.entries(reasons).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(', '),
     weeks: median(results.map((r) => r.weeks)),
     firstLaunch: median(results.map((r) => r.firstLaunch ?? 999)),
+    pastOpening: `${Math.round(100 * results.filter((r) => r.weeks > B.preinternet.weeks).length / seeds)}%`,
     peakMrr: fmt(median(results.map((r) => r.peakMrr))),
     score: fmt(median(results.map((r) => r.score))),
     hq: `${Math.round((100 * results.filter((r) => r.maxStage === 2).length) / seeds)}%`,
@@ -68,7 +70,7 @@ console.table(rows);
 // Era by era: how many runs reached each era, and median cash, staff, and MRR on arrival.
 const eraRows = [];
 for (const name of bots) {
-  for (const era of ['chatgbt', 'agents', 'consolidation', 'plateau']) {
+  for (const era of [...EARLY_ORDER, 'classic', 'chatgbt', 'agents', 'consolidation', 'plateau']) {
     const at = all[name].map((r) => r.eras[era]).filter(Boolean);
     eraRows.push({
       bot: name, era, reached: `${Math.round((100 * at.length) / seeds)}%`,

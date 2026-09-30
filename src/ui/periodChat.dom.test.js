@@ -16,7 +16,7 @@ afterEach(() => {
   localStorage.clear(); document.body.replaceChildren();
 });
 
-it.each([['dotcom', 'awayim', 'AwayIM'], ['web2', 'hipcheck', 'HipCheck'], ['classic', 'yak', 'Yak'], ['chatgbt', 'yak', 'Yak'], ['agents', 'yak', 'Yak']])(
+it.each([['preinternet', 'desknet', 'DeskNet'], ['dotcom', 'awayim', 'AwayIM'], ['web2', 'hipcheck', 'HipCheck'], ['classic', 'yak', 'Yak'], ['chatgbt', 'yak', 'Yak'], ['agents', 'yak', 'Yak']])(
   'skins %s without changing saved messages, reply actions or browser keys', (startEra, app, name) => {
     const s = createGame({ seed: 11, startEra });
     s.flags.saveSlot = 'slot1';

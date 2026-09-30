@@ -1,5 +1,15 @@
 // Every tunable number in the simulation. Tune here, nowhere else.
 export const B = {
+  preinternet: {
+    weeks: 156, startYear: 1990, endYear: 1997,
+    batches: [100, 500, 1000], unitCost: 8, price: 30, retailerShare: 0.3, leadWeeks: 2,
+    returnScore: 6, returnRate: 0.05, patchPerCustomer: 2, patchCap: 10000,
+    verifyCost: 2000, verifyReliability: 5, rushDebt: 3, rushCash: 3000,
+    buybackShare: 0.2, buybackCap: 8000, buybackDelayWeeks: 4, cdWeek: 78, cdCost: 4000, cdCapacity: 0.25,
+    duplicatorCosts: [3000, 6000, 12000], duplicatorRelief: [0.1, 0.2, 0.3],
+    shelfCosts: [2000, 4000, 8000], shelfDemand: [0.1, 0.15, 0.2],
+    launchReward: { cash: 5000, brand: 2 }, botPatchHealth: 50,
+  },
   web2: {
     weeks: 208, startYear: 2003, endYear: 2019,
     workMult: 1.20, whispererWorkMult: 1.08, legacyLaunches: 3,
@@ -158,6 +168,7 @@ export const B = {
     preseed: { cash: 300000, scoreMult: 0.96, brand: 8, seniorCandidates: 2 },
   },
   eraStarts: {
+    preinternet: { cash: 240000, officeStage: 0, desks: 3, scoreMult: 1.2 },
     web2: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 0.75 },
     dotcom: { cash: 140000, officeStage: 0, desks: 4, scoreMult: 0.9 },
     classic: { cash: 0, officeStage: 0, desks: 2, scoreMult: 1 },
