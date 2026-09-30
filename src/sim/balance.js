@@ -157,6 +157,7 @@ export const B = {
     family: { cash: 150000, scoreMult: 0.97, brand: 0, seniorCandidates: 0 },
     preseed: { cash: 300000, scoreMult: 0.96, brand: 8, seniorCandidates: 2 },
   },
+  dilutionScoreMult: 0.8,
   eraStarts: {
     web2: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 0.75 },
     dotcom: { cash: 140000, officeStage: 0, desks: 4, scoreMult: 0.9 },
@@ -164,6 +165,7 @@ export const B = {
     chatgbt: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 0.75 },
     agents: { cash: 240000, officeStage: 0, desks: 4, scoreMult: 0.4, incidentGraceWeeks: 260, incidentSeverityCap: 2 },
   },
+  takeover: { bot: 'sensible', scoreMult: { chatgbt: 0.63, agents: 0.38 } },
   founderStrengthBonus: 3, founderIkWeight: 0.4, founderGeneralistWeights: { features: 0.3, polish: 0.15, reliability: 0.2, novelty: 0.1 },
   botBuildersPerProject: 6, botTimeOffStrain: 70, botCancelUnstaffedWeeks: 2, botExpandCushion: 2, botDialCash: 3000000, botAcquireCushion: 4, botAcquireDesks: 3, botMoonshotCushion: 3, botFameBelow: 30, botFameCushion: 6,
   eraAutoEngMult: { classic: 1, chatgbt: 1, agents: 3, consolidation: 3, plateau: 2 },

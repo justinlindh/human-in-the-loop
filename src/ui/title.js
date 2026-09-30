@@ -13,6 +13,9 @@ import { OFFICE_STAGES } from '../data/office.js';
 import { GOALS } from '../data/goals.js';
 import { erasPreview } from './eraPreview.js';
 import { periodCopy } from '../data/period-content.js';
+import { createGame } from '../sim/state.js';
+import { canTakeOver } from '../sim/takeover.js';
+import { weeklyCosts, weeklyRevenue } from '../sim/economy.js';
 
 const NAME_A = ['Loop', 'Pair', 'Kindly', 'Tiny', 'Candor', 'Hearth', 'Paper', 'Lantern', 'Honest', 'Maple', 'Orbit', 'Quiet'];
 const NAME_B = ['works', 'labs', ' & Co', ' Software', 'craft', ' Systems', 'house', ' Collective', 'forge', ' Studio'];
@@ -211,7 +214,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
   const MAX_SAVES = 6;
 
   function newGameView() {
-    draft = { companyName: suggestCompany(), logoColor: LOGO_COLORS[0], tagline: TAGLINES[0], seed: '', founders: [], funding: 'bootstrapped', startEra: 'classic', replaceId: null };
+    draft = { companyName: suggestCompany(), logoColor: LOGO_COLORS[0], tagline: TAGLINES[0], seed: '', founders: [], funding: 'bootstrapped', startEra: 'classic', startMode: 'garage', replaceId: null };
     const list = controls.listSaves?.();
     if (Array.isArray(list) && list.length >= (controls.maxSaves ?? MAX_SAVES)) replaceView(list);
     else identityStep();
@@ -340,6 +343,15 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
   }
 
   function fundingStep() {
+    let nextBtn;
+    const modeCards = erasPreview ? h('div.takeover-choices', { role: 'group', 'aria-label': 'Company start' },
+      ...[['garage', 'Found a company', 'Start with your two founders in a garage.'],
+        ['takeover', 'Take over a company', 'Inherit the people, products and history of a company already running.']].map(([id, name, text]) =>
+        h('button.start-mode', { dataset: { startMode: id }, onclick: () => { draft.startMode = id; sfx('click'); refreshEra(); } },
+          h('b', { text: name }), h('span.small', { text })))) : null;
+    const fundingLabel = h('b', { text: 'How are you paying for this?' });
+    const scoreNote = h('div.small.muted');
+    const error = h('div.small.bad-t', { role: 'alert', hidden: true });
     const eraCards = erasPreview ? h('div.era-starts', { role: 'group', 'aria-label': 'Starting era' }, ...Object.values(ERA_STARTS).map((e) => {
       const k = B.eraStarts[e.id];
       return h(`button.era-start${e.id === draft.startEra ? '.on' : ''}`, {
@@ -352,6 +364,10 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     const skippedNote = h('div.small.muted');
     const summary = h('div.era-start-summary', { 'aria-live': 'polite' });
     const refreshSummary = () => {
+      if (draft.startMode === 'takeover') {
+        setText(summary, 'Your chosen founders and funding build the predecessor company under the sensible manager. Review what survived before you take over. No era kit or fresh funding is added.');
+        return;
+      }
       const kit = B.eraStarts[draft.startEra];
       const total = B.funding[draft.funding].cash + kit.cash;
       const mult = Math.round(B.funding[draft.funding].scoreMult * kit.scoreMult * 10000) / 10000;
@@ -377,6 +393,22 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     });
     const cardsEl = h('div.funds', null, ...cards);
     const refreshEra = () => {
+      if (!canTakeOver(draft.startEra)) draft.startMode = 'garage';
+      const takeover = draft.startMode === 'takeover';
+      if (modeCards) {
+        modeCards.hidden = !canTakeOver(draft.startEra);
+        modeCards.querySelectorAll('button').forEach((b) => {
+          const selected = b.dataset.startMode === draft.startMode;
+          b.classList.toggle('on', selected);
+          b.setAttribute('aria-pressed', String(selected));
+        });
+      }
+      setText(error, '');
+      error.hidden = true;
+      setText(fundingLabel, takeover ? 'How was the company originally funded?' : 'How are you paying for this?');
+      setText(scoreNote, takeover ? `Takeover score x${B.takeover.scoreMult[draft.startEra]}, before funding and any earned dilution. The company keeps its age and twentieth-anniversary checkpoint.`
+        : erasPreview ? 'Funding and starting-era score factors multiply. Classic keeps the full score; other starts trade score for a kit.' : 'When the game ends, your company gets a final score. More money now means a slightly smaller score later.');
+      if (nextBtn && erasPreview) nextBtn.replaceChildren(icon('launch'), ' ', takeover ? 'Review the company' : 'Start the company');
       const era = ERA_STARTS[draft.startEra];
       const kit = B.eraStarts[draft.startEra];
       eraCards?.querySelectorAll('.era-start').forEach((card) => {
@@ -388,38 +420,101 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       const unlocks = era.unlocks.map((key) => key === 'policy.pair' ? 'AI as Pair' : key[0].toUpperCase() + key.slice(1)).join(', ');
       setText(unlockNote, unlocks ? `Already open: ${unlocks}. Policies start off.` : 'Classic is the full modern run, with the ordinary unlocks and goals.');
       setText(skippedNote, skipped ? `Skipped without rewards: ${skipped}.` : '');
-      skippedNote.style.display = skipped ? '' : 'none';
+      skippedNote.style.display = !takeover && skipped ? '' : 'none';
+      unlockNote.style.display = takeover ? 'none' : '';
       cards.forEach((card, i) => {
         const f = FUNDING[i];
-        setText(card.querySelector('.fcash'), fmtMoney(fundingCash(f) + kit.cash));
-        setText(card.querySelector('.fdesc'), draft.startEra === 'classic' ? f.desc ?? '' : KIT_FUNDING[f.id]);
+        setText(card.querySelector('.fcash'), fmtMoney(fundingCash(f) + (takeover ? 0 : kit.cash)));
+        setText(card.querySelector('.fdesc'), takeover ? 'Original funding, spent and earned by the previous management.' : draft.startEra === 'classic' ? f.desc ?? '' : KIT_FUNDING[f.id]);
         const kitNote = card.querySelector('.fkit');
         setText(kitNote, kit.cash ? `Includes ${fmtMoney(kit.cash)} era kit` : '');
-        kitNote.style.display = kit.cash ? '' : 'none';
+        kitNote.style.display = !takeover && kit.cash ? '' : 'none';
       });
       refreshSummary();
     };
-    frame(2, h('div.fbody', null,
+    nextBtn = frame(2, h('div.fbody', null,
       erasPreview ? h('b', { text: 'When does your company begin?' }) : null, eraCards,
+      modeCards,
       erasPreview ? unlockNote : null,
       erasPreview ? skippedNote : null,
-      h('b', { text: 'How are you paying for this?' }),
+      fundingLabel,
       cardsEl,
       erasPreview ? summary : null,
-      h('div.small.muted', { text: erasPreview ? 'Funding and starting-era score factors multiply. Classic keeps the full score; other starts trade score for a kit.' : 'When the game ends, your company gets a final score. More money now means a slightly smaller score later.' })), start, 'Start the company');
+      scoreNote, erasPreview ? error : null), () => {
+      if (draft.startMode !== 'takeover') { start(); return; }
+      if (!draft.seed.trim()) draft.seed = String(Math.floor(Math.random() * 1e9));
+      prepare(nextBtn, () => {
+        try { takeoverStep(createGame(gameOptions())); }
+        catch (e) { setText(error, e.message); error.hidden = false; sfx('error'); }
+      });
+    }, 'Start the company');
     refreshEra();
   }
 
-  function start() {
+  async function prepare(button, build) {
+    const card = button.closest('.founding');
+    const buttons = [...card.querySelectorAll('button')].map((b) => [b, b.disabled]);
+    const content = [...button.childNodes];
+    buttons.forEach(([b]) => { b.disabled = true; });
+    card.setAttribute('aria-busy', 'true');
+    setText(button, 'Preparing the company...');
+    // Give the progress label a painted frame before running the predecessor.
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    try { if (card.isConnected) build(); }
+    finally {
+      buttons.forEach(([b, disabled]) => { b.disabled = disabled; });
+      card.removeAttribute('aria-busy');
+      button.replaceChildren(...content);
+    }
+  }
+
+  function gameOptions() {
     const raw = draft.seed.trim();
     const seed = raw ? Number(raw) : Math.floor(Math.random() * 1e9);
-    sfx('confirm');
-    if (draft.replaceId) controls.deleteSave?.(draft.replaceId);
-    controls.newGame?.({
+    return {
       companyName: draft.companyName.trim(), seed, logoColor: draft.logoColor, tagline: draft.tagline.trim(),
       founders: [...draft.founders], funding: draft.funding,
       ...(erasPreview ? { startEra: draft.startEra } : {}),
-    });
+      ...(erasPreview && draft.startMode === 'takeover' ? { startMode: 'takeover' } : {}),
+    };
+  }
+
+  function takeoverStep(s) {
+    const costs = Object.values(weeklyCosts(s)).reduce((a, b) => a + b, 0);
+    const burn = costs - weeklyRevenue(s);
+    const products = s.products.filter((p) => !p.killed);
+    const mult = s.founding.eraScoreMult * B.funding[s.founding.funding].scoreMult
+      * (s.flags.diluted ? B.dilutionScoreMult : 1) * (1 - (s.flags.incubatorCut ?? 0));
+    const factors = [`takeover x${s.founding.eraScoreMult}`, `funding x${B.funding[s.founding.funding].scoreMult}`];
+    if (s.flags.diluted) factors.push(`VC dilution x${B.dilutionScoreMult}`);
+    if (s.flags.incubatorCut) factors.push(`incubator cut x${1 - s.flags.incubatorCut}`);
+    const fact = (label, value) => h('div.takeover-fact', null, h('span.small', { text: label }), h('b', { text: value }));
+    root.replaceChildren(h('div.tl-card.founding.takeover', null, lockup(),
+      h('div.tl-form', null,
+        h('h2', { text: `Take over ${s.companyName}` }),
+        h('p.small', { text: `Built by the sensible manager from seed ${s.seed}. Your founders and original funding shaped this company. These are its actual books and people.` }),
+        h('div.takeover-facts', null,
+          fact('Entering', ERA_STARTS[draft.startEra].name), fact('Company age', `${s.week} weeks`),
+          fact('People', String(s.staff.length)), fact('Live products', String(products.length)),
+          fact('Cash', fmtMoney(s.cash)), fact('Weekly burn', burn > 0 ? `${fmtMoney(burn)}/wk` : `$0 (${fmtMoney(-burn)}/wk surplus)`),
+          fact('Office', OFFICE_STAGES[s.officeStage].name), fact('Weekly costs', fmtMoney(costs))),
+        h('details.takeover-detail', null, h('summary', { text: `Meet the team (${s.staff.length})` }),
+          h('ul', null, ...s.staff.map((p) => h('li', { text: `${p.name}, ${p.seniority} ${p.role}` })))),
+        h('details.takeover-detail', null, h('summary', { text: `See the products (${products.length})` }),
+          h('ul', null, ...products.map((p) => h('li', { text: `${p.name}: ${p.customers} customers, ${fmtMoney(p.mrr)} MRR` })))),
+        h('p.small', { text: `The company keeps its projects, policies, debts, incidents and history. Its twentieth-anniversary checkpoint is in ${Math.max(0, B.anniversaryWeek - s.week)} weeks.` }),
+        h('p.small', { text: `Score factors: ${factors.join(', ')}. Combined x${Math.round(mult * 10000) / 10000}.` }),
+        s.pendingDecision ? h('p.small', { text: `Waiting for you: ${s.pendingDecision.title}` }) : null,
+        h('div.row.takeover-actions', null,
+          h('button.btn.big', { onclick: () => { sfx('click'); fundingStep(); } }, 'Back'),
+          h('button.btn.go.big', { onclick: (e) => prepare(e.currentTarget, start) }, 'Take over and play')))));
+  }
+
+  function start() {
+    const options = gameOptions();
+    sfx('confirm');
+    if (draft.replaceId) controls.deleteSave?.(draft.replaceId);
+    controls.newGame?.(options);
     onStart({ fresh: true });
   }
 

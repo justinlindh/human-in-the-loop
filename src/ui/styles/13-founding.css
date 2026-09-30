@@ -35,10 +35,17 @@
 .hitl .fund { justify-content: flex-start; padding: 0.8em 0.7em; gap: 0.45em; }
 .hitl .fcash { font-size: 1.6em; font-weight: 700; }
 .hitl .era-starts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6em; }
-.hitl .era-start { display: flex; flex-direction: column; gap: 0.4em; padding: 0.7em; text-align: left; font: inherit; color: var(--ink); background: var(--cream-2); border: var(--bw) solid var(--ink); border-radius: 0.7em; cursor: pointer; }
-.hitl .era-start.on { background: #fff4dc; box-shadow: 0 0 0 0.15em var(--yellow); }
-.hitl .era-start:focus-visible { outline: 0.2em solid var(--green); outline-offset: 0.15em; }
+.hitl .era-start, .hitl .start-mode { display: flex; flex-direction: column; gap: 0.4em; padding: 0.7em; text-align: left; font: inherit; color: var(--ink); background: var(--cream-2); border: var(--bw) solid var(--ink); border-radius: 0.7em; cursor: pointer; }
+.hitl .era-start.on, .hitl .start-mode.on { background: #fff4dc; box-shadow: 0 0 0 0.15em var(--yellow); }
+.hitl .era-start:focus-visible, .hitl .start-mode:focus-visible { outline: 0.2em solid var(--green); outline-offset: 0.15em; }
 .hitl .era-start-summary { padding: 0.7em; background: var(--cream-3); border-radius: 0.5em; font-weight: 600; }
+.hitl .takeover-choices, .hitl .takeover-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6em; }
+.hitl .takeover-choices[hidden] { display: none; }
+.hitl .takeover-fact { display: flex; flex-direction: column; gap: 0.25em; padding: 0.65em; background: var(--cream-3); border-radius: 0.5em; overflow-wrap: anywhere; }
+.hitl .takeover-detail summary { cursor: pointer; padding: 0.7em; min-height: 44px; border: var(--bw) solid var(--ink); border-radius: 0.5em; }
+.hitl .takeover-detail li { margin: 0.4em 0; overflow-wrap: anywhere; }
+.hitl .takeover-actions { flex-wrap: wrap; }
+.hitl .takeover h2, .hitl .takeover p { margin: 0; }
 @media (max-width: 600px) { .hitl .era-starts { grid-template-columns: 1fr; } }
 .hitl .tray-card.goals { cursor: default; }
 .hitl .tray-card.goals .t span:first-child { display: inline-flex; align-items: center; gap: 0.3em; }

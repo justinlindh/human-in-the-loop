@@ -599,14 +599,20 @@ export function runBot(name, seed, maxWeeks = null, { onWeek, onEvents = null, s
   maxWeeks ??= B.runWeeks + earlyWeeks(s);
   setup?.(s);
   let maxStage = s.officeStage;
-  let firstLaunch = null;
+  let firstLaunch = s.founding?.startMode === 'takeover' && s.products.length
+    ? Math.min(...s.products.map((p) => p.launchedWeek)) : null;
   let crises = 0;
   let wasUnrecoverable = false;
   const eras = {};
   const stageWeeks = { 0: 0 };
-  if (s.founding?.startEra) {
-    eras[s.era.id] = { week: 0, cash: s.cash, staff: s.staff.length, mrr: totalMrr(s) };
-    stageWeeks[s.officeStage] = 0;
+  if (s.founding?.startEra || s.founding?.startMode === 'takeover') {
+    eras[s.era.id] = { week: s.week, cash: s.cash, staff: s.staff.length, mrr: totalMrr(s) };
+    stageWeeks[s.officeStage] = s.week;
+  }
+  if (s.founding?.startMode === 'takeover') {
+    for (const [stage, goal] of [[1, 'office_floor'], [2, 'hq']]) {
+      if (s.goals[goal]?.done) stageWeeks[stage] = s.goals[goal].week;
+    }
   }
   while (!s.gameOver && s.week < maxWeeks) {
     crises += botDecide(name, s, { onEvents });

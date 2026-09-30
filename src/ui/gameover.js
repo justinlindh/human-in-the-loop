@@ -55,11 +55,12 @@ export function createGameOver({ layer, controls, sfx, act }) {
       const raw = Math.max(0, Object.values(run.breakdown).reduce((a, v) => a + v, 0));
       rows.push(h('div.kv.sum', null, h('span', { text: 'Points' }), h('b.num', { text: fmtNum(Math.round(raw)) })));
       if (!g.won) rows.push(h('div.kv', null, h('span', { text: 'Run lost' }), h('b.num.bad-t', { text: 'x0.5' })));
-      if (s.flags?.diluted) rows.push(h('div.kv', null, h('span', { text: 'VC dilution' }), h('b.num.bad-t', { text: 'x0.8' })));
+      if (s.flags?.diluted) rows.push(h('div.kv', null, h('span', { text: 'VC dilution' }), h('b.num.bad-t', { text: `x${B.dilutionScoreMult}` })));
       const funding = B.funding[s.founding?.funding]?.scoreMult ?? 1;
       if (funding !== 1) rows.push(h('div.kv', null, h('span', { text: 'Funding' }), h('b.num', { text: `x${funding}` })));
       if (s.flags?.incubatorCut) rows.push(h('div.kv', null, h('span', { text: 'Incubator cut' }), h('b.num', { text: `x${1 - s.flags.incubatorCut}` })));
       if (erasPreview && s.founding?.startEra) rows.push(h('div.kv', null, h('span', { text: `${ERA_STARTS[s.founding.startEra]?.name ?? s.founding.startEra} start` }), h('b.num', { text: `x${s.founding.eraScoreMult}` })));
+      if (erasPreview && s.founding?.startMode === 'takeover') rows.push(h('div.kv', null, h('span', { text: `${ERA_STARTS[s.founding.takeoverEra]?.name ?? s.founding.takeoverEra} takeover` }), h('b.num', { text: `x${s.founding.eraScoreMult}` })));
       rows.push(h('div.kv.sum', null, h('span', { text: 'Score' }), h('b.num', { text: fmtNum(g.score ?? run.score) })));
     }
     const anniversary = g.reason === 'anniversary';

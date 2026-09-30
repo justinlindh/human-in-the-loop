@@ -26,7 +26,7 @@ export function scoreRun(state) {
   // The incubator house's cut, if the founders took the free rent.
   const incubator = 1 - (state.flags.incubatorCut ?? 0);
   const era = state.founding?.eraScoreMult ?? 1;
-  const score = Math.round(Math.max(0, raw) * (won ? 1 : 0.5) * (state.flags.diluted ? 0.8 : 1) * funding * incubator * era);
+  const score = Math.round(Math.max(0, raw) * (won ? 1 : 0.5) * (state.flags.diluted ? B.dilutionScoreMult : 1) * funding * incubator * era);
   return { score, valuation, breakdown };
 }
 
