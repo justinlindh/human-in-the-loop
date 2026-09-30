@@ -43,15 +43,15 @@ for s in (-1, 1):
                       rot=(0, s * math.radians(-18), 0)))
 join(fleece, 'attire_fleece')
 
-for kind, radius in [('khaki', 0.063), ('cargo_l', 0.060), ('cargo_r', 0.060), ('jeans', 0.046)]:
-    parts = [cyl(kind, radius, 0.25, (0, 0, -0.125), pants, verts=12, bevel=0.018, segments=2)]
+for kind, radius in [('khaki', 0.058), ('cargo_l', 0.051), ('cargo_r', 0.051), ('jeans', 0.046)]:
+    parts = [cyl(kind, radius, 0.25, (0, 0, -0.125), pants, verts=12, bevel=0.028, segments=2)]
     if kind == 'khaki':
         for x in (-0.021, 0.021):
             parts.append(box('pleat', (0.006, 0.01, 0.12), (x, -0.058, -0.082), 'baseboard', 0.003, 1))
     if kind.startswith('cargo'):
         for s in (-1,) if kind == 'cargo_l' else (1,):
-            parts += [box('cargo_pocket', (0.025, 0.075, 0.082), (s * 0.063, 0, -0.125), pants, 0.009),
-                      box('cargo_flap', (0.03, 0.081, 0.018), (s * 0.064, 0, -0.087), 'baseboard', 0.006)]
+            parts += [box('cargo_pocket', (0.018, 0.048, 0.082), (s * 0.046, 0, -0.125), pants, 0.008),
+                      box('cargo_flap', (0.018, 0.048, 0.018), (s * 0.046, 0, -0.087), 'baseboard', 0.006)]
     if kind == 'jeans':
         parts.append(cyl('cuff', 0.048, 0.025, (0, 0, -0.232), 'fabric_slate', verts=12, bevel=0.005, segments=1))
     join(parts, 'attire_' + kind)
