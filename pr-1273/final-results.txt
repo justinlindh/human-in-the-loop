@@ -1,0 +1,64 @@
+automateAll: 200/200 full-state hashes identical
+allHumans: 200/200 full-state hashes identical
+balanced: 200/200 full-state hashes identical
+sensible: 200/200 full-state hashes identical
+recklessHumans: 200/200 full-state hashes identical
+squads: 200/200 full-state hashes identical
+
+### ChatGBT
+
+| bot | same | exit garage -> takeover | lost / gained | median score | median weeks | incidents | caught | breaches |
+|---|---|---|---|---|---|---|---|---|
+| automateAll | 0/200 | 0% -> 0% | 0 / 0 | 1194 -> 1204 | 239 -> 496 | 3095 -> 5811 | 0 -> 900 | 715 -> 1979 |
+| allHumans | 0/200 | 17% -> 33% | 20 / 51 | 22347 -> 24781 | 1040 -> 1040 | 3041 -> 3600 | 0 -> 415 | 3041 -> 3600 |
+| balanced | 0/200 | 78% -> 81% | 34 / 40 | 29554 -> 28140 | 707 -> 837 | 3303 -> 3760 | 916 -> 787 | 3215 -> 3691 |
+| sensible | 0/200 | 93% -> 81% | 37 / 12 | 31065 -> 28140 | 639 -> 837 | 3215 -> 3760 | 845 -> 787 | 3147 -> 3691 |
+| recklessHumans | 0/200 | 0% -> 0% | 0 / 0 | 343 -> 1366 | 1040 -> 1040 | 2617 -> 2235 | 0 -> 290 | 2617 -> 2235 |
+| squads | 0/200 | 78% -> 73% | 43 / 34 | 29170 -> 27886 | 712 -> 845 | 3663 -> 3866 | 31 -> 453 | 3577 -> 3797 |
+
+| bot | garage played weeks | takeover played weeks |
+|---|---:|---:|
+| automateAll | 239 | 302 |
+| allHumans | 1040 | 838 |
+| balanced | 707 | 636 |
+| sensible | 639 | 636 |
+| recklessHumans | 1040 | 844 |
+| squads | 712 | 650 |
+
+| bot | garage endings | takeover endings |
+|---|---|---|
+| automateAll | collapse 191, runway 9 | collapse 200 |
+| allHumans | anniversary 145, retired 34, runway 21 | anniversary 132, retired 65, runway 3 |
+| balanced | anniversary 43, retired 155, runway 2 | anniversary 38, retired 161, runway 1 |
+| sensible | anniversary 14, retired 186 | anniversary 38, retired 161, runway 1 |
+| recklessHumans | anniversary 137, runway 63 | anniversary 195, runway 5 |
+| squads | anniversary 44, retired 155, runway 1 | anniversary 54, retired 146 |
+
+### Agents
+
+| bot | same | exit garage -> takeover | lost / gained | median score | median weeks | incidents | caught | breaches |
+|---|---|---|---|---|---|---|---|---|
+| automateAll | 0/200 | 0% -> 0% | 0 / 0 | 1052 -> 4314 | 271 -> 1040 | 8749 -> 19467 | 0 -> 5912 | 1663 -> 5682 |
+| allHumans | 0/200 | 30% -> 33% | 38 / 43 | 12352 -> 14919 | 1040 -> 1040 | 3474 -> 3616 | 0 -> 681 | 3474 -> 3616 |
+| balanced | 0/200 | 92% -> 81% | 37 / 15 | 18411 -> 16974 | 594 -> 837 | 3324 -> 3760 | 880 -> 787 | 3255 -> 3691 |
+| sensible | 0/200 | 97% -> 81% | 38 / 6 | 17291 -> 16974 | 567 -> 837 | 3475 -> 3760 | 900 -> 787 | 3413 -> 3691 |
+| recklessHumans | 0/200 | 0% -> 0% | 0 / 0 | 382 -> 0 | 1040 -> 1040 | 3537 -> 2776 | 0 -> 606 | 3537 -> 2776 |
+| squads | 0/200 | 91% -> 78% | 39 / 13 | 17634 -> 16881 | 612 -> 838 | 3796 -> 4120 | 30 -> 848 | 3688 -> 4047 |
+
+| bot | garage played weeks | takeover played weeks |
+|---|---:|---:|
+| automateAll | 271 | 712 |
+| allHumans | 1040 | 708 |
+| balanced | 594 | 511 |
+| sensible | 567 | 511 |
+| recklessHumans | 1040 | 711 |
+| squads | 612 | 512 |
+
+| bot | garage endings | takeover endings |
+|---|---|---|
+| automateAll | collapse 200 | anniversary 161, collapse 39 |
+| allHumans | anniversary 110, retired 60, runway 30 | anniversary 132, retired 65, runway 3 |
+| balanced | anniversary 17, retired 183 | anniversary 38, retired 161, runway 1 |
+| sensible | anniversary 7, retired 193 | anniversary 38, retired 161, runway 1 |
+| recklessHumans | anniversary 175, runway 25 | anniversary 155, runway 45 |
+| squads | anniversary 16, retired 182, runway 2 | anniversary 44, retired 156 |
