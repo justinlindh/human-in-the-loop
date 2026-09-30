@@ -1,0 +1,170 @@
+{
+  "gl": "software",
+  "glName": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+  "size": "1280x720",
+  "runs": 3,
+  "warmup": 2,
+  "seconds": 5,
+  "cpus": "30-31",
+  "hostCpus": 32,
+  "loadAtStart": 23.3,
+  "quiet": null,
+  "builds": [
+    {
+      "label": "fe70d815",
+      "bundle": {
+        "js": {
+          "raw": 2213572,
+          "gz": 731970
+        },
+        "css": {
+          "raw": 113245,
+          "gz": 20950
+        }
+      },
+      "late": null,
+      "scenes": {
+        "garage/low": {
+          "frames": 32,
+          "p50": 162.0999999999999,
+          "p95": 169.54999999999995,
+          "cpu": 160.59999999403954,
+          "render": 160.14999997615814,
+          "calls": 153,
+          "triangles": 69992,
+          "geometries": 151,
+          "textures": 15,
+          "programs": 10,
+          "meshes": 110,
+          "heapMB": 12.177192687988281,
+          "dom": 872,
+          "mutPerSec": 0,
+          "loadMs": 234,
+          "best": 159.59999999403954,
+          "load": 22.9,
+          "spread": {
+            "p50": [
+              162.1,
+              162.1,
+              160.6
+            ],
+            "render": [
+              161.85,
+              159.6,
+              160.15
+            ]
+          }
+        },
+        "floor/low": {
+          "frames": 21,
+          "p50": 243.5,
+          "p95": 287.6900000000002,
+          "cpu": 243.10000002384186,
+          "render": 242.5,
+          "calls": 256,
+          "triangles": 208710,
+          "geometries": 348,
+          "textures": 33,
+          "programs": 16,
+          "meshes": 208,
+          "heapMB": 14.499591827392578,
+          "dom": 1160,
+          "mutPerSec": 27.6,
+          "loadMs": 225,
+          "best": 239.89999997615814,
+          "load": 23.2,
+          "spread": {
+            "p50": [
+              242,
+              243.5,
+              248.2
+            ],
+            "render": [
+              242.5,
+              239.9,
+              244.75
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "94e4c036",
+      "bundle": {
+        "js": {
+          "raw": 2217373,
+          "gz": 733458
+        },
+        "css": {
+          "raw": 113245,
+          "gz": 20950
+        }
+      },
+      "late": null,
+      "scenes": {
+        "garage/low": {
+          "frames": 31,
+          "p50": 164.9499999999996,
+          "p95": 176.88000000000025,
+          "cpu": 164.39999997615814,
+          "render": 164,
+          "calls": 204,
+          "triangles": 74712,
+          "geometries": 176,
+          "textures": 13,
+          "programs": 11,
+          "meshes": 135,
+          "heapMB": 12.590526580810547,
+          "dom": 856,
+          "mutPerSec": 0,
+          "loadMs": 252,
+          "best": 160.80000001192093,
+          "load": 22.9,
+          "spread": {
+            "p50": [
+              164.95,
+              161.9,
+              166.2
+            ],
+            "render": [
+              164,
+              160.8,
+              165.2
+            ]
+          }
+        },
+        "floor/low": {
+          "frames": 20,
+          "p50": 251.30000000000018,
+          "p95": 287.32000000000005,
+          "cpu": 244.7000000178814,
+          "render": 243.5,
+          "calls": 323,
+          "triangles": 216831,
+          "geometries": 389,
+          "textures": 32,
+          "programs": 16,
+          "meshes": 248,
+          "heapMB": 14.98360824584961,
+          "dom": 982,
+          "mutPerSec": 27.6,
+          "loadMs": 220,
+          "best": 243.09999999403954,
+          "load": 23.2,
+          "spread": {
+            "p50": [
+              250.2,
+              251.3,
+              252.1
+            ],
+            "render": [
+              243.5,
+              243.1,
+              249.6
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

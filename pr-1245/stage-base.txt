@@ -1,0 +1,537 @@
+spots (visitor/turned): visitor/hide: 384 candidates; selected {"x":-3.5556349186104046,"z":1.2356349186104048}; clear: 160, lower-ranked candidate: 176, partnerClear: 35, partnerInView: 4, inView: 8
+spots (visitor/turned): visitor/seatBack: 1 candidates; selected {"x":-2,"z":0.43}; no rejections
+spots (visitor/turned): visitor/explain: 24 candidates; selected {"x":-1.5500000000000003,"z":0.459422863405995}; clear: 9, lower-ranked candidate: 14
+STAGE      check                    view     beat              metric              value   want                                                                                          
+STAGE ok   growth.honoree           default  cheer (6.0s)      celebrating         0.994   >= 0.9 of frames (honoree celebrates throughout the beat)                                     
+STAGE ok   growth.honoree           default  cheer (6.0s)      facingCamera        1       >= 0.9 of frames (honoree faces within 70 deg of the camera)                                  
+STAGE ok   growth.honoree           default  cheer (6.0s)      visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   growth.honoree           default  cheer (6.0s)      noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   growth.coworker          default  cheer (6.0s)      celebrating         1       >= 0.9 of frames (nearby coworkers celebrate throughout the beat)                             
+STAGE ok   growth.honoree           turned   cheer (6.0s)      celebrating         0.994   >= 0.9 of frames (honoree celebrates throughout the beat)                                     
+STAGE ok   growth.honoree           turned   cheer (6.0s)      facingCamera        1       >= 0.9 of frames (honoree faces within 70 deg of the camera)                                  
+STAGE ok   growth.honoree           turned   cheer (6.0s)      visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   growth.honoree           turned   cheer (6.0s)      noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   growth.coworker          turned   cheer (6.0s)      celebrating         1       >= 0.9 of frames (nearby coworkers celebrate throughout the beat)                             
+STAGE ok   company_party.cheer      default  cheer (18.2s)     celebrating         0.985   >= 0.9 of frames (company celebrates throughout the beat)                                     
+STAGE ok   company_party.cheer      turned   cheer (18.2s)     celebrating         0.985   >= 0.9 of frames (company celebrates throughout the beat)                                     
+STAGE ok   pet.turn                 default  turn (0.6s)       upright             1       >= 1 of frames (stand upright before reaching)                                                
+STAGE ok   pet.turn                 default  turn (0.6s)       petVisible          1       >= 0.9 of frames (pet >= 60% unblocked)                                                       
+STAGE ok   pet.turn                 default  turn (0.6s)       noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   pet.approach             default  approach (0.3s)   upright             1       >= 1 of frames (wait upright while the pet approaches)                                        
+STAGE ok   pet.approach             default  approach (0.3s)   petVisible          1       >= 0.9 of frames (pet >= 60% unblocked)                                                       
+STAGE ok   pet.approach             default  approach (0.3s)   noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   pet.stroke               default  stroke (3.0s)     atPet               0.933   >= 0.8 of frames (right hand within 0.12 m of the crown)                                      
+STAGE ok   pet.stroke               default  stroke (3.0s)     headVisible         1       >= 0.9 of frames (head >= 80% unblocked)                                                      
+STAGE ok   pet.stroke               default  stroke (3.0s)     petVisible          1       >= 0.9 of frames (pet >= 60% unblocked)                                                       
+STAGE ok   pet.stroke               default  stroke (3.0s)     noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   pet.turn                 turned   turn (0.6s)       upright             1       >= 1 of frames (stand upright before reaching)                                                
+STAGE ok   pet.turn                 turned   turn (0.6s)       petVisible          1       >= 0.9 of frames (pet >= 60% unblocked)                                                       
+STAGE ok   pet.turn                 turned   turn (0.6s)       noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   pet.approach             turned   approach (0.3s)   upright             1       >= 1 of frames (wait upright while the pet approaches)                                        
+STAGE ok   pet.approach             turned   approach (0.3s)   petVisible          1       >= 0.9 of frames (pet >= 60% unblocked)                                                       
+STAGE ok   pet.approach             turned   approach (0.3s)   noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   pet.stroke               turned   stroke (3.0s)     atPet               0.933   >= 0.8 of frames (right hand within 0.12 m of the crown)                                      
+STAGE ok   pet.stroke               turned   stroke (3.0s)     headVisible         1       >= 0.9 of frames (head >= 80% unblocked)                                                      
+STAGE ok   pet.stroke               turned   stroke (3.0s)     petVisible          1       >= 0.9 of frames (pet >= 60% unblocked)                                                       
+STAGE ok   pet.stroke               turned   stroke (3.0s)     noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   petcat.turn              default  turn (0.6s)       upright             1       >= 1 of frames (stand upright before reaching)                                                
+STAGE ok   petcat.turn              default  turn (0.6s)       petVisible          1       >= 0.9 of frames (pet >= 60% unblocked)                                                       
+STAGE ok   petcat.turn              default  turn (0.6s)       noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   petcat.approach          default  approach (0.3s)   upright             1       >= 1 of frames (wait upright while the pet approaches)                                        
+STAGE ok   petcat.approach          default  approach (0.3s)   petVisible          1       >= 0.9 of frames (pet >= 60% unblocked)                                                       
+STAGE ok   petcat.approach          default  approach (0.3s)   noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   petcat.stroke            default  stroke (3.0s)     atPet               0.933   >= 0.8 of frames (right hand within 0.12 m of the crown)                                      
+STAGE ok   petcat.stroke            default  stroke (3.0s)     headVisible         1       >= 0.9 of frames (head >= 80% unblocked)                                                      
+STAGE ok   petcat.stroke            default  stroke (3.0s)     petVisible          1       >= 0.9 of frames (pet >= 60% unblocked)                                                       
+STAGE ok   petcat.stroke            default  stroke (3.0s)     noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   petcat.turn              turned   turn (0.6s)       upright             1       >= 1 of frames (stand upright before reaching)                                                
+STAGE ok   petcat.turn              turned   turn (0.6s)       petVisible          1       >= 0.9 of frames (pet >= 60% unblocked)                                                       
+STAGE ok   petcat.turn              turned   turn (0.6s)       noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   petcat.approach          turned   approach (0.3s)   upright             1       >= 1 of frames (wait upright while the pet approaches)                                        
+STAGE ok   petcat.approach          turned   approach (0.3s)   petVisible          1       >= 0.9 of frames (pet >= 60% unblocked)                                                       
+STAGE ok   petcat.approach          turned   approach (0.3s)   noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   petcat.stroke            turned   stroke (3.0s)     atPet               0.933   >= 0.8 of frames (right hand within 0.12 m of the crown)                                      
+STAGE ok   petcat.stroke            turned   stroke (3.0s)     headVisible         1       >= 0.9 of frames (head >= 80% unblocked)                                                      
+STAGE ok   petcat.stroke            turned   stroke (3.0s)     petVisible          1       >= 0.9 of frames (pet >= 60% unblocked)                                                       
+STAGE ok   petcat.stroke            turned   stroke (3.0s)     noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   robot.windup             default  windup (0.5s)     facingRobot         1       >= 0.8 of frames (face within 35 deg of the robot head)                                       
+STAGE ok   robot.windup             default  windup (0.5s)     robotVisible        1       >= 0.9 of frames (robot >= 60% unblocked)                                                     
+STAGE ok   robot.windup             default  windup (0.5s)     visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   robot.windup             default  windup (0.5s)     noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   robot.slap               default  slap (1.1s)       robotContact        0.008   right hand within 0.06 m of the robot head during the slap                                    
+STAGE ok   robot.slap               default  slap (1.1s)       robotVisible        1       >= 0.9 of frames (robot >= 60% unblocked)                                                     
+STAGE ok   robot.slap               default  slap (1.1s)       visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   robot.slap               default  slap (1.1s)       noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   robot.windup             turned   windup (0.5s)     facingRobot         1       >= 0.8 of frames (face within 35 deg of the robot head)                                       
+STAGE ok   robot.windup             turned   windup (0.5s)     robotVisible        1       >= 0.9 of frames (robot >= 60% unblocked)                                                     
+STAGE ok   robot.windup             turned   windup (0.5s)     visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   robot.windup             turned   windup (0.5s)     noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   robot.slap               turned   slap (1.1s)       robotContact        0.009   right hand within 0.06 m of the robot head during the slap                                    
+STAGE ok   robot.slap               turned   slap (1.1s)       robotVisible        1       >= 0.9 of frames (robot >= 60% unblocked)                                                     
+STAGE ok   robot.slap               turned   slap (1.1s)       visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   robot.slap               turned   slap (1.1s)       noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   robot_party.serve        default  serve (5.9s)      robotVisible        1       >= 0.9 of frames (robot >= 60% unblocked)                                                     
+STAGE ok   robot_party.serve        default  serve (5.9s)      faceShows           1       >= 0.9 of frames (faces within 105 deg of the camera)                                         
+STAGE ok   robot_party.serve        default  serve (5.9s)      towardWinner        1       >= 0.9 of frames (turned within 90 deg of the winner)                                         
+STAGE ok   robot_party.serve        turned   serve (5.2s)      robotVisible        1       >= 0.9 of frames (robot >= 60% unblocked)                                                     
+STAGE ok   robot_party.serve        turned   serve (5.2s)      faceShows           1       >= 0.9 of frames (faces within 105 deg of the camera)                                         
+STAGE ok   robot_party.serve        turned   serve (5.2s)      towardWinner        1       >= 0.9 of frames (turned within 90 deg of the winner)                                         
+STAGE ok   robot_dj.dj              default  dj (5.5s)         robotVisible        1       >= 0.9 of frames (robot >= 60% unblocked)                                                     
+STAGE ok   robot_dj.dj              default  dj (5.5s)         faceCam             1       >= 0.9 of frames (faces within 60 deg of the camera)                                          
+STAGE ok   robot_dj.dj              turned   dj (6.3s)         robotVisible        1       >= 0.9 of frames (robot >= 60% unblocked)                                                     
+STAGE ok   robot_dj.dj              turned   dj (6.3s)         faceCam             1       >= 0.9 of frames (faces within 60 deg of the camera)                                          
+STAGE ok   letter.read              default  read (2.2s)       gazeOnLetter        1       >= 0.8 of frames (line of sight meets the letter)                                             
+STAGE ok   letter.read              default  read (2.2s)       letterNear          0.938   >= 0.8 of frames (letter <= 0.25 m from the eyes, within 30 deg of the face)                  
+STAGE ok   letter.read              default  read (2.2s)       facingCamera        1       >= 0.8 of frames (face within 70 deg of the camera)                                           
+STAGE ok   letter.read              default  read (2.2s)       visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   letter.read              default  read (2.2s)       noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   letter.slump             default  slump (2.0s)      facingCamera        1       >= 0.8 of frames (face within 70 deg of the camera)                                           
+STAGE ok   letter.slump             default  slump (2.0s)      headDrop            0.039   >= 0.03 m below the reading head height                                                       
+STAGE ok   letter.slump             default  slump (2.0s)      visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   letter.slump             default  slump (2.0s)      noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   letter.read              turned   read (2.2s)       gazeOnLetter        1       >= 0.8 of frames (line of sight meets the letter)                                             
+STAGE ok   letter.read              turned   read (2.2s)       letterNear          0.938   >= 0.8 of frames (letter <= 0.25 m from the eyes, within 30 deg of the face)                  
+STAGE ok   letter.read              turned   read (2.2s)       facingCamera        0.969   >= 0.8 of frames (face within 70 deg of the camera)                                           
+STAGE ok   letter.read              turned   read (2.2s)       visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   letter.read              turned   read (2.2s)       noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   letter.slump             turned   slump (2.0s)      facingCamera        1       >= 0.8 of frames (face within 70 deg of the camera)                                           
+STAGE ok   letter.slump             turned   slump (2.0s)      headDrop            0.039   >= 0.03 m below the reading head height                                                       
+STAGE ok   letter.slump             turned   slump (2.0s)      visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   letter.slump             turned   slump (2.0s)      noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   fumes.fan                default  fan (3.6s)        handHz              4.206   >= 3 Hz                                                                                       
+STAGE ok   fumes.fan                default  fan (3.6s)        handAmp             0.037   <= 0.15 m                                                                                     
+STAGE ok   fumes.fan                default  fan (3.6s)        leanAway            -0.034  head behind the feet, away from the fumes (m)                                                 
+STAGE ok   fumes.fan                default  fan (3.6s)        headAway            1       >= 0.8 of frames (face >= 50 deg off the fumes)                                               
+STAGE ok   fumes.fan                default  fan (3.6s)        smokeBetween        1       >= 0.5 of frames (smoke on the line from eyes to the fumes)                                   
+STAGE ok   fumes.fan                default  fan (3.6s)        visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   fumes.fan                default  fan (3.6s)        noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   fumes.fan                turned   fan (3.8s)        handHz              4.079   >= 3 Hz                                                                                       
+STAGE ok   fumes.fan                turned   fan (3.8s)        handAmp             0.021   <= 0.15 m                                                                                     
+STAGE ok   fumes.fan                turned   fan (3.8s)        leanAway            -0.034  head behind the feet, away from the fumes (m)                                                 
+STAGE ok   fumes.fan                turned   fan (3.8s)        headAway            1       >= 0.8 of frames (face >= 50 deg off the fumes)                                               
+STAGE ok   fumes.fan                turned   fan (3.8s)        smokeBetween        1       >= 0.5 of frames (smoke on the line from eyes to the fumes)                                   
+STAGE ok   fumes.fan                turned   fan (3.8s)        visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   fumes.fan                turned   fan (3.8s)        noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   printer.carry            default  carry (16.3s)     inHands             1       >= 1 of frames (printer centre within 0.5 m of a hand)                                        
+STAGE ok   printer.carry            default  carry (16.3s)     heldLow             1       >= 1 of frames (printer centre >= 0.3 m below the head centre)                                
+STAGE ok   printer.carry            default  carry (16.3s)     visible             0.941   >= 0.75 of frames (body >= 70% unblocked)                                                     
+STAGE ok   printer.carry            default  carry (16.3s)     noFade              0.939   >= 0.6 of frames (no faded column over them)                                                  
+STAGE ok   printer.watch            default  watch (10.5s)     visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   printer.watch            default  watch (10.5s)     noFade              1       >= 0.95 of frames (no faded column over them)                                                 
+STAGE ok   printer.smash            default  smash (5.3s)      batInHand           1       >= 1 of frames (bat centre within 0.6 m of a hand)                                            
+STAGE ok   printer.smash            default  smash (5.3s)      facesPrinter        0.937   >= 0.8 of frames (face within 45 deg of the printer)                                          
+STAGE ok   printer.smash            default  smash (5.3s)      visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   printer.smash            default  smash (5.3s)      noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   printer.carry            turned   carry (16.3s)     inHands             1       >= 1 of frames (printer centre within 0.5 m of a hand)                                        
+STAGE ok   printer.carry            turned   carry (16.3s)     heldLow             1       >= 1 of frames (printer centre >= 0.3 m below the head centre)                                
+STAGE ok   printer.carry            turned   carry (16.3s)     visible             0.818   >= 0.75 of frames (body >= 70% unblocked)                                                     
+STAGE ok   printer.carry            turned   carry (16.3s)     noFade              0.711   >= 0.6 of frames (no faded column over them)                                                  
+STAGE ok   printer.watch            turned   watch (10.5s)     visible             0.924   >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   printer.watch            turned   watch (10.5s)     noFade              0.972   >= 0.95 of frames (no faded column over them)                                                 
+STAGE ok   printer.smash            turned   smash (5.3s)      batInHand           1       >= 1 of frames (bat centre within 0.6 m of a hand)                                            
+STAGE ok   printer.smash            turned   smash (5.3s)      facesPrinter        0.848   >= 0.8 of frames (face within 45 deg of the printer)                                          
+STAGE ok   printer.smash            turned   smash (5.3s)      visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   printer.smash            turned   smash (5.3s)      noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   visitor.hide             default  hide (18.0s)      facingCamera        0.976   >= 0.8 of frames (face within 70 deg of the camera)                                           
+STAGE ok   visitor.hide             default  hide (18.0s)      watching            0.924   >= 0.8 of frames (face within 60 deg of the visitor)                                          
+STAGE ok   visitor.hide             default  hide (18.0s)      visible             0.989   >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   visitor.hide             default  hide (18.0s)      noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   visitor.test             default  test (13.4s)      atScreen            1       >= 0.8 of frames (face within 45 deg of the screen)                                           
+STAGE ok   visitor.test             default  test (13.4s)      visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   visitor.explain          default  explain (4.9s)    atScreen            0.939   >= 0.8 of frames (face within 45 deg of the screen in front of the visitor)                   
+STAGE ok   visitor.explain          default  explain (4.9s)    visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   visitor.explain          default  explain (4.9s)    noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   visitor.hide             turned   hide (19.6s)      facingCamera        0.98    >= 0.8 of frames (face within 70 deg of the camera)                                           
+STAGE ok   visitor.hide             turned   hide (19.6s)      watching            0.927   >= 0.8 of frames (face within 60 deg of the visitor)                                          
+STAGE ok   visitor.hide             turned   hide (19.6s)      visible             0.934   >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   visitor.hide             turned   hide (19.6s)      noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   visitor.test             turned   test (13.4s)      atScreen            1       >= 0.8 of frames (face within 45 deg of the screen)                                           
+STAGE FAIL visitor.test             turned   test (13.4s)      visible             0       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   visitor.explain          turned   explain (5.2s)    atScreen            0.962   >= 0.8 of frames (face within 45 deg of the screen in front of the visitor)                   
+STAGE ok   visitor.explain          turned   explain (5.2s)    visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   visitor.explain          turned   explain (5.2s)    noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   consultants.consultant   default  interview (6.4s)  facingCamera        0.99    >= 0.8 of frames (face within 70 deg of the camera)                                           
+STAGE ok   consultants.consultant   default  interview (6.4s)  atInterviewee       0.938   >= 0.8 of frames (face within 60 deg of the interviewee)                                      
+STAGE ok   consultants.consultant   default  interview (6.4s)  visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   consultants.clipboard    default  interview (6.4s)  facingCamera        1       >= 0.8 of frames (face within 70 deg of the camera)                                           
+STAGE ok   consultants.clipboard    default  interview (6.4s)  visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   consultants.interviewee  default  interview (6.5s)  facingCamera        0.933   >= 0.8 of frames (face within 70 deg of the camera)                                           
+STAGE ok   consultants.interviewee  default  interview (6.5s)  atConsultant        0.928   >= 0.8 of frames (face within 60 deg of the consultant)                                       
+STAGE ok   consultants.interviewee  default  interview (6.5s)  visible             0.938   >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   consultants.consultant   turned   interview (6.4s)  facingCamera        0.99    >= 0.8 of frames (face within 70 deg of the camera)                                           
+STAGE ok   consultants.consultant   turned   interview (6.4s)  atInterviewee       0.938   >= 0.8 of frames (face within 60 deg of the interviewee)                                      
+STAGE ok   consultants.consultant   turned   interview (6.4s)  visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   consultants.clipboard    turned   interview (6.4s)  facingCamera        1       >= 0.8 of frames (face within 70 deg of the camera)                                           
+STAGE ok   consultants.clipboard    turned   interview (6.4s)  visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   consultants.interviewee  turned   interview (6.5s)  facingCamera        0.985   >= 0.8 of frames (face within 70 deg of the camera)                                           
+STAGE ok   consultants.interviewee  turned   interview (6.5s)  atConsultant        0.867   >= 0.8 of frames (face within 60 deg of the consultant)                                       
+STAGE ok   consultants.interviewee  turned   interview (6.5s)  visible             0.938   >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   pizza.eat                default  eat (15.9s)       facesPizza          0.971   >= 0.8 of frames (face within 60 deg of the boxes)                                            
+STAGE ok   pizza.eat                default  eat (15.9s)       facingCamera        0.95    >= 0.6 of frames (face within 80 deg of the camera)                                           
+STAGE ok   pizza.eat                default  eat (15.9s)       visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   pizza.eat                turned   eat (15.9s)       facesPizza          0.939   >= 0.8 of frames (face within 60 deg of the boxes)                                            
+STAGE ok   pizza.eat                turned   eat (15.9s)       facingCamera        0.992   >= 0.6 of frames (face within 80 deg of the camera)                                           
+STAGE ok   pizza.eat                turned   eat (15.9s)       visible             0.969   >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   screen.recoil            default  recoil (12.1s)    visible             1       >= 0.8 of frames (body >= 50% unblocked (seated behind a desk))                               
+STAGE ok   screen.recoil            turned   recoil (12.1s)    visible             1       >= 0.8 of frames (body >= 50% unblocked (seated behind a desk))                               
+STAGE ok   carrier.peer             default  peer (4.2s)       atCarrier           0.96    >= 0.8 of frames (face within 45 deg of the carrier)                                          
+STAGE ok   carrier.peer             default  peer (4.2s)       facingCamera        1       >= 0.6 of frames (face within 80 deg of the camera)                                           
+STAGE ok   carrier.peer             default  peer (4.2s)       visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   carrier.peer             turned   peer (4.2s)       atCarrier           0.944   >= 0.8 of frames (face within 45 deg of the carrier)                                          
+STAGE ok   carrier.peer             turned   peer (4.2s)       facingCamera        0.976   >= 0.6 of frames (face within 80 deg of the camera)                                           
+STAGE ok   carrier.peer             turned   peer (4.2s)       visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   respond.rack             default  fix (27.7s)       facesWork           0.995   >= 0.9 of frames (face within 60 deg of the rack (or, with it turned away, the lead's screen))
+STAGE ok   respond.rack             default  fix (27.7s)       visible             0.986   >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   respond.rack             default  fix (27.7s)       noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   respond.rack             turned   fix (22.4s)       facesWork           0.996   >= 0.9 of frames (face within 60 deg of the rack (or, with it turned away, the lead's screen))
+STAGE ok   respond.rack             turned   fix (22.4s)       visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   respond.rack             turned   fix (22.4s)       noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   respond_desk.responder   default  fix (20.7s)       facesScreen         0.986   >= 0.9 of frames (face within 60 deg of the lead's screen)                                    
+STAGE ok   respond_desk.responder   default  fix (20.7s)       visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   respond_desk.responder   default  fix (20.7s)       noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   respond_desk.lead        default  fix (12.0s)       typing              1       >= 1 of frames (the lead types at their own desk)                                             
+STAGE ok   respond_desk.lead        default  fix (12.0s)       visible             1       >= 0.9 of frames (body >= 50% unblocked (seated behind a desk))                               
+STAGE ok   respond_desk.responder   turned   fix (22.4s)       facesScreen         0.996   >= 0.9 of frames (face within 60 deg of the lead's screen)                                    
+STAGE ok   respond_desk.responder   turned   fix (22.4s)       visible             1       >= 0.9 of frames (body >= 70% unblocked)                                                      
+STAGE ok   respond_desk.responder   turned   fix (22.4s)       noFade              1       >= 1 of frames (no faded column over them)                                                    
+STAGE ok   respond_desk.lead        turned   fix (12.0s)       typing              1       >= 1 of frames (the lead types at their own desk)                                             
+STAGE ok   respond_desk.lead        turned   fix (12.0s)       visible             1       >= 0.9 of frames (body >= 50% unblocked (seated behind a desk))                               
+STAGE ok   hammer.carry             default  carry (7.0s)      heldHeadDepth       1       >= 1 of frames (heldHeadDepth <= 0.000001 m)                                                  
+STAGE ok   hammer.carry             default  carry (7.0s)      heldTorsoDepth      1       >= 1 of frames (heldTorsoDepth <= 0.000001 m)                                                 
+STAGE ok   hammer.carry             default  carry (7.0s)      heldPalmGap         1       >= 1 of frames (heldPalmGap <= 0.02 m)                                                        
+STAGE ok   hammer.carry             default  carry (7.0s)      heldSupportGap      1       >= 1 of frames (heldSupportGap <= 0.02 m)                                                     
+STAGE ok   hammer.carry             default  carry (7.0s)      heldHeadDistance    1       >= 1 of frames (heldHeadDistance <= 0.6 m)                                                    
+STAGE ok   hammer.carry             default  carry (7.0s)      heldHeadJoint       1       >= 1 of frames (heldHeadJoint <= 0.08 m)                                                      
+STAGE ok   hammer.carry             default  carry (7.0s)      heldScreenDistance  1       >= 1 of frames (heldScreenDistance <= 0.6 m)                                                  
+STAGE ok   hammer.carry             default  carry (7.0s)      headReach           1       >= 1 of frames (head at least 0.35 m along the shaft from the palm)                           
+STAGE ok   hammer.carry             default  carry (7.0s)      shaftVisible        0.948   >= 0.85 of frames (at least half the shaft visible)                                           
+STAGE ok   hammer.carry             default  carry (7.0s)      headVisible         0.9     >= 0.85 of frames (at least half the head visible)                                            
+STAGE ok   hammer.carry             default  carry (7.0s)      shaftSilhouette     1       >= 0.95 of frames (shaft projects at least 60% of its length)                                 
+STAGE ok   hammer.carry             default  carry (7.0s)      headSilhouette      1       >= 0.95 of frames (head crosses shaft by at least 25% of shaft length)                        
+STAGE ok   hammer.hold              default  hold (1.4s)       heldHeadDepth       1       >= 1 of frames (heldHeadDepth <= 0.000001 m)                                                  
+STAGE ok   hammer.hold              default  hold (1.4s)       heldTorsoDepth      1       >= 1 of frames (heldTorsoDepth <= 0.000001 m)                                                 
+STAGE ok   hammer.hold              default  hold (1.4s)       heldPalmGap         1       >= 1 of frames (heldPalmGap <= 0.02 m)                                                        
+STAGE ok   hammer.hold              default  hold (1.4s)       heldSupportGap      1       >= 1 of frames (heldSupportGap <= 0.02 m)                                                     
+STAGE ok   hammer.hold              default  hold (1.4s)       heldHeadDistance    1       >= 1 of frames (heldHeadDistance <= 0.6 m)                                                    
+STAGE ok   hammer.hold              default  hold (1.4s)       heldHeadJoint       1       >= 1 of frames (heldHeadJoint <= 0.08 m)                                                      
+STAGE ok   hammer.hold              default  hold (1.4s)       heldScreenDistance  1       >= 1 of frames (heldScreenDistance <= 0.6 m)                                                  
+STAGE ok   hammer.hold              default  hold (1.4s)       headReach           1       >= 1 of frames (head at least 0.35 m along the shaft from the palm)                           
+STAGE ok   hammer.hold              default  hold (1.4s)       shaftVisible        1       >= 1 of frames (at least half the shaft visible)                                              
+STAGE ok   hammer.hold              default  hold (1.4s)       headVisible         1       >= 1 of frames (at least half the head visible)                                               
+STAGE ok   hammer.hold              default  hold (1.4s)       shaftSilhouette     1       >= 0.95 of frames (shaft projects at least 60% of its length)                                 
+STAGE ok   hammer.hold              default  hold (1.4s)       headSilhouette      1       >= 0.95 of frames (head crosses shaft by at least 25% of shaft length)                        
+STAGE ok   hammer.swing             default  swing (3.3s)      heldHeadDepth       1       >= 1 of frames (heldHeadDepth <= 0.000001 m)                                                  
+STAGE ok   hammer.swing             default  swing (3.3s)      heldTorsoDepth      1       >= 1 of frames (heldTorsoDepth <= 0.000001 m)                                                 
+STAGE ok   hammer.swing             default  swing (3.3s)      heldPalmGap         1       >= 1 of frames (heldPalmGap <= 0.02 m)                                                        
+STAGE ok   hammer.swing             default  swing (3.3s)      heldSupportGap      1       >= 1 of frames (heldSupportGap <= 0.02 m)                                                     
+STAGE ok   hammer.swing             default  swing (3.3s)      heldHeadDistance    1       >= 1 of frames (heldHeadDistance <= 0.6 m)                                                    
+STAGE ok   hammer.swing             default  swing (3.3s)      heldHeadJoint       1       >= 1 of frames (heldHeadJoint <= 0.08 m)                                                      
+STAGE ok   hammer.swing             default  swing (3.3s)      heldScreenDistance  1       >= 1 of frames (heldScreenDistance <= 0.6 m)                                                  
+STAGE ok   hammer.swing             default  swing (3.3s)      headReach           1       >= 1 of frames (head at least 0.35 m along the shaft from the palm)                           
+STAGE ok   hammer.swing             default  swing (3.3s)      shaftVisible        1       >= 1 of frames (at least half the shaft visible)                                              
+STAGE ok   hammer.swing             default  swing (3.3s)      headVisible         1       >= 1 of frames (at least half the head visible)                                               
+STAGE ok   hammer.swing             default  swing (3.3s)      shaftSilhouette     1       >= 0.95 of frames (shaft projects at least 60% of its length)                                 
+STAGE ok   hammer.swing             default  swing (3.3s)      headSilhouette      1       >= 0.95 of frames (head crosses shaft by at least 25% of shaft length)                        
+STAGE ok   hammer.carry             turned   carry (4.5s)      heldHeadDepth       1       >= 1 of frames (heldHeadDepth <= 0.000001 m)                                                  
+STAGE ok   hammer.carry             turned   carry (4.5s)      heldTorsoDepth      1       >= 1 of frames (heldTorsoDepth <= 0.000001 m)                                                 
+STAGE ok   hammer.carry             turned   carry (4.5s)      heldPalmGap         1       >= 1 of frames (heldPalmGap <= 0.02 m)                                                        
+STAGE ok   hammer.carry             turned   carry (4.5s)      heldSupportGap      1       >= 1 of frames (heldSupportGap <= 0.02 m)                                                     
+STAGE ok   hammer.carry             turned   carry (4.5s)      heldHeadDistance    1       >= 1 of frames (heldHeadDistance <= 0.6 m)                                                    
+STAGE ok   hammer.carry             turned   carry (4.5s)      heldHeadJoint       1       >= 1 of frames (heldHeadJoint <= 0.08 m)                                                      
+STAGE ok   hammer.carry             turned   carry (4.5s)      heldScreenDistance  1       >= 1 of frames (heldScreenDistance <= 0.6 m)                                                  
+STAGE ok   hammer.carry             turned   carry (4.5s)      headReach           1       >= 1 of frames (head at least 0.35 m along the shaft from the palm)                           
+STAGE ok   hammer.carry             turned   carry (4.5s)      shaftVisible        1       >= 0.85 of frames (at least half the shaft visible)                                           
+STAGE ok   hammer.carry             turned   carry (4.5s)      headVisible         1       >= 0.85 of frames (at least half the head visible)                                            
+STAGE ok   hammer.carry             turned   carry (4.5s)      shaftSilhouette     1       >= 0.95 of frames (shaft projects at least 60% of its length)                                 
+STAGE ok   hammer.carry             turned   carry (4.5s)      headSilhouette      1       >= 0.95 of frames (head crosses shaft by at least 25% of shaft length)                        
+STAGE ok   hammer.hold              turned   hold (3.9s)       heldHeadDepth       1       >= 1 of frames (heldHeadDepth <= 0.000001 m)                                                  
+STAGE ok   hammer.hold              turned   hold (3.9s)       heldTorsoDepth      1       >= 1 of frames (heldTorsoDepth <= 0.000001 m)                                                 
+STAGE ok   hammer.hold              turned   hold (3.9s)       heldPalmGap         1       >= 1 of frames (heldPalmGap <= 0.02 m)                                                        
+STAGE ok   hammer.hold              turned   hold (3.9s)       heldSupportGap      1       >= 1 of frames (heldSupportGap <= 0.02 m)                                                     
+STAGE ok   hammer.hold              turned   hold (3.9s)       heldHeadDistance    1       >= 1 of frames (heldHeadDistance <= 0.6 m)                                                    
+STAGE ok   hammer.hold              turned   hold (3.9s)       heldHeadJoint       1       >= 1 of frames (heldHeadJoint <= 0.08 m)                                                      
+STAGE ok   hammer.hold              turned   hold (3.9s)       heldScreenDistance  1       >= 1 of frames (heldScreenDistance <= 0.6 m)                                                  
+STAGE ok   hammer.hold              turned   hold (3.9s)       headReach           1       >= 1 of frames (head at least 0.35 m along the shaft from the palm)                           
+STAGE ok   hammer.hold              turned   hold (3.9s)       shaftVisible        1       >= 1 of frames (at least half the shaft visible)                                              
+STAGE ok   hammer.hold              turned   hold (3.9s)       headVisible         1       >= 1 of frames (at least half the head visible)                                               
+STAGE ok   hammer.hold              turned   hold (3.9s)       shaftSilhouette     1       >= 0.95 of frames (shaft projects at least 60% of its length)                                 
+STAGE ok   hammer.hold              turned   hold (3.9s)       headSilhouette      1       >= 0.95 of frames (head crosses shaft by at least 25% of shaft length)                        
+STAGE ok   hammer.swing             turned   swing (3.3s)      heldHeadDepth       1       >= 1 of frames (heldHeadDepth <= 0.000001 m)                                                  
+STAGE ok   hammer.swing             turned   swing (3.3s)      heldTorsoDepth      1       >= 1 of frames (heldTorsoDepth <= 0.000001 m)                                                 
+STAGE ok   hammer.swing             turned   swing (3.3s)      heldPalmGap         1       >= 1 of frames (heldPalmGap <= 0.02 m)                                                        
+STAGE ok   hammer.swing             turned   swing (3.3s)      heldSupportGap      1       >= 1 of frames (heldSupportGap <= 0.02 m)                                                     
+STAGE ok   hammer.swing             turned   swing (3.3s)      heldHeadDistance    1       >= 1 of frames (heldHeadDistance <= 0.6 m)                                                    
+STAGE ok   hammer.swing             turned   swing (3.3s)      heldHeadJoint       1       >= 1 of frames (heldHeadJoint <= 0.08 m)                                                      
+STAGE ok   hammer.swing             turned   swing (3.3s)      heldScreenDistance  1       >= 1 of frames (heldScreenDistance <= 0.6 m)                                                  
+STAGE ok   hammer.swing             turned   swing (3.3s)      headReach           1       >= 1 of frames (head at least 0.35 m along the shaft from the palm)                           
+STAGE ok   hammer.swing             turned   swing (3.3s)      shaftVisible        1       >= 1 of frames (at least half the shaft visible)                                              
+STAGE ok   hammer.swing             turned   swing (3.3s)      headVisible         1       >= 1 of frames (at least half the head visible)                                               
+STAGE ok   hammer.swing             turned   swing (3.3s)      shaftSilhouette     1       >= 0.95 of frames (shaft projects at least 60% of its length)                                 
+STAGE ok   hammer.swing             turned   swing (3.3s)      headSilhouette      1       >= 0.95 of frames (head crosses shaft by at least 25% of shaft length)                        
+stage: 265 of 266 passed
+STAGEROW ok growth.honoree default cheer celebrating {"value":0.994475138121547,"seconds":6}
+STAGEROW ok growth.honoree default cheer facingCamera {"value":1,"seconds":6}
+STAGEROW ok growth.honoree default cheer visible {"value":1,"seconds":6}
+STAGEROW ok growth.honoree default cheer noFade {"value":1,"seconds":6}
+STAGEROW ok growth.coworker default cheer celebrating {"value":1,"seconds":6}
+STAGEROW ok growth.honoree turned cheer celebrating {"value":0.994475138121547,"seconds":6}
+STAGEROW ok growth.honoree turned cheer facingCamera {"value":1,"seconds":6}
+STAGEROW ok growth.honoree turned cheer visible {"value":1,"seconds":6}
+STAGEROW ok growth.honoree turned cheer noFade {"value":1,"seconds":6}
+STAGEROW ok growth.coworker turned cheer celebrating {"value":1,"seconds":6}
+STAGEROW ok company_party.cheer default cheer celebrating {"value":0.9853479853479854,"seconds":18.2}
+STAGEROW ok company_party.cheer turned cheer celebrating {"value":0.9853479853479854,"seconds":18.2}
+STAGEROW ok pet.turn default turn upright {"value":1,"seconds":0.6}
+STAGEROW ok pet.turn default turn petVisible {"value":1,"seconds":0.6}
+STAGEROW ok pet.turn default turn noFade {"value":1,"seconds":0.6}
+STAGEROW ok pet.approach default approach upright {"value":1,"seconds":0.3}
+STAGEROW ok pet.approach default approach petVisible {"value":1,"seconds":0.3}
+STAGEROW ok pet.approach default approach noFade {"value":1,"seconds":0.3}
+STAGEROW ok pet.stroke default stroke atPet {"value":0.9333333333333333,"seconds":3}
+STAGEROW ok pet.stroke default stroke headVisible {"value":1,"seconds":3}
+STAGEROW ok pet.stroke default stroke petVisible {"value":1,"seconds":3}
+STAGEROW ok pet.stroke default stroke noFade {"value":1,"seconds":3}
+STAGEROW ok pet.turn turned turn upright {"value":1,"seconds":0.6}
+STAGEROW ok pet.turn turned turn petVisible {"value":1,"seconds":0.6}
+STAGEROW ok pet.turn turned turn noFade {"value":1,"seconds":0.6}
+STAGEROW ok pet.approach turned approach upright {"value":1,"seconds":0.3}
+STAGEROW ok pet.approach turned approach petVisible {"value":1,"seconds":0.3}
+STAGEROW ok pet.approach turned approach noFade {"value":1,"seconds":0.3}
+STAGEROW ok pet.stroke turned stroke atPet {"value":0.9333333333333333,"seconds":3}
+STAGEROW ok pet.stroke turned stroke headVisible {"value":1,"seconds":3}
+STAGEROW ok pet.stroke turned stroke petVisible {"value":1,"seconds":3}
+STAGEROW ok pet.stroke turned stroke noFade {"value":1,"seconds":3}
+STAGEROW ok petcat.turn default turn upright {"value":1,"seconds":0.6}
+STAGEROW ok petcat.turn default turn petVisible {"value":1,"seconds":0.6}
+STAGEROW ok petcat.turn default turn noFade {"value":1,"seconds":0.6}
+STAGEROW ok petcat.approach default approach upright {"value":1,"seconds":0.3}
+STAGEROW ok petcat.approach default approach petVisible {"value":1,"seconds":0.3}
+STAGEROW ok petcat.approach default approach noFade {"value":1,"seconds":0.3}
+STAGEROW ok petcat.stroke default stroke atPet {"value":0.9333333333333333,"seconds":3}
+STAGEROW ok petcat.stroke default stroke headVisible {"value":1,"seconds":3}
+STAGEROW ok petcat.stroke default stroke petVisible {"value":1,"seconds":3}
+STAGEROW ok petcat.stroke default stroke noFade {"value":1,"seconds":3}
+STAGEROW ok petcat.turn turned turn upright {"value":1,"seconds":0.6}
+STAGEROW ok petcat.turn turned turn petVisible {"value":1,"seconds":0.6}
+STAGEROW ok petcat.turn turned turn noFade {"value":1,"seconds":0.6}
+STAGEROW ok petcat.approach turned approach upright {"value":1,"seconds":0.3}
+STAGEROW ok petcat.approach turned approach petVisible {"value":1,"seconds":0.3}
+STAGEROW ok petcat.approach turned approach noFade {"value":1,"seconds":0.3}
+STAGEROW ok petcat.stroke turned stroke atPet {"value":0.9333333333333333,"seconds":3}
+STAGEROW ok petcat.stroke turned stroke headVisible {"value":1,"seconds":3}
+STAGEROW ok petcat.stroke turned stroke petVisible {"value":1,"seconds":3}
+STAGEROW ok petcat.stroke turned stroke noFade {"value":1,"seconds":3}
+STAGEROW ok robot.windup default windup facingRobot {"value":1,"seconds":0.5}
+STAGEROW ok robot.windup default windup robotVisible {"value":1,"seconds":0.5}
+STAGEROW ok robot.windup default windup visible {"value":1,"seconds":0.5}
+STAGEROW ok robot.windup default windup noFade {"value":1,"seconds":0.5}
+STAGEROW ok robot.slap default slap robotContact {"value":0.008206166906121304,"seconds":1.1}
+STAGEROW ok robot.slap default slap robotVisible {"value":1,"seconds":1.1}
+STAGEROW ok robot.slap default slap visible {"value":1,"seconds":1.1}
+STAGEROW ok robot.slap default slap noFade {"value":1,"seconds":1.1}
+STAGEROW ok robot.windup turned windup facingRobot {"value":1,"seconds":0.5}
+STAGEROW ok robot.windup turned windup robotVisible {"value":1,"seconds":0.5}
+STAGEROW ok robot.windup turned windup visible {"value":1,"seconds":0.5}
+STAGEROW ok robot.windup turned windup noFade {"value":1,"seconds":0.5}
+STAGEROW ok robot.slap turned slap robotContact {"value":0.008514020712000026,"seconds":1.1}
+STAGEROW ok robot.slap turned slap robotVisible {"value":1,"seconds":1.1}
+STAGEROW ok robot.slap turned slap visible {"value":1,"seconds":1.1}
+STAGEROW ok robot.slap turned slap noFade {"value":1,"seconds":1.1}
+STAGEROW ok robot_party.serve default serve robotVisible {"value":1,"seconds":5.9}
+STAGEROW ok robot_party.serve default serve faceShows {"value":1,"seconds":5.9}
+STAGEROW ok robot_party.serve default serve towardWinner {"value":1,"seconds":5.9}
+STAGEROW ok robot_party.serve turned serve robotVisible {"value":1,"seconds":5.2}
+STAGEROW ok robot_party.serve turned serve faceShows {"value":1,"seconds":5.2}
+STAGEROW ok robot_party.serve turned serve towardWinner {"value":1,"seconds":5.2}
+STAGEROW ok robot_dj.dj default dj robotVisible {"value":1,"seconds":5.5}
+STAGEROW ok robot_dj.dj default dj faceCam {"value":1,"seconds":5.5}
+STAGEROW ok robot_dj.dj turned dj robotVisible {"value":1,"seconds":6.3}
+STAGEROW ok robot_dj.dj turned dj faceCam {"value":1,"seconds":6.3}
+STAGEROW ok letter.read default read gazeOnLetter {"value":1,"seconds":2.2}
+STAGEROW ok letter.read default read letterNear {"value":0.9384615384615385,"seconds":2.2}
+STAGEROW ok letter.read default read facingCamera {"value":1,"seconds":2.2}
+STAGEROW ok letter.read default read visible {"value":1,"seconds":2.2}
+STAGEROW ok letter.read default read noFade {"value":1,"seconds":2.2}
+STAGEROW ok letter.slump default slump facingCamera {"value":1,"seconds":2}
+STAGEROW ok letter.slump default slump headDrop {"value":0.03939530638852784,"seconds":2}
+STAGEROW ok letter.slump default slump visible {"value":1,"seconds":2}
+STAGEROW ok letter.slump default slump noFade {"value":1,"seconds":2}
+STAGEROW ok letter.read turned read gazeOnLetter {"value":1,"seconds":2.2}
+STAGEROW ok letter.read turned read letterNear {"value":0.9384615384615385,"seconds":2.2}
+STAGEROW ok letter.read turned read facingCamera {"value":0.9692307692307692,"seconds":2.2}
+STAGEROW ok letter.read turned read visible {"value":1,"seconds":2.2}
+STAGEROW ok letter.read turned read noFade {"value":1,"seconds":2.2}
+STAGEROW ok letter.slump turned slump facingCamera {"value":1,"seconds":2}
+STAGEROW ok letter.slump turned slump headDrop {"value":0.03939530638852784,"seconds":2}
+STAGEROW ok letter.slump turned slump visible {"value":1,"seconds":2}
+STAGEROW ok letter.slump turned slump noFade {"value":1,"seconds":2}
+STAGEROW ok fumes.fan default fan handHz {"value":4.205607476635514,"seconds":3.6}
+STAGEROW ok fumes.fan default fan handAmp {"value":0.0375,"seconds":3.6}
+STAGEROW ok fumes.fan default fan leanAway {"value":-0.033747663551401796,"seconds":3.6}
+STAGEROW ok fumes.fan default fan headAway {"value":1,"seconds":3.6}
+STAGEROW ok fumes.fan default fan smokeBetween {"value":1,"seconds":3.6}
+STAGEROW ok fumes.fan default fan visible {"value":1,"seconds":3.6}
+STAGEROW ok fumes.fan default fan noFade {"value":1,"seconds":3.6}
+STAGEROW ok fumes.fan turned fan handHz {"value":4.078947368421053,"seconds":3.8}
+STAGEROW ok fumes.fan turned fan handAmp {"value":0.0215,"seconds":3.8}
+STAGEROW ok fumes.fan turned fan leanAway {"value":-0.03371052631578939,"seconds":3.8}
+STAGEROW ok fumes.fan turned fan headAway {"value":1,"seconds":3.8}
+STAGEROW ok fumes.fan turned fan smokeBetween {"value":1,"seconds":3.8}
+STAGEROW ok fumes.fan turned fan visible {"value":1,"seconds":3.8}
+STAGEROW ok fumes.fan turned fan noFade {"value":1,"seconds":3.8}
+STAGEROW ok printer.carry default carry inHands {"value":1,"seconds":16.3}
+STAGEROW ok printer.carry default carry heldLow {"value":1,"seconds":16.3}
+STAGEROW ok printer.carry default carry visible {"value":0.9405737704918032,"seconds":16.3}
+STAGEROW ok printer.carry default carry noFade {"value":0.9385245901639344,"seconds":16.3}
+STAGEROW ok printer.watch default watch visible {"value":1,"seconds":10.5}
+STAGEROW ok printer.watch default watch noFade {"value":1,"seconds":10.5}
+STAGEROW ok printer.smash default smash batInHand {"value":1,"seconds":5.3}
+STAGEROW ok printer.smash default smash facesPrinter {"value":0.9367088607594937,"seconds":5.3}
+STAGEROW ok printer.smash default smash visible {"value":1,"seconds":5.3}
+STAGEROW ok printer.smash default smash noFade {"value":1,"seconds":5.3}
+STAGEROW ok printer.carry turned carry inHands {"value":1,"seconds":16.3}
+STAGEROW ok printer.carry turned carry heldLow {"value":1,"seconds":16.3}
+STAGEROW ok printer.carry turned carry visible {"value":0.8176229508196722,"seconds":16.3}
+STAGEROW ok printer.carry turned carry noFade {"value":0.7110655737704918,"seconds":16.3}
+STAGEROW ok printer.watch turned watch visible {"value":0.9240506329113924,"seconds":10.5}
+STAGEROW ok printer.watch turned watch noFade {"value":0.9715189873417721,"seconds":10.5}
+STAGEROW ok printer.smash turned smash batInHand {"value":1,"seconds":5.3}
+STAGEROW ok printer.smash turned smash facesPrinter {"value":0.8481012658227848,"seconds":5.3}
+STAGEROW ok printer.smash turned smash visible {"value":1,"seconds":5.3}
+STAGEROW ok printer.smash turned smash noFade {"value":1,"seconds":5.3}
+STAGEROW ok visitor.hide default hide facingCamera {"value":0.975925925925926,"seconds":18}
+STAGEROW ok visitor.hide default hide watching {"value":0.924074074074074,"seconds":18}
+STAGEROW ok visitor.hide default hide visible {"value":0.9888888888888889,"seconds":18}
+STAGEROW ok visitor.hide default hide noFade {"value":1,"seconds":18}
+STAGEROW ok visitor.test default test atScreen {"value":1,"seconds":13.4}
+STAGEROW ok visitor.test default test visible {"value":1,"seconds":13.4}
+STAGEROW ok visitor.explain default explain atScreen {"value":0.9387755102040817,"seconds":4.9}
+STAGEROW ok visitor.explain default explain visible {"value":1,"seconds":4.9}
+STAGEROW ok visitor.explain default explain noFade {"value":1,"seconds":4.9}
+STAGEROW ok visitor.hide turned hide facingCamera {"value":0.9795918367346939,"seconds":19.6}
+STAGEROW ok visitor.hide turned hide watching {"value":0.9268707482993197,"seconds":19.6}
+STAGEROW ok visitor.hide turned hide visible {"value":0.9336734693877551,"seconds":19.6}
+STAGEROW ok visitor.hide turned hide noFade {"value":1,"seconds":19.6}
+STAGEROW ok visitor.test turned test atScreen {"value":1,"seconds":13.4}
+STAGEROW FAIL visitor.test turned test visible {"value":0,"seconds":13.4}
+STAGEROW ok visitor.explain turned explain atScreen {"value":0.9615384615384616,"seconds":5.2}
+STAGEROW ok visitor.explain turned explain visible {"value":1,"seconds":5.2}
+STAGEROW ok visitor.explain turned explain noFade {"value":1,"seconds":5.2}
+STAGEROW ok consultants.consultant default interview facingCamera {"value":0.9895833333333334,"seconds":6.4}
+STAGEROW ok consultants.consultant default interview atInterviewee {"value":0.9375,"seconds":6.4}
+STAGEROW ok consultants.consultant default interview visible {"value":1,"seconds":6.4}
+STAGEROW ok consultants.clipboard default interview facingCamera {"value":1,"seconds":6.4}
+STAGEROW ok consultants.clipboard default interview visible {"value":1,"seconds":6.4}
+STAGEROW ok consultants.interviewee default interview facingCamera {"value":0.9333333333333333,"seconds":6.5}
+STAGEROW ok consultants.interviewee default interview atConsultant {"value":0.9282051282051282,"seconds":6.5}
+STAGEROW ok consultants.interviewee default interview visible {"value":0.9384615384615385,"seconds":6.5}
+STAGEROW ok consultants.consultant turned interview facingCamera {"value":0.9895833333333334,"seconds":6.4}
+STAGEROW ok consultants.consultant turned interview atInterviewee {"value":0.9375,"seconds":6.4}
+STAGEROW ok consultants.consultant turned interview visible {"value":1,"seconds":6.4}
+STAGEROW ok consultants.clipboard turned interview facingCamera {"value":1,"seconds":6.4}
+STAGEROW ok consultants.clipboard turned interview visible {"value":1,"seconds":6.4}
+STAGEROW ok consultants.interviewee turned interview facingCamera {"value":0.9846153846153847,"seconds":6.5}
+STAGEROW ok consultants.interviewee turned interview atConsultant {"value":0.8666666666666667,"seconds":6.5}
+STAGEROW ok consultants.interviewee turned interview visible {"value":0.9384615384615385,"seconds":6.5}
+STAGEROW ok pizza.eat default eat facesPizza {"value":0.9707112970711297,"seconds":15.9}
+STAGEROW ok pizza.eat default eat facingCamera {"value":0.9497907949790795,"seconds":15.9}
+STAGEROW ok pizza.eat default eat visible {"value":1,"seconds":15.9}
+STAGEROW ok pizza.eat turned eat facesPizza {"value":0.9393305439330544,"seconds":15.9}
+STAGEROW ok pizza.eat turned eat facingCamera {"value":0.9916317991631799,"seconds":15.9}
+STAGEROW ok pizza.eat turned eat visible {"value":0.9686192468619247,"seconds":15.9}
+STAGEROW ok screen.recoil default recoil visible {"value":1,"seconds":12.1}
+STAGEROW ok screen.recoil turned recoil visible {"value":1,"seconds":12.1}
+STAGEROW ok carrier.peer default peer atCarrier {"value":0.96,"seconds":4.2}
+STAGEROW ok carrier.peer default peer facingCamera {"value":1,"seconds":4.2}
+STAGEROW ok carrier.peer default peer visible {"value":1,"seconds":4.2}
+STAGEROW ok carrier.peer turned peer atCarrier {"value":0.944,"seconds":4.2}
+STAGEROW ok carrier.peer turned peer facingCamera {"value":0.976,"seconds":4.2}
+STAGEROW ok carrier.peer turned peer visible {"value":1,"seconds":4.2}
+STAGEROW ok respond.rack default fix facesWork {"value":0.9951807228915662,"seconds":27.7}
+STAGEROW ok respond.rack default fix visible {"value":0.9855421686746988,"seconds":27.7}
+STAGEROW ok respond.rack default fix noFade {"value":1,"seconds":27.7}
+STAGEROW ok respond.rack turned fix facesWork {"value":0.9955357142857143,"seconds":22.4}
+STAGEROW ok respond.rack turned fix visible {"value":1,"seconds":22.4}
+STAGEROW ok respond.rack turned fix noFade {"value":1,"seconds":22.4}
+STAGEROW ok respond_desk.responder default fix facesScreen {"value":0.9855072463768116,"seconds":20.7}
+STAGEROW ok respond_desk.responder default fix visible {"value":1,"seconds":20.7}
+STAGEROW ok respond_desk.responder default fix noFade {"value":1,"seconds":20.7}
+STAGEROW ok respond_desk.lead default fix typing {"value":1,"seconds":12}
+STAGEROW ok respond_desk.lead default fix visible {"value":1,"seconds":12}
+STAGEROW ok respond_desk.responder turned fix facesScreen {"value":0.9955357142857143,"seconds":22.4}
+STAGEROW ok respond_desk.responder turned fix visible {"value":1,"seconds":22.4}
+STAGEROW ok respond_desk.responder turned fix noFade {"value":1,"seconds":22.4}
+STAGEROW ok respond_desk.lead turned fix typing {"value":1,"seconds":12}
+STAGEROW ok respond_desk.lead turned fix visible {"value":1,"seconds":12}
+STAGEROW ok hammer.carry default carry heldHeadDepth {"value":1,"seconds":7}
+STAGEROW ok hammer.carry default carry heldTorsoDepth {"value":1,"seconds":7}
+STAGEROW ok hammer.carry default carry heldPalmGap {"value":1,"seconds":7}
+STAGEROW ok hammer.carry default carry heldSupportGap {"value":1,"seconds":7}
+STAGEROW ok hammer.carry default carry heldHeadDistance {"value":1,"seconds":7}
+STAGEROW ok hammer.carry default carry heldHeadJoint {"value":1,"seconds":7}
+STAGEROW ok hammer.carry default carry heldScreenDistance {"value":1,"seconds":7}
+STAGEROW ok hammer.carry default carry headReach {"value":1,"seconds":7}
+STAGEROW ok hammer.carry default carry shaftVisible {"value":0.9478672985781991,"seconds":7}
+STAGEROW ok hammer.carry default carry headVisible {"value":0.9004739336492891,"seconds":7}
+STAGEROW ok hammer.carry default carry shaftSilhouette {"value":1,"seconds":7}
+STAGEROW ok hammer.carry default carry headSilhouette {"value":1,"seconds":7}
+STAGEROW ok hammer.hold default hold heldHeadDepth {"value":1,"seconds":1.4}
+STAGEROW ok hammer.hold default hold heldTorsoDepth {"value":1,"seconds":1.4}
+STAGEROW ok hammer.hold default hold heldPalmGap {"value":1,"seconds":1.4}
+STAGEROW ok hammer.hold default hold heldSupportGap {"value":1,"seconds":1.4}
+STAGEROW ok hammer.hold default hold heldHeadDistance {"value":1,"seconds":1.4}
+STAGEROW ok hammer.hold default hold heldHeadJoint {"value":1,"seconds":1.4}
+STAGEROW ok hammer.hold default hold heldScreenDistance {"value":1,"seconds":1.4}
+STAGEROW ok hammer.hold default hold headReach {"value":1,"seconds":1.4}
+STAGEROW ok hammer.hold default hold shaftVisible {"value":1,"seconds":1.4}
+STAGEROW ok hammer.hold default hold headVisible {"value":1,"seconds":1.4}
+STAGEROW ok hammer.hold default hold shaftSilhouette {"value":1,"seconds":1.4}
+STAGEROW ok hammer.hold default hold headSilhouette {"value":1,"seconds":1.4}
+STAGEROW ok hammer.swing default swing heldHeadDepth {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing default swing heldTorsoDepth {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing default swing heldPalmGap {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing default swing heldSupportGap {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing default swing heldHeadDistance {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing default swing heldHeadJoint {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing default swing heldScreenDistance {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing default swing headReach {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing default swing shaftVisible {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing default swing headVisible {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing default swing shaftSilhouette {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing default swing headSilhouette {"value":1,"seconds":3.3}
+STAGEROW ok hammer.carry turned carry heldHeadDepth {"value":1,"seconds":4.5}
+STAGEROW ok hammer.carry turned carry heldTorsoDepth {"value":1,"seconds":4.5}
+STAGEROW ok hammer.carry turned carry heldPalmGap {"value":1,"seconds":4.5}
+STAGEROW ok hammer.carry turned carry heldSupportGap {"value":1,"seconds":4.5}
+STAGEROW ok hammer.carry turned carry heldHeadDistance {"value":1,"seconds":4.5}
+STAGEROW ok hammer.carry turned carry heldHeadJoint {"value":1,"seconds":4.5}
+STAGEROW ok hammer.carry turned carry heldScreenDistance {"value":1,"seconds":4.5}
+STAGEROW ok hammer.carry turned carry headReach {"value":1,"seconds":4.5}
+STAGEROW ok hammer.carry turned carry shaftVisible {"value":1,"seconds":4.5}
+STAGEROW ok hammer.carry turned carry headVisible {"value":1,"seconds":4.5}
+STAGEROW ok hammer.carry turned carry shaftSilhouette {"value":1,"seconds":4.5}
+STAGEROW ok hammer.carry turned carry headSilhouette {"value":1,"seconds":4.5}
+STAGEROW ok hammer.hold turned hold heldHeadDepth {"value":1,"seconds":3.9}
+STAGEROW ok hammer.hold turned hold heldTorsoDepth {"value":1,"seconds":3.9}
+STAGEROW ok hammer.hold turned hold heldPalmGap {"value":1,"seconds":3.9}
+STAGEROW ok hammer.hold turned hold heldSupportGap {"value":1,"seconds":3.9}
+STAGEROW ok hammer.hold turned hold heldHeadDistance {"value":1,"seconds":3.9}
+STAGEROW ok hammer.hold turned hold heldHeadJoint {"value":1,"seconds":3.9}
+STAGEROW ok hammer.hold turned hold heldScreenDistance {"value":1,"seconds":3.9}
+STAGEROW ok hammer.hold turned hold headReach {"value":1,"seconds":3.9}
+STAGEROW ok hammer.hold turned hold shaftVisible {"value":1,"seconds":3.9}
+STAGEROW ok hammer.hold turned hold headVisible {"value":1,"seconds":3.9}
+STAGEROW ok hammer.hold turned hold shaftSilhouette {"value":1,"seconds":3.9}
+STAGEROW ok hammer.hold turned hold headSilhouette {"value":1,"seconds":3.9}
+STAGEROW ok hammer.swing turned swing heldHeadDepth {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing turned swing heldTorsoDepth {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing turned swing heldPalmGap {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing turned swing heldSupportGap {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing turned swing heldHeadDistance {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing turned swing heldHeadJoint {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing turned swing heldScreenDistance {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing turned swing headReach {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing turned swing shaftVisible {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing turned swing headVisible {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing turned swing shaftSilhouette {"value":1,"seconds":3.3}
+STAGEROW ok hammer.swing turned swing headSilhouette {"value":1,"seconds":3.3}

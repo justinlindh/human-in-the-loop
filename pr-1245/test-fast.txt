@@ -1,0 +1,27 @@
+
+> human-in-the-loop@1.0.0 test:fast
+> bash scripts/test-cache.sh vitest run --exclude tests/sim/balance.test.js --exclude 'tests/**/*.full.test.js'
+
+
+ RUN  v5.0.1 /home/justin/src/gamedev-codex-era-art-batch2
+
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+
+ Test Files  186 passed (186)
+      Tests  1525 passed (1525)
+   Start at  00:31:54
+   Duration  56.29s (tests 83%, transform 10%, import 6%, environment 1%)
+

@@ -1,0 +1,118 @@
+{
+  "shared": {
+    "triangles": 1450,
+    "bytes": 61944
+  },
+  "rows": [
+    {
+      "name": "era_beta_billboard.glb",
+      "triangles": 1290,
+      "bytes": 40284
+    },
+    {
+      "name": "era_cd_spindle.glb",
+      "triangles": 756,
+      "bytes": 26744
+    },
+    {
+      "name": "era_crt_desk.glb",
+      "triangles": 2630,
+      "bytes": 81116
+    },
+    {
+      "name": "era_cubicle.glb",
+      "triangles": 1080,
+      "bytes": 30700
+    },
+    {
+      "name": "era_dotcom_board.glb",
+      "triangles": 673,
+      "bytes": 25472
+    },
+    {
+      "name": "era_floppy_stack.glb",
+      "triangles": 264,
+      "bytes": 13952
+    },
+    {
+      "name": "era_lease_billboard.glb",
+      "triangles": 1052,
+      "bytes": 32776
+    },
+    {
+      "name": "era_led_billboard.glb",
+      "triangles": 542,
+      "bytes": 15340
+    },
+    {
+      "name": "era_pager_billboard.glb",
+      "triangles": 1531,
+      "bytes": 47696
+    },
+    {
+      "name": "era_payphone.glb",
+      "triangles": 1392,
+      "bytes": 38848
+    },
+    {
+      "name": "era_retail_boxes.glb",
+      "triangles": 430,
+      "bytes": 21248
+    },
+    {
+      "name": "era_sock_billboard.glb",
+      "triangles": 2799,
+      "bytes": 79088
+    },
+    {
+      "name": "era_video_sign.glb",
+      "triangles": 680,
+      "bytes": 22456
+    },
+    {
+      "name": "era_web2_badge.glb",
+      "triangles": 754,
+      "bytes": 26464
+    },
+    {
+      "name": "era_y2k_clock.glb",
+      "triangles": 342,
+      "bytes": 13492
+    },
+    {
+      "name": "era_y2k_sticker.glb",
+      "triangles": 321,
+      "bytes": 13288
+    },
+    {
+      "name": "whiteboard.glb",
+      "triangles": 1612,
+      "bytes": 43628
+    },
+    {
+      "name": "coffee_machine.glb",
+      "triangles": 2556,
+      "bytes": 67724
+    },
+    {
+      "name": "monitor.glb",
+      "triangles": 434,
+      "bytes": 13424
+    },
+    {
+      "name": "plant_small.glb",
+      "triangles": 708,
+      "bytes": 19216
+    },
+    {
+      "name": "trophy.glb",
+      "triangles": 588,
+      "bytes": 13524
+    },
+    {
+      "name": "desk.glb",
+      "triangles": 1188,
+      "bytes": 31204
+    }
+  ]
+}

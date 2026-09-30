@@ -1,0 +1,24 @@
+post-checkout: linked node_modules to the main checkout's
+post-checkout: linked node_modules to the main checkout's
+perf: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+perf  gl=gpu size=1280x720 runs=3 warmup=2s seconds=5 cpus=all/32 load=12.7
+build fe70d815     js 2162KB (gz 715KB)  css 111KB (gz 20KB)
+build 94e4c036     js 2165KB (gz 716KB)  css 111KB (gz 20KB)
+with-render-lock: waited 0s for GPU render slot 4
+fe70d815     garage/low  p50    1.0  p95    2.5  cpu   0.9  render    0.8  best    0.6  calls  153  tris   70k  meshes  110  geo  151  tex  15  prog  10  heap  13.4MB  dom   820  mut/s    0.0  load 19.2
+94e4c036     garage/low  p50    1.0  p95    2.3  cpu   0.9  render    0.8  best    0.8  calls  204  tris   75k  meshes  135  geo  176  tex  13  prog  11  heap  14.0MB  dom   856  mut/s    0.0  load 19.2
+with-render-lock: waited 0s for GPU render slot 4
+fe70d815     floor/low   p50    1.5  p95    3.0  cpu   1.4  render    1.3  best    1.0  calls  256  tris  209k  meshes  208  geo  348  tex  33  prog  16  heap  15.8MB  dom   748  mut/s    0.0  load 23.3
+94e4c036     floor/low   p50    1.3  p95    1.9  cpu   1.3  render    1.2  best    1.1  calls  323  tris  217k  meshes  248  geo  389  tex  32  prog  16  heap  16.3MB  dom   750  mut/s    0.0  load 23.3
+post-checkout: linked node_modules to the main checkout's
+post-checkout: linked node_modules to the main checkout's
+perf: GL software (ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver))
+perf  gl=software size=1280x720 runs=3 warmup=2s seconds=5 cpus=30-31/32 load=23.3
+build fe70d815     js 2162KB (gz 715KB)  css 111KB (gz 20KB)
+build 94e4c036     js 2165KB (gz 716KB)  css 111KB (gz 20KB)
+with-render-lock: waited 0s for the software render lock
+fe70d815     garage/low  p50  162.1  p95  169.5  cpu 160.6  render  160.1  best  159.6  calls  153  tris   70k  meshes  110  geo  151  tex  15  prog  10  heap  12.2MB  dom   872  mut/s    0.0  load 22.9
+94e4c036     garage/low  p50  164.9  p95  176.9  cpu 164.4  render  164.0  best  160.8  calls  204  tris   75k  meshes  135  geo  176  tex  13  prog  11  heap  12.6MB  dom   856  mut/s    0.0  load 22.9
+with-render-lock: waited 0s for the software render lock
+fe70d815     floor/low   p50  243.5  p95  287.7  cpu 243.1  render  242.5  best  239.9  calls  256  tris  209k  meshes  208  geo  348  tex  33  prog  16  heap  14.5MB  dom  1160  mut/s   27.6  load 23.2
+94e4c036     floor/low   p50  251.3  p95  287.3  cpu 244.7  render  243.5  best  243.1  calls  323  tris  217k  meshes  248  geo  389  tex  32  prog  16  heap  15.0MB  dom   982  mut/s   27.6  load 23.2
