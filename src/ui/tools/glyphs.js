@@ -107,9 +107,18 @@ const D = {
 };
 
 // Era emblems: a round badge in the era's colour with its motif.
-const ERA_BG = { classic: '#9a6a44', chatgbt: '#2f5fd0', agents: '#0f7f79', consolidation: '#5b5361', plateau: '#c0652b' };
+const ERA_BG = { preinternet: '#8a8672', dotcom: '#2f6fb0', web2: '#e8833a', classic: '#9a6a44', chatgbt: '#2f5fd0', agents: '#0f7f79', consolidation: '#5b5361', plateau: '#c0652b' };
 const badge = (era, motif) => circ(12, 12, 10, ERA_BG[era]) + motif;
 const EMBLEM = {
+  // A beige CRT with a green block cursor.
+  preinternet: badge('preinternet', rr(5.5, 6, 13, 10, 2, '#ddd6bf') + `<rect x="7.6" y="8" width="8.8" height="5.8" rx="0.8" fill="#1d3a26"/>`
+    + `<rect x="9" y="10.6" width="2.4" height="2" fill="#6fe08a"/>` + `<path d="M9 18.4h6" stroke="#ddd6bf" stroke-width="2" stroke-linecap="round"/>`),
+  // A globe: the web arrives.
+  dotcom: badge('dotcom', circ(12, 12, 5.6, PAPER) + `<path d="M12 6.4v11.2M6.4 12h11.2" stroke="#2f6fb0" stroke-width="1.4" fill="none"/>`
+    + `<ellipse cx="12" cy="12" rx="2.6" ry="5.6" fill="none" stroke="#2f6fb0" stroke-width="1.4"/>`),
+  // A speech bubble with a check: rooms, comments, approvals.
+  web2: badge('web2', path('M6.5 7.5h11a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5H12l-3.5 3v-3H6.5A1.5 1.5 0 0 1 5 14V9a1.5 1.5 0 0 1 1.5-1.5Z', PAPER)
+    + `<path d="M8.8 11.6l2 2 3.6-3.8" fill="none" stroke="#326681" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`),
   classic: badge('classic', path('M7 10h8v5a3.5 3.5 0 0 1-3.5 3.5h-1A3.5 3.5 0 0 1 7 15Z', C.mug)
     + `<path d="M15 11.2h1a1.9 1.9 0 0 1 0 3.8h-1" stroke="${C.mug}" stroke-width="1.6" fill="none"/>`
     + `<path d="M9.5 8q.8-1.2 0-2.4M12.5 8q.8-1.2 0-2.4" stroke="${C.mug}" stroke-width="1.4" stroke-linecap="round" fill="none"/>`),
@@ -145,6 +154,9 @@ export const GLYPHS = {
     path('M5 7l3 11 4-7 4 7 2-7') +
     rr(15, 6, 6, 5, 1.5, C.teal) + path('M16.5 4v2M19.5 4v2') },
   // era emblems
+  'era.preinternet': { d: EMBLEM.preinternet },
+  'era.dotcom': { d: EMBLEM.dotcom },
+  'era.web2': { d: EMBLEM.web2 },
   'era.classic': { d: EMBLEM.classic },
   'era.chatgbt': { d: EMBLEM.chatgbt },
   'era.agents': { d: EMBLEM.agents },

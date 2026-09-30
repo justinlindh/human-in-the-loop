@@ -1,5 +1,6 @@
 import { emitMomentTalk, momentTalkSystem } from './moment-talk.js';
 import { B } from './balance.js';
+import { exitMrr } from './endgame.js';
 import { chance, pick, weighted } from './rng.js';
 import { registerAction, registerSystem, decisionGateOpen } from './registry.js';
 import { newId } from './util.js';
@@ -197,7 +198,7 @@ export function helpers(state) {
   const offerMult = eraAtLeast(state, 'consolidation') ? B.consolidationOfferMult : 1;
   return {
     B, mrr, live, bestScore: Math.max(0, ...live.map((p) => p.score)), usesModel: (id) => used.has(id),
-    offerReady: state.week >= B.retireFromWeek && mrr >= B.acquisitionOfferMrr * offerMult && state.brand >= B.acquisitionOfferBrand * offerMult,
+    offerReady: state.week >= B.retireFromWeek && mrr >= exitMrr(state, B.acquisitionOfferMrr) * offerMult && state.brand >= B.acquisitionOfferBrand * offerMult,
   };
 }
 

@@ -30,6 +30,7 @@ describe('pre-internet founding and chapters', () => {
   it.each(FUNDING_IDS)('adds the kit to %s without inventing a company history', (funding) => {
     const s = createGame({ seed: 17, startEra: 'preinternet', funding });
     expect(s.cash).toBe(B.funding[funding].cash + B.eraStarts.preinternet.cash);
+    expect(s.founding.eraScoreMult).toBe(B.eraStarts.preinternet.scoreMult);
     expect(s.week).toBe(0); expect(s.staff).toHaveLength(2); expect(s.office.placed).toHaveLength(3);
     expect(s.products).toEqual([]); expect(s.stats.launches).toBe(0); expect(s.stats.incidents).toBe(0);
     expect(s.unlocks.ops).toBe(0); expect(Object.values(s.goals).some((g) => g.skipped || g.done)).toBe(false);
@@ -38,6 +39,15 @@ describe('pre-internet founding and chapters', () => {
     expect(calendarDate(s).year).toBe(1990);
     expect(s.founding.earlyChapters.map((c) => c.id)).toEqual(['preinternet', 'dotcom', 'web2']);
     expect(s.eraSchedule.dotcom).toBe(156); expect(s.eraSchedule.web2).toBe(364); expect(s.eraSchedule.classic).toBe(572);
+  });
+
+  it('keeps a saved score factor instead of recalibrating an existing company', () => {
+    const s = game();
+    s.founding.eraScoreMult = 1.2;
+    const before = scoreRun(s).score;
+    const loaded = roundtrip(s);
+    expect(loaded.founding.eraScoreMult).toBe(1.2);
+    expect(scoreRun(loaded).score).toBe(before);
   });
 
   it('starts boxed projects before Classic, keeps shipped inventory through every bridge', () => {
