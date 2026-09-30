@@ -138,8 +138,30 @@ if [ "${CI_FULL:-}" != 1 ]; then
     tool_changes=0
   fi
 fi
+# Under ci-pr (CI_PR_SELFTESTS=1) a self-test the PR changes runs as the PR wrote it, from a copy
+# beside main's scripts, so a PR that fixes a broken test is judged by the fix. The run says so.
+pr_selftest() { # <name> <command...>: sets PR_TEST_TMP when the step's test file was swapped
+  PR_TEST_TMP=""
+  [ "${CI_PR_SELFTESTS:-}" = 1 ] && [ -n "${tool_mb:-}" ] || return 0
+  local arg rel
+  for arg in "${@:2}"; do
+    case "$arg" in "$SELF"/*.test.sh|"$SELF"/*.test.mjs|"$SELF"/*/*.test.sh|"$SELF"/*/*.test.mjs) rel="${arg#"$SELF"/}" ;; *) continue ;; esac
+    [ -f "scripts/$rel" ] && ! cmp -s "scripts/$rel" "$arg" || return 0
+    git diff --quiet --no-renames "$tool_mb" -- "scripts/$rel" 2>/dev/null && return 0
+    PR_TEST_TMP="$(dirname "$arg")/.pr-$(basename "$arg")"
+    cp "scripts/$rel" "$PR_TEST_TMP"
+    note "$1 ran this PR's version of \`scripts/$rel\`, not main's; check the test was not weakened"
+    return 0
+  done
+}
 tool_step() { # <name> <command...>
-  if [ "$tool_changes" = 1 ]; then step "$@"
+  if [ "$tool_changes" = 1 ]; then
+    pr_selftest "$@"
+    if [ -n "$PR_TEST_TMP" ]; then
+      local args=() a
+      for a in "$@"; do [ "$a" = "${PR_TEST_TMP/\/.pr-/\/}" ] && a="$PR_TEST_TMP"; args+=("$a"); done
+      step "${args[@]}"; rm -f "$PR_TEST_TMP"
+    else step "$@"; fi
   else record "$1" "skipped: no tooling changes" 0; timing_log kind=step tool=ci-local step="$1" skipped=1 wall_s=0 exit=0; fi
 }
 
@@ -178,6 +200,7 @@ step toolkit toolkit_check
 # (scripts/baseline-media.sh); without a PR number it only says so.
 step baseline-media env BASE="$BASE" bash "$SELF/baseline-media.sh" --check
 tool_step ci-classify bash "$SELF/ci-classify.test.sh"
+tool_step ci-pr-selftest bash "$SELF/ci-pr-selftest.test.sh"
 tool_step wait-for bash "$SELF/wait-for.test.sh"
 tool_step check-commits bash "$SELF/check-commits.test.sh"
 tool_step review-prep bash "$SELF/review-prep.test.sh"
