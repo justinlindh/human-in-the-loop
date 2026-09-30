@@ -1,0 +1,20 @@
+{
+  "chatgbt": {
+    "rawMedian": 38663,
+    "classicMedian": 34720,
+    "target": 0.5,
+    "unrounded": 0.44900809559527194,
+    "factor": 0.45,
+    "median": 17398,
+    "share": 0.501094470046083
+  },
+  "agents": {
+    "rawMedian": 38490,
+    "classicMedian": 34720,
+    "target": 0.3,
+    "unrounded": 0.2706157443491816,
+    "factor": 0.27,
+    "median": 10392,
+    "share": 0.29930875576036864
+  }
+}
