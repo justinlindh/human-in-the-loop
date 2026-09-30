@@ -50,7 +50,7 @@ import { startHarness, wantGpu } from './harness.mjs';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { dirname, resolve, join, basename } from 'node:path';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { planReplay, mentions, isWorse } from './sweep-plan.js';
 import { createWorktree } from '../../scripts/tools/worktree.mjs';
@@ -66,6 +66,10 @@ const full = argv.includes('--full');
 // browser. --screen-only is the small browser step the engine run hands the page checks to.
 const screenOnly = argv.includes('--screen-only');
 const engine = !argv.includes('--browser') && !screenOnly;
+// Importing the browser harness makes playwright handle SIGINT, SIGTERM and SIGHUP in JavaScript, which
+// only runs between turns of the event loop; the engine samples in long synchronous stretches and starts no
+// browser here, so those signals take their default action (the screen step ends with the run below).
+if (engine) for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.removeAllListeners(sig);
 // Milliseconds on the process's own clock: the engine replaces Date.now with a game clock.
 const wall = () => Number(process.hrtime.bigint() / 1000000n);
 const MODES = {
@@ -151,6 +155,41 @@ const host = engine ? await import('../../scripts/studio/sweep-host.mjs') : null
 // Started only once this process holds its render lock: the harness re-runs the whole command under
 // the lock and exits the first copy, which must not have started a control of its own.
 const control = against ? await startControl(against) : null;
+// The page checks (screen, tooltip) need a browser and do not depend on the engine's sampling, so that
+// step starts now and runs alongside it (its rows are added below): the same run's states (mocks and
+// their moments, indexed moments, snapshots, seeds) are played there with the page checks alone.
+const screen = (() => {
+  if (!engine || argv.includes('--no-screen')) return null;
+  const sub = join(outDir, 'screen');
+  const skip = new Set(['--update-baseline', '--prune', '--engine', '--no-screen', '--strict']);
+  const rest = [];
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === '--against' || argv[i] === '--out') { i++; continue; }
+    if (!skip.has(argv[i])) rest.push(argv[i]);
+  }
+  // Its own process group, so ending it ends what it started (the render-lock wrapper, the browser).
+  const child = spawn(process.execPath, [fileURLToPath(import.meta.url), ...rest, '--screen-only', '--out', sub], { stdio: ['ignore', 'ignore', 'inherit'], detached: true, env: { ...process.env, HITL_SWEEP_PARENT: String(process.pid) } });
+  // The step ends with this process however it ends: SIGTERM to the group (the browser closes on it),
+  // SIGKILL if anything is still there after a grace period. A parent that is busy or SIGKILLed cannot
+  // do this, so the step also watches for its parent (below).
+  const stop = () => {
+    const alive = () => { try { process.kill(-child.pid, 0); return true; } catch { return false; } };
+    if (!alive()) return;
+    try { process.kill(-child.pid, 'SIGTERM'); } catch { /* gone */ }
+    for (let i = 0; i < 20 && alive(); i++) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
+    if (alive()) { try { process.kill(-child.pid, 'SIGKILL'); } catch { /* gone */ } }
+  };
+  process.on('exit', stop);
+  // No signal handler on purpose: the engine samples in long synchronous stretches, so a handler would
+  // wait for the next turn of the event loop while the default action ends the process at once.
+  const done = new Promise((res) => { child.on('exit', (status) => res({ status })); child.on('error', () => res({ status: 'spawn failed' })); });
+  return { sub, s0: wall(), done };
+})();
+// The screen step ends itself when the run that started it is gone (SIGKILLed, or too busy to signal).
+if (screenOnly && process.env.HITL_SWEEP_PARENT) {
+  const parent = Number(process.env.HITL_SWEEP_PARENT);
+  setInterval(() => { try { process.kill(parent, 0); } catch { process.kill(process.pid, 'SIGTERM'); } }, 1000).unref();
+}
 const found = [];
 const errors = [];
 const windows = [];
@@ -244,17 +283,9 @@ try {
   // The page checks (screen, tooltip) need a browser: the same run's states (mocks and their moments,
   // indexed moments, snapshots, seeds) are played again there with the page checks alone, and its rows
   // join this run's.
-  if (engine && !argv.includes('--no-screen')) {
-    const sub = join(outDir, 'screen');
-    const skip = new Set(['--update-baseline', '--prune', '--engine', '--no-screen', '--strict']);
-    const rest = [];
-    for (let i = 0; i < argv.length; i++) {
-      if (argv[i] === '--against' || argv[i] === '--out') { i++; continue; }
-      if (!skip.has(argv[i])) rest.push(argv[i]);
-    }
-    const args = [fileURLToPath(import.meta.url), ...rest, '--screen-only', '--out', sub];
-    const s0 = wall();
-    const child = spawnSync(process.execPath, args, { stdio: ['ignore', 'ignore', 'inherit'] });
+  if (screen) {
+    const child = await screen.done;
+    const { sub, s0 } = screen;
     let sr = null;
     try { sr = JSON.parse(readFileSync(join(sub, 'report.json'), 'utf8')); } catch { /* reported below */ }
     if (!sr) { errors.push(`screen and tooltip step failed (exit ${child.status})`); console.log('sweep: the screen and tooltip step produced no report'); } else {
