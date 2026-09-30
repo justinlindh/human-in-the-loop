@@ -163,14 +163,29 @@ const screen = (() => {
     if (argv[i] === '--against' || argv[i] === '--out') { i++; continue; }
     if (!skip.has(argv[i])) rest.push(argv[i]);
   }
-  const child = spawn(process.execPath, [fileURLToPath(import.meta.url), ...rest, '--screen-only', '--out', sub], { stdio: ['ignore', 'ignore', 'inherit'] });
-  // The step ends with this process however it ends.
-  const stop = () => { if (child.exitCode === null) child.kill('SIGKILL'); };
+  // Its own process group, so ending it ends what it started (the render-lock wrapper, the browser).
+  const child = spawn(process.execPath, [fileURLToPath(import.meta.url), ...rest, '--screen-only', '--out', sub], { stdio: ['ignore', 'ignore', 'inherit'], detached: true, env: { ...process.env, HITL_SWEEP_PARENT: String(process.pid) } });
+  // The step ends with this process however it ends: SIGTERM to the group (the browser closes on it),
+  // SIGKILL if anything is still there after a grace period. A parent that is busy or SIGKILLed cannot
+  // do this, so the step also watches for its parent (below).
+  const stop = () => {
+    const alive = () => { try { process.kill(-child.pid, 0); return true; } catch { return false; } };
+    if (!alive()) return;
+    try { process.kill(-child.pid, 'SIGTERM'); } catch { /* gone */ }
+    for (let i = 0; i < 20 && alive(); i++) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
+    if (alive()) { try { process.kill(-child.pid, 'SIGKILL'); } catch { /* gone */ } }
+  };
   process.on('exit', stop);
-  for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { stop(); process.exit(sig === 'SIGINT' ? 130 : 143); });
+  // No signal handler on purpose: the engine samples in long synchronous stretches, so a handler would
+  // wait for the next turn of the event loop while the default action ends the process at once.
   const done = new Promise((res) => { child.on('exit', (status) => res({ status })); child.on('error', () => res({ status: 'spawn failed' })); });
   return { sub, s0: wall(), done };
 })();
+// The screen step ends itself when the run that started it is gone (SIGKILLed, or too busy to signal).
+if (screenOnly && process.env.HITL_SWEEP_PARENT) {
+  const parent = Number(process.env.HITL_SWEEP_PARENT);
+  setInterval(() => { try { process.kill(parent, 0); } catch { process.kill(process.pid, 'SIGTERM'); } }, 1000).unref();
+}
 const found = [];
 const errors = [];
 const windows = [];
