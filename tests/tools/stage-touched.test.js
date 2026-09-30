@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { spawnSync } from 'node:child_process';
-import { resolve } from 'node:path';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { resolve, join } from 'node:path';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { tableEntries, touchedSpecs } from '../../blender/checks/stage-touched.js';
 
 const file = (specs, scenarios) => `const helper = 1;\n\nconst SPECS = {\n${specs}\n};\n\nconst SCENARIOS = {\n${scenarios}\n};\n`;
@@ -31,15 +33,25 @@ describe('stage --touched', () => {
   });
 
   it('stage.mjs says so when nothing is touched, and refuses an unknown base and an unknown --only', () => {
-    const run = (...args) => spawnSync(process.execPath, [resolve(__dirname, '../../blender/checks/stage.mjs'), ...args], { encoding: 'utf8', timeout: 120000 });
-    let r = run('--touched=HEAD');
-    expect(r.status, r.stdout + r.stderr).toBe(0);
-    expect(r.stdout).toMatch(/no spec added or changed against HEAD/);
-    r = run('--touched=no-such-ref');
-    expect(r.status).toBe(2);
-    expect(r.stderr).toMatch(/cannot read blender\/checks\/stage\.mjs at "no-such-ref"/);
-    r = run('--only=nonesuch');
-    expect(r.status).toBe(2);
-    expect(r.stderr).toMatch(/--only "nonesuch" matches no spec/);
+    const script = resolve(__dirname, '../../blender/checks/stage.mjs');
+    const cwd = mkdtempSync(join(tmpdir(), 'hitl-stage-touched-'));
+    try {
+      // The no-change case compares identical specs even while the real checkout has edits.
+      mkdirSync(join(cwd, 'blender/checks'), { recursive: true });
+      writeFileSync(join(cwd, 'blender/checks/stage.mjs'), readFileSync(script));
+      const git = (...args) => execFileSync('git', args, { cwd, stdio: 'pipe' });
+      git('init', '-q'); git('add', '.');
+      git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '-qm', 'test: seed stage specs');
+      const run = (...args) => spawnSync(process.execPath, [script, ...args], { cwd, encoding: 'utf8', timeout: 120000 });
+      let r = run('--touched=HEAD');
+      expect(r.status, r.stdout + r.stderr).toBe(0);
+      expect(r.stdout).toMatch(/no spec added or changed against HEAD/);
+      r = run('--touched=no-such-ref');
+      expect(r.status).toBe(2);
+      expect(r.stderr).toMatch(/cannot read blender\/checks\/stage\.mjs at "no-such-ref"/);
+      r = run('--only=nonesuch');
+      expect(r.status).toBe(2);
+      expect(r.stderr).toMatch(/--only "nonesuch" matches no spec/);
+    } finally { rmSync(cwd, { recursive: true, force: true }); }
   }, 130000);
 });

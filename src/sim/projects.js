@@ -18,6 +18,8 @@ import { squadsAfterProject } from './squads.js';
 import { bumpDebt } from './debt.js';
 import { raiseDecision } from './events.js';
 import { applyCompatibility, compatibleLaunch } from './web2.js';
+import { y2kProjectOpen } from './y2k.js';
+import { Y2K_PROJECT } from '../data/y2k.js';
 
 const STAT_LABEL = { features: 'Features', polish: 'Polish', reliability: 'Reliability', novelty: 'Freshness' };
 
@@ -143,6 +145,10 @@ registerAction('startProject', (ctx, a) => {
       kind: a.kind, name: a.kind === 'refactor' ? 'The Big Refactor' : 'Craft project',
       pointsNeeded: a.kind === 'refactor' ? B.refactorPoints : B.craftPoints,
     });
+  } else if (a.kind === 'y2k_compliance') {
+    if (!y2kProjectOpen(state)) return { ok: false, reason: `Y2K contracts are available in ${B.y2k.year}, one at a time, up to ${B.y2k.contractLimit} per company` };
+    if (!freeBuilders(state)) return { ok: false, reason: 'Nobody is free to build it' };
+    project = baseProject(state, { kind: a.kind, name: Y2K_PROJECT.name, pointsNeeded: B.y2k.contractPoints });
   } else if (a.kind === 'research') {
     const r = RESEARCH[a.researchId];
     if (!r) return { ok: false, reason: 'Unknown research' };
@@ -239,6 +245,11 @@ function complete(ctx, j) {
     const announce = RESEARCH_ANNOUNCE[r.id];
     if (announce) emitChat(ctx, { channel: 'wins', from: '@launchbot', text: announce, important: true });
     else emitChat(ctx, { channel: 'wins', person: team[0] ?? null, from: team[0]?.name ?? '@buildbot', text: `${r.name} shipped. Internal tools are the best tools.` });
+  } else if (j.kind === 'y2k_compliance') {
+    const f = state.flags.y2k ??= {};
+    f.contracts = (f.contracts ?? 0) + 1;
+    state.cash += B.y2k.contractFee;
+    ctx.emit({ type: 'toast', text: `Y2K compliance delivered: date is now date_four_digits. Client paid $${B.y2k.contractFee.toLocaleString('en-US')}.`, tone: 'good' });
   } else if (j.kind === 'craft') {
     for (const p of team) p.meaning = Math.min(100, p.meaning + 15);
     state.brand = Math.min(100, state.brand + 1);

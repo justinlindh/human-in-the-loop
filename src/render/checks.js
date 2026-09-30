@@ -762,6 +762,37 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     results.push({ name: 'moment:letter', pass: stood > 0 && worst < 0.01, desks: occupied.length, samples: stood, insidePct: +(100 * worst).toFixed(2), worstWho, worstAt });
     R.moments.full = false;
   }
+  // The millennium watch borrows the normal walking grid and leaves desks clear.
+  {
+    R.moments.full = true;
+    const prior = S.flags.y2k;
+    S.flags.y2k = { stage: 'rollover', rolloverWeek: S.week, printerId: 'y2k-printer' };
+    S.office.props.push({ id: 'y2k-printer', prop: 'printer', x: 1, y: 1, since: S.week });
+    let worst = 0, samples = 0, worstWho = null, worstAt = null;
+    const beats = new Set();
+    for (let i = 0; i < 30 * 20; i++) {
+      step(1);
+      for (const [id, kind] of R.moments.active) if (kind === 'y2k') {
+        const stage = R.moments.staging(id);
+        beats.add(stage.beat);
+        if (R.isSeated(id)) continue;
+        samples++;
+        const own = R.perks.peek(id)?.seat;
+        const root = charOf(R.scene, id);
+        for (const e of R.office.placed.values()) {
+          if (e.id === own) continue;
+          const v = bodyInside(root, meshes(e.obj), false);
+          if (v > worst) { worst = v; worstWho = `${id} in ${e.itemId}:${e.id}`; worstAt = actorAt(R, id); }
+        }
+      }
+    }
+    const complete = ['countdown', 'nothing', 'invoice'].every((b) => beats.has(b));
+    results.push({ name: 'moment:y2k', pass: complete && samples > 0 && worst < 0.01, beats: [...beats], samples, insidePct: +(100 * worst).toFixed(2), worstWho, worstAt });
+    S.flags.y2k = prior;
+    S.office.props = S.office.props.filter((p) => p.id !== 'y2k-printer');
+    R.moments.full = false;
+    step(30);
+  }
   // 6. The printer taken out back (printer_jam, choice 0): the carriers, the one with the bat and the
   // printer itself stay clear of furniture and props from the lift to the walk-off, and the printer is
   // carried low, its top under each carrier's chin. A week's events land mid-carry (a launch party, an

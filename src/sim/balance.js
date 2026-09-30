@@ -7,6 +7,12 @@ export const B = {
     pngCost: 1000, pngPolish: 3, eventWeight: 2, eventCooldown: 52, chatterEvery: 13,
     launchReward: { cash: 5000, brand: 2 },
   },
+  y2k: {
+    year: 1999, onCallQuarter: 4, contractPoints: 40, contractFee: 18000, contractLimit: 3,
+    consultantRate: 3000, consultantMultiplier: 3,
+    gatherSeconds: 5, countdownSeconds: 5, anticlimaxSeconds: 3, invoiceSeconds: 5,
+    propWeeks: 2,
+  },
   dotcom: {
     weeks: 208, startYear: 1997, endYear: 2003,
     boomWeek: 26, ipoWeek: 78, warningWeek: 104, bustWeek: 156,

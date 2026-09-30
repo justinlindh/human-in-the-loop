@@ -11,6 +11,8 @@ import { marketSize } from '../../sim/products.js';
 import { modelCostPerCustomer } from '../../sim/economy.js';
 import { compatibilityMult } from '../../sim/web2.js';
 import { WEB2_COPY } from '../../data/early-eras.js';
+import { y2kProjectOpen, y2kSeason } from '../../sim/y2k.js';
+import { Y2K_PROJECT } from '../../data/y2k.js';
 import { projectLabel, KIND_LABEL, isAvailable, assignmentText, suggestName, automatedProject, NAME_MAX } from './common.js';
 
 // Product stats as the player sees them (Freshness is stored as novelty).
@@ -46,7 +48,7 @@ export function buildPanel(ctx, arg) {
     (s, bind) => renderNew(s, bind));
 
   const projView = liveView(
-    (s) => [s.projects.map((j) => j.id).join(), (s.squads ?? []).map((q) => `${q.name}${q.posting.type}${q.posting.targetId}`).join(), s.staff.map((p) => `${p.id}${p.assignment.type}${p.assignment.targetId}${p.mood}`).join(),
+    (s) => [y2kSeason(s), s.flags.y2k?.contracts, s.projects.map((j) => j.id).join(), (s.squads ?? []).map((q) => `${q.name}${q.posting.type}${q.posting.targetId}`).join(), s.staff.map((p) => `${p.id}${p.assignment.type}${p.assignment.targetId}${p.mood}`).join(),
       s.products.map((p) => `${p.id}${p.killed}${p.migrationDueWeek}`).join()].join('|'),
     (s, bind) => renderProjects(s, bind));
 
@@ -319,6 +321,10 @@ export function buildPanel(ctx, arg) {
     }
 
     // Other kinds of work
+    if (y2kSeason(s)) out.push(h('div.card', { dataset: { projectKind: 'y2k_compliance' } },
+      h('b', { text: 'Y2K compliance contracts' }),
+      h('p.small', { text: `${Y2K_PROJECT.desc} ${B.y2k.contractPoints} work points; pays ${fmtMoney(B.y2k.contractFee)} on completion. ${Math.max(0, B.y2k.contractLimit - (s.flags.y2k?.contracts ?? 0))} contracts left. Assign people after starting.` }),
+      h('button.btn.blue', { disabled: !y2kProjectOpen(s), onclick: () => startKind({ kind: 'y2k_compliance' }) }, 'Start compliance contract')));
     const live = s.products.filter((p) => !p.killed);
     const updSel = picker({
       // An advisor option naming a product picks it here.

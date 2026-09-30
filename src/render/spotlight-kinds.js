@@ -1,6 +1,9 @@
 // The render lane's spotlight policy. Durations are presentation estimates for the pacing tool;
 // a live scene ends from its actors, and may supply a more precise expectedSeconds.
+import { B } from '../sim/balance.js';
+
 export const MOMENT_KINDS = {
+  y2k_rollover: { spotlight: true, seconds: B.y2k.gatherSeconds + B.y2k.countdownSeconds + B.y2k.anticlimaxSeconds + B.y2k.invoiceSeconds, zoom: 1.8 },
   printer_jam: { spotlight: true, seconds: 22, zoom: 1.8 },
   first_user_test: { spotlight: true, seconds: 12, zoom: 2 },
   efficiency_consultants: { spotlight: true, seconds: 12, zoom: 2 },
