@@ -285,6 +285,9 @@ export function landIncident(ctx, { kind, severity, caught, model, fn = null }) 
     caught = false;
     severity = Math.min(5, severity + 1);
   }
+  // A late founding gets time to build a team before incidents can take its products down.
+  const kit = B.eraStarts[state.founding?.startEra];
+  if (state.week < (kit?.incidentGraceWeeks ?? 0)) severity = Math.min(severity, kit.incidentSeverityCap);
   const live = liveProducts(state);
   const product = live.length ? pick(ctx.rng, live) : null;
   const productId = product?.id ?? null;

@@ -137,7 +137,7 @@ export const B = {
   eraStarts: {
     classic: { cash: 0, officeStage: 0, desks: 2, scoreMult: 1 },
     chatgbt: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 0.75 },
-    agents: { cash: 240000, officeStage: 1, desks: 4, scoreMult: 0.6 },
+    agents: { cash: 240000, officeStage: 0, desks: 4, scoreMult: 0.4, incidentGraceWeeks: 260, incidentSeverityCap: 2 },
   },
   founderStrengthBonus: 3, founderIkWeight: 0.4, founderGeneralistWeights: { features: 0.3, polish: 0.15, reliability: 0.2, novelty: 0.1 },
   botBuildersPerProject: 6, botTimeOffStrain: 70, botCancelUnstaffedWeeks: 2, botExpandCushion: 2, botDialCash: 3000000, botAcquireCushion: 4, botAcquireDesks: 3, botMoonshotCushion: 3, botFameBelow: 30, botFameCushion: 6,

@@ -15,11 +15,13 @@ Keep Classic as the default. A start is a newly founded company in an older worl
 | `web2` | 2003 | $90,000 | Garage / 3 | 1.05 | Marketing, Ops, Research, compatibility | `place_desks` |
 | `classic` | 2019 | $0 | Garage / 2 | 1.00 | ordinary progression | none |
 | `chatgbt` | selected era's seeded arrival | $90,000 | Garage / 3 | 0.75 | Marketing, Ops, Research, Models, Automation, Meaning, AI as Pair | `place_desks`, `start_product`, `first_launch` |
-| `agents` | selected era's seeded arrival | $240,000 | Office Floor / 4 | 0.60 | ChatGBT kit plus squads; full automation permissions | ChatGBT skips plus `office_floor` |
+| `agents` | selected era's seeded arrival | $240,000 | Garage / 4 | 0.40 | ChatGBT kit plus squads; full automation permissions | ChatGBT skips |
 | `consolidation` | selected era's seeded arrival | $390,000 | Office Floor / 4 | 0.45 | Agents kit and the era's normal angles/models | Agents skips |
 | `plateau` | selected era's seeded arrival | $540,000 | Office Floor / 4 | 0.30 | Consolidation kit | Agents skips |
 
 The extra desks are unoccupied. No items, research completions, products, staff tenure, policies enabled, or trophies are invented. A skipped goal stays `done: false`, has `week: null` and `skipped: true`; it cannot award cash or brand later, and the UI counts only eligible goals. The Goals list labels it "Skipped by starting era" rather than pretending it was earned. The player's first actual hire, incident, thousand customers and awards still count.
+
+An Agents founding caps incident severity at 2 for the first 260 company weeks. Cash and brand damage, incident records and score penalties still apply; product outages cannot start during this grace. Full severity returns at the fifth company anniversary. The cap follows the founding choice, not the current era, so Classic and ChatGBT companies do not gain it when Agents arrives.
 
 The founding screen shows era, starting cash after funding, office, unlocked systems, skipped goals and the combined funding/era score factor. Buttons work by tap and keyboard; essential information is visible without hovering. The ending and Reports retain the chosen start and score factor. Total score is the existing nonnegative score calculation multiplied by the era factor, with one final rounding. Funding, dilution and the incubator cut still multiply independently. There is no score for skipped history.
 
