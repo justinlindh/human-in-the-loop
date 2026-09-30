@@ -68,7 +68,7 @@ export function sellBoxes(ctx, p, demand) {
   const due = inv.deliveries.filter((d) => d.dueWeek <= deliveryWeek);
   for (const batch of due) { inv.stock += batch.units; inv.stockCost += batch.cost; inv.delivered += batch.units; }
   inv.deliveries = inv.deliveries.filter((d) => d.dueWeek > deliveryWeek);
-  if (due.length && inv.buybackWeek === null && state.era.id === 'preinternet') {
+  if (due.length && inv.buybackWeek === null) {
     inv.buybackWeek = deliveryWeek + B.preinternet.buybackDelayWeeks;
   }
   if (inv.buybackWeek !== null && deliveryWeek >= inv.buybackWeek && !inv.returnsSettled) {

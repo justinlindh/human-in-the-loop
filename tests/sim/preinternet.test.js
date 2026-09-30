@@ -12,6 +12,7 @@ import { addProduct } from './helpers.js';
 import { economySystem, weeklyCosts, weeklyRevenue, recurringRevenue } from '../../src/sim/economy.js';
 import { dotcomStep, dotcomDecisionOpen } from '../../src/sim/dotcom.js';
 import { assertFinite } from '../../src/sim/bots.js';
+import { raiseDecision } from '../../src/sim/events.js';
 
 const game = () => createGame({ seed: 17, startEra: 'preinternet' });
 const product = (s) => {
@@ -139,6 +140,20 @@ describe('physical distribution arithmetic', () => {
     tick(s); expect(s.week).toBe(2); expect(p.boxed.delivered).toBe(100); expect(p.boxed.deliveries).toEqual([]);
   });
 
+  it('keeps delivery and first-shelf returns active when the shipment crosses into Classic', () => {
+    const s = game(), p = product(s);
+    s.week = s.eraSchedule.classic - 1;
+    expect(dispatch(s, { type: 'orderBatch', productId: p.id, units: 100 }).ok).toBe(true);
+    s.week++; calendarStart(makeCtx(s)); expect(s.era.id).toBe('classic');
+    sellBoxes(makeCtx(s), p, 0);
+    expect(p.boxed.stock).toBe(100);
+    expect(p.boxed.buybackWeek).toBe(s.week + 1 + B.preinternet.buybackDelayWeeks);
+    s.week += B.preinternet.buybackDelayWeeks;
+    const before = s.cash; sellBoxes(makeCtx(s), p, 0);
+    expect(p.boxed.withdrawn).toBe(100); expect(p.boxed.stock).toBe(0);
+    expect(s.cash).toBe(before - 160); expect(p.mrr).toBe(0);
+  });
+
   it('never oversells, refunds poor releases and keeps retail revenue separate from MRR', () => {
     const s = game(), p = product(s); p.boxed.stock = 100; p.boxed.stockCost = 800; p.score = 5;
     sellBoxes(makeCtx(s), p, 200);
@@ -161,6 +176,7 @@ describe('physical distribution arithmetic', () => {
     const s = game(), p = product(s);
     expect(dispatch(s, { type: 'mailPatch', productId: p.id }).ok).toBe(false);
     p.boxed.installed = 100; p.health = 20; expect(patchQuote(s, p).cost).toBe(200);
+    s.ops.maintenanceCapacity = 100000; productsSystem(makeCtx(s)); expect(p.health).toBe(20);
     p.boxed.installed = 8000; expect(patchQuote(s, p).cost).toBe(10000);
     s.cash = 9999; const before = structuredClone(s);
     expect(dispatch(s, { type: 'mailPatch', productId: p.id }).ok).toBe(false); expect(s).toEqual(before);
@@ -209,7 +225,9 @@ describe('physical distribution arithmetic', () => {
     const s = game(), p = product(s); p.boxed.stock = 13; p.boxed.stockCost = 104; p.score = 5;
     sellBoxes(makeCtx(s), p, 3);
     expect(dispatch(s, { type: 'orderBatch', productId: p.id, units: 500 }).ok).toBe(true);
-    calendarStart(makeCtx(s)); const loaded = roundtrip(s); expect(loaded).toEqual(s);
+    expect(raiseDecision(makeCtx(s), 'pre_master_disk', p.id)).toBe(true);
+    const loaded = roundtrip(s); expect(loaded).toEqual(s);
+    expect(loaded.pendingDecision.eventId).toBe('pre_master_disk');
     for (let n = 0; n < 20; n++) {
       for (const st of [s, loaded]) {
         while (st.pendingDecision) dispatch(st, { type: 'resolveDecision', choice: st.pendingDecision.choices.length - 1 });
