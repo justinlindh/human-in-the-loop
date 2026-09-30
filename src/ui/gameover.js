@@ -4,6 +4,7 @@ import * as SIM from '../sim/index.js';
 import { icon } from './icons.js';
 import { B } from '../sim/balance.js';
 import { ERA_STARTS } from '../data/era-modes.js';
+import { erasPreview } from './eraPreview.js';
 
 const HEADLINE = {
   ipo: ['IPO day!', 'The bell rang. Your company is public.'],
@@ -58,7 +59,7 @@ export function createGameOver({ layer, controls, sfx, act }) {
       const funding = B.funding[s.founding?.funding]?.scoreMult ?? 1;
       if (funding !== 1) rows.push(h('div.kv', null, h('span', { text: 'Funding' }), h('b.num', { text: `x${funding}` })));
       if (s.flags?.incubatorCut) rows.push(h('div.kv', null, h('span', { text: 'Incubator cut' }), h('b.num', { text: `x${1 - s.flags.incubatorCut}` })));
-      if (s.founding?.startEra) rows.push(h('div.kv', null, h('span', { text: `${ERA_STARTS[s.founding.startEra]?.name ?? s.founding.startEra} start` }), h('b.num', { text: `x${s.founding.eraScoreMult}` })));
+      if (erasPreview && s.founding?.startEra) rows.push(h('div.kv', null, h('span', { text: `${ERA_STARTS[s.founding.startEra]?.name ?? s.founding.startEra} start` }), h('b.num', { text: `x${s.founding.eraScoreMult}` })));
       rows.push(h('div.kv.sum', null, h('span', { text: 'Score' }), h('b.num', { text: fmtNum(g.score ?? run.score) })));
     }
     const anniversary = g.reason === 'anniversary';
