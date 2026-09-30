@@ -80,6 +80,26 @@ export const CUES = {
   'ui.desknet_ping': { bus: 'ui', files: ['ui/desknet_ping'], cooldown: 4, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
   'ui.awayim_ping': { bus: 'ui', files: ['ui/awayim_ping'], cooldown: 4, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
   'ui.hipcheck_ping': { bus: 'ui', files: ['ui/hipcheck_ping'], cooldown: 4, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
+  // Sparse period context cues: long cooldowns, soft, and dropped first under load.
+  'stinger.dotcom_bust': { bus: 'sfx', files: ['stingers/dotcom_bust'], cooldown: 30, priority: 8, duck: 'stinger', delivered: true },
+  'sfx.disk_seek': { bus: 'sfx', files: ['sfx/disk_seek'], cooldown: 30, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
+  'sfx.cd_tray': { bus: 'sfx', files: ['sfx/cd_tray'], cooldown: 30, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
+  'sfx.retail_box': { bus: 'sfx', files: ['sfx/retail_box'], cooldown: 30, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
+  'sfx.dotcom_bell': { bus: 'sfx', files: ['sfx/dotcom_bell'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
+};
+// A period cue that follows an event's main sound, after `delay` seconds so a stinger is not masked.
+// Boxed (on-prem) software in the early eras sounds like a retail box; otherwise a launch is a
+// floppy copy (pre-internet) or a pressed CD (dot-com).
+export const ERA_EXTRAS = {
+  launch: (e, s) => {
+    const era = s?.era?.id;
+    if (era !== 'preinternet' && era !== 'dotcom') return null;
+    const boxed = s.products?.find((p) => p.id === e.productId)?.angle === 'onprem';
+    if (boxed) return { cue: 'sfx.retail_box', delay: 1 };
+    return { cue: era === 'preinternet' ? 'sfx.disk_seek' : 'sfx.cd_tray', delay: 3.5 };
+  },
+  // The dot-com float ("The bell rings.") rings the bell.
+  decisionResolved: (e) => (e.eventId === 'dotcom_ipo_frenzy' && e.choice === 1 ? { cue: 'sfx.dotcom_bell', delay: 0.3 } : null),
 };
 // Period sound per early era: its arrival stinger and its chat app's ping.
 export const ERA_SOUNDS = {
