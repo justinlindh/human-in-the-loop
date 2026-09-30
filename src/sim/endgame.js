@@ -8,6 +8,7 @@ import { categoryLeaders } from './market.js';
 import { EPILOGUES, GENERIC_EPILOGUES } from '../data/epilogues.js';
 import { eraOnlyAllowsText, eraIndex } from './eras.js';
 import { OFFICE_STAGES } from '../data/office.js';
+import { periodCopy } from '../data/period-content.js';
 
 export function scoreRun(state) {
   const mrr = totalMrr(state);
@@ -71,7 +72,7 @@ const fill = (state, text, x = {}) => text.replaceAll('{company}', state.company
 // capped at epilogueLines and topped up to 3 with generic lines.
 export function buildEpilogue(state, outcome) {
   const x = summary(state, outcome);
-  const fits = EPILOGUES.filter((e) => e.when(state, x) && eraOnlyAllowsText(state, e.text));
+  const fits = EPILOGUES.map((e) => periodCopy(state, 'epilogues', e)).filter((e) => e.when(state, x) && eraOnlyAllowsText(state, e.text));
   const picked = [
     ...fits.filter((e) => e.group === 'outcome').slice(0, B.epilogueOutcomeLines),
     ...fits.filter((e) => e.group === 'recap').slice(0, 1),
@@ -85,7 +86,7 @@ export function buildEpilogue(state, outcome) {
     if (state.goals.office_floor?.skipped) text = text.replaceAll('started in a garage', 'started on an office floor').replaceAll('garage days', 'founding days');
     return fill(state, text, x);
   });
-  for (const g of shuffle(state.rng, GENERIC_EPILOGUES.filter((e) => e.when(state, x) && eraOnlyAllowsText(state, e.text)))) {
+  for (const g of shuffle(state.rng, GENERIC_EPILOGUES.map((e) => periodCopy(state, 'epilogues', e)).filter((e) => e.when(state, x) && eraOnlyAllowsText(state, e.text)))) {
     if (lines.length >= 3) break;
     lines.push(fill(state, g.text, x));
   }

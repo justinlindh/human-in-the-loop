@@ -15,8 +15,15 @@ export const PERIOD_MARKETS = {
   web2: { categories: ['notes', 'email', 'pm', 'support', 'crm', 'analytics', 'design', 'devtools'], angles: ['web', 'onprem', 'api', 'freemium'], trends: ['steady', 'budget_cuts', 'security_scare'] },
 };
 export const DOTCOM_NAMES = ['Under Construction', 'Portal Combat', 'Click And Mortar', 'Eyeballs Enterprise'];
-export const PERIOD_CHAT_APPS = { dotcom: { id: 'awayim', name: 'AwayIM' }, web2: { id: 'hipcheck', name: 'HipCheck' } };
-export const chatAppName = (state) => PERIOD_CHAT_APPS[state.era?.id]?.name ?? 'Yak';
+// Display metadata only: channels, action ids and saved Yak settings keep their original keys.
+export const PERIOD_CHAT_APPS = {
+  preinternet: { id: 'desknet', name: 'DeskNet', status: 'LAN bulletin board', away: '/me checks the noticeboard', channels: { general: 'office', random: 'breakroom', incidents: 'helpdesk', wins: 'releases', standup: 'rollcall' } },
+  dotcom: { id: 'awayim', name: 'AwayIM', status: 'Buddy List', away: 'Away: building the future. Back after lunch.', channels: { general: 'Office Chat', random: 'Water Cooler', incidents: 'Help Desk', wins: 'Ship It!', standup: 'Roll Call' } },
+  web2: { id: 'hipcheck', name: 'HipCheck', status: 'Team rooms', away: 'Status: works in the approved browser.', channels: { general: 'Lobby', random: 'Off topic', incidents: 'Operations', wins: 'Releases', standup: 'Daily updates' } },
+};
+const YAK = { id: 'yak', name: 'Yak' };
+export const chatApp = (state) => PERIOD_CHAT_APPS[state?.era?.id] ?? YAK;
+export const chatAppName = (state) => chatApp(state).name;
 export const WEB2_CHAT = { id: 'web2_box_model', lines: [
   'The box model hack is done. The box is wider inside the client demo.',
   'The conditional comment has conditions. I respect its boundaries.',

@@ -8,6 +8,7 @@ import { itemBonus } from './bonus.js';
 import { purposeLift } from './purpose.js';
 import { modifierBonus } from './modifiers.js';
 import { incumbentFor } from '../data/incumbents.js';
+import { isPeriod, PERIOD_FAREWELLS, PERIOD_MOVE_REASONS } from '../data/period-content.js';
 
 // Why a long-tenured person moves on for reasons that have nothing to do with the company.
 const REASONS = [
@@ -45,12 +46,12 @@ export function moveOnSystem(ctx) {
   const eligible = state.staff.filter((p) => !p.founder && p.mood !== 'away' && state.week - p.hiredWeek >= B.moveOnTenureWeeks);
   const p = eligible.find(() => chance(rng, B.moveOnPerYear / 52));
   if (!p) return;
-  emitChat(ctx, { person: p, text: pick(rng, FAREWELLS) });
+  emitChat(ctx, { person: p, text: pick(rng, isPeriod(state) ? PERIOD_FAREWELLS : FAREWELLS) });
   endMentorshipsOf(state, p);
   removeStaff(state, p);
   const friend = referFriend(ctx, p);
   ctx.emit({ type: 'resign', staffId: p.id, name: p.name, fired: false, reason: 'moved_on' });
-  ctx.emit({ type: 'toast', tone: 'good', text: `${p.name} ${pick(rng, REASONS)}${friend}` });
+  ctx.emit({ type: 'toast', tone: 'good', text: `${p.name} ${pick(rng, isPeriod(state) ? PERIOD_MOVE_REASONS : REASONS)}${friend}` });
 }
 
 // Why someone takes an offer. {who} is the company that hired them.
@@ -98,7 +99,7 @@ export function attritionSystem(ctx) {
     && chance(rng, (B.attritionPerYear / 52) * attritionRisk(state, x)));
   if (!p) return;
   const rival = state.rival && (state.rival.status === 'rising' || state.rival.status === 'stalled') && chance(rng, 0.5) ? state.rival.name : null;
-  const who = rival ?? incumbentFor(pick(rng, state.market.unlockedCategories)).name;
+  const who = rival ?? incumbentFor(pick(rng, state.market.unlockedCategories), state).name;
   emitChat(ctx, { person: p, text: pick(rng, GOODBYES).replaceAll('{who}', who) });
   endMentorshipsOf(state, p);
   removeStaff(state, p);

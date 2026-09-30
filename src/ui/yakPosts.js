@@ -7,7 +7,7 @@ import { h, setText, toggleClass } from './dom.js';
 import { icon } from './icons.js';
 import { SIMX } from './simapi.js';
 import { phoneLayout } from './media.js';
-import { chatAppName } from '../data/early-eras.js';
+import { chatApp, chatAppName } from '../data/early-eras.js';
 
 // The sim names each post's icon by what it shows; these are the glyphs for them.
 export const POST_ICON = { megaphone: 'channel.ads', siren: 'bot.pager', laugh: 'react.laugh', pizza: 'react.pizza', bullhorn: 'channel.launch' };
@@ -45,7 +45,7 @@ export function createPostBar({ layer, getState, onPost }) {
     close();
     const sheet = phoneLayout();
     const label = `Post to ${chatAppName(getState())}`;
-    open = h(`div.ypost-pick${sheet ? '.sheet' : ''}`, { role: 'dialog', 'aria-label': label, dataset: { occludes: '' }, onpointerdown: (e) => e.stopPropagation() },
+    open = h(`div.ypost-pick${sheet ? '.sheet' : ''}`, { role: 'dialog', 'aria-label': label, dataset: { occludes: '', chatApp: chatApp(getState()).id }, onpointerdown: (e) => e.stopPropagation() },
       h('div.ypost-head', null, h('b', { text: label }), h('button.btn.small.ypost-x', { type: 'button', 'aria-label': 'Close', onclick: (e) => { e.stopPropagation(); close(); } }, icon('close', { size: 12 }))),
       ...list.map(row));
     (sheet ? layer : bar).append(open);
@@ -67,14 +67,17 @@ export function createPostBar({ layer, getState, onPost }) {
 
   // Per frame: cheap. The options are read once a week (and whenever the picker opens).
   let week = null;
+  let appId = null;
   function update(s) {
-    headBtn.setAttribute('aria-label', `Post to ${chatAppName(s)}`);
-    if (s.week === week) return;
+    const app = chatApp(s);
+    if (s.week === week && app.id === appId) return;
     week = s.week;
+    appId = app.id;
+    headBtn.setAttribute('aria-label', `Post to ${app.name}`);
     const all = SIMX.postOptions ? SIMX.postOptions(s) : null;
     const list = all?.length ? all : null;
     const ready = list ? list.filter((o) => o.available !== false).length : 0;
-    const next = list ? `${list.length}|${ready}` : 'none';
+    const next = list ? `${appId}|${list.length}|${ready}` : 'none';
     if (next === sig) return;
     sig = next;
     bar.style.display = list ? '' : 'none';

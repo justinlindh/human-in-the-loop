@@ -5,6 +5,8 @@ import { outputMult, staffMods } from './staff.js';
 import { liveProducts, findProduct } from './projects.js';
 import { CHANNELS } from '../data/channels.js';
 import { periodChannel } from '../data/early-eras.js';
+import { periodCopy } from '../data/period-content.js';
+import { PRESS } from '../data/press.js';
 import { modifierBonus } from './modifiers.js';
 import { itemBonus } from './bonus.js';
 import { lockedReason } from './unlocks.js';
@@ -90,7 +92,8 @@ export function marketingSystem(ctx) {
       p.wrapperHit = true;
       state.brand = Math.max(0, state.brand - B.wrapperBrandHit);
       const jab = eraAtLeast(state, 'chatgbt') ? 'just a wrapper' : 'all hype, no product';
-      ctx.emit({ type: 'toast', text: `The Vergence calls ${p.name} '${jab}'`, tone: 'bad' });
+      const outlet = periodCopy(state, 'press', PRESS.find((o) => o.id === 'vergence')).name;
+      ctx.emit({ type: 'toast', text: `${outlet} calls ${p.name} '${jab}'`, tone: 'bad' });
     }
   }
 }

@@ -6,6 +6,7 @@ import { VACATION_PUSHES } from '../data/modifiers.js';
 import { endMentorshipsOf } from './staff.js';
 import { emitChat } from './chat.js';
 import { pick } from './rng.js';
+import { isPeriod, PERIOD_VACATIONS } from '../data/period-content.js';
 
 // Weekly strain: exhaustion from real load. It builds when people are tired, understaffed, crunching,
 // on call during an outage, or covering for a burnt-out colleague, and fades slowly with rest.
@@ -108,7 +109,7 @@ export function vacationSystem(ctx) {
     p.stamina = Math.min(100, p.stamina + B.vacationStamina);
     state.flags[`awayFor_${p.id}`] = 'Vacation';
     endMentorshipsOf(state, p);
-    emitChat(ctx, { person: p, text: pick(rng, VACATION_POSTS) });
+    emitChat(ctx, { person: p, text: pick(rng, isPeriod(state) ? PERIOD_VACATIONS : VACATION_POSTS) });
   }
   for (const id of Object.keys(postponedCount)) if (!(id in due)) delete postponedCount[id];
   if (postponed.length) {

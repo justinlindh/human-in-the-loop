@@ -74,6 +74,7 @@ export const ADVICE_LINES = {
     ],
   },
   era: {
+    web2: ['The browser is part of the job now. Budget time for the one the client is allowed to use.'],
     dotcom: [
       'Ship a small website before planning the IPO. The bills are real; the eyeball valuation is a presentation.',
       'The boom brings attention. A working product gives it somewhere to go. Keep enough cash for the quieter years.',

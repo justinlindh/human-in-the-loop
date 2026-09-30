@@ -20,6 +20,7 @@ import { raiseDecision } from './events.js';
 import { applyCompatibility, compatibleLaunch } from './web2.js';
 import { y2kProjectOpen } from './y2k.js';
 import { Y2K_PROJECT } from '../data/y2k.js';
+import { isPeriod, periodCopy } from '../data/period-content.js';
 
 const STAT_LABEL = { features: 'Features', polish: 'Polish', reliability: 'Reliability', novelty: 'Freshness' };
 
@@ -72,14 +73,14 @@ export function pressReviews(state, target, { update = false, centered = false, 
   if (!centered) {
     return PRESS.map((outlet) => {
       const score = toHalf(target + range(rng, -B.reviewNoise, B.reviewNoise));
-      return { outlet: outlet.name, score, quote: quoteFor(score) };
+      return { outlet: periodCopy(state, 'press', outlet).name, score, quote: quoteFor(score) };
     });
   }
   const offsets = PRESS.map(() => range(rng, -B.reviewNoise, B.reviewNoise));
   const shift = sum(offsets, (o) => o) / offsets.length;
   return PRESS.map((outlet, i) => {
     const score = toHalf(target + offsets[i] - shift);
-    return { outlet: outlet.name, score, quote: quoteFor(score) };
+    return { outlet: periodCopy(state, 'press', outlet).name, score, quote: quoteFor(score) };
   });
 }
 
@@ -120,7 +121,7 @@ registerAction('startProject', (ctx, a) => {
     if (given === '') return { ok: false, reason: 'Needs a name' };
     if (given && given.length > B.productNameMax) return { ok: false, reason: `Names are ${B.productNameMax} characters at most` };
     if (!freeBuilders(state)) return { ok: false, reason: 'Nobody is free to build it' };
-    const name = given ?? `${CATEGORIES[a.category].name}${ANGLES[a.angle].ai ? ' AI' : 'ly'}`.slice(0, B.productNameMax);
+    const name = given ?? `${CATEGORIES[a.category].name}${isPeriod(state) ? 'Works' : ANGLES[a.angle].ai ? ' AI' : 'ly'}`.slice(0, B.productNameMax);
     state.cash -= B.sizes[a.size].cost;
     project = baseProject(state, {
       kind: 'new', name, category: a.category, angle: a.angle, model: ANGLES[a.angle].ai ? a.model : null, size: a.size,
@@ -150,13 +151,13 @@ registerAction('startProject', (ctx, a) => {
     if (!freeBuilders(state)) return { ok: false, reason: 'Nobody is free to build it' };
     project = baseProject(state, { kind: a.kind, name: Y2K_PROJECT.name, pointsNeeded: B.y2k.contractPoints });
   } else if (a.kind === 'research') {
-    const r = RESEARCH[a.researchId];
+    const r = periodCopy(state, 'research', RESEARCH[a.researchId]);
     if (!r) return { ok: false, reason: 'Unknown research' };
     const locked = lockedReason(state, 'research');
     if (locked) return { ok: false, reason: locked };
     if (r.ai && !eraAtLeast(state, 'agents')) return { ok: false, reason: 'Arrives with the Agents era' };
     if (state.research.done.includes(r.id)) return { ok: false, reason: 'Already researched' };
-    if (r.requires && !state.research.done.includes(r.requires)) return { ok: false, reason: `Requires ${RESEARCH[r.requires].name}` };
+    if (r.requires && !state.research.done.includes(r.requires)) return { ok: false, reason: `Requires ${periodCopy(state, 'research', RESEARCH[r.requires]).name}` };
     if (state.projects.some((j) => j.researchId === r.id)) return { ok: false, reason: 'Already in progress' };
     if (!freeBuilders(state)) return { ok: false, reason: 'Nobody is free to build it' };
     project = baseProject(state, { kind: 'research', name: r.name, researchId: r.id, pointsNeeded: r.points });
@@ -238,7 +239,7 @@ function complete(ctx, j) {
     for (const p of team) p.knowledge = Math.min(100, p.knowledge + 10);
     ctx.emit({ type: 'toast', text: 'The Big Refactor is done. People understand things again.', tone: 'good' });
   } else if (j.kind === 'research' && RESEARCH[j.researchId] && !state.research.done.includes(j.researchId)) {
-    const r = RESEARCH[j.researchId];
+    const r = periodCopy(state, 'research', RESEARCH[j.researchId]);
     state.research.done.push(r.id);
     (ctx.happenings ??= {}).research = true;
     ctx.emit({ type: 'toast', text: `${r.name} is live. ${r.desc}`, tone: 'good' });

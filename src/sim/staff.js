@@ -9,6 +9,7 @@ import {
 } from '../data/names.js';
 import { deskCapacity, assignSeats } from './office.js';
 import { CHATTER } from '../data/chatter.js';
+import { periodChatter, periodCopy } from '../data/period-content.js';
 import { registerAction, registerSystem } from './registry.js';
 import { onDeparture } from './knowledge.js';
 import { emitChat } from './chat.js';
@@ -136,7 +137,7 @@ export function generateStaff(state, { role, seniority }) {
     skills[st] = Math.round(clamp(base, 1, 100));
   }
   // AI-flavoured traits (an AI Enthusiast, a Vibe Coder) wait for the AI eras.
-  const traits = shuffle(r, RANDOM_TRAITS.filter((id) => eraOnlyAllowsText(state, `${TRAITS[id].name} ${TRAITS[id].desc}`)
+  const traits = shuffle(r, RANDOM_TRAITS.filter((id) => eraOnlyAllowsText(state, `${TRAITS[id].name} ${periodCopy(state, 'traits', TRAITS[id]).desc}`)
     && (!TRAITS[id].era || eraAtLeast(state, TRAITS[id].era)))).slice(0, int(r, 0, 2));
   const person = {
     id: newId(state, 's'),
@@ -247,8 +248,9 @@ registerAction('hire', (ctx, { candidateId }) => {
     state.flags.helloWeek = state.week;
     // Hellos remember the last few so back-to-back hiring weeks do not greet the same way.
     const recent = (state.flags.recentHello ??= []);
-    const pool = eraLines(state, CHATTER.hello).filter((l) => !recent.includes(l));
-    const line = pick(ctx.rng, pool.length ? pool : CHATTER.hello);
+    const safe = eraLines(state, periodChatter(state, 'hello', CHATTER.hello));
+    const pool = safe.filter((l) => !recent.includes(l));
+    const line = pick(ctx.rng, pool.length ? pool : safe);
     recent.push(line);
     if (recent.length > B.helloMemory) recent.splice(0, recent.length - B.helloMemory);
     emitChat(ctx, { person: c, text: line });

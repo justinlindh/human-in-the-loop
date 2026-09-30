@@ -10,6 +10,7 @@ import { hireView } from './hire.js';
 import { squadsView, squadsUnlocked, squadOf, SQUAD_MAX } from './squads.js';
 import { PATHS } from '../../data/paths.js';
 import { TRAINING } from '../../data/training.js';
+import { eraAtLeast } from '../../sim/eras.js';
 import { picker, personOption } from '../picker.js';
 import { recordStats, recordLine, recordLeaders, hasRecord } from '../record.js';
 import { meaningShown, TIRED_STAMINA, strainOf, STRAIN_WARN, agentsHere } from '../v2content.js';
@@ -190,7 +191,7 @@ export function staffPanel(ctx, arg) {
         h('td.mcol', { title: MOOD_INFO[p.mood]?.name }, h('div.row', null, h('span.mico', null, icon(`mood.${p.mood}`, { size: 19 })), h('div.bar', null, mFill), mVal, tired)),
         h('td.kcol', null, h('div.row', null, h('div.bar', null, kFill), kVal)),
         h('td', null, assignSelect(ctx, s, p)),
-        h('td.tr', null, ...traitChips(p.traits)));
+        h('td.tr', null, ...traitChips(p.traits, s)));
       toggleClass(tr, 'sad', p.mood === 'burnout');
       body.append(tr);
       bind((st) => {
@@ -291,7 +292,10 @@ export function staffPanel(ctx, arg) {
         options: mentors.filter((x) => x !== m).map((x) => personOption(x, { sub: `${x.seniority[0].toUpperCase()}${x.seniority.slice(1)} ${roleName(x.role).toLowerCase()}` })),
         onChange: (id) => ctx.act({ type: 'assign', staffId: id, assignment: { type: 'mentor', targetId: p.id } }),
       }).el;
-      acts.append(h('div.act', null, h('b', null, icon('mentor'), ' Mentor'), h('span.small.muted', { text: m ? 'Learning fast, and less bothered by automation.' : 'Without a mentor, juniors grow slowly while automation eats their practice work.' }), sel));
+      const mentorHint = eraAtLeast(s, 'chatgbt')
+        ? m ? 'Learning fast, and less bothered by automation.' : 'Without a mentor, juniors grow slowly while automation eats their practice work.'
+        : m ? 'Learning fast with someone to ask for help.' : 'Without a mentor, juniors have fewer chances to learn from experienced colleagues.';
+      acts.append(h('div.act', null, h('b', null, icon('mentor'), ' Mentor'), h('span.small.muted', { text: mentorHint }), sel));
     } else {
       const juniors = s.staff.filter((x) => x.seniority === 'junior');
       const sel = picker({
@@ -378,7 +382,7 @@ export function staffPanel(ctx, arg) {
           showM ? h('div.section', null, h('h3', null, 'Meaning lately'), spark) : null),
         h('div.dright', null,
           h('div.section', null, h('h3', null, 'Traits'),
-            p.traits.length ? h('div.grid', null, ...p.traits.map((id) => { const ti = traitInfo(id); return h('div.traitrow', null, h('span.pill.trait', { text: ti.name }), h('span.small.muted', { text: ti.desc })); }))
+            p.traits.length ? h('div.grid', null, ...p.traits.map((id) => { const ti = traitInfo(id, s); return h('div.traitrow', null, h('span.pill.trait', { text: ti.name }), h('span.small.muted', { text: ti.desc })); }))
               : h('span.faint.small', { text: 'No notable traits.' })),
           growthBox,
           h('div.section', null, h('h3', null, 'Actions'), acts))),

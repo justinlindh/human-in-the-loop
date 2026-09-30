@@ -1,6 +1,7 @@
 import { int } from './rng.js';
 import { ERAS, ERA_IDS } from '../data/eras.js';
 import { EARLY_ERAS, EARLY_ORDER, PERIOD_MARKETS } from '../data/early-eras.js';
+import { isPeriod, periodText } from '../data/period-content.js';
 
 const ordinal = (id) => EARLY_ORDER.includes(id) ? EARLY_ORDER.indexOf(id) - EARLY_ORDER.length : Math.max(0, ERA_IDS.indexOf(id));
 export const eraIndex = (state) => ordinal(state.era?.id ?? 'classic');
@@ -49,7 +50,7 @@ const officeHas = (state, text) => NEEDS_ITEM.every(([re, ids]) => !re.test(text
   || (state.office?.placed ?? []).some((p) => ids.includes(p.itemId)));
 
 // Whether text fits the current era, ignoring the office (events gate on the office themselves).
-const modernOffice = /\b(Yak|Slack|Zoom|TikTok|Twitter|podcasts?|cloud|mobile|smartphone|video call|ring light|Product Hunch|Hackerspews|creator economy|remote wave|freemium)\b/i;
+const modernOffice = /\b(Yak|Slack|Zoom|TikTok|Twitter|LinkedOut|GitHug|podcasts?|cloud|mobile|smartphone|video call|ring light|Product Hunch|Hackerspews|creator economy|remote wave|pull requests?|PRs?|livestream|cryptocurrency|crypto|bitcoin|vibes|touch grass|starred the repo|custom emoji)\b/i;
 export const eraOnlyAllowsText = (state, text) => (eraIndex(state) > 0 || !isAiText(String(text ?? ''))) && agentsAllowed(state, String(text ?? ''))
   && (!PERIOD_MARKETS[state.era?.id] || !modernOffice.test(String(text ?? '')));
 
@@ -73,10 +74,11 @@ export const eraAllowsText = (state, text) => {
 };
 
 // Filters a pool of lines to the ones that fit. If none fit, falls back to the lines that at least fit the
-// era, then to the whole pool, so a pick never comes back empty.
+// era, then to neutral office copy, so an exhausted pool never brings back future technology.
 export function eraLines(state, lines) {
+  if (isPeriod(state)) lines = lines.map((text) => periodText(state, text));
   const ok = lines.filter((l) => eraAllowsText(state, l));
   if (ok.length) return ok;
   const era = lines.filter((l) => eraOnlyAllowsText(state, l));
-  return era.length ? era : PERIOD_MARKETS[state.era?.id] ? ['The office is quiet. Someone is thinking.'] : lines;
+  return era.length ? era : ['The office is quiet. Someone is thinking.'];
 }

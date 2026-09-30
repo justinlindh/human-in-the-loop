@@ -1,0 +1,2857 @@
+{
+  "classic": {
+    "version": 2,
+    "seed": 17,
+    "rng": {
+      "s": 3192814364
+    },
+    "companyName": "Archive Software",
+    "week": 0,
+    "nextId": 12,
+    "cash": 110000,
+    "brand": 5,
+    "institutionalKnowledge": 60,
+    "comprehensionDebt": 0,
+    "debtFlow": {
+      "work": 0,
+      "automation": 0,
+      "products": 0,
+      "lowKnowledge": 0,
+      "seniors": 0,
+      "maintenance": 0,
+      "reviews": 0,
+      "oneOff": 0,
+      "net": 0
+    },
+    "officeStage": 0,
+    "staff": [
+      {
+        "id": "s1",
+        "name": "Taylor Sun",
+        "role": "engineer",
+        "seniority": "senior",
+        "level": 10,
+        "xp": 0,
+        "skills": {
+          "features": 100,
+          "polish": 65,
+          "reliability": 98,
+          "novelty": 64
+        },
+        "speed": 0.83,
+        "meaning": 87,
+        "stamina": 100,
+        "knowledge": 70,
+        "traits": [
+          "pragmatist"
+        ],
+        "assignment": {
+          "type": "idle",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 2390,
+        "hiredWeek": 0,
+        "founder": true,
+        "deskId": "f3",
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 1,
+          "hair": 3,
+          "hairColor": "#b8b8b8",
+          "shirt": "#f2efe6",
+          "pants": "#2e3440",
+          "accessory": "none",
+          "build": 2
+        },
+        "voice": {
+          "set": "fem",
+          "variant": 5,
+          "pitch": 0.6
+        },
+        "archetype": "engineer"
+      },
+      {
+        "id": "s2",
+        "name": "Bilal Yamamoto",
+        "role": "designer",
+        "seniority": "mid",
+        "level": 7,
+        "xp": 0,
+        "skills": {
+          "features": 59,
+          "polish": 59,
+          "reliability": 37,
+          "novelty": 72
+        },
+        "speed": 1.18,
+        "meaning": 87,
+        "stamina": 100,
+        "knowledge": 70,
+        "traits": [
+          "craftsperson"
+        ],
+        "assignment": {
+          "type": "idle",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 1650,
+        "hiredWeek": 0,
+        "founder": true,
+        "deskId": "f4",
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 0,
+          "hair": 5,
+          "hairColor": "#4a3222",
+          "shirt": "#34c38f",
+          "pants": "#8a7f6a",
+          "accessory": "glasses",
+          "build": 1
+        },
+        "voice": {
+          "set": "masc",
+          "variant": 2,
+          "pitch": 0.1
+        },
+        "archetype": "designer"
+      }
+    ],
+    "candidates": [
+      {
+        "id": "s5",
+        "name": "Brooke Hill",
+        "role": "security",
+        "seniority": "senior",
+        "level": 11,
+        "xp": 0,
+        "skills": {
+          "features": 71,
+          "polish": 61,
+          "reliability": 100,
+          "novelty": 73
+        },
+        "speed": 0.85,
+        "meaning": 82,
+        "stamina": 100,
+        "knowledge": 10,
+        "traits": [],
+        "assignment": {
+          "type": "security",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 2560,
+        "hiredWeek": 0,
+        "founder": false,
+        "deskId": null,
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 4,
+          "hair": 2,
+          "hairColor": "#e8c170",
+          "shirt": "#9b6bff",
+          "pants": "#1f3b5c",
+          "accessory": "none",
+          "build": 2
+        },
+        "voice": {
+          "set": "fem",
+          "variant": 1,
+          "pitch": 0.7
+        }
+      },
+      {
+        "id": "s6",
+        "name": "Rashid Rojas",
+        "role": "marketer",
+        "seniority": "senior",
+        "level": 13,
+        "xp": 0,
+        "skills": {
+          "features": 74,
+          "polish": 100,
+          "reliability": 67,
+          "novelty": 100
+        },
+        "speed": 1,
+        "meaning": 83,
+        "stamina": 100,
+        "knowledge": 10,
+        "traits": [
+          "visionary",
+          "perfectionist"
+        ],
+        "assignment": {
+          "type": "marketing",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 2400,
+        "hiredWeek": 0,
+        "founder": false,
+        "deskId": null,
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 0,
+          "hair": 7,
+          "hairColor": "#2b1d16",
+          "shirt": "#34c38f",
+          "pants": "#1f3b5c",
+          "accessory": "none",
+          "build": 1
+        },
+        "voice": {
+          "set": "masc",
+          "variant": 6,
+          "pitch": 0.2
+        }
+      },
+      {
+        "id": "s7",
+        "name": "Tanvi Yadav",
+        "role": "sales",
+        "seniority": "senior",
+        "level": 10,
+        "xp": 0,
+        "skills": {
+          "features": 98,
+          "polish": 69,
+          "reliability": 66,
+          "novelty": 91
+        },
+        "speed": 0.89,
+        "meaning": 79,
+        "stamina": 100,
+        "knowledge": 10,
+        "traits": [],
+        "assignment": {
+          "type": "sales",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 2430,
+        "hiredWeek": 0,
+        "founder": false,
+        "deskId": null,
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 0,
+          "hair": 0,
+          "hairColor": "#4a3222",
+          "shirt": "#ffb020",
+          "pants": "#1f3b5c",
+          "accessory": "beanie",
+          "build": 0
+        },
+        "voice": {
+          "set": "fem",
+          "variant": 3,
+          "pitch": -0.3
+        }
+      },
+      {
+        "id": "s8",
+        "name": "Andre Banks",
+        "role": "sales",
+        "seniority": "junior",
+        "level": 1,
+        "xp": 0,
+        "skills": {
+          "features": 31,
+          "polish": 18,
+          "reliability": 21,
+          "novelty": 21
+        },
+        "speed": 0.81,
+        "meaning": 78,
+        "stamina": 100,
+        "knowledge": 10,
+        "traits": [
+          "old_guard",
+          "night_owl"
+        ],
+        "assignment": {
+          "type": "sales",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 830,
+        "hiredWeek": 0,
+        "founder": false,
+        "deskId": null,
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 2,
+          "hair": 0,
+          "hairColor": "#b8b8b8",
+          "shirt": "#34c38f",
+          "pants": "#1f3b5c",
+          "accessory": "cap",
+          "build": 1
+        },
+        "voice": {
+          "set": "masc",
+          "variant": 0,
+          "pitch": -0.8
+        }
+      },
+      {
+        "id": "s9",
+        "name": "Raj Quispe",
+        "role": "designer",
+        "seniority": "junior",
+        "level": 2,
+        "xp": 0,
+        "skills": {
+          "features": 31,
+          "polish": 25,
+          "reliability": 30,
+          "novelty": 23
+        },
+        "speed": 0.82,
+        "meaning": 83,
+        "stamina": 100,
+        "knowledge": 10,
+        "traits": [],
+        "assignment": {
+          "type": "idle",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 870,
+        "hiredWeek": 0,
+        "founder": false,
+        "deskId": null,
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 3,
+          "hair": 2,
+          "hairColor": "#a3442f",
+          "shirt": "#ff7eb6",
+          "pants": "#2e3440",
+          "accessory": "none",
+          "build": 1
+        },
+        "voice": {
+          "set": "masc",
+          "variant": 5,
+          "pitch": 0.8
+        }
+      }
+    ],
+    "candidatesWeek": 0,
+    "projects": [],
+    "products": [],
+    "automation": {
+      "engineering": {
+        "level": 0,
+        "model": "chatgbt"
+      },
+      "support": {
+        "level": 0,
+        "model": "chatgbt"
+      },
+      "sales": {
+        "level": 0,
+        "model": "chatgbt"
+      },
+      "marketing": {
+        "level": 0,
+        "model": "chatgbt"
+      },
+      "qa": {
+        "level": 0,
+        "model": "chatgbt"
+      },
+      "ops": {
+        "level": 0,
+        "model": "chatgbt"
+      }
+    },
+    "policies": {},
+    "campaigns": [],
+    "security": {
+      "auditBoost": 0,
+      "tooling": false
+    },
+    "ops": {
+      "supportShortfall": 0,
+      "maintenanceShortfall": 0,
+      "maintenanceCapacity": 0,
+      "oversightRequired": 0,
+      "oversightProvided": 0,
+      "noc": null,
+      "nocSince": null
+    },
+    "robot": null,
+    "market": {
+      "categories": {
+        "notes": {
+          "incumbentStrength": 420,
+          "clones": 0
+        },
+        "email": {
+          "incumbentStrength": 600,
+          "clones": 0
+        },
+        "pm": {
+          "incumbentStrength": 480,
+          "clones": 0
+        },
+        "support": {
+          "incumbentStrength": 360,
+          "clones": 0
+        },
+        "crm": {
+          "incumbentStrength": 650,
+          "clones": 0
+        },
+        "analytics": {
+          "incumbentStrength": 380,
+          "clones": 0
+        },
+        "design": {
+          "incumbentStrength": 560,
+          "clones": 0
+        },
+        "devtools": {
+          "incumbentStrength": 620,
+          "clones": 0
+        },
+        "hr": {
+          "incumbentStrength": 520,
+          "clones": 0
+        },
+        "recruiting": {
+          "incumbentStrength": 540,
+          "clones": 0
+        },
+        "accounting": {
+          "incumbentStrength": 580,
+          "clones": 0
+        },
+        "video": {
+          "incumbentStrength": 500,
+          "clones": 0
+        },
+        "legal": {
+          "incumbentStrength": 460,
+          "clones": 0
+        },
+        "security": {
+          "incumbentStrength": 600,
+          "clones": 0
+        }
+      },
+      "trend": "steady",
+      "trendWeeksLeft": 13,
+      "unlockedCategories": [
+        "notes",
+        "email",
+        "pm",
+        "support"
+      ],
+      "unlockedAngles": [
+        "web",
+        "mobile",
+        "api",
+        "freemium",
+        "onprem"
+      ],
+      "forSale": []
+    },
+    "models": {
+      "claudius": {
+        "version": 1,
+        "capability": 80,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      },
+      "chatgbt": {
+        "version": 1,
+        "capability": 78,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      },
+      "gemenai": {
+        "version": 1,
+        "capability": 74,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      },
+      "grokk": {
+        "version": 1,
+        "capability": 70,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      },
+      "llamarama": {
+        "version": 1,
+        "capability": 66,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      },
+      "deepsleep": {
+        "version": 1,
+        "capability": 76,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      },
+      "mistrale": {
+        "version": 1,
+        "capability": 70,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      }
+    },
+    "era": {
+      "id": "classic",
+      "since": 0
+    },
+    "eraSchedule": {
+      "chatgbt": 201,
+      "agents": 315,
+      "consolidation": 523,
+      "plateau": 776
+    },
+    "unlocks": {},
+    "goals": {
+      "place_desks": {
+        "done": false,
+        "week": null
+      },
+      "start_product": {
+        "done": false,
+        "week": null
+      },
+      "first_launch": {
+        "done": false,
+        "week": null
+      },
+      "first_hire": {
+        "done": false,
+        "week": null
+      },
+      "first_incident": {
+        "done": false,
+        "week": null
+      },
+      "customers_1k": {
+        "done": false,
+        "week": null
+      },
+      "team_10": {
+        "done": false,
+        "week": null
+      },
+      "office_floor": {
+        "done": false,
+        "week": null
+      },
+      "first_award": {
+        "done": false,
+        "week": null
+      },
+      "mrr_100k": {
+        "done": false,
+        "week": null
+      },
+      "category_leader": {
+        "done": false,
+        "week": null
+      },
+      "legend": {
+        "done": false,
+        "week": null
+      },
+      "research_tree": {
+        "done": false,
+        "week": null
+      },
+      "hq": {
+        "done": false,
+        "week": null
+      },
+      "acquisition_offer": {
+        "done": false,
+        "week": null
+      },
+      "ipo": {
+        "done": false,
+        "week": null
+      },
+      "five_years": {
+        "done": false,
+        "week": null
+      },
+      "ten_years": {
+        "done": false,
+        "week": null
+      }
+    },
+    "office": {
+      "stage": 0,
+      "placed": [
+        {
+          "id": "f3",
+          "itemId": "desk",
+          "level": 1,
+          "x": 0,
+          "y": 0,
+          "rot": 0
+        },
+        {
+          "id": "f4",
+          "itemId": "desk",
+          "level": 1,
+          "x": 1,
+          "y": 0,
+          "rot": 0
+        }
+      ],
+      "expansion": 0,
+      "props": []
+    },
+    "fame": 0,
+    "lockdown": null,
+    "workPolicy": null,
+    "squads": [],
+    "pets": [],
+    "rival": null,
+    "purpose": null,
+    "founding": {
+      "founders": [
+        "engineer",
+        "designer"
+      ],
+      "funding": "bootstrapped",
+      "logoColor": "#ffb020",
+      "tagline": ""
+    },
+    "research": {
+      "done": []
+    },
+    "modifiers": [],
+    "scheduled": [],
+    "chatLog": [
+      {
+        "type": "chat",
+        "id": "m10",
+        "week": 0,
+        "channel": "general",
+        "from": "Taylor Sun",
+        "fromId": "s1",
+        "text": "Big week. We have got this. I believe in every one of you.",
+        "replyTo": null,
+        "reactions": {
+          "🎉": 2,
+          "❤️": 1,
+          "👏": 1
+        }
+      },
+      {
+        "type": "chat",
+        "id": "m11",
+        "week": 0,
+        "channel": "general",
+        "from": "@officebot",
+        "fromId": null,
+        "text": "A little side project: Taylor Sun has been rebuilding the admin panel on weekends \"just to see\". It is beautiful.",
+        "replyTo": null,
+        "reactions": {
+          "😂": 1,
+          "🙃": 1,
+          "💯": 1
+        },
+        "important": true
+      }
+    ],
+    "chatPrompts": [
+      {
+        "id": "cp1",
+        "kind": "senior_side_project",
+        "chatId": "m11",
+        "channel": "general",
+        "fromId": null,
+        "week": 0,
+        "expiresWeek": 3,
+        "options": [
+          {
+            "label": "Greenlight a craft project",
+            "hint": "Starts a craft project for you to staff; meaning up",
+            "available": true,
+            "reason": null
+          },
+          {
+            "label": "Not now",
+            "hint": "Meaning down a little",
+            "available": true,
+            "reason": null
+          }
+        ],
+        "resolved": null,
+        "stage": null,
+        "subjectId": "s1"
+      }
+    ],
+    "advisors": {
+      "dismissed": {},
+      "pushed": {},
+      "lastPushWeek": null,
+      "noticed": {}
+    },
+    "discoveredCombos": {},
+    "outage": null,
+    "incidentLog": [],
+    "lowCashWeeks": 0,
+    "pendingDecision": null,
+    "flags": {
+      "posts": {
+        "lastWeek": 0,
+        "byId": {
+          "pep_talk": 0
+        },
+        "queue": [
+          {
+            "week": 1,
+            "channel": "general",
+            "fromId": "s2",
+            "text": "Back after lunch.",
+            "replyTo": "m10"
+          }
+        ]
+      },
+      "postSeq": 1,
+      "reactSeq": 1,
+      "promptSeq": 1,
+      "promptCtx": {
+        "cp1": {
+          "kind": "senior_side_project",
+          "event": true,
+          "subjectId": "s1",
+          "vars": {
+            "incumbent": "Notian",
+            "collapseWeeks": 6,
+            "rival": "A rival",
+            "rivalFounder": "Their founder",
+            "ransom": 22000,
+            "alum": "A former colleague",
+            "deal": "A small company",
+            "incidentWeeks": 0,
+            "incidentCost": {
+              "cash": 0,
+              "brand": 0,
+              "customers": 0
+            }
+          }
+        }
+      },
+      "lastPromptWeek": 0
+    },
+    "stats": {
+      "hires": 0,
+      "juniorsHired": 0,
+      "resignations": 0,
+      "incidents": 0,
+      "caught": 0,
+      "breaches": 0,
+      "launches": 0,
+      "awards": 0,
+      "peakMrr": 0
+    },
+    "history": [],
+    "gameOver": null
+  },
+  "dotcom": {
+    "version": 2,
+    "seed": 17,
+    "rng": {
+      "s": 3192814364
+    },
+    "companyName": "Archive Software",
+    "week": 0,
+    "nextId": 14,
+    "cash": 250000,
+    "brand": 5,
+    "institutionalKnowledge": 60,
+    "comprehensionDebt": 0,
+    "debtFlow": {
+      "work": 0,
+      "automation": 0,
+      "products": 0,
+      "lowKnowledge": 0,
+      "seniors": 0,
+      "maintenance": 0,
+      "reviews": 0,
+      "oneOff": 0,
+      "net": 0
+    },
+    "officeStage": 0,
+    "staff": [
+      {
+        "id": "s1",
+        "name": "Taylor Sun",
+        "role": "engineer",
+        "seniority": "senior",
+        "level": 10,
+        "xp": 0,
+        "skills": {
+          "features": 100,
+          "polish": 65,
+          "reliability": 98,
+          "novelty": 64
+        },
+        "speed": 0.83,
+        "meaning": 87,
+        "stamina": 100,
+        "knowledge": 70,
+        "traits": [
+          "pragmatist"
+        ],
+        "assignment": {
+          "type": "idle",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 2390,
+        "hiredWeek": 0,
+        "founder": true,
+        "deskId": "f3",
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 1,
+          "hair": 3,
+          "hairColor": "#b8b8b8",
+          "shirt": "#f2efe6",
+          "pants": "#2e3440",
+          "accessory": "none",
+          "build": 2
+        },
+        "voice": {
+          "set": "fem",
+          "variant": 5,
+          "pitch": 0.6
+        },
+        "archetype": "engineer"
+      },
+      {
+        "id": "s2",
+        "name": "Bilal Yamamoto",
+        "role": "designer",
+        "seniority": "mid",
+        "level": 7,
+        "xp": 0,
+        "skills": {
+          "features": 59,
+          "polish": 59,
+          "reliability": 37,
+          "novelty": 72
+        },
+        "speed": 1.18,
+        "meaning": 87,
+        "stamina": 100,
+        "knowledge": 70,
+        "traits": [
+          "craftsperson"
+        ],
+        "assignment": {
+          "type": "idle",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 1650,
+        "hiredWeek": 0,
+        "founder": true,
+        "deskId": "f4",
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 0,
+          "hair": 5,
+          "hairColor": "#4a3222",
+          "shirt": "#34c38f",
+          "pants": "#8a7f6a",
+          "accessory": "glasses",
+          "build": 1
+        },
+        "voice": {
+          "set": "masc",
+          "variant": 2,
+          "pitch": 0.1
+        },
+        "archetype": "designer"
+      }
+    ],
+    "candidates": [
+      {
+        "id": "s7",
+        "name": "Brooke Hill",
+        "role": "security",
+        "seniority": "senior",
+        "level": 11,
+        "xp": 0,
+        "skills": {
+          "features": 71,
+          "polish": 61,
+          "reliability": 100,
+          "novelty": 73
+        },
+        "speed": 0.85,
+        "meaning": 82,
+        "stamina": 100,
+        "knowledge": 10,
+        "traits": [],
+        "assignment": {
+          "type": "security",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 2560,
+        "hiredWeek": 0,
+        "founder": false,
+        "deskId": null,
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 4,
+          "hair": 2,
+          "hairColor": "#e8c170",
+          "shirt": "#9b6bff",
+          "pants": "#1f3b5c",
+          "accessory": "none",
+          "build": 2
+        },
+        "voice": {
+          "set": "fem",
+          "variant": 3,
+          "pitch": -0.3
+        }
+      },
+      {
+        "id": "s8",
+        "name": "Rashid Rojas",
+        "role": "marketer",
+        "seniority": "senior",
+        "level": 13,
+        "xp": 0,
+        "skills": {
+          "features": 74,
+          "polish": 100,
+          "reliability": 67,
+          "novelty": 100
+        },
+        "speed": 1,
+        "meaning": 83,
+        "stamina": 100,
+        "knowledge": 10,
+        "traits": [
+          "visionary",
+          "perfectionist"
+        ],
+        "assignment": {
+          "type": "marketing",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 2400,
+        "hiredWeek": 0,
+        "founder": false,
+        "deskId": null,
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 0,
+          "hair": 7,
+          "hairColor": "#2b1d16",
+          "shirt": "#34c38f",
+          "pants": "#1f3b5c",
+          "accessory": "none",
+          "build": 1
+        },
+        "voice": {
+          "set": "masc",
+          "variant": 0,
+          "pitch": -0.8
+        }
+      },
+      {
+        "id": "s9",
+        "name": "Tanvi Yadav",
+        "role": "sales",
+        "seniority": "senior",
+        "level": 10,
+        "xp": 0,
+        "skills": {
+          "features": 98,
+          "polish": 69,
+          "reliability": 66,
+          "novelty": 91
+        },
+        "speed": 0.89,
+        "meaning": 79,
+        "stamina": 100,
+        "knowledge": 10,
+        "traits": [],
+        "assignment": {
+          "type": "sales",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 2430,
+        "hiredWeek": 0,
+        "founder": false,
+        "deskId": null,
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 0,
+          "hair": 0,
+          "hairColor": "#4a3222",
+          "shirt": "#ffb020",
+          "pants": "#1f3b5c",
+          "accessory": "beanie",
+          "build": 0
+        },
+        "voice": {
+          "set": "fem",
+          "variant": 5,
+          "pitch": 0.8
+        }
+      },
+      {
+        "id": "s10",
+        "name": "Andre Banks",
+        "role": "sales",
+        "seniority": "junior",
+        "level": 1,
+        "xp": 0,
+        "skills": {
+          "features": 31,
+          "polish": 18,
+          "reliability": 21,
+          "novelty": 21
+        },
+        "speed": 0.81,
+        "meaning": 78,
+        "stamina": 100,
+        "knowledge": 10,
+        "traits": [
+          "old_guard",
+          "night_owl"
+        ],
+        "assignment": {
+          "type": "sales",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 830,
+        "hiredWeek": 0,
+        "founder": false,
+        "deskId": null,
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 2,
+          "hair": 0,
+          "hairColor": "#b8b8b8",
+          "shirt": "#34c38f",
+          "pants": "#1f3b5c",
+          "accessory": "cap",
+          "build": 1
+        },
+        "voice": {
+          "set": "masc",
+          "variant": 2,
+          "pitch": 0.3
+        }
+      },
+      {
+        "id": "s11",
+        "name": "Raj Quispe",
+        "role": "designer",
+        "seniority": "junior",
+        "level": 2,
+        "xp": 0,
+        "skills": {
+          "features": 31,
+          "polish": 25,
+          "reliability": 30,
+          "novelty": 23
+        },
+        "speed": 0.82,
+        "meaning": 83,
+        "stamina": 100,
+        "knowledge": 10,
+        "traits": [],
+        "assignment": {
+          "type": "idle",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 870,
+        "hiredWeek": 0,
+        "founder": false,
+        "deskId": null,
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 3,
+          "hair": 2,
+          "hairColor": "#a3442f",
+          "shirt": "#ff7eb6",
+          "pants": "#2e3440",
+          "accessory": "none",
+          "build": 1
+        },
+        "voice": {
+          "set": "masc",
+          "variant": 7,
+          "pitch": -0.2
+        }
+      }
+    ],
+    "candidatesWeek": 0,
+    "projects": [],
+    "products": [],
+    "automation": {
+      "engineering": {
+        "level": 0,
+        "model": "chatgbt"
+      },
+      "support": {
+        "level": 0,
+        "model": "chatgbt"
+      },
+      "sales": {
+        "level": 0,
+        "model": "chatgbt"
+      },
+      "marketing": {
+        "level": 0,
+        "model": "chatgbt"
+      },
+      "qa": {
+        "level": 0,
+        "model": "chatgbt"
+      },
+      "ops": {
+        "level": 0,
+        "model": "chatgbt"
+      }
+    },
+    "policies": {},
+    "campaigns": [],
+    "security": {
+      "auditBoost": 0,
+      "tooling": false
+    },
+    "ops": {
+      "supportShortfall": 0,
+      "maintenanceShortfall": 0,
+      "maintenanceCapacity": 0,
+      "oversightRequired": 0,
+      "oversightProvided": 0,
+      "noc": null,
+      "nocSince": null
+    },
+    "robot": null,
+    "market": {
+      "categories": {
+        "notes": {
+          "incumbentStrength": 420,
+          "clones": 0
+        },
+        "email": {
+          "incumbentStrength": 600,
+          "clones": 0
+        },
+        "pm": {
+          "incumbentStrength": 480,
+          "clones": 0
+        },
+        "support": {
+          "incumbentStrength": 360,
+          "clones": 0
+        },
+        "crm": {
+          "incumbentStrength": 650,
+          "clones": 0
+        },
+        "analytics": {
+          "incumbentStrength": 380,
+          "clones": 0
+        },
+        "design": {
+          "incumbentStrength": 560,
+          "clones": 0
+        },
+        "devtools": {
+          "incumbentStrength": 620,
+          "clones": 0
+        },
+        "hr": {
+          "incumbentStrength": 520,
+          "clones": 0
+        },
+        "recruiting": {
+          "incumbentStrength": 540,
+          "clones": 0
+        },
+        "accounting": {
+          "incumbentStrength": 580,
+          "clones": 0
+        },
+        "video": {
+          "incumbentStrength": 500,
+          "clones": 0
+        },
+        "legal": {
+          "incumbentStrength": 460,
+          "clones": 0
+        },
+        "security": {
+          "incumbentStrength": 600,
+          "clones": 0
+        }
+      },
+      "trend": "steady",
+      "trendWeeksLeft": 13,
+      "unlockedCategories": [
+        "notes",
+        "email",
+        "pm",
+        "support"
+      ],
+      "unlockedAngles": [
+        "web",
+        "onprem"
+      ],
+      "forSale": []
+    },
+    "models": {
+      "claudius": {
+        "version": 1,
+        "capability": 80,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      },
+      "chatgbt": {
+        "version": 1,
+        "capability": 78,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      },
+      "gemenai": {
+        "version": 1,
+        "capability": 74,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      },
+      "grokk": {
+        "version": 1,
+        "capability": 70,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      },
+      "llamarama": {
+        "version": 1,
+        "capability": 66,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      },
+      "deepsleep": {
+        "version": 1,
+        "capability": 76,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      },
+      "mistrale": {
+        "version": 1,
+        "capability": 70,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      }
+    },
+    "era": {
+      "id": "dotcom",
+      "since": 0
+    },
+    "eraSchedule": {
+      "chatgbt": 617,
+      "agents": 731,
+      "consolidation": 939,
+      "plateau": 1192,
+      "classic": 416,
+      "web2": 208
+    },
+    "unlocks": {
+      "marketing": 0,
+      "ops": 0,
+      "research": 0,
+      "squads": 0
+    },
+    "goals": {
+      "dotcom_first_web": {
+        "done": false,
+        "week": null
+      },
+      "dotcom_survivor": {
+        "done": false,
+        "week": null
+      },
+      "web2_compatible_launch": {
+        "done": false,
+        "week": null
+      },
+      "place_desks": {
+        "done": false,
+        "week": null,
+        "skipped": true
+      },
+      "start_product": {
+        "done": false,
+        "week": null
+      },
+      "first_launch": {
+        "done": false,
+        "week": null
+      },
+      "first_hire": {
+        "done": false,
+        "week": null
+      },
+      "first_incident": {
+        "done": false,
+        "week": null
+      },
+      "customers_1k": {
+        "done": false,
+        "week": null
+      },
+      "team_10": {
+        "done": false,
+        "week": null
+      },
+      "office_floor": {
+        "done": false,
+        "week": null
+      },
+      "first_award": {
+        "done": false,
+        "week": null
+      },
+      "mrr_100k": {
+        "done": false,
+        "week": null
+      },
+      "category_leader": {
+        "done": false,
+        "week": null
+      },
+      "legend": {
+        "done": false,
+        "week": null
+      },
+      "research_tree": {
+        "done": false,
+        "week": null
+      },
+      "hq": {
+        "done": false,
+        "week": null
+      },
+      "acquisition_offer": {
+        "done": false,
+        "week": null
+      },
+      "ipo": {
+        "done": false,
+        "week": null
+      },
+      "five_years": {
+        "done": false,
+        "week": null
+      },
+      "ten_years": {
+        "done": false,
+        "week": null
+      }
+    },
+    "office": {
+      "stage": 0,
+      "placed": [
+        {
+          "id": "f3",
+          "itemId": "desk",
+          "level": 1,
+          "x": 0,
+          "y": 0,
+          "rot": 0
+        },
+        {
+          "id": "f4",
+          "itemId": "desk",
+          "level": 1,
+          "x": 1,
+          "y": 0,
+          "rot": 0
+        },
+        {
+          "id": "f5",
+          "itemId": "desk",
+          "level": 1,
+          "x": 2,
+          "y": 0,
+          "rot": 0
+        },
+        {
+          "id": "f6",
+          "itemId": "desk",
+          "level": 1,
+          "x": 3,
+          "y": 0,
+          "rot": 0
+        }
+      ],
+      "expansion": 0,
+      "props": []
+    },
+    "fame": 0,
+    "lockdown": null,
+    "workPolicy": null,
+    "squads": [],
+    "pets": [],
+    "rival": null,
+    "purpose": null,
+    "founding": {
+      "founders": [
+        "engineer",
+        "designer"
+      ],
+      "funding": "bootstrapped",
+      "logoColor": "#ffb020",
+      "tagline": "",
+      "startEra": "dotcom",
+      "calendarOffset": 0,
+      "eraScoreMult": 0.9,
+      "timelineVersion": "historical-v2",
+      "earlyChapters": [
+        {
+          "id": "dotcom",
+          "weeks": 208,
+          "startYear": 1997,
+          "endYear": 2003
+        },
+        {
+          "id": "web2",
+          "weeks": 208,
+          "startYear": 2003,
+          "endYear": 2019
+        }
+      ]
+    },
+    "research": {
+      "done": []
+    },
+    "modifiers": [],
+    "scheduled": [],
+    "chatLog": [
+      {
+        "type": "chat",
+        "id": "m12",
+        "week": 0,
+        "channel": "general",
+        "from": "Taylor Sun",
+        "fromId": "s1",
+        "text": "Big week. We have got this. I believe in every one of you.",
+        "replyTo": null,
+        "reactions": {
+          "🎉": 2,
+          "❤️": 1,
+          "👏": 1
+        }
+      },
+      {
+        "type": "chat",
+        "id": "m13",
+        "week": 0,
+        "channel": "general",
+        "from": "@officebot",
+        "fromId": null,
+        "text": "A little side project: Taylor Sun has been rebuilding the admin panel on weekends \"just to see\". It is beautiful.",
+        "replyTo": null,
+        "reactions": {
+          "😂": 1,
+          "🙃": 1,
+          "💯": 1
+        },
+        "important": true
+      }
+    ],
+    "chatPrompts": [
+      {
+        "id": "cp1",
+        "kind": "senior_side_project",
+        "chatId": "m13",
+        "channel": "general",
+        "fromId": null,
+        "week": 0,
+        "expiresWeek": 3,
+        "options": [
+          {
+            "label": "Greenlight a craft project",
+            "hint": "Starts a craft project for you to staff; meaning up",
+            "available": true,
+            "reason": null
+          },
+          {
+            "label": "Not now",
+            "hint": "Meaning down a little",
+            "available": true,
+            "reason": null
+          }
+        ],
+        "resolved": null,
+        "stage": null,
+        "subjectId": "s1"
+      }
+    ],
+    "advisors": {
+      "dismissed": {},
+      "pushed": {},
+      "lastPushWeek": null,
+      "noticed": {}
+    },
+    "discoveredCombos": {},
+    "outage": null,
+    "incidentLog": [],
+    "lowCashWeeks": 0,
+    "pendingDecision": null,
+    "flags": {
+      "dotcom": {
+        "phase": "growth",
+        "entered": 0,
+        "float": null,
+        "settled": false,
+        "recovered": false
+      },
+      "erasVisited": [
+        "dotcom"
+      ],
+      "posts": {
+        "lastWeek": 0,
+        "byId": {
+          "pep_talk": 0
+        },
+        "queue": [
+          {
+            "week": 1,
+            "channel": "general",
+            "fromId": "s2",
+            "text": "Back after lunch.",
+            "replyTo": "m12"
+          }
+        ]
+      },
+      "postSeq": 1,
+      "reactSeq": 1,
+      "promptSeq": 1,
+      "promptCtx": {
+        "cp1": {
+          "kind": "senior_side_project",
+          "event": true,
+          "subjectId": "s1",
+          "vars": {
+            "incumbent": "Notian",
+            "collapseWeeks": 6,
+            "rival": "A rival",
+            "rivalFounder": "Their founder",
+            "ransom": 50000,
+            "alum": "A former colleague",
+            "deal": "A small company",
+            "incidentWeeks": 0,
+            "incidentCost": {
+              "cash": 0,
+              "brand": 0,
+              "customers": 0
+            }
+          }
+        }
+      },
+      "lastPromptWeek": 0
+    },
+    "stats": {
+      "hires": 0,
+      "juniorsHired": 0,
+      "resignations": 0,
+      "incidents": 0,
+      "caught": 0,
+      "breaches": 0,
+      "launches": 0,
+      "awards": 0,
+      "peakMrr": 0
+    },
+    "history": [],
+    "gameOver": null
+  },
+  "web2": {
+    "version": 2,
+    "seed": 17,
+    "rng": {
+      "s": 3192814364
+    },
+    "companyName": "Archive Software",
+    "week": 0,
+    "nextId": 13,
+    "cash": 200000,
+    "brand": 5,
+    "institutionalKnowledge": 60,
+    "comprehensionDebt": 0,
+    "debtFlow": {
+      "work": 0,
+      "automation": 0,
+      "products": 0,
+      "lowKnowledge": 0,
+      "seniors": 0,
+      "maintenance": 0,
+      "reviews": 0,
+      "oneOff": 0,
+      "net": 0
+    },
+    "officeStage": 0,
+    "staff": [
+      {
+        "id": "s1",
+        "name": "Taylor Sun",
+        "role": "engineer",
+        "seniority": "senior",
+        "level": 10,
+        "xp": 0,
+        "skills": {
+          "features": 100,
+          "polish": 65,
+          "reliability": 98,
+          "novelty": 64
+        },
+        "speed": 0.83,
+        "meaning": 87,
+        "stamina": 100,
+        "knowledge": 70,
+        "traits": [
+          "pragmatist"
+        ],
+        "assignment": {
+          "type": "idle",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 2390,
+        "hiredWeek": 0,
+        "founder": true,
+        "deskId": "f3",
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 1,
+          "hair": 3,
+          "hairColor": "#b8b8b8",
+          "shirt": "#f2efe6",
+          "pants": "#2e3440",
+          "accessory": "none",
+          "build": 2
+        },
+        "voice": {
+          "set": "fem",
+          "variant": 5,
+          "pitch": 0.6
+        },
+        "archetype": "engineer"
+      },
+      {
+        "id": "s2",
+        "name": "Bilal Yamamoto",
+        "role": "designer",
+        "seniority": "mid",
+        "level": 7,
+        "xp": 0,
+        "skills": {
+          "features": 59,
+          "polish": 59,
+          "reliability": 37,
+          "novelty": 72
+        },
+        "speed": 1.18,
+        "meaning": 87,
+        "stamina": 100,
+        "knowledge": 70,
+        "traits": [
+          "craftsperson"
+        ],
+        "assignment": {
+          "type": "idle",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 1650,
+        "hiredWeek": 0,
+        "founder": true,
+        "deskId": "f4",
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 0,
+          "hair": 5,
+          "hairColor": "#4a3222",
+          "shirt": "#34c38f",
+          "pants": "#8a7f6a",
+          "accessory": "glasses",
+          "build": 1
+        },
+        "voice": {
+          "set": "masc",
+          "variant": 2,
+          "pitch": 0.1
+        },
+        "archetype": "designer"
+      }
+    ],
+    "candidates": [
+      {
+        "id": "s6",
+        "name": "Brooke Hill",
+        "role": "security",
+        "seniority": "senior",
+        "level": 11,
+        "xp": 0,
+        "skills": {
+          "features": 71,
+          "polish": 61,
+          "reliability": 100,
+          "novelty": 73
+        },
+        "speed": 0.85,
+        "meaning": 82,
+        "stamina": 100,
+        "knowledge": 10,
+        "traits": [],
+        "assignment": {
+          "type": "security",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 2560,
+        "hiredWeek": 0,
+        "founder": false,
+        "deskId": null,
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 4,
+          "hair": 2,
+          "hairColor": "#e8c170",
+          "shirt": "#9b6bff",
+          "pants": "#1f3b5c",
+          "accessory": "none",
+          "build": 2
+        },
+        "voice": {
+          "set": "fem",
+          "variant": 6,
+          "pitch": 0.2
+        }
+      },
+      {
+        "id": "s7",
+        "name": "Rashid Rojas",
+        "role": "marketer",
+        "seniority": "senior",
+        "level": 13,
+        "xp": 0,
+        "skills": {
+          "features": 74,
+          "polish": 100,
+          "reliability": 67,
+          "novelty": 100
+        },
+        "speed": 1,
+        "meaning": 83,
+        "stamina": 100,
+        "knowledge": 10,
+        "traits": [
+          "visionary",
+          "perfectionist"
+        ],
+        "assignment": {
+          "type": "marketing",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 2400,
+        "hiredWeek": 0,
+        "founder": false,
+        "deskId": null,
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 0,
+          "hair": 7,
+          "hairColor": "#2b1d16",
+          "shirt": "#34c38f",
+          "pants": "#1f3b5c",
+          "accessory": "none",
+          "build": 1
+        },
+        "voice": {
+          "set": "masc",
+          "variant": 3,
+          "pitch": -0.3
+        }
+      },
+      {
+        "id": "s8",
+        "name": "Tanvi Yadav",
+        "role": "sales",
+        "seniority": "senior",
+        "level": 10,
+        "xp": 0,
+        "skills": {
+          "features": 98,
+          "polish": 69,
+          "reliability": 66,
+          "novelty": 91
+        },
+        "speed": 0.89,
+        "meaning": 79,
+        "stamina": 100,
+        "knowledge": 10,
+        "traits": [],
+        "assignment": {
+          "type": "sales",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 2430,
+        "hiredWeek": 0,
+        "founder": false,
+        "deskId": null,
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 0,
+          "hair": 0,
+          "hairColor": "#4a3222",
+          "shirt": "#ffb020",
+          "pants": "#1f3b5c",
+          "accessory": "beanie",
+          "build": 0
+        },
+        "voice": {
+          "set": "fem",
+          "variant": 0,
+          "pitch": -0.8
+        }
+      },
+      {
+        "id": "s9",
+        "name": "Andre Banks",
+        "role": "sales",
+        "seniority": "junior",
+        "level": 1,
+        "xp": 0,
+        "skills": {
+          "features": 31,
+          "polish": 18,
+          "reliability": 21,
+          "novelty": 21
+        },
+        "speed": 0.81,
+        "meaning": 78,
+        "stamina": 100,
+        "knowledge": 10,
+        "traits": [
+          "old_guard",
+          "night_owl"
+        ],
+        "assignment": {
+          "type": "sales",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 830,
+        "hiredWeek": 0,
+        "founder": false,
+        "deskId": null,
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 2,
+          "hair": 0,
+          "hairColor": "#b8b8b8",
+          "shirt": "#34c38f",
+          "pants": "#1f3b5c",
+          "accessory": "cap",
+          "build": 1
+        },
+        "voice": {
+          "set": "masc",
+          "variant": 5,
+          "pitch": 0.8
+        }
+      },
+      {
+        "id": "s10",
+        "name": "Raj Quispe",
+        "role": "designer",
+        "seniority": "junior",
+        "level": 2,
+        "xp": 0,
+        "skills": {
+          "features": 31,
+          "polish": 25,
+          "reliability": 30,
+          "novelty": 23
+        },
+        "speed": 0.82,
+        "meaning": 83,
+        "stamina": 100,
+        "knowledge": 10,
+        "traits": [],
+        "assignment": {
+          "type": "idle",
+          "targetId": null
+        },
+        "mood": "ok",
+        "burnoutWeeks": 0,
+        "sabbaticalWeeksLeft": 0,
+        "salary": 870,
+        "hiredWeek": 0,
+        "founder": false,
+        "deskId": null,
+        "remote": false,
+        "call": null,
+        "strain": 0,
+        "path": null,
+        "pathPending": false,
+        "legend": false,
+        "record": {
+          "mentorWeeks": 0,
+          "catches": 0,
+          "hardProblemWeeks": 0,
+          "launches": 0,
+          "features": 0,
+          "prsMerged": 0,
+          "salesMrr": 0,
+          "deals": 0,
+          "tickets": 0,
+          "incidentsCaught": 0,
+          "mentored": 0
+        },
+        "growth": [],
+        "appearance": {
+          "skin": 3,
+          "hair": 2,
+          "hairColor": "#a3442f",
+          "shirt": "#ff7eb6",
+          "pants": "#2e3440",
+          "accessory": "none",
+          "build": 1
+        },
+        "voice": {
+          "set": "masc",
+          "variant": 2,
+          "pitch": 0.3
+        }
+      }
+    ],
+    "candidatesWeek": 0,
+    "projects": [],
+    "products": [],
+    "automation": {
+      "engineering": {
+        "level": 0,
+        "model": "chatgbt"
+      },
+      "support": {
+        "level": 0,
+        "model": "chatgbt"
+      },
+      "sales": {
+        "level": 0,
+        "model": "chatgbt"
+      },
+      "marketing": {
+        "level": 0,
+        "model": "chatgbt"
+      },
+      "qa": {
+        "level": 0,
+        "model": "chatgbt"
+      },
+      "ops": {
+        "level": 0,
+        "model": "chatgbt"
+      }
+    },
+    "policies": {},
+    "campaigns": [],
+    "security": {
+      "auditBoost": 0,
+      "tooling": false
+    },
+    "ops": {
+      "supportShortfall": 0,
+      "maintenanceShortfall": 0,
+      "maintenanceCapacity": 0,
+      "oversightRequired": 0,
+      "oversightProvided": 0,
+      "noc": null,
+      "nocSince": null
+    },
+    "robot": null,
+    "market": {
+      "categories": {
+        "notes": {
+          "incumbentStrength": 420,
+          "clones": 0
+        },
+        "email": {
+          "incumbentStrength": 600,
+          "clones": 0
+        },
+        "pm": {
+          "incumbentStrength": 480,
+          "clones": 0
+        },
+        "support": {
+          "incumbentStrength": 360,
+          "clones": 0
+        },
+        "crm": {
+          "incumbentStrength": 650,
+          "clones": 0
+        },
+        "analytics": {
+          "incumbentStrength": 380,
+          "clones": 0
+        },
+        "design": {
+          "incumbentStrength": 560,
+          "clones": 0
+        },
+        "devtools": {
+          "incumbentStrength": 620,
+          "clones": 0
+        },
+        "hr": {
+          "incumbentStrength": 520,
+          "clones": 0
+        },
+        "recruiting": {
+          "incumbentStrength": 540,
+          "clones": 0
+        },
+        "accounting": {
+          "incumbentStrength": 580,
+          "clones": 0
+        },
+        "video": {
+          "incumbentStrength": 500,
+          "clones": 0
+        },
+        "legal": {
+          "incumbentStrength": 460,
+          "clones": 0
+        },
+        "security": {
+          "incumbentStrength": 600,
+          "clones": 0
+        }
+      },
+      "trend": "steady",
+      "trendWeeksLeft": 13,
+      "unlockedCategories": [
+        "notes",
+        "email",
+        "pm",
+        "support",
+        "crm",
+        "analytics",
+        "design",
+        "devtools"
+      ],
+      "unlockedAngles": [
+        "web",
+        "onprem",
+        "api",
+        "freemium"
+      ],
+      "forSale": []
+    },
+    "models": {
+      "claudius": {
+        "version": 1,
+        "capability": 80,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      },
+      "chatgbt": {
+        "version": 1,
+        "capability": 78,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      },
+      "gemenai": {
+        "version": 1,
+        "capability": 74,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      },
+      "grokk": {
+        "version": 1,
+        "capability": 70,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      },
+      "llamarama": {
+        "version": 1,
+        "capability": 66,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      },
+      "deepsleep": {
+        "version": 1,
+        "capability": 76,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      },
+      "mistrale": {
+        "version": 1,
+        "capability": 70,
+        "costMult": 1,
+        "available": false,
+        "deprecated": false
+      }
+    },
+    "era": {
+      "id": "web2",
+      "since": 0
+    },
+    "eraSchedule": {
+      "chatgbt": 409,
+      "agents": 523,
+      "consolidation": 731,
+      "plateau": 984,
+      "classic": 208,
+      "web2": 0
+    },
+    "unlocks": {
+      "marketing": 0,
+      "ops": 0,
+      "research": 0
+    },
+    "goals": {
+      "web2_compatible_launch": {
+        "done": false,
+        "week": null
+      },
+      "place_desks": {
+        "done": false,
+        "week": null,
+        "skipped": true
+      },
+      "start_product": {
+        "done": false,
+        "week": null
+      },
+      "first_launch": {
+        "done": false,
+        "week": null
+      },
+      "first_hire": {
+        "done": false,
+        "week": null
+      },
+      "first_incident": {
+        "done": false,
+        "week": null
+      },
+      "customers_1k": {
+        "done": false,
+        "week": null
+      },
+      "team_10": {
+        "done": false,
+        "week": null
+      },
+      "office_floor": {
+        "done": false,
+        "week": null
+      },
+      "first_award": {
+        "done": false,
+        "week": null
+      },
+      "mrr_100k": {
+        "done": false,
+        "week": null
+      },
+      "category_leader": {
+        "done": false,
+        "week": null
+      },
+      "legend": {
+        "done": false,
+        "week": null
+      },
+      "research_tree": {
+        "done": false,
+        "week": null
+      },
+      "hq": {
+        "done": false,
+        "week": null
+      },
+      "acquisition_offer": {
+        "done": false,
+        "week": null
+      },
+      "ipo": {
+        "done": false,
+        "week": null
+      },
+      "five_years": {
+        "done": false,
+        "week": null
+      },
+      "ten_years": {
+        "done": false,
+        "week": null
+      }
+    },
+    "office": {
+      "stage": 0,
+      "placed": [
+        {
+          "id": "f3",
+          "itemId": "desk",
+          "level": 1,
+          "x": 0,
+          "y": 0,
+          "rot": 0
+        },
+        {
+          "id": "f4",
+          "itemId": "desk",
+          "level": 1,
+          "x": 1,
+          "y": 0,
+          "rot": 0
+        },
+        {
+          "id": "f5",
+          "itemId": "desk",
+          "level": 1,
+          "x": 2,
+          "y": 0,
+          "rot": 0
+        }
+      ],
+      "expansion": 0,
+      "props": []
+    },
+    "fame": 0,
+    "lockdown": null,
+    "workPolicy": null,
+    "squads": [],
+    "pets": [],
+    "rival": null,
+    "purpose": null,
+    "founding": {
+      "founders": [
+        "engineer",
+        "designer"
+      ],
+      "funding": "bootstrapped",
+      "logoColor": "#ffb020",
+      "tagline": "",
+      "startEra": "web2",
+      "calendarOffset": 0,
+      "eraScoreMult": 0.75,
+      "timelineVersion": "historical-v2",
+      "earlyChapters": [
+        {
+          "id": "web2",
+          "weeks": 208,
+          "startYear": 2003,
+          "endYear": 2019
+        }
+      ]
+    },
+    "research": {
+      "done": []
+    },
+    "modifiers": [],
+    "scheduled": [],
+    "chatLog": [
+      {
+        "type": "chat",
+        "id": "m11",
+        "week": 0,
+        "channel": "general",
+        "from": "Taylor Sun",
+        "fromId": "s1",
+        "text": "Big week. We have got this. I believe in every one of you.",
+        "replyTo": null,
+        "reactions": {
+          "🎉": 2,
+          "❤️": 1,
+          "👏": 1
+        }
+      },
+      {
+        "type": "chat",
+        "id": "m12",
+        "week": 0,
+        "channel": "general",
+        "from": "@officebot",
+        "fromId": null,
+        "text": "A little side project: Taylor Sun has been rebuilding the admin panel on weekends \"just to see\". It is beautiful.",
+        "replyTo": null,
+        "reactions": {
+          "😂": 1,
+          "🙃": 1,
+          "💯": 1
+        },
+        "important": true
+      }
+    ],
+    "chatPrompts": [
+      {
+        "id": "cp1",
+        "kind": "senior_side_project",
+        "chatId": "m12",
+        "channel": "general",
+        "fromId": null,
+        "week": 0,
+        "expiresWeek": 3,
+        "options": [
+          {
+            "label": "Greenlight a craft project",
+            "hint": "Starts a craft project for you to staff; meaning up",
+            "available": true,
+            "reason": null
+          },
+          {
+            "label": "Not now",
+            "hint": "Meaning down a little",
+            "available": true,
+            "reason": null
+          }
+        ],
+        "resolved": null,
+        "stage": null,
+        "subjectId": "s1"
+      }
+    ],
+    "advisors": {
+      "dismissed": {},
+      "pushed": {},
+      "lastPushWeek": null,
+      "noticed": {}
+    },
+    "discoveredCombos": {},
+    "outage": null,
+    "incidentLog": [],
+    "lowCashWeeks": 0,
+    "pendingDecision": null,
+    "flags": {
+      "erasVisited": [
+        "web2"
+      ],
+      "posts": {
+        "lastWeek": 0,
+        "byId": {
+          "pep_talk": 0
+        },
+        "queue": [
+          {
+            "week": 1,
+            "channel": "general",
+            "fromId": "s2",
+            "text": "Back after lunch.",
+            "replyTo": "m11"
+          }
+        ]
+      },
+      "postSeq": 1,
+      "reactSeq": 1,
+      "promptSeq": 1,
+      "promptCtx": {
+        "cp1": {
+          "kind": "senior_side_project",
+          "event": true,
+          "subjectId": "s1",
+          "vars": {
+            "incumbent": "Notian",
+            "collapseWeeks": 6,
+            "rival": "A rival",
+            "rivalFounder": "Their founder",
+            "ransom": 40000,
+            "alum": "A former colleague",
+            "deal": "A small company",
+            "incidentWeeks": 0,
+            "incidentCost": {
+              "cash": 0,
+              "brand": 0,
+              "customers": 0
+            }
+          }
+        }
+      },
+      "lastPromptWeek": 0
+    },
+    "stats": {
+      "hires": 0,
+      "juniorsHired": 0,
+      "resignations": 0,
+      "incidents": 0,
+      "caught": 0,
+      "breaches": 0,
+      "launches": 0,
+      "awards": 0,
+      "peakMrr": 0
+    },
+    "history": [],
+    "gameOver": null
+  }
+}
