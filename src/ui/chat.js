@@ -222,10 +222,14 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
     refreshBadges();
   }
 
+  // The status bar already shows the period app's away line, so a chat post that says the same thing is dropped.
+  const awayCore = (t) => String(t ?? '').toLowerCase().replace(/^away( message)?:\s*/, '').trim();
+  const repeatsAway = (t) => { const a = chatApp(getState?.() ?? {}).away; return !!a && awayCore(t) === awayCore(a); };
+
   // Whether a new message raises an unread count at the current level.
   const counts = (m, channel) => countsAsNew(m, channel, level);
   function add(e, week, { quiet: silent = false } = {}) {
-    if (e.type === 'say') return;
+    if (e.type === 'say' || repeatsAway(e.text)) return;
     noteShown(e.id);
     const channel = CHANNELS.includes(e.channel) ? e.channel : 'general';
     const m = { important: e.important === true, priority: e.priority === true, image: e.image?.id ? { id: e.image.id, alt: e.image.alt ?? e.text ?? '' } : null, id: e.id ?? null, from: e.from ?? '?', fromId: e.fromId ?? null, text: e.text ?? '', replyTo: e.replyTo ?? null, reactions: e.reactions ?? {}, week };
