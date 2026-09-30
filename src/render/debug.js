@@ -5,6 +5,7 @@ import { mat, glow, glass } from './materials.js';
 import { loadModels, getModel, PROP_NAMES, ITEM_IDS, itemModelName } from './models.js';
 import { createCharacter, ANIMS, WORLD_ANIMS } from './character.js';
 import { EMOTES } from './emotes.js';
+import { wardrobeEra, WARDROBE_MODELS, TEE_PRINTS } from './wardrobe.js';
 import { ROLE_COLORS } from './palette.js';
 import { roundedBox, roundedCylinder, pill, lathe, blob, mesh, mergeStatic } from './prims.js';
 
@@ -191,6 +192,37 @@ export function buildCharLineup(group) {
     add(8, 5, { hair: 7, hairColor: HAIRC[4], shirt: SHIRTS[5], skin: 3, accessory: 'glasses' }, 'engineer', (c) => { c.setLegend(true); c.setAnim('celebrate'); });
   });
   return new THREE.Box3(new THREE.Vector3(-w / 2, 0, -d / 2), new THREE.Vector3(w / 2, 1.4, d / 2));
+}
+
+// Wardrobe rows cover every build; the print board uses the same camera angle and character kit.
+export function buildWardrobeLineup(group) {
+  const query = new URLSearchParams(location.search);
+  const tees = query.get('chars') === '4';
+  const cols = tees ? 4 : 6, rows = tees ? 2 : 3;
+  const width = cols * 0.85, depth = rows * 1.4;
+  group.add(mesh(roundedBox(width + 0.5, 0.22, depth + 0.5, 0.06), mat('slab_side'), 0, -0.11, 0));
+  group.add(mesh(roundedBox(width + 0.4, 0.04, depth + 0.4, 0.02), mat('floor_wood'), 0, 0.02, 0));
+  group.userData.windowMaterials = [];
+  const chars = [];
+  group.userData.update = (dt) => { for (const c of chars) c.update(dt); };
+  loadModels(['chibi', ...WARDROBE_MODELS]).then(() => {
+    const era = wardrobeEra({ era: { id: 'classic' } });
+    for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) {
+      const i = row * cols + col, role = ROLES[col % ROLES.length];
+      const c = createCharacter({ skin: col % 6, hair: col % 8, style: col % 8,
+        hairColor: HAIRC[col], shirt: SHIRTS[col], pants: PANTS[0], accessory: 'none',
+        build: tees ? Number(query.get('build') ?? 1) : row,
+        wardrobeVariant: tees ? 3 : [0, 1, 2, 3, 0, 3][col],
+        eraPrint: tees ? TEE_PRINTS[i] : undefined,
+      }, ROLE_COLORS[role], { role, seed: `wardrobe-${i}`, wardrobe: era });
+      c.root.position.set((col - (cols - 1) / 2) * 0.85, 0.04, (row - (rows - 1) / 2) * 1.4);
+      c.root.rotation.y = Math.PI / 4;
+      if (query.get('pose')) c.setAnim(query.get('pose'));
+      group.add(c.root);
+      chars.push(c);
+    }
+  });
+  return new THREE.Box3(new THREE.Vector3(-width / 2, 0, -depth / 2), new THREE.Vector3(width / 2, 1.25, depth / 2));
 }
 
 // One character at four headings, for checking the face and silhouette up close.
