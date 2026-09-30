@@ -326,6 +326,10 @@ function deskSet(i, stageIdx, screens, era, freeChair = false, artEra = era) {
     const cubicle = place(getModel('era_cubicle'), 0, 0, -0.575);
     cubicle.traverse((c) => { if (c.isMesh) c.castShadow = false; });
     g.add(cubicle);
+    // Period gear in the desktop's free corners: the back right takes a phone, a dot-matrix or a fax
+    // in turn, and every other desk keeps a Rolodex left of the monitor.
+    g.add(place(getModel(['era_desk_phone', 'era_dot_matrix', 'era_fax'][i % 3]), 0.29, TOP, -0.33));
+    if (i % 2 === 0) g.add(place(getModel('era_rolodex'), -0.41, TOP, -0.3, 0.25));
   } else {
     desk.scale.set(0.96 / 1.3, TOP / 0.62, 1);
     g.add(place(desk, 0, 0, DESK_Z));
@@ -1554,10 +1558,11 @@ function eraArtPieces(era) {
     o.add(place(getModel('era_cd_spindle'), 0.39, 0, 0.14));
     o.add(mesh(roundedBox(1.25, 0.055, 0.38, 0.018), mat('wood_honey'), 0, -0.0275, 0.12));
   });
+  const cork = model('era_corkboard', 1.0, 1.2);
   if (era === 'dotcom' || era === 'dotcom-bust') return [model('era_dotcom_board', 1.24, 1.40), shelf,
-    model('era_y2k_clock', 0.78, 1.55, (o) => o.add(place(getModel('era_y2k_sticker'), 0, 0.40, -0.103)))];
+    model('era_y2k_clock', 0.78, 1.55, (o) => o.add(place(getModel('era_y2k_sticker'), 0, 0.40, -0.103))), cork];
   if (era === 'web2') return [model('era_web2_badge', 1.25, 1.50), shelf];
-  if (era === 'preinternet') return [shelf];
+  if (era === 'preinternet') return [shelf, cork];
   return [];
 }
 // Frees the dressing's merged geometry and textured materials; palette materials are shared.
