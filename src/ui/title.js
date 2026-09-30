@@ -339,6 +339,8 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     refresh();
   }
 
+  // A start's expected score against Classic's, from balance data, so x0.61 never reads as harder than x0.81.
+  const shareText = (kit, long = false) => kit.scoreShare >= 1 ? (long ? 'the same as Classic' : 'full score') : `${Math.round(kit.scoreShare * 100)}% of Classic${long ? '' : ' score'}`;
   function fundingStep() {
     const eraCards = erasPreview ? h('div.era-starts', { role: 'group', 'aria-label': 'Starting era' }, ...Object.values(ERA_STARTS).map((e) => {
       const k = B.eraStarts[e.id];
@@ -346,7 +348,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
         'aria-pressed': String(e.id === draft.startEra), dataset: { era: e.id },
         onclick: () => { draft.startEra = e.id; sfx('click'); refreshEra(); },
       }, h('b', { text: e.name }), h('span.small', { text: e.blurb }),
-      h('span.small', { text: `${OFFICE_STAGES[k.officeStage].name} · ${k.desks} desks · score x${k.scoreMult}` }));
+      h('span.small', { text: `${OFFICE_STAGES[k.officeStage].name} · ${k.desks} desks · ${shareText(k)}` }));
     })) : null;
     const unlockNote = h('div.small.muted');
     const skippedNote = h('div.small.muted');
@@ -354,11 +356,11 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     const refreshSummary = () => {
       const kit = B.eraStarts[draft.startEra];
       const total = B.funding[draft.funding].cash + kit.cash;
-      const mult = Math.round(B.funding[draft.funding].scoreMult * kit.scoreMult * 10000) / 10000;
+      const fundMult = B.funding[draft.funding].scoreMult;
       const career = draft.startEra === 'preinternet' ? `${B.preinternet.weeks} weeks of boxed software, ${B.dotcom.weeks} of dot-com, ${B.web2.weeks} of Web 2.0, then twenty modern years. Earlier years pass faster.`
         : draft.startEra === 'dotcom' ? `${B.dotcom.weeks} weeks of dot-com, ${B.web2.weeks} weeks of Web 2.0, then twenty modern years.`
         : draft.startEra === 'web2' ? `${B.web2.weeks} weeks of Web 2.0, then twenty modern years. New web products include old-browser QA work.` : 'A twenty-year company career.';
-      setText(summary, `${ERA_STARTS[draft.startEra].name}: ${fmtMoney(total)} starting cash, ${OFFICE_STAGES[kit.officeStage].name}, ${kit.desks} desks. Final score x${mult}. Two founders, no products yet. ${career}`);
+      setText(summary, `${ERA_STARTS[draft.startEra].name}: ${fmtMoney(total)} starting cash, ${OFFICE_STAGES[kit.officeStage].name}, ${kit.desks} desks. Expected score ${shareText(kit, true)}${fundMult < 1 ? `, times the funding factor x${fundMult}` : ''}. Two founders, no products yet. ${career}`);
     };
     const cards = FUNDING.map((f) => {
       const mult = fundingMult(f);
@@ -407,7 +409,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       h('b', { text: 'How are you paying for this?' }),
       cardsEl,
       erasPreview ? summary : null,
-      h('div.small.muted', { text: erasPreview ? 'Funding and starting-era score factors multiply. Classic keeps the full score; other starts trade score for a kit.' : 'When the game ends, your company gets a final score. More money now means a slightly smaller score later.' })), start, 'Start the company');
+      h('div.small.muted', { text: erasPreview ? 'Funding then scales the expected score. Classic keeps the full score; other starts trade score for a kit.' : 'When the game ends, your company gets a final score. More money now means a slightly smaller score later.' })), start, 'Start the company');
     refreshEra();
   }
 

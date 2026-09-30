@@ -72,12 +72,47 @@ export const CUES = {
   'stinger.office': { bus: 'sfx', files: ['stingers/office'], cooldown: 5, priority: 9, duck: 'stinger' },
   'stinger.win': { bus: 'sfx', files: ['stingers/win'], cooldown: 5, priority: 10, duck: 'stinger' },
   'stinger.gameover': { bus: 'sfx', files: ['stingers/gameover'], cooldown: 5, priority: 10, duck: 'stinger' },
+  // Era-mode arrivals and the period chat apps' new-message pings. The pings share one cooldown
+  // (they are never in the same game together) and drop first under load, like the growth sounds.
+  'stinger.era_preinternet': { bus: 'sfx', files: ['stingers/era_preinternet'], cooldown: 5, priority: 10, duck: 'stinger', delivered: true },
+  'stinger.era_dotcom': { bus: 'sfx', files: ['stingers/era_dotcom'], cooldown: 5, priority: 10, duck: 'stinger', delivered: true },
+  'stinger.era_web2': { bus: 'sfx', files: ['stingers/era_web2'], cooldown: 5, priority: 10, duck: 'stinger', delivered: true },
+  'ui.desknet_ping': { bus: 'ui', files: ['ui/desknet_ping'], cooldown: 4, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
+  'ui.awayim_ping': { bus: 'ui', files: ['ui/awayim_ping'], cooldown: 4, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
+  'ui.hipcheck_ping': { bus: 'ui', files: ['ui/hipcheck_ping'], cooldown: 4, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
+  // Sparse period context cues: long cooldowns, soft, and dropped first under load.
+  'stinger.dotcom_bust': { bus: 'sfx', files: ['stingers/dotcom_bust'], cooldown: 30, priority: 8, duck: 'stinger', delivered: true },
+  'sfx.disk_seek': { bus: 'sfx', files: ['sfx/disk_seek'], cooldown: 30, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
+  'sfx.cd_tray': { bus: 'sfx', files: ['sfx/cd_tray'], cooldown: 30, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
+  'sfx.retail_box': { bus: 'sfx', files: ['sfx/retail_box'], cooldown: 30, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
+  'sfx.dotcom_bell': { bus: 'sfx', files: ['sfx/dotcom_bell'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
+};
+// A period cue that follows an event's main sound, after `delay` seconds so a stinger is not masked.
+// Boxed (on-prem) software in the early eras sounds like a retail box; otherwise a launch is a
+// floppy copy (pre-internet) or a pressed CD (dot-com).
+export const ERA_EXTRAS = {
+  launch: (e, s) => {
+    const era = s?.era?.id;
+    if (era !== 'preinternet' && era !== 'dotcom') return null;
+    const boxed = s.products?.find((p) => p.id === e.productId)?.angle === 'onprem';
+    if (boxed) return { cue: 'sfx.retail_box', delay: 1 };
+    return { cue: era === 'preinternet' ? 'sfx.disk_seek' : 'sfx.cd_tray', delay: 3.5 };
+  },
+  // The dot-com float ("The bell rings.") rings the bell.
+  decisionResolved: (e) => (e.eventId === 'dotcom_ipo_frenzy' && e.choice === 1 ? { cue: 'sfx.dotcom_bell', delay: 0.3 } : null),
+};
+// Period sound per early era: its arrival stinger and its chat app's ping.
+export const ERA_SOUNDS = {
+  preinternet: { stinger: 'stinger.era_preinternet', ping: 'ui.desknet_ping' },
+  dotcom: { stinger: 'stinger.era_dotcom', ping: 'ui.awayim_ping' },
+  web2: { stinger: 'stinger.era_web2', ping: 'ui.hipcheck_ping' },
 };
 
 // Sim events -> cue ids. Every event type in the contract is listed; null means deliberately silent.
 export const ON_EVENT = {
   toast: (e) => ({ bad: 'sfx.bad', warn: 'sfx.warn' })[e.tone] ?? null,
-  chat: null,
+  // Only the period chat apps ping; Yak stays silent (its reply prompt has its own cue).
+  chat: (e, s) => ERA_SOUNDS[s?.era?.id]?.ping ?? null,
   say: null,
   bubble: 'sfx.bubble',
   standup: null,
@@ -105,7 +140,7 @@ export const ON_EVENT = {
   award: 'sfx.award',
   officeUpgrade: 'stinger.office',
   gameOver: (e, s) => (s?.gameOver?.won ? 'stinger.win' : 'stinger.gameover'),
-  era: 'stinger.era',
+  era: (e) => ERA_SOUNDS[e.eraId ?? e.era]?.stinger ?? 'stinger.era',
   unlock: 'ui.unlock',
   goal: 'ui.goal',
   // A music night plays its genre's track (in the director); the other rewards get their sting.
