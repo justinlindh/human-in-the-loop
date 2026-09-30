@@ -25,6 +25,7 @@
 
 | Trait | Effects | Era |
 |---|---|---|
+| Legacy Whisperer | present senior engineer: new Web 2.0 web-project work x1.08 instead of x1.2; earned after 3 contributed compatible launches, with a free trait slot | any |
 | Craftsperson | polish ×1.3, meaning drain ×1.5, meaning recovery ×1.2 | any |
 | Hype Machine | hype ×1.5 | any |
 | Paranoid | oversight ×1.4, bug catching ×0.15 | agents |

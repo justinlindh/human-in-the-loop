@@ -12,8 +12,9 @@ import { TRENDS } from '../data/trends.js';
 import { ERAS } from '../data/eras.js';
 import { eraIndex, eraAtLeast, eraOnlyAllowsText, currentEra } from './eras.js';
 import { raiseDecision } from './events.js';
-import { PERIOD_MARKETS } from '../data/early-eras.js';
+import { PERIOD_MARKETS, EARLY_ERAS } from '../data/early-eras.js';
 import { dotcomStep } from './dotcom.js';
+import { web2Step } from './web2.js';
 
 const VENDOR_LINES = [
   '{model} v{version} is here! Smarter, faster, and only slightly more expensive to think about.',
@@ -24,7 +25,12 @@ const VENDOR_LINES = [
 // Opens the categories, angles, and models that the current year and era allow.
 function openMarkets(ctx) {
   const { state } = ctx;
-  if (PERIOD_MARKETS[state.era.id]) return;
+  const period = PERIOD_MARKETS[state.era.id];
+  if (period) {
+    for (const id of period.categories) if (!state.market.unlockedCategories.includes(id)) state.market.unlockedCategories.push(id);
+    for (const id of period.angles) if (!state.market.unlockedAngles.includes(id)) state.market.unlockedAngles.push(id);
+    return;
+  }
   const { year } = calendarDate(state);
   const m = state.market;
   for (const c of Object.values(CATEGORIES)) {
@@ -52,6 +58,13 @@ function openMarkets(ctx) {
 // Advances to every era whose arrival week has come, with its card and decision.
 function eraStep(ctx) {
   const { state } = ctx;
+  for (const e of EARLY_ERAS) {
+    if (eraAtLeast(state, e.id) || state.eraSchedule[e.id] === undefined || state.week < state.eraSchedule[e.id]) continue;
+    state.era = { id: e.id, since: state.week };
+    if (state.flags.erasVisited && !state.flags.erasVisited.includes(e.id)) state.flags.erasVisited.push(e.id);
+    ctx.emit({ type: 'era', eraId: e.id });
+    openMarkets(ctx);
+  }
   for (const e of ERAS.slice(Math.max(0, eraIndex(state) + 1))) {
     if (state.week < state.eraSchedule[e.id]) break;
     state.era = { id: e.id, since: state.week };
@@ -111,6 +124,7 @@ export function calendarStart(ctx) {
   dotcomStep(ctx);
   processScheduled(ctx);
   eraStep(ctx);
+  web2Step(ctx);
   if (week > 0 && calendarWeek(ctx.state) % 52 === 0) openMarkets(ctx);
   trendStep(ctx);
   const every = eraAtLeast(ctx.state, 'consolidation') ? B.consolidationVendorEveryWeeks : B.vendorReleaseEveryWeeks;

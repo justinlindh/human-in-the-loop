@@ -354,7 +354,8 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     const refreshSummary = () => {
       const total = B.funding[draft.funding].cash + kit.cash;
       const mult = Math.round(B.funding[draft.funding].scoreMult * kit.scoreMult * 10000) / 10000;
-      const career = draft.startEra === 'dotcom' ? `A ${B.dotcom.weeks}-week dot-com chapter, then twenty modern years. The bridge skips the intervening years.` : 'A twenty-year company career.';
+      const career = draft.startEra === 'dotcom' ? `${B.dotcom.weeks} weeks of dot-com, ${B.web2.weeks} weeks of Web 2.0, then twenty modern years.`
+        : draft.startEra === 'web2' ? `${B.web2.weeks} weeks of Web 2.0, then twenty modern years. New web products include old-browser QA work.` : 'A twenty-year company career.';
       setText(summary, `${ERA_STARTS[draft.startEra].name}: ${fmtMoney(total)} starting cash, ${OFFICE_STAGES[kit.officeStage].name}, ${kit.desks} desks. Final score x${mult}. Two founders, no products yet. ${career}`);
     };
     const cards = FUNDING.map((f) => {

@@ -57,7 +57,7 @@ export function dotcomStep(ctx) {
   if (!f || f.recovered) return;
   y2kStep(ctx);
   if (state.era.id === 'dotcom' && state.products.some((p) => p.angle === 'web')) f.webLaunched = true;
-  const end = state.eraSchedule.classic;
+  const end = state.eraSchedule.web2 ?? state.eraSchedule.classic;
   const phase = state.week >= end ? 'recovery' : state.week >= B.dotcom.bustWeek ? 'bust'
     : state.week >= B.dotcom.warningWeek ? 'warning' : state.week >= B.dotcom.boomWeek ? 'boom' : 'growth';
   if (phase !== f.phase) { f.phase = phase; f.entered = state.week; }

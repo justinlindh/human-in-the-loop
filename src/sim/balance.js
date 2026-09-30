@@ -1,5 +1,12 @@
 // Every tunable number in the simulation. Tune here, nowhere else.
 export const B = {
+  web2: {
+    weeks: 208, startYear: 2003, endYear: 2019,
+    workMult: 1.20, whispererWorkMult: 1.08, legacyLaunches: 3,
+    qaCost: 8000, qaDebt: -5, sandboxCost: 5000, sandboxDebt: -2, exceptionDebt: 5,
+    pngCost: 1000, pngPolish: 3, eventWeight: 2, eventCooldown: 52, chatterEvery: 13,
+    launchReward: { cash: 5000, brand: 2 },
+  },
   y2k: {
     year: 1999, onCallQuarter: 4, contractPoints: 40, contractFee: 18000, contractLimit: 3,
     consultantRate: 3000, consultantMultiplier: 3,
@@ -151,6 +158,7 @@ export const B = {
     preseed: { cash: 300000, scoreMult: 0.96, brand: 8, seniorCandidates: 2 },
   },
   eraStarts: {
+    web2: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 0.75 },
     dotcom: { cash: 140000, officeStage: 0, desks: 4, scoreMult: 0.9 },
     classic: { cash: 0, officeStage: 0, desks: 2, scoreMult: 1 },
     chatgbt: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 0.75 },

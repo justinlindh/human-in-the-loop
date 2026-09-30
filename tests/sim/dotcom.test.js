@@ -40,11 +40,11 @@ describe('dot-com career', () => {
     expect(s.market.unlockedAngles).toEqual(['web', 'onprem']);
     expect(Object.values(s.models).some((m) => m.available)).toBe(false);
     expect(s.goals.first_launch.skipped).toBeUndefined();
-    expect(s.founding.timelineVersion).toBe('dotcom-bridge-v1');
+    expect(s.founding.timelineVersion).toBe('historical-v2');
     expect(calendarDate(s)).toMatchObject({ year: 1997, week: 1, quarter: 1 });
     expect(calendarDate(s, 1).week).toBeGreaterThan(0);
-    expect(s.eraSchedule.classic).toBe(B.dotcom.weeks);
-    expect(s.eraSchedule.agents).toBe(createGame({ seed: 17 }).eraSchedule.agents + B.dotcom.weeks);
+    expect(s.eraSchedule.classic).toBe(B.dotcom.weeks + B.web2.weeks);
+    expect(s.eraSchedule.agents).toBe(createGame({ seed: 17 }).eraSchedule.agents + B.dotcom.weeks + B.web2.weeks);
     expect(dispatch(s, { type: 'startProject', kind: 'new', name: 'Directory', category: 'email', angle: 'web', size: 'small' }).ok).toBe(true);
     expect(dispatch(s, { type: 'startProject', kind: 'new', name: 'Phone', category: 'notes', angle: 'mobile', size: 'small' }).ok).toBe(false);
     expect(dispatch(s, { type: 'setAutomation', fn: 'engineering', level: 1, model: 'chatgbt' }).ok).toBe(false);
@@ -101,25 +101,25 @@ describe('dot-com career', () => {
     expect(s.cash).toBe(-100);
   });
 
-  it('recovers into Classic, carries the company and awards only eligible goals', () => {
+  it('recovers into Web 2.0, carries the company and awards only eligible goals', () => {
     const s = game(); const p = addProduct(s, { angle: 'web', model: null, customers: 1000 });
     const people = s.staff.map((x) => x.id);
     at(s, B.dotcom.bustWeek); dotcomEffect(makeCtx(s), 'retain');
     s.pendingDecision = null; s.scheduled = []; delete s.flags.lastDecisionWeek;
     s.week = B.dotcom.weeks;
     calendarStart(makeCtx(s));
-    expect(s.era.id).toBe('classic');
-    expect(calendarDate(s).year).toBe(2019);
-    expect(s.market.unlockedAngles).toContain('mobile');
+    expect(s.era.id).toBe('web2');
+    expect(calendarDate(s).year).toBe(2003);
+    expect(s.market.unlockedAngles).toContain('api');
     expect(s.products[0]).toBe(p); expect(s.staff.map((x) => x.id)).toEqual(people);
     expect(dotcomAcquisition(s)).toBe(1);
-    expect(s.flags.erasVisited).toEqual(['dotcom', 'classic']);
+    expect(s.flags.erasVisited).toEqual(['dotcom', 'web2']);
     const c = makeCtx(s); checkGoals(c);
     expect(c.events.filter((e) => e.type === 'goal').map((e) => e.goalId)).toEqual(expect.arrayContaining(['dotcom_first_web', 'dotcom_survivor']));
     const cash = s.cash; checkGoals(makeCtx(s)); expect(s.cash).toBe(cash);
     const modern = createGame(); checkGoals(makeCtx(modern)); expect(modern.goals.dotcom_survivor).toBeUndefined();
     s.week = B.anniversaryWeek - 1; endgameSystem(makeCtx(s)); expect(s.gameOver).toBe(null);
-    s.week = B.anniversaryWeek + B.dotcom.weeks - 1; endgameSystem(makeCtx(s)); expect(s.gameOver.reason).toBe('anniversary');
+    s.week = B.anniversaryWeek + B.dotcom.weeks + B.web2.weeks - 1; endgameSystem(makeCtx(s)); expect(s.gameOver.reason).toBe('anniversary');
   });
 
   it('bounds a delayed bust at recovery and does not charge it again', () => {
@@ -147,6 +147,6 @@ describe('dot-com career', () => {
       }
       expect(tick(loaded)).toEqual(tick(s));
     }
-    expect(loaded).toEqual(s); expect(s.era.id).toBe('classic'); expect(s.lockdown).toBe(null);
+    expect(loaded).toEqual(s); expect(s.era.id).toBe('web2'); expect(s.lockdown).toBe(null);
   });
 });

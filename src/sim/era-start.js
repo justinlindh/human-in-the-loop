@@ -19,11 +19,18 @@ export function applyEraStart(state, requested) {
   state.era = { id, since: 0 };
   for (const era of Object.keys(state.eraSchedule)) state.eraSchedule[era] = Math.max(0, state.eraSchedule[era] - offset);
   if (period) {
-    const { weeks, startYear, endYear } = B.dotcom;
-    Object.assign(state.founding, { timelineVersion: 'dotcom-bridge-v1', earlyChapters: [{ id, weeks, startYear, endYear }] });
-    for (const era of Object.keys(state.eraSchedule)) state.eraSchedule[era] += weeks;
-    state.eraSchedule.classic = weeks;
-    state.flags.dotcom = { phase: 'growth', entered: 0, float: null, settled: false, recovered: false };
+    const chapters = (id === 'dotcom' ? ['dotcom', 'web2'] : ['web2']).map((chapter) => {
+      const { weeks, startYear, endYear } = B[chapter];
+      return { id: chapter, weeks, startYear, endYear };
+    });
+    Object.assign(state.founding, { timelineVersion: 'historical-v2', earlyChapters: chapters });
+    const duration = chapters.reduce((n, c) => n + c.weeks, 0);
+    for (const era of Object.keys(state.eraSchedule)) state.eraSchedule[era] += duration;
+    state.eraSchedule.classic = duration;
+    if (id === 'dotcom') {
+      state.eraSchedule.web2 = B.dotcom.weeks;
+      state.flags.dotcom = { phase: 'growth', entered: 0, float: null, settled: false, recovered: false };
+    } else state.eraSchedule.web2 = 0;
     state.flags.erasVisited = [id];
   }
   state.cash += kit.cash;

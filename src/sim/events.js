@@ -99,6 +99,7 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
   const ev = EVENTS[eventId];
   if (!ev || !ev.choices) return false;
   if (!dotcomDecisionOpen(state, eventId)) return false;
+  if (eventId.startsWith('web2_') && state.era.id !== 'web2') return false;
   if (state.pendingDecision) {
     if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: state.week, kind: 'event', payload: { eventId, subjectId } });
     return false;
@@ -178,6 +179,7 @@ export function resolveSubjects(state, ev) {
     case 'founder': return people.filter((p) => p.founder);
     case 'veteranStaff': return people.filter((p) => state.week - (p.hiredWeek ?? 0) >= B.nods.staplerTenureWeeks);
     case 'randomProduct': return liveProducts(state);
+    case 'compatibleProduct': return liveProducts(state).filter((p) => p.legacyCompatible);
     default: return [];
   }
 }

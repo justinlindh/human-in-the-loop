@@ -61,7 +61,7 @@ export function reportsPanel(ctx, arg) {
     const anniv = s.flags?.anniversaryScore;
     bannerHost.replaceChildren(...[
       erasPreview && s.founding?.startEra ? h('div.card.small', { text: `${ERA_STARTS[s.founding.startEra]?.name ?? s.founding.startEra} start · era score x${s.founding.eraScoreMult}` }) : null,
-      erasPreview && s.flags?.dotcom ? h('div.card.small', { text: `Dot-com chapter: ${s.flags.dotcom.phase}. ${s.flags.dotcom.recovered ? 'Normal demand has resumed.' : 'Ship during the boom and keep runway for the bust. Recovery preserves your company and continues in Classic.'}` }) : null,
+      erasPreview && s.flags?.dotcom ? h('div.card.small', { text: `Dot-com chapter: ${s.flags.dotcom.phase}. ${s.flags.dotcom.recovered ? 'Normal demand has resumed.' : 'Ship during the boom and keep runway for the bust. Recovery preserves your company for the next chapter.'}` }) : null,
       Number.isFinite(anniv) ? h('div.card.annivcard', null, icon('award', { size: 22 }), h('b', { text: 'Anniversary score' }), h('b.num.big', { text: fmtNum(anniv) }), h('span.small.muted', { text: s.founding?.earlyChapters?.length ? 'Locked in at the career checkpoint. You kept going.' : 'Locked in at 20 years. You kept going.' })) : null,
       purposeCard(s),
       rivalCard(s),

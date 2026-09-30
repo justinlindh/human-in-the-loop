@@ -1,3 +1,5 @@
+import { B } from '../sim/balance.js';
+
 // Mods are multipliers (default 1) except catch, which is additive (default 0).
 export const TRAIT_MOD_KEYS = [
   'output', 'meaningDrain', 'meaningRecovery', 'mentorBonus', 'xp', 'hype', 'oversight', 'stamina',
@@ -5,6 +7,7 @@ export const TRAIT_MOD_KEYS = [
 ];
 
 const rows = [
+  ['legacy_whisperer', 'Legacy Whisperer', `Earned after ${B.web2.legacyLaunches} contributed compatible launches by a senior engineer with a free trait slot. While present, old-browser work on new web projects falls to +${Math.round((B.web2.whispererWorkMult - 1) * 100)}%. Knows why the conditional comment stays.`, {}],
   ['craftsperson', 'Craftsperson', 'Sweats the details. Takes it personally when the craft gets rushed.', { polish: 1.3, meaningDrain: 1.5, meaningRecovery: 1.2 }],
   ['hype_machine', 'Hype Machine', 'Can make a settings page sound like the moon landing.', { hype: 1.5 }],
   ['paranoid', 'Paranoid', 'Reads every agent log. Has been right twice.', { oversight: 1.4, catch: 0.15 }],
@@ -31,11 +34,12 @@ const rows = [
   ['percussive', 'Percussive Maintenance', 'Earned the hard way: two slaps, right side. Fixes the office robot on the spot.', { reliability: 1.05 }],
 ];
 
-// Traits nobody is hired with: natural_mentor comes from mentoring, percussive from slapping the office robot back to life.
-export const NEVER_HIRED = new Set(['natural_mentor', 'percussive']);
+// Traits earned through play, excluded from the hiring pool.
+export const NEVER_HIRED = new Set(['natural_mentor', 'percussive', 'legacy_whisperer']);
 
 // Traits people earn from experience rather than arrive with.
 export const EARNED_TRAITS = [
+  { trait: 'legacy_whisperer', counter: 'compatibleLaunches', threshold: B.web2.legacyLaunches, when: (p) => p.role === 'engineer' && p.seniority === 'senior' },
   { trait: 'natural_mentor', counter: 'mentorWeeks', threshold: 20 },
   { trait: 'paranoid', counter: 'catches', threshold: 3 },
   { trait: 'visionary', counter: 'hardProblemWeeks', threshold: 20 },
