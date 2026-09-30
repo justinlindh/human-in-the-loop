@@ -1,0 +1,189 @@
+Head: d9d99060237c97dd76d378f6deaa1fa312ecdf79
+Base: 2d87e5fc4e6b10d4fdd6a25b1eb9cce2b01591ad
+
+attire-pants-commit
+Command: bash -c npm run test:fast && git commit -m "fix(render): keep period trousers within character clearance"
+Exit: 0
+ Test Files  191 passed (191)
+      Tests  1559 passed (1559)
+   Duration  42.90s (tests 85%, transform 9%, import 6%)
+
+attire-release-models2
+Command: npm run models
+Exit: 0
+MODEL era_attire: 5442 tris (OK, budget 8000)
+MODEL chibi: 11214 tris (OK, budget 12000)
+built 78 models from 51 scripts
+  ZFIGHT library_l3[pal_wood_honey] vs library_l3[pal_wood_light]: 4 tris, 0.3 cm2 near (-0.01, 0.14, 1.90)
+  ZFIGHT trophy_case_l2[pal_fabric_slate] vs trophy_case_l2[pal_wood_walnut]: 1 tris, 0.3 cm2 near (0.45, 0.46, 1.70)
+contact sheets: 51 in shots/sheets
+rendered 40 icons
+
+attire-release-plain-clip
+Command: env HITL_NO_CHECK_CACHE=1 HITL_VITE_CACHE=.vite/attire-release-plain node blender/checks/clip.mjs
+Exit: 0
+clip: 161 of 161 passed
+
+attire-release-dot-clip
+Command: env ATTIRE_ERA=dotcom HITL_NO_CHECK_CACHE=1 HITL_VITE_CACHE=.vite/attire-release-dot NODE_OPTIONS=--import=<worktree>/shots/attire/preview-loader.mjs node blender/checks/clip.mjs
+Exit: 0
+clip: 161 of 161 passed
+
+attire-release-pre-clip
+Command: env ATTIRE_ERA=preinternet NODE_OPTIONS=--import=<worktree>/shots/attire/preview-loader.mjs node scripts/studio/clip.mjs --jobs 3
+Exit: 0
+
+
+attire-release-web-clip
+Command: env ATTIRE_ERA=web2 NODE_OPTIONS=--import=<worktree>/shots/attire/preview-loader.mjs node scripts/studio/clip.mjs --jobs 3
+Exit: 0
+
+
+attire-release-dot-rig
+Command: env ATTIRE_ERA=dotcom HITL_NO_CHECK_CACHE=1 HITL_VITE_CACHE=.vite/attire-release-rig NODE_OPTIONS=--import=<worktree>/shots/attire/preview-loader.mjs node blender/checks/clip.mjs --rig
+Exit: 1
+CLIP FAIL moment:letter {"desks":10,"samples":818,"insidePct":4.96,"worstWho":"s1 in desk:f1 [pal_wood_honey:5.0] path 2"}
+clip: 160 of 161 passed
+
+attire-final-pose-pre
+Command: env ATTIRE_ERA=preinternet ATTIRE_POSE=1 NODE_OPTIONS=--import=./shots/attire/preview-loader.mjs node blender/checks/pose.mjs --gesture facepalm --matrix views=all,postures=stand,sit,builds=all,rig=on,off --json shots/attire/final-pose-preinternet.json
+Exit: 0
+MATRIX facepalm: 36 pass, 0 fail, 12 n/a (48 cells)
+
+attire-final-pose-dot
+Command: env ATTIRE_ERA=dotcom ATTIRE_POSE=1 NODE_OPTIONS=--import=./shots/attire/preview-loader.mjs node blender/checks/pose.mjs --gesture facepalm --matrix views=all,postures=stand,sit,builds=all,rig=on,off --json shots/attire/final-pose-dotcom.json
+Exit: 0
+MATRIX facepalm: 36 pass, 0 fail, 12 n/a (48 cells)
+
+attire-final-pose-web
+Command: env ATTIRE_ERA=web2 ATTIRE_POSE=1 NODE_OPTIONS=--import=./shots/attire/preview-loader.mjs node blender/checks/pose.mjs --gesture facepalm --matrix views=all,postures=stand,sit,builds=all,rig=on,off --json shots/attire/final-pose-web2.json
+Exit: 0
+MATRIX facepalm: 36 pass, 0 fail, 12 n/a (48 cells)
+
+attire-final-slap
+Command: node blender/checks/pose.mjs --gesture slap --matrix views=all,postures=stand,builds=all,rig=on,off --json shots/attire/final-pose-slap.json
+Exit: 0
+MATRIX slap: 24 pass, 0 fail, 0 n/a (24 cells)
+
+attire-final-stage
+Command: node blender/checks/stage.mjs --touched
+Exit: 0
+stage: no spec added or changed against origin/main
+
+attire-final-stage-all
+Command: node blender/checks/stage.mjs
+Exit: 0
+stage: 284 of 284 passed
+
+attire-final-font
+Command: env HITL_VITE_CACHE=.vite/attire-font node blender/checks/golden-font-controls.mjs
+Exit: 0
+golden-font-controls: 0 failures in 2 runs
+
+attire-release-sweep-preinternet
+Command: env ATTIRE_ERA=preinternet HITL_VITE_CACHE=.vite/attire-release-sweep-preinternet NODE_OPTIONS=--import=<worktree>/shots/attire/preview-loader.mjs node blender/checks/sweep.mjs --against origin/main --out shots/attire/release-sweep-preinternet
+Exit: 0
+sweep: mock:garage 0 violation(s) (0 s)
+sweep: mock:floor played 52 moments: resignation_letter, hackathon, team_offsite, no_show, junior_overwhelmed, pivot_pitch, open_plan_office, hackathon_week, founder_burnout, enterprise_rfp, bridge_loan, agent_runaway_spend, ransomware, phishing_ceo, first_user_test, lockdown_start, pet_request, cat_request, pet_mishap, agent_invoice, floor_next_door, mission_test_support, hearing_summons, cloud_bill, onprem_bank, ping_pong, investor_demo_day, moonshot_pitch, conference_expo, coffee_machine_broke, coffee_wanted, coffee_wanted_corner, banner_company, cover_sheets, the_stapler, efficiency_consultants, printer_jam, incubator_house, the_box, oat_milk, pizza_boxes, smoke_puff, rack_hot, pet:dog, pet:cat, robot:spin, robot:stuck, robot:cone, robot:emptyDesk, robot:unplug, robot:waffle_party, robot:music_night
+sweep: mock:floor 2 violation(s) (18 s)
+sweep: mock:hq 0 violation(s) (31 s)
+sweep: mock:night 0 violation(s) (31 s)
+sweep: seed:1 played to week 803 (retired); windows: w0 stage 0, w5 decision first_user_test, w25 decision team_offsite, w33 decision onprem_bank, w104 every, w112 stage 1, w198 era chatgbt, w208 every, w261 stage 2, w312 every, w328 era agents, w416 every, w520 every, w535 era consolidation, w624 every, w728 every, w791 era plateau
+sweep: seed:1 27 violation(s) in 27 s (58 s)
+sweep: screen and tooltip (browser) 1 violation(s) (65 s)
+sweep: origin/main (2d87e5fc) has 8 violation(s) in the same states
+SWEEP WORSE (seed, advisory) person s618 (walking) torso in noc#f710[pal_fabric_slate] 0.066 m at seed:1:w520 t=2s [-1.74,0.49,-6.33] x1 in 1 state(s)
+sweep: 8 distinct violation(s), 0 new, 1 new in seeds only (advisory), 0 not seen; 70 s (fast)
+
+attire-release-sweep-dotcom
+Command: env ATTIRE_ERA=dotcom HITL_VITE_CACHE=.vite/attire-release-sweep-dotcom NODE_OPTIONS=--import=<worktree>/shots/attire/preview-loader.mjs node blender/checks/sweep.mjs --against origin/main --out shots/attire/release-sweep-dotcom
+Exit: 0
+sweep: mock:garage 0 violation(s) (1 s)
+sweep: mock:floor played 52 moments: resignation_letter, hackathon, team_offsite, no_show, junior_overwhelmed, pivot_pitch, open_plan_office, hackathon_week, founder_burnout, enterprise_rfp, bridge_loan, agent_runaway_spend, ransomware, phishing_ceo, first_user_test, lockdown_start, pet_request, cat_request, pet_mishap, agent_invoice, floor_next_door, mission_test_support, hearing_summons, cloud_bill, onprem_bank, ping_pong, investor_demo_day, moonshot_pitch, conference_expo, coffee_machine_broke, coffee_wanted, coffee_wanted_corner, banner_company, cover_sheets, the_stapler, efficiency_consultants, printer_jam, incubator_house, the_box, oat_milk, pizza_boxes, smoke_puff, rack_hot, pet:dog, pet:cat, robot:spin, robot:stuck, robot:cone, robot:emptyDesk, robot:unplug, robot:waffle_party, robot:music_night
+sweep: mock:floor 2 violation(s) (19 s)
+sweep: mock:hq 0 violation(s) (33 s)
+sweep: mock:night 0 violation(s) (33 s)
+sweep: seed:1 played to week 803 (retired); windows: w0 stage 0, w5 decision first_user_test, w25 decision team_offsite, w33 decision onprem_bank, w104 every, w112 stage 1, w198 era chatgbt, w208 every, w261 stage 2, w312 every, w328 era agents, w416 every, w520 every, w535 era consolidation, w624 every, w728 every, w791 era plateau
+sweep: seed:1 27 violation(s) in 26 s (60 s)
+sweep: screen and tooltip (browser) 1 violation(s) (70 s)
+sweep: origin/main (2d87e5fc) has 8 violation(s) in the same states
+SWEEP WORSE (seed, advisory) person s618 (walking) torso in noc#f710[pal_fabric_slate] 0.066 m at seed:1:w520 t=2s [-1.74,0.49,-6.33] x1 in 1 state(s)
+sweep: 8 distinct violation(s), 0 new, 1 new in seeds only (advisory), 0 not seen; 71 s (fast)
+
+attire-release-sweep-web2
+Command: env ATTIRE_ERA=web2 HITL_VITE_CACHE=.vite/attire-release-sweep-web2 NODE_OPTIONS=--import=<worktree>/shots/attire/preview-loader.mjs node blender/checks/sweep.mjs --against origin/main --out shots/attire/release-sweep-web2
+Exit: 0
+sweep: mock:garage 0 violation(s) (1 s)
+sweep: mock:floor played 52 moments: resignation_letter, hackathon, team_offsite, no_show, junior_overwhelmed, pivot_pitch, open_plan_office, hackathon_week, founder_burnout, enterprise_rfp, bridge_loan, agent_runaway_spend, ransomware, phishing_ceo, first_user_test, lockdown_start, pet_request, cat_request, pet_mishap, agent_invoice, floor_next_door, mission_test_support, hearing_summons, cloud_bill, onprem_bank, ping_pong, investor_demo_day, moonshot_pitch, conference_expo, coffee_machine_broke, coffee_wanted, coffee_wanted_corner, banner_company, cover_sheets, the_stapler, efficiency_consultants, printer_jam, incubator_house, the_box, oat_milk, pizza_boxes, smoke_puff, rack_hot, pet:dog, pet:cat, robot:spin, robot:stuck, robot:cone, robot:emptyDesk, robot:unplug, robot:waffle_party, robot:music_night
+sweep: mock:floor 2 violation(s) (14 s)
+sweep: mock:hq 0 violation(s) (24 s)
+sweep: mock:night 0 violation(s) (24 s)
+sweep: seed:1 played to week 803 (retired); windows: w0 stage 0, w5 decision first_user_test, w25 decision team_offsite, w33 decision onprem_bank, w104 every, w112 stage 1, w198 era chatgbt, w208 every, w261 stage 2, w312 every, w328 era agents, w416 every, w520 every, w535 era consolidation, w624 every, w728 every, w791 era plateau
+sweep: seed:1 28 violation(s) in 27 s (51 s)
+sweep: screen and tooltip (browser) 1 violation(s) (64 s)
+sweep: origin/main (2d87e5fc) has 9 violation(s) in the same states
+SWEEP WORSE (seed, advisory) person s618 (walking) torso in noc#f710[pal_fabric_slate] 0.066 m at seed:1:w520 t=2s [-1.74,0.49,-6.33] x1 in 1 state(s)
+sweep: 9 distinct violation(s), 0 new, 1 new in seeds only (advisory), 0 not seen; 66 s (fast)
+
+attire-release-perf
+Command: bash -c NODE_OPTIONS=--import=<worktree>/shots/attire/bench-loader.mjs node scripts/perf/bench.js --refs origin/main,codex/era-attire --scenes garage,floor --quality low --runs 3 --warmup 2 --seconds 5 --json shots/attire/perf-gpu-final.json && NODE_OPTIONS=--import=<worktree>/shots/attire/bench-loader.mjs node scripts/perf/bench.js --refs origin/main,codex/era-attire --software --cores 2 --scenes garage,floor --quality low --runs 3 --warmup 2 --seconds 5 --json shots/attire/perf-low-final.json
+Exit: 0
+build origin/main(2d87e5fc) js 2198KB (gz 728KB)  css 111KB (gz 20KB)
+build codex/era-attire(d9d99060) js 2205KB (gz 731KB)  css 111KB (gz 20KB)
+origin/main(2d87e5fc) garage/low  p50    0.7  p95    0.8  cpu   0.6  render    0.6  best    0.6  calls  206  tris   75k  meshes  136  geo  177  tex  13  prog  11  heap  14.4MB  dom   856  mut/s    6.6  load 5.8
+codex/era-attire(d9d99060) garage/low  p50    0.7  p95    0.9  cpu   0.7  render    0.6  best    0.6  calls  206  tris   76k  meshes  136  geo  177  tex  13  prog  11  heap  14.5MB  dom   656  mut/s    6.6  load 5.8
+origin/main(2d87e5fc) floor/low   p50    1.2  p95    1.4  cpu   1.1  render    1.0  best    1.0  calls  325  tris  217k  meshes  249  geo  390  tex  32  prog  16  heap  16.5MB  dom   750  mut/s    6.6  load 5.3
+codex/era-attire(d9d99060) floor/low   p50    1.2  p95    1.5  cpu   1.1  render    1.0  best    1.0  calls  325  tris  232k  meshes  249  geo  390  tex  32  prog  16  heap  16.7MB  dom   750  mut/s    6.6  load 5.3
+build origin/main(2d87e5fc) js 2198KB (gz 728KB)  css 111KB (gz 20KB)
+build codex/era-attire(d9d99060) js 2205KB (gz 731KB)  css 111KB (gz 20KB)
+origin/main(2d87e5fc) garage/low  p50  161.5  p95  183.4  cpu 160.6  render  160.0  best  159.9  calls  206  tris   75k  meshes  136  geo  177  tex  13  prog  11  heap  12.7MB  dom   859  mut/s    6.2  load 11.1
+codex/era-attire(d9d99060) garage/low  p50  161.8  p95  171.4  cpu 161.4  render  160.9  best  160.5  calls  206  tris   76k  meshes  136  geo  177  tex  13  prog  11  heap  12.8MB  dom   856  mut/s    6.2  load 11.1
+origin/main(2d87e5fc) floor/low   p50  248.4  p95  279.9  cpu 243.3  render  242.8  best  241.7  calls  325  tris  217k  meshes  249  geo  390  tex  32  prog  16  heap  15.1MB  dom   985  mut/s   31.4  load 12.4
+codex/era-attire(d9d99060) floor/low   p50  249.1  p95  271.9  cpu 244.4  render  243.7  best  243.0  calls  325  tris  232k  meshes  249  geo  390  tex  32  prog  16  heap  15.3MB  dom   985  mut/s   10.6  load 12.4
+
+attire-release-tee-camera
+Command: bash -c HITL_VITE_CACHE=.vite/attire-release-tee-camera npm run capture -- --manifest shots/attire/capture-manifest.mjs --only tees-game-camera-day,tees-game-camera-night --out shots/attire/capture-final --quality low --no-webm && scripts/sheet.sh pair shots/attire/tees-game-camera-crops.png shots/attire/capture-final/tees-game-camera-day-0.0s.png shots/attire/capture-final/tees-game-camera-night-0.0s.png --labels "Day game camera, Night game camera" --crop 565,590,335,240
+Exit: 0
+
+
+Matching era-prop authored-rig controls
+
+attire-control-era-rig-full
+Command: bash -c cd <base> && ATTIRE_ERA=dotcom HITL_NO_CHECK_CACHE=1 HITL_VITE_CACHE=.vite/attire-control-era-rig-full NODE_OPTIONS=--import=<worktree>/shots/attire/preview-loader.mjs node blender/checks/clip.mjs --rig
+Exit: 1
+CLIP FAIL moment:letter {"desks":10,"samples":818,"insidePct":9.27,"worstWho":"s1 in desk:f1 [pal_wood_honey:9.3] path 2"}
+clip: 160 of 161 passed
+
+attire-control-era-rig
+Command: bash -c cd <base> && ATTIRE_ERA=dotcom HITL_NO_CHECK_CACHE=1 HITL_VITE_CACHE=.vite/attire-control-era-rig NODE_OPTIONS=--import=<worktree>/shots/attire/preview-loader.mjs node blender/checks/clip.mjs --rig --only=moment:letter
+Exit: 1
+CLIP FAIL moment:letter {"desks":10,"samples":818,"insidePct":9.27,"worstWho":"s1 in desk:f1 [pal_wood_honey:9.3] path 2"}
+clip: 2 of 3 passed (--only=moment:letter)
+
+attire-control-pre-rig
+Command: bash -c cd <base> && ATTIRE_ERA=preinternet ATTIRE_RIG=1 ATTIRE_DIAG=1 NODE_OPTIONS=--import=<worktree>/shots/attire/preview-loader.mjs node scripts/studio/clip.mjs --group props --jobs 1
+Exit: 1
+CLIP FAIL moment:letter {"desks":10,"samples":818,"insidePct":9.27,"worstWho":"s1 in desk:f1 [pal_wood_honey:9.3] path 2"}
+
+attire-rig-letter-dotcom
+Command: env ATTIRE_ERA=dotcom ATTIRE_DIAG=1 HITL_NO_CHECK_CACHE=1 HITL_VITE_CACHE=.vite/attire-rig-letter-dotcom NODE_OPTIONS=--import=<worktree>/shots/attire/preview-loader.mjs node blender/checks/clip.mjs --rig --only=moment:letter
+Exit: 1
+CLIP FAIL moment:letter {"desks":10,"samples":818,"insidePct":4.96,"worstWho":"s1 in desk:f1 [pal_wood_honey:5.0] path 2"}
+clip: 2 of 3 passed (--only=moment:letter)
+
+attire-rig-letter-preinternet
+Command: env ATTIRE_ERA=preinternet ATTIRE_DIAG=1 HITL_NO_CHECK_CACHE=1 HITL_VITE_CACHE=.vite/attire-rig-letter-preinternet NODE_OPTIONS=--import=<worktree>/shots/attire/preview-loader.mjs node blender/checks/clip.mjs --rig --only=moment:letter
+Exit: 1
+CLIP FAIL moment:letter {"desks":10,"samples":818,"insidePct":6.85,"worstWho":"s1 in desk:f1 [pal_wood_honey:6.8] path 2"}
+clip: 2 of 3 passed (--only=moment:letter)
+
+attire-rig-letter-web2
+Command: env ATTIRE_ERA=web2 ATTIRE_DIAG=1 HITL_NO_CHECK_CACHE=1 HITL_VITE_CACHE=.vite/attire-rig-letter-web2 NODE_OPTIONS=--import=<worktree>/shots/attire/preview-loader.mjs node blender/checks/clip.mjs --rig --only=moment:letter
+Exit: 0
+clip: 3 of 3 passed (--only=moment:letter)
+
+attire-release-pre-clip: 154 passed, 0 failed.
+
+attire-release-web-clip: 154 passed, 0 failed.
+
+Full authored-rig failure keys match base exactly: moment:letter. Zero new failing cases.
