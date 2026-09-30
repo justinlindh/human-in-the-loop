@@ -1,6 +1,6 @@
 import { B } from './balance.js';
 import { chance } from './rng.js';
-import { dateOf } from './util.js';
+import { marketYear } from './util.js';
 import { registerSystem } from './registry.js';
 import { emitChat } from './chat.js';
 import { liveProducts } from './projects.js';
@@ -11,7 +11,7 @@ import { incumbentFor } from '../data/incumbents.js';
 import { eraAtLeast } from './eras.js';
 import { isPeriod } from '../data/period-content.js';
 
-export const cloneChance = (state) => B.cloneChanceBase * (1 + B.cloneChanceYearGrowth * dateOf(state.week).yearIndex);
+export const cloneChance = (state) => B.cloneChanceBase * (1 + B.cloneChanceYearGrowth * marketYear(state));
 
 export function marketSystem(ctx) {
   const { state } = ctx;
