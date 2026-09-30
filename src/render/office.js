@@ -1539,7 +1539,8 @@ function eraArtPieces(era) {
     return o;
   } });
   const shelf = model('era_retail_boxes', 1.28, 1.40, (o) => {
-    o.children[0].position.set(-0.39, 0, 0.14);
+    o.children[0].position.set(-0.34, 0, 0.12);
+    o.children[0].scale.setScalar(1.25);
     o.add(place(getModel('era_floppy_stack'), 0.04, 0, 0.14));
     o.add(place(getModel('era_cd_spindle'), 0.39, 0, 0.14));
     o.add(mesh(roundedBox(1.25, 0.055, 0.38, 0.018), mat('wood_honey'), 0, -0.0275, 0.12));
