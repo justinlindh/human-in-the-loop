@@ -55,7 +55,7 @@ function frame(g, w, hgt, pad, max, min, fmt, weeks, ticks = 4) {
       const yr = dateOf(weeks[i]).year;
       if (yr === lastYear) continue;
       lastYear = yr;
-      const x = x0 + ((yr - 2026) * 52 - first) / span * (x1 - x0);
+      const x = x0 + (weeks[i] - first) / span * (x1 - x0);
       g.strokeStyle = GRID; g.beginPath(); g.moveTo(x, y0); g.lineTo(x, y1); g.stroke();
       const lx = Math.min(x1 - 14, x);
       if (lx - lastLabelX > 44) { g.fillText(String(yr), lx, y1 + 4); lastLabelX = lx; }

@@ -97,7 +97,7 @@ function trim(v, dp) {
   return v.toFixed(dp).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
 }
 
-export { dateOf } from '../sim/util.js';
+export { dateOf, calendarDate } from '../sim/util.js';
 
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, safe(v)));
 

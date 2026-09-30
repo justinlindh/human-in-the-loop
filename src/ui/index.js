@@ -4,7 +4,7 @@ import { trendSummary } from './content.js';
 import { availableItems } from './panels/office.js';
 // Stylesheets load in file-name order, which is their cascade order.
 import.meta.glob('./styles/*.css', { eager: true });
-import { h, dateOf } from './dom.js';
+import { h, calendarDate } from './dom.js';
 import { createHud } from './hud.js';
 import { createToasts } from './toasts.js';
 import { createChat } from './chat.js';
@@ -21,6 +21,7 @@ import { roleName } from './content.js';
 import { icon } from './icons.js';
 import { createSettings } from './settings.js';
 import { createTitle } from './title.js';
+import { erasPreview } from './eraPreview.js';
 import { createGameOver } from './gameover.js';
 import { createTutorial, tutorialDone } from './tutorial.js';
 import { createBuildMode } from './buildmode.js';
@@ -229,7 +230,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     if (era) {
       const d = state.pendingDecision;
       const own = d && d.eventId === `era_${era.eraId}` ? d.title : null;
-      announcer.era(era.eraId, state.week, own, keys.filter((k) => k !== 'meaning'));
+      announcer.era(era.eraId, state.week, own, keys.filter((k) => k !== 'meaning'), calendarDate(state));
       if (revealMeaning) { if (menu.current !== 'staff') { newMenus.add('staff'); menu.setNew('staff', true); } announcer.unlock('meaning', 'staff', 'Staff'); }
     } else if (items.length === 1) announcer.unlock(items[0].key, items[0].menuId, items[0].menuLabel);
     else if (!items.length) return;
@@ -247,18 +248,18 @@ export function createUI({ root, getState, dispatch, controls }) {
 
   function goalsModal() {
     const s = getState();
-    const list = GOALS.filter((g) => s.goals?.[g.id]);
+    const list = GOALS.filter((g) => s.goals?.[g.id] && (erasPreview || !s.goals[g.id].skipped));
     let group = null;
     const body = h('div.goallist', null, ...list.flatMap((g) => {
       const st = s.goals[g.id];
       const head = g.group && g.group !== group ? h('div.ggroup', { text: (group = g.group) }) : null;
       const reward = goalReward(g);
-      const wk = st.done && st.week != null ? dateOf(st.week) : null;
+      const wk = st.done && st.week != null ? calendarDate(s, st.week) : null;
       return [head, h(`div.goal${st.done ? '.done' : ''}`, null, h('span.gbox'),
-        h('div', null, h('b', { text: g.name }), h('div.small.muted', { text: g.desc ?? '' }), st.done ? null : progressBar(s, g), reward ? h('div.small', { text: `Reward: ${reward}` }) : null),
+        h('div', null, h('b', { text: g.name }), h('div.small.muted', { text: st.skipped ? 'Skipped by starting era' : g.desc ?? '' }), st.done || st.skipped ? null : progressBar(s, g), reward && !st.skipped ? h('div.small', { text: `Reward: ${reward}` }) : null),
         wk ? h('span.gwk', { text: `${wk.year} Q${wk.quarter}` }) : null)].filter(Boolean);
     }));
-    ctx.openModal({ title: `Goals: ${goalsDoneText(list.filter((g) => s.goals[g.id].done).length, list.length)}`, iconName: 'star', body, cls: 'small' });
+    ctx.openModal({ title: `Goals: ${goalsDoneText(list.filter((g) => s.goals[g.id].done && !s.goals[g.id].skipped).length, list.filter((g) => !s.goals[g.id].skipped).length)}`, iconName: 'star', body, cls: 'small' });
   }
   ui.openGoals = goalsModal;
   ctx.build = buildMode;

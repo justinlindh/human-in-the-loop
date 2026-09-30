@@ -34,6 +34,12 @@
 .hitl .funds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6em; }
 .hitl .fund { justify-content: flex-start; padding: 0.8em 0.7em; gap: 0.45em; }
 .hitl .fcash { font-size: 1.6em; font-weight: 700; }
+.hitl .era-starts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6em; }
+.hitl .era-start { display: flex; flex-direction: column; gap: 0.4em; padding: 0.7em; text-align: left; font: inherit; color: var(--ink); background: var(--cream-2); border: var(--bw) solid var(--ink); border-radius: 0.7em; cursor: pointer; }
+.hitl .era-start.on { background: #fff4dc; box-shadow: 0 0 0 0.15em var(--yellow); }
+.hitl .era-start:focus-visible { outline: 0.2em solid var(--green); outline-offset: 0.15em; }
+.hitl .era-start-summary { padding: 0.7em; background: var(--cream-3); border-radius: 0.5em; font-weight: 600; }
+@media (max-width: 600px) { .hitl .era-starts { grid-template-columns: 1fr; } }
 .hitl .tray-card.goals { cursor: default; }
 .hitl .tray-card.goals .t span:first-child { display: inline-flex; align-items: center; gap: 0.3em; }
 .hitl .goal { display: flex; gap: 0.45em; align-items: flex-start; margin-top: 0.3em; font-size: 0.9em; line-height: 1.2; }
@@ -42,4 +48,3 @@
   .hitl .fcard .portrait { width: 2.6em !important; height: 2.6em !important; }
   .hitl .fcard { padding: 0.4em 0.45em 0.5em; gap: 0.2em; }
 }
-

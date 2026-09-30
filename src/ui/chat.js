@@ -2,7 +2,7 @@ import { importantChat as important } from '../yak-pacing.js';
 import { countsAsNew } from './yakCount.js';
 import { phoneLayout, touchUI } from './media.js';
 import { setTip } from './tooltip.js';
-import { h, setText, toggleClass, dateOf, clear } from './dom.js';
+import { h, setText, toggleClass, calendarDate, clear } from './dom.js';
 import { icon, reactionIcon } from './icons.js';
 import { portraitImg } from './widgets.js';
 import { CHAT_CHANNELS } from '../contract/events.js';
@@ -150,7 +150,7 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
     return h(`div.msg${bot ? '.bot' : ''}${m.replyTo ? '.reply' : ''}`, { dataset: { id: m.id ?? '', root: m.replyTo ?? m.id ?? '' } },
       avatar(m),
       h('div.mcol', null,
-        h('div.mline', null, name, m.week === null ? null : h('span.w.num', { text: `W${dateOf(m.week).week}` })),
+        h('div.mline', null, name, m.week === null ? null : h('span.w.num', { text: `W${calendarDate(getState?.() ?? {}, m.week).week}` })),
         m.image ? (memeView(m.image, { onOpen: (im) => memeBox.open(im) }) ?? h('div.mtext', null, ...withMentions(m.text))) : h('div.mtext', null, ...withMentions(m.text)),
         reacts.length ? h('div.reacts', null, ...reacts.map(([emo, n]) => h('span.react', null, reactionIcon(emo) ? icon(reactionIcon(emo), { size: 12 }) : emo, h('b.num', { text: ` ${n}` })))) : null));
   }

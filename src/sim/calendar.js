@@ -1,5 +1,5 @@
 import { B } from './balance.js';
-import { dateOf, sum, avg } from './util.js';
+import { calendarDate, sum, avg } from './util.js';
 import { registerSystem } from './registry.js';
 import { raiseDecision } from './events.js';
 import { liveProducts } from './projects.js';
@@ -66,10 +66,12 @@ function summit(ctx) {
 // Week-of-year calendar: SaaSCon expo (40), the Saasies awards (50), and the year in review (52).
 export function annualSystem(ctx) {
   const { state } = ctx;
-  const { week, year, yearIndex } = dateOf(state.week);
+  const { week, year, yearIndex } = calendarDate(state);
   if (week === 1) state.flags.yearStart = { resignations: state.stats.resignations, breaches: state.stats.breaches, incidents: state.stats.incidents };
-  if (week === 40) raiseDecision(ctx, 'conference_expo', null, { queue: true });
-  if (week === B.aiSummitWeek && eraAtLeast(state, 'chatgbt')) summit(ctx);
+  // An era kit does not give a newly founded company a product to demonstrate.
+  const invited = !state.founding?.startEra || state.stats.launches > 0;
+  if (week === 40 && invited) raiseDecision(ctx, 'conference_expo', null, { queue: true });
+  if (week === B.aiSummitWeek && invited && eraAtLeast(state, 'chatgbt')) summit(ctx);
   // The hearing: once, when regulators start looking at AI companies.
   if (state.flags.hearingWeek === undefined && state.week >= B.hearingFromWeek && eraAtLeast(state, 'agents')
     && liveProducts(state).filter((p) => ANGLES[p.angle]?.ai).length >= 2) {
