@@ -159,9 +159,11 @@ function tree(h = 2.6) {
   return g;
 }
 
+const CAR_L = 2.2, CAR_W = 1.05; // a car's body, along and across its heading
+const BILLBOARD_W = 3.4, BILLBOARD_D = 0.66; // era_sock_billboard's frame width and its feet's depth
 function car(hex) {
   const g = new THREE.Group();
-  g.add(mesh(roundedBox(2.2, 0.55, 1.05, 0.14, 3), m(hex), 0, 0.42, 0));
+  g.add(mesh(roundedBox(CAR_L, 0.55, CAR_W, 0.14, 3), m(hex), 0, 0.42, 0));
   g.add(mesh(roundedBox(1.2, 0.45, 0.95, 0.14, 3), m('#dfe7ee'), -0.1, 0.88, 0));
   for (const x of [-0.7, 0.7]) for (const z of [-0.5, 0.5]) {
     const wh = mesh(roundedCylinder(0.2, 0.2, 0.16, 0.04, 12), m(P.ink), x, 0.2, z);
@@ -197,6 +199,35 @@ function cloudTexture() {
   return cloudTex;
 }
 
+// A floodlit billboard face: three pools of light from lamps above, strongest at the top edge.
+let washTex = null;
+function washTexture() {
+  if (washTex) return washTex;
+  const c = document.createElement('canvas'); c.width = 128; c.height = 64;
+  const x = c.getContext('2d');
+  for (const cx of [22, 64, 106]) {
+    const g = x.createRadialGradient(cx, -6, 2, cx, -6, 62);
+    g.addColorStop(0, 'rgba(255,255,255,0.9)'); g.addColorStop(0.55, 'rgba(255,255,255,0.35)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 128, 64);
+  }
+  washTex = new THREE.CanvasTexture(c);
+  washTex.colorSpace = THREE.SRGBColorSpace;
+  return washTex;
+}
+
+let haloTex = null;
+function haloTexture() {
+  if (haloTex) return haloTex;
+  const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+  const x = c.getContext('2d');
+  const g = x.createRadialGradient(32, 32, 1, 32, 32, 31);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.25, 'rgba(255,255,255,0.6)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+  haloTex = new THREE.CanvasTexture(c);
+  haloTex.colorSpace = THREE.SRGBColorSpace;
+  return haloTex;
+}
+
 export function createSurroundings({ parent, low = () => false, lighting = null }) {
   const root = new THREE.Group();
   root.name = 'surroundings';
@@ -225,7 +256,10 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     const flat = new THREE.Group();
     const sides = { px: new THREE.Group(), nx: new THREE.Group(), pz: new THREE.Group(), nz: new THREE.Group() };
     const dyn = new THREE.Group();
-    const facadeMats = new Set(), bulbs = [], movers = [], clouds = [];
+    const facadeMats = new Set(), bulbs = [], movers = [], clouds = [], glows = [];
+    // Floor rectangles of the larger standing things (for checks): { id, x0, x1, z0, z1 }.
+    const feet = [];
+    const foot = (id, x, z, w, d) => feet.push({ id, x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2 });
     const lite = low();
     const tall = (obj, x, z) => { obj.position.x = x; obj.position.z = z; sides[sideOf(L, x, z)].add(obj); if (obj.userData.facade) facadeMats.add(obj.userData.facade); return obj; };
     const onFlat = (obj, x, y, z) => { obj.position.set(x, y, z); flat.add(obj); return obj; };
@@ -248,8 +282,11 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
       if (garage) {
         const dz = garage.at;
         onFlat(mesh(roundedBox(M - 0.4, 0.04, garage.width + 0.6, 0.01, 1), m(P.floor_concrete), 0, 0, 0, { cast: false }), -hw - (M - 0.4) / 2, gy + 0.01, dz);
-        if (!lite) tall(car(COL.car[0]), -hw - 3.2, dz).rotation.y = Math.PI / 2;
-        for (const [i, dx] of [[0, 1.2], [1, 1.9]]) tall(mesh(roundedBox(0.6, 1.05, 0.65, 0.08, 2), m(i ? P.leaf_dark : P.metal_dark), 0, 0.52, 0), -hw - dx, dz + garage.width / 2 + 0.9);
+        if (!lite) { tall(car(COL.car[0]), -hw - 3.2, dz).rotation.y = Math.PI / 2; foot('parkedCar', -hw - 3.2, dz, CAR_W, CAR_L); }
+        for (const [i, dx] of [[0, 1.2], [1, 1.9]]) {
+          tall(mesh(roundedBox(0.6, 1.05, 0.65, 0.08, 2), m(i ? P.leaf_dark : P.metal_dark), 0, 0.52, 0), -hw - dx, dz + garage.width / 2 + 0.9);
+          foot(i ? 'hedge' : 'bin', -hw - dx, dz + garage.width / 2 + 0.9, 0.6, 0.65);
+        }
       }
       // Picket fences along the back and left of the lot.
       const fence = (x0, z0, x1, z1) => {
@@ -331,7 +368,29 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     if (ERA_ART_PREVIEW && stage === 0) {
       const sign = getModel('era_sock_billboard');
       sign.position.y = gy;
-      tall(sign, -hw - 2.5, -hd + 3.2);
+      // Floodlit at night: the lamp lenses take the street lamps' bulb material (lit by update), and
+      // an additive wash over the face fades in. Both are emissive; no light is added.
+      const lens = new THREE.MeshStandardMaterial({ color: new THREE.Color(P.lamp_warm), emissive: new THREE.Color(P.lamp_warm), emissiveIntensity: 0 });
+      sign.traverse((o) => { if (o.isMesh && o.material?.name === 'pal_lamp_warm') o.material = lens; });
+      const wash = new THREE.Mesh(new THREE.PlaneGeometry(3.25, 1.65), new THREE.MeshBasicMaterial({ map: washTexture(), color: new THREE.Color(P.lamp_warm), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+      wash.position.set(0, 2.05, 0.33);
+      wash.userData.dynamic = true;
+      wash.visible = false;
+      sign.add(wash);
+      glows.push(wash);
+      // A soft halo on each lamp head (its lens faces the board, away from the camera).
+      for (const x of [-1.1, 0, 1.1]) {
+        const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTexture(), color: new THREE.Color(P.lamp_warm), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+        halo.position.set(x, 2.95, 0.6);
+        halo.scale.setScalar(0.5);
+        halo.userData.dynamic = true;
+        halo.visible = false;
+        sign.add(halo);
+        glows.push(halo);
+      }
+      // On the front lawn past the driveway, facing the street, clear of the parked car and bins.
+      tall(sign, -hw - 2.2, hd + 1.2);
+      foot('billboard', -hw - 2.2, hd + 1.2, BILLBOARD_W, BILLBOARD_D);
     }
 
     // The diorama board covers everything that stands on it: at least the stage's margin round the
@@ -392,7 +451,7 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     group.add(merged.flat, merged.px, merged.nx, merged.pz, merged.nz, dyn);
     // Bulbs are emissive and change at night: they stay separate (mergeStatic keeps dynamic ones).
     root.add(group);
-    cur = { group, sides: { px: merged.px, nx: merged.nx, pz: merged.pz, nz: merged.nz }, facadeMats, bulbs: collectBulbs(group), movers: movers.map((mv) => ({ ...mv, t: rnd() * mv.gap[1], car: null })), clouds, dyn, gy };
+    cur = { group, sides: { px: merged.px, nx: merged.nx, pz: merged.pz, nz: merged.nz }, facadeMats, bulbs: collectBulbs(group), movers: movers.map((mv) => ({ ...mv, t: rnd() * mv.gap[1], car: null })), clouds, glows, feet, dyn, gy };
     applyYaw();
   }
 
@@ -426,6 +485,7 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     if (built?.lite && lighting) updateBacklight(lighting, night);
     for (const fm of cur.facadeMats) fm.emissiveIntensity = night * 1.1;
     for (const b of cur.bulbs) b.material.emissiveIntensity = night * 2.2;
+    for (const w of cur.glows) { w.material.opacity = night * (w.isSprite ? 0.9 : 0.7); w.visible = night > 0.02; }
     // Clouds stay in the half of the sky behind the office from wherever the camera looks, drifting
     // across the view, so a turned view never puts one between the camera and the office.
     const bx = -Math.sin(viewYaw), bz = -Math.cos(viewYaw), sx = Math.cos(viewYaw), sz = -Math.sin(viewYaw);
@@ -457,5 +517,12 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     }
   }
 
-  return { setStage, setQuality, setViewYaw, update, get group() { return root; } };
+  // Checks: the standing things' floor rectangles and each moving car's rectangle right now.
+  function exterior() {
+    if (!cur) return null;
+    const cars = cur.movers.filter((mv) => mv.car).map((mv) => ({ x0: mv.car.position.x - CAR_L / 2, x1: mv.car.position.x + CAR_L / 2, z0: mv.z - CAR_W / 2, z1: mv.z + CAR_W / 2 }));
+    return { feet: cur.feet, cars, lanes: cur.movers.map((mv) => ({ z0: mv.z - CAR_W / 2, z1: mv.z + CAR_W / 2, x0: Math.min(mv.x0, mv.x1) - CAR_L / 2, x1: Math.max(mv.x0, mv.x1) + CAR_L / 2 })) };
+  }
+
+  return { setStage, setQuality, setViewYaw, update, exterior, get group() { return root; } };
 }
