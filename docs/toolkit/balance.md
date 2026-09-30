@@ -10,4 +10,4 @@ Seeded bot games with a win and exit table, plus era by era arrival stats. Use p
 
 Run Classic with `--seeds 200 --json classic.json`, then each other era with `--seeds 200 --start-era agents --json agents.json --baseline classic.json`. All differences in these comparisons include the kit and era choice; they are not estimates of one mechanic's effect.
 
-Historical careers include their saved early chapters before the twenty-year modern checkpoint. Bots keep their strategies; an established-office strategy can spend too aggressively when a historical kit contains an empty floor. Read first-launch and ending-reason columns alongside exit percentages.
+Historical careers include their saved early chapters before the twenty-year modern checkpoint. Bots keep their strategies. Read first-launch and ending-reason columns alongside exit percentages.

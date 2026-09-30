@@ -21,6 +21,8 @@ describe('dot-com career', () => {
     const s = game();
     expect(s.cash).toBe(B.funding.bootstrapped.cash + B.eraStarts.dotcom.cash);
     expect(s.office.placed).toHaveLength(4);
+    expect(s.officeStage).toBe(0);
+    expect(s.goals.office_floor.skipped).toBeUndefined();
     expect(s.era.id).toBe('dotcom');
     expect(eraIndex(s)).toBeLessThan(0);
     expect(eraIndex(createGame())).toBe(0);

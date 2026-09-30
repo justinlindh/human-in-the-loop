@@ -11,7 +11,7 @@ Keep Classic as the default. A start is a newly founded company in an older worl
 | Start id | Calendar opening | Extra cash | Office / desks | Era score factor | Systems open immediately | Goals skipped without rewards |
 | --- | --- | ---: | --- | ---: | --- | --- |
 | `preinternet` | 1990 | $40,000 | Garage / 3 | 1.20 | retail distribution, Ops | none |
-| `dotcom` | 1997 | $140,000 | Office Floor / 4 | 1.10 | Marketing, Ops, Research, squads | `place_desks`, `office_floor` |
+| `dotcom` | 1997 | $140,000 | Garage / 4 | 1.10 | Marketing, Ops, Research, squads | `place_desks` |
 | `web2` | 2003 | $90,000 | Garage / 3 | 1.05 | Marketing, Ops, Research, compatibility | `place_desks` |
 | `classic` | 2019 | $0 | Garage / 2 | 1.00 | ordinary progression | none |
 | `chatgbt` | selected era's seeded arrival | $90,000 | Garage / 3 | 0.75 | Marketing, Ops, Research, Models, Automation, Meaning, AI as Pair | `place_desks`, `start_product`, `first_launch` |
