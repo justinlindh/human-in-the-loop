@@ -1,133 +1,132 @@
-// Builds the seeded event index: bots play seeds with the pure sim (no browser), and every notable
-// event is recorded with where and when it happened, plus a save-state snapshot before the ones a
-// tool would want to stage.
-//
-//   node scripts/events/build.js [--seeds 1-20] [--bots balanced,sensible,allHumans] [--weeks 1040]
-//                                [--jobs N] [--force]
-//
-// Writes <cache>/<sim hash>/events.jsonl.gz (one row per event), meta.json, and snapshots/*.json.gz
-// (the game's save format, loadable with continueGame). The cache is ~/.cache/hitl-ci/events (see
-// lib.js). An index that already exists for this code is kept unless --force.
-//
-// A row: { seed, bot, week, era, stage, staff, type, id, choice?, subject?, stageProp?, props, snapshot?,
-//         preTick? }
-//   type  decision (id: the event id; choice: what the bot picked), or a sim event type: era,
-//         officeUpgrade, incident, launch, award, resign, unlock, goal, hire, gameOver (id: the type,
-//         or its own id where it has one)
-//   props the staged props standing in the office that week
-// Snapshots, taken just before the moment: a decision with a staged prop or a moment caption (the
-// state with the decision open, so loading it stages the prop; the first two per run; with it, as
-// preTick, the state just before the tick that raised it, from which the game's own loop ticks into
-// the decision), an era change and an office move
-// (the state the week before, so the change plays when the game runs on).
-import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
-import { mkdirSync, writeFileSync, existsSync, rmSync, readdirSync, statSync } from 'node:fs';
+// Build the seeded event index and save-state snapshots for find.js and --moment consumers.
+//   node scripts/events/build.js [--seeds 1-20] [--bots balanced,sensible,allHumans]
+//     [--weeks 1040] [--jobs N] [--force] [--profile <file.json>]
+// Completed indexes live at <cache>/<sim hash>/{events.jsonl.gz,meta.json,snapshots/}.
+import { Worker, isMainThread, parentPort } from 'node:worker_threads';
+import { mkdirSync, writeFileSync, existsSync, rmSync, readdirSync, statSync, mkdtempSync, renameSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
-import { join } from 'node:path';
-import { cpus } from 'node:os';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { ROOT, CACHE, simHash, indexDir } from './lib.js';
-
-const KEEP = new Set(['era', 'officeUpgrade', 'incident', 'launch', 'award', 'resign', 'unlock', 'goal', 'hire', 'gameOver']);
-const SNAP = new Set(['era', 'officeUpgrade']);
-const SNAP_PER_ID = 2;
-
-async function play({ bot, seed, weeks, dir }) {
-  const mod = (p) => import(pathToFileURL(join(ROOT, p)).href);
-  const { botDecide, botTurn } = await mod('src/sim/bots.js');
-  const { createGame } = await mod('src/sim/state.js');
-  const { tick } = await mod('src/sim/tick.js');
-  const { EVENTS } = await mod('src/data/events.js');
-  const { MOMENT_CAPTIONS } = await mod('src/data/moments.js');
-  const s = createGame({ seed, companyName: `Bot ${bot}` });
-  const rows = [];
-  const base = () => ({ seed, bot, week: s.week, era: s.era?.id ?? null, stage: s.officeStage, staff: s.staff.length, props: (s.office?.props ?? []).map((p) => p.prop) });
-  // At most SNAP_PER_ID snapshots of one decision per run (the first ones); every era change and move.
-  const taken = new Map();
-  const snap = (tag, json, week = s.week) => {
-    const name = `${seed}-${bot}-w${week}-${tag}.json.gz`;
-    writeFileSync(join(dir, 'snapshots', name), gzipSync(json));
-    return name;
-  };
-  let open = null, preTick = null;
-  const collect = (events) => {
-    for (const e of events ?? []) {
-      if (e.type === 'decisionResolved' && open && open.id === e.eventId) open.choice = e.choice ?? null;
-      else if (KEEP.has(e.type)) rows.push({ ...base(), type: e.type, id: e.eraId ?? e.eventId ?? e.kind ?? e.type });
-      // A company-wide celebrate is an office party (a new product, a moonshot, Product of the Year);
-      // its id is the event's cause when it carries one.
-      else if (e.type === 'celebrate' && !e.staffId) rows.push({ ...base(), type: 'party', id: e.cause ?? 'party' });
-    }
-  };
-  while (!s.gameOver && s.week < weeks) {
-    const before = JSON.stringify(s);
-    if (s.pendingDecision) {
-      const d = s.pendingDecision;
-      open = { ...base(), type: 'decision', id: d.eventId, subject: d.subjectId ?? null, stageProp: d.stage?.prop ?? null, choice: null };
-      const n = taken.get(d.eventId) ?? 0;
-      if ((EVENTS[d.eventId]?.stage || MOMENT_CAPTIONS[d.eventId]) && n < SNAP_PER_ID) {
-        open.snapshot = snap(d.eventId, before);
-        // And the state just before the tick that raised it, so a page can play into the decision.
-        if (preTick) open.preTick = snap(`${d.eventId}-pre`, preTick, s.week - 1);
-        taken.set(d.eventId, n + 1);
-      }
-      rows.push(open);
-    }
-    botDecide(bot, s, { onEvents: collect });
-    open = null;
-    if (s.gameOver) break;
-    const n = rows.length;
-    botTurn(bot, s, { onEvents: collect });
-    preTick = JSON.stringify(s);
-    collect(tick(s));
-    if (!s.pendingDecision) preTick = null;
-    // An era change or an office move this week: snapshot the week before it, so it plays on load.
-    for (const r of rows.slice(n)) if (SNAP.has(r.type) && !r.snapshot) { r.week = s.week - 1; r.snapshot = snap(r.type, before, r.week); }
-  }
-  return rows;
-}
+import { join, resolve } from 'node:path';
+import { availableParallelism } from 'node:os';
+import { CACHE, simHash, indexDir } from './lib.js';
 
 if (!isMainThread) {
-  play(workerData).then((rows) => parentPort.postMessage(rows));
+  const { play } = await import('./play.js');
+  parentPort.on('message', (run) => parentPort.postMessage(play(run)));
 } else {
-  const argv = process.argv.slice(2);
-  const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
-  const range = (v) => v.split(',').flatMap((x) => { const [a, b] = x.split('-').map(Number); return b ? Array.from({ length: b - a + 1 }, (_, i) => a + i) : [a]; });
-  const seeds = range(opt('seeds', '1-20'));
-  const bots = opt('bots', 'balanced,sensible,allHumans').split(',');
-  const weeks = Number(opt('weeks', 1040));
-  const jobs = Number(opt('jobs', Math.max(1, Math.floor(cpus().length / 4))));
-  const hash = simHash();
-  const dir = indexDir(hash);
-  if (existsSync(join(dir, 'events.jsonl.gz')) && !argv.includes('--force')) {
-    console.log(`events: an index for this code (${hash}) already exists at ${dir}; --force rebuilds it`);
-    process.exit(0);
+  try { await build(); }
+  catch (err) { console.error(`events: ${err.message}`); process.exitCode = 2; }
+}
+
+function options(argv) {
+  const values = {};
+  for (let i = 0; i < argv.length; i++) {
+    const name = argv[i];
+    if (name === '--force') { values.force = true; continue; }
+    if (!['--seeds', '--bots', '--weeks', '--jobs', '--profile'].includes(name)) throw new Error(`unknown option: ${name}`);
+    if (!argv[i + 1] || argv[i + 1].startsWith('--')) throw new Error(`${name} needs a value`);
+    values[name.slice(2)] = argv[++i];
   }
-  rmSync(dir, { recursive: true, force: true });
-  mkdirSync(join(dir, 'snapshots'), { recursive: true });
-  const t0 = Date.now();
-  const runs = bots.flatMap((bot) => seeds.map((seed) => ({ bot, seed, weeks, dir })));
-  const all = [];
-  let next = 0, done = 0;
-  await Promise.all(Array.from({ length: Math.min(jobs, runs.length) }, async () => {
-    while (next < runs.length) {
-      const run = runs[next++];
-      const rows = await new Promise((res, rej) => {
-        const w = new Worker(fileURLToPath(import.meta.url), { workerData: run });
-        w.once('message', res); w.once('error', rej);
-      });
-      all.push(...rows);
-      done++;
-      if (done % 10 === 0 || done === runs.length) console.log(`events: ${done}/${runs.length} runs (${Math.round((Date.now() - t0) / 1000)} s)`);
+  const positive = (value, name) => {
+    const n = Number(value);
+    if (!Number.isSafeInteger(n) || n < 1) throw new Error(`${name} must be a positive integer`);
+    return n;
+  };
+  const seeds = (values.seeds ?? '1-20').split(',').flatMap((part) => {
+    if (!/^\d+(?:-\d+)?$/.test(part)) throw new Error(`invalid seed range: ${part}`);
+    const [a, b = a] = part.split('-').map(Number);
+    if (!Number.isSafeInteger(a) || !Number.isSafeInteger(b) || b < a || b - a > 100000) throw new Error(`invalid seed range: ${part}`);
+    return Array.from({ length: b - a + 1 }, (_, i) => a + i);
+  });
+  if (new Set(seeds).size !== seeds.length) throw new Error('seeds must not overlap');
+  const bots = (values.bots ?? 'balanced,sensible,allHumans').split(',');
+  if (new Set(bots).size !== bots.length || bots.some((b) => !/^[A-Za-z][A-Za-z0-9]*$/.test(b))) throw new Error('bots must be distinct bot names');
+  return { ...values, seeds, bots, weeks: positive(values.weeks ?? 1040, '--weeks'), jobs: positive(values.jobs ?? Math.min(8, availableParallelism()), '--jobs') };
+}
+
+async function build() {
+  const { seeds, bots, weeks, jobs, force, profile } = options(process.argv.slice(2));
+  const { BOTS } = await import('../../src/sim/bots.js');
+  for (const bot of bots) if (!Object.hasOwn(BOTS, bot)) throw new Error(`unknown bot: ${bot}`);
+  const started = performance.now();
+  const hash = simHash(), dir = indexDir(hash);
+  if (existsSync(join(dir, 'events.jsonl.gz')) && !force) {
+    console.log(`events: an index for this code (${hash}) already exists at ${dir}; --force rebuilds it`);
+    return;
+  }
+  mkdirSync(CACHE, { recursive: true });
+  const staging = mkdtempSync(join(CACHE, `.build-${hash}-`));
+  const backup = `${staging}-previous`;
+  const workers = new Set();
+  let interrupted = false;
+  const cleanup = () => rmSync(staging, { recursive: true, force: true });
+  const interrupt = (signal) => {
+    if (interrupted) return;
+    interrupted = true;
+    // Workers write only into the unpublished directory. Stop them before removing it.
+    Promise.all([...workers].map((w) => w.terminate())).finally(() => {
+      cleanup();
+      process.exit(signal === 'SIGINT' ? 130 : 143);
+    });
+  };
+  const onInt = () => interrupt('SIGINT'), onTerm = () => interrupt('SIGTERM');
+  process.on('SIGINT', onInt);
+  process.on('SIGTERM', onTerm);
+  try {
+    mkdirSync(join(staging, 'snapshots'));
+    const runs = bots.flatMap((bot) => seeds.map((seed) => ({ bot, seed, weeks, dir: staging, profile: !!profile })));
+    const results = new Array(runs.length);
+    let next = 0, done = 0;
+    await Promise.all(Array.from({ length: Math.min(jobs, runs.length) }, async () => {
+      const w = new Worker(new URL(import.meta.url));
+      workers.add(w);
+      try {
+        while (next < runs.length) {
+          const i = next++;
+          results[i] = await new Promise((res, rej) => {
+            const clear = () => { w.off('message', message); w.off('error', error); w.off('exit', exit); };
+            const message = (result) => { clear(); res(result); };
+            const error = (err) => { clear(); rej(err); };
+            const exit = (code) => error(new Error(`worker exited before returning a run (${code})`));
+            w.once('message', message); w.once('error', error); w.once('exit', exit);
+            w.postMessage(runs[i]);
+          });
+          done++;
+          if (done % 10 === 0 || done === runs.length) console.log(`events: ${done}/${runs.length} runs (${Math.round((performance.now() - started) / 1000)} s)`);
+        }
+      } finally { await w.terminate(); workers.delete(w); }
+    }));
+    const finish = performance.now();
+    const all = results.flatMap((r) => r.rows);
+    all.sort((a, b) => a.bot.localeCompare(b.bot) || a.seed - b.seed || a.week - b.week);
+    const sorted = performance.now();
+    const json = all.map((r) => JSON.stringify(r)).join('\n') + '\n';
+    const serialized = performance.now();
+    const gz = gzipSync(json);
+    const compressed = performance.now();
+    writeFileSync(join(staging, 'events.jsonl.gz'), gz);
+    const snaps = readdirSync(join(staging, 'snapshots'));
+    const bytes = snaps.reduce((n, f) => n + statSync(join(staging, 'snapshots', f)).size, 0);
+    writeFileSync(join(staging, 'meta.json'), JSON.stringify({ hash, seeds, bots, weeks, rows: all.length, snapshots: snaps.length, builtAt: new Date().toISOString() }, null, 1));
+    // Publish only a complete directory. A forced rebuild keeps the old index readable until here.
+    if (existsSync(dir)) renameSync(dir, backup);
+    try { renameSync(staging, dir); }
+    catch (err) {
+      if (existsSync(backup) && !existsSync(dir)) renameSync(backup, dir);
+      throw err;
     }
-  }));
-  all.sort((a, b) => a.bot.localeCompare(b.bot) || a.seed - b.seed || a.week - b.week);
-  writeFileSync(join(dir, 'events.jsonl.gz'), gzipSync(all.map((r) => JSON.stringify(r)).join('\n') + '\n'));
-  const snaps = readdirSync(join(dir, 'snapshots'));
-  const bytes = snaps.reduce((n, f) => n + statSync(join(dir, 'snapshots', f)).size, 0);
-  writeFileSync(join(dir, 'meta.json'), JSON.stringify({ hash, seeds, bots, weeks, rows: all.length, snapshots: snaps.length, builtAt: new Date().toISOString() }, null, 1));
-  // Indexes for older code are dropped, keeping the three most recent.
-  const old = readdirSync(CACHE).filter((d) => d !== hash && existsSync(join(CACHE, d, 'meta.json'))).sort((a, b) => statSync(join(CACHE, b)).mtimeMs - statSync(join(CACHE, a)).mtimeMs);
-  for (const d of old.slice(2)) rmSync(join(CACHE, d), { recursive: true, force: true });
-  console.log(`events: ${all.length} rows, ${snaps.length} snapshots (${(bytes / 1e6).toFixed(1)} MB) from ${runs.length} runs in ${Math.round((Date.now() - t0) / 1000)} s -> ${dir}`);
+    rmSync(backup, { recursive: true, force: true });
+    const io = performance.now() - compressed;
+    // Ignore unpublished builds when retaining the three most recent completed indexes.
+    const old = readdirSync(CACHE).filter((d) => /^[a-f0-9]{16}$/.test(d) && d !== hash && existsSync(join(CACHE, d, 'meta.json'))).sort((a, b) => statSync(join(CACHE, b)).mtimeMs - statSync(join(CACHE, a)).mtimeMs);
+    for (const d of old.slice(2)) rmSync(join(CACHE, d), { recursive: true, force: true });
+    if (profile) writeFileSync(resolve(profile), JSON.stringify({ jobs: Math.min(jobs, runs.length), wall: performance.now() - started, runs: results.map((r) => r.profile), final: { sort: sorted - finish, serialization: serialized - sorted, compression: compressed - serialized, io } }, null, 2));
+    console.log(`events: ${all.length} rows, ${snaps.length} snapshots (${(bytes / 1e6).toFixed(1)} MB) from ${runs.length} runs in ${Math.round((performance.now() - started) / 1000)} s -> ${dir}`);
+  } finally {
+    await Promise.all([...workers].map((w) => w.terminate()));
+    cleanup();
+    if (!interrupted) {
+      process.off('SIGINT', onInt);
+      process.off('SIGTERM', onTerm);
+    }
+  }
 }
