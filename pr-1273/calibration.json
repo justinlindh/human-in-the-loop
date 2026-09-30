@@ -1,0 +1,16 @@
+{
+  "chatgbt": {
+    "probeFactor": 0.63,
+    "garageMedian": 3041,
+    "probeMedian": 6312,
+    "derived": 0.3035218631178707,
+    "applied": 0.3
+  },
+  "agents": {
+    "probeFactor": 0.38,
+    "garageMedian": 2515,
+    "probeMedian": 6748,
+    "derived": 0.14162714878482513,
+    "applied": 0.14
+  }
+}

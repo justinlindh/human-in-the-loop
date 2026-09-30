@@ -1,0 +1,42 @@
+### chatgbt
+
+| bot | same | exit garage -> takeover | lost / gained | median score | median weeks | incidents | caught | breaches |
+|---|---|---|---|---|---|---|---|---|
+| automateAll | 0/200 | 0% -> 0% | 0 / 0 | 1194 -> 573 | 239 -> 496 | 3095 -> 5811 | 0 -> 900 | 715 -> 1979 |
+| allHumans | 0/200 | 17% -> 28% | 26 / 48 | 22347 -> 11327 | 1040 -> 1040 | 3041 -> 3578 | 0 -> 427 | 3041 -> 3578 |
+| balanced | 0/200 | 78% -> 81% | 28 / 34 | 29554 -> 13463 | 707 -> 826 | 3303 -> 3903 | 916 -> 844 | 3215 -> 3850 |
+| sensible | 0/200 | 93% -> 81% | 37 / 12 | 31065 -> 13400 | 639 -> 837 | 3215 -> 3760 | 845 -> 787 | 3147 -> 3691 |
+| recklessHumans | 0/200 | 0% -> 0% | 0 / 0 | 343 -> 651 | 1040 -> 1040 | 2617 -> 2235 | 0 -> 290 | 2617 -> 2235 |
+| squads | 0/200 | 78% -> 72% | 47 / 36 | 29170 -> 13119 | 712 -> 871 | 3663 -> 3959 | 31 -> 471 | 3577 -> 3888 |
+
+| bot | garage played weeks | takeover played weeks | garage endings | takeover endings |
+|---|---:|---:|---|---|
+| automateAll | 239 | 302 | collapse 191, runway 9 | collapse 200 |
+| allHumans | 1040 | 839 | anniversary 145, retired 34, runway 21 | anniversary 139, retired 56, runway 5 |
+| balanced | 707 | 626 | anniversary 43, retired 155, runway 2 | anniversary 39, retired 161 |
+| sensible | 639 | 636 | anniversary 14, retired 186 | anniversary 38, retired 161, runway 1 |
+| recklessHumans | 1040 | 844 | anniversary 137, runway 63 | anniversary 195, runway 5 |
+| squads | 712 | 675 | anniversary 44, retired 155, runway 1 | anniversary 56, retired 144 |
+
+Four-strategy pooled final median: 3006. Garage target: 3041.
+### agents
+
+| bot | same | exit garage -> takeover | lost / gained | median score | median weeks | incidents | caught | breaches |
+|---|---|---|---|---|---|---|---|---|
+| automateAll | 0/200 | 0% -> 0% | 0 / 0 | 1052 -> 1589 | 271 -> 1040 | 8749 -> 19467 | 0 -> 5912 | 1663 -> 5682 |
+| allHumans | 0/200 | 30% -> 27% | 47 / 40 | 12352 -> 5319 | 1040 -> 1040 | 3474 -> 3680 | 0 -> 705 | 3474 -> 3680 |
+| balanced | 0/200 | 92% -> 77% | 45 / 15 | 18411 -> 6281 | 594 -> 841 | 3324 -> 3709 | 880 -> 720 | 3255 -> 3646 |
+| sensible | 0/200 | 97% -> 81% | 38 / 6 | 17291 -> 6253 | 567 -> 837 | 3475 -> 3760 | 900 -> 787 | 3413 -> 3691 |
+| recklessHumans | 0/200 | 0% -> 0% | 0 / 0 | 382 -> 0 | 1040 -> 1040 | 3537 -> 2776 | 0 -> 606 | 3537 -> 2776 |
+| squads | 0/200 | 91% -> 81% | 37 / 16 | 17634 -> 6256 | 612 -> 830 | 3796 -> 3938 | 30 -> 770 | 3688 -> 3858 |
+
+| bot | garage played weeks | takeover played weeks | garage endings | takeover endings |
+|---|---:|---:|---|---|
+| automateAll | 271 | 712 | collapse 200 | anniversary 161, collapse 39 |
+| allHumans | 1040 | 709 | anniversary 110, retired 60, runway 30 | anniversary 144, retired 53, runway 3 |
+| balanced | 594 | 517 | anniversary 17, retired 183 | anniversary 47, retired 153 |
+| sensible | 567 | 511 | anniversary 7, retired 193 | anniversary 38, retired 161, runway 1 |
+| recklessHumans | 1040 | 711 | anniversary 175, runway 25 | anniversary 155, runway 45 |
+| squads | 612 | 502 | anniversary 16, retired 182, runway 2 | anniversary 38, retired 161, runway 1 |
+
+Four-strategy pooled final median: 2486. Garage target: 2515.
