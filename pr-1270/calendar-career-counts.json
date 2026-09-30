@@ -1,0 +1,94 @@
+{
+  "dotcom": {
+    "automateAll": {
+      "exited": 0,
+      "reasons": {
+        "collapse": 200
+      }
+    },
+    "allHumans": {
+      "exited": 171,
+      "reasons": {
+        "retired": 171,
+        "anniversary": 12,
+        "runway": 17
+      }
+    },
+    "balanced": {
+      "exited": 178,
+      "reasons": {
+        "retired": 178,
+        "runway": 22
+      }
+    },
+    "sensible": {
+      "exited": 194,
+      "reasons": {
+        "retired": 194,
+        "runway": 5,
+        "anniversary": 1
+      }
+    },
+    "recklessHumans": {
+      "exited": 0,
+      "reasons": {
+        "runway": 87,
+        "anniversary": 113
+      }
+    },
+    "squads": {
+      "exited": 179,
+      "reasons": {
+        "retired": 179,
+        "runway": 20,
+        "anniversary": 1
+      }
+    }
+  },
+  "preinternet": {
+    "automateAll": {
+      "exited": 0,
+      "reasons": {
+        "collapse": 200
+      }
+    },
+    "allHumans": {
+      "exited": 175,
+      "reasons": {
+        "retired": 175,
+        "anniversary": 21,
+        "runway": 4
+      }
+    },
+    "balanced": {
+      "exited": 193,
+      "reasons": {
+        "retired": 193,
+        "runway": 3,
+        "anniversary": 4
+      }
+    },
+    "sensible": {
+      "exited": 197,
+      "reasons": {
+        "retired": 197,
+        "anniversary": 3
+      }
+    },
+    "recklessHumans": {
+      "exited": 0,
+      "reasons": {
+        "runway": 69,
+        "anniversary": 131
+      }
+    },
+    "squads": {
+      "exited": 188,
+      "reasons": {
+        "retired": 188,
+        "runway": 7,
+        "anniversary": 5
+      }
+    }
+  }
+}

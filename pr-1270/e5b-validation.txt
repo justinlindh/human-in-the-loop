@@ -1,0 +1,40 @@
+PR #1270 review fixes
+Simulation fix: 848dc05d
+Merged head: bb467a479f194b53a31b430e827e6abea17d8761
+Main merged through: 5864c0f8
+
+npm test -- --maxWorkers=4 (simulation fix, exit 0)
+ Test Files  201 passed (201)
+      Tests  1671 passed (1671)
+   Duration  1226.96s
+
+npm run test:fast (final calendar-clock head, exit 0)
+ Test Files  199 passed (199)
+      Tests  1636 passed (1636)
+   Duration  65.46s
+
+npm test -- --maxWorkers=4 (final calendar-clock head, exit 1)
+ Test Files  1 failed | 202 passed (203)
+      Tests  1 failed | 1680 passed (1681)
+   Duration  509.61s
+
+The sole failure is tests/sim/dotcom-runway.full.test.js, recklessHumans.
+AssertionError: expected 177 to be greater than or equal to 180
+It fails identically on untouched main 5864c0f8:
+npx vitest run tests/sim/dotcom-runway.full.test.js -t recklessHumans --maxWorkers=1
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 skipped (6)
+   Duration  13.63s
+
+npm run build (final calendar-clock head, exit 0)
+built in 471ms
+
+phone-check: 40/40 passed
+Desktop 1920x1080 and phone 390x844: browser driver passed
+Plain ?eras on final pushed head: browser driver passed at both sizes, including both scrolled retail item cards
+
+features-ids: ok: 278 ids in the file, all defined; 119 required ids covered (7 named as left out)
+effects: ok
+toolkit: ok: 113 entries, every script and check covered
+Runtime icon tests: 1 file, 2 tests passed
+icon-coverage --strict: exit 1, nine direct-manifest gaps for aliases and inline brands; runtime coverage tests pass

@@ -1,0 +1,154 @@
+[
+  {
+    "startEra": "preinternet",
+    "bot": "balanced",
+    "reachedDotcom": 200,
+    "reachedWeb2": 197,
+    "cash": 3098902.0461538457,
+    "staff": 14,
+    "revenue": 31773.076923076922,
+    "cost": 34080,
+    "failed": [
+      {
+        "seed": 6,
+        "reason": "runway",
+        "week": 263
+      },
+      {
+        "seed": 70,
+        "reason": "runway",
+        "week": 325
+      },
+      {
+        "seed": 126,
+        "reason": "runway",
+        "week": 225
+      }
+    ]
+  },
+  {
+    "startEra": "preinternet",
+    "bot": "sensible",
+    "reachedDotcom": 200,
+    "reachedWeb2": 200,
+    "cash": 3557367.169230769,
+    "staff": 14,
+    "revenue": 33260.769230769234,
+    "cost": 32700,
+    "failed": []
+  },
+  {
+    "startEra": "dotcom",
+    "bot": "balanced",
+    "reachedDotcom": 200,
+    "reachedWeb2": 185,
+    "cash": 235330,
+    "staff": 2,
+    "revenue": 0,
+    "cost": 4520,
+    "failed": [
+      {
+        "seed": 13,
+        "reason": "runway",
+        "week": 179
+      },
+      {
+        "seed": 22,
+        "reason": "runway",
+        "week": 207
+      },
+      {
+        "seed": 34,
+        "reason": "runway",
+        "week": 185
+      },
+      {
+        "seed": 41,
+        "reason": "runway",
+        "week": 193
+      },
+      {
+        "seed": 43,
+        "reason": "runway",
+        "week": 193
+      },
+      {
+        "seed": 74,
+        "reason": "runway",
+        "week": 202
+      },
+      {
+        "seed": 100,
+        "reason": "runway",
+        "week": 199
+      },
+      {
+        "seed": 108,
+        "reason": "runway",
+        "week": 199
+      },
+      {
+        "seed": 112,
+        "reason": "runway",
+        "week": 201
+      },
+      {
+        "seed": 117,
+        "reason": "runway",
+        "week": 208
+      },
+      {
+        "seed": 119,
+        "reason": "runway",
+        "week": 193
+      },
+      {
+        "seed": 121,
+        "reason": "runway",
+        "week": 205
+      },
+      {
+        "seed": 124,
+        "reason": "runway",
+        "week": 198
+      },
+      {
+        "seed": 126,
+        "reason": "runway",
+        "week": 184
+      },
+      {
+        "seed": 144,
+        "reason": "runway",
+        "week": 198
+      }
+    ]
+  },
+  {
+    "startEra": "dotcom",
+    "bot": "sensible",
+    "reachedDotcom": 200,
+    "reachedWeb2": 197,
+    "cash": 230970,
+    "staff": 3,
+    "revenue": 0,
+    "cost": 5880,
+    "failed": [
+      {
+        "seed": 112,
+        "reason": "runway",
+        "week": 195
+      },
+      {
+        "seed": 172,
+        "reason": "runway",
+        "week": 184
+      },
+      {
+        "seed": 174,
+        "reason": "runway",
+        "week": 200
+      }
+    ]
+  }
+]
