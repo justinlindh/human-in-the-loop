@@ -31,11 +31,22 @@ for i in range(3):
                      'baseboard', 0.002, segments=1))
     parts.append(box(f'tower_vent_{i}', (0.09, 0.007, 0.008), (0.317, 0.234, 0.642 + i * 0.017),
                      'baseboard', 0.002, segments=1))
+# Keep the tower inside the frame and leave a clear desktop for staged paper props.
 for part in parts:
+    if part.name.startswith('tower_'):
+        part.location.x = 0.26 + (part.location.x - 0.335) * 0.84
+        part.location.y -= 0.04
+        part.location.z = 0.23 + (part.location.z - 0.75) * 1.17
+        part.scale.x *= 0.84
+        part.scale.z *= 1.17
+    if part.name.startswith('crt_') and not part.name.startswith('crt_desk_'):
+        part.location.x -= 0.03
     bevel = part.modifiers.get('bevel')
     if bevel and part.name.startswith(('tower_', 'crt_power', 'keyboard_')):
         bevel.segments = 1
+for y in (0.27, 0.42):
+    parts.append(box(f'tower_foot_{y}', (0.14, 0.05, 0.02), (0.26, y, 0.01), 'plastic_charcoal', 0.004, segments=1))
 join(parts, 'era_crt_desk')
-plane('crt_screen', 0.327, 0.243, (-0.07, 0.278, 0.849), 'screen')
+plane('crt_screen', 0.327, 0.243, (-0.1, 0.278, 0.849), 'screen')
 require_parts(['crt_screen'])
 export()
