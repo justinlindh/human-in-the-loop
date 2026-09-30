@@ -1314,3 +1314,13 @@ misc · weight 2 · cooldown 52 weeks
 |---|---|
 | Sponsor the sock | cash -$3,000; hype on your newest product +5 |
 | Wish the sock well | nothing |
+
+## Who volunteers for New Year’s Eve? `dotcom_y2k_oncall`
+
+era · raised by a rule · cooldown 52 weeks
+
+| Choice | Effects |
+|---|---|
+| I’ll take the pager | volunteer on call; no cost or work penalty |
+| Share the watch | volunteer on call; no cost or work penalty |
+| Book Clive at triple rate | cash -$9,000; Clive on call; no extra protection; requires you can afford Clive’s triple rate |

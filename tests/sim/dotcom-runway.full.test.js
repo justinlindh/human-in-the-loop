@@ -10,5 +10,8 @@ describe('dot-com founding runway', () => {
     expect(runs.filter((r) => r.firstLaunch !== null).length).toBeGreaterThanOrEqual(190);
     expect(runs.filter((r) => r.weeks > B.dotcom.bustWeek).length).toBeGreaterThanOrEqual(180);
     expect(runs.filter((r) => r.weeks > B.dotcom.weeks).length).toBeGreaterThanOrEqual(170);
+    for (const r of runs) if (r.weeks > 104) {
+      expect(r.state.flags.y2k, `${bot} seed ${r.state.seed}`).toMatchObject({ rolloverWeek: 103, stage: 'after' });
+    }
   }, 300000);
 });

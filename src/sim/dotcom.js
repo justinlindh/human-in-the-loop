@@ -5,11 +5,13 @@ import { emitChat } from './chat.js';
 import { raiseDecision, fireEvent } from './events.js';
 import { DOTCOM_CHAT } from '../data/early-eras.js';
 import { EVENTS } from '../data/events.js';
+import { y2kSeason, y2kStep, y2kOnCall } from './y2k.js';
 
 export function dotcomDecisionOpen(state, id) {
   if (!id.startsWith('dotcom_')) return true;
   const f = state.flags.dotcom;
   if (!f) return false;
+  if (id === 'dotcom_y2k_oncall') return y2kSeason(state) && !state.flags.y2k?.onCall;
   if (id === 'dotcom_recovery') return f.recovered;
   if (f.recovered || state.era.id !== 'dotcom') return false;
   if (id === 'dotcom_ipo_frenzy') return state.week < B.dotcom.bustWeek && f.float === null;
@@ -23,6 +25,7 @@ export function dotcomEffect(ctx, choice) {
   const { state } = ctx;
   const f = state.flags.dotcom;
   if (!f) return;
+  if (choice.startsWith('y2k_')) { y2kOnCall(ctx, choice.slice(4)); return; }
   if (choice === 'float' || choice === 'private') {
     if (!dotcomDecisionOpen(state, 'dotcom_ipo_frenzy')) return;
     f.float = choice === 'float';
@@ -52,6 +55,7 @@ export function dotcomStep(ctx) {
   const { state } = ctx;
   const f = state.flags.dotcom;
   if (!f || f.recovered) return;
+  y2kStep(ctx);
   if (state.era.id === 'dotcom' && state.products.some((p) => p.angle === 'web')) f.webLaunched = true;
   const end = state.eraSchedule.classic;
   const phase = state.week >= end ? 'recovery' : state.week >= B.dotcom.bustWeek ? 'bust'

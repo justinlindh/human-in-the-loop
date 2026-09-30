@@ -16,6 +16,7 @@ Areas, one file each:
 - [Yak](yak.md)
 - [Nods and parodies](nods.md)
 - [Eras and time of day](eras.md)
+- [The millennium watch](y2k.md)
 - [Sound and music](sound.md)
 - [Interface](interface.md)
 - [Touch and low-end support](touch.md)

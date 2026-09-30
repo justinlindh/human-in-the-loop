@@ -1089,7 +1089,7 @@ const readyScreen = () => cardTex('printer-ready', 256, 48, (ctx, W, H) => {
   ctx.fillText('READY', W / 2, H / 2);
 });
 // The printer model on its own (moments.js carries one out the door).
-export function printerModel() { return printerBody(false); }
+export function printerModel({ jammed = true } = {}) { return printerBody(false, { jammed, screen: jammed ? printerScreen : readyScreen }); }
 // The visitor's chair, for a moment that keeps it after the staged prop has gone.
 export function visitorChairModel() { return visitorChair(); }
 // broken: smashed, so no output slot or sheet; jammed false: the slot is empty.
@@ -1210,7 +1210,7 @@ function printerWrecked() {
 const KITCHEN_ITEMS = new Set(['coffee_corner', 'espresso']);
 const PRINTER_SCALE = 1.2;
 // Props that stand in for the everyday printer, and the printer props that swap with each other in place.
-const PRINTER_PROPS = new Set(['printer_jammed', 'printer_wrecked', 'printer_out_of_order']);
+const PRINTER_PROPS = new Set(['printer', 'printer_jammed', 'printer_wrecked', 'printer_out_of_order']);
 const KITCHEN_SWAP = new Set(['printer', 'printer_jammed', 'printer_out_of_order']);
 // Whether a furniture box reaches into a floor rect (floorRect's padding left out).
 const boxHitsRect = (b, r, pad = 0.06) => b.min.x < r.x1 - pad && b.max.x > r.x0 + pad && b.min.z < r.z1 - pad && b.max.z > r.z0 + pad;

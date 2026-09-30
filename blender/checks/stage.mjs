@@ -75,7 +75,15 @@ function motion(xs) {
   return best;
 }
 
+const Y2K_RULES = [
+  share('watching', 'watchers face their equipment within 70 degrees', (x) => x.targetAngle <= 70, 0.8),
+  visibleRule, noFade,
+];
+
 const SPECS = {
+  'y2k.countdown': { moment: 'y2k', beat: 'countdown', role: 'watcher', rules: Y2K_RULES },
+  'y2k.nothing': { moment: 'y2k', beat: 'nothing', role: 'watcher', rules: Y2K_RULES },
+  'y2k.invoice': { moment: 'y2k', beat: 'invoice', role: 'watcher', rules: Y2K_RULES },
   'growth.honoree': { moment: 'growth', beat: 'cheer', role: 'honoree', rules: [
     share('celebrating', 'honoree celebrates throughout the beat', (x) => x.anim === 'celebrate', 0.9),
     share('facingCamera', 'honoree faces within 70 deg of the camera', (x) => x.faceCam <= 70, 0.9),
@@ -274,6 +282,8 @@ const SCENARIOS = {
     setup: "(await import('/src/render/checks.js')).setupRobotParty(R, S, 'music_night')" },
   petcat: { moment: 'pet', query: 'mock=floor', patch: {}, seconds: 6,
     setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'cat', 2.104, 1.0)" },
+  y2k: { query: 'mock=garage', patch: {}, seconds: 20,
+    steps: [{ at: 0, js: "S.flags.y2k = { stage: 'rollover', rolloverWeek: S.week, printerId: 'y2k-printer' }; S.office.props = [{ id: 'y2k-printer', prop: 'printer', x: 4, y: 0, since: S.week }];" }] },
   letter: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'resignation_letter', subjectId: 's6', stage: { prop: 'envelope', anchor: 'subjectDesk', x: 12, y: 2 } } }, seconds: 16 },
   fumes: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'agent_runaway_spend', subjectId: null, stage: { prop: 'rack_hot', anchor: 'wall', x: 7, y: 0 } } }, seconds: 16 },
   // Staged by the kitchen, then taken out back 1 s in, the wreck staged where it will lie.

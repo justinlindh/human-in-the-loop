@@ -39,6 +39,7 @@ export const TRAIT_MOD_LABELS = {
 
 // Named conditions on a choice (`requires`) or a conditional effect (`cond`).
 export const CONDITION_LABELS = {
+  affordY2kConsultant: 'you can afford Clive’s triple rate',
   subjectCompliant: 'the product runs on a compliance-friendly model', trustedVendor: 'the last incident was on a trusted vendor',
   blameless: 'Blameless Postmortems is on', ik40: 'know-how is 40 or more', bestScore7: 'a live product scores 7 or more',
   sabbaticalPolicy: 'the Sabbatical Program is on', stage1: 'you have the Office Floor', affordConsultants: `you can afford the consultants`,
