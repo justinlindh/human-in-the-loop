@@ -15,9 +15,9 @@ Keep Classic as the default. A start is a newly founded company in an older worl
 | `web2` | 2003 | $90,000 | Garage / 3 | 1.05 | Marketing, Ops, Research, compatibility | `place_desks` |
 | `classic` | 2019 | $0 | Garage / 2 | 1.00 | ordinary progression | none |
 | `chatgbt` | selected era's seeded arrival | $90,000 | Garage / 3 | 0.75 | Marketing, Ops, Research, Models, Automation, Meaning, AI as Pair | `place_desks`, `start_product`, `first_launch` |
-| `agents` | selected era's seeded arrival | $240,000 | Office Floor / 4 | 0.60 | ChatGBT kit plus squads; full automation permissions | ChatGBT skips plus `office_floor` |
-| `consolidation` | selected era's seeded arrival | $390,000 | Office Floor / 4 | 0.45 | Agents kit and the era's normal angles/models | Agents skips |
-| `plateau` | selected era's seeded arrival | $540,000 | Office Floor / 4 | 0.30 | Consolidation kit | Agents skips |
+| `agents` | selected era's seeded arrival | $240,000 | Garage / 4 | 0.60 | ChatGBT kit plus squads; full automation permissions | ChatGBT skips |
+| `consolidation` | selected era's seeded arrival | $390,000 | Garage / 4 | 0.45 | Agents kit and the era's normal angles/models | Agents skips |
+| `plateau` | selected era's seeded arrival | $540,000 | Garage / 4 | 0.30 | Consolidation kit | Agents skips |
 
 The extra desks are unoccupied. No items, research completions, products, staff tenure, policies enabled, or trophies are invented. A skipped goal stays `done: false`, has `week: null` and `skipped: true`; it cannot award cash or brand later, and the UI counts only eligible goals. The Goals list labels it "Skipped by starting era" rather than pretending it was earned. The player's first actual hire, incident, thousand customers and awards still count.
 
