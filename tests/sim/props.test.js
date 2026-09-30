@@ -21,15 +21,17 @@ const choose = (s, label) => dispatch(s, { type: 'resolveDecision', choice: EVEN
 const tables = (s) => s.office.placed.filter((i) => i.itemId === 'ping_pong_table').length;
 
 describe('issue #228: the ping pong question, staged', () => {
+  // The question belongs to the Classic era; mechanics tests otherwise start in Agents.
+  const classicFloor = (seed) => { const s = floor(seed); s.era = { id: 'classic', since: 0 }; return s; };
   it('shows the printed picture on a wall tile while the decision is open', () => {
-    const s = floor(1);
+    const s = classicFloor(1);
     raise(s, 'ping_pong');
     expect(s.pendingDecision.stage).toMatchObject({ prop: 'picture_pingpong', anchor: 'wall', y: 0 });
     expect(Number.isInteger(s.pendingDecision.stage.x)).toBe(true);
   });
 
   it('"Buy one" grants a real table for the choice price, charged once, with no leftover picture', () => {
-    const s = floor(2);
+    const s = classicFloor(2);
     raise(s, 'ping_pong');
     const cash = s.cash;
     expect(choose(s, 'Buy one').ok).toBe(true);
@@ -39,7 +41,7 @@ describe('issue #228: the ping pong question, staged', () => {
   });
 
   it('"Not yet" leaves the picture with a ball on the stage tile until a table is placed', () => {
-    const s = floor(3);
+    const s = classicFloor(3);
     raise(s, 'ping_pong');
     const tile = { x: s.pendingDecision.stage.x, y: s.pendingDecision.stage.y };
     choose(s, 'Not yet');
@@ -53,7 +55,7 @@ describe('issue #228: the ping pong question, staged', () => {
   });
 
   it('with no room for a table, "Buy one" is unavailable with the reason and never charges', () => {
-    const s = floor(4);
+    const s = classicFloor(4);
     for (let i = 0; i < 200; i++) {
       const spot = suggestPlacement(s, 'plant');
       if (!spot || !dispatch(s, { type: 'placeItem', itemId: 'plant', ...spot }).ok) break;
@@ -70,7 +72,7 @@ describe('issue #228: the ping pong question, staged', () => {
     const g = game(5);
     for (let i = 0; i < 4; i++) addStaff(g, 'engineer', 'mid');
     expect(EVENTS.ping_pong.when(g)).toBe(false);
-    const s = floor(6);
+    const s = classicFloor(6);
     expect(EVENTS.ping_pong.when(s)).toBe(true);
     raise(s, 'ping_pong');
     choose(s, 'Buy one');

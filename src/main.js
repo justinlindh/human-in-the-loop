@@ -363,5 +363,7 @@ async function boot() {
 
 boot().catch((e) => {
   console.error(e);
+  // Ready stays true so a waiting check doesn't hang; the error says the game never came up.
+  window.__HITL_BOOT_ERROR = String(e?.message || e);
   window.__HITL_READY = true;
 });

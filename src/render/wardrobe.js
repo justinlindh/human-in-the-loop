@@ -10,9 +10,9 @@ const TEES = {
   parcel_paws: { shirt: 'fabric_teal', trim: 'wall_cream', neckline: 'ringer' },
   onlineland: { shirt: 'wall_cream', trim: 'fabric_slate', neckline: 'raglan', longSleeve: true },
   y2k: { shirt: 'fabric_mustard', trim: 'ink', neckline: 'ringer' },
-  shoutbook: { shirt: 'fabric_sage', trim: 'fabric_sage' },
+  shoutbook: { shirt: 'metal_soft', trim: 'metal_soft' },
   tuesday: { shirt: 'fabric_terracotta', trim: 'wall_cream', neckline: 'ringer' },
-  beta_forever: { shirt: 'fabric_slate', trim: 'fabric_slate', allOver: true, longSleeve: true },
+  beta_forever: { shirt: 'fabric_teal', trim: 'fabric_teal', allOver: true, longSleeve: true },
   weekend: { shirt: 'plastic_charcoal', trim: 'plastic_charcoal' },
   ship_it: { shirt: 'paper', trim: 'fabric_teal', neckline: 'raglan' },
 };

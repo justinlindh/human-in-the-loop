@@ -1,6 +1,7 @@
 # Sound and music
 
 - **Music per era**: a title theme, then several beds per era rotating as a playlist with bar-synced crossfades; an era change waits for its card. `id: classic` `id: chatgbt` `id: agents` `id: consolidation` `id: plateau` `capture 6-1-music-title`
+- **Period music (era modes, `?eras`)**: each early era has two short loops in a period style (pre-internet FM synth and drum machine, dot-com big beat, Web 2.0 indie pop with handclaps). The dot-com bust phase swaps to its own subdued downtempo pair. Each arrival in an era takes the other loop from the last one played, and within an era the pair alternates as a playlist. `id: preinternet` `id: dotcom` `id: dotcom_bust` `id: web2`
 - **Music mood**: a low-pass filter when paused, a muffled mix during lockdown, tension during an outage, a slight lift in a crunch.
 - ★ **Music night genres**: Corporate Synthwave (a robot dance), Motivational Polka, Aggressive Bossa Nova and Sad Lo-fi, each with its own track and dance. `id: corporate_synthwave` `id: motivational_polka` `id: aggressive_bossa_nova` `id: sad_lofi`
 - **Stingers**: launch, era, office move, waffle party, win and game over, ducking the music. `capture 6-1-stingers`

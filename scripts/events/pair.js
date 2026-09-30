@@ -3,8 +3,10 @@
 // balance comparisons.
 //
 //   node scripts/events/pair.js [--a <root>] [--b <root>] [--bots balanced,sensible] [--seeds 300]
+//        [--start-era <era>]
 //        [--fields 'name: <js over r, s>, name2: <js>'] [--jobs N] [--json out.json] [--timeout 3600]
 //
+// --start-era founds every bot company in that era on both sides (default Classic; an unknown era exits 2).
 // --a is the base (default: origin/main, in a temporary worktree removed afterwards) and --b the
 // change (default: this checkout). Per bot it reports how many seeds end identically (ending reason,
 // weeks, score and final random state), exit % before and after with the seeds lost (exited on a, not
@@ -29,9 +31,9 @@ const fail = (msg) => { console.error(`pair: ${msg}`); process.exit(2); };
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SELF = fileURLToPath(import.meta.url);
 
-async function runOne({ root, bot, seed, fields }) {
+async function runOne({ root, bot, seed, fields, startEra }) {
   const { runBot } = await import(pathToFileURL(join(root, 'src/sim/bots.js')).href);
-  const r = runBot(bot, seed);
+  const r = startEra ? runBot(bot, seed, undefined, { founding: { startEra } }) : runBot(bot, seed);
   const s = r.state;
   // Each field is its own expression, so one that throws on this side blanks only itself.
   let extra;
@@ -41,13 +43,13 @@ async function runOne({ root, bot, seed, fields }) {
   }
   return [`${bot}:${seed}`, { reason: r.reason, exited: !!r.exited, won: !!r.won, weeks: r.weeks, score: r.score,
     incidents: s.stats?.incidents ?? 0, caught: s.stats?.caught ?? 0, breaches: s.stats?.breaches ?? 0,
-    hash: [r.reason, r.weeks, r.score, s.rng?.s].join('|'), fields: extra }];
+    era: s.founding?.startEra ?? null, hash: [r.reason, r.weeks, r.score, s.rng?.s].join('|'), fields: extra }];
 }
 
 if (!isMainThread) {
   (async () => {
     const out = [];
-    for (const run of workerData.runs) out.push(await runOne({ ...run, root: workerData.root, fields: workerData.fields }));
+    for (const run of workerData.runs) out.push(await runOne({ ...run, root: workerData.root, fields: workerData.fields, startEra: workerData.startEra }));
     parentPort.postMessage(out);
   })();
 } else if (process.argv.includes('--side')) {
@@ -61,7 +63,7 @@ if (!isMainThread) {
   const chunks = Array.from({ length: n }, () => []);
   runs.forEach((r, i) => chunks[i % n].push(r));
   const parts = await Promise.all(chunks.map((c) => new Promise((res, rej) => {
-    const w = new Worker(SELF, { workerData: { root, runs: c, fields: spec.fields } });
+    const w = new Worker(SELF, { workerData: { root, runs: c, fields: spec.fields, startEra: spec.startEra } });
     w.once('message', res); w.once('error', rej);
   })));
   writeFileSync(outFile, JSON.stringify(Object.fromEntries(parts.flat())));
@@ -83,7 +85,13 @@ if (!isMainThread) {
   for (const [flag, root] of [['a', a], ['b', b]]) if (root && !existsSync(join(root, 'src/sim/bots.js'))) fail(`--${flag} ${root} is not a checkout with src/sim/bots.js`);
   const { BOTS } = await import(pathToFileURL(join(b, 'src/sim/bots.js')).href);
   const bots = opt('bots', Object.keys(BOTS).join(',')).split(',');
-  const spec = JSON.stringify({ bots, seeds, jobs, fields: parsed });
+  const startEra = opt('start-era', null);
+  if (argv.includes('--start-era') && (!startEra || startEra.startsWith('--'))) fail('--start-era needs an era name');
+  if (startEra) {
+    const { ERA_STARTS } = await import(pathToFileURL(join(b, 'src/data/era-modes.js')).href);
+    if (!Object.hasOwn(ERA_STARTS, startEra)) fail(`unknown starting era: ${startEra}`);
+  }
+  const spec = JSON.stringify({ bots, seeds, jobs, fields: parsed, startEra });
   const tmp = mkdtempSync(join(tmpdir(), 'pair-'));
   let baseWorktree = null;
   let code = 0;
@@ -111,12 +119,18 @@ if (!isMainThread) {
     if (sa.code !== 0 || sb.code !== 0) { console.error(`pair: side ${sa.code !== 0 ? 'a' : 'b'} failed (exit ${sa.code !== 0 ? sa.code : sb.code}) or timed out`); code = 2; }
     else {
       const A = JSON.parse(readFileSync(sa.out, 'utf8')), B = JSON.parse(readFileSync(sb.out, 'utf8'));
+      if (startEra) {
+        for (const [name, recs] of [['a', A], ['b', B]]) {
+          const off = Object.values(recs).filter((r) => (r.era ?? 'classic') !== startEra).length;
+          if (off) fail(`side ${name} did not start ${off} run(s) in ${startEra} (its sim predates --start-era?)`);
+        }
+      }
       const result = compare(A, B);
       console.log(markdown(result, { a: 'a', b: 'b' }));
       if (result.onlyA.length || result.onlyB.length) console.log(`\nrun sets differ: ${result.onlyA.length} run(s) only on a (${result.onlyA.slice(0, 5).join(', ')}), ${result.onlyB.length} only on b (${result.onlyB.slice(0, 5).join(', ')}); only the ${result.runs} runs on both are compared.`);
-      console.log(`\n${result.runs} paired runs (${bots.join(', ')}; seeds 1-${seeds}) in ${Math.round((Date.now() - t0) / 1000)} s.`);
+      console.log(`\n${result.runs} paired runs (${bots.join(', ')}; seeds 1-${seeds}${startEra ? `; start era ${startEra}` : ''}) in ${Math.round((Date.now() - t0) / 1000)} s.`);
       const jf = opt('json');
-      if (jf) writeFileSync(jf, JSON.stringify({ a, b, bots, seeds, summary: result.rows.map((r) => ({ ...r, lost: r.lost, gained: r.gained })), runs: { a: A, b: B } }, null, 1));
+      if (jf) writeFileSync(jf, JSON.stringify({ a, b, bots, seeds, startEra: startEra ?? 'classic', summary: result.rows.map((r) => ({ ...r, lost: r.lost, gained: r.gained })), runs: { a: A, b: B } }, null, 1));
     }
   } finally {
     baseWorktree?.disposeSync();
