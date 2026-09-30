@@ -160,7 +160,9 @@ function tooltipPass(R, C) {
   const els = [...document.querySelectorAll('[data-tip]')].filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < vh; });
   for (const el of els) {
     if (!UI.showTip(el)) continue;
-    window.__step(2);
+    // Two draws that advance no time: the tooltip is laid out, and the world stays where it was, so
+    // what is played after this pass does not depend on how many tooltips the page has.
+    R.render(0); R.render(0);
     const tip = document.querySelector('.gtip');
     const tr = tip?.getBoundingClientRect(), er = el.getBoundingClientRect();
     if (tr && tr.width > 0) {
