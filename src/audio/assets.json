@@ -211,6 +211,122 @@
      }
     }
    ]
+  },
+  "preinternet": {
+   "bpm": 100,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 10,
+     "stems": {
+      "full": {
+       "file": "music/preinternet/a_full.ogg",
+       "duration": 24.0,
+       "loopStart": 0,
+       "loopEnd": 1152000
+      }
+     }
+    },
+    {
+     "id": "b",
+     "bars": 10,
+     "stems": {
+      "full": {
+       "file": "music/preinternet/b_full.ogg",
+       "duration": 24.0,
+       "loopStart": 0,
+       "loopEnd": 1152000
+      }
+     }
+    }
+   ]
+  },
+  "dotcom": {
+   "bpm": 125,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 10,
+     "stems": {
+      "full": {
+       "file": "music/dotcom/a_full.ogg",
+       "duration": 19.2,
+       "loopStart": 0,
+       "loopEnd": 921600
+      }
+     }
+    },
+    {
+     "id": "b",
+     "bars": 10,
+     "stems": {
+      "full": {
+       "file": "music/dotcom/b_full.ogg",
+       "duration": 19.04,
+       "loopStart": 0,
+       "loopEnd": 913920
+      }
+     }
+    }
+   ]
+  },
+  "dotcom_bust": {
+   "bpm": 85,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 10,
+     "stems": {
+      "full": {
+       "file": "music/dotcom_bust/a_full.ogg",
+       "duration": 28.213,
+       "loopStart": 0,
+       "loopEnd": 1354240
+      }
+     }
+    },
+    {
+     "id": "b",
+     "bars": 10,
+     "stems": {
+      "full": {
+       "file": "music/dotcom_bust/b_full.ogg",
+       "duration": 27.904,
+       "loopStart": 0,
+       "loopEnd": 1339392
+      }
+     }
+    }
+   ]
+  },
+  "web2": {
+   "bpm": 110,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 10,
+     "stems": {
+      "full": {
+       "file": "music/web2/a_full.ogg",
+       "duration": 21.813,
+       "loopStart": 0,
+       "loopEnd": 1047040
+      }
+     }
+    },
+    {
+     "id": "b",
+     "bars": 10,
+     "stems": {
+      "full": {
+       "file": "music/web2/b_full.ogg",
+       "duration": 21.824,
+       "loopStart": 0,
+       "loopEnd": 1047552
+      }
+     }
+    }
+   ]
   }
  },
  "stingers": {

@@ -126,7 +126,19 @@ export const MUSIC = {
   agents: { bpm: 108, key: 'D', mode: 'minor', beds: ['agents/a'] },
   consolidation: { bpm: 90, key: 'A', mode: 'minor', beds: ['consolidation/a'] },
   plateau: { bpm: 84, key: 'Eb', mode: 'major', beds: ['plateau/a'] },
+  preinternet: { bpm: 100, key: 'C', mode: 'major', beds: ['preinternet/a', 'preinternet/b'] },
+  dotcom: { bpm: 125, key: 'E', mode: 'minor', beds: ['dotcom/a', 'dotcom/b'] },
+  dotcom_bust: { bpm: 85, key: 'E', mode: 'minor', beds: ['dotcom_bust/a', 'dotcom_bust/b'] },
+  web2: { bpm: 110, key: 'G', mode: 'major', beds: ['web2/a', 'web2/b'] },
 };
+// Period beds: each arrival takes the next bed in turn rather than a random one, so a return
+// to the same era plays the other piece.
+export const ROTATE_BEDS = new Set(['preinternet', 'dotcom', 'dotcom_bust', 'web2']);
+// The music key for a game state: the era, except the dot-com bust phase has its own beds.
+export function musicKey(state) {
+  const id = state?.era?.id ?? 'classic';
+  return id === 'dotcom' && state.flags?.dotcom?.phase === 'bust' ? 'dotcom_bust' : id;
+}
 // Music night: each genre's dance track (assets.json musicNight.<genre>); the placeholder is a
 // short piece in the genre's tempo and key. The era bed ducks under it; a small cheer ends it.
 export const MUSIC_NIGHT = {

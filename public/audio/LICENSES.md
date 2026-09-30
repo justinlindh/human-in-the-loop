@@ -26,6 +26,14 @@ Generated with ACE-Step 1.5 (MIT code and weights; the model card permits commer
 | `music/plateau/a_full.ogg` | Plateau (playlist piece A, seed 8201) | 84 bpm, Eb major | 50 bars, 2:21.2 |
 | `music/plateau/b_full.ogg` | Plateau (playlist piece B, seed 8203) | 84 bpm, Eb major | 50 bars, 2:21.2 |
 | `music/plateau/c_full.ogg` | Plateau (playlist piece C, seed 8206) | 84 bpm, Eb major | 50 bars, 2:21.2 |
+| `music/preinternet/a_full.ogg` | Pre-internet (era mode, playlist piece A, seed 1102) | 100 bpm, C major | 10 bars, 24.0 s |
+| `music/preinternet/b_full.ogg` | Pre-internet (era mode, playlist piece B, seed 1104) | 100 bpm, C major | 10 bars, 24.0 s |
+| `music/dotcom/a_full.ogg` | Dot-com boom (era mode, playlist piece A, seed 1203) | 125 bpm, E minor | 10 bars, 19.2 s |
+| `music/dotcom/b_full.ogg` | Dot-com boom (era mode, playlist piece B, seed 1204) | 125 bpm, E minor | 10 bars, 19.0 s |
+| `music/dotcom_bust/a_full.ogg` | Dot-com bust (era mode, playlist piece A, seed 1212) | 85 bpm, E minor | 10 bars, 28.2 s |
+| `music/dotcom_bust/b_full.ogg` | Dot-com bust (era mode, playlist piece B, seed 1215) | 85 bpm, E minor | 10 bars, 27.9 s |
+| `music/web2/a_full.ogg` | Web 2.0 (era mode, playlist piece A, seed 1302) | 110 bpm, G major | 10 bars, 21.8 s |
+| `music/web2/b_full.ogg` | Web 2.0 (era mode, playlist piece B, seed 1306) | 110 bpm, G major | 10 bars, 21.8 s |
 | `music/title/a_full.ogg` | Title | 104 bpm, F major | 8 bars |
 
 The Classic, ChatGBT, Agents, Consolidation and Plateau playlist pieces were rendered at 2:45 with section tags (intro, verse, marimba chorus, a verse with a guitar counter-melody, a breakdown, a build, and a final chorus), then cut to a bar-line loop that starts after the intro and includes the breakdown.
