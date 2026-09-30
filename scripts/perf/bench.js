@@ -131,6 +131,13 @@ const SCENE_DEFS = {
   hq: { query: 'mock=hq' },
   music: { query: 'mock=floor', setup: MUSIC_NIGHT },
   late: { query: '', late: true },
+  // The same mock office with era art on: classic is the baseline for the period scenes.
+  'floor-eras': { query: 'mock=floor&eras&eraArt=classic' },
+  'floor-dotcom': { query: 'mock=floor&eras&eraArt=dotcom' },
+  'floor-web2': { query: 'mock=floor&eras&eraArt=web2' },
+  'hq-eras': { query: 'mock=hq&eras&eraArt=classic' },
+  'hq-dotcom': { query: 'mock=hq&eras&eraArt=dotcom' },
+  'hq-web2': { query: 'mock=hq&eras&eraArt=web2' },
 };
 
 // Installed before page scripts: sums every rAF callback's work per frame, keyed by the frame's
@@ -187,6 +194,7 @@ function checkout(ref) {
   if (!existsSync(dir)) {
     mkdirSync(REF_DIR, { recursive: true });
     execFileSync('git', ['-C', ROOT, 'worktree', 'add', '--detach', '--quiet', dir, sha]);
+    rmSync(join(dir, 'node_modules'), { force: true, recursive: true }); // the post-checkout hook may have linked one already
     symlinkSync(join(ROOT, 'node_modules'), join(dir, 'node_modules'));
   }
   return { label: ref === sha ? sha : `${ref}(${sha})`, root: dir };

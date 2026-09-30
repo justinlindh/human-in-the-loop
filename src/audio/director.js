@@ -15,7 +15,7 @@
 //   { op: 'stopAll', bus }
 
 import { ASSETS, entryFor } from './loader.js';
-import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
+import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, ROTATE_BEDS, musicKey, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
   VOICE_VARIANTS, VOICE, GROUP_CUES, isFirstLaunch, resignReason, isWarmExit, WORLD, PROP_CUES,
   MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision, MUSIC_BARS, PLAYLIST_MIN_S, PLAYLIST_LOOKAHEAD_S, PLAYLIST_PRELOAD_S, MOMENT_CUES, MOMENT_HITS, FOCUS_KEEP, SPOTLIGHT_KEEP, SPOTLIGHT_DEFAULT, OFFICE_PROP_CUES, OFFICE_PROP_LOOPS } from './manifest.js';
 
@@ -79,7 +79,7 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
   let hadOutage = null;
   let nextPet = null, nextCoffee = null;
   let typing = 0;
-  const music = { era: null, bed: null, pendingEra: null, level: null, lowpass: undefined, paused: null, title: null, dancePaused: false, preloaded: false };
+  const music = { era: null, bed: null, pendingEra: null, level: null, lowpass: undefined, paused: null, title: null, dancePaused: false, preloaded: false, lastBed: {} };
 
   const pick = (arr) => arr[Math.floor(rng() * arr.length) % arr.length];
   // Office props seen last update, by prop name, and each loop's level.
@@ -290,20 +290,21 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
       if (Number.isFinite(ctx.speed)) speedNow = Math.max(1, ctx.speed);
       const hold = !!(ctx.menuPause || ctx.decision);
       // Music: title bed on the title screen, else the era's bed. An era change waits for its card.
-      const want = ctx.title ? 'title' : (music.pendingEra && hold ? music.era : state?.era?.id ?? 'classic');
+      const want = ctx.title ? 'title' : (music.pendingEra && hold ? music.era : musicKey(state));
       if (!hold && music.pendingEra && !ctx.title) music.pendingEra = null;
       if (want && want !== music.era && MUSIC[want]) {
         const m = MUSIC[want];
         const barLen = (60 / m.bpm) * 4;
         const list = erasBeds(want, bedOverride);
-        const bed = list[Math.floor(rng() * list.length) % list.length];
+        const at = list.indexOf(music.lastBed[want]);
+        const bed = ROTATE_BEDS.has(want) ? list[(at + 1) % list.length] : list[Math.floor(rng() * list.length) % list.length];
         const first = music.era === null;
         const fromTitle = music.era === 'title';
-        music.era = want; music.bed = bed; music.bedAt = t; music.heard = 0;
+        music.era = want; music.bed = bed; music.lastBed[want] = bed; music.bedAt = t; music.heard = 0;
         out.push({ op: 'music', era: want, bed, at: t, fade: first ? 1.5 : CROSSFADE_BARS * barLen });
         out.push(...pickNext(list));
         // Only a real era arrival cheers: not the first bed, and not starting or loading from the title.
-        if (want !== 'title' && !first && !fromTitle && voiceMomentOk(t)) out.push(...cheer('era', state, t + CROSSFADE_BARS * barLen));
+        if (want !== 'title' && want !== 'dotcom_bust' && !first && !fromTitle && voiceMomentOk(t)) out.push(...cheer('era', state, t + CROSSFADE_BARS * barLen));
       }
       // Level and filter: paused holds get a lowpass and -6 dB; otherwise the state's mood rule.
       const rule = MOOD.find((r) => r.when(state ?? {}))?.music ?? { level: 1, lowpass: null };
@@ -335,7 +336,7 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
           if (boundary - t <= PLAYLIST_LOOKAHEAD_S) {
             const next = music.nextBed && music.nextBed !== music.bed ? music.nextBed : beds.find((b) => b !== music.bed);
             const barLen = (60 / (MUSIC[music.era]?.bpm ?? 100)) * 4;
-            music.bed = next; music.bedAt = boundary; music.heard = 0;
+            music.bed = next; music.lastBed[music.era] = next; music.bedAt = boundary; music.heard = 0;
             out.push({ op: 'music', era: music.era, bed: next, at: boundary, fade: CROSSFADE_BARS * barLen });
             out.push(...pickNext(beds));
           }

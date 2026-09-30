@@ -15,7 +15,7 @@ import { createScreens } from './screens.js';
 import { createOffice } from './office.js';
 import { createProps } from './props.js';
 import { createSurroundings } from './surroundings.js';
-import { eraArtEra } from './era-art.js';
+import { eraArtActive, syncEraArt } from './era-art.js';
 import { wardrobeEra } from './wardrobe.js';
 import { isSoftwareRenderer } from '../quality.js';
 import { createProbe } from './probe.js';
@@ -215,6 +215,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     decisionOpen = !!state?.pendingDecision;
     currentWardrobe = state ? wardrobeEra(state) : null;
     if (!office || !ready || !state) return;
+    // Before any build: it also decides whether era art is on for this company.
+    const artEra = syncEraArt(state);
     reseed(state.seed, state.week);
     const stage = state.officeStage ?? 0;
     const moving = !firstStage && pendingUpgrade;
@@ -229,8 +231,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       pendingUpgrade = false;
     }
     // Era dressing; a change after the first build gets the window-light swell.
-    const artEra = eraArtEra(state);
-    surroundings?.setEra(artEra);
+    surroundings?.setEra(eraArtActive() ? artEra : null);
     if (office.setEra(state.era?.id ?? 'classic', artEra)) {
       screens.setEra(office.era, !stageJustBuilt && !firstSync);
       lighting.setEraTone(office.era);
