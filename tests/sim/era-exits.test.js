@@ -13,6 +13,16 @@ function ready(startEra, mrr) {
   return s;
 }
 
+describe('score shares for the founding screen', () => {
+  it('keeps every era start below the Classic path', () => {
+    expect(B.eraStarts.classic.scoreShare).toBe(1);
+    for (const era of ['dotcom', 'web2', 'chatgbt', 'agents']) {
+      expect(B.eraStarts[era].scoreShare).toBeGreaterThan(0);
+      expect(B.eraStarts[era].scoreShare).toBeLessThan(1);
+    }
+  });
+});
+
 describe('exit bars follow the start', () => {
   it('keeps the Classic bars', () => {
     for (const s of [ready(null, 0), ready('classic', 0)]) {
