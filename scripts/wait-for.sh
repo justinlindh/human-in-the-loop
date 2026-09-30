@@ -17,7 +17,8 @@
 # GitHub check is still running; without access to the protection rules, local-ci stands in.
 # Exit: 0 green (or merged, or the issue closed); 2 a check failed; 3 behind or conflicting with
 # --no-update; 4 merging main conflicts; 5 the tests failed after merging main; 6 the PR was closed;
-# 7 this worktree isn't on the PR's branch at its head; 124 timed out.
+# 7 this worktree isn't on the PR's branch at its head, or is no longer on the branch the wait started on when a
+#   merge or push is due; 124 timed out.
 set -uo pipefail
 
 pr="" issue="" repo="" merged=0 update=1 test_cmd="npm test" poll=60 pickup=15 timeout=240
@@ -42,6 +43,15 @@ R=(); api="repos/{owner}/{repo}"
 [ -n "$repo" ] && { R=(-R "$repo"); api="repos/$repo"; }
 start=$(date +%s)
 say() { echo "[wait-for $(date +%H:%M:%S)] $*"; }
+# The branch this worktree was on when the wait began. Before every merge and push it must still be
+# on it: someone switching the worktree meanwhile would have main merged into, and pushed from, other work.
+started_on="$(git branch --show-current 2>/dev/null)"
+still_on_branch() { # <what>: exits 7 naming both branches when the worktree has moved
+  local now; now="$(git branch --show-current 2>/dev/null)"
+  [ "$now" = "$started_on" ] && return 0
+  say "this worktree was on ${started_on:-a detached HEAD} when the wait began and is on ${now:-a detached HEAD} now; not $1"
+  exit 7
+}
 timed_out() { [ $(( $(date +%s) - start )) -ge $(( timeout * 60 )) ]; }
 
 if [ -n "$issue" ]; then
@@ -68,6 +78,7 @@ update_branch() {
     say "this worktree isn't a clean checkout of $branch at ${head:0:8}; update it by hand"
     exit 7
   fi
+  still_on_branch "merging main"
   git fetch -q origin main
   if ! git merge -q --no-edit origin/main; then
     git merge --abort
@@ -82,6 +93,7 @@ update_branch() {
     exit 5
   fi
   rm -f "$log"
+  still_on_branch "pushing (the merge stays committed on $started_on)"
   git push -q
   say "pushed $(git rev-parse --short HEAD)"
 }
