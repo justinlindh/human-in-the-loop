@@ -3,6 +3,8 @@ import { B } from '../sim/balance.js';
 import { PALETTE as P } from './palette.js';
 import { y2kPrinterModel } from './props.js';
 
+const TOP_UP_REACH = 2.5; // metres a watcher may walk to a partly hidden spot
+
 // A saved rollover stages once per loaded company. Presentation never changes sim state.
 export function createY2kMoment({ recs, office, parent, getProps, ringSpots, walkTo, low, spotlights, dispatch }) {
   let scene = null;
@@ -43,19 +45,40 @@ export function createY2kMoment({ recs, office, parent, getProps, ringSpots, wal
     const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
     const paper = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.3), new THREE.MeshStandardMaterial({ map: texture, side: THREE.DoubleSide, roughness: 0.9 }));
     paper.rotation.x = -Math.PI / 2; paper.position.set(-0.14, 0.32, 0.26); paper.visible = false; obj.add(paper);
-    const equipment = [...office.placed.values()];
-    const target = equipment.find((e) => e.itemId === 'server_rack' || e.kind === 'rack')?.obj
-      ?? equipment.find((e) => e.desk)?.obj ?? obj;
-    const box = new THREE.Box3().setFromObject(target);
-    const at = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
     const available = [...recs.values()].filter((r) => r.mode === 'placed' && !r.hidden && r.staff.mood !== 'away' && !r.staff.remote && !r.temp?.moment && !r.temp?.party);
-    const spots = low() ? [] : ringSpots(at, Math.max(size.x, size.z) / 2 + 0.7, available.length, { far: true, strict: true, moment: 'y2k' });
+    // The rack when it has room for half the team, else each desk computer in turn: a desk hemmed in
+    // by the bench can seat nobody, so the gathering goes to the first with room for everyone, or
+    // the roomiest.
+    const equipment = [...office.placed.values()];
+    const racks = equipment.filter((e) => e.itemId === 'server_rack' || e.kind === 'rack');
+    const targets = [...racks, ...equipment.filter((e) => e.desk)].map((e) => e.obj);
+    if (!targets.length) targets.push(obj);
+    let target = targets[0], at = null, spots = [];
+    for (const t of low() ? targets.slice(0, 1) : targets) {
+      const box = new THREE.Box3().setFromObject(t);
+      const center = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+      const found = low() ? [] : ringSpots(center, Math.max(size.x, size.z) / 2 + 0.7, available.length, { far: true, strict: true, moment: 'y2k' });
+      if (!at || found.length > spots.length) { target = t; at = center; spots = found; }
+      if (spots.length >= available.length || (racks.length && t === targets[0] && spots.length >= available.length / 2)) break;
+    }
+    // A crowded office tops up with spots a neighbour may partly hide, filled only by staff already
+    // close by: a long walk through a packed bench brushes the desks.
+    const strict = spots.length;
+    if (!low() && spots.length < available.length) {
+      const box = new THREE.Box3().setFromObject(target), size = box.getSize(new THREE.Vector3());
+      const more = ringSpots(at, Math.max(size.x, size.z) / 2 + 0.7, available.length, { far: true, moment: 'y2k', search: 'more' });
+      for (const q of more) {
+        if (spots.length >= available.length) break;
+        if (spots.every((s) => Math.hypot(s.x - q.x, s.z - q.z) >= 0.55)) spots.push(q);
+      }
+    }
     // Fill each viewing spot from nearby staff so a small gathering does not cross the office.
-    const people = spots.map((spot) => {
-      available.sort((a, b) => Math.hypot(a.pos.x - spot.x, a.pos.z - spot.z) - Math.hypot(b.pos.x - spot.x, b.pos.z - spot.z));
-      return available.shift();
+    const people = spots.map((spot, i) => {
+      const dist = (r) => Math.hypot(r.pos.x - spot.x, r.pos.z - spot.z);
+      available.sort((a, b) => dist(a) - dist(b));
+      return i < strict || (available[0] && dist(available[0]) < TOP_UP_REACH) ? available.shift() : null;
     });
+    for (let i = people.length - 1; i >= 0; i--) if (!people[i]) { people.splice(i, 1); spots.splice(i, 1); }
     people.forEach((r, i) => {
       r.temp = { anim: 'idle', t: Infinity, goal: spots[i], moment: 'y2k', stage: { beat: 'gather', role: 'watcher', target } };
       walkTo(r, spots[i]);

@@ -3,7 +3,7 @@ import { PALETTE as P } from './palette.js';
 import { mat } from './materials.js';
 import { roundedBox, roundedCylinder, mesh, mergeStatic } from './prims.js';
 import { getModel } from './models.js';
-import { ERA_ART_PREVIEW, eraBillboard, ERA_ADS } from './era-art.js';
+import { eraBillboard, ERA_ADS } from './era-art.js';
 
 // The world round the office diorama, per stage: a garage on a suburban lot with a street out
 // front; the Office Floor as a storey of a building above a plaza, among neighbouring towers; HQ on
@@ -456,7 +456,7 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
       }
     }
 
-    if (ERA_ART_PREVIEW) {
+    if (era) {
       const [name, technology] = eraBillboard(era);
       const sign = getModel(name);
       sign.position.y = gy;
@@ -603,8 +603,9 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     if (built && built.lite !== low()) setStage(built.stage, built.L);
   }
 
+  // The era whose billboard and street art stand outside, or null when era art is off.
   function setEra(id) {
-    if (!ERA_ART_PREVIEW || era === id) return;
+    if (era === id) return;
     era = id;
     if (built) setStage(built.stage, built.L);
   }
@@ -613,7 +614,7 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     if (!cur) return;
     const night = env?.night ?? 0;
     for (const { material, color } of cur.signMats) material.color.copy(color).multiplyScalar(0.8 + night * 0.2);
-    if ((built?.lite || ERA_ART_PREVIEW) && lighting) updateBacklight(lighting, night);
+    if ((built?.lite || era) && lighting) updateBacklight(lighting, night);
     for (const fm of cur.facadeMats) fm.emissiveIntensity = night * 1.1;
     for (const b of cur.bulbs) b.material.emissiveIntensity = night * 2.2;
     for (const w of cur.glows) { w.material.opacity = night * (w.isSprite ? 0.9 : 0.7); w.visible = night > 0.02; }
@@ -652,7 +653,7 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
   function exterior() {
     if (!cur) return null;
     const cars = cur.movers.filter((mv) => mv.car).map((mv) => ({ x0: mv.car.position.x - CAR_L / 2, x1: mv.car.position.x + CAR_L / 2, z0: mv.z - CAR_W / 2, z1: mv.z + CAR_W / 2 }));
-    return { era, billboard: ERA_ART_PREVIEW ? eraBillboard(era)[0] : null, fascia: ERA_ART_PREVIEW && era === 'preinternet' ? cur.rentalFront : null, feet: cur.feet, cars, lanes: cur.movers.map((mv) => ({ z0: mv.z - CAR_W / 2, z1: mv.z + CAR_W / 2, x0: Math.min(mv.x0, mv.x1) - CAR_L / 2, x1: Math.max(mv.x0, mv.x1) + CAR_L / 2 })) };
+    return { era, billboard: era ? eraBillboard(era)[0] : null, fascia: era === 'preinternet' ? cur.rentalFront : null, feet: cur.feet, cars, lanes: cur.movers.map((mv) => ({ z0: mv.z - CAR_W / 2, z1: mv.z + CAR_W / 2, x0: Math.min(mv.x0, mv.x1) - CAR_L / 2, x1: Math.max(mv.x0, mv.x1) + CAR_L / 2 })) };
   }
 
   return { setStage, setEra, setQuality, setViewYaw, update, exterior, get group() { return root; } };

@@ -7,7 +7,7 @@ import { roundedBox, roundedCylinder, mesh, mergeStatic, batchMeshes } from './p
 import { getModel, hasModel, itemModelName } from './models.js';
 import { stageLayout, createNav, placedTransform, footprint, tileCenter } from './layout.js';
 import { carpetTexture } from './carpet.js';
-import { ERA_ART_PREVIEW, eraArtCrt } from './era-art.js';
+import { eraArtActive, eraArtCrt } from './era-art.js';
 
 const T = 0.2;            // wall thickness
 const SILL_Z = 0.18;       // a window sill's centre, out from the wall's centre line (0.15 m into the room)
@@ -365,13 +365,13 @@ function deskSet(i, stageIdx, screens, era, freeChair = false, artEra = era) {
     }
   });
   const side = i % 2 ? 1 : -1;
-  if (!ERA_ART_PREVIEW && i % 3 === 0) onTop.add(mesh(roundedCylinder(0.04, 0.035, 0.09, 0.008, 12), mat('mug'), side * 0.36, 0.62, DESK_Z + 0.12));
-  if (!ERA_ART_PREVIEW && i % 4 === 1 && era !== 'plateau') {
+  if (!eraArtActive() && i % 3 === 0) onTop.add(mesh(roundedCylinder(0.04, 0.035, 0.09, 0.008, 12), mat('mug'), side * 0.36, 0.62, DESK_Z + 0.12));
+  if (!eraArtActive() && i % 4 === 1 && era !== 'plateau') {
     const p = mesh(roundedBox(0.16, 0.02, 0.22, 0.006), mat('paper_sheet'), -side * 0.38, 0.63, DESK_Z + 0.08);
     p.rotation.y = 0.2;
     onTop.add(p);
   }
-  if (!ERA_ART_PREVIEW && i % 5 === 2) {
+  if (!eraArtActive() && i % 5 === 2) {
     const pl = getModel('plant_small');
     pl.scale.setScalar(0.45);
     onTop.add(place(pl, side * 0.36, 0.62, DESK_Z - 0.16));
@@ -1505,7 +1505,7 @@ function eraDressing(L, era, blockers = [], artEra = era) {
   }
   // The era's signature wall pieces and its emblem, each into the wall stretch with the most room
   // left, then spaced out evenly within their stretch.
-  const reviewPieces = ERA_ART_PREVIEW ? eraArtPieces(artEra) : [];
+  const reviewPieces = eraArtActive() ? eraArtPieces(artEra) : [];
   const pieces = [...reviewPieces, ...(ERA_PIECES[era] ?? []), ...(emblemTexture(era) ? [piece(0.8, 0.8, 1.85, () => emblemTexture(era))] : [])];
   const slots = wallSlots(L, blockers).map((sl) => ({ ...sl, left: sl.len - 0.3, got: [] }));
   for (const pc of pieces) {
