@@ -33,7 +33,7 @@ it('shows the kit and combined score, preserves the choice on Back, and passes i
   document.querySelector('[data-era="agents"]').click();
   document.querySelectorAll('.fund')[1].click();
   expect(document.querySelector('.era-start-summary').textContent).toContain('$390K');
-  expect(document.querySelector('.era-start-summary').textContent).toContain('x0.388');
+  expect(document.querySelector('.era-start-summary').textContent).toContain(`x${+(B.eraStarts.agents.scoreMult * B.funding.family.scoreMult).toFixed(4)}`);
   expect(layer.textContent).toContain('Skipped without rewards');
   click('Back');
   click('Next: funding');
