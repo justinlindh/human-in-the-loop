@@ -1480,9 +1480,9 @@ function bandRuns(L, wall) {
   if (len / 2 - cur > 0.05) runs.push([cur, len / 2]);
   return runs;
 }
-// Emblems are ui's era glyphs, drawn onto framed paper. All five start loading with this module so
+// Emblems are ui's era glyphs, drawn onto framed paper. They all start loading with this module so
 // they are ready long before the office is first dressed.
-const ERAS = ['classic', 'chatgbt', 'agents', 'consolidation', 'plateau'];
+const ERAS = ['classic', 'chatgbt', 'agents', 'consolidation', 'plateau', 'preinternet', 'dotcom', 'web2'];
 const emblemTex = new Map();
 for (const era of typeof Image === 'undefined' || typeof document === 'undefined' ? [] : ERAS) {
   const c = document.createElement('canvas');
