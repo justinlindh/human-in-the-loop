@@ -13,7 +13,7 @@ Characters against real furniture: seated poses in every mood, perk poses, and n
 
 `moment:letter-claim` checks that a letter's named reader reaches the reading pose when the decision freeze catches them walking, in a standup, or celebrating.
 
-`--only=y2k` runs the millennium watch through its countdown, quiet rollover and invoice beats, checking that its watchers stay clear of furniture.
+`--only=y2k` runs the millennium watch on its own fresh scene through its countdown, quiet rollover and invoice beats, checking that its watchers stay clear of furniture. `prop:y2k-printer-isolation` verifies that the kitchen printer retains its identity, position and visibility throughout the watch, and that a jam, replay, Skip and removal of the rollover prop keep the two printers independent.
 
 `moment:letter-lifecycle` checks claim release on cancellation, Low-quality completion, and away transitions, plus the full tight-row fallback read, slump, and return under the decision freeze. Both letter fixtures arrange a reader per case and run with and without the rig.
 

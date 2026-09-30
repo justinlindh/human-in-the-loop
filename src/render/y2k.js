@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { B } from '../sim/balance.js';
 import { PALETTE as P } from './palette.js';
-import { printerModel } from './props.js';
+import { y2kPrinterModel } from './props.js';
 
 // A saved rollover stages once per loaded company. Presentation never changes sim state.
 export function createY2kMoment({ recs, office, parent, getProps, ringSpots, walkTo, low, spotlights, dispatch }) {
@@ -31,7 +31,7 @@ export function createY2kMoment({ recs, office, parent, getProps, ringSpots, wal
     if (spotlights?.current()) return;
     const source = getProps()?.objectOf(f.printerId);
     if (!source || !parent || !office.current) return;
-    const obj = printerModel({ jammed: false });
+    const obj = y2kPrinterModel();
     obj.position.copy(source.position); obj.rotation.copy(source.rotation); obj.scale.setScalar(1.2);
     source.visible = false; parent.add(obj);
     const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 320;
@@ -51,7 +51,11 @@ export function createY2kMoment({ recs, office, parent, getProps, ringSpots, wal
     const size = box.getSize(new THREE.Vector3());
     const available = [...recs.values()].filter((r) => r.mode === 'placed' && !r.hidden && r.staff.mood !== 'away' && !r.staff.remote && !r.temp?.moment && !r.temp?.party);
     const spots = low() ? [] : ringSpots(at, Math.max(size.x, size.z) / 2 + 0.7, available.length, { far: true, strict: true, moment: 'y2k' });
-    const people = available.slice(0, spots.length);
+    // Fill each viewing spot from nearby staff so a small gathering does not cross the office.
+    const people = spots.map((spot) => {
+      available.sort((a, b) => Math.hypot(a.pos.x - spot.x, a.pos.z - spot.z) - Math.hypot(b.pos.x - spot.x, b.pos.z - spot.z));
+      return available.shift();
+    });
     people.forEach((r, i) => {
       r.temp = { anim: 'idle', t: Infinity, goal: spots[i], moment: 'y2k', stage: { beat: 'gather', role: 'watcher', target } };
       walkTo(r, spots[i]);

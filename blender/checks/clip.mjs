@@ -25,7 +25,8 @@ const GROUPS = {
   perks: ['couch:sit', 'couch:nap', 'beanbag:sprawl', 'napPod:lie', 'arcade:stool', 'library:armchair'],
   dance: ['dance:motivational_polka', 'dance:corporate_synthwave', 'dance:aggressive_bossa_nova', 'dance:sad_lofi', 'dance:trackLength'],
   walk: ['walk:dropOnWalk', 'walk:dropOnStand', 'walk:walkers'],
-  props: ['prop:dropOnWalk', 'prop:dropOnStand', 'moment:pizza', 'prop:groupOnMovedTable', 'moment:hammer', 'moment:letter', 'moment:printer', 'moment:y2k', 'moment:visitor:flinch', 'moment:visitor:explain', 'moment:behind-card', 'moment:prompt-stage', 'prop:stageStaff', 'prop:pivotBoard', 'moment:letter-claim', 'moment:letter-lifecycle'],
+  props: ['prop:dropOnWalk', 'prop:dropOnStand', 'moment:pizza', 'prop:groupOnMovedTable', 'moment:hammer', 'moment:letter', 'moment:printer', 'moment:visitor:flinch', 'moment:visitor:explain', 'moment:behind-card', 'moment:prompt-stage', 'prop:stageStaff', 'prop:pivotBoard', 'moment:letter-claim', 'moment:letter-lifecycle'],
+  y2k: ['moment:y2k', 'prop:y2k-printer-isolation'],
   pairs: ['pairs:floor'],
   use: ['use:espresso', 'use:coffee_corner', 'use:plant_wall', 'use:bookshelf'],
   party: ['waffle:crowd'],
@@ -109,6 +110,7 @@ const got = await page.evaluate(async (runs) => {
   const w = runs.walk ? await C.runWalkChecks(R, S) : [];
   w.push(...pet, ...robot);
   if (runs.props) w.push(...await C.runPropChecks(R, S));
+  if (runs.y2k) w.push(...await C.runY2kChecks(R, S));
   // Counters and wall items, each on free tiles with a clear row in front (the perk items above go first).
   S.office.placed = S.office.placed.filter((p) => !p.id.startsWith('k_'));
   for (let i = 0; i < 60; i++) { R.sync(S); R.advance(1 / 30); }

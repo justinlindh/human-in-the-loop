@@ -39,7 +39,11 @@ export function createProps(office, screens = null) {
   function wanted(state) {
     const out = [];
     for (const st of stages(state)) if (BUILDERS[st.prop] && st.anchor !== 'screens') out.push({ key: `stage|${st.prop}|${st.x},${st.y}`, ...st });
-    for (const p of state.office?.props ?? []) if (BUILDERS[p.prop]) out.push({ key: `prop|${p.id}|${p.prop}`, ...p });
+    for (const p of state.office?.props ?? []) if (BUILDERS[p.prop]) {
+      // The saved rollover printer has its own placement and lifetime, outside kitchen handovers.
+      const prop = p.prop === 'printer' && p.id === state.flags?.y2k?.printerId ? 'y2k_printer' : p.prop;
+      out.push({ key: `prop|${p.id}|${prop}`, ...p, prop });
+    }
     // From the Office Floor on, the printer stands by the kitchen unless one of its moments has it:
     // jammed, out back as a wreck, or dead under its sign.
     const kk = kitchenKey(state);
@@ -1089,7 +1093,8 @@ const readyScreen = () => cardTex('printer-ready', 256, 48, (ctx, W, H) => {
   ctx.fillText('READY', W / 2, H / 2);
 });
 // The printer model on its own (moments.js carries one out the door).
-export function printerModel({ jammed = true } = {}) { return printerBody(false, { jammed, screen: jammed ? printerScreen : readyScreen }); }
+export function printerModel() { return printerBody(false); }
+export function y2kPrinterModel() { return printerBody(false, { jammed: false, screen: readyScreen }); }
 // The visitor's chair, for a moment that keeps it after the staged prop has gone.
 export function visitorChairModel() { return visitorChair(); }
 // broken: smashed, so no output slot or sheet; jammed false: the slot is empty.
@@ -1210,7 +1215,7 @@ function printerWrecked() {
 const KITCHEN_ITEMS = new Set(['coffee_corner', 'espresso']);
 const PRINTER_SCALE = 1.2;
 // Props that stand in for the everyday printer, and the printer props that swap with each other in place.
-const PRINTER_PROPS = new Set(['printer', 'printer_jammed', 'printer_wrecked', 'printer_out_of_order']);
+const PRINTER_PROPS = new Set(['printer_jammed', 'printer_wrecked', 'printer_out_of_order']);
 const KITCHEN_SWAP = new Set(['printer', 'printer_jammed', 'printer_out_of_order']);
 // Whether a furniture box reaches into a floor rect (floorRect's padding left out).
 const boxHitsRect = (b, r, pad = 0.06) => b.min.x < r.x1 - pad && b.max.x > r.x0 + pad && b.min.z < r.z1 - pad && b.max.z > r.z0 + pad;
@@ -1709,6 +1714,7 @@ const BUILDERS = {
   cover_sheets: atDesk(coverSheets, FLAT),
   stapler: atDesk(stapler, { x: 0.45, z: -0.35, rot: -0.3, scale: 1.8 }),
   printer: byKitchen(printerIdle),
+  y2k_printer: onFloor(y2kPrinterModel, { x: 1.1, z: 0.2, rot: 0.2, scale: PRINTER_SCALE }),
   printer_jammed: byKitchen(printerJammed),
   printer_out_of_order: byKitchen(printerOutOfOrder),
   printer_wrecked: byDoor(printerWrecked, 1.2),
