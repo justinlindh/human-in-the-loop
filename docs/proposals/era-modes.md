@@ -12,7 +12,7 @@ Keep Classic as the default. A start is a newly founded company in an older worl
 | --- | --- | ---: | --- | ---: | --- | --- |
 | `preinternet` | 1990 | $40,000 | Garage / 3 | 1.20 | retail distribution, Ops | none |
 | `dotcom` | 1997 | $140,000 | Garage / 4 | 0.90 | Marketing, Ops, Research, squads | `place_desks` |
-| `web2` | 2003 | $90,000 | Garage / 3 | 0.95 | Marketing, Ops, Research, compatibility | `place_desks` |
+| `web2` | 2003 | $90,000 | Garage / 3 | 0.75 | Marketing, Ops, Research, compatibility | `place_desks` |
 | `classic` | 2019 | $0 | Garage / 2 | 1.00 | ordinary progression | none |
 | `chatgbt` | selected era's seeded arrival | $90,000 | Garage / 3 | 0.75 | Marketing, Ops, Research, Models, Automation, Meaning, AI as Pair | `place_desks`, `start_product`, `first_launch` |
 | `agents` | selected era's seeded arrival | $240,000 | Garage / 4 | 0.60 | ChatGBT kit plus squads; full automation permissions | ChatGBT skips |
@@ -23,7 +23,9 @@ The extra desks are unoccupied. No items, research completions, products, staff 
 
 The founding screen shows era, starting cash after funding, office, unlocked systems, skipped goals and the combined funding/era score factor. Buttons work by tap and keyboard; essential information is visible without hovering. The ending and Reports retain the chosen start and score factor. Total score is the existing nonnegative score calculation multiplied by the era factor, with one final rounding. Funding, dilution and the incubator cut still multiply independently. There is no score for skipped history.
 
-Initial delivery exposes Classic, ChatGBT and Agents without locks. Adding locks to these choices later must not take them away from existing profiles. Earlier chapters and the two late starts arrive through the delivery phases below.
+Era selection is a preview, off by default. The UI reads the `eras` URL parameter at startup: `?eras` or `?eras=1` reveals the choices. Ordinary founding remains Classic with no era controls or score-factor rows. Non-Classic saves still load and play without the parameter. Sim callers and balance runs use the start option directly. Public release requires the owner's playtest approval.
+
+The preview exposes available starts without profile locks. Adding locks to these choices later must not take them away from existing profiles. Earlier chapters and the two late starts arrive through the delivery phases below.
 
 ### Career length and clocks
 

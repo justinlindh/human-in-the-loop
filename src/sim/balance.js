@@ -152,7 +152,7 @@ export const B = {
     preseed: { cash: 300000, scoreMult: 0.96, brand: 8, seniorCandidates: 2 },
   },
   eraStarts: {
-    web2: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 0.95 },
+    web2: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 0.75 },
     dotcom: { cash: 140000, officeStage: 0, desks: 4, scoreMult: 0.9 },
     classic: { cash: 0, officeStage: 0, desks: 2, scoreMult: 1 },
     chatgbt: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 0.75 },

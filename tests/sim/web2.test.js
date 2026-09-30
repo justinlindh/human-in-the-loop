@@ -35,7 +35,7 @@ describe('Web 2.0 career', () => {
     const s = game();
     expect(s.cash).toBe(B.funding.bootstrapped.cash + B.eraStarts.web2.cash);
     expect(s.officeStage).toBe(0); expect(s.office.placed).toHaveLength(B.eraStarts.web2.desks);
-    expect(s.founding.eraScoreMult).toBe(0.95); expect(s.founding.timelineVersion).toBe('historical-v2');
+    expect(s.founding.eraScoreMult).toBe(0.75); expect(s.founding.timelineVersion).toBe('historical-v2');
     expect(calendarDate(s).year).toBe(2003); expect(chatAppName(s)).toBe('HipCheck');
     expect(s.market.unlockedAngles).toEqual(['web', 'onprem', 'api', 'freemium']);
     expect(s.market.unlockedCategories).toContain('devtools');
