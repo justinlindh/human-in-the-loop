@@ -37,6 +37,7 @@ const WAVE_S = 1.1;            // someone leaving waves goodbye this long before
 const LEAVE_SPEED = 1.0;       // and walks to the door at this speed
 const ENTER_S = 0.7;           // sliding from the front of a couch or chair onto the spot
 const PERSON_GAP = 0.45;       // two people's centres nearer than this overlap
+const PARTY_MERGE_S = 1.5;     // two company-wide celebrations this close make one party
 const PASS_R = 1.2;            // walkers closing on each other within this start to pass (passWalkers)
 const PASS_K = 0.8;            // how fast they drift aside, as a share of walking speed
 const PASS_SIDE_M = 0.55;      // until the other is this far to one side of their line
@@ -125,6 +126,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     red: glow('led_red', 5), redDim: glow('led_red', 1.2, 'dim'),
   };
   let ledClock = 0;
+  let ledTime = 0;     // seconds of rendering, for the LEDs' blink phase
 
   let charShadows = true;
   function setCharacterShadows(on) {
@@ -853,9 +855,10 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (!cur) return;
     // Only a company-wide celebrate throws a party (a launch or award on its own doesn't); two in
     // quick succession make one.
-    const now = performance.now();
+    // Measured on the renderer's own clock, so a slow or busy browser counts the same gap.
+    const now = playTime;
     // A second one's cause still gets its banner.
-    if (now - lastParty < 1500) { if (cause && !partyBanner) showBanner(cause); return; }
+    if (now - lastParty < PARTY_MERGE_S) { if (cause && !partyBanner) showBanner(cause); return; }
     lastParty = now;
     partyBanner = false;
     const L = cur.L;
@@ -1298,8 +1301,9 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   function updateLeds(dt) {
     ledClock += dt;
+    ledTime += dt;
     if (ledClock < 0.125) return;
-    const t = performance.now() / 1000;
+    const t = ledTime;
     ledClock = 0;
     const leds = office.leds();
     const outage = !!lastState?.outage;
