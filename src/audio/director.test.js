@@ -544,5 +544,20 @@ describe('audio director', () => {
     expect(bed(d.update(dot('bust'), 30))).toMatchObject({ era: 'dotcom_bust', bed: 'dotcom_bust/b' });
     expect(musicKey(state({ era: { id: 'web2' } }))).toBe('web2');
   });
+
+  it('plays each period era its own arrival stinger and chat ping, and keeps Yak silent', () => {
+    const cue = (cmds) => cmds.find((c) => c.op === 'play')?.cue;
+    const d = createDirector();
+    expect(cue(d.events([{ type: 'era', eraId: 'dotcom' }], state({ era: { id: 'dotcom' } }), 10))).toBe('stinger.era_dotcom');
+    expect(cue(d.events([{ type: 'era', eraId: 'web2' }], state({ era: { id: 'web2' } }), 30))).toBe('stinger.era_web2');
+    expect(cue(d.events([{ type: 'era', eraId: 'agents' }], state({ era: { id: 'agents' } }), 50))).toBe('stinger.era');
+    const chat = { type: 'chat', channel: 'general', from: 'Sam', text: 'hi' };
+    expect(cue(d.events([chat], state({ era: { id: 'preinternet' } }), 100))).toBe('ui.desknet_ping');
+    expect(cue(d.events([chat], state({ era: { id: 'dotcom' } }), 110))).toBe('ui.awayim_ping');
+    expect(cue(d.events([chat], state({ era: { id: 'web2' } }), 120))).toBe('ui.hipcheck_ping');
+    expect(cue(d.events([chat], state({ era: { id: 'classic' } }), 130))).toBeUndefined();
+    // A second message inside the cooldown stays quiet.
+    expect(cue(d.events([chat], state({ era: { id: 'web2' } }), 121))).toBeUndefined();
+  });
 });
 

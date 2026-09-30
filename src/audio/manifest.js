@@ -72,12 +72,27 @@ export const CUES = {
   'stinger.office': { bus: 'sfx', files: ['stingers/office'], cooldown: 5, priority: 9, duck: 'stinger' },
   'stinger.win': { bus: 'sfx', files: ['stingers/win'], cooldown: 5, priority: 10, duck: 'stinger' },
   'stinger.gameover': { bus: 'sfx', files: ['stingers/gameover'], cooldown: 5, priority: 10, duck: 'stinger' },
+  // Era-mode arrivals and the period chat apps' new-message pings. The pings share one cooldown
+  // (they are never in the same game together) and drop first under load, like the growth sounds.
+  'stinger.era_preinternet': { bus: 'sfx', files: ['stingers/era_preinternet'], cooldown: 5, priority: 10, duck: 'stinger', delivered: true },
+  'stinger.era_dotcom': { bus: 'sfx', files: ['stingers/era_dotcom'], cooldown: 5, priority: 10, duck: 'stinger', delivered: true },
+  'stinger.era_web2': { bus: 'sfx', files: ['stingers/era_web2'], cooldown: 5, priority: 10, duck: 'stinger', delivered: true },
+  'ui.desknet_ping': { bus: 'ui', files: ['ui/desknet_ping'], cooldown: 4, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
+  'ui.awayim_ping': { bus: 'ui', files: ['ui/awayim_ping'], cooldown: 4, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
+  'ui.hipcheck_ping': { bus: 'ui', files: ['ui/hipcheck_ping'], cooldown: 4, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
+};
+// Period sound per early era: its arrival stinger and its chat app's ping.
+export const ERA_SOUNDS = {
+  preinternet: { stinger: 'stinger.era_preinternet', ping: 'ui.desknet_ping' },
+  dotcom: { stinger: 'stinger.era_dotcom', ping: 'ui.awayim_ping' },
+  web2: { stinger: 'stinger.era_web2', ping: 'ui.hipcheck_ping' },
 };
 
 // Sim events -> cue ids. Every event type in the contract is listed; null means deliberately silent.
 export const ON_EVENT = {
   toast: (e) => ({ bad: 'sfx.bad', warn: 'sfx.warn' })[e.tone] ?? null,
-  chat: null,
+  // Only the period chat apps ping; Yak stays silent (its reply prompt has its own cue).
+  chat: (e, s) => ERA_SOUNDS[s?.era?.id]?.ping ?? null,
   say: null,
   bubble: 'sfx.bubble',
   standup: null,
@@ -105,7 +120,7 @@ export const ON_EVENT = {
   award: 'sfx.award',
   officeUpgrade: 'stinger.office',
   gameOver: (e, s) => (s?.gameOver?.won ? 'stinger.win' : 'stinger.gameover'),
-  era: 'stinger.era',
+  era: (e) => ERA_SOUNDS[e.eraId ?? e.era]?.stinger ?? 'stinger.era',
   unlock: 'ui.unlock',
   goal: 'ui.goal',
   // A music night plays its genre's track (in the director); the other rewards get their sting.

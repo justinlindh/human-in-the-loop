@@ -89,6 +89,9 @@ Generated with ACE-Step 1.5 using the same model and settings as the music (XL-s
 | `stingers/waffle.ogg` | Waffle Party | 9.6 s |
 | `stingers/win.ogg` | win | 8.4 s |
 | `stingers/gameover.ogg` | game over | 7.5 s |
+| `stingers/era_preinternet.ogg` | pre-internet era arrival (ACE-Step XL-sft plus 4B planner, seed 9914) | 4.3 s |
+| `stingers/era_dotcom.ogg` | dot-com era arrival (same pipeline, seed 9922) | 4.8 s |
+| `stingers/era_web2.ogg` | Web 2.0 era arrival (same pipeline, seed 9931) | 4.3 s |
 
 ## UI sounds (candidates)
 
@@ -106,6 +109,14 @@ From Kenney's "Interface Sounds" pack, CC0 1.0 (public domain; credit to Kenney,
 | `ui/decision.ogg` | question_001 |
 | `ui/goal.ogg` | confirmation_004 |
 | `ui/unlock.ogg` | maximize_008 |
+
+The three period chat pings are original synthesis (no samples), mono, with a soft high shelf and peaks at or below -3 dBFS, released CC0 by the project:
+
+| File | Used for |
+|---|---|
+| `ui/desknet_ping.ogg` | a new message in DeskNet (pre-internet): a two-tone square-wave terminal beep |
+| `ui/awayim_ping.ogg` | a new message in AwayIM (dot-com): a rising three-note triangle pluck |
+| `ui/hipcheck_ping.ogg` | a new message in HipCheck (Web 2.0): a short glass FM-bell tap |
 
 ## Sound effects and ambience (candidates)
 
