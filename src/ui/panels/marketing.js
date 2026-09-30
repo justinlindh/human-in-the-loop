@@ -1,5 +1,6 @@
 import { h, setText, setWidth, fmtMoney, toggleClass } from '../dom.js';
 import { CHANNELS, CHANNEL, B, OFFICE_STAGES } from '../content.js';
+import { periodChannel } from '../../data/early-eras.js';
 import { liveView, meter } from '../widgets.js';
 import { icon } from '../icons.js';
 
@@ -76,7 +77,7 @@ export function marketingPanel(ctx, arg) {
 
       // Channel cards
       const chans = h('div.tiles.chans');
-      for (const c of CHANNELS) {
+      for (const c of CHANNELS.map((channel) => periodChannel(s.era.id, channel)).filter(Boolean)) {
         const locked = s.officeStage < (c.minStage ?? 0);
         const btn = h('button.btn.small.primary', {
           onclick: () => {
@@ -133,4 +134,3 @@ export function marketingPanel(ctx, arg) {
 
   return { el: view.el, update: (s, f) => view.update(s, f) };
 }
-

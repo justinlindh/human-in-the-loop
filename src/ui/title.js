@@ -354,7 +354,8 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     const refreshSummary = () => {
       const total = B.funding[draft.funding].cash + kit.cash;
       const mult = Math.round(B.funding[draft.funding].scoreMult * kit.scoreMult * 10000) / 10000;
-      setText(summary, `${ERA_STARTS[draft.startEra].name}: ${fmtMoney(total)} starting cash, ${OFFICE_STAGES[kit.officeStage].name}, ${kit.desks} desks. Final score x${mult}. Two founders, no products yet. A twenty-year company career.`);
+      const career = draft.startEra === 'dotcom' ? `A ${B.dotcom.weeks}-week dot-com chapter, then twenty modern years. The bridge skips the intervening years.` : 'A twenty-year company career.';
+      setText(summary, `${ERA_STARTS[draft.startEra].name}: ${fmtMoney(total)} starting cash, ${OFFICE_STAGES[kit.officeStage].name}, ${kit.desks} desks. Final score x${mult}. Two founders, no products yet. ${career}`);
     };
     const cards = FUNDING.map((f) => {
       const mult = fundingMult(f);
@@ -380,7 +381,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       h('b', { text: 'How are you paying for this?' }),
       cardsEl,
       erasPreview ? summary : null,
-      h('div.small.muted', { text: erasPreview ? 'Funding and starting-era score factors multiply. Classic keeps the full era score.' : 'When the game ends, your company gets a final score. More money now means a slightly smaller score later.' })), start, 'Start the company');
+      h('div.small.muted', { text: erasPreview ? 'Funding and starting-era score factors multiply. Classic keeps the full score; other starts trade score for a kit.' : 'When the game ends, your company gets a final score. More money now means a slightly smaller score later.' })), start, 'Start the company');
     refreshSummary();
   }
 

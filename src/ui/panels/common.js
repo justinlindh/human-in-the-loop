@@ -4,7 +4,7 @@ import { productName } from '../../data/product-names.js';
 import { ERA_IDS } from '../../data/eras.js';
 import { ROLE_JOBS, ROLE_JOBS_FALLBACK } from '../../data/roles.js';
 
-export const KIND_LABEL = { new: 'New product', update: 'Update', migration: 'Migration', refactor: 'Refactor', craft: 'Craft project', research: 'Internal tool' };
+export const KIND_LABEL = { new: 'New product', update: 'Update', migration: 'Migration', refactor: 'Refactor', craft: 'Craft project', research: 'Internal tool', y2k_compliance: 'Y2K compliance' };
 
 export function projectLabel(state, j) {
   const prod = j.productId ? state.products.find((p) => p.id === j.productId) : null;
@@ -34,6 +34,7 @@ export function doingText(state, p) {
     // The sim names these itself ('The Big Refactor', 'Craft project'); those defaults read as no name.
     case 'refactor': return j.name && !DEFAULT_NAMES.has(j.name) ? `Refactoring ${j.name}` : 'Refactoring the code';
     case 'research': return `Researching ${j.name || 'an internal tool'}`;
+    case 'y2k_compliance': return 'Renaming date fields';
     default: return j.name && !DEFAULT_NAMES.has(j.name) ? `Crafting ${j.name}` : 'Crafting a side project';
   }
 }

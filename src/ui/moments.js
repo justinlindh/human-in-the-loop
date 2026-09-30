@@ -62,6 +62,11 @@ export function createMomentCaptions(layer, { getRenderer = () => null, getSpeed
 
   addEventListener('hitl:moment', (e) => {
     const d = e.detail ?? {};
+    if (d.phase === 'beat' && spot?.kind === d.key && d.caption) {
+      cur = d.id;
+      setText(text, d.caption); place(); show();
+      return;
+    }
     if (d.phase === 'end') { hide(d.id); return; }
     if (d.phase !== 'start' || spot) return;
     const line = lineFor(d.key, d.caption);

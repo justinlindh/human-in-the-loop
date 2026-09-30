@@ -6,6 +6,7 @@ import { createCharacter } from './character.js';
 import { printerModel, visitorChairModel } from './props.js';
 import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { between, draw } from './rand.js';
+import { createY2kMoment } from './y2k.js';
 
 // Staff moments around staged props (#284): brief reactions by idle people to what a decision put
 // in the office. Render only; they borrow the perk visit mechanism (r.temp), so walking goes through
@@ -35,7 +36,7 @@ const rnd = (a, b) => between(a, b, 'moments');
 const IDLE_W = { idle: 4, maintenance: 1, support: 0.8, sales: 0.8, marketing: 0.8, security: 0.6, project: 0.5, mentor: 0.4, oversight: 0.3, hardProblem: 0.2 };
 const BODY_R = 0.22;
 // The moments this module plays, for checks that need to know what exists (blender/checks/stage.mjs).
-const KINDS = ['pet', 'robot', 'pizza', 'screen', 'hammer', 'carrier', 'printer', 'visitor', 'letter', 'fumes', 'growth', 'company_party', 'respond'];
+const KINDS = ['pet', 'robot', 'pizza', 'screen', 'hammer', 'carrier', 'printer', 'visitor', 'letter', 'fumes', 'growth', 'company_party', 'respond', 'y2k'];
 const READ_S = 2.2, SLUMP_S = 2.0;   // the letter moment: reading it, then the reaction
 const CHAIR_ROLL = 0.5;      // how far a chair rolls back when someone gets up from it
 const SIDE_OUT = 0.62;       // how far sideways someone steps out of their chair
@@ -1419,7 +1420,10 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     return id;
   }
 
+  const y2k = createY2kMoment({ recs, office, parent, getProps, ringSpots, walkTo, low: lite, spotlights, dispatch });
+
   function update(dt, state) {
+    y2k.update(dt, state);
     printerTick(dt);
     if (printerDue > 0) { printerDue -= dt; if (printerStart()) printerDue = 0; }
     for (const [k, t] of resolvedT) { if (t - dt <= 0) { resolvedT.delete(k); resolved.delete(k); } else resolvedT.set(k, t - dt); }
@@ -1444,7 +1448,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     else { screenSpotlight = null; for (const k of [...timers.keys()]) if (k.startsWith('screen|')) timers.delete(k); }
   }
 
-  function reset() { printerEnd(); printerDue = 0; rolls.length = 0; stopHammer(); endVisitor(); timers.clear(); resolved.clear(); resolvedT.clear(); }
+  function reset() { y2k.reset(); printerEnd(); printerDue = 0; rolls.length = 0; stopHammer(); endVisitor(); timers.clear(); resolved.clear(); resolvedT.clear(); }
 
   // What a moment says about someone now, for the staging probe (probe.js): the moment, its beat
   // ('walk' while they are on the way), the target they deal with, what they hold, the effect source.

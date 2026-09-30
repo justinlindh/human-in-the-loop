@@ -11,7 +11,7 @@ Keep Classic as the default. A start is a newly founded company in an older worl
 | Start id | Calendar opening | Extra cash | Office / desks | Era score factor | Systems open immediately | Goals skipped without rewards |
 | --- | --- | ---: | --- | ---: | --- | --- |
 | `preinternet` | 1990 | $40,000 | Garage / 3 | 1.20 | retail distribution, Ops | none |
-| `dotcom` | 1997 | $140,000 | Office Floor / 4 | 1.10 | Marketing, Ops, Research, squads | `place_desks`, `office_floor` |
+| `dotcom` | 1997 | $140,000 | Garage / 4 | 0.90 | Marketing, Ops, Research, squads | `place_desks` |
 | `web2` | 2003 | $90,000 | Garage / 3 | 1.05 | Marketing, Ops, Research, compatibility | `place_desks` |
 | `classic` | 2019 | $0 | Garage / 2 | 1.00 | ordinary progression | none |
 | `chatgbt` | selected era's seeded arrival | $90,000 | Garage / 3 | 0.75 | Marketing, Ops, Research, Models, Automation, Meaning, AI as Pair | `place_desks`, `start_product`, `first_launch` |
@@ -35,7 +35,7 @@ Modern calendar date is elapsed week plus a saved calendar offset. The chosen st
 
 Keep difficulty growth based on elapsed company time where it is already an age-based economic rule (project points, candidate skill, incident cost and market adoption); do not accidentally substitute historical years into those formulas. Era competition still supplies world pressure. Calendar-sensitive data availability and actual date labels use a dedicated pure `calendarDate(state, week = state.week)` helper. The existing `dateOf(week)` API remains valid for Classic and for elapsed-age arithmetic.
 
-Later-start companies receive conference and AI Summit invitations only after a first launch. An Office Floor kit alone does not mean there is a product to demonstrate. Classic retains its ordinary invitation rules.
+Later-start companies receive conference and AI Summit invitations only after a first launch. Starting permissions do not mean there is a product to demonstrate. Classic retains its ordinary invitation rules.
 
 Earlier eras are chapters, not decades of repetitive simulation. Proposed playable lengths in `B.eraChapters`: pre-internet 156 weeks, dot-com 208 weeks, Web 2.0 208 weeks, followed by the existing modern timeline. Their calendar spans are 1990 to 1997, 1997 to 2003, and 2003 to 2019. A chapter's calendar maps its elapsed fraction monotonically into its historical span. This abstraction is stated on the mode card: "A career in chapters. Earlier years pass faster." Tenure and cooldowns count playable weeks, not the compressed calendar.
 
@@ -160,7 +160,10 @@ Further additions, adopted per phase rather than speculatively added to saves:
 
 - Earlier `era.id` values `preinternet`, `dotcom`, `web2`; earlier keys in `eraSchedule`; keep Classic's ordinal at zero and earlier eras below zero so numeric AI gates do not accidentally open. Audit every array indexed by era before using this convention.
 - `founding.timelineVersion` and `founding.mode` for chapter routing and run length. Old modern saves keep their exact schedule and duration.
+- `founding.earlyChapters`: ordered saved records `{ id, weeks, startYear, endYear }`. Calendar mapping and the extra career duration read these records so a bridge save never silently acquires another chapter. `flags.erasVisited` records only eras actually played in a historical career.
 - `flags.dotcom`: current phase, entered week, float choice, settlement-applied flag and recovery flag. All decision, market and goal readers derive from this one saved record. Existing `decision`, `chat`, `era` and `goal` events suffice.
+- Dot-com milestone news uses ordinary toasts and important saved chat posts for the boom, warning and recovery. Only the float and bust require a choice. A delayed, unanswered bust settles with the no-retention-spending choice at recovery; an expired float cannot grant cash afterward. Retention spending is calculated after any public-company charge, each capped against remaining nonnegative cash.
+- `dotcom_banner` uses the renderer's generic crate fallback until art supplies its rack model. Existing desks/screens and room shell stand in for cubicles and CRTs; AwayIM keeps the Yak icon and layout. Annual SaaS conferences and awards wait until Classic; period trade shows remain available as campaigns. These stand-ins have no new model or audio assets.
 - Boxed distribution: saved per-product inventory, installed customer count, batch deliveries and sales/returns totals; `orderBatch` and `mailPatch` actions with explicit refusal reasons. No silent reinterpretation of `customers` or `mrr`.
 - Web 2.0: per-project compatibility work captured at creation; per-product compatible-release marker; existing trait and growth events can announce `legacy_whisperer`.
 - Profile API in save/UI: `loadProfile`, `recordAchievements`, `availableStarts`; run simulation takes validated options and never reads browser storage. Profile export/import is separate from a company save.

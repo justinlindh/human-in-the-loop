@@ -2,7 +2,9 @@
 // h = { mrr, customers, leaders, ipoReady, desks, treeDone }. reward: { cash, brand } applied once; rewardText: the
 // same in short words ("+$5K, +2 brand"); trophy: shown on the shelf. progress(state, h), on count goals, returns { n, of }
 // for a progress bar, with n capped at of; h comes from goalHelpers in src/sim/goals.js.
+import { DOTCOM_GOALS } from './dotcom.js';
 export const GOALS = [
+  ...DOTCOM_GOALS,
   {
     id: 'place_desks', group: 'Getting started', name: 'Make room for a hire', trophy: false,
     desc: 'The founders have their desks. Buy a third desk set so your first hire has somewhere to sit.',

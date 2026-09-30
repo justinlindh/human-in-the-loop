@@ -7,6 +7,7 @@ import { icon, reactionIcon } from './icons.js';
 import { portraitImg } from './widgets.js';
 import { CHAT_CHANNELS } from '../contract/events.js';
 import { loadSettings, saveSetting, YAK_LEVELS, yakLevel, setYakLevel } from './settings.js';
+import { chatAppName } from '../data/early-eras.js';
 import { createPromptView } from './chatPrompts.js';
 import { createPostBar } from './yakPosts.js';
 import { memeView, createMemeBox } from './memes.js';
@@ -124,7 +125,7 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
     }
     el.classList.toggle('max', on);
     maxBtn.replaceChildren(icon(on ? 'close' : 'expand', { size: 13 }));
-    setTip(maxBtn, on ? 'Back to the corner' : 'Open Yak big');
+    setTip(maxBtn, on ? 'Back to the corner' : `Open ${appName} big`);
     list.scrollTop = list.scrollHeight;
     onMaximize?.(on);
   }
@@ -237,8 +238,18 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
   }
 
   let quietText = '';
+  let appName = 'Yak';
   let markSig = '';
   function update(s) {
+    const name = chatAppName(s);
+    if (name !== appName) {
+      appName = name;
+      setText(head.querySelector('.sbrand'), name);
+      setTip(head, touchUI() ? name : `${name} (C)`);
+      setTip(maxBtn, maximized ? 'Back to the corner' : `Open ${name} big`);
+      maxBtn.setAttribute('aria-label', `Maximize ${name}`);
+      sizeBtns.forEach((b, i) => setTip(b, `${Object.keys(SIZES)[i]} ${name}`));
+    }
     prompts.sync(s);
     posts.update(s);
     const open = prompts.open();

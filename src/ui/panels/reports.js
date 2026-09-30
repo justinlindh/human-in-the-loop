@@ -55,13 +55,14 @@ export function reportsPanel(ctx, arg) {
   const syncBanner = (s) => {
     const o = retireOptions(s);
     const r = s.rival;
-    const sig = `${o.ipo?.ok}|${o.acquired?.ok}|${o.acquired?.by}|${s.flags?.anniversaryScore}|${r ? `${r.status}${Math.round((r.strength ?? 0) / 5)}` : ''}|${s.purpose ? `${s.purpose.mission}${Math.round(s.purpose.value ?? 0)}${s.purpose.tests?.length}` : ''}`;
+    const sig = `${s.flags?.dotcom?.phase}|${o.ipo?.ok}|${o.acquired?.ok}|${o.acquired?.by}|${s.flags?.anniversaryScore}|${r ? `${r.status}${Math.round((r.strength ?? 0) / 5)}` : ''}|${s.purpose ? `${s.purpose.mission}${Math.round(s.purpose.value ?? 0)}${s.purpose.tests?.length}` : ''}`;
     if (sig === retireSig) return;
     retireSig = sig;
     const anniv = s.flags?.anniversaryScore;
     bannerHost.replaceChildren(...[
       erasPreview && s.founding?.startEra ? h('div.card.small', { text: `${ERA_STARTS[s.founding.startEra]?.name ?? s.founding.startEra} start · era score x${s.founding.eraScoreMult}` }) : null,
-      Number.isFinite(anniv) ? h('div.card.annivcard', null, icon('award', { size: 22 }), h('b', { text: 'Anniversary score' }), h('b.num.big', { text: fmtNum(anniv) }), h('span.small.muted', { text: 'Locked in at 20 years. You kept going.' })) : null,
+      erasPreview && s.flags?.dotcom ? h('div.card.small', { text: `Dot-com chapter: ${s.flags.dotcom.phase}. ${s.flags.dotcom.recovered ? 'Normal demand has resumed.' : 'Ship during the boom and keep runway for the bust. Recovery preserves your company and continues in Classic.'}` }) : null,
+      Number.isFinite(anniv) ? h('div.card.annivcard', null, icon('award', { size: 22 }), h('b', { text: 'Anniversary score' }), h('b.num.big', { text: fmtNum(anniv) }), h('span.small.muted', { text: s.founding?.earlyChapters?.length ? 'Locked in at the career checkpoint. You kept going.' : 'Locked in at 20 years. You kept going.' })) : null,
       purposeCard(s),
       rivalCard(s),
       retireBanner(ctx, s)].filter(Boolean));

@@ -1269,3 +1269,58 @@ staff · raised by a rule · cooldown 100000 weeks · about anyone in
 | Set a company standard | their meaning +4; team meaning -1 |
 | Let the linter decide | team meaning -1; know-how +2 |
 | Ban the topic | team meaning -1 |
+
+## The eyeball economy `dotcom_eyeballs`
+
+era · weight 2 · cooldown 52 weeks
+
+Happens: nothing
+
+## The roadshow has a roadshow `dotcom_ipo_frenzy`
+
+era · weight 2 · cooldown 52 weeks
+
+| Choice | Effects |
+|---|---|
+| Stay private | brand +2; stay private |
+| Take the small float | cash +$180,000; dilution score x0.8; public-company bust cost |
+
+## An interesting market `dotcom_warning`
+
+era · weight 2 · cooldown 52 weeks
+
+Happens: nothing
+
+## The market discovers a second direction `dotcom_bust`
+
+era · weight 2 · cooldown 52 weeks
+
+| Choice | Effects |
+|---|---|
+| Preserve cash | lose 25% of live-product customers once; if public, first pay the lesser of $50,000 and 20% of cash |
+| Call every customer | lose 10% of live-product customers once; retention costs the lesser of $20,000 and 10% of cash; if public, first pay the lesser of $50,000 and 20% of cash |
+
+## A business model, at last `dotcom_recovery`
+
+era · weight 2 · cooldown 52 weeks
+
+Happens: nothing
+
+## PetParcel wants a partnership `dotcom_sock_pivot`
+
+misc · weight 2 · cooldown 52 weeks
+
+| Choice | Effects |
+|---|---|
+| Sponsor the sock | cash -$3,000; hype on your newest product +5 |
+| Wish the sock well | nothing |
+
+## Who volunteers for New Year’s Eve? `dotcom_y2k_oncall`
+
+era · raised by a rule · cooldown 52 weeks
+
+| Choice | Effects |
+|---|---|
+| I’ll take the pager | volunteer on call; no cost or work penalty |
+| Share the watch | volunteer on call; no cost or work penalty |
+| Book Clive at triple rate | cash -$9,000; Clive on call; no extra protection; requires you can afford Clive’s triple rate |

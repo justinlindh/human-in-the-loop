@@ -42,6 +42,10 @@ function modifierText(m) {
 const ASSIGN = { mentor: 'a free senior starts mentoring them', hardProblem: 'they move to a hard problem', sabbatical: 'they go on sabbatical' };
 // Effects whose meaning lives in code, phrased with the balance values they use.
 const SPECIAL = {
+  dotcom: (v) => v.startsWith('y2k_') ? (v === 'y2k_consultant' ? `cash -${money(B.y2k.consultantRate * B.y2k.consultantMultiplier)}; Clive on call; no extra protection` : 'volunteer on call; no cost or work penalty')
+    : v === 'float' ? `cash +${money(B.dotcom.floatCash)}; dilution score x0.8; public-company bust cost`
+    : v === 'private' ? `brand +${B.dotcom.privateBrand}; stay private`
+      : `lose ${Math.round((v === 'retain' ? B.dotcom.retainLoss : B.dotcom.preserveLoss) * 100)}% of live-product customers once; ${v === 'retain' ? `retention costs the lesser of ${money(B.dotcom.retainCostCap)} and ${B.dotcom.retainCashShare * 100}% of cash; ` : ''}if public, first pay the lesser of ${money(B.dotcom.floatCostCap)} and ${B.dotcom.floatCashShare * 100}% of cash`,
   assign: (v) => ASSIGN[v.type] ?? `they're assigned to ${v.type}`,
   startCraft: () => 'a craft project starts, if none is running',
   pivot: () => 'your newest product pivots',

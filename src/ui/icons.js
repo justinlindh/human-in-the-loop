@@ -18,6 +18,7 @@ export const ICONS = {
   'menu.models': I('🧠', 'Bottom menu button', 30),
   'menu.automation': I('🤖', 'Bottom menu button', 30),
   'era.classic': I('☕', 'Era emblem: arrival card and HUD', 24),
+  'era.dotcom': { ...I('☕', 'Era emblem: arrival card and HUD', 24), alias: 'era.classic' },
   'era.chatgbt': I('💬', 'Era emblem: arrival card and HUD', 24),
   'era.agents': I('🤖', 'Era emblem: arrival card and HUD', 24),
   'era.consolidation': I('🧲', 'Era emblem: arrival card and HUD', 24),
@@ -92,6 +93,7 @@ export const ICONS = {
   'item.noc': I('📟', 'Office shop item card', 30),
   'item.office_robot': I('🤖', 'Office shop item card', 30),
   'item.server_rack': I('🗄️', 'Office shop item card', 30),
+  'item.dotcom_banner': { ...I('🗄️', 'Office shop item card', 30), alias: 'item.server_rack' },
   'item.trophy_case': I('🏆', 'Office shop item card', 30),
   'research.eval_harness': I('🧪', 'Internal tools card', 26),
   'research.agent_sandbox': I('📦', 'Internal tools card', 26),
@@ -220,6 +222,8 @@ async function loadManifests() {
       for (const [name, entry] of Object.entries(m)) ART.set(name, entry);
     }
     for (const [name, entry] of Object.entries(root.icons ?? {})) ART.set(name, entry);
+    // Historical stand-ins share existing art until their own manifest entry is supplied.
+    for (const [name, def] of Object.entries(ICONS)) if (!ART.has(name) && def.alias && ART.has(def.alias)) ART.set(name, ART.get(def.alias));
   } catch {
     return;
   }

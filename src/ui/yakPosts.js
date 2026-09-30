@@ -7,6 +7,7 @@ import { h, setText, toggleClass } from './dom.js';
 import { icon } from './icons.js';
 import { SIMX } from './simapi.js';
 import { phoneLayout } from './media.js';
+import { chatAppName } from '../data/early-eras.js';
 
 // The sim names each post's icon by what it shows; these are the glyphs for them.
 export const POST_ICON = { megaphone: 'channel.ads', siren: 'bot.pager', laugh: 'react.laugh', pizza: 'react.pizza', bullhorn: 'channel.launch' };
@@ -43,8 +44,9 @@ export function createPostBar({ layer, getState, onPost }) {
     if (!list) return;
     close();
     const sheet = phoneLayout();
-    open = h(`div.ypost-pick${sheet ? '.sheet' : ''}`, { role: 'dialog', 'aria-label': 'Post to Yak', dataset: { occludes: '' }, onpointerdown: (e) => e.stopPropagation() },
-      h('div.ypost-head', null, h('b', { text: 'Post to Yak' }), h('button.btn.small.ypost-x', { type: 'button', 'aria-label': 'Close', onclick: (e) => { e.stopPropagation(); close(); } }, icon('close', { size: 12 }))),
+    const label = `Post to ${chatAppName(getState())}`;
+    open = h(`div.ypost-pick${sheet ? '.sheet' : ''}`, { role: 'dialog', 'aria-label': label, dataset: { occludes: '' }, onpointerdown: (e) => e.stopPropagation() },
+      h('div.ypost-head', null, h('b', { text: label }), h('button.btn.small.ypost-x', { type: 'button', 'aria-label': 'Close', onclick: (e) => { e.stopPropagation(); close(); } }, icon('close', { size: 12 }))),
       ...list.map(row));
     (sheet ? layer : bar).append(open);
     btn.setAttribute('aria-expanded', 'true');
@@ -66,6 +68,7 @@ export function createPostBar({ layer, getState, onPost }) {
   // Per frame: cheap. The options are read once a week (and whenever the picker opens).
   let week = null;
   function update(s) {
+    headBtn.setAttribute('aria-label', `Post to ${chatAppName(s)}`);
     if (s.week === week) return;
     week = s.week;
     const all = SIMX.postOptions ? SIMX.postOptions(s) : null;

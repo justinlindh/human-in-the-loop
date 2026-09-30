@@ -39,7 +39,9 @@ export function createGameOver({ layer, controls, sfx, act }) {
     shown = g;
     timers.forEach(pClear);
     timers = [];
-    const [title, sub] = (g.reason === 'retired' ? RETIRED[g.retiredVia] : HEADLINE[g.reason]) ?? [g.won ? 'You won' : 'Game over', ''];
+    const [title, sub] = (g.reason === 'anniversary' && s.founding?.earlyChapters?.length
+      ? ['A career worth keeping', 'The early chapter and twenty modern years are complete. The company can keep going.']
+      : g.reason === 'retired' ? RETIRED[g.retiredVia] : HEADLINE[g.reason]) ?? [g.won ? 'You won' : 'Game over', ''];
     let run = null;
     try { run = typeof SIM.scoreRun === 'function' ? SIM.scoreRun(s) : null; } catch { run = null; }
     const d = calendarDate(s);

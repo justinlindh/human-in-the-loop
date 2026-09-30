@@ -566,6 +566,71 @@ export async function runStandupTableCheck(R, S, { dt = 1 / 30, low = false } = 
   return { pass, seated, want, speakersSeated, offSeat, outside, insideFurniture: inside, minGap: +minGap.toFixed(2), chairsWrong, facesRead: faces, endedAfterS: t, stillAtTable: stillSeated };
 }
 
+// The rollover has its own scene so its cast and random draws cannot alter other moment fixtures.
+export async function runY2kChecks(R, S, { dt = 1 / 30 } = {}) {
+  const results = [];
+  const step = (n = 1) => { for (let i = 0; i < n; i++) { R.sync(S); R.advance(dt); } };
+  const ordinary = () => R.props.current().find((p) => p.prop === 'printer')?.obj;
+  const kitchen = ordinary();
+  const position = kitchen?.position.clone(), rotation = kitchen?.rotation.clone();
+  const unchanged = () => ordinary() === kitchen && kitchen?.visible === true &&
+    kitchen.position.equals(position) && kitchen.rotation.equals(rotation);
+  let kitchenUntouched = !!kitchen;
+  R.moments.full = true;
+  const prior = S.flags.y2k;
+  S.office.props ??= [];
+  S.flags.y2k = { stage: 'rollover', rolloverWeek: S.week, printerId: 'y2k-printer' };
+  S.office.props.push({ id: 'y2k-printer', prop: 'printer', x: 1, y: 1, since: S.week });
+  let worst = 0, samples = 0, worstWho = null, worstAt = null;
+  const beats = new Set();
+  for (let i = 0; i < 30 * 20; i++) {
+    step(1);
+    kitchenUntouched &&= unchanged();
+    for (const [id, kind] of R.moments.active) if (kind === 'y2k') {
+      const stage = R.moments.staging(id);
+      beats.add(stage.beat);
+      if (R.isSeated(id)) continue;
+      samples++;
+      const own = R.perks.peek(id)?.seat;
+      const root = charOf(R.scene, id);
+      for (const e of R.office.placed.values()) {
+        if (e.id === own) continue;
+        const v = bodyInside(root, meshes(e.obj), false);
+        if (v > worst) { worst = v; worstWho = `${id} in ${e.itemId}:${e.id}`; worstAt = actorAt(R, id); }
+      }
+    }
+  }
+  const complete = ['countdown', 'nothing', 'invoice'].every((b) => beats.has(b));
+  results.push({ name: 'moment:y2k', pass: complete && samples > 0 && worst < 0.01, beats: [...beats], samples, insidePct: +(100 * worst).toFixed(2), worstWho, worstAt });
+  step(30);
+  const source = R.props.objectOf('y2k-printer');
+  const ended = !R.spotlight() && !R.moments.active.some(([, kind]) => kind === 'y2k');
+  // A kitchen jam and its replacement must not replace, move or hide the rollover prop.
+  S.pendingDecision = { eventId: 'printer_jam', subjectId: S.staff[0].id,
+    stage: { prop: 'printer_jammed', anchor: 'kitchen', x: 1, y: 1 } };
+  step(30);
+  const jammed = R.props.current().find((p) => p.prop === 'printer_jammed')?.obj;
+  const independent = !!source && source !== kitchen && source.visible && R.props.objectOf('y2k-printer') === source;
+  S.flags.y2k = { stage: 'rollover', rolloverWeek: S.week, printerId: 'y2k-printer' };
+  step();
+  const replayed = R.spotlight()?.kind === 'y2k_rollover' && source?.visible === false;
+  const skipped = R.endSpotlight() === true;
+  const restored = source?.visible === true && R.props.current().find((p) => p.prop === 'printer_jammed')?.obj === jammed;
+  S.office.props = S.office.props.filter((p) => p.id !== 'y2k-printer');
+  step(30);
+  const removedOnlyY2k = !R.props.objectOf('y2k-printer') && !!jammed &&
+    R.props.current().find((p) => p.prop === 'printer_jammed')?.obj === jammed && jammed.visible;
+  S.pendingDecision = null;
+  step(30);
+  const kitchenReturned = !!ordinary() && ordinary().position.equals(position) && ordinary().rotation.equals(rotation);
+  results.push({ name: 'prop:y2k-printer-isolation',
+    pass: kitchenUntouched && ended && independent && replayed && skipped && restored && removedOnlyY2k && kitchenReturned,
+    kitchenUntouched, ended, independent, replayed, skipped, restored, removedOnlyY2k, kitchenReturned });
+  S.flags.y2k = prior;
+  R.moments.full = false;
+  return results;
+}
+
 // Staged props standing on the floor block walking like furniture: one dropped ahead of a walker
 // is walked around, and one dropped where someone stands steps them aside.
 export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
