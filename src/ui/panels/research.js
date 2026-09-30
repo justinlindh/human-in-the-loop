@@ -1,5 +1,6 @@
 import { h, setText, setWidth, fmtNum, toggleClass } from '../dom.js';
 import { RESEARCH } from '../../data/research.js';
+import { periodCopy } from '../../data/period-content.js';
 import { liveView } from '../widgets.js';
 import { icon } from '../icons.js';
 import { beforeEra } from '../v2content.js';
@@ -19,12 +20,13 @@ export function researchView(ctx, { onStarted }) {
     (s, bind) => {
       const done = new Set(s.research?.done ?? []);
       // AI research stays out of sight until the Agents era.
-      const cards = treeOrder().filter(({ r }) => !(r.ai && beforeEra(s, 'agents'))).map(({ r, depth }) => {
+      const cards = treeOrder().filter(({ r }) => !(r.ai && beforeEra(s, 'agents'))).map(({ r: original, depth }) => {
+        const r = periodCopy(s, 'research', original);
         const proj = s.projects.find((j) => j.kind === 'research' && j.researchId === r.id);
         const state = done.has(r.id) ? 'done' : proj ? 'running' : r.requires && !done.has(r.requires) ? 'locked' : 'open';
         let action;
         if (state === 'done') action = h('span.pill.good', null, icon('check', { size: 12 }), ' Built');
-        else if (state === 'locked') action = h('span.pill.warn', null, icon('lock', { size: 12 }), ` Requires ${RESEARCH[r.requires]?.name ?? r.requires}`);
+        else if (state === 'locked') action = h('span.pill.warn', null, icon('lock', { size: 12 }), ` Requires ${periodCopy(s, 'research', RESEARCH[r.requires])?.name ?? r.requires}`);
         else if (state === 'running') {
           const fill = h('i');
           const pct = h('span.num.small');

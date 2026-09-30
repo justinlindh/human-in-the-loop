@@ -6,6 +6,7 @@ import { emitChat, teamMeaning } from './chat.js';
 import { eraLines, eraAllowsText, eraAtLeast } from './eras.js';
 import { POSTS } from '../data/posts.js';
 import { MEMES } from '../data/memes.js';
+import { isPeriod, periodPost } from '../data/period-content.js';
 
 // The founders' quick posts in Yak (issue #16). Whether a post lands, falls flat or backfires follows from
 // the moment; its own stream, seeded by the game seed, the week and a post sequence, picks only the words,
@@ -22,6 +23,7 @@ const MEME_FITS = {
   agents: (s) => eraAtLeast(s, 'agents'),
 };
 function pickMeme(state, rng) {
+  if (isPeriod(state)) return null;
   const fit = MEMES.filter((m) => MEME_FITS[m.when]?.(state) && eraAllowsText(state, m.alt));
   const outage = fit.filter((m) => m.when === 'outage');
   const pool = outage.length ? outage : fit.filter((m) => m.when !== 'outage');
@@ -68,7 +70,8 @@ export function postOptions(state) {
   if (!B.postsEnabled) return [];
   const last = state.flags.posts?.lastWeek ?? null;
   const ready = last === null ? null : last + B.posts.cooldownWeeks;
-  return POSTS.map((p) => {
+  return POSTS.map((original) => {
+    const p = periodPost(state, original);
     const reason = blocker(state, p);
     const hint = p.id === 'pizza' ? `$${pizzaCost(state).toLocaleString('en-US')} for the office; team meaning and stamina up.` : p.hint;
     return { id: p.id, label: p.label, icon: p.icon, hint, channel: p.channel, available: !reason, reason, readyWeek: ready !== null && ready > state.week ? ready : null };
@@ -103,7 +106,7 @@ function applyOutcome(state, fx) {
 registerAction('postMessage', (outer, { id }) => {
   const { state } = outer;
   if (!B.postsEnabled) return { ok: false, reason: 'Posts are off' };
-  const post = BY_ID[id];
+  const post = periodPost(state, BY_ID[id]);
   if (!post) return { ok: false, reason: 'Unknown message' };
   const why = blocker(state, post);
   if (why) return { ok: false, reason: why };

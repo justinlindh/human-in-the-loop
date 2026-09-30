@@ -313,7 +313,7 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
   }
   if (fx.win === 'acquired' || fx.openOffer) {
     const top = liveProducts(state).reduce((a, b) => (!a || b.mrr > a.mrr ? b : a), null);
-    state.flags.acquisitionOfferFrom = vars?.incumbent ?? incumbentFor(top?.category ?? 'crm').name;
+    state.flags.acquisitionOfferFrom = vars?.incumbent ?? incumbentFor(top?.category ?? 'crm', state).name;
     if (fx.openOffer) state.flags.acquisitionOfferUntil = state.week + B.acquisitionOfferOpenWeeks;
     else {
       state.flags.acquirer = state.flags.acquisitionOfferFrom;

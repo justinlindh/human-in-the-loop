@@ -7,7 +7,7 @@ import { icon, reactionIcon } from './icons.js';
 import { portraitImg } from './widgets.js';
 import { CHAT_CHANNELS } from '../contract/events.js';
 import { loadSettings, saveSetting, YAK_LEVELS, yakLevel, setYakLevel } from './settings.js';
-import { chatAppName } from '../data/early-eras.js';
+import { chatApp } from '../data/early-eras.js';
 import { createPromptView } from './chatPrompts.js';
 import { createPostBar } from './yakPosts.js';
 import { memeView, createMemeBox } from './memes.js';
@@ -26,6 +26,9 @@ const BOT_ICON = {
   '@pagerbot': 'bot.pager', '@vendorbot': 'bot.vendor', '@launchbot': 'bot.launch', '@shipbot': 'bot.launch', '@hr-bot': 'bot.hr',
   '@saasies': 'bot.awards', '@officebot': 'bot.office', '@hackerspewsbot': 'bot.hn', '@newsbot': 'bot.news', '@buildbot': 'bot.build',
 };
+const PERIOD_SENDERS = { '@officebot': 'Office notices', '@newsbot': 'News desk', '@newsdesk': 'Web directory', '@buildbot': 'Build server', '@pagerbot': 'Pager', '@launchbot': 'Release desk', '@shipbot': 'Release desk', '@hr-bot': 'Personnel' };
+const EMOTICONS = { '😂': ':D', '😬': ':-S', '👀': 'o_o', '❤️': '<3', '🔥': '!', '👍': '+1', '🎉': '\\o/', '👏': 'clap', '💯': '100%', '🙌': '\\o/', '🙂': ':-)', '🫠': ':-/', '💀': 'X_X',
+  '🚀': 'launch!', '🫡': 'aye', '💙': '<3', '😢': ":'(", '🐶': 'woof', '☕': 'coffee', '🌱': 'grow', '🍕': 'pizza', '🙃': '(-:', no_at_channel: 'no @' };
 
 // Yak: the office's team chat. Channels with unread badges, threads, reactions, and names you
 // can click to find the person. Messages stay bounded per channel in memory and in the DOM.
@@ -54,15 +57,20 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
   const grip = h('div.ygrip', { title: 'Drag to resize', 'aria-hidden': 'true' });
 
   const tabBtns = {};
+  const tabLabels = {};
   const tabBadges = {};
   const tabsEl = h('div.chat-tabs', null, ...CHANNELS.map((c) => {
     tabBadges[c] = h('span.cbadge');
-    tabBtns[c] = h('button.ctab', { onclick: () => select(c) }, `#${c}`, tabBadges[c]);
+    tabLabels[c] = h('span', { text: `#${c}` });
+    tabBtns[c] = h('button.ctab', { onclick: () => select(c) }, tabLabels[c], tabBadges[c]);
     return tabBtns[c];
   }));
   const quiet = h('div.chat-quiet.banner');
+  const presence = h('b.period-presence');
+  const away = h('span.period-away');
+  const periodBar = h('div.period-chat-status', { hidden: true }, presence, away);
   const list = h('div.chat-body');
-  const el = h('div.chat.yak', { dataset: { occludes: '' } }, grip, head, tabsEl, quiet, list);
+  const el = h('div.chat.yak', { dataset: { occludes: '', chatApp: 'yak' } }, grip, head, periodBar, tabsEl, quiet, list);
   const prompts = createPromptView({ list, onAnswer });
   // The founder's quick posts: a successful one shows its channel, scrolled to the new post.
   const posts = createPostBar({ layer: root.closest('.hitl') ?? root, getState, onPost: (o) => {
@@ -131,7 +139,7 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
   }
 
   function avatar(m) {
-    if (m.from?.startsWith('@')) return h('span.av.bot', null, icon(BOT_ICON[m.from] ?? 'bot.generic', { size: 13 }));
+    if (m.from?.startsWith('@')) return h('span.av.bot', null, icon(chatApp(getState?.()).id === 'yak' ? BOT_ICON[m.from] ?? 'bot.generic' : 'brand.desknet', { size: 13 }));
     const p = m.fromId ? getState?.().staff.find((x) => x.id === m.fromId) : null;
     if (p) return portraitImg(p, 44);
     return h('span.av.gone', { text: (m.from ?? '?').slice(0, 1) });
@@ -145,7 +153,9 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
 
   function node(m) {
     const bot = m.from?.startsWith('@');
-    const name = h(`b.who${m.fromId ? '.link' : ''}`, { text: m.from, title: m.fromId ? 'Find them in the office' : '' });
+    const period = chatApp(getState?.()).id !== 'yak';
+    const from = period && bot ? PERIOD_SENDERS[m.from] ?? m.from : m.from;
+    const name = h(`b.who${m.fromId ? '.link' : ''}`, { text: from, title: m.fromId ? 'Find them in the office' : '' });
     if (m.fromId) name.addEventListener('click', (e) => { e.stopPropagation(); onName?.(m.fromId); });
     const reacts = Object.entries(m.reactions ?? {}).filter(([, n]) => n > 0);
     return h(`div.msg${bot ? '.bot' : ''}${m.replyTo ? '.reply' : ''}`, { dataset: { id: m.id ?? '', root: m.replyTo ?? m.id ?? '' } },
@@ -153,7 +163,7 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
       h('div.mcol', null,
         h('div.mline', null, name, m.week === null ? null : h('span.w.num', { text: `W${calendarDate(getState?.() ?? {}, m.week).week}` })),
         m.image ? (memeView(m.image, { onOpen: (im) => memeBox.open(im) }) ?? h('div.mtext', null, ...withMentions(m.text))) : h('div.mtext', null, ...withMentions(m.text)),
-        reacts.length ? h('div.reacts', null, ...reacts.map(([emo, n]) => h('span.react', null, reactionIcon(emo) ? icon(reactionIcon(emo), { size: 12 }) : emo, h('b.num', { text: ` ${n}` })))) : null));
+        reacts.length ? h('div.reacts', null, ...reacts.map(([emo, n]) => h('span.react', { 'aria-label': `${emo === 'no_at_channel' ? 'No broadcasts' : emo}: ${n}` }, period ? EMOTICONS[emo] ?? emo : reactionIcon(emo) ? icon(reactionIcon(emo), { size: 12 }) : emo, h('b.num', { text: ` ${n}` })))) : null));
   }
 
   // Replies go after the last message of their thread so threads stay together.
@@ -241,14 +251,25 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
   let appName = 'Yak';
   let markSig = '';
   function update(s) {
-    const name = chatAppName(s);
+    const app = chatApp(s);
+    const name = app.name;
     if (name !== appName) {
       appName = name;
+      el.dataset.chatApp = app.id;
+      head.querySelector('.slogo').replaceChildren(icon(`brand.${app.id}`, { size: 18 }));
+      periodBar.hidden = app.id === 'yak';
+      setText(away, app.away ?? '');
+      for (const c of CHANNELS) setText(tabLabels[c], app.channels?.[c] ?? `#${c}`);
       setText(head.querySelector('.sbrand'), name);
       setTip(head, touchUI() ? name : `${name} (C)`);
       setTip(maxBtn, maximized ? 'Back to the corner' : `Open ${name} big`);
       maxBtn.setAttribute('aria-label', `Maximize ${name}`);
       sizeBtns.forEach((b, i) => setTip(b, `${Object.keys(SIZES)[i]} ${name}`));
+      renderChannel();
+    }
+    if (app.id !== 'yak') {
+      const online = (s.staff ?? []).filter((p) => p.mood !== 'away').length;
+      setText(presence, `${app.status} · ${online} online`);
     }
     prompts.sync(s);
     posts.update(s);

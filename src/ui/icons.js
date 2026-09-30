@@ -69,6 +69,9 @@ export const ICONS = {
   'stat.reliability': I('🛡️', 'Reliability and Rigor', 16),
   'stat.novelty': I('💡', 'Freshness and Ideas', 16),
   'brand.yak': I('🐃', 'Yak logo in the chat header', 18),
+  'brand.awayim': { ...I('', 'AwayIM hourglass buddy emblem', 18), svg: '<path d="M6 3h12v4l-5 5 5 5v4H6v-4l5-5-5-5z" fill="#ffe074" stroke="#493c0b" stroke-width="2"/><path d="M8 6h8l-4 4zm0 12 4-4 4 4z" fill="#96691b"/>' },
+  'brand.hipcheck': { ...I('', 'HipCheck room emblem', 18), svg: '<path d="M3 4h18v13H10l-5 4v-4H3z" fill="#ecf8ff" stroke="#173b54" stroke-width="2"/><path d="m7 10 3 3 7-6" fill="none" stroke="#217b60" stroke-width="2.5"/>' },
+  'brand.desknet': { ...I('', 'DeskNet terminal emblem', 18), svg: '<path d="M2 3h20v15H2zm5 18h10" fill="#14271c" stroke="#80df92" stroke-width="2"/><path d="m5 7 3 3-3 3m6 0h6" fill="none" stroke="#80df92" stroke-width="2"/>' },
   'bot.news': I('📰', 'Yak avatar for @newsbot', 13),
   'bot.build': I('🔧', 'Yak avatar for @buildbot', 13),
   'battery.low': I('🪫', 'Tired marker (stamina under 25), running-on-empty warnings', 14),
@@ -254,6 +257,14 @@ function loadSvg(file) {
 
 function fill(el, name) {
   const art = ART.get(name);
+  if (!art && ICONS[name]?.svg) {
+    const svg = document.createElementNS(SVGNS, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.innerHTML = ICONS[name].svg;
+    el.replaceChildren(svg);
+    return;
+  }
   if (!art) {
     el.textContent = ICONS[name]?.glyph ?? '❔';
     return;
@@ -302,6 +313,6 @@ export function icon(name, { size, title } = {}) {
 
 // Names in the registry that still fall back to an emoji.
 export function iconFallbacks() {
-  return Object.keys(ICONS).filter((n) => !ART.has(n));
+  return Object.keys(ICONS).filter((n) => !ART.has(n) && !ICONS[n].svg);
 }
 export const iconsLoaded = () => artReady;

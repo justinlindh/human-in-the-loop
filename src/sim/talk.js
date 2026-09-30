@@ -10,6 +10,7 @@ import { CATEGORIES } from '../data/categories.js';
 import { MODELS } from '../data/models.js';
 import { ITEMS } from '../data/items.js';
 import { incumbentFor } from '../data/incumbents.js';
+import { isPeriod, periodAllows, periodText, PERIOD_BROADCASTS, PERIOD_BROADCAST_SIGHS } from '../data/period-content.js';
 
 const first = (p) => p.name.split(' ')[0];
 const ONGOING = new Set(['outage', 'burnout', 'lowcash', 'lockdown', 'rival', 'pet']);
@@ -78,7 +79,7 @@ function slotValues(ctx, cast, context) {
     a: cast.a ? first(cast.a) : null, b: cast.b ? first(cast.b) : null, c: cast.c ? first(cast.c) : null,
     product: prod?.name ?? null,
     category: prod ? CATEGORIES[prod.category].name : null,
-    incumbent: incumbentFor(prod?.category ?? state.market.unlockedCategories[0]).name,
+    incumbent: incumbentFor(prod?.category ?? state.market.unlockedCategories[0], state).name,
     model: prod?.model ? MODELS[prod.model].name : auto.level > 0 ? MODELS[auto.model].name : null,
     project: project?.name ?? null,
     coworker: others.length ? first(pick(rng, others)) : null,
@@ -111,9 +112,9 @@ function fill(text, values) {
 
 // A variant for a turn that fits the era and the office and has not been used lately, filled in.
 function chooseLine(ctx, variants, values, talk) {
-  const fits = variants.filter((v) => eraAllowsText(ctx.state, v) && !talk.recent.includes(v));
+  const fits = variants.filter((v) => eraAllowsText(ctx.state, periodText(ctx.state, v)) && !talk.recent.includes(v));
   for (const v of shuffle(ctx.rng, fits)) {
-    const text = fill(v, values);
+    const text = fill(periodText(ctx.state, v), values);
     if (text !== null) return { template: v, text };
   }
   return null;
@@ -187,6 +188,7 @@ function runOne(ctx, pool, context, talk) {
 
 function eligible(state, talk, h, { stream, on }) {
   return TALK.filter((t) => t.stream === stream
+    && periodAllows(state, 'talk', t.id)
     && (on ? t.on === on : !t.on)
     && (talk.cd[t.id] ?? -1) <= state.week
     && !talk.rareOff.includes(t.id)
@@ -302,7 +304,7 @@ function atChannel(ctx, talk, factor) {
   const outage = state.outage && state.outage.weeks <= 1 ? state.products.find((p) => p.id === state.outage.productId) : null;
   const warranted = outage && chance(rng, B.atChannelWarrantedChance);
   if (!warranted && !chance(rng, B.atChannelChance * factor)) return;
-  const beat = warranted ? AT_CHANNEL_WARRANTED : pick(rng, AT_CHANNEL);
+  const beat = warranted ? AT_CHANNEL_WARRANTED : pick(rng, isPeriod(state) ? PERIOD_BROADCASTS : AT_CHANNEL);
   const values = { a: first(offender), product: outage?.name ?? '' };
   const text = (t) => t.replace(/\{(a|product)\}/g, (_, k) => values[k]);
   const root = emitChat(ctx, { channel: 'general', person: offender, text: text(pick(rng, beat.post)), important: !!warranted, outage: !!warranted,
@@ -312,7 +314,7 @@ function atChannel(ctx, talk, factor) {
   replies.forEach((r, i) => { if (others[i]) emitChat(ctx, { channel: 'general', person: others[i], text: text(r), replyTo: root.id, outage: !!warranted }); });
   const sigher = state.staff.find((p) => p.id !== offender.id && p.seniority === 'senior' && inOffice(p));
   if (!warranted && sigher && chance(rng, B.atChannelSighChance)) {
-    const lines = ['Someone @channeled again.', 'We need to talk about @channel. Again.', 'My phone just told me about a yogurt.'];
+    const lines = isPeriod(state) ? PERIOD_BROADCAST_SIGHS : ['Someone @channeled again.', 'We need to talk about @channel. Again.', 'My phone just told me about a yogurt.'];
     ctx.emit({ type: 'say', id: newId(state, 'v'), week: state.week, staffId: sigher.id, text: pick(rng, lines), toId: null, replyTo: null });
   }
   talk.atChannelNext = state.week + B.atChannelGapWeeks;

@@ -8,6 +8,7 @@ import { POLICIES as POLICY_MAP } from '../data/policies.js';
 import { CHANNELS as CHANNEL_MAP } from '../data/channels.js';
 import { OFFICE_STAGES } from '../data/office.js';
 import { TRENDS } from '../data/trends.js';
+import { periodCopy } from '../data/period-content.js';
 import { comboFit } from '../data/combos.js';
 import { incumbentFor } from '../data/incumbents.js';
 import { B } from '../sim/balance.js';
@@ -37,11 +38,11 @@ export const FUNCTION_INFO = {
   marketing: { name: 'Marketing Copy' }, qa: { name: 'QA' }, ops: { name: 'Ops' },
 };
 
-export function trendName(id) {
-  return TRENDS[id]?.name ?? String(id ?? '');
+export function trendName(id, state) {
+  return periodCopy(state, 'trends', TRENDS[id])?.name ?? String(id ?? '');
 }
-export function trendText(id) {
-  return TRENDS[id]?.text ?? '';
+export function trendText(id, state) {
+  return periodCopy(state, 'trends', TRENDS[id])?.text ?? '';
 }
 
 // A trend's effects from the sim's TRENDS data: each angle or category it touches, with its
@@ -82,7 +83,7 @@ export function modelName(id) { return MODEL[id]?.name ?? id; }
 export function modelColor(id) { return MODEL[id]?.color ?? '#8a8a8a'; }
 export function roleColor(role) { return ROLES[role]?.color ?? '#8a8a8a'; }
 export function roleName(role) { return ROLES[role]?.name ?? role; }
-export function traitInfo(id) { return TRAIT[id] ?? { id, name: id.replace(/_/g, ' '), desc: '' }; }
+export function traitInfo(id, state) { return periodCopy(state, 'traits', TRAIT[id]) ?? { id, name: id.replace(/_/g, ' '), desc: '' }; }
 
 // Seats: the sim's desk count when it has one, else desk sets placed, else the stage's fixed capacity.
 export function capacityOf(state) {

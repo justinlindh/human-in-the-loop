@@ -6,6 +6,7 @@ import { staffMods, mentorOf, removeStaff } from './staff.js';
 import { automationExposure, oversightRequired, oversightProvided } from './automation.js';
 import { liveProducts } from './projects.js';
 import { CHATTER } from '../data/chatter.js';
+import { isPeriod, periodChatter } from '../data/period-content.js';
 import { emitChat } from './chat.js';
 import { modifierBonus } from './modifiers.js';
 import { itemBonus } from './bonus.js';
@@ -82,7 +83,9 @@ export function meaningSystem(ctx) {
   });
   for (const p of leavers) {
     const recent = state.flags.recentFarewells ?? [];
-    const line = pick(ctx.rng, eraLines(state, CHATTER.farewell).filter((l) => !recent.includes(l)));
+    const safe = eraLines(state, periodChatter(state, 'farewell', CHATTER.farewell));
+    const fresh = safe.filter((l) => !recent.includes(l));
+    const line = pick(ctx.rng, !fresh.length && isPeriod(state) ? safe : fresh);
     state.flags.recentFarewells = [...recent, line].slice(-4);
     emitChat(ctx, { person: p, text: line, kind: 'farewell' });
     ctx.emit({ type: 'resign', staffId: p.id, name: p.name, fired: false, reason: 'burnout' });
