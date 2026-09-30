@@ -3,8 +3,10 @@
 // balance comparisons.
 //
 //   node scripts/events/pair.js [--a <root>] [--b <root>] [--bots balanced,sensible] [--seeds 300]
+//        [--start-era <era>]
 //        [--fields 'name: <js over r, s>, name2: <js>'] [--jobs N] [--json out.json] [--timeout 3600]
 //
+// --start-era founds every bot company in that era on both sides (default Classic; an unknown era exits 2).
 // --a is the base (default: origin/main, in a temporary worktree removed afterwards) and --b the
 // change (default: this checkout). Per bot it reports how many seeds end identically (ending reason,
 // weeks, score and final random state), exit % before and after with the seeds lost (exited on a, not
@@ -29,9 +31,9 @@ const fail = (msg) => { console.error(`pair: ${msg}`); process.exit(2); };
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SELF = fileURLToPath(import.meta.url);
 
-async function runOne({ root, bot, seed, fields }) {
+async function runOne({ root, bot, seed, fields, startEra }) {
   const { runBot } = await import(pathToFileURL(join(root, 'src/sim/bots.js')).href);
-  const r = runBot(bot, seed);
+  const r = startEra ? runBot(bot, seed, undefined, { founding: { startEra } }) : runBot(bot, seed);
   const s = r.state;
   // Each field is its own expression, so one that throws on this side blanks only itself.
   let extra;
@@ -47,7 +49,7 @@ async function runOne({ root, bot, seed, fields }) {
 if (!isMainThread) {
   (async () => {
     const out = [];
-    for (const run of workerData.runs) out.push(await runOne({ ...run, root: workerData.root, fields: workerData.fields }));
+    for (const run of workerData.runs) out.push(await runOne({ ...run, root: workerData.root, fields: workerData.fields, startEra: workerData.startEra }));
     parentPort.postMessage(out);
   })();
 } else if (process.argv.includes('--side')) {
@@ -61,7 +63,7 @@ if (!isMainThread) {
   const chunks = Array.from({ length: n }, () => []);
   runs.forEach((r, i) => chunks[i % n].push(r));
   const parts = await Promise.all(chunks.map((c) => new Promise((res, rej) => {
-    const w = new Worker(SELF, { workerData: { root, runs: c, fields: spec.fields } });
+    const w = new Worker(SELF, { workerData: { root, runs: c, fields: spec.fields, startEra: spec.startEra } });
     w.once('message', res); w.once('error', rej);
   })));
   writeFileSync(outFile, JSON.stringify(Object.fromEntries(parts.flat())));
@@ -83,7 +85,12 @@ if (!isMainThread) {
   for (const [flag, root] of [['a', a], ['b', b]]) if (root && !existsSync(join(root, 'src/sim/bots.js'))) fail(`--${flag} ${root} is not a checkout with src/sim/bots.js`);
   const { BOTS } = await import(pathToFileURL(join(b, 'src/sim/bots.js')).href);
   const bots = opt('bots', Object.keys(BOTS).join(',')).split(',');
-  const spec = JSON.stringify({ bots, seeds, jobs, fields: parsed });
+  const startEra = opt('start-era', null);
+  if (startEra) {
+    const { ERA_STARTS } = await import(pathToFileURL(join(b, 'src/data/era-modes.js')).href);
+    if (!Object.hasOwn(ERA_STARTS, startEra)) fail(`unknown starting era: ${startEra}`);
+  }
+  const spec = JSON.stringify({ bots, seeds, jobs, fields: parsed, startEra });
   const tmp = mkdtempSync(join(tmpdir(), 'pair-'));
   let baseWorktree = null;
   let code = 0;
