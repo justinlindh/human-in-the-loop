@@ -1,0 +1,86 @@
+[
+  {
+    "name": "era_retail_boxes-day",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_retail_boxes-night",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_retail_boxes-low",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_floppy_stack-day",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_floppy_stack-night",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_floppy_stack-low",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_cd_spindle-day",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_cd_spindle-night",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_cd_spindle-low",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_dotcom_board-day",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_dotcom_board-night",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_dotcom_board-low",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_y2k_clock-day",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_y2k_clock-night",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_y2k_clock-low",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_y2k_sticker-day",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_y2k_sticker-night",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_y2k_sticker-low",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_web2_badge-day",
+    "era": "web2"
+  },
+  {
+    "name": "era_web2_badge-night",
+    "era": "web2"
+  },
+  {
+    "name": "era_web2_badge-low",
+    "era": "web2"
+  }
+]

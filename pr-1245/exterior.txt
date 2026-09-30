@@ -1,0 +1,27 @@
+with-render-lock: waited 0s for GPU render slot 2
+harness: GL gpu (ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 5090 (0x00002B85)), NVIDIA))
+exterior garage/preinternet/high: 900 frames, 1130 car comparisons, 0 overlaps
+exterior garage/preinternet/low: 900 frames, 0 car comparisons, 0 overlaps
+exterior garage/dotcom/high: 900 frames, 565 car comparisons, 0 overlaps
+exterior garage/dotcom/low: 900 frames, 0 car comparisons, 0 overlaps
+exterior garage/web2/high: 900 frames, 565 car comparisons, 0 overlaps
+exterior garage/web2/low: 900 frames, 0 car comparisons, 0 overlaps
+exterior garage/agents/high: 900 frames, 565 car comparisons, 0 overlaps
+exterior garage/agents/low: 900 frames, 0 car comparisons, 0 overlaps
+exterior floor/preinternet/high: 900 frames, 2174 car comparisons, 0 overlaps
+exterior floor/preinternet/low: 900 frames, 0 car comparisons, 0 overlaps
+exterior floor/dotcom/high: 900 frames, 1087 car comparisons, 0 overlaps
+exterior floor/dotcom/low: 900 frames, 0 car comparisons, 0 overlaps
+exterior floor/web2/high: 900 frames, 1087 car comparisons, 0 overlaps
+exterior floor/web2/low: 900 frames, 0 car comparisons, 0 overlaps
+exterior floor/agents/high: 900 frames, 1087 car comparisons, 0 overlaps
+exterior floor/agents/low: 900 frames, 0 car comparisons, 0 overlaps
+exterior hq/preinternet/high: 900 frames, 1064 car comparisons, 0 overlaps
+exterior hq/preinternet/low: 900 frames, 0 car comparisons, 0 overlaps
+exterior hq/dotcom/high: 900 frames, 532 car comparisons, 0 overlaps
+exterior hq/dotcom/low: 900 frames, 0 car comparisons, 0 overlaps
+exterior hq/web2/high: 900 frames, 532 car comparisons, 0 overlaps
+exterior hq/web2/low: 900 frames, 0 car comparisons, 0 overlaps
+exterior hq/agents/high: 900 frames, 532 car comparisons, 0 overlaps
+exterior hq/agents/low: 900 frames, 0 car comparisons, 0 overlaps
+calendar: 9 stages and saved boom/bust phase passed

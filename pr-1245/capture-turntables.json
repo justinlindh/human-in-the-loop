@@ -1,0 +1,58 @@
+[
+  {
+    "name": "era_retail_boxes-turntable",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_floppy_stack-turntable",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_cd_spindle-turntable",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_dotcom_board-turntable",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_web2_badge-turntable",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_y2k_clock-turntable",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_y2k_sticker-turntable",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_payphone-turntable",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_video_sign-turntable",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_pager_billboard-turntable",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_sock_billboard-turntable",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_lease_billboard-turntable",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_beta_billboard-turntable",
+    "era": "dotcom"
+  },
+  {
+    "name": "era_led_billboard-turntable",
+    "era": "dotcom"
+  }
+]
