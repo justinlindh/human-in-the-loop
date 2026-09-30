@@ -540,13 +540,17 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   function letter(p, dt) {
     if (!due(`letter|${p.obj.uuid}`, dt, [2, 4], [12, 18])) return;
     const deskId = p.obj.userData.follow?.deskId;
+    const desk = office.placed.get(deskId);
     // The person the stage names (whose desk it is), else whoever sits at the desk it landed on.
     const r = (p.staffId && recs.get(p.staffId)) || [...recs.values()].find((x) => x.seat === deskId);
     // The named reader is always castable: whatever pose, standup or walk the decision's freeze
     // caught them in gives way, and they go to their seat (claim). Someone the sim has out of the
     // office, or already in another moment, isn't taken.
     if (r && p.staffId === r.id && !r.temp?.claim && !(free().includes(r) && r.char.seated)) claim(r, deskId, p.obj);
-    const ready = r && (r.temp?.claim ? !r.path.length && r.char.seated : free().includes(r) && r.char.seated);
+    // Ambient readers can still be sliding toward the chair in a seated animation.
+    // Wait for the anchor; named claims own their arrival during a decision freeze.
+    const seatedAtDesk = r && desk?.desk && Math.hypot(r.pos.x - desk.desk.seat.x, r.pos.z - desk.desk.seat.z) < 0.06;
+    const ready = r && (r.temp?.claim ? !r.path.length && r.char.seated : seatedAtDesk && free().includes(r) && r.char.seated);
     // Not at their desk right now: look again shortly rather than after the full interval.
     if (!ready) {
       note(r?.id ?? null, 'refuse', { by: 'letter', why: !r ? `nobody sits at ${deskId}` : r.hidden ? 'out of the office' : !free().includes(r) ? `busy (${r.temp?.moment ?? r.temp?.anim ?? (r.path.length ? 'walking' : r.mode)})` : 'not seated' });
@@ -558,7 +562,6 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     // Out of the chair sideways (on the camera's side when both are clear), then back into the aisle
     // to read it; the chair's back and the desk row are in the way of any straight route. They come
     // back the same way.
-    const desk = office.placed.get(deskId);
     const ry = desk?.obj.rotation.y ?? 0, nav = office.nav(), yaw = getYaw();
     const ax = [Math.cos(ry), -Math.sin(ry)], back = [Math.sin(ry), Math.cos(ry)];
     const seat = { x: r.pos.x, z: r.pos.z };
