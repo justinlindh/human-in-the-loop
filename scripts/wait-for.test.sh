@@ -43,5 +43,37 @@ w; [ $rc -eq 124 ] && grep -q 'waiting on: local-ci' "$tmp/out" && ! grep -q -- 
 pr OPEN 'test=SUCCESS,local-ci=SUCCESS,review=PENDING'
 w; [ $rc -eq 0 ] || fail "local-ci and checks green, review pending: $rc $(cat "$tmp/out")"
 
+# Branch updates, in a scratch repository: a PR that is behind main gets main merged in and pushed, unless
+# the worktree has been switched to another branch since the wait began.
+g() { git -c user.name=t -c user.email=t@t "$@"; }
+git init -q --bare -b main "$tmp/origin.git"
+git clone -q "$tmp/origin.git" "$tmp/work" 2>/dev/null
+( cd "$tmp/work" && g checkout -q -b main && g commit -q --allow-empty -m base && g push -q -u origin main \
+  && g checkout -q -b topic && g commit -q --allow-empty -m work && g push -q -u origin topic \
+  && g checkout -q -b other main && g commit -q --allow-empty -m elsewhere \
+  && g checkout -q main && g commit -q --allow-empty -m "main moves" && g push -q origin main && g checkout -q topic )
+# The stand-in gh reports the PR BEHIND on its first look and MERGED after.
+cat >"$tmp/bin/gh" <<F
+#!/usr/bin/env bash
+case "\$*" in
+  "pr view"*) if [ -f "$tmp/looked" ]; then s=MERGED; m=CLEAN; else s=OPEN; m=BEHIND; : >"$tmp/looked"; fi
+    jq -n --arg s "\$s" --arg m "\$m" --arg h "\$(git -C "$tmp/work" rev-parse topic)" '{state: \$s, headRefOid: \$h, headRefName: "topic", baseRefName: "main", mergeStateStatus: \$m, mergeable: "MERGEABLE", statusCheckRollup: [], labels: []}' ;;
+  api*/protection*) exit 1 ;;
+  *) exit 1 ;;
+esac
+F
+up() { # <test command>: run wait-for in the scratch worktree, the PR behind main
+  rm -f "$tmp/looked"; ( cd "$tmp/work" && PATH="$tmp/bin:$PATH" bash "$HERE/wait-for.sh" 9 --poll 0 --timeout 1 --test "$1" >"$tmp/out" 2>&1 ); rc=$?
+}
+before="$(git -C "$tmp/origin.git" rev-parse topic)"
+up 'git checkout -q other'
+[ $rc -eq 7 ] && grep -q 'was on topic when the wait began and is on other now; not pushing' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" = "$before" ] \
+  || fail "a worktree switched to another branch during the tests is not pushed: $rc $(cat "$tmp/out")"
+( cd "$tmp/work" && g checkout -q topic )
+before="$(git -C "$tmp/origin.git" rev-parse topic)"
+up 'true'
+[ $rc -eq 0 ] && grep -q 'pushed' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" != "$before" ] \
+  || fail "a worktree still on its branch is updated and pushed: $rc $(cat "$tmp/out")"
+
 [ $fails -eq 0 ] && echo "wait-for: all cases pass"
 exit $fails
