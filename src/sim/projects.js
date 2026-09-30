@@ -1,7 +1,7 @@
 import { addToRecord } from './record.js';
 import { B } from './balance.js';
 import { int, range, pick, createRng } from './rng.js';
-import { clamp, round, sum, newId, dateOf } from './util.js';
+import { clamp, round, sum, newId, marketYear } from './util.js';
 import { registerAction, registerSystem } from './registry.js';
 import { STATS, defaultAssignment } from './staff.js';
 import { zeroPoints } from './work.js';
@@ -40,7 +40,7 @@ export const findProduct = (state, id) => state.products.find((p) => p.id === id
 export function reviewScore(state, project) {
   const stats = project.stats;
   const total = sum(STATS, (st) => stats[st]);
-  const { yearIndex } = dateOf(project.startedWeek ?? state.week);
+  const yearIndex = marketYear(state, project.startedWeek ?? state.week);
   const effort = project.pointsNeeded ?? B.sizes[project.size].points;
   const quality = effort > 0 ? total / effort : 0;
   const bar = 1 + B.expectationGrowth * Math.min(yearIndex, B.expectationYearsCap);
@@ -113,7 +113,7 @@ function validateNew(state, a) {
 
 registerAction('startProject', (ctx, a) => {
   const { state } = ctx;
-  const { yearIndex } = dateOf(state.week);
+  const yearIndex = marketYear(state);
   let project;
   if (a.kind === 'new') {
     const reason = validateNew(state, a);

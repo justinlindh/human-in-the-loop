@@ -3,7 +3,7 @@ import { dotcomEffect } from './dotcom.js';
 import { preinternetEffect } from './boxed.js';
 import { applyCompatibility } from './web2.js';
 import { chance, pick } from './rng.js';
-import { clamp, newId, dateOf } from './util.js';
+import { clamp, newId, marketYear } from './util.js';
 import { sunsetProduct } from './products.js';
 import { findStaff, tryAssign, removeStaff, makeCandidate, staffMods, endMentorshipsOf } from './staff.js';
 import { liveProducts, findProduct } from './projects.js';
@@ -127,7 +127,7 @@ function pivot(ctx) {
   const model = ANGLES[best.a].ai ? Object.keys(state.models).find((m) => state.models[m].available && !state.models[m].deprecated) ?? weakest.model : null;
   state.projects.push({
     id: newId(state, 'j'), kind: 'new', name: `${weakest.name} 2`, category: best.c, angle: best.a, model, size: 'medium', researchId: null,
-    pointsNeeded: B.sizes.medium.points * (1 + B.pointsGrowthPerYear * dateOf(state.week).yearIndex), progress: 0, stats: { features: 0, polish: 0, reliability: 0, novelty: 0 },
+    pointsNeeded: B.sizes.medium.points * (1 + B.pointsGrowthPerYear * marketYear(state)), progress: 0, stats: { features: 0, polish: 0, reliability: 0, novelty: 0 },
     productId: null, startedWeek: state.week, bankedHype: 0,
   });
   applyCompatibility(state, state.projects.at(-1));

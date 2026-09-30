@@ -1,6 +1,6 @@
 import { addToRecord } from './record.js';
 import { B } from './balance.js';
-import { clamp, sum, dateOf } from './util.js';
+import { clamp, sum, dateOf, marketWeek, marketYear } from './util.js';
 import { dotcomAcquisition } from './dotcom.js';
 import { itemBonus } from './bonus.js';
 import { registerAction, registerSystem } from './registry.js';
@@ -22,7 +22,7 @@ import { installedCustomers, sellBoxes } from './boxed.js';
 
 // Addressable customers in a category right now: the AI market grows toward full size over the early years.
 export function marketSize(state, category) {
-  const adoption = Math.min(1, B.adoptionStart + B.adoptionPerYear * state.week / 52);
+  const adoption = Math.min(1, B.adoptionStart + B.adoptionPerYear * marketWeek(state) / 52);
   return CATEGORIES[category].tam * B.marketScale * adoption;
 }
 
@@ -46,7 +46,7 @@ export function productAppeal(state, product) {
 
 // Competitive pressure in a product's category, excluding the product itself.
 export function competition(state, product, appeal = productAppeal(state, product)) {
-  const { yearIndex } = dateOf(state.week);
+  const yearIndex = marketYear(state);
   const c = state.market.categories[product.category];
   // Incumbents and clones bolt AI onto their products as the eras turn, which raises the bar for everyone.
   const era = B.eraCompetition[currentEra(state).id] ?? 1;
