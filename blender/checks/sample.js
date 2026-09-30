@@ -416,6 +416,8 @@ export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every =
   const route = (events) => { if (events?.length) H.emit(events); };
   const last = only ? Math.max(...only) : Infinity;
   for (let w = 0; w <= weeks && H.state.week <= last && !H.state.gameOver; w++) {
+    // In Node, a turn of the event loop each week lets the process see a signal between windows.
+    if (typeof setImmediate === 'function') await new Promise((r) => setImmediate(r));
     const S = H.state;
     const stageProp = S.pendingDecision?.stage?.prop;
     const why = S.officeStage !== stage ? `stage ${S.officeStage}` : S.era?.id !== era ? `era ${S.era?.id}` : stageProp && staged < maxStaged ? `decision ${S.pendingDecision.eventId}` : w % every === 0 ? 'every' : null;
