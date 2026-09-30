@@ -153,7 +153,7 @@ async function openGame(deviceName, extraQuery = '') {
       return await openGameOnce(deviceName, extraQuery);
     } catch (e) {
       if (!e.gameDidNotLoad || attempt >= 2) throw e;
-      console.log(`retry  ${deviceName.padEnd(15)} the game did not load in 90 s; trying once more`);
+      console.log(`retry  ${deviceName.padEnd(15)} the game did not come up; trying once more`);
     }
   }
 }
@@ -170,9 +170,11 @@ async function openGameOnce(deviceName, extraQuery = '') {
   try {
     await page.goto(`${base}?${q}`, { waitUntil: 'load', timeout: 90000 });
     await page.waitForFunction(() => window.__HITL_READY === true, null, { timeout: 90000 });
+    // A boot that throws still sets the ready flag, without the test hook; report what it logged.
+    if (!(await page.evaluate(() => !!window.__HITL))) throw new Error(`boot failed without the test hook: ${errors[0] ?? 'no console error'}`);
   } catch (e) {
     await ctx.close().catch(() => {});
-    const err = new Error(`the game did not load in 90 s (${String(e.message ?? e).split('\n')[0]})`);
+    const err = new Error(`the game did not come up (${String(e.message ?? e).split('\n')[0]})`);
     err.gameDidNotLoad = true;
     throw err;
   }
@@ -441,6 +443,10 @@ const CHECKS = {
     if (await card()) fails.push('a held card opened over the menu while the scene played');
     await page.keyboard.press('Escape');
     await page.evaluate(() => window.__HITL.setSpeed(0));
+    if (fails.length) {
+      const d = await page.evaluate(() => ({ spot: window.__HITL.controls.renderer?.spotlight?.()?.kind ?? null, cards: [...document.querySelectorAll('.announce-back, .modal-back')].filter((e) => getComputedStyle(e).display !== 'none').map((e) => e.className), cap: document.querySelector('.moment-cap')?.className ?? null }));
+      fails.push(`state at the end: ${JSON.stringify(d)}`);
+    }
     return { fails };
   },
 

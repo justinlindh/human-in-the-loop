@@ -74,3 +74,15 @@ it('refreshes an open post picker when the era changes', () => {
   expect(root.querySelector('.ypost-pick').textContent).toContain('Share a meme');
   posts.close();
 });
+
+it('shows the AwayIM away line once, in the status bar', () => {
+  const s = createGame({ seed: 11, startEra: 'dotcom' });
+  s.flags.saveSlot = 'slot1';
+  const root = document.createElement('div'); root.className = 'hitl'; document.body.append(root);
+  s.chatLog = [{ id: 'away', type: 'chat', channel: 'general', from: 'Sam', text: 'Away message: building the future. Back after lunch.', week: 0 },
+    { id: 'other', type: 'chat', channel: 'general', from: 'Lee', text: 'The website has a visitor counter.', week: 0 }];
+  const chat = createChat(root, { getState: () => s, onAnswer: vi.fn() });
+  chat.reset(s); chat.update(s);
+  expect(root.querySelector('.period-away').textContent).toBe('Away: building the future. Back after lunch.');
+  expect([...root.querySelectorAll('.msg')].map((n) => n.dataset.id)).toEqual(['other']);
+});

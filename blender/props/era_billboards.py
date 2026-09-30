@@ -11,7 +11,7 @@ for name, kind in [('era_pager_billboard', 'painted'), ('era_lease_billboard', '
         parts += [box('floppy', (0.98, 0.09, 1.10), (-0.98, y - 0.04, 2.05), 'fabric_teal', 0.04),
                   box('shutter', (0.57, 0.014, 0.37), (-0.98, y - 0.094, 2.40), 'metal_soft', 0.012),
                   box('shutter_slot', (0.12, 0.008, 0.25), (-0.86, y - 0.106, 2.40), 'ink', 0.006),
-                  box('disk_label', (0.75, 0.014, 0.45), (-0.98, y - 0.094, 1.86), 'wall_cream', 0.016),
+                  box('disk_label', (0.75, 0.014, 0.45), (-0.98, y - 0.094, 1.86), 'paper', 0.016),
                   lettering('disk_hours', '50', (-0.98, y - 0.11, 1.86), 0.38, 'fabric_teal'),
                   lettering('brand', 'OnlineLand:', (0.51, y, 2.25), 0.27, 'fabric_teal'),
                   lettering('offer', '50 FREE', (0.51, y, 1.99), 0.40),
