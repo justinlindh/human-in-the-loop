@@ -15,6 +15,15 @@
   "file": "glyphs/press.wiredish.svg",
   "size": 32
  },
+ "era.preinternet": {
+  "file": "glyphs/era.preinternet.svg"
+ },
+ "era.dotcom": {
+  "file": "glyphs/era.dotcom.svg"
+ },
+ "era.web2": {
+  "file": "glyphs/era.web2.svg"
+ },
  "era.classic": {
   "file": "glyphs/era.classic.svg"
  },
