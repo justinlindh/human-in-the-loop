@@ -1,0 +1,68 @@
+### chatgbt
+
+| bot | same | exit garage -> takeover | lost / gained | median score | median weeks | incidents | caught | breaches |
+|---|---|---|---|---|---|---|---|---|
+| automateAll | 0/200 | 0% -> 0% | 0 / 0 | 1329 -> 573 | 272 -> 496 | 4354 -> 5811 | 0 -> 900 | 875 -> 1979 |
+| allHumans | 0/200 | 13% -> 28% | 19 / 49 | 21984 -> 11327 | 1040 -> 1040 | 1931 -> 3578 | 0 -> 427 | 1931 -> 3578 |
+| balanced | 0/200 | 66% -> 81% | 25 / 55 | 30921 -> 13463 | 703 -> 826 | 2666 -> 3903 | 764 -> 844 | 2600 -> 3850 |
+| sensible | 0/200 | 84% -> 81% | 30 / 23 | 33468 -> 13400 | 660 -> 837 | 2679 -> 3760 | 689 -> 787 | 2608 -> 3691 |
+| recklessHumans | 0/200 | 0% -> 0% | 0 / 0 | 669 -> 651 | 597 -> 1040 | 1324 -> 2235 | 0 -> 290 | 1324 -> 2235 |
+| squads | 0/200 | 58% -> 72% | 31 / 59 | 30415 -> 13119 | 745 -> 871 | 2794 -> 3959 | 50 -> 471 | 2673 -> 3888 |
+
+| bot | garage played weeks | takeover played weeks | garage endings | takeover endings |
+|---|---:|---:|---|---|
+| automateAll | 272 | 302 | collapse 173, runway 27 | collapse 200 |
+| allHumans | 1040 | 839 | anniversary 109, retired 26, runway 65 | anniversary 139, retired 56, runway 5 |
+| balanced | 703 | 626 | anniversary 48, retired 131, runway 21 | anniversary 39, retired 161 |
+| sensible | 660 | 636 | anniversary 29, retired 168, runway 3 | anniversary 38, retired 161, runway 1 |
+| recklessHumans | 597 | 844 | anniversary 52, runway 148 | anniversary 195, runway 5 |
+| squads | 745 | 675 | anniversary 71, retired 116, runway 13 | anniversary 56, retired 144 |
+
+Six-strategy pooled median: 11599; Classic: 34720; measured share: 33.41%.
+
+Four independent strategies: garage median 2069, takeover median 3006. Balanced and sensible are excluded from that pool.
+
+Merge comparison against the prior PR head:
+
+| bot | same | exit prior takeover -> merged takeover | lost / gained | median score | median weeks | incidents | caught | breaches |
+|---|---|---|---|---|---|---|---|---|
+| automateAll | 200/200 | 0% -> 0% | 0 / 0 | 573 -> 573 | 496 -> 496 | 5811 -> 5811 | 900 -> 900 | 1979 -> 1979 |
+| allHumans | 200/200 | 28% -> 28% | 0 / 0 | 11327 -> 11327 | 1040 -> 1040 | 3578 -> 3578 | 427 -> 427 | 3578 -> 3578 |
+| balanced | 200/200 | 81% -> 81% | 0 / 0 | 13463 -> 13463 | 826 -> 826 | 3903 -> 3903 | 844 -> 844 | 3850 -> 3850 |
+| sensible | 200/200 | 81% -> 81% | 0 / 0 | 13400 -> 13400 | 837 -> 837 | 3760 -> 3760 | 787 -> 787 | 3691 -> 3691 |
+| recklessHumans | 200/200 | 0% -> 0% | 0 / 0 | 651 -> 651 | 1040 -> 1040 | 2235 -> 2235 | 290 -> 290 | 2235 -> 2235 |
+| squads | 200/200 | 72% -> 72% | 0 / 0 | 13119 -> 13119 | 871 -> 871 | 3959 -> 3959 | 471 -> 471 | 3888 -> 3888 |
+### agents
+
+| bot | same | exit garage -> takeover | lost / gained | median score | median weeks | incidents | caught | breaches |
+|---|---|---|---|---|---|---|---|---|
+| automateAll | 0/200 | 0% -> 0% | 0 / 0 | 1185 -> 1589 | 272 -> 1040 | 8411 -> 19467 | 0 -> 5912 | 1329 -> 5682 |
+| allHumans | 0/200 | 4% -> 27% | 5 / 51 | 6939 -> 5319 | 857 -> 1040 | 1733 -> 3680 | 0 -> 705 | 1733 -> 3680 |
+| balanced | 0/200 | 66% -> 77% | 37 / 59 | 23862 -> 6281 | 756 -> 841 | 2584 -> 3709 | 705 -> 720 | 2474 -> 3646 |
+| sensible | 0/200 | 77% -> 81% | 31 / 38 | 24412 -> 6253 | 690 -> 837 | 2679 -> 3760 | 793 -> 787 | 2590 -> 3691 |
+| recklessHumans | 0/200 | 0% -> 0% | 0 / 0 | 406 -> 0 | 662 -> 1040 | 1244 -> 2776 | 0 -> 606 | 1244 -> 2776 |
+| squads | 0/200 | 62% -> 81% | 25 / 62 | 23398 -> 6256 | 746 -> 830 | 2857 -> 3938 | 48 -> 770 | 2699 -> 3858 |
+
+| bot | garage played weeks | takeover played weeks | garage endings | takeover endings |
+|---|---:|---:|---|---|
+| automateAll | 272 | 712 | collapse 200 | anniversary 161, collapse 39 |
+| allHumans | 857 | 709 | anniversary 40, retired 7, runway 153 | anniversary 144, retired 53, runway 3 |
+| balanced | 756 | 517 | anniversary 58, retired 131, runway 11 | anniversary 47, retired 153 |
+| sensible | 690 | 511 | anniversary 42, retired 154, runway 4 | anniversary 38, retired 161, runway 1 |
+| recklessHumans | 662 | 711 | anniversary 28, runway 172 | anniversary 155, runway 45 |
+| squads | 746 | 502 | anniversary 54, retired 124, runway 22 | anniversary 38, retired 161, runway 1 |
+
+Six-strategy pooled median: 5389; Classic: 34720; measured share: 15.52%.
+
+Four independent strategies: garage median 1935, takeover median 2486. Balanced and sensible are excluded from that pool.
+
+Merge comparison against the prior PR head:
+
+| bot | same | exit prior takeover -> merged takeover | lost / gained | median score | median weeks | incidents | caught | breaches |
+|---|---|---|---|---|---|---|---|---|
+| automateAll | 200/200 | 0% -> 0% | 0 / 0 | 1589 -> 1589 | 1040 -> 1040 | 19467 -> 19467 | 5912 -> 5912 | 5682 -> 5682 |
+| allHumans | 200/200 | 27% -> 27% | 0 / 0 | 5319 -> 5319 | 1040 -> 1040 | 3680 -> 3680 | 705 -> 705 | 3680 -> 3680 |
+| balanced | 200/200 | 77% -> 77% | 0 / 0 | 6281 -> 6281 | 841 -> 841 | 3709 -> 3709 | 720 -> 720 | 3646 -> 3646 |
+| sensible | 200/200 | 81% -> 81% | 0 / 0 | 6253 -> 6253 | 837 -> 837 | 3760 -> 3760 | 787 -> 787 | 3691 -> 3691 |
+| recklessHumans | 200/200 | 0% -> 0% | 0 / 0 | 0 -> 0 | 1040 -> 1040 | 2776 -> 2776 | 606 -> 606 | 2776 -> 2776 |
+| squads | 200/200 | 81% -> 81% | 0 / 0 | 6256 -> 6256 | 830 -> 830 | 3938 -> 3938 | 770 -> 770 | 3858 -> 3858 |

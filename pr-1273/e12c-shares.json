@@ -1,0 +1,18 @@
+{
+  "chatgbt": {
+    "classicMedian": 34720,
+    "takeoverMedian": 11599,
+    "share": 0.33407258064516127,
+    "scoreShare": 0.33,
+    "fourStrategyGarageMedian": 2069,
+    "fourStrategyTakeoverMedian": 3006
+  },
+  "agents": {
+    "classicMedian": 34720,
+    "takeoverMedian": 5389,
+    "share": 0.155213133640553,
+    "scoreShare": 0.16,
+    "fourStrategyGarageMedian": 1935,
+    "fourStrategyTakeoverMedian": 2486
+  }
+}
