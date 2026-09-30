@@ -1,6 +1,7 @@
 // The lockdown video call: a docked grid of the remote staff while state.lockdown is active.
 // One or two people "speak" at a time (live portraits); the rest are stills. Tapping a tile opens
 // that person in Staff. The grid folds to a small pill and hides while a menu or popup is up.
+import { pnow } from './pclock.js';
 import { h, setText } from './dom.js';
 import { icon } from './icons.js';
 import { portrait, portraitLive } from './widgets.js';
@@ -43,13 +44,13 @@ export function createCallGrid({ layer, openStaff }) {
     card.style.display = show ? '' : 'none';
     if (!show) { if (sig) { sig = ''; tiles.replaceChildren(); } return; }
     const remote = s.staff.filter((p) => p.remote);
-    const turn = Math.floor(performance.now() / TURN_MS);
+    const turn = Math.floor(pnow() / TURN_MS);
     const speakers = new Set(remote.length ? [remote[turn % remote.length].id, remote[(turn * 7 + 3) % remote.length].id] : []);
     const gl = glitches(s, remote, turn);
     // A muted person is always one of the speakers: talking away with the mic off is the joke.
     const mutedOne = remote.find((p) => gl.get(p.id)?.muted);
     if (mutedOne && speakers.size) { speakers.delete([...speakers][1]); speakers.add(mutedOne.id); }
-    const now = performance.now();
+    const now = pnow();
     for (const [id, v] of said) if (v.until < now) said.delete(id);
     // Whoever is talking on the call counts as a speaker.
     for (const id of said.keys()) if (remote.some((p) => p.id === id)) speakers.add(id);
@@ -84,7 +85,7 @@ export function createCallGrid({ layer, openStaff }) {
       if (!s?.lockdown || s.week >= (s.lockdown.until ?? Infinity) || !e?.staffId || !e.text) return false;
       const p = s.staff.find((x) => x.id === e.staffId);
       if (!p?.remote) return false;
-      said.set(p.id, { text: e.text, until: performance.now() + SAY_MS });
+      said.set(p.id, { text: e.text, until: pnow() + SAY_MS });
       if (said.size > 4) said.delete(said.keys().next().value);
       return true;
     },

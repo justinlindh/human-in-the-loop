@@ -1,4 +1,5 @@
 import { ASSIGNMENT_LABEL, B } from '../content.js';
+import { createRng, next } from '../../sim/rng.js';
 import { productName } from '../../data/product-names.js';
 import { ERA_IDS } from '../../data/eras.js';
 import { ROLE_JOBS, ROLE_JOBS_FALLBACK } from '../../data/roles.js';
@@ -89,11 +90,15 @@ export function isAvailable(p) {
   return p.mood !== 'away' && p.assignment?.type !== 'sabbatical';
 }
 
-let suggestN = 0;
+// Suggestions per game seed, so the same game asks for the same names in the same order.
+const suggested = new Map();
 // The product name cap is the sim's (B.productNameMax), so the two cannot drift.
 export const NAME_MAX = B.productNameMax ?? 20;
 
 // Joke names are tagged by era in src/data/product-names.js; with no era given, every joke is in the pool.
-export function suggestName(category, eraId = ERA_IDS.at(-1)) {
-  return productName(category, (k) => Math.floor(Math.random() * k), ++suggestN, eraId);
+export function suggestName(category, eraId = ERA_IDS.at(-1), seed = 0) {
+  const n = (suggested.get(seed) ?? 0) + 1;
+  suggested.set(seed, n);
+  const rng = createRng((Number(seed) >>> 0) ^ Math.imul(n, 0x9e3779b1));
+  return productName(category, (k) => Math.floor(next(rng) * k), n, eraId);
 }

@@ -1,3 +1,4 @@
+import { pAfter, pClear } from './pclock.js';
 import { h, fmtMoney, fmtNum, dateOf } from './dom.js';
 import * as SIM from '../sim/index.js';
 import { icon } from './icons.js';
@@ -33,7 +34,7 @@ export function createGameOver({ layer, controls, sfx, act }) {
   function show(s) {
     const g = s.gameOver;
     shown = g;
-    timers.forEach(clearTimeout);
+    timers.forEach(pClear);
     timers = [];
     const [title, sub] = (g.reason === 'retired' ? RETIRED[g.retiredVia] : HEADLINE[g.reason]) ?? [g.won ? 'You won' : 'Game over', ''];
     let run = null;
@@ -77,7 +78,7 @@ export function createGameOver({ layer, controls, sfx, act }) {
     root.style.display = '';
     layer.classList.add('ended');
     sfx(g.won ? 'fanfare' : 'gameover');
-    lines.forEach((el, i) => timers.push(setTimeout(() => { el.classList.add('in'); sfx('blip'); }, 900 + i * 1100)));
+    lines.forEach((el, i) => timers.push(pAfter(900 + i * 1100, () => { el.classList.add('in'); sfx('blip'); })));
   }
 
   function update(s) {

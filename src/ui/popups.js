@@ -1,3 +1,4 @@
+import { pAfter, pClear } from './pclock.js';
 import { h, fmtMoney } from './dom.js';
 import { CHANNEL } from './content.js';
 import { SIMX } from './simapi.js';
@@ -182,8 +183,8 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
       dock));
     backdrop.style.display = '';
     toasts.setDock(dock);
-    const timers = cards.map((c, i) => setTimeout(() => { c.classList.add('in'); ctx.sfx('blip'); }, 350 + i * 650));
-    timers.push(setTimeout(() => { final.classList.add('in'); ctx.sfx(p.score >= 6.5 ? 'fanfare' : 'blip'); }, 350 + cards.length * 650 + 250));
+    const timers = cards.map((c, i) => pAfter(350 + i * 650, () => { c.classList.add('in'); ctx.sfx('blip'); }));
+    timers.push(pAfter(350 + cards.length * 650 + 250, () => { final.classList.add('in'); ctx.sfx(p.score >= 6.5 ? 'fanfare' : 'blip'); }));
     launch = { productId, prevSpeed, timers };
     return true;
   }
@@ -222,7 +223,7 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
 
   function closeLaunch() {
     if (!launch) return;
-    launch.timers.forEach(clearTimeout);
+    launch.timers.forEach(pClear);
     if ((ctx.controls.getSpeed?.() ?? 0) === 0) ctx.controls.setSpeed?.(launch.prevSpeed);
     launch = null;
     backdrop.style.display = 'none';
@@ -236,7 +237,7 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
     const d = s.pendingDecision;
     if (d && d !== shown) {
       // A decision outranks launch results; put an open launch back at the front of the queue.
-      if (launch) { const ids = [].concat(launch.productId); launch.timers.forEach(clearTimeout); resumeSpeed = launch.prevSpeed; launch = null; queue.unshift(...ids); }
+      if (launch) { const ids = [].concat(launch.productId); launch.timers.forEach(pClear); resumeSpeed = launch.prevSpeed; launch = null; queue.unshift(...ids); }
       shown = d;
       renderDecision(s, d);
       return;
