@@ -3,8 +3,8 @@ import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { sensitivity } from '../../blender/checks/pose-matrix-sweep.js';
-import { parseMatrix, cellsOf, parseRule, judgeCell, margin, worstOf, formatMatrix, valueOf, tally, tallyText, runMatrix } from '../../blender/checks/pose-matrix.js';
+import { sensitivity, formatSweep } from '../../blender/checks/pose-matrix-sweep.js';
+import { parseMatrix, cellsOf, parseRule, judgeCell, margin, worstOf, formatMatrix, valueOf, tally, tallyText, runMatrix, PRESETS } from '../../blender/checks/pose-matrix.js';
 
 const POSE = resolve(__dirname, '../../blender/checks/pose.mjs');
 const run = (...args) => spawnSync(process.execPath, [POSE, ...args], { encoding: 'utf8', timeout: 180000 });
@@ -124,9 +124,39 @@ describe('pose.mjs --matrix', () => {
   it('answers which swept value passes every cell', () => {
     const r = run(...base, '--expect', 'coverHandEyeNear>=0.5@0.7', '--sweep', 'PALM_STAND[2]=0.27,0.9');
     expect(r.status, r.stdout + r.stderr).toBe(0);
-    expect(r.stdout).toMatch(/PALM_STAND\[2\]=0\.27\s+1 of 1\s+ALL PASS/);
-    expect(r.stdout).toMatch(/PALM_STAND\[2\]=0\.9\s+0 of 1\s+worst/);
-    expect(r.stdout).toContain('SWEEP passing every cell: PALM_STAND[2]=0.27');
+    expect(r.stdout).toMatch(/PALM_STAND\[2\]=0\.27\s+1 pass\s+0 fail\s+0 n\/a of 1\s+judged \d+ frames\s+ALL PASS/);
+    expect(r.stdout).toMatch(/PALM_STAND\[2\]=0\.9\s+0 pass\s+1 fail\s+0 n\/a of 1\s+judged \d+ frames\s+worst/);
+    expect(r.stdout).toContain('SWEEP passing every judged cell: PALM_STAND[2]=0.27');
+  });
+
+  it('counts n/a cells apart from passes, as the matrix does, and warns when a value judges fewer frames', () => {
+    const cell = (pass, na, frames) => ({ posture: 'sit', build: 1, rig: 'on', accessory: 'none', view: 0, pass, na, verdicts: [{ rule: 'r', pass, share: pass ? 1 : 0, want: 0.7, frames }] });
+    const row = (v, cells) => ({ c: [['PALM_SIT[2]', v]], cells });
+    const axes = parseMatrix('views=0,postures=sit,builds=1,rig=on');
+    const summarize = ({ c, cells }) => { const t = tally(cells); return { c, ...t, judged: cells.reduce((a, x) => a + x.verdicts[0].frames, 0), worst: worstOf(cells), axes }; };
+    const { lines, code } = formatSweep([
+      summarize(row('0.2', [cell(true, false, 40), cell(false, false, 40), cell(true, true, 0)])),
+      summarize(row('0.3', [cell(true, false, 10), cell(true, false, 5), cell(true, true, 0)])),
+    ], [{ name: 'PALM_SIT[2]', values: ['0.2', '0.3'] }]);
+    expect(lines.find((l) => l.includes('=0.2 '))).toMatch(/1 pass\s+1 fail\s+1 n\/a of 3\s+judged 80 frames/);
+    expect(lines.find((l) => l.includes('=0.3 '))).toMatch(/2 pass\s+0 fail\s+1 n\/a of 3\s+judged 15 frames\s+no cell fails/);
+    expect(lines).toContain('SWEEP warning: PALM_SIT[2]=0.3 judges 15 frames against 80 at PALM_SIT[2]=0.2; its extra passes may come from the frames its rule filters out, not a better pose');
+    expect(lines.at(-1)).toBe('SWEEP passing every judged cell: PALM_SIT[2]=0.3');
+    expect(code).toBe(0);
+  });
+
+  it('uses a gesture\'s own pass rule when given no measure or rule, and says so', () => {
+    const r = run('--gesture', 'facepalm', '--matrix', 'views=0,postures=sit,builds=1,rig=on');
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toContain(`pose: facepalm's pass rule: --measure ${PRESETS.facepalm.measures.join(',')} --expect '${PRESETS.facepalm.rules[0]}'`);
+    expect(r.stdout).toContain(`MATRIX ${PRESETS.facepalm.rules[0]} (share of judged frames`);
+  });
+
+  it('refuses a swept name declared in two files before running, and prints the flag that works', () => {
+    const r = run(...base, '--sweep', 'SEAT_HIP_Y=0.4,0.5');
+    expect(r.status).toBe(2);
+    expect(r.stdout).not.toContain('SWEEP');
+    expect(r.stderr).toContain("--sweep 'src/render/character.js:SEAT_HIP_Y=0.4,0.5'");
   });
 
   it('refuses a grid over --max-runs before running anything, and names the run count', () => {
@@ -174,15 +204,18 @@ describe('pose.mjs --matrix', () => {
   });
 
   it('a sweep whose every value errors passes nothing and exits non-zero', () => {
-    const r = run(...base, '--sweep', 'NO_SUCH_PARAM.x=0.05,0.12');
+    const r = run(...base, '--sweep', 'PALM_STAND[2]=nope1,nope2');
     expect(r.status).toBe(2);
     expect(r.stdout).toContain('error:');
-    expect(r.stdout).toContain('SWEEP passing every cell: none');
+    expect(r.stdout).toContain('SWEEP passing every judged cell: none');
+    expect(run(...base, '--sweep', 'NO_SUCH_PARAM.x=0.05,0.12').status).toBe(2);
   });
 
-  it('needs a gesture and a measure', () => {
+  it('needs a gesture, and a measure for a gesture with no pass rule of its own', () => {
     expect(run('--matrix', 'views=0', '--measure', 'faceCam').status).toBe(2);
-    expect(run('--gesture', 'facepalm', '--matrix', 'views=0').status).toBe(2);
+    const r = run('--gesture', 'shrug', '--matrix', 'views=0');
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain('facepalm and slap have a pass rule');
   });
 
   it('gives the same cells over several processes as over one, and refuses a bad --jobs', () => {

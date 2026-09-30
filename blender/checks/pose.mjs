@@ -73,6 +73,17 @@ const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i
 const all = (k) => argv.flatMap((a, i) => (a === `--${k}` ? [argv[i + 1]] : []));
 const ROOT = resolve(opt('root', join(import.meta.dirname, '../..')));
 // --sweep runs this script again once per value, so it goes before anything takes a render slot.
+// A swept name that can't be resolved (not found, or declared in two files) is refused before any run.
+if (opt('sweep')) {
+  const swept = all('sweep').map((s) => { const i = s.indexOf('='); return i < 1 ? { spec: s } : { spec: `${s.slice(0, i)}=${s.slice(i + 1).split(',')[0]}`, values: s.slice(i + 1) }; });
+  for (const w of swept) {
+    try { resolveParams([w.spec], ROOT); } catch (e) {
+      // The refusal's suggested flags, as --sweep with every value.
+      console.error(e.message.replace(/--param (\S+)=\S+/g, (_, head) => `--sweep '${head}=${w.values ?? ''}'`).replace(/ \(the same file: prefix works in --sweep\)/, ''));
+      process.exit(2);
+    }
+  }
+}
 if (opt('sweep')) process.exit(await (opt('matrix') ? runMatrixSweep : runSweep)(argv, fileURLToPath(import.meta.url)));
 let PARAMS = [];
 // A page serves the working directory, so --param there names files under it.
@@ -393,9 +404,12 @@ try {
     // pose-matrix.js imports nothing, so the axes and rules are read before any engine or page starts.
     const X = await import('./pose-matrix.js');
     if (!OPTS.gesture) throw new Error('pose: --matrix needs --gesture <name>');
-    const measures = String(opt('measure', '')).split(',').map((s) => s.trim()).filter(Boolean);
-    const rules = all('expect').map((r) => X.parseRule(r, measures));
-    if (!measures.length) throw new Error('pose: --matrix needs --measure <m1,m2> (e.g. coverHandEyeNear,faceCam,clearance)');
+    // Neither --measure nor --expect: the gesture's own pass rule (PRESETS), said on the first line.
+    const preset = !opt('measure') && !all('expect').length ? X.PRESETS[OPTS.gesture] : null;
+    if (preset && !SLICE) console.log(`pose: ${OPTS.gesture}'s pass rule: --measure ${preset.measures.join(',')} ${preset.rules.map((r) => `--expect '${r}'`).join(' ')}`);
+    const measures = preset ? [...preset.measures] : String(opt('measure', '')).split(',').map((s) => s.trim()).filter(Boolean);
+    const rules = (preset ? preset.rules : all('expect')).map((r) => X.parseRule(r, measures));
+    if (!measures.length) throw new Error(`pose: --matrix needs --measure <m1,m2> (e.g. coverHandEyeNear,faceCam,clearance); ${Object.keys(X.PRESETS).join(' and ')} have a pass rule used without one`);
     const axes = X.parseMatrix(opt('matrix'), OPTS.gesture);
     const run = { gesture: OPTS.gesture, axes, measures, rules, seconds: OPTS.seconds, warm: OPTS.warm, fps: OPTS.fps };
     let result;

@@ -2,7 +2,7 @@ import { B } from './balance.js';
 import { pick } from './rng.js';
 import { emitChat } from './chat.js';
 import { raiseDecision } from './events.js';
-import { WEB2_CHAT } from '../data/early-eras.js';
+import { WEB2_CHAT, WEB2_COPY } from '../data/early-eras.js';
 
 export function compatibilityMult(state, angle) {
   if (state.era.id !== 'web2' || angle !== 'web') return 1;
@@ -15,7 +15,7 @@ export function applyCompatibility(state, project) {
   const factor = compatibilityMult(state, project.angle);
   if (project.kind !== 'new' || factor === 1) return;
   project.pointsNeeded *= factor;
-  project.compatibility = { id: 'legacy_compat', factor, contributors: [] };
+  project.compatibility = { id: WEB2_COPY.legacy_compat.id, factor, contributors: [] };
 }
 
 export function compatibleLaunch(state, project, product) {
@@ -34,10 +34,10 @@ export function web2Step(ctx) {
   if (state.era.id === 'web2') {
     const f = state.flags.web2 ??= { arrived: false, retired: false };
     if (!f.arrived) { f.arrived = true; raiseDecision(ctx, 'web2_recovery', null, { queue: true }); }
-    if (state.week % B.web2.chatterEvery === 0) emitChat(ctx, { channel: 'random', person: pick(ctx.rng, state.staff), text: pick(ctx.rng, WEB2_CHAT) });
+    if (state.week % B.web2.chatterEvery === 0) emitChat(ctx, { channel: 'random', person: pick(ctx.rng, state.staff), text: pick(ctx.rng, WEB2_CHAT.lines) });
   } else if (state.flags.web2 && !state.flags.web2.retired) {
     state.flags.web2.retired = true;
     emitChat(ctx, { channel: 'general', from: '@office', important: true,
-      text: 'An old HipCheck thread resurfaces: "Internet Exploder 6 is retired. We can delete the workaround." "Which one?" New web projects no longer include old-browser QA work.' });
+      text: WEB2_COPY.web2_browser_retired.text });
   }
 }

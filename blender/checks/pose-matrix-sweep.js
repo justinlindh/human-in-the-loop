@@ -13,7 +13,7 @@ import { cpus, tmpdir } from 'node:os';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseAxis, cartesian } from './param-sweep.js';
-import { margin, rowLabel, worstOf } from './pose-matrix.js';
+import { margin, rowLabel, tally, worstOf } from './pose-matrix.js';
 
 export const DEFAULT_MAX_RUNS = 64;
 export const defaultJobs = () => Math.max(1, cpus().length >> 2);
@@ -73,7 +73,6 @@ export async function runMatrixSweep(argv, script) {
   const base = [];
   for (let i = 0; i < argv.length; i++) { if (OWN.has(argv[i])) { i++; continue; } base.push(argv[i]); }
   const dir = mkdtempSync(join(tmpdir(), 'pose-msweep-'));
-  const label = (c) => c.map(([n, v]) => `${n}=${v}`).join(' ');
   // A signal skips the finally below, so stop the running values and remove the dir here.
   const onSignal = (sig) => () => {
     for (const p of running) p.kill('SIGTERM');
@@ -92,25 +91,49 @@ export async function runMatrixSweep(argv, script) {
       if (res.status === 0 || res.status === 1) { try { m = JSON.parse(readFileSync(out, 'utf8')); } catch { /* no result */ } }
       if (!m) return { c, error: `exit ${res.status}: ${res.out.trim().split('\n').slice(-1)[0]}` };
       const worst = worstOf(m.cells);
-      return { c, pass: m.cells.filter((x) => x.pass).length, total: m.cells.length, worst, axes: m.axes, margin: margin(worst) };
+      // Counted as the matrix counts them: a cell with nothing to judge is n/a, not a pass.
+      const t = tally(m.cells);
+      const judged = m.cells.reduce((a, x) => a + (x.verdicts ?? []).reduce((b, v) => b + (v.frames ?? 0), 0), 0);
+      return { c, pass: t.pass, fail: t.fail, na: t.na, total: t.total, judged, worst, axes: m.axes, margin: margin(worst) };
     });
   } finally {
     for (const [s, h] of handlers) process.off(s, h);
     rmSync(dir, { recursive: true, force: true });
   }
-  const w =Math.max(...rows.map((r) => label(r.c).length));
-  console.log('SWEEP matrix: passing cells per value');
+  const { lines, code } = formatSweep(rows, axes);
+  for (const l of lines) console.log(l);
+  return code;
+}
+
+const label = (c) => c.map(([n, v]) => `${n}=${v}`).join(' ');
+
+// The sweep's table: per value the cells that pass, fail and have nothing to judge (as the matrix
+// counts them), the frames judged, and the worst cell. rows: { c, pass, fail, na, total, judged, worst,
+// axes } or { c, error }. Returns { lines, code }: 2 on any error, 0 when some value fails no cell.
+export function formatSweep(rows, axes) {
+  const lines = [];
+  const w = Math.max(...rows.map((r) => label(r.c).length));
+  lines.push('SWEEP matrix: cells per value (pass, fail, n/a) and the frames their rules judged');
+  const ok = rows.filter((r) => !r.error);
+  const jw = Math.max(1, ...ok.map((r) => String(r.judged).length));
   for (const r of rows) {
-    if (r.error) { console.log(`SWEEP ${label(r.c).padEnd(w)}  error: ${r.error}`); continue; }
-    const at = r.pass === r.total ? 'ALL PASS' : `worst ${rowLabel(r.worst, r.axes)} view ${r.worst.view} (${r.worst.verdicts.filter((v) => !v.pass).map((v) => `${v.rule} ${Math.round(v.share * 100)}%`).join('; ')})`;
-    console.log(`SWEEP ${label(r.c).padEnd(w)}  ${String(r.pass).padStart(3)} of ${r.total}  ${at}`);
+    if (r.error) { lines.push(`SWEEP ${label(r.c).padEnd(w)}  error: ${r.error}`); continue; }
+    const at = !r.fail ? (r.na ? 'no cell fails' : 'ALL PASS') : `worst ${rowLabel(r.worst, r.axes)} view ${r.worst.view} (${r.worst.verdicts.filter((v) => !v.pass).map((v) => `${v.rule} ${Math.round(v.share * 100)}%`).join('; ')})`;
+    lines.push(`SWEEP ${label(r.c).padEnd(w)}  ${String(r.pass).padStart(3)} pass ${String(r.fail).padStart(3)} fail ${String(r.na).padStart(3)} n/a of ${r.total}  judged ${String(r.judged).padStart(jw)} frames  ${at}`);
+  }
+  // A rule's `if` filter decides which frames are judged, so a value can pass more cells by judging
+  // fewer frames (the face turned past the filter) while the hand never moves closer.
+  const most = ok.length ? Math.max(...ok.map((r) => r.judged)) : 0;
+  const top = ok.find((r) => r.judged === most);
+  for (const r of ok.filter((x) => x.judged < most)) {
+    lines.push(`SWEEP warning: ${label(r.c)} judges ${r.judged} frames against ${most} at ${label(top.c)}${r.pass > top.pass ? '; its extra passes may come from the frames its rule filters out, not a better pose' : ''}`);
   }
   if (axes.length > 1) {
     const s = sensitivity(rows, axes);
-    if (s[0].spread > 0) console.log(`SWEEP moves the pass count most: ${s.map((x) => `${x.name} (${Number(x.spread.toFixed(2))})`).join(', ')}`);
-    else console.log('SWEEP no swept param changes the pass count');
+    if (s[0].spread > 0) lines.push(`SWEEP moves the pass count most: ${s.map((x) => `${x.name} (${Number(x.spread.toFixed(2))})`).join(', ')}`);
+    else lines.push('SWEEP no swept param changes the pass count');
   }
-  const good = rows.filter((r) => !r.error && r.pass === r.total).map((r) => label(r.c));
-  console.log(`SWEEP passing every cell: ${good.length ? good.join(' | ') : 'none'}`);
-  return rows.some((r) => r.error) ? 2 : good.length ? 0 : 1;
+  const good = ok.filter((r) => !r.fail && r.pass > 0).map((r) => label(r.c));
+  lines.push(`SWEEP passing every judged cell: ${good.length ? good.join(' | ') : 'none'}`);
+  return { lines, code: rows.some((r) => r.error) ? 2 : good.length ? 0 : 1 };
 }

@@ -11,13 +11,13 @@ Keep Classic as the default. A start is a newly founded company in an older worl
 | Start id | Calendar opening | Extra cash | Office / desks | Era score factor | Systems open immediately | Goals skipped without rewards |
 | --- | --- | ---: | --- | ---: | --- | --- |
 | `preinternet` | 1990 | $40,000 | Garage / 3 | 1.20 | retail distribution, Ops | none |
-| `dotcom` | 1997 | $140,000 | Office Floor / 4 | 1.10 | Marketing, Ops, Research, squads | `place_desks`, `office_floor` |
+| `dotcom` | 1997 | $140,000 | Garage / 4 | 1.10 | Marketing, Ops, Research, squads | `place_desks` |
 | `web2` | 2003 | $90,000 | Garage / 3 | 1.05 | Marketing, Ops, Research, compatibility | `place_desks` |
 | `classic` | 2019 | $0 | Garage / 2 | 1.00 | ordinary progression | none |
 | `chatgbt` | selected era's seeded arrival | $90,000 | Garage / 3 | 0.75 | Marketing, Ops, Research, Models, Automation, Meaning, AI as Pair | `place_desks`, `start_product`, `first_launch` |
-| `agents` | selected era's seeded arrival | $240,000 | Office Floor / 4 | 0.60 | ChatGBT kit plus squads; full automation permissions | ChatGBT skips plus `office_floor` |
-| `consolidation` | selected era's seeded arrival | $390,000 | Office Floor / 4 | 0.45 | Agents kit and the era's normal angles/models | Agents skips |
-| `plateau` | selected era's seeded arrival | $540,000 | Office Floor / 4 | 0.30 | Consolidation kit | Agents skips |
+| `agents` | selected era's seeded arrival | $240,000 | Garage / 4 | 0.60 | ChatGBT kit plus squads; full automation permissions | ChatGBT skips |
+| `consolidation` | selected era's seeded arrival | $390,000 | Garage / 4 | 0.45 | Agents kit and the era's normal angles/models | Agents skips |
+| `plateau` | selected era's seeded arrival | $540,000 | Garage / 4 | 0.30 | Consolidation kit | Agents skips |
 
 The extra desks are unoccupied. No items, research completions, products, staff tenure, policies enabled, or trophies are invented. A skipped goal stays `done: false`, has `week: null` and `skipped: true`; it cannot award cash or brand later, and the UI counts only eligible goals. The Goals list labels it "Skipped by starting era" rather than pretending it was earned. The player's first actual hire, incident, thousand customers and awards still count.
 
@@ -33,7 +33,7 @@ Modern calendar date is elapsed week plus a saved calendar offset. The chosen st
 
 Keep difficulty growth based on elapsed company time where it is already an age-based economic rule (project points, candidate skill, incident cost and market adoption); do not accidentally substitute historical years into those formulas. Era competition still supplies world pressure. Calendar-sensitive data availability and actual date labels use a dedicated pure `calendarDate(state, week = state.week)` helper. The existing `dateOf(week)` API remains valid for Classic and for elapsed-age arithmetic.
 
-Later-start companies receive conference and AI Summit invitations only after a first launch. An Office Floor kit alone does not mean there is a product to demonstrate. Classic retains its ordinary invitation rules.
+Later-start companies receive conference and AI Summit invitations only after a first launch. Starting permissions do not mean there is a product to demonstrate. Classic retains its ordinary invitation rules.
 
 Earlier eras are chapters, not decades of repetitive simulation. Proposed playable lengths in `B.eraChapters`: pre-internet 156 weeks, dot-com 208 weeks, Web 2.0 208 weeks, followed by the existing modern timeline. Their calendar spans are 1990 to 1997, 1997 to 2003, and 2003 to 2019. A chapter's calendar maps its elapsed fraction monotonically into its historical span. This abstraction is stated on the mode card: "A career in chapters. Earlier years pass faster." Tenure and cooldowns count playable weeks, not the compressed calendar.
 
@@ -205,7 +205,7 @@ E8 and E9 are bounded initial batches. If their complete asset lists do not fit,
 ## Owner questions and recommendations
 
 1. Are compressed historical chapters acceptable? Recommend the explicit chapter calendar and visible bridges, keeping company age honest. A literal multi-decade weekly run would greatly extend playtime and require another pacing design.
-2. Should an era start be a new company or an established one? Recommend a new company with the kits above. It avoids unearned products, fabricated layoffs, and a lengthy setup screen.
+2. Founding decision: every era defaults to a new company in a garage with its kit. An established-company takeover is a separate future option. The starting kit does not fabricate products, employees or earned milestones.
 3. Should later starts end at a shared calendar year? Recommend twenty playable years from founding in the modern starts; a fixed world end makes Plateau a short scenario. Keep the displayed score discount.
 4. Should starts be locked? Recommend open sandbox starts and optional career unlocks under #547, with grandfathering. Ship E2 unlocked until that design is approved.
 5. Are the proposed chat names right? Recommend DeskNet, AwayIM and HipCheck. Preserve Yak from Classic onward and retain all existing thread/reply accessibility.

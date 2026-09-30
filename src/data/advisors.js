@@ -75,7 +75,7 @@ export const ADVICE_LINES = {
   },
   era: {
     dotcom: [
-      'Ship a small website before planning the IPO. The office rent is real; the eyeball valuation is a presentation.',
+      'Ship a small website before planning the IPO. The bills are real; the eyeball valuation is a presentation.',
       'The boom brings attention. A working product gives it somewhere to go. Keep enough cash for the quieter years.',
     ],
     chatgbt: [

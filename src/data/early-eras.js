@@ -3,7 +3,7 @@ export const EARLY_ORDER = ['preinternet', 'dotcom', 'web2'];
 export const EARLY_ERAS = [{
   id: 'dotcom', name: 'The Dot-com Boom',
   blurb: 'Every company needs a website. Every website apparently needs an IPO.',
-  changes: ['Build web and on-prem products', 'A boom brings customers, a float brings cash and dilution', 'Keep runway for the bust; recovery leads into Classic'],
+  changes: ['Build web and on-prem products', 'A boom brings customers, a float brings cash and dilution', 'Keep runway for the bust; recovery carries your company forward'],
 }, {
   id: 'web2', name: 'Web 2.0: The IE6 Years',
   blurb: 'The browser is the platform. The approved browser is the problem.',
@@ -15,14 +15,20 @@ export const PERIOD_MARKETS = {
   web2: { categories: ['notes', 'email', 'pm', 'support', 'crm', 'analytics', 'design', 'devtools'], angles: ['web', 'onprem', 'api', 'freemium'], trends: ['steady', 'budget_cuts', 'security_scare'] },
 };
 export const DOTCOM_NAMES = ['Under Construction', 'Portal Combat', 'Click And Mortar', 'Eyeballs Enterprise'];
-export const chatAppName = (state) => ({ dotcom: 'AwayIM', web2: 'HipCheck' })[state.era?.id] ?? 'Yak';
-export const WEB2_CHAT = [
+export const PERIOD_CHAT_APPS = { dotcom: { id: 'awayim', name: 'AwayIM' }, web2: { id: 'hipcheck', name: 'HipCheck' } };
+export const chatAppName = (state) => PERIOD_CHAT_APPS[state.era?.id]?.name ?? 'Yak';
+export const WEB2_CHAT = { id: 'web2_box_model', lines: [
   'The box model hack is done. The box is wider inside the client demo.',
   'The conditional comment has conditions. I respect its boundaries.',
   'Added a shim, a polyfill and a clearfix. The page now qualifies as infrastructure.',
   'It works on my machine. We are considering mailing my machine to the client.',
   'Foxfire is not approved. Internet Exploder 6 has seniority.',
-];
+] };
+export const WEB2_COPY = {
+  legacy_compat: { id: 'legacy_compat', name: 'Old Browser Compatibility' },
+  web2_best_viewed: { id: 'web2_best_viewed', text: 'Best viewed in whichever browser finance approved.' },
+  web2_browser_retired: { id: 'web2_browser_retired', text: 'An old HipCheck thread resurfaces: "Internet Exploder 6 is retired. We can delete the workaround." "Which one?" New web projects no longer include old-browser QA work.' },
+};
 export const DOTCOM_CHAT = [
   'Away message: building the future. Back after lunch.',
   'The website has a visitor counter. We have agreed not to refresh it during board meetings.',

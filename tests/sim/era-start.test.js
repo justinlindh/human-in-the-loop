@@ -35,6 +35,8 @@ describe('starting era', () => {
       expect(s.cash).toBe(B.funding[funding].cash + kit.cash);
       expect(s.officeStage).toBe(kit.officeStage);
       expect(s.office.stage).toBe(kit.officeStage);
+      expect(s.officeStage).toBe(0);
+      expect(s.goals.office_floor.skipped).toBeUndefined();
       expect(s.office.placed).toHaveLength(kit.desks);
       expect(s.staff).toHaveLength(2);
       for (const p of s.staff) { expect(p.hiredWeek).toBe(0); expect(seatOf(s, p.id)).toBeTruthy(); }
@@ -106,6 +108,18 @@ describe('starting era', () => {
     s.week = B.anniversaryWeek - 1;
     endgameSystem(makeCtx(s));
     expect(s.gameOver.reason).toBe('anniversary');
+  });
+
+  it('keeps an existing later-start company on its saved office floor', () => {
+    const s = createGame({ startEra: 'agents' });
+    s.officeStage = s.office.stage = 1;
+    s.goals.office_floor.skipped = true;
+    const mem = storage();
+    expect(saveGame(s, mem)).toBe(true);
+    const loaded = loadGame(mem);
+    expect(loaded.ok).toBe(true);
+    expect(loaded.state.officeStage).toBe(1);
+    expect(loaded.state.goals.office_floor.skipped).toBe(true);
   });
 
   it('opens a model on the next calendar year boundary, not the company birthday', () => {

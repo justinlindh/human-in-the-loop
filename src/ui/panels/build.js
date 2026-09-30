@@ -10,6 +10,7 @@ import { openStaffUp, staffUpPool } from './bulkAssign.js';
 import { marketSize } from '../../sim/products.js';
 import { modelCostPerCustomer } from '../../sim/economy.js';
 import { compatibilityMult } from '../../sim/web2.js';
+import { WEB2_COPY } from '../../data/early-eras.js';
 import { projectLabel, KIND_LABEL, isAvailable, assignmentText, suggestName, automatedProject, NAME_MAX } from './common.js';
 
 // Product stats as the player sees them (Freshness is stored as novelty).
@@ -304,7 +305,7 @@ export function buildPanel(ctx, arg) {
           confirmButton('Cancel', 'Lose progress?', 'small.danger.pcancel', () => { if (ctx.act({ type: 'cancelProject', projectId: j.id }).ok) ctx.sfx('close'); })),
         h('div.bar.thick', null, fill),
         j.kind === 'new' || j.kind === 'update' ? h('div.pstats', null, ...statEls.map((x) => x.el)) : null,
-        j.compatibility ? h('div.small.legacy-compat', { text: `Old Browser Compatibility: +${Math.round((j.compatibility.factor - 1) * 100)}% work, included in the total. Best viewed in whichever browser finance approved.` }) : null,
+        j.compatibility ? h('div.small.legacy-compat', { text: `${WEB2_COPY.legacy_compat.name}: +${Math.round((j.compatibility.factor - 1) * 100)}% work, included in the total. ${WEB2_COPY.web2_best_viewed.text}` }) : null,
         crew));
       bind((st) => {
         const cur = st.projects.find((x) => x.id === j.id);
