@@ -4,7 +4,7 @@
 //   pose.mjs --gesture facepalm --matrix views=all,postures=stand,sit --measure coverHandEyeNear \
 //     --expect 'coverHandEyeNear>=0.5@0.7' --sweep 'PALM_STAND[2]=0.2,0.27,0.35'
 //
-// Each value is one pose.mjs run (its own Vite server, since a param is applied as modules load) that
+// Each value is one pose.mjs run (its own process, since a param is applied as modules load) that
 // plays the whole matrix. A repeated --sweep multiplies into a grid of value combinations: the run count
 // is printed first, and a grid over --max-runs (default 64) is refused. --jobs N runs that many values at
 // once (default: a quarter of the cores, at least 1).
@@ -86,7 +86,8 @@ export async function runMatrixSweep(argv, script) {
   try {
     rows = await pool(cols, jobs, async (c, i) => {
       const out = join(dir, `m${i}.json`);
-      const res = await runOne(script, [...base, ...c.flatMap(([n, v]) => ['--param', `${n}=${v}`]), '--json', out]);
+      // One process per value: the values already run side by side, so each plays its matrix alone.
+      const res = await runOne(script, [...base, ...c.flatMap(([n, v]) => ['--param', `${n}=${v}`]), '--json', out, '--jobs', '1']);
       let m = null;
       if (res.status === 0 || res.status === 1) { try { m = JSON.parse(readFileSync(out, 'utf8')); } catch { /* no result */ } }
       if (!m) return { c, error: `exit ${res.status}: ${res.out.trim().split('\n').slice(-1)[0]}` };

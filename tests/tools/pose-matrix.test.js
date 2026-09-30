@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { sensitivity } from '../../blender/checks/pose-matrix-sweep.js';
-import { parseMatrix, cellsOf, parseRule, judgeCell, margin, worstOf, formatMatrix, valueOf, tally, tallyText } from '../../blender/checks/pose-matrix.js';
+import { parseMatrix, cellsOf, parseRule, judgeCell, margin, worstOf, formatMatrix, valueOf, tally, tallyText, runMatrix } from '../../blender/checks/pose-matrix.js';
 
 const POSE = resolve(__dirname, '../../blender/checks/pose.mjs');
 const run = (...args) => spawnSync(process.execPath, [POSE, ...args], { encoding: 'utf8', timeout: 180000 });
@@ -183,5 +183,32 @@ describe('pose.mjs --matrix', () => {
   it('needs a gesture and a measure', () => {
     expect(run('--matrix', 'views=0', '--measure', 'faceCam').status).toBe(2);
     expect(run('--gesture', 'facepalm', '--matrix', 'views=0').status).toBe(2);
+  });
+
+  it('gives the same cells over several processes as over one, and refuses a bad --jobs', () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'matrix-jobs-'));
+    try {
+      const cells = ['--gesture', 'facepalm', '--matrix', 'views=0,3,postures=stand,sit,builds=1,rig=on', '--measure', 'coverHandEyeNear,faceCam', '--expect', 'coverHandEyeNear>=0.5@0.7 if faceCam<=80'];
+      const one = run(...cells, '--jobs', '1', '--rows', '--json', join(tmp, '1.json'));
+      const three = run(...cells, '--jobs', '3', '--rows', '--json', join(tmp, '3.json'));
+      expect(one.status).toBe(three.status);
+      const rows = (r) => r.stdout.split('\n').filter((l) => l.startsWith('CELL '));
+      expect(rows(one)).toHaveLength(4);
+      expect(rows(three)).toEqual(rows(one));
+      expect(readFileSync(join(tmp, '3.json'), 'utf8')).toBe(readFileSync(join(tmp, '1.json'), 'utf8'));
+      expect(run(...cells, '--jobs', '0').status).toBe(2);
+    } finally { rmSync(tmp, { recursive: true, force: true }); }
+  });
+});
+
+describe('runMatrix slices', () => {
+  it('plays only the cells of its slice, in matrix order', async () => {
+    const axes = parseMatrix('views=all,postures=stand,builds=0,1,rig=on');
+    const played = [];
+    const playPose = async (o) => { played.push(`${o.look.build}:${o.yawToCamera}`); return { frames: [frame(1, 1)] }; };
+    const all = cellsOf(axes).map((c) => `${c.build}:${c.view * 90}`);
+    const { cells } = await runMatrix({ playPose, gesture: 'facepalm', axes, measures: ['coverHandEyeNear'], rules: [], slice: [1, 3] });
+    expect(played).toEqual(all.filter((_, i) => i % 3 === 1));
+    expect(cells.map((c) => `${c.build}:${c.view * 90}`)).toEqual(played);
   });
 });

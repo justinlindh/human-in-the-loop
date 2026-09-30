@@ -128,11 +128,13 @@ export const worseThan = (a, b) => margin(a) < margin(b) || (margin(a) === margi
 export const worstOf = (cells) => cells.reduce((w, c) => (!w || worseThan(c, w) ? c : w), null);
 
 // Plays every cell: { cells: [{ ...cell, ...judgement, error? }] }. onCell(cell) is called as each finishes.
-export async function runMatrix({ playPose, gesture, axes, measures, rules, seconds = 2.2, warm = 1, fps = 30, onCell = () => {} }) {
+// slice [k, n] plays only the cells whose index is k modulo n (one of n processes sharing a matrix).
+export async function runMatrix({ playPose, gesture, axes, measures, rules, seconds = 2.2, warm = 1, fps = 30, onCell = () => {}, slice = null }) {
   const covers = measures.filter(isCover);
   const contact = measures.some((m) => !isCover(m) && m !== 'faceCam');
   const out = [];
-  for (const cell of cellsOf(axes)) {
+  for (const [i, cell] of cellsOf(axes).entries()) {
+    if (slice && i % slice[1] !== slice[0]) continue;
     let result;
     try {
       const { frames } = await playPose({

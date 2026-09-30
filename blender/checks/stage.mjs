@@ -3,7 +3,12 @@
 // splits the samples by beat, and holds each beat to its readability spec. It runs from the default
 // camera and from a turned view, prints a per-beat table (report.mjs), and exits 1 on any failure.
 //
-//   node blender/checks/stage.mjs [--only=letter,fumes] [--out shots/stage/report.json]
+//   node blender/checks/stage.mjs [--only=letter,fumes] [--out shots/stage/report.json] [--jobs=N] [--browser] [--rows]
+//
+// Each scenario and view plays on the studio engine in its own Node process (scripts/studio/stage-host.mjs):
+// no Vite, browser or render slot. --browser plays them in harness pages instead, the reference the engine
+// is compared against (scripts/studio/parity.mjs --preset stage). --rows also prints one STAGEROW line per
+// row, named by check, view, beat and metric with the value as JSON, for that comparison.
 //
 // A spec is a list of rules for a beat: { metric, want, test(beatSamples) -> value, pass(value) }.
 // A rule with known: <issue> fails as KNOWN (not failing the run) until that issue is fixed: closed by
@@ -15,12 +20,18 @@ import { spotReasons } from '../../src/render/spots.js';
 import { startHarness } from './harness.mjs';
 import { createReport } from './report.mjs';
 import { inputHash, passedAt, recordPass } from './cache.mjs';
-import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { execFileSync, fork } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { readFileSync, readdirSync } from 'node:fs';
+import { cpus } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { touchedSpecs } from './stage-touched.js';
 
 const args = process.argv.slice(2);
+const BROWSER = args.includes('--browser');
+const known = ['--browser', '--rows', '--touched', '--out'];
+const unknown = args.filter((a, i) => a.startsWith('--') && !known.includes(a) && !/^--(only|touched|jobs)=/.test(a) && args[i - 1] !== '--out');
+if (unknown.length) { console.error(`stage: unknown option ${unknown.join(' ')} (want --only=a,b --touched[=base] --jobs=N --out <file> --browser --rows)`); process.exit(2); }
 let ONLY = args.find((a) => a.startsWith('--only='))?.slice(7).split(',');
 // --touched[=<base>]: only the specs this checkout adds or changes against <base> (default origin/main), and
 // the specs of any scenario whose setup changed. --only alone cannot skip a spec it does not name, so a new
@@ -325,11 +336,19 @@ for (const o of ONLY ?? []) {
 const rep = createReport('stage');
 // A full pass is recorded against a hash of every input (cache.mjs); unchanged inputs skip the run.
 // Which marker issues are closed changes what fails, so it is part of the inputs a cached pass covers.
-const hash = ONLY ? null : inputHash('stage', `closed:${[...closedIssues].sort((x, y) => x - y).join(',')}`);
+// The engine run also depends on the engine itself (scripts/studio), outside the cache's usual inputs.
+const STUDIO = new URL('../../scripts/studio/', import.meta.url);
+const engineHash = () => {
+  const h = createHash('sha256');
+  for (const f of readdirSync(STUDIO).filter((n) => n.endsWith('.mjs')).sort()) h.update(`${f}\n`).update(readFileSync(new URL(f, STUDIO)));
+  return h.digest('hex').slice(0, 16);
+};
+const hash = ONLY || args.includes('--rows') ? null : inputHash('stage', `closed:${[...closedIssues].sort((x, y) => x - y).join(',')}\n${BROWSER ? 'browser' : `engine:${engineHash()}`}`);
 const before = passedAt('stage', hash);
 if (before) { console.log(`stage: inputs unchanged since ${before}, skipped`); process.exit(0); }
-const JOBS = Math.max(1, Number(args.find((a) => a.startsWith('--jobs='))?.slice(7)) || 6);
-const H = await startHarness({ browsers: JOBS });
+// Browsers default to 6; engine processes to a quarter of the cores.
+const JOBS = Math.max(1, Number(args.find((a) => a.startsWith('--jobs='))?.slice(7)) || (BROWSER ? 6 : cpus().length >> 2));
+const H = BROWSER ? await startHarness({ browsers: JOBS }) : null;
 const wanted = Object.entries(SPECS).filter(([k]) => !ONLY || ONLY.some((o) => k === o || k.startsWith(`${o}.`)));
 const byMoment = new Map();
 // Grouped by scenario: a spec runs in its moment's scenario unless it names its own.
@@ -339,104 +358,34 @@ for (const [k, s] of wanted) { const key = s.scenario ?? s.moment; byMoment.set(
 const tasks = [];
 for (const [scenario, specs] of byMoment) for (const view of views) tasks.push({ moment: specs[0][1].moment, scenario, specs, view });
 const results = new Map();
+const stageArgs = ({ moment, scenario, view }) => {
+  const sc = SCENARIOS[scenario];
+  return { moment, patch: sc.patch, steps: sc.steps, setup: sc.setup, seconds: sc.seconds, turns: view.turns, arrive: sc.arrive ?? null, arriveSeconds: sc.arriveSeconds ?? sc.seconds, beatSeconds: sc.beatSeconds ?? 0, robotActor: !!sc.robot };
+};
+// One engine process per scenario and view; a crash or a thrown error is a page error of that task.
+const hosts = new Set();
+for (const s of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(s, () => { for (const p of hosts) p.kill('SIGTERM'); process.exit(143); });
+const onEngine = (task) => new Promise((resolve) => {
+  const p = fork(fileURLToPath(new URL('../../scripts/studio/stage-host.mjs', import.meta.url)), [], { serialization: 'advanced', stdio: ['ignore', 'ignore', 'pipe', 'ipc'] });
+  hosts.add(p);
+  let got = null, err = '';
+  p.stderr.on('data', (d) => { err += d; });
+  p.on('message', (m) => { got = m; });
+  p.on('exit', (code, signal) => {
+    hosts.delete(p);
+    if (got?.ok) resolve({ res: got.res, errors: got.errors });
+    else resolve({ res: { actors: [], samples: [], spots: {} }, errors: [got?.error ?? `stage host exited ${code ?? signal}: ${err.trim().split('\n').slice(-3).join(' | ')}`] });
+  });
+  p.send({ query: SCENARIOS[task.scenario].query, args: stageArgs(task) });
+});
 let next = 0;
 await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_, slot) => {
   while (next < tasks.length) {
     const task = tasks[next++];
-    const { moment, view } = task;
+    if (!BROWSER) { results.set(task, await onEngine(task)); continue; }
     const sc = SCENARIOS[task.scenario];
     const { page, errors } = await H.openScene(`quality=medium&${sc.query}`, { width: 960, height: 600, slot });
-    const res = await page.evaluate(async ({ moment, patch, steps, setup, seconds, turns, arrive, arriveSeconds, beatSeconds, robotActor }) => {
-      const R = window.__hitlRender, S = window.__HITL.state;
-      const THREE = R.THREE;
-      // The probe raycasts every actor every frame; a tree per mesh makes that cheap (harness.mjs).
-      await window.__fastRaycast();
-      // The held-prop module allocates three.js objects, so loading it affects the seeded scene.
-      const measureHeld = moment === 'hammer' ? (await import('/blender/checks/pose-scene.js')).measureHeld : null;
-      if (!R.moments?.kinds?.includes(moment)) return { skip: `the ${moment} moment is not in this build` };
-      R.perks.hold = true;
-      R.moments.full = true;
-      R.spotTrace = true;
-      // The specs hold staging to the default and the turned view, so the moment camera stays put.
-      window.dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: false } }));
-      for (let i = 0; i < turns; i++) { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e' })); window.dispatchEvent(new KeyboardEvent('keyup', { key: 'e' })); }
-      window.__step(90);
-      Object.assign(S, JSON.parse(JSON.stringify(patch)));
-      if (setup) await new Function('R', 'S', `return (async () => { ${setup}; })()`)(R, S);
-      const robotContact = moment === 'robot' ? (await import('/blender/checks/robot-contact.js')).robotContact : null;
-      const petProbe = moment === 'pet' || moment === 'robot' ? (await import('/src/render/probe.js')).createProbe({ scene: R.scene, camera: R.camera, office: R.office }) : null;
-      const samples = [];
-      // Everyone the moment takes part, each sampled every frame until the moment is over for all.
-      const actors = new Set();
-      // A scenario with `arrive` scores a fixed beatSeconds window starting once that role reaches
-      // its beat, rather than over the whole run: how long the walk there takes must not change how
-      // much of the beat gets scored. arriveSeconds bounds the wait; past it, nobody arrived.
-      // A role's beat can read as the arrival beat before it starts walking (staged, but not yet
-      // sent off): only count arriving once that role has actually been seen walking first.
-      let arrivedAt = null, sawWalk = false;
-      const cap = arrive ? (arriveSeconds + beatSeconds) * 30 : seconds * 30;
-      let f = 0;
-      for (; f < cap; f++) {
-        for (const st of steps ?? []) if (st.at === f) new Function('S', 'R', st.js)(S, R);
-        window.__step(1);
-        for (const [id, m] of R.moments.active) if (m === moment) actors.add(id);
-        // The moment's own actors (visitors) are staged too.
-        for (const e of R.moments.extras?.() ?? []) if (e.stage.moment === moment) actors.add(e.id);
-        let live = 0;
-        for (const actor of actors) {
-          const m = R.probe(actor);
-          if (!m?.moment) continue;
-          live++;
-          // Held prop against the hands and the head, for the hold rules.
-          const st = R.moments.staging(actor);
-          if (moment === 'hammer' && R.moments.hammer?.phase !== 'fetch') {
-            Object.assign(m, measureHeld(R, actor, undefined, undefined, m));
-            if (R.moments.hammer?.phase === 'carry') m.beat = 'carry';
-          }
-          if (m.held) {
-            const c = new THREE.Box3().setFromObject(st.held).getCenter(new THREE.Vector3());
-            m.heldHand = Math.min(...m.hands.map((h) => Math.hypot(h[0] - c.x, h[1] - c.y, h[2] - c.z)));
-            m.heldAbove = c.y - (m.headY + 0.3);
-            m.heldDrop = m.headY - c.y;
-          }
-          if (moment === 'pet') {
-            const pet = R.pets.peek().find(p => p.petter === actor);
-            let root = null, petRoot = null, head = null;
-            R.scene.traverse(o => { if (o.userData.staffId === actor) root = o.parent; if (o.name === 'pet') petRoot = o; });
-            root?.traverse(o => { if (o.userData.part === 'head') head = o; });
-            m.petHeadVisible = head ? petProbe.seen(head)[0].visible : 0;
-            m.petVisible = petRoot ? petProbe.seen(petRoot)[0].visible : 0;
-            m.petContact = pet?.contact ? Math.hypot(...m.hands[1].map((v, i) => v - pet.contact[i])) : Infinity;
-          }
-          if (moment === 'robot' && R.robot?.root) {
-            m.robotVisible = petProbe.seen(R.robot.root)[0].visible;
-            m.robotContact = robotContact(R.robot.root, m.hands[1]);
-          }
-          samples.push({ t: f / 30, actor, role: st?.role ?? null, ...m });
-          if (arrive && st?.role === arrive.role) {
-            if (arrivedAt === null && sawWalk && m.beat === arrive.beat) arrivedAt = f;
-            if (m.beat === 'walk') sawWalk = true;
-          }
-        }
-        // The robot as the actor (a party it joins): its post is its beat once it has turned to face
-        // the way it will; the way there and the turn are 'walk'.
-        const rp = robotActor && R.robot?.peek();
-        if (rp?.party && R.robot.root) {
-          live++;
-          const root = R.robot.root, at = root.getWorldPosition(new THREE.Vector3());
-          const fwd = { x: Math.sin(rp.yaw), z: Math.cos(rp.yaw) };
-          const deg = (x, z) => { const l = Math.hypot(x, z) || 1; return Math.acos(Math.max(-1, Math.min(1, (fwd.x * x + fwd.z * z) / l))) * 180 / Math.PI; };
-          const cam = R.camera.getWorldPosition(new THREE.Vector3());
-          samples.push({ t: f / 30, actor: 'robot', role: 'robot', beat: rp.settled ? rp.party : 'walk',
-            robotVisible: petProbe.seen(root)[0].visible, robotFaceCam: deg(cam.x - at.x, cam.z - at.z),
-            robotFaceTarget: rp.partyFace ? deg(rp.partyFace.x - at.x, rp.partyFace.z - at.z) : null });
-        }
-        if (arrive && arrivedAt === null && f >= arriveSeconds * 30 - 1) return { actors: [...actors], samples, spots: R.debug?.spots ?? {}, arriveTimedOut: true };
-        if (arrive && arrivedAt !== null && f >= arrivedAt + beatSeconds * 30 - 1) break;
-        if (samples.length && !live) break;
-      }
-      return { actors: [...actors], samples, spots: R.debug?.spots ?? {} };
-    }, { moment, patch: sc.patch, steps: sc.steps, setup: sc.setup, seconds: sc.seconds, turns: view.turns, arrive: sc.arrive ?? null, arriveSeconds: sc.arriveSeconds ?? sc.seconds, beatSeconds: sc.beatSeconds ?? 0, robotActor: !!sc.robot });
+    const res = await page.evaluate(async (o) => (await import('/blender/checks/stage-page.js')).playStage(o), stageArgs(task));
     await page.close();
     results.set(task, { res, errors });
   }
@@ -479,7 +428,14 @@ for (const task of tasks) {
     }
   }
 }
-await H.close();
+await H?.close();
 const code = rep.finish({ out: OUT });
+// The rows for parity.mjs: the beat's length goes with the value, so a beat that runs longer differs.
+if (args.includes('--rows')) {
+  for (const r of rep.rows) {
+    const [, beat, secs] = /^(.*?)(?: \(([\d.]+)s\))?$/.exec(String(r.beat));
+    console.log(`STAGEROW ${r.pass ? 'ok' : 'FAIL'} ${r.check} ${r.view} ${beat} ${r.metric} ${JSON.stringify({ value: typeof r.value === 'number' && !Number.isFinite(r.value) ? String(r.value) : r.value, seconds: secs ? Number(secs) : null })}`);
+  }
+}
 if (!code) recordPass('stage', hash);
 process.exit(code);

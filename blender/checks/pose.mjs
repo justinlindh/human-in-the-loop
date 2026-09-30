@@ -49,20 +49,22 @@
 // renderReference, profile, json), printed and judged exactly like a single cold run, then a
 // `POSE serve <n> code=<0|1|2> ...` summary line. `{"quit": true}` or stdin EOF ends the session.
 //
-// It runs the game's own character code in Node through Vite's module loader, with two stand-ins:
-// a canvas whose 2D context does nothing (cheek and emote textures only), and fetch reading the
-// model files from public/. pose-measure.js holds the measuring; --check-browser runs it in a
-// harness page as well and compares every number, which is how the stand-ins are kept honest.
-import { createServer } from 'vite';
+// It runs the game's own character code in Node on the studio engine (scripts/studio: its platform, a
+// canvas whose 2D context does nothing and fetch reading public/, and its loader, native imports with no
+// Vite). pose-measure.js holds the measuring; --check-browser runs it in a harness page as well and
+// compares every number, and --matrix --browser runs the whole matrix in one (--rows prints a CELL line
+// per cell for scripts/studio/parity.mjs), which is how the engine is kept honest.
+import { registerHooks } from 'node:module';
 import { LANDMARKS } from './pose-landmarks.js';
 import { HELD_READ_MEASURES } from './pose-held.js';
 import { judgeScene, COVER_MEASURE } from './pose-rules.js';
-import { readFileSync, writeFileSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
+import { fork, spawnSync } from 'node:child_process';
+import { cpus } from 'node:os';
 import { createInterface } from 'node:readline';
 import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { paramPlugin, paramSpecs, resolveParams } from './param.js';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { applyParams, paramSpecs, resolveParams } from './param.js';
 import { runSweep } from './param-sweep.js';
 import { runMatrixSweep } from './pose-matrix-sweep.js';
 
@@ -74,7 +76,8 @@ const ROOT = resolve(opt('root', join(import.meta.dirname, '../..')));
 if (opt('sweep')) process.exit(await (opt('matrix') ? runMatrixSweep : runSweep)(argv, fileURLToPath(import.meta.url)));
 let PARAMS = [];
 // A page serves the working directory, so --param there names files under it.
-const IN_PAGE = argv.includes('--scene') || argv.includes('--check-browser');
+const MATRIX_BROWSER = !!opt('matrix') && argv.includes('--browser');
+const IN_PAGE = argv.includes('--scene') || argv.includes('--check-browser') || MATRIX_BROWSER;
 if (IN_PAGE && paramSpecs(argv).length && resolve(process.cwd()) !== ROOT) { console.error(`pose: --param with --scene measures the working directory's code: run pose.mjs from ${ROOT}`); process.exit(2); }
 try { PARAMS = resolveParams(paramSpecs(argv), ROOT); } catch (e) { console.error(e.message); process.exit(2); }
 if (PARAMS.length && argv.includes('--serve')) { console.error('pose: --param needs a cold run: --serve keeps one server across requests'); process.exit(2); }
@@ -83,24 +86,55 @@ const OPTS = {
   warm: Number(opt('warm', 1)), side: Number(opt('side', 1)) < 0 ? -1 : 1, yawToCamera: Number(opt('yaw-to-camera', 0)), view: Number(opt('view', 0)), fps: 30, rig: opt('rig', 'on') !== 'off',
 };
 const EVERY = Number(opt('every', 6));
+// --matrix on the engine spreads its cells over --jobs processes (default a quarter of the cores), each
+// playing every n-th cell (--slice k/n, internal) and handing its cells back over IPC.
+const JOBS = Number(opt('jobs', Math.max(1, cpus().length >> 2)));
+const SLICE = opt('slice') ? opt('slice').split('/').map(Number) : null;
+if (!(Number.isInteger(JOBS) && JOBS >= 1)) { console.error(`pose: --jobs wants a whole number of at least 1 (got ${opt('jobs')})`); process.exit(2); }
+
+async function matrixOnEngine(total) {
+  const n = Math.min(JOBS, total);
+  const drop = new Set(['--jobs', '--json', '--crop', '--slice']);
+  const args = argv.filter((a, i) => !drop.has(a) && !drop.has(argv[i - 1]) && a !== '--rows');
+  const children = new Set();
+  for (const s of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(s, () => { for (const p of children) p.kill('SIGTERM'); process.exit(143); });
+  const parts = await Promise.all(Array.from({ length: n }, (_, k) => new Promise((done, fail) => {
+    const p = fork(fileURLToPath(import.meta.url), [...args, '--slice', `${k}/${n}`], { serialization: 'advanced', stdio: ['ignore', 'ignore', 'pipe', 'ipc'] });
+    children.add(p);
+    let got = null, err = '';
+    p.stderr.on('data', (d) => { err += d; });
+    p.on('message', (m) => { got = m; });
+    p.on('exit', (code, signal) => { children.delete(p); if (got) done(got.cells); else fail(new Error(`pose: matrix slice ${k}/${n} exited ${code ?? signal}: ${err.trim().split('\n').slice(-3).join(' | ')}`)); });
+  })));
+  // Slice k holds cells k, k + n, k + 2n...: interleaved back into matrix order.
+  return Array.from({ length: total }, (_, i) => parts[i % n][Math.floor(i / n)]);
+}
 const MEASURES = ['hand0Face', 'hand0Head', 'hand0HeadTop', 'hand1Face', 'hand1Head', 'hand1HeadTop', ...[0, 1].flatMap(h => LANDMARKS.map(n => `hand${h}${n}`)), 'faceCam'];
 const valueOf = (f, m) => (m === 'faceCam' ? f.faceCam : f.contact[m]);
 
-// The stand-ins for what a page gives: a canvas, fetch of public files, and the event types three's
-// loaders construct.
-function standIns() {
-  const noop = new Proxy(function () {}, { get: (_, k) => (k === 'then' ? undefined : k === Symbol.toPrimitive ? () => 0 : noop), apply: () => noop, set: () => true });
-  const ctx = new Proxy({}, { get: (_, k) => (k === 'measureText' ? () => ({ width: 0 }) : k === 'getImageData' ? () => ({ data: new Uint8ClampedArray(4) }) : noop), set: () => true });
-  globalThis.document ??= { createElement: () => ({ width: 1, height: 1, style: {}, getContext: () => ctx }), createElementNS: () => ({ style: {}, addEventListener() {} }) };
-  globalThis.self ??= globalThis;
-  globalThis.ProgressEvent ??= class extends Event { constructor(type, init = {}) { super(type); Object.assign(this, init); } };
-  const real = globalThis.fetch;
-  globalThis.Request = class { constructor(url, init = {}) { this.url = String(url); this.headers = new Headers(init.headers); this.method = 'GET'; } };
-  globalThis.fetch = async (url, o) => {
-    const u = typeof url === 'string' ? url : url.url;
-    if (/^https?:/.test(u)) return real(u, o);
-    return new Response(readFileSync(join(ROOT, 'public', decodeURIComponent(u.replace(/^\//, '')))), { status: 200 });
-  };
+// The studio engine under the measuring modules: its platform (a canvas that draws nothing, fetch reading
+// ROOT's public/, a frame clock and seeded Math.random, as a harness page has) and its loader (ROOT's src/
+// by native import, --param applied as each module loads). The modules import the game by absolute path
+// ('/src/render/character.js'), as a page does; three and three-mesh-bvh come from ROOT, so the game and
+// the measures share one three.js. Returns a loader for this directory's modules.
+async function engine() {
+  const { installPlatform } = await import('../../scripts/studio/platform.mjs');
+  const { installLoader } = await import('../../scripts/studio/loader.mjs');
+  installPlatform(ROOT, { quality: 'medium' });
+  const byFile = Map.groupBy(PARAMS, (p) => p.file);
+  installLoader({ root: ROOT, transform: (file, source) => (byFile.has(file) ? applyParams(source, byFile.get(file)) : source) });
+  const rootUrl = pathToFileURL(`${ROOT}/`);
+  const fromRoot = new URL('package.json', rootUrl).href;
+  registerHooks({
+    resolve(specifier, context, next) {
+      if (specifier.startsWith('/src/')) return next(new URL(specifier.slice(1), rootUrl).href, context);
+      if (/^three(-mesh-bvh)?(\/|$)/.test(specifier) && context.parentURL !== fromRoot) {
+        try { return next(specifier, { ...context, parentURL: fromRoot }); } catch { /* ROOT has no copy: the tool's own */ }
+      }
+      return next(specifier, context);
+    },
+  });
+  return (name) => import(pathToFileURL(join(import.meta.dirname, name)).href);
 }
 
 function parseRule(s) {
@@ -309,59 +343,86 @@ async function serveMode() {
   return worst;
 }
 
-async function checkBrowser(frames) {
+// A harness page on this checkout, running fn(arg) there; closed after. It runs before the engine is
+// installed: the engine replaces this process's clock and globals, which the browser driver needs.
+async function inPage(fn, arg) {
   const { startHarness } = await import('./harness.mjs');
   const H = await startHarness({ params: PARAMS });
   try {
-    const { page } = await H.openScene('quality=medium&mock=floor', { width: 320, height: 200 });
-    const b = await page.evaluate(async (o) => (await import('/blender/checks/pose-measure.js')).playPose(o), OPTS);
-    const flat = (f) => [f.t, ...f.eyes, ...f.forward, ...f.head, ...f.hands.flat(), ...(f.joints ? Object.values(f.joints).flat() : []), ...Object.values(f.contact).map((v) => v ?? 0), f.faceCam];
-    let worst = 0, at = null;
-    if (b.frames.length !== frames.length) { console.log(`POSE FAIL browser check: ${b.frames.length} frames in the page, ${frames.length} in Node`); return 1; }
-    frames.forEach((f, i) => { const x = flat(f), y = flat(b.frames[i]); x.forEach((v, k) => { const d = Math.abs(v - y[k]); if (d > worst) { worst = d; at = `frame ${i} value ${k}`; } }); });
-    const ok = worst <= 1e-3;
-    console.log(`POSE ${ok ? 'ok  ' : 'FAIL'} browser check: ${frames.length} frames, largest difference ${worst.toExponential(2)}${at ? ` (${at})` : ''}${ok ? '' : ': the Node stand-ins no longer match the page'}`);
-    return ok ? 0 : 1;
+    const { page, errors } = await H.openScene('quality=medium&mock=floor', { width: 320, height: 200 });
+    const out = await page.evaluate(fn, arg);
+    if (errors.length) throw new Error(`pose: page errors: ${errors.slice(0, 3).join('; ')}`);
+    return out;
   } finally {
     await H.close();
   }
 }
 
+function compareBrowser(frames, b) {
+  const flat = (f) => [f.t, ...f.eyes, ...f.forward, ...f.head, ...f.hands.flat(), ...(f.joints ? Object.values(f.joints).flat() : []), ...Object.values(f.contact).map((v) => v ?? 0), f.faceCam];
+  let worst = 0, at = null;
+  if (b.frames.length !== frames.length) { console.log(`POSE FAIL browser check: ${b.frames.length} frames in the page, ${frames.length} in Node`); return 1; }
+  frames.forEach((f, i) => { const x = flat(f), y = flat(b.frames[i]); x.forEach((v, k) => { const d = Math.abs(v - y[k]); if (d > worst) { worst = d; at = `frame ${i} value ${k}`; } }); });
+  const ok = worst <= 1e-3;
+  console.log(`POSE ${ok ? 'ok  ' : 'FAIL'} browser check: ${frames.length} frames, largest difference ${worst.toExponential(2)}${at ? ` (${at})` : ''}${ok ? '' : ': the engine no longer matches the page'}`);
+  return ok ? 0 : 1;
+}
+
 const SCENE_MEASURES = ['faceCovered', 'faceVisible', 'bodyVisible', 'faceCam', 'facePx', 'heldGap', 'heldHeadDepth', 'heldTorsoDepth', ...HELD_READ_MEASURES];
 
 // The page a browser check opens serves this checkout, so it can only check this checkout's code.
-const browserMode = argv.includes('--scene') ? '--scene' : argv.includes('--check-browser') ? '--check-browser' : null;
+const browserMode = argv.includes('--scene') ? '--scene' : argv.includes('--check-browser') ? '--check-browser' : MATRIX_BROWSER ? '--browser' : null;
 if (browserMode && ROOT !== resolve(join(import.meta.dirname, '../..'))) {
   console.error(`pose: ${browserMode} measures the page's own checkout, not --root; run pose.mjs from ${ROOT} (copy blender/checks/pose*.js there) to check it`);
   process.exit(2);
 }
 if (argv.includes('--scene')) process.exit(argv.includes('--serve') ? await serveMode() : await sceneMode());
 
-// The browser check renders, so it takes a render slot first; taking one re-runs this script under
-// the lock, which must happen before anything is printed.
-if (argv.includes('--check-browser')) {
+// A page renders, so it takes a render slot first; taking one re-runs this script under the lock,
+// which must happen before anything is printed.
+if (argv.includes('--check-browser') || MATRIX_BROWSER) {
   const { holdRenderLock, glMode } = await import('../../scripts/lib/gl.js');
   holdRenderLock(glMode({ argv }));
 }
-const t0 = performance.now();
-standIns();
-const vite = await createServer({ root: ROOT, configFile: false, plugins: PARAMS.length ? [paramPlugin(PARAMS)] : [], server: { middlewareMode: true, hmr: false }, appType: 'custom', logLevel: 'error', optimizeDeps: { noDiscovery: true, include: [] } });
+// Wall time, read before the engine swaps performance.now for its frame clock.
+const wallNow = performance.now.bind(performance);
+const t0 = wallNow();
 let code = 0;
 try {
-  const P0 = await vite.ssrLoadModule(join(import.meta.dirname, 'pose-measure.js'));
-  // The slap is two actors, so it plays through pose-slap.js; every other gesture is playPose as it was.
-  const P = OPTS.gesture === 'slap' ? { ...P0, playPose: (await vite.ssrLoadModule(join(import.meta.dirname, 'pose-slap.js'))).withSlap(P0.playPose) } : P0;
   if (opt('matrix')) {
-    const X = await vite.ssrLoadModule(join(import.meta.dirname, 'pose-matrix.js'));
+    // pose-matrix.js imports nothing, so the axes and rules are read before any engine or page starts.
+    const X = await import('./pose-matrix.js');
     if (!OPTS.gesture) throw new Error('pose: --matrix needs --gesture <name>');
     const measures = String(opt('measure', '')).split(',').map((s) => s.trim()).filter(Boolean);
     const rules = all('expect').map((r) => X.parseRule(r, measures));
     if (!measures.length) throw new Error('pose: --matrix needs --measure <m1,m2> (e.g. coverHandEyeNear,faceCam,clearance)');
     const axes = X.parseMatrix(opt('matrix'), OPTS.gesture);
-    const result = await X.runMatrix({ playPose: P.playPose, gesture: OPTS.gesture, axes, measures, rules, seconds: OPTS.seconds, warm: OPTS.warm, fps: OPTS.fps });
+    const run = { gesture: OPTS.gesture, axes, measures, rules, seconds: OPTS.seconds, warm: OPTS.warm, fps: OPTS.fps };
+    let result;
+    if (MATRIX_BROWSER) {
+      result = await inPage(async (o) => {
+        const P = await import('/blender/checks/pose-measure.js');
+        // The slap is two actors, so it plays through pose-slap.js.
+        const playPose = o.gesture === 'slap' ? (await import('/blender/checks/pose-slap.js')).withSlap(P.playPose) : P.playPose;
+        return (await import('/blender/checks/pose-matrix.js')).runMatrix({ ...o, playPose });
+      }, run);
+    } else if (SLICE) {
+      const load = await engine();
+      const P = await load('pose-measure.js');
+      const playPose = OPTS.gesture === 'slap' ? (await load('pose-slap.js')).withSlap(P.playPose) : P.playPose;
+      const { cells } = await X.runMatrix({ ...run, playPose, slice: SLICE });
+      await new Promise((done) => process.send({ cells }, done));
+      process.exit(0);
+    } else {
+      result = { axes, cells: await matrixOnEngine(X.cellsOf(axes).length) };
+    }
     for (const l of X.formatMatrix(result, rules, OPTS.gesture)) console.log(l);
+    // One line per cell for parity.mjs: every axis in the name, the verdicts and ranges as the value.
+    if (argv.includes('--rows')) {
+      for (const c of result.cells) console.log(`CELL ${c.pass ? 'ok' : 'FAIL'} ${c.posture} b${c.build} rig-${c.rig} ${c.accessory} ${c.cause} side${c.side} view${c.view} ${JSON.stringify({ error: c.error ?? null, judged: c.judged, stat: c.stat, verdicts: c.verdicts.map(({ share, gap, frames, worstT, na }) => ({ share, gap: Number.isFinite(gap) ? gap : String(gap), frames, worstT, na: !!na })) })}`);
+    }
     if (opt('json')) writeFileSync(opt('json'), JSON.stringify(result, null, 1));
-    console.log(`pose: ${result.cells.length} cells in ${(performance.now() - t0).toFixed(0)} ms`);
+    console.log(`pose: ${result.cells.length} cells in ${(wallNow() - t0).toFixed(0)} ms${MATRIX_BROWSER ? ' (browser)' : ''}`);
     code = rules.length && result.cells.some((c) => !c.pass) ? 1 : 0;
     // One picture, of the worst cell at its worst frame, only when asked (it needs the GPU and its lock).
     if (opt('crop')) {
@@ -371,9 +432,14 @@ try {
       const r = spawnSync(process.execPath, args, { stdio: ['ignore', 'pipe', 'inherit'], encoding: 'utf8' });
       console.log(`pose: crop of the worst cell (${X.rowLabel(w, axes)} view ${w.view}, t ${v?.worstT ?? '-'}): ${r.status === 0 ? opt('crop') : `failed (exit ${r.status})`}`);
     }
-    await vite.close();
     process.exit(code);
   }
+  // The browser check's page runs first: the engine then takes over this process.
+  const browser = argv.includes('--check-browser') ? await inPage(async (o) => (await import('/blender/checks/pose-measure.js')).playPose(o), OPTS) : null;
+  const load = await engine();
+  const P0 = await load('pose-measure.js');
+  // The slap is two actors, so it plays through pose-slap.js; every other gesture is playPose as it was.
+  const P = OPTS.gesture === 'slap' ? { ...P0, playPose: (await load('pose-slap.js')).withSlap(P0.playPose) } : P0;
   const { frames, info } = await P.playPose(OPTS);
   const fmt = (v, w = 7) => (v == null ? '-' : String(v)).padStart(w);
   console.log(`POSE ${'t'.padStart(5)} ${'phase'.padEnd(7)} ${'anim'.padEnd(12)}${MEASURES.map((m) => fmt(m, 13)).join('')}`);
@@ -392,12 +458,10 @@ try {
     console.log(`POSE ${pass ? 'ok  ' : 'FAIL'} ${r.text}: ${(ok * 100).toFixed(0)}% of judged frames (want ${(r.share * 100).toFixed(0)}%)`);
   }
   if (opt('json')) writeFileSync(opt('json'), JSON.stringify({ info, frames }, null, 1));
-  if (argv.includes('--check-browser')) code = Math.max(code, await checkBrowser(frames));
-  console.log(`pose: ${frames.length} frames in ${(performance.now() - t0).toFixed(0)} ms`);
+  if (browser) code = Math.max(code, compareBrowser(frames, browser));
+  console.log(`pose: ${frames.length} frames in ${(wallNow() - t0).toFixed(0)} ms`);
 } catch (e) {
   console.error(e.message);
   code = 2;
-} finally {
-  await vite.close();
 }
 process.exit(code);
