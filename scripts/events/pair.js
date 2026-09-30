@@ -43,7 +43,7 @@ async function runOne({ root, bot, seed, fields, startEra }) {
   }
   return [`${bot}:${seed}`, { reason: r.reason, exited: !!r.exited, won: !!r.won, weeks: r.weeks, score: r.score,
     incidents: s.stats?.incidents ?? 0, caught: s.stats?.caught ?? 0, breaches: s.stats?.breaches ?? 0,
-    hash: [r.reason, r.weeks, r.score, s.rng?.s].join('|'), fields: extra }];
+    era: s.founding?.startEra ?? null, hash: [r.reason, r.weeks, r.score, s.rng?.s].join('|'), fields: extra }];
 }
 
 if (!isMainThread) {
@@ -86,6 +86,7 @@ if (!isMainThread) {
   const { BOTS } = await import(pathToFileURL(join(b, 'src/sim/bots.js')).href);
   const bots = opt('bots', Object.keys(BOTS).join(',')).split(',');
   const startEra = opt('start-era', null);
+  if (argv.includes('--start-era') && (!startEra || startEra.startsWith('--'))) fail('--start-era needs an era name');
   if (startEra) {
     const { ERA_STARTS } = await import(pathToFileURL(join(b, 'src/data/era-modes.js')).href);
     if (!Object.hasOwn(ERA_STARTS, startEra)) fail(`unknown starting era: ${startEra}`);
@@ -118,12 +119,18 @@ if (!isMainThread) {
     if (sa.code !== 0 || sb.code !== 0) { console.error(`pair: side ${sa.code !== 0 ? 'a' : 'b'} failed (exit ${sa.code !== 0 ? sa.code : sb.code}) or timed out`); code = 2; }
     else {
       const A = JSON.parse(readFileSync(sa.out, 'utf8')), B = JSON.parse(readFileSync(sb.out, 'utf8'));
+      if (startEra) {
+        for (const [name, recs] of [['a', A], ['b', B]]) {
+          const off = Object.values(recs).filter((r) => (r.era ?? 'classic') !== startEra).length;
+          if (off) fail(`side ${name} did not start ${off} run(s) in ${startEra} (its sim predates --start-era?)`);
+        }
+      }
       const result = compare(A, B);
       console.log(markdown(result, { a: 'a', b: 'b' }));
       if (result.onlyA.length || result.onlyB.length) console.log(`\nrun sets differ: ${result.onlyA.length} run(s) only on a (${result.onlyA.slice(0, 5).join(', ')}), ${result.onlyB.length} only on b (${result.onlyB.slice(0, 5).join(', ')}); only the ${result.runs} runs on both are compared.`);
-      console.log(`\n${result.runs} paired runs (${bots.join(', ')}; seeds 1-${seeds}) in ${Math.round((Date.now() - t0) / 1000)} s.`);
+      console.log(`\n${result.runs} paired runs (${bots.join(', ')}; seeds 1-${seeds}${startEra ? `; start era ${startEra}` : ''}) in ${Math.round((Date.now() - t0) / 1000)} s.`);
       const jf = opt('json');
-      if (jf) writeFileSync(jf, JSON.stringify({ a, b, bots, seeds, summary: result.rows.map((r) => ({ ...r, lost: r.lost, gained: r.gained })), runs: { a: A, b: B } }, null, 1));
+      if (jf) writeFileSync(jf, JSON.stringify({ a, b, bots, seeds, startEra: startEra ?? 'classic', summary: result.rows.map((r) => ({ ...r, lost: r.lost, gained: r.gained })), runs: { a: A, b: B } }, null, 1));
     }
   } finally {
     baseWorktree?.disposeSync();
