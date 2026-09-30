@@ -1,0 +1,87 @@
+e5d-price150: exit 0
+{"era":"preinternet","price":150,"mult":1.3,"bot":"automateAll","seeds":200,"exits":0,"median":2224,"dotcom":197,"web2":197,"cash":801980.1846153841,"staff":6}
+{"era":"preinternet","price":150,"mult":1.3,"bot":"allHumans","seeds":200,"exits":67,"median":47981,"dotcom":200,"web2":123,"cash":649319.7846153846,"staff":14}
+{"era":"preinternet","price":150,"mult":1.3,"bot":"balanced","seeds":200,"exits":82,"median":45949,"dotcom":200,"web2":115,"cash":642004.1999999997,"staff":14}
+{"era":"preinternet","price":150,"mult":1.3,"bot":"sensible","seeds":200,"exits":105,"median":55929,"dotcom":200,"web2":136,"cash":866513.0153846144,"staff":14}
+{"era":"preinternet","price":150,"mult":1.3,"bot":"recklessHumans","seeds":200,"exits":0,"median":1434,"dotcom":175,"web2":62,"cash":358679.80000000005,"staff":12}
+{"era":"preinternet","price":150,"mult":1.3,"bot":"squads","seeds":200,"exits":78,"median":48608,"dotcom":200,"web2":126,"cash":626732.753846154,"staff":14}
+pooled median: 3948
+
+e5d-price200: exit 0
+{"era":"preinternet","price":200,"mult":1.3,"bot":"automateAll","seeds":200,"exits":0,"median":2276,"dotcom":198,"web2":198,"cash":1322466.4615384613,"staff":6}
+{"era":"preinternet","price":200,"mult":1.3,"bot":"allHumans","seeds":200,"exits":69,"median":49842,"dotcom":200,"web2":149,"cash":973699.6153846154,"staff":14}
+{"era":"preinternet","price":200,"mult":1.3,"bot":"balanced","seeds":200,"exits":111,"median":56806,"dotcom":200,"web2":155,"cash":981146.061538462,"staff":14}
+{"era":"preinternet","price":200,"mult":1.3,"bot":"sensible","seeds":200,"exits":140,"median":60084,"dotcom":200,"web2":167,"cash":1260517.3076923077,"staff":14}
+{"era":"preinternet","price":200,"mult":1.3,"bot":"recklessHumans","seeds":200,"exits":0,"median":1316,"dotcom":188,"web2":74,"cash":602505.523076923,"staff":14}
+{"era":"preinternet","price":200,"mult":1.3,"bot":"squads","seeds":200,"exits":92,"median":53613,"dotcom":200,"web2":150,"cash":963125.7538461535,"staff":14}
+pooled median: 38218
+
+e5d-price250: exit 0
+{"era":"preinternet","price":250,"mult":1.3,"bot":"automateAll","seeds":200,"exits":0,"median":2324,"dotcom":199,"web2":199,"cash":1834851.323076923,"staff":6}
+{"era":"preinternet","price":250,"mult":1.3,"bot":"allHumans","seeds":200,"exits":85,"median":54022,"dotcom":200,"web2":164,"cash":1323636.4615384603,"staff":14}
+{"era":"preinternet","price":250,"mult":1.3,"bot":"balanced","seeds":200,"exits":126,"median":58552,"dotcom":200,"web2":169,"cash":1318111.215384615,"staff":14}
+{"era":"preinternet","price":250,"mult":1.3,"bot":"sensible","seeds":200,"exits":147,"median":60215,"dotcom":200,"web2":185,"cash":1646265.4307692302,"staff":14}
+{"era":"preinternet","price":250,"mult":1.3,"bot":"recklessHumans","seeds":200,"exits":0,"median":1252,"dotcom":192,"web2":89,"cash":927261.2153846152,"staff":14}
+{"era":"preinternet","price":250,"mult":1.3,"bot":"squads","seeds":200,"exits":104,"median":54856,"dotcom":200,"web2":163,"cash":1326495.7538461538,"staff":14}
+pooled median: 45992
+
+e5d-handoff: exit 0
+{"price":250,"bot":"balanced","into":200,"through":169,"cash":1318111.215384615,"staff":14}
+{"price":250,"bot":"sensible","into":200,"through":185,"cash":1646265.4307692302,"staff":14}
+{"price":275,"bot":"balanced","into":200,"through":176,"cash":1487375.7692307692,"staff":14}
+{"price":275,"bot":"sensible","into":200,"through":191,"cash":1841403.123076922,"staff":14}
+{"price":300,"bot":"balanced","into":200,"through":183,"cash":1658576.1230769246,"staff":14}
+{"price":300,"bot":"sensible","into":200,"through":194,"cash":2040788.9538461536,"staff":14}
+{"price":350,"bot":"balanced","into":200,"through":185,"cash":2016513.0307692292,"staff":14}
+{"price":350,"bot":"sensible","into":200,"through":197,"cash":2413125.830769231,"staff":14}
+
+e5d-handoff325: exit 0
+{"price":325,"bot":"balanced","into":200,"through":181,"cash":1841211.2153846167,"staff":14}
+{"price":325,"bot":"sensible","into":200,"through":195,"cash":2225843.1230769213,"staff":14}
+
+e5d-price350: exit 0
+{"era":"preinternet","price":350,"mult":1.3,"bot":"balanced","seeds":200,"exits":136,"median":59327,"dotcom":200,"web2":185,"cash":2016513.0307692292,"staff":14}
+{"era":"preinternet","price":350,"mult":1.3,"bot":"sensible","seeds":200,"exits":160,"median":60343,"dotcom":200,"web2":197,"cash":2413125.830769231,"staff":14}
+{"era":"preinternet","price":350,"mult":1.3,"bot":"automateAll","seeds":200,"exits":0,"median":2445,"dotcom":199,"web2":199,"cash":2854663.3076923075,"staff":6}
+{"era":"preinternet","price":350,"mult":1.3,"bot":"allHumans","seeds":200,"exits":90,"median":54489,"dotcom":200,"web2":183,"cash":2018895.2153846147,"staff":14}
+{"era":"preinternet","price":350,"mult":1.3,"bot":"recklessHumans","seeds":200,"exits":0,"median":1054,"dotcom":192,"web2":134,"cash":1587851.2153846165,"staff":14}
+{"era":"preinternet","price":350,"mult":1.3,"bot":"squads","seeds":200,"exits":121,"median":57540,"dotcom":200,"web2":184,"cash":2024786.7538461538,"staff":14}
+pooled median: 49577
+
+e5d-final: exit 0
+{"era":"preinternet","price":350,"mult":1.3,"bot":"automateAll","seeds":200,"exits":0,"median":1638,"dotcom":199,"web2":199,"cash":2854663.3076923075,"staff":6}
+{"era":"preinternet","price":350,"mult":1.3,"bot":"allHumans","seeds":200,"exits":90,"median":36508,"dotcom":200,"web2":183,"cash":2018895.2153846147,"staff":14}
+{"era":"preinternet","price":350,"mult":1.3,"bot":"balanced","seeds":200,"exits":136,"median":39749,"dotcom":200,"web2":185,"cash":2016513.0307692292,"staff":14}
+{"era":"preinternet","price":350,"mult":1.3,"bot":"sensible","seeds":200,"exits":160,"median":40430,"dotcom":200,"web2":197,"cash":2413125.830769231,"staff":14}
+{"era":"preinternet","price":350,"mult":1.3,"bot":"recklessHumans","seeds":200,"exits":0,"median":706,"dotcom":192,"web2":134,"cash":1587851.2153846165,"staff":14}
+{"era":"preinternet","price":350,"mult":1.3,"bot":"squads","seeds":200,"exits":121,"median":38551,"dotcom":200,"web2":184,"cash":2024786.7538461538,"staff":14}
+pooled median: 33217
+
+e5d-full-tests: exit 0
+
+> human-in-the-loop@1.0.0 test
+> vitest run --maxWorkers=4
+
+
+ RUN  v5.0.1 .
+
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+
+ Test Files  206 passed (206)
+      Tests  1711 passed (1711)
+   Start at  16:17:56
+   Duration  463.44s (tests 99%, import 1%)
+
