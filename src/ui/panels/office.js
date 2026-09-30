@@ -48,7 +48,7 @@ export function itemLock(s, it) {
 
 // Item ids the player can place right now: in era, and not locked.
 export function availableItems(s) {
-  return Object.values(CATALOG).filter((it) => !beforeEra(s, it.era) && !itemLock(s, it)).map((it) => it.id);
+  return Object.values(CATALOG).filter((it) => (!it.onlyEras || it.onlyEras.includes(s.era.id)) && !beforeEra(s, it.era) && !itemLock(s, it)).map((it) => it.id);
 }
 
 // What an item is, from its data: a desk is a workstation for one person; an item whose effects
@@ -274,7 +274,7 @@ function buildPalette(ctx, arg) {
 
       // Items about AI work (era-tagged) stay hidden until their era; locked items stay hidden
       // until they unlock (the ones already placed still show).
-      const inEra = Object.values(CATALOG).filter((it) => !beforeEra(s, it.era));
+      const inEra = Object.values(CATALOG).filter((it) => (!it.onlyEras || it.onlyEras.includes(s.era.id)) && !beforeEra(s, it.era));
       const all = inEra.filter((it) => !itemLock(s, it) || placed.some((p) => p.itemId === it.id));
       const later = inEra.length - all.length;
       const furniture = all.filter((it) => it.kind === 'furniture').sort((a, b) => (isDesk(b.id) ? 1 : 0) - (isDesk(a.id) ? 1 : 0));

@@ -1,5 +1,7 @@
 # The office (stages, items, perks)
 
+- **Banner Rotation Server**: a unique dot-com shop item, $3K/$6K/$12K across three levels, with +5/+10/+15% customer acquisition during dot-com. Its effect stops at recovery and its crate stand-in remains in the office. `id: dotcom_banner`
+
 - ★ **The office move**: the next office drops from above onto the old one, presses it flat, squashes on landing and puffs dust; a stinger plays. Whatever panel or dialog was open closes as the move starts, so it plays in view. When a move becomes possible and stays possible for two game weeks, a Needs you row names it with its price and the Office button shows New; both go once you open Office or tap Later, once per new office. `capture 2-2-office-move`
 - **Garage**: a suburban lot with lawn, driveway, picket fences, houses behind, a roll-up garage door and a water heater in the corner. A new company starts with a desk for each founder, so the first hire needs one more. `?mock=garage` `id: place_desks`
 - **Office Floor**: a storey of a tower above a plaza among neighbouring buildings, with structural columns that fade when someone stands behind them. `?mock=floor`

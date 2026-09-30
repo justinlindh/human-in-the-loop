@@ -1,5 +1,7 @@
 # Company and progression
 
+- **Dot-com marketing**: web-directory launches, email newsletters, message boards, banner ads, trade shows and enterprise sales use the campaign system. Product Hunch and influencer campaigns are unavailable in dot-com. `id: launch` `id: content` `id: community` `id: ads` `id: conference` `id: enterprise`
+
 - **Founding**: name the company, pick a logo colour and tagline, choose two founders and a funding source; a pair with no builder gets a plain warning. `capture 1-2-founding`
 - **Starting era**: the Funding step offers Classic SaaS, The ChatGBT Moment and Agents. Classic keeps the ordinary opening. ChatGBT adds $90k, a third garage desk and its tools; Agents adds $240k and starts on the Office Floor with four desks and full automation permissions. Both start with two founders and no products. Funding stacks with the kit; era score factors are x1, x0.75 and x0.6, shown with the combined funding factor before founding. All three choices are available without profile locks. `id: classic` `id: chatgbt` `id: agents`
 - **Later-start invitations**: companies founded in a later era receive conference and AI Summit invitations after their first launch, when they have something to demonstrate. `id: conference_expo` `id: ai_summit`

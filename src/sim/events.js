@@ -19,12 +19,13 @@ import { incumbentFor } from '../data/incumbents.js';
 import { emitChat } from './chat.js';
 import { eraOnlyAllowsText, eraAtLeast, currentEra, eraIndex } from './eras.js';
 import { openEventPrompt, promptSlotFree } from './prompts.js';
+import { dotcomDecisionOpen } from './dotcom.js';
 
 // What attackers ask for: sized to the company's cash and revenue, between a floor and a cap, and never
 // more than a share of the cash in hand, so paying hurts without ending a careful company.
 // What a side-room talk ('small') or a main-stage turn ('big') at the AI Summit costs in this era.
 export function summitCost(state, size) {
-  return Math.round(B.summitCost[size] * B.summitEraMult[eraIndex(state)]);
+  return Math.round(B.summitCost[size] * B.summitEraMult[Math.max(0, eraIndex(state))]);
 }
 
 const money = (n) => (n >= 1e6 ? `$${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M` : `$${Math.round(n / 1000)}k`);
@@ -97,6 +98,7 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
   const { state } = ctx;
   const ev = EVENTS[eventId];
   if (!ev || !ev.choices) return false;
+  if (!dotcomDecisionOpen(state, eventId)) return false;
   if (state.pendingDecision) {
     if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: state.week, kind: 'event', payload: { eventId, subjectId } });
     return false;

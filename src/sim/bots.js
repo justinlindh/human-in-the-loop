@@ -1,7 +1,7 @@
 // Strategy bots for the balance harness. Each bot is (state) -> action[] and is called once a week
 // before tick, after any pending decision has been resolved with the bot's own chooser.
 import { B } from './balance.js';
-import { dateOf, sum } from './util.js';
+import { dateOf, sum, earlyWeeks } from './util.js';
 import { createGame } from './state.js';
 import { tick } from './tick.js';
 import { dispatch as rawDispatch } from './actions.js';
@@ -594,8 +594,9 @@ export function botTurn(name, s, { onEvents = null } = {}) {
 // onWeek(state, tickEvents) after each tick; onEvents(events, action) for every dispatch; setup(state) once at the start;
 // stopWhen(state) after each week ends the run early once it returns true;
 // founding: { founders, funding } passed to createGame.
-export function runBot(name, seed, maxWeeks = B.runWeeks, { onWeek, onEvents = null, setup, founding = {}, stopWhen = null } = {}) {
+export function runBot(name, seed, maxWeeks = null, { onWeek, onEvents = null, setup, founding = {}, stopWhen = null } = {}) {
   const s = createGame({ seed, companyName: `Bot ${name}`, ...founding });
+  maxWeeks ??= B.runWeeks + earlyWeeks(s);
   setup?.(s);
   let maxStage = s.officeStage;
   let firstLaunch = null;

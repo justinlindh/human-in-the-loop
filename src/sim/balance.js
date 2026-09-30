@@ -1,5 +1,15 @@
 // Every tunable number in the simulation. Tune here, nowhere else.
 export const B = {
+  dotcom: {
+    weeks: 208, startYear: 1997, endYear: 2003,
+    boomWeek: 26, ipoWeek: 78, warningWeek: 104, bustWeek: 156,
+    boomAcquisition: 1.25, bustAcquisition: 0.65, floatCash: 180000, privateBrand: 2,
+    retainCostCap: 20000, retainCashShare: 0.1, retainLoss: 0.1, preserveLoss: 0.25,
+    floatCostCap: 50000, floatCashShare: 0.2,
+    bannerCosts: [3000, 6000, 12000], bannerAcquisition: [0.05, 0.1, 0.15],
+    launchReward: { cash: 5000, brand: 1 }, survivorReward: { cash: 10000, brand: 2 },
+    sockCost: 3000, sockHype: 5, sockWeight: 2, sockCooldown: 52, chatterEvery: 13,
+  },
   momentTalkRadius: 4,
   momentTalkLines: 2,
   momentSpeechQueueMax: 24,
@@ -135,6 +145,7 @@ export const B = {
     preseed: { cash: 300000, scoreMult: 0.96, brand: 8, seniorCandidates: 2 },
   },
   eraStarts: {
+    dotcom: { cash: 140000, officeStage: 1, desks: 4, scoreMult: 1.1 },
     classic: { cash: 0, officeStage: 0, desks: 2, scoreMult: 1 },
     chatgbt: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 0.75 },
     agents: { cash: 240000, officeStage: 1, desks: 4, scoreMult: 0.6 },

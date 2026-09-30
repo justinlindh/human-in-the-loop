@@ -1,5 +1,5 @@
 import { B } from './balance.js';
-import { avg, sum } from './util.js';
+import { avg, sum, earlyWeeks } from './util.js';
 import { shuffle } from './rng.js';
 import { registerAction, registerSystem } from './registry.js';
 import { liveProducts } from './projects.js';
@@ -49,7 +49,7 @@ function story(state) {
   return {
     officeStage: state.officeStage,
     office: expansion ? `an HQ with ${expansion.name === 'The Annex' ? 'an annex' : `a ${expansion.name.toLowerCase()}`}` : stage.name === 'HQ Building' ? 'its own HQ' : `the ${stage.name}`,
-    eraCount: eraIndex(state) - eraIndex({ era: { id: state.founding?.startEra ?? 'classic' } }) + 1,
+    eraCount: state.flags.erasVisited?.length ?? eraIndex(state) - eraIndex({ era: { id: state.founding?.startEra ?? 'classic' } }) + 1,
     launches: state.stats.launches,
     people: state.stats.hires + state.staff.filter((p) => p.founder).length,
     alumni: state.flags.departures ?? state.flags.alumni?.length ?? 0,
@@ -79,7 +79,12 @@ export function buildEpilogue(state, outcome) {
     ...fits.filter((e) => !e.group && e.weight).sort((a, b) => b.weight(state, x) - a.weight(state, x)),
     ...fits.filter((e) => !e.group && !e.weight),
   ].slice(0, B.epilogueLines);
-  const lines = picked.map((e) => fill(state, e.text, x));
+  const lines = picked.map((e) => {
+    let text = e.text;
+    if (state.founding?.earlyChapters?.length) text = text.replaceAll('turned twenty', 'completed its long career');
+    if (B.eraStarts[state.founding?.startEra]?.officeStage > 0) text = text.replaceAll('started in a garage', 'started on an office floor').replaceAll('garage days', 'founding days');
+    return fill(state, text, x);
+  });
   for (const g of shuffle(state.rng, GENERIC_EPILOGUES.filter((e) => e.when(state, x) && eraOnlyAllowsText(state, e.text)))) {
     if (lines.length >= 3) break;
     lines.push(fill(state, g.text, x));
@@ -113,7 +118,7 @@ export function endgameSystem(ctx) {
   if (state.lowCashWeeks >= B.runwayLoseWeeks) return endGame(ctx, { won: false, reason: 'runway' });
   if (collapsed(state)) return endGame(ctx, { won: false, reason: 'collapse' });
   // The 20th anniversary is the natural end of a career: epilogue and score, then the player may keep playing.
-  if (state.week >= B.anniversaryWeek - 1 && state.flags.anniversaryWeek === undefined) {
+  if (state.week >= B.anniversaryWeek + earlyWeeks(state) - 1 && state.flags.anniversaryWeek === undefined) {
     state.flags.anniversaryWeek = state.week;
     endGame(ctx, { won: true, reason: 'anniversary' });
   }

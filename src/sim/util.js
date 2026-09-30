@@ -29,10 +29,19 @@ export const START_YEAR = 2019;
 
 export function dateOf(week) {
   const yearIndex = Math.floor(week / WEEKS_PER_YEAR);
-  const w = week % WEEKS_PER_YEAR;
+  const w = ((week % WEEKS_PER_YEAR) + WEEKS_PER_YEAR) % WEEKS_PER_YEAR;
   return { year: START_YEAR + yearIndex, yearIndex, week: w + 1, quarter: Math.min(4, Math.floor(w / 13) + 1) };
 }
 
 // Calendar labels and world releases use the founding offset; company age is still state.week.
-export const calendarWeek = (state, week = state.week) => week + (state.founding?.calendarOffset ?? 0);
+export const calendarWeek = (state, week = state.week) => {
+  let elapsed = week;
+  for (const chapter of state.founding?.earlyChapters ?? []) {
+    if (elapsed < chapter.weeks) return (chapter.startYear - START_YEAR) * WEEKS_PER_YEAR
+      + Math.floor(elapsed * (chapter.endYear - chapter.startYear) * WEEKS_PER_YEAR / chapter.weeks);
+    elapsed -= chapter.weeks;
+  }
+  return elapsed + (state.founding?.calendarOffset ?? 0);
+};
 export const calendarDate = (state, week = state.week) => dateOf(calendarWeek(state, week));
+export const earlyWeeks = (state) => sum(state.founding?.earlyChapters ?? [], (c) => c.weeks);

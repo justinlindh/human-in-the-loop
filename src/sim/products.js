@@ -1,6 +1,8 @@
 import { addToRecord } from './record.js';
 import { B } from './balance.js';
 import { clamp, sum, dateOf } from './util.js';
+import { dotcomAcquisition } from './dotcom.js';
+import { itemBonus } from './bonus.js';
 import { registerAction, registerSystem } from './registry.js';
 import { outputMult, findStaff, defaultAssignment } from './staff.js';
 import { trendMods, liveProducts, findProduct } from './projects.js';
@@ -101,7 +103,8 @@ export function productsSystem(ctx) {
     const target = targets[i];
     if (p.customers < target) {
       const rate = (B.acquisitionRate + B.hypeAcquisition * p.hype + salesBoost) * (1 + state.brand / 200)
-        * Math.max(0, 1 + modifierBonus(state, 'acquisition')) * pathAcquisition;
+        * Math.max(0, 1 + modifierBonus(state, 'acquisition')) * pathAcquisition
+        * dotcomAcquisition(state) * (1 + (state.era.id === 'dotcom' ? itemBonus(state, 'bannerAcquisition') : 0));
       const before = p.customers;
       p.customers = Math.min(tam, p.customers + (target - p.customers) * Math.min(1, rate));
       // The salespeople's share of this week's new customers.

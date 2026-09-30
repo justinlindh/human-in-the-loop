@@ -26,6 +26,7 @@ export function checkGoals(ctx) {
   if (!state.goals) return;
   const h = goalHelpers(state);
   for (const g of GOALS) {
+    if (g.startEras && !g.startEras.includes(state.founding?.startEra)) continue;
     const entry = state.goals[g.id] ??= { done: false, week: null };
     if (entry.done || entry.skipped || !g.done(state, h)) continue;
     entry.done = true;

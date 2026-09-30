@@ -4,6 +4,7 @@
 import { B, INCIDENT_LABEL } from './content.js';
 import { ITEMS as DATA_ITEMS } from '../data/items.js';
 import { OFFICE_STAGES as DATA_STAGES } from '../data/office.js';
+import { EARLY_ERAS } from '../data/early-eras.js';
 
 const DATA = Object.assign({}, ...Object.values(import.meta.glob('../data/*.js', { eager: true })));
 const list = (v) => (Array.isArray(v) ? v : v ? Object.values(v) : null);
@@ -57,7 +58,7 @@ const FB_UNLOCKS = {
 export const ARCHETYPES = list(DATA.ARCHETYPES) ?? FB_ARCHETYPES;
 export const FUNDING = list(DATA.FUNDING) ?? FB_FUNDING;
 export const GOALS = list(DATA.GOALS) ?? FB_GOALS;
-export const ERAS = list(DATA.ERAS) ?? FB_ERAS;
+export const ERAS = [...EARLY_ERAS, ...(list(DATA.ERAS) ?? FB_ERAS)];
 export const ERA = Object.fromEntries(ERAS.map((e) => [e.id, e]));
 export const GOAL = Object.fromEntries(GOALS.map((g) => [g.id, g]));
 

@@ -1,9 +1,11 @@
 import { int } from './rng.js';
 import { ERAS, ERA_IDS } from '../data/eras.js';
+import { EARLY_ERAS, EARLY_ORDER, PERIOD_MARKETS } from '../data/early-eras.js';
 
-export const eraIndex = (state) => Math.max(0, ERA_IDS.indexOf(state.era?.id ?? 'classic'));
-export const currentEra = (state) => ERAS[eraIndex(state)];
-export const eraAtLeast = (state, id) => eraIndex(state) >= ERA_IDS.indexOf(id);
+const ordinal = (id) => EARLY_ORDER.includes(id) ? EARLY_ORDER.indexOf(id) - EARLY_ORDER.length : Math.max(0, ERA_IDS.indexOf(id));
+export const eraIndex = (state) => ordinal(state.era?.id ?? 'classic');
+export const currentEra = (state) => EARLY_ERAS.find((e) => e.id === state.era?.id) ?? ERAS[eraIndex(state)];
+export const eraAtLeast = (state, id) => eraIndex(state) >= ordinal(id);
 
 // Arrival weeks for this run: each era lands within a quarter of its place on the timeline.
 export function rollEraSchedule(rng, jitter) {
@@ -47,7 +49,9 @@ const officeHas = (state, text) => NEEDS_ITEM.every(([re, ids]) => !re.test(text
   || (state.office?.placed ?? []).some((p) => ids.includes(p.itemId)));
 
 // Whether text fits the current era, ignoring the office (events gate on the office themselves).
-export const eraOnlyAllowsText = (state, text) => (eraIndex(state) > 0 || !isAiText(String(text ?? ''))) && agentsAllowed(state, String(text ?? ''));
+const modernOffice = /\b(Yak|Slack|Zoom|TikTok|Twitter|podcasts?|cloud|mobile|smartphone|video call|ring light|Product Hunch|Hackerspews|creator economy|remote wave|freemium)\b/i;
+export const eraOnlyAllowsText = (state, text) => (eraIndex(state) > 0 || !isAiText(String(text ?? ''))) && agentsAllowed(state, String(text ?? ''))
+  && (!PERIOD_MARKETS[state.era?.id] || !modernOffice.test(String(text ?? '')));
 
 // Words that assume progress the company may not have yet, and what they need.
 export const NEEDS_PROGRESS = [
@@ -65,7 +69,7 @@ const progressAllows = (state, text) => NEEDS_PROGRESS.every(([re, ok]) => !re.t
 // Whether a piece of player-facing text fits the current era, the office as it is, and the company's progress.
 export const eraAllowsText = (state, text) => {
   const t = String(text ?? '');
-  return (eraIndex(state) > 0 || !isAiText(t)) && agentsAllowed(state, t) && officeHas(state, t) && progressAllows(state, t);
+  return eraOnlyAllowsText(state, t) && officeHas(state, t) && progressAllows(state, t);
 };
 
 // Filters a pool of lines to the ones that fit. If none fit, falls back to the lines that at least fit the
@@ -74,5 +78,5 @@ export function eraLines(state, lines) {
   const ok = lines.filter((l) => eraAllowsText(state, l));
   if (ok.length) return ok;
   const era = lines.filter((l) => eraOnlyAllowsText(state, l));
-  return era.length ? era : lines;
+  return era.length ? era : PERIOD_MARKETS[state.era?.id] ? ['The office is quiet. Someone is thinking.'] : lines;
 }

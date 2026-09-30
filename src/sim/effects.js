@@ -1,4 +1,5 @@
 import { B } from './balance.js';
+import { dotcomEffect } from './dotcom.js';
 import { chance, pick } from './rng.js';
 import { clamp, newId, dateOf } from './util.js';
 import { sunsetProduct } from './products.js';
@@ -133,6 +134,7 @@ function pivot(ctx) {
 export function applyEffects(ctx, fx, subjectId = null, source = null, vars = null) {
   const { state } = ctx;
   if (!fx) return;
+  if (fx.dotcom) dotcomEffect(ctx, fx.dotcom);
   const person = findStaff(state, subjectId);
   const subjectProduct = findProduct(state, subjectId);
   const product = subjectProduct && !subjectProduct.killed ? subjectProduct : newestLive(state);
@@ -339,4 +341,3 @@ export function expireModifiers(ctx) {
   state.modifiers = state.modifiers.filter((m) => m.untilWeek > state.week);
   for (const label of new Set(expired.map((m) => m.label))) ctx.emit({ type: 'toast', text: `${label} has ended.`, tone: 'info' });
 }
-

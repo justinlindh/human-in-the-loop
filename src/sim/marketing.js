@@ -4,6 +4,7 @@ import { registerAction, registerSystem } from './registry.js';
 import { outputMult, staffMods } from './staff.js';
 import { liveProducts, findProduct } from './projects.js';
 import { CHANNELS } from '../data/channels.js';
+import { periodChannel } from '../data/early-eras.js';
 import { modifierBonus } from './modifiers.js';
 import { itemBonus } from './bonus.js';
 import { lockedReason } from './unlocks.js';
@@ -24,6 +25,7 @@ registerAction('runCampaign', (ctx, { channel, productId, projectId }) => {
   const { state } = ctx;
   const ch = CHANNELS[channel];
   if (!ch) return { ok: false, reason: 'Unknown channel' };
+  if (!periodChannel(state.era.id, ch)) return { ok: false, reason: 'This channel is not available in this era' };
   const locked = lockedReason(state, 'marketing');
   if (locked) return { ok: false, reason: locked };
   if (state.officeStage < ch.minStage) return { ok: false, reason: 'Needs a bigger office' };
@@ -42,7 +44,7 @@ registerAction('runCampaign', (ctx, { channel, productId, projectId }) => {
   state.cash -= cost;
   if (ch.fame) state.fame = clamp((state.fame ?? 0) + ch.fame, 0, 100);
   state.campaigns.push({ id: newId(state, 'c'), channel, productId: hasProduct ? productId : null, projectId: hasProject ? projectId : null, weeksLeft: ch.weeks });
-  ctx.emit({ type: 'toast', text: `${ch.name} is live.`, tone: 'info' });
+  ctx.emit({ type: 'toast', text: `${periodChannel(state.era.id, ch).name} is live.`, tone: 'info' });
   return { ok: true };
 });
 
