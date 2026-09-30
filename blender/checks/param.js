@@ -1,6 +1,6 @@
 // --param for the render checks: override a module-level const in game code for one run, with no
-// source edit. A Vite plugin rewrites the declaration as the module loads, in Node (pose.mjs) and in
-// the page (the harness), so both see the same value.
+// source edit. The declaration is rewritten as the module loads, in Node (pose.mjs, through the studio
+// loader) and in the page (the harness, through a Vite plugin), so both see the same value.
 //
 //   --param src/render/character.js:PALM_STAND=[-2.75,0.14,0.27,-0.6,0.08]   the whole value
 //   --param PALM_STAND[2]=0.3        one element (an assignment after the declaration)
@@ -55,7 +55,11 @@ export function resolveParams(specs, root) {
     const has = (f) => headRe(name).test(readFileSync(f, 'utf8'));
     const candidates = file ? [resolve(root, file)] : [...jsFiles(join(root, 'src'))].filter(has);
     if (!candidates.length) throw new Error(`param: no top-level "const ${name} =" found${file ? ` in ${file}` : ' under src/'}`);
-    if (candidates.length > 1) throw new Error(`param: ${name} is declared in ${candidates.length} files (${candidates.map((c) => c.slice(root.length + 1)).join(', ')}): name one, like src/render/x.js:${name}=...`);
+    if (candidates.length > 1) {
+      const rel = candidates.map((c) => c.slice(root.length + 1));
+      const tail = `${index === undefined ? '' : `[${index}]`}${key === undefined ? '' : `.${key}`}=${value}`;
+      throw new Error(`param: ${name} is declared in ${candidates.length} files (${rel.join(', ')}): name the file, as ${rel.map((f) => `--param ${f}:${name}${tail}`).join(' or ')} (the same file: prefix works in --sweep)`);
+    }
     let text;
     try { text = readFileSync(candidates[0], 'utf8'); } catch { throw new Error(`param: can't read ${file}`); }
     if (!headRe(name).test(text)) throw new Error(`param: no top-level "const ${name} =" found in ${file}`);
