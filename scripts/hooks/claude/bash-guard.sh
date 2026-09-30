@@ -11,14 +11,17 @@
 #   - git stash, other than list and show: every worktree shares one stash stack, so a pop can take
 #     another lane's work;
 #   - gh pr create/comment/review/edit text (title, body, heredoc bodies, body files), and gh api posts
-#     to comments or reviews (body fields, body=@file, --input), that contain a local path (/home/..., /tmp/...).
-# It looks only at commands mentioning pkill, pgrep, push, commit, stash, ci-pr, sleep, gh pr or gh api, and fails open on its own errors.
+#     to comments or reviews (body fields, body=@file, --input), that contain a local path (/home/..., /tmp/...);
+#   - sed -i, perl -i and redirecting writes (>, >>, tee) whose target is a file tracked in the repository:
+#     lane-guard only sees the Edit and Write tools, so those are the way to change tracked files.
+#     Scratchpads, /tmp, logs and other untracked outputs are allowed.
+# It looks only at commands mentioning pkill, pgrep, push, commit, stash, ci-pr, sleep, gh pr, gh api, sed, perl, tee or a redirect, and fails open on its own errors.
 # Only deny() exits 2; any other failure exits otherwise, which Claude Code treats as allow.
 set -f
 input="$(cat)" || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 cmd="$(jq -r '.tool_input.command // empty' <<<"$input" 2>/dev/null)" || exit 0
-case "$cmd" in *pkill*|*pgrep*|*push*|*commit*|*stash*|*ci-pr*|*sleep*|*"gh pr"*|*"gh api"*) ;; *) exit 0 ;; esac
+case "$cmd" in *pkill*|*pgrep*|*push*|*commit*|*stash*|*ci-pr*|*sleep*|*"gh pr"*|*"gh api"*|*sed*|*perl*|*tee*|*'>'*) ;; *) exit 0 ;; esac
 cwd="$(jq -r '.cwd // empty' <<<"$input" 2>/dev/null)"
 deny() { echo "Blocked by the team's hook (scripts/hooks/claude/bash-guard.sh): $1" >&2; exit 2; }
 
@@ -85,6 +88,35 @@ while IFS= read -r seg; do
     [ -n "$dir" ] && [ "$(git -C "$dir" branch --show-current 2>/dev/null)" = main ] && deny "this checkout is on main, and a bare git push would push to main. Push a <lane>/<topic> branch instead."
   fi
 done < <(grep -oE 'git([[:space:]]+-C[[:space:]]+[^[:space:];&|]+)?[[:space:]]+push([^;&|]*)' <<<"$cmd")
+
+# In-place edits (sed -i, perl -i) and redirecting writes (>, >>, tee) of a tracked file. Heredoc bodies
+# are dropped, path-like quoted words are unquoted so a quoted target still counts, other quoted text
+# becomes Q, and only words that name a file tracked in the working directory's repository are refused.
+if grep -qE 'sed|perl|tee|>' <<<"$cmd"; then
+  wtext="$(awk '/<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ && !inside { match($0, /<<-?[[:space:]]*'"'"'?[A-Za-z_]+/); tag=substr($0, RSTART, RLENGTH); gsub(/<<-?[[:space:]]*'"'"'?/, "", tag); print; inside=1; next } inside && $0 == tag { inside=0; next } !inside { print }' <<<"$cmd" \
+    | sed -E "s/'([A-Za-z0-9_.\/@+-]+)'/\1/g; s/\"([A-Za-z0-9_.\/@+-]+)\"/\1/g" \
+    | sed -E "s/'[^']*'/Q/g; s/\"([^\"\\\\]|\\\\.)*\"/Q/g" | sed -E 's/[0-9]*>&[0-9-]+/R/g; s/&>>?/>/g')"
+  wtargets="$({
+    # Redirect targets: > file, >> file, 2> file, >| file (not >&N, not process substitution).
+    grep -oE '[0-9]*>>?\|?[[:space:]]*[^[:space:];&|)<>(]+' <<<"$wtext" | sed -E 's/^[0-9]*>>?\|?[[:space:]]*//'
+    # tee [-a] files.
+    grep -oE '(^|[[:space:];&|(])tee([[:space:]]+[^[:space:];&|)<>(]+)+' <<<"$wtext" | tr -s '[:space:]' '\n' | grep -vE '^(tee|-.*|)$'
+    # In-place sed or perl: every word of the command segment that could name a file.
+    while IFS= read -r seg; do
+      if grep -qE '(^|[[:space:]])(sed|perl)([[:space:]]|$)' <<<"$seg" \
+        && grep -qE '(^|[[:space:]])(--in-place(=[^[:space:]]*)?|-[nEurzs]*i[^[:space:]]*|-[0-9lpnaswWcCtTuU]*i[^[:space:]]*)([[:space:]]|$)' <<<"$seg"; then
+        tr -s '[:space:]' '\n' <<<"$seg" | grep -vE '^(-.*|sed|perl|Q|R|)$'
+      fi
+    done < <(tr ';&|' '\n\n\n' <<<"$wtext")
+  } 2>/dev/null)"
+  while IFS= read -r t; do
+    [ -n "$t" ] || continue
+    case "$t" in '$'*|'~'*|/dev/*) continue ;; esac
+    if git -C "${cwd:-.}" ls-files --error-unmatch -- "$t" >/dev/null 2>&1; then
+      deny "$t is a tracked file, and sed -i, perl -i, > and tee would change it without lane-guard seeing it. Change tracked files with the Edit or Write tool (lane-guard checks those); write scratch output outside the repo or to an untracked file."
+    fi
+  done <<<"$wtargets"
+fi
 
 # gh pr create/comment/review/edit, and gh api calls that post to PR or issue comments or reviews.
 # Heredoc bodies are data, not commands: the gh call and its flags are looked for outside them, and

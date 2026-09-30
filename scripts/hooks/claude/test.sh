@@ -33,6 +33,42 @@ denied 'git push --force-with-lease origin integ/x'
 denied 'git push origin +integ/x'
 denied 'git push origin HEAD:main'
 denied 'git -C /somewhere push origin main'
+# In-place edits and redirects of tracked files are refused; scratch and untracked targets are not.
+T=scripts/hooks/claude/lanes.txt
+denied "sed -i 's/a/b/' $T" "$repo"
+denied "sed -i.bak -e 's/a/b/' $T" "$repo"
+denied "sed -Ei 's/a|b/c/' \"$T\"" "$repo"
+denied "sed --in-place s/a/b/ $T" "$repo"
+denied "cd sub && sed -i 's/a/b/' $repo/$T" "$repo"
+denied "perl -pi -e 's/a/b/' $T" "$repo"
+denied "perl -i.bak -pe 's/a/b/' $T" "$repo"
+denied "echo x > $T" "$repo"
+denied "echo x >> $T" "$repo"
+denied "echo x >| $T" "$repo"
+denied "echo x &> $T" "$repo"
+denied "cat > \"$T\" <<'EOF'
+x
+EOF" "$repo"
+denied "echo x | tee $T" "$repo"
+denied "echo x | tee -a $T" "$repo"
+denied "make 2>&1 | sed -i 's/a/b/' $T" "$repo"
+allowed "sed -i 's/a/b/' /tmp/scratch.txt" "$repo"
+allowed "sed -i 's/a/b/' notes-untracked.txt" "$repo"
+allowed "sed -n 1p $T" "$repo"
+allowed "sed 's/a/b/' $T > /tmp/out.txt" "$repo"
+allowed "sed 's/a/b/' $T > \"$tmp/out.txt\"" "$repo"
+allowed "echo x > scratch-untracked.txt" "$repo"
+allowed "echo x >> \$TMPDIR/log.txt" "$repo"
+allowed "echo x | tee /tmp/log.txt" "$repo"
+allowed "cat $T | grep a > /dev/null 2>&1" "$repo"
+allowed "npm run build 2>&1 | tail -5" "$repo"
+allowed "perl -MList::Util -e 'print 1' > /dev/null" "$repo"
+allowed "git commit -m \"fix: replace sed -i on $T\"" "$repo"
+allowed "echo 'a > $T'" "$repo"
+allowed "cat > /tmp/body.md <<'EOF'
+go > $T
+EOF" "$repo"
+allowed "sed -i 's/a/b/' $T" "$tmp/elsewhere"
 denied 'gh pr create --title t --body "logs in /home/justin/x"'
 denied "gh pr comment 5 --body-file - <<'EOF'
 see /tmp/out.log
