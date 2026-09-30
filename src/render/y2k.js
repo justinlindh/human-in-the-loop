@@ -99,7 +99,7 @@ export function createY2kMoment({ recs, office, parent, getProps, ringSpots, wal
     const invoice = countdown + Y.anticlimaxSeconds;
     const beat = m.t < Y.gatherSeconds ? 'gather' : m.t < countdown ? 'countdown' : m.t < invoice ? 'nothing' : 'invoice';
     const caption = beat === 'gather' ? 'New Year’s Eve, 1999. The team gathers. The champagne has a screw cap.'
-      : beat === 'countdown' ? `31 DEC 1999 · 23:59:${String(60 - Math.ceil(countdown - m.t)).padStart(2, '0')} · ${Math.ceil(countdown - m.t)}…`
+      : beat === 'countdown' ? `31 DEC 1999 · 23:59:${String(60 - Math.ceil(countdown - m.t)).padStart(2, '0')}`
         : beat === 'nothing' ? '01 JAN 2000 · 00:00:00. Nothing happens. The servers keep humming.'
           : 'One printer wakes up. INVOICE · 01/01/1900. Happy new century, Accounts.';
     for (const r of m.people) if (r.temp?.moment === 'y2k') r.temp.stage.beat = beat;
