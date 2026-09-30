@@ -15,5 +15,8 @@ for side in (-1, 1):
         box(f'post_{side}', (0.037, 0.052, 0.79), (side * 0.451, 0, 0.395), 'wall_trim', 0.008),
         box(f'foot_{side}', (0.085, 0.12, 0.024), (side * 0.401, 0, 0.012), 'metal_dark', 0.008),
     ]
+# Every desk repeats this divider, and its bevels are a few millimetres: one segment each.
+for part in parts:
+    part.modifiers['bevel'].segments = 1
 join(parts, 'era_cubicle')
 export()

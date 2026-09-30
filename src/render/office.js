@@ -322,7 +322,10 @@ function deskSet(i, stageIdx, screens, era, freeChair = false, artEra = era) {
   const desk = getModel(crt ? 'era_crt_desk' : 'desk');
   if (crt) {
     g.add(desk);
-    g.add(place(getModel('era_cubicle'), 0, 0, -0.575));
+    // The low divider sits behind the desk, which already shades the floor there: no shadow pass.
+    const cubicle = place(getModel('era_cubicle'), 0, 0, -0.575);
+    cubicle.traverse((c) => { if (c.isMesh) c.castShadow = false; });
+    g.add(cubicle);
   } else {
     desk.scale.set(0.96 / 1.3, TOP / 0.62, 1);
     g.add(place(desk, 0, 0, DESK_Z));
@@ -1524,7 +1527,11 @@ function eraDressing(L, era, blockers = [], artEra = era) {
       at += pc.w + gap;
     }
   }
-  return g;
+  // Nothing on the wall moves, so the bands, rails and pieces draw as one mesh per material.
+  const merged = mergeStatic(g);
+  merged.name = 'era';
+  merged.userData.spans = g.userData.spans;
+  return merged;
 }
 
 function eraArtPieces(era) {
@@ -1533,6 +1540,8 @@ function eraArtPieces(era) {
     o.name = name + '_display';
     o.add(getModel(name));
     decorate?.(o);
+    // Flat against the wall, their shadows barely show and would cost a shadow pass per material.
+    o.traverse((c) => { if (c.isMesh) c.castShadow = false; });
     o.userData.shared = true;
     if (sl.wall === 'z') o.position.set(sl.at, y, -L.D / 2 + 0.11);
     else { o.position.set(-L.W / 2 + 0.11, y, sl.at); o.rotation.y = Math.PI / 2; }
@@ -1551,10 +1560,10 @@ function eraArtPieces(era) {
   if (era === 'preinternet') return [shelf];
   return [];
 }
-// Frees the dressing's own planes and textured materials; prims geometry is cached and shared.
+// Frees the dressing's merged geometry and textured materials; palette materials are shared.
 function disposeDressing(o) {
   if (o.userData.shared) return;
-  if (o.isMesh) { if (o.geometry?.type === 'PlaneGeometry' || o.geometry?.type === 'CircleGeometry') o.geometry.dispose(); if (o.material?.map) o.material.dispose(); }
+  if (o.isMesh) { if (o.geometry?.userData.merged) o.geometry.dispose(); if (o.material?.map) o.material.dispose(); }
   for (const c of o.children) disposeDressing(c);
 }
 // Hard floors take a faint accent wash; carpet carries its own era palette and motif.
