@@ -33,7 +33,8 @@ it('shows the kit and combined score, preserves the choice on Back, and passes i
   document.querySelector('[data-era="agents"]').click();
   document.querySelectorAll('.fund')[1].click();
   expect(document.querySelector('.era-start-summary').textContent).toContain('$390K');
-  expect(document.querySelector('.era-start-summary').textContent).toContain(`x${+(B.eraStarts.agents.scoreMult * B.funding.family.scoreMult).toFixed(4)}`);
+  expect(document.querySelector('.era-start-summary').textContent).toContain(`${Math.round(B.eraStarts.agents.scoreShare * 100)}% of Classic`);
+  expect(document.querySelector('[data-era="agents"]').textContent).toContain(`${Math.round(B.eraStarts.agents.scoreShare * 100)}% of Classic score`);
   expect(layer.textContent).toContain('Skipped without rewards');
   click('Back');
   click('Next: funding');
@@ -85,7 +86,8 @@ it('keeps the funding dialog, buttons, focus and scroll while refreshing each er
     const summary = dialog.querySelector('.era-start-summary').textContent;
     expect(summary).toContain(ERA_STARTS[id].name);
     expect(summary).toContain(fmtMoney(B.funding.family.cash + kit.cash));
-    expect(summary).toContain(`x${Math.round(B.funding.family.scoreMult * kit.scoreMult * 10000) / 10000}`);
+    expect(summary).toContain(kit.scoreShare >= 1 ? 'the same as Classic' : `${Math.round(kit.scoreShare * 100)}% of Classic`);
+    expect(summary).toContain(`funding factor x${B.funding.family.scoreMult}`);
     expect(layer.textContent.includes('Skipped without rewards')).toBe(ERA_STARTS[id].skippedGoals.length > 0);
     expect(layer.textContent.includes('Already open')).toBe(ERA_STARTS[id].unlocks.length > 0);
   }
