@@ -1,0 +1,31 @@
+
+> human-in-the-loop@1.0.0 test
+> vitest run --maxWorkers=4
+
+
+ RUN  v5.0.1 .
+
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+
+ Test Files  205 passed (205)
+      Tests  1703 passed (1703)
+   Start at  15:08:19
+   Duration  714.62s (tests 99%, import 1%)
+
+
+Command: npm test -- --maxWorkers=4
+Exit code: 0
+Head: 0e5f92c29a8eff1ebed1659740ef18b136d1d86d

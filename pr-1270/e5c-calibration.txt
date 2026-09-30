@@ -1,0 +1,38 @@
+The preliminary sweep was stopped after the 100-seed balanced result at 1.35; all three 200-seed jobs completed with exit 0.
+
+e5c-sweep
+{"era":"preinternet","mult":1.35,"bot":"balanced","seeds":100,"exits":46,"median":57063,"dotcom":100,"web2":98}
+
+e5c-control
+{"era":"classic","mult":1,"bot":"automateAll","seeds":200,"exits":0,"median":1518,"dotcom":0,"web2":0}
+{"era":"classic","mult":1,"bot":"allHumans","seeds":200,"exits":16,"median":33421,"dotcom":0,"web2":0}
+{"era":"classic","mult":1,"bot":"balanced","seeds":200,"exits":124,"median":43057,"dotcom":0,"web2":0}
+{"era":"classic","mult":1,"bot":"sensible","seeds":200,"exits":161,"median":44667,"dotcom":0,"web2":0}
+{"era":"classic","mult":1,"bot":"recklessHumans","seeds":200,"exits":0,"median":919,"dotcom":0,"web2":0}
+{"era":"classic","mult":1,"bot":"squads","seeds":200,"exits":107,"median":40944,"dotcom":0,"web2":0}
+pooled median: 34720
+{"era":"dotcom","mult":1.35,"bot":"automateAll","seeds":200,"exits":0,"median":2085,"dotcom":200,"web2":200}
+{"era":"dotcom","mult":1.35,"bot":"allHumans","seeds":200,"exits":85,"median":35117,"dotcom":200,"web2":191}
+{"era":"dotcom","mult":1.35,"bot":"balanced","seeds":200,"exits":119,"median":36092,"dotcom":200,"web2":185}
+{"era":"dotcom","mult":1.35,"bot":"sensible","seeds":200,"exits":159,"median":37886,"dotcom":200,"web2":197}
+{"era":"dotcom","mult":1.35,"bot":"recklessHumans","seeds":200,"exits":0,"median":760,"dotcom":200,"web2":162}
+{"era":"dotcom","mult":1.35,"bot":"squads","seeds":200,"exits":98,"median":34816,"dotcom":200,"web2":192}
+pooled median: 30889
+
+e5c-preinternet-raw
+{"era":"preinternet","mult":1.3,"bot":"automateAll","seeds":200,"exits":0,"median":2626,"dotcom":199,"web2":199}
+{"era":"preinternet","mult":1.3,"bot":"allHumans","seeds":200,"exits":72,"median":52017,"dotcom":200,"web2":196}
+{"era":"preinternet","mult":1.3,"bot":"balanced","seeds":200,"exits":134,"median":59384,"dotcom":200,"web2":197}
+{"era":"preinternet","mult":1.3,"bot":"sensible","seeds":200,"exits":155,"median":59745,"dotcom":200,"web2":200}
+{"era":"preinternet","mult":1.3,"bot":"recklessHumans","seeds":200,"exits":0,"median":953,"dotcom":192,"web2":161}
+{"era":"preinternet","mult":1.3,"bot":"squads","seeds":200,"exits":115,"median":56213,"dotcom":200,"web2":195}
+pooled median: 48675
+
+e5c-preinternet-final
+{"era":"preinternet","mult":1.3,"bot":"automateAll","seeds":200,"exits":0,"median":1786,"dotcom":199,"web2":199}
+{"era":"preinternet","mult":1.3,"bot":"allHumans","seeds":200,"exits":72,"median":35371,"dotcom":200,"web2":196}
+{"era":"preinternet","mult":1.3,"bot":"balanced","seeds":200,"exits":134,"median":40381,"dotcom":200,"web2":197}
+{"era":"preinternet","mult":1.3,"bot":"sensible","seeds":200,"exits":155,"median":40627,"dotcom":200,"web2":200}
+{"era":"preinternet","mult":1.3,"bot":"recklessHumans","seeds":200,"exits":0,"median":648,"dotcom":192,"web2":161}
+{"era":"preinternet","mult":1.3,"bot":"squads","seeds":200,"exits":115,"median":38225,"dotcom":200,"web2":195}
+pooled median: 33099
