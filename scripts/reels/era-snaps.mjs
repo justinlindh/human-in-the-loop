@@ -12,18 +12,24 @@ import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { botDecide, botTurn } from '../../src/sim/bots.js';
 import { createGame } from '../../src/sim/state.js';
+import { ERA_STARTS } from '../../src/data/era-modes.js';
 import { tick } from '../../src/sim/tick.js';
 import { calendarDate } from '../../src/sim/util.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+const USAGE = "usage: era-snaps.mjs <startEra> <seed> '<name>=<js over s>' ...";
+const usage = (why) => { console.error(`${why}\n${USAGE}`); process.exit(2); };
 const [startEra, seed, ...wants] = process.argv.slice(2);
-if (!startEra || !seed || !wants.length) { console.error("usage: era-snaps.mjs <startEra> <seed> '<name>=<js over s>' ..."); process.exit(2); }
+if (!startEra || !seed || !wants.length) usage('missing arguments');
+if (!Object.hasOwn(ERA_STARTS, startEra)) usage(`unknown start era "${startEra}" (one of ${Object.keys(ERA_STARTS).join(', ')})`);
+if (!/^\d+$/.test(seed)) usage(`seed must be a whole number, got "${seed}"`);
 const dir = join(root, 'shots/era-snaps');
-mkdirSync(dir, { recursive: true });
 const conds = wants.map((w) => {
   const k = w.indexOf('=');
+  if (k < 1) usage(`condition "${w}" must be <name>=<js over s>`);
   try { return { name: w.slice(0, k), test: new Function('s', `return (${w.slice(k + 1)});`) }; } catch (e) { console.error(`bad condition ${w}: ${e.message}`); process.exit(2); }
 });
+mkdirSync(dir, { recursive: true });
 const s = createGame({ seed: Number(seed), startEra });
 const done = new Set();
 for (let i = 0; i < 1200 && !s.gameOver && done.size < conds.length; i++) {
