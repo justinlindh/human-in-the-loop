@@ -7,7 +7,7 @@ import { roundedBox, roundedCylinder, mesh, mergeStatic, batchMeshes } from './p
 import { getModel, hasModel, itemModelName } from './models.js';
 import { stageLayout, createNav, placedTransform, footprint, tileCenter } from './layout.js';
 import { carpetTexture } from './carpet.js';
-import { ERA_ART_PREVIEW } from './era-art.js';
+import { ERA_ART_PREVIEW, eraArtCrt } from './era-art.js';
 
 const T = 0.2;            // wall thickness
 const SILL_Z = 0.18;       // a window sill's centre, out from the wall's centre line (0.15 m into the room)
@@ -315,11 +315,12 @@ function oldMonitor(g) {
 }
 
 // freeChair: the chair stays its own object (not merged), so it can roll (office.freeChair).
-function deskSet(i, stageIdx, screens, era, freeChair = false) {
+function deskSet(i, stageIdx, screens, era, freeChair = false, artEra = era) {
   const g = new THREE.Group();
+  const crt = eraArtCrt(artEra);
   // Desk sets are one tile wide, so neighbours butt together into a bench.
-  const desk = getModel(ERA_ART_PREVIEW ? 'era_crt_desk' : 'desk');
-  if (ERA_ART_PREVIEW) {
+  const desk = getModel(crt ? 'era_crt_desk' : 'desk');
+  if (crt) {
     g.add(desk);
     g.add(place(getModel('era_cubicle'), 0, 0, -0.575));
   } else {
@@ -336,13 +337,13 @@ function deskSet(i, stageIdx, screens, era, freeChair = false) {
   const laptop = stageIdx === 0;
   // The keys sit about 0.3 m in front of the sitter, where chibi arms reach: a laptop is pulled
   // to the front of the desk; a monitor stays at the back with a keyboard and mouse in front.
-  const mon = ERA_ART_PREVIEW ? desk : place(getModel(laptop ? 'laptop' : 'monitor'), 0, 0.62, laptop ? KEYS_Z + 0.02 : DESK_Z - 0.14);
-  if (!ERA_ART_PREVIEW && !laptop) {
+  const mon = crt ? desk : place(getModel(laptop ? 'laptop' : 'monitor'), 0, 0.62, laptop ? KEYS_Z + 0.02 : DESK_Z - 0.14);
+  if (!crt && !laptop) {
     onTop.add(mesh(roundedBox(0.36, 0.018, 0.13, 0.006), mat('plastic_charcoal'), 0, 0.629, KEYS_Z));
     onTop.add(mesh(roundedBox(0.33, 0.006, 0.1, 0.002, 1), mat('metal_soft'), 0, 0.64, KEYS_Z, { cast: false }));
     onTop.add(mesh(roundedBox(0.055, 0.02, 0.085, 0.02), mat('plastic_charcoal'), 0.27, 0.63, KEYS_Z + 0.01));
   }
-  if (!ERA_ART_PREVIEW) {
+  if (!crt) {
     if (era === 'classic' && !laptop) oldMonitor(mon);
     onTop.add(mon);
     deskEra(onTop, i, era, laptop);
@@ -465,11 +466,11 @@ function fitFootprint(inner, f, againstBack, frontZone = false) {
 }
 
 // The model for a placed item in its local frame: origin at the footprint center, front toward +Z.
-export function buildPlacedModel(p, stageIdx, screens = null, seed = 0, era = 'classic') {
+export function buildPlacedModel(p, stageIdx, screens = null, seed = 0, era = 'classic', artEra = era) {
   const kind = kindOf(p.itemId);
   const f = footprint(p.itemId, 0);
   let inner;
-  if (kind === 'desk') inner = deskSet(seed, stageIdx, screens, era, !!p.freeChair);
+  if (kind === 'desk') inner = deskSet(seed, stageIdx, screens, era, !!p.freeChair, artEra);
   else if (kind === 'meeting') inner = meetingTable(f.w, f.h, era);
   else if (p.itemId === 'monitoring_wall' && era === 'classic') inner = statusTv(screens);
   else if (kind === 'whiteboard') inner = getModel('whiteboard');
@@ -765,6 +766,7 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
   let dust = null;
   let deskSeed = 0;
   let era = 'classic';
+  let artEra = era;
   const lampMat = paletteMaterial('pal_lamp');
   const growMat = paletteMaterial('pal_grow');
 
@@ -885,7 +887,7 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
 
   function makeEntry(p, fixedSeed) {
     const seed = fixedSeed ?? (kindOf(p.itemId) === 'desk' ? deskSeed++ : placed.size);
-    const model = buildPlacedModel(p, cur.stage, screens, seed, era);
+    const model = buildPlacedModel(p, cur.stage, screens, seed, era, artEra);
     const obj = mergeStatic(model);
     obj.userData = { ...model.userData, kind: 'placed', placedId: p.id, itemId: p.itemId };
     const target = placedTransform(cur.L, p);
@@ -1036,9 +1038,10 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
   function tuckMeetingChairs(on, occupied = []) { tuck = on; keepOut = new Set(on ? occupied : []); }
 
   // Era dressing: rebuild placed models in place (no pop) and swap the wall dressing.
-  function setEra(id) {
-    if (!id || id === era) return false;
+  function setEra(id, preview = id) {
+    if (!id || (id === era && preview === artEra)) return false;
     era = id;
+    artEra = preview;
     if (!cur) return true;
     // Only era-dressed pieces change; they are rebuilt a few per frame so a big office never hitches.
     eraQueue = [...placed.keys()].filter((pid) => ERA_DRESSED.has(kindOf(placed.get(pid).itemId)) || placed.get(pid).itemId === 'monitoring_wall');
@@ -1083,7 +1086,7 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
   function updatePoster() {
     if (dressing) { dressing.removeFromParent(); disposeDressing(dressing); dressing = null; }
     if (!cur) return;
-    dressing = eraDressing(cur.L, era, wallBlockers());
+    dressing = eraDressing(cur.L, era, wallBlockers(), artEra);
     cur.root.add(dressing);
     setQuality();
   }
@@ -1485,7 +1488,7 @@ for (const era of typeof Image === 'undefined' || typeof document === 'undefined
   emblemTex.set(era, t);
 }
 const emblemTexture = (era) => emblemTex.get(era) ?? emblemTex.get('classic') ?? null;
-function eraDressing(L, era, blockers = []) {
+function eraDressing(L, era, blockers = [], artEra = era) {
   const g = new THREE.Group();
   g.name = 'era';
   g.userData.spans = [];
@@ -1502,7 +1505,8 @@ function eraDressing(L, era, blockers = []) {
   }
   // The era's signature wall pieces and its emblem, each into the wall stretch with the most room
   // left, then spaced out evenly within their stretch.
-  const pieces = [...(ERA_PIECES[era] ?? []), ...(emblemTexture(era) ? [piece(0.8, 0.8, 1.85, () => emblemTexture(era))] : [])];
+  const reviewPieces = ERA_ART_PREVIEW ? eraArtPieces(artEra) : [];
+  const pieces = [...reviewPieces, ...(ERA_PIECES[era] ?? []), ...(emblemTexture(era) ? [piece(0.8, 0.8, 1.85, () => emblemTexture(era))] : [])];
   const slots = wallSlots(L, blockers).map((sl) => ({ ...sl, left: sl.len - 0.3, got: [] }));
   for (const pc of pieces) {
     const sl = slots.reduce((a, b) => (b.left > a.left ? b : a), slots[0]);
@@ -1521,6 +1525,30 @@ function eraDressing(L, era, blockers = []) {
     }
   }
   return g;
+}
+
+function eraArtPieces(era) {
+  const model = (name, w, y, decorate) => ({ w, make(L, sl) {
+    const o = new THREE.Group();
+    o.name = name + '_display';
+    o.add(getModel(name));
+    decorate?.(o);
+    o.userData.shared = true;
+    if (sl.wall === 'z') o.position.set(sl.at, y, -L.D / 2 + 0.11);
+    else { o.position.set(-L.W / 2 + 0.11, y, sl.at); o.rotation.y = Math.PI / 2; }
+    return o;
+  } });
+  const shelf = model('era_retail_boxes', 1.28, 1.40, (o) => {
+    o.children[0].position.set(-0.39, 0, 0.14);
+    o.add(place(getModel('era_floppy_stack'), 0.04, 0, 0.14));
+    o.add(place(getModel('era_cd_spindle'), 0.39, 0, 0.14));
+    o.add(mesh(roundedBox(1.25, 0.055, 0.38, 0.018), mat('wood_honey'), 0, -0.0275, 0.12));
+  });
+  if (era === 'dotcom' || era === 'dotcom-bust') return [model('era_dotcom_board', 1.24, 1.40), shelf,
+    model('era_y2k_clock', 0.78, 1.55, (o) => o.add(place(getModel('era_y2k_sticker'), 0, 0.40, -0.103)))];
+  if (era === 'web2') return [model('era_web2_badge', 1.25, 1.50), shelf];
+  if (era === 'preinternet') return [shelf];
+  return [];
 }
 // Frees the dressing's own planes and textured materials; prims geometry is cached and shared.
 function disposeDressing(o) {

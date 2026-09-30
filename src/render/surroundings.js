@@ -3,7 +3,7 @@ import { PALETTE as P } from './palette.js';
 import { mat } from './materials.js';
 import { roundedBox, roundedCylinder, mesh, mergeStatic } from './prims.js';
 import { getModel } from './models.js';
-import { ERA_ART_PREVIEW } from './era-art.js';
+import { ERA_ART_PREVIEW, eraBillboard, ERA_ADS } from './era-art.js';
 
 // The world round the office diorama, per stage: a garage on a suburban lot with a street out
 // front; the Office Floor as a storey of a building above a plaza, among neighbouring towers; HQ on
@@ -228,6 +228,24 @@ function haloTexture() {
   return haloTex;
 }
 
+function advertTexture(era) {
+  const c = document.createElement('canvas'); c.width = 768; c.height = 384;
+  const x = c.getContext('2d');
+  const [title, tagline] = ERA_ADS[era] ?? ERA_ADS.classic;
+  x.fillStyle = P.screen_bg; x.fillRect(0, 0, c.width, c.height);
+  x.fillStyle = era === 'plateau' ? P.wall_warm : P.screen_cyan;
+  x.fillRect(52, 66, 664, 8);
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.font = 'bold 66px sans-serif'; x.fillText(title, 384, 177);
+  x.fillStyle = P.paper_sheet; x.font = '26px sans-serif'; x.fillText(tagline, 384, 263);
+  // A faint pixel grid suggests a panel without adding geometry or an animated texture.
+  x.fillStyle = P.screen_bg; x.globalAlpha = 0.18;
+  for (let y = 0; y < 384; y += 6) x.fillRect(0, y, 768, 1);
+  const texture = new THREE.CanvasTexture(c); texture.colorSpace = THREE.SRGBColorSpace;
+  texture.flipY = false;
+  return texture;
+}
+
 export function createSurroundings({ parent, low = () => false, lighting = null }) {
   const root = new THREE.Group();
   root.name = 'surroundings';
@@ -235,11 +253,17 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
   let cur = null;          // { group, sides: { px, nx, pz, nz }, facades, bulbs, movers, clouds }
   let viewYaw = Math.PI / 4;
   let built = null;        // { stage, L, lite } of the current build
+  let era = null;
 
   function clear() {
     if (!cur) return;
     root.remove(cur.group);
     cur.group.traverse((o) => { if (o.isMesh && o.geometry.userData.merged) o.geometry.dispose(); });
+    for (const resource of cur.owned) {
+      const backdrop = backdropMats.get(resource);
+      if (backdrop) { backdrop.dispose(); backdropMats.delete(resource); }
+      resource.dispose();
+    }
     cur = null;
   }
 
@@ -256,7 +280,7 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     const flat = new THREE.Group();
     const sides = { px: new THREE.Group(), nx: new THREE.Group(), pz: new THREE.Group(), nz: new THREE.Group() };
     const dyn = new THREE.Group();
-    const facadeMats = new Set(), bulbs = [], movers = [], clouds = [], glows = [];
+    const facadeMats = new Set(), bulbs = [], movers = [], clouds = [], glows = [], owned = [], signMats = [];
     // Floor rectangles of the larger standing things (for checks): { id, x0, x1, z0, z1 }.
     const feet = [];
     const foot = (id, x, z, w, d) => feet.push({ id, x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2 });
@@ -365,32 +389,65 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
       }
     }
 
-    if (ERA_ART_PREVIEW && stage === 0) {
-      const sign = getModel('era_sock_billboard');
+    if (ERA_ART_PREVIEW) {
+      const [name, technology] = eraBillboard(era);
+      const sign = getModel(name);
       sign.position.y = gy;
-      // Floodlit at night: the lamp lenses take the street lamps' bulb material (lit by update), and
-      // an additive wash over the face fades in. Both are emissive; no light is added.
-      const lens = new THREE.MeshStandardMaterial({ color: new THREE.Color(P.lamp_warm), emissive: new THREE.Color(P.lamp_warm), emissiveIntensity: 0 });
-      sign.traverse((o) => { if (o.isMesh && o.material?.name === 'pal_lamp_warm') o.material = lens; });
-      const wash = new THREE.Mesh(new THREE.PlaneGeometry(3.25, 1.65), new THREE.MeshBasicMaterial({ map: washTexture(), color: new THREE.Color(P.lamp_warm), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
-      wash.position.set(0, 2.05, 0.33);
-      wash.userData.dynamic = true;
-      wash.visible = false;
-      sign.add(wash);
-      glows.push(wash);
-      // A soft halo on each lamp head (its lens faces the board, away from the camera).
-      for (const x of [-1.1, 0, 1.1]) {
-        const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTexture(), color: new THREE.Color(P.lamp_warm), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
-        halo.position.set(x, 2.95, 0.6);
-        halo.scale.setScalar(0.5);
-        halo.userData.dynamic = true;
-        halo.visible = false;
-        sign.add(halo);
-        glows.push(halo);
+      if (technology === 'led') {
+        const tex = advertTexture(era);
+        const display = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false });
+        owned.push(tex, display);
+        sign.traverse((o) => { if (o.isMesh && o.name.endsWith('_screen')) o.material = display; });
+      }
+      if (technology === 'box') {
+        const lit = new Map();
+        sign.traverse((o) => {
+          if (!o.isMesh || ['pal_wood_dark', 'pal_slab_edge', 'pal_metal_dark'].includes(o.material?.name)) return;
+          let material = lit.get(o.material);
+          if (!material) {
+            material = new THREE.MeshBasicMaterial({ color: o.material.color, toneMapped: false });
+            lit.set(o.material, material); owned.push(material); signMats.push({ material, color: material.color.clone() });
+          }
+          o.material = material;
+        });
+      }
+      if (technology === 'painted') {
+        // The wash sits between the painted face and its raised lettering, preserving dark ink.
+        const lens = new THREE.MeshStandardMaterial({ color: new THREE.Color(P.lamp_warm), emissive: new THREE.Color(P.lamp_warm), emissiveIntensity: 0 });
+        owned.push(lens);
+        sign.traverse((o) => { if (o.isMesh && o.material?.name === 'pal_lamp_warm') o.material = lens; });
+        const wash = new THREE.Mesh(new THREE.PlaneGeometry(3.25, 1.65), new THREE.MeshBasicMaterial({ map: washTexture(), color: new THREE.Color(P.lamp_warm), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+        owned.push(wash.geometry, wash.material);
+        wash.position.set(0, 2.05, 0.133);
+        wash.userData.dynamic = true;
+        wash.visible = false;
+        sign.add(wash);
+        glows.push(wash);
+        // A soft halo on each lamp head (its lens faces the board, away from the camera).
+        for (const x of [-1.1, 0, 1.1]) {
+          const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTexture(), color: new THREE.Color(P.lamp_warm), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+          owned.push(halo.material);
+          halo.position.set(x, 2.95, 0.6);
+          halo.scale.setScalar(0.5);
+          halo.userData.dynamic = true;
+          halo.visible = false;
+          sign.add(halo);
+          glows.push(halo);
+        }
       }
       // On the front lawn past the driveway, facing the street, clear of the parked car and bins.
       tall(sign, -hw - 2.2, hd + 1.2);
       foot('billboard', -hw - 2.2, hd + 1.2, BILLBOARD_W, BILLBOARD_D);
+      if (era === 'preinternet') {
+        const phone = getModel('era_payphone'); phone.position.y = gy;
+        tall(phone, -hw - 0.85, hd + 0.20);
+        foot('payphone', -hw - 0.85, hd + 0.20, 0.64, 0.56);
+        // A rental-shop fascia on the neighbouring building, above its front windows.
+        const video = getModel('era_video_sign');
+        video.traverse((o) => { if (o.isMesh) o.material = backdropMaterial(o.material); });
+        video.position.y = gy + (stage === 0 ? 1.7 : 3.0);
+        tall(video, stage === 0 ? hw + 3.6 : -hw - 9, stage === 0 ? -hd - 3.70 : 0.58);
+      }
     }
 
     // The diorama board covers everything that stands on it: at least the stage's margin round the
@@ -451,7 +508,7 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     group.add(merged.flat, merged.px, merged.nx, merged.pz, merged.nz, dyn);
     // Bulbs are emissive and change at night: they stay separate (mergeStatic keeps dynamic ones).
     root.add(group);
-    cur = { group, sides: { px: merged.px, nx: merged.nx, pz: merged.pz, nz: merged.nz }, facadeMats, bulbs: collectBulbs(group), movers: movers.map((mv) => ({ ...mv, t: rnd() * mv.gap[1], car: null })), clouds, glows, feet, dyn, gy };
+    cur = { group, sides: { px: merged.px, nx: merged.nx, pz: merged.pz, nz: merged.nz }, facadeMats, bulbs: collectBulbs(group), movers: movers.map((mv) => ({ ...mv, t: rnd() * mv.gap[1], car: null })), clouds, glows, feet, dyn, gy, owned, signMats };
     applyYaw();
   }
 
@@ -479,10 +536,17 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     if (built && built.lite !== low()) setStage(built.stage, built.L);
   }
 
+  function setEra(id) {
+    if (!ERA_ART_PREVIEW || era === id) return;
+    era = id;
+    if (built) setStage(built.stage, built.L);
+  }
+
   function update(dt, env) {
     if (!cur) return;
     const night = env?.night ?? 0;
-    if (built?.lite && lighting) updateBacklight(lighting, night);
+    for (const { material, color } of cur.signMats) material.color.copy(color).multiplyScalar(0.8 + night * 0.2);
+    if ((built?.lite || ERA_ART_PREVIEW) && lighting) updateBacklight(lighting, night);
     for (const fm of cur.facadeMats) fm.emissiveIntensity = night * 1.1;
     for (const b of cur.bulbs) b.material.emissiveIntensity = night * 2.2;
     for (const w of cur.glows) { w.material.opacity = night * (w.isSprite ? 0.9 : 0.7); w.visible = night > 0.02; }
@@ -521,8 +585,8 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
   function exterior() {
     if (!cur) return null;
     const cars = cur.movers.filter((mv) => mv.car).map((mv) => ({ x0: mv.car.position.x - CAR_L / 2, x1: mv.car.position.x + CAR_L / 2, z0: mv.z - CAR_W / 2, z1: mv.z + CAR_W / 2 }));
-    return { feet: cur.feet, cars, lanes: cur.movers.map((mv) => ({ z0: mv.z - CAR_W / 2, z1: mv.z + CAR_W / 2, x0: Math.min(mv.x0, mv.x1) - CAR_L / 2, x1: Math.max(mv.x0, mv.x1) + CAR_L / 2 })) };
+    return { era, billboard: ERA_ART_PREVIEW ? eraBillboard(era)[0] : null, feet: cur.feet, cars, lanes: cur.movers.map((mv) => ({ z0: mv.z - CAR_W / 2, z1: mv.z + CAR_W / 2, x0: Math.min(mv.x0, mv.x1) - CAR_L / 2, x1: Math.max(mv.x0, mv.x1) + CAR_L / 2 })) };
   }
 
-  return { setStage, setQuality, setViewYaw, update, exterior, get group() { return root; } };
+  return { setStage, setEra, setQuality, setViewYaw, update, exterior, get group() { return root; } };
 }
