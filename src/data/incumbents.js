@@ -1,3 +1,5 @@
+import { periodCopy } from './period-content.js';
+
 export const INCUMBENTS = [
   { id: 'notian', name: 'Notian', category: 'notes', strength: 420 },
   { id: 'gmale', name: 'Gmale', category: 'email', strength: 600 },
@@ -15,4 +17,4 @@ export const INCUMBENTS = [
   { id: 'crowdstrife', name: 'CrowdStrife', category: 'security', strength: 600 },
 ];
 
-export const incumbentFor = (category) => INCUMBENTS.find((i) => i.category === category);
+export const incumbentFor = (category, state) => periodCopy(state, 'incumbents', INCUMBENTS.find((i) => i.category === category));

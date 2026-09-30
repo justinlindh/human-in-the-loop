@@ -113,7 +113,7 @@ export function hireView(ctx) {
             h('div.row.wrap', null, roleChip(c.role), seniorityChip(c.seniority), h('span.num.small', { text: `Level ${c.level}` })))),
           h('div.row.wrap', null, strengthChip(c)),
           skillsBlock(c),
-          h('div.row.wrap.traits', null, ...(c.traits.length ? traitChips(c.traits) : [h('span.faint.small', { text: 'No notable traits' })])),
+          h('div.row.wrap.traits', null, ...(c.traits.length ? traitChips(c.traits, s) : [h('span.faint.small', { text: 'No notable traits' })])),
           h('div.row.money', null,
             h('div', null, h('div.num.sal', { text: `${fmtMoney(c.salary)}/wk` }), h('div.small.muted.num', { text: `fee ${fmtMoney(hireFee(c))}` })),
             h('span.spacer'), h('div.col.right', null, btn, why))));

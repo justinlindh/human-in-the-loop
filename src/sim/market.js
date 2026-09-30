@@ -9,6 +9,7 @@ import { CATEGORIES } from '../data/categories.js';
 import { ANGLES } from '../data/angles.js';
 import { incumbentFor } from '../data/incumbents.js';
 import { eraAtLeast } from './eras.js';
+import { isPeriod } from '../data/period-content.js';
 
 export const cloneChance = (state) => B.cloneChanceBase * (1 + B.cloneChanceYearGrowth * dateOf(state.week).yearIndex);
 
@@ -26,7 +27,9 @@ export function marketSystem(ctx) {
       // One Show HS post every few weeks is funny; one for every clone is spam.
       if (state.week - (state.flags.lastShowHnWeek ?? -99) >= B.showHnEveryWeeks) {
         state.flags.lastShowHnWeek = state.week;
-        emitChat(ctx, { channel: 'random', from: '@hackerspewsbot', text: `Show HS: ${CATEGORIES[catId].name} but ${eraAtLeast(state, 'chatgbt') ? 'with AI' : 'faster'}` });
+        emitChat(ctx, { channel: 'random', from: isPeriod(state) ? '@newsdesk' : '@hackerspewsbot', text: isPeriod(state)
+          ? `New in the directory: ${CATEGORIES[catId].name}, with a suspiciously familiar feature list.`
+          : `Show HS: ${CATEGORIES[catId].name} but ${eraAtLeast(state, 'chatgbt') ? 'with AI' : 'faster'}` });
       }
     }
   }
@@ -39,7 +42,7 @@ export function marketSystem(ctx) {
     pr.novelty *= B.copyNoveltyMult;
     state.market.categories[pr.category].incumbentStrength *= B.copyIncumbentMult;
     pr.copied = true;
-    ctx.emit({ type: 'toast', text: `${incumbentFor(pr.category).name} announces ${ANGLES[pr.angle].name} features. Sounds familiar.`, tone: 'warn' });
+    ctx.emit({ type: 'toast', text: `${incumbentFor(pr.category, state).name} announces ${ANGLES[pr.angle].name} features. Sounds familiar.`, tone: 'warn' });
   }
 }
 

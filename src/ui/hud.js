@@ -307,9 +307,9 @@ export function createHud({ root, controls, ui }) {
       const card = h('div.tray-card.trend', { title: 'Market trend: tap for its effects', role: 'button', tabindex: '0', 'aria-expanded': String(trendOpen),
         onclick: () => { trendOpen = !trendOpen; card.classList.toggle('open', trendOpen); card.setAttribute('aria-expanded', String(trendOpen)); },
         onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); } } },
-        h('div.t', null, h('span', null, icon('tray.trend'), ` ${trendName(id)}`), k),
+        h('div.t', null, h('span', null, icon('tray.trend'), ` ${trendName(id, s)}`), k),
         h('div.tdetail', null,
-          h('div.small.muted', { text: trendText(id) }),
+          h('div.small.muted', { text: trendText(id, s) }),
           fx.length ? h('ul.tfx', null, ...fx.map((f) => h(`li.${f.mult > 1 ? 'up' : 'down'}`, null,
             h('b.num', { text: trendPct(f.mult) }), ` ${f.name} products`))) : null,
           h('div.small.muted', { text: 'Applies to customer growth and review scores while the trend lasts.' })));

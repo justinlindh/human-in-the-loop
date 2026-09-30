@@ -362,9 +362,9 @@ export function seniorityChip(s) {
   return h(`span.pill.sen.${s}`, { text: s === 'senior' ? 'Senior' : s === 'mid' ? 'Mid' : 'Junior' });
 }
 
-export function traitChips(ids = []) {
+export function traitChips(ids = [], state) {
   return ids.map((id) => {
-    const t = traitInfo(id);
+    const t = traitInfo(id, state);
     return h('span.pill.trait', { title: t.desc, text: t.name });
   });
 }

@@ -7,7 +7,8 @@ import { mentorOf, validateAssignment } from './staff.js';
 import { POLICIES } from '../data/policies.js';
 import { freeBuilders } from './projects.js';
 import { isUnlocked } from './unlocks.js';
-import { ERAS } from '../data/eras.js';
+import { currentEra, eraAtLeast, eraLines } from './eras.js';
+import { isPeriod } from '../data/period-content.js';
 import { ADVICE_LINES } from '../data/advisors.js';
 import { ROLE_JOBS, ROLE_JOBS_FALLBACK } from '../data/roles.js';
 
@@ -22,7 +23,7 @@ const live = (state) => state.products.filter((p) => !p.killed);
 function line(state, key, lines, vars) {
   let seed = (state.seed >>> 0) + Math.imul(state.week, 2654435761);
   for (const c of key) seed = Math.imul(seed ^ c.charCodeAt(0), 16777619);
-  const text = pick(createRng(seed >>> 0), lines);
+  const text = pick(createRng(seed >>> 0), isPeriod(state) ? eraLines(state, lines) : lines);
   return text.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
 }
 
@@ -75,7 +76,7 @@ function observe(state) {
 
   const era = state.era;
   if (era && era.id !== 'classic' && state.week - (era.since ?? 0) < A.eraWeeks) {
-    const name = ERAS.find((e) => e.id === era.id)?.name ?? era.id;
+    const name = currentEra(state).name;
     add(`era:${era.id}`, 'tech', 1, 1, ADVICE_LINES.era[era.id] ?? ADVICE_LINES.era.any, { era: name }, `A new era: ${name}`, null);
   }
 
@@ -232,9 +233,11 @@ function optionsFor(state, a) {
       if (id === 'chatgbt') {
         if (isUnlocked(state, 'models')) opt('Choose what your next product runs on', 'models');
         if (isUnlocked(state, 'automation')) opt('See which routine work a model could take on', 'automation');
-      } else {
+      } else if (eraAtLeast(state, 'agents')) {
         putOn('oversight of the agents', 'oversight', 'Hire someone to watch the agents');
         if (isUnlocked(state, 'automation')) opt('Hand some routine work to agents', 'automation');
+      } else {
+        opt(id === 'web2' ? 'Plan for old-browser testing before you ship' : 'Check the cash you can keep through the bust', 'reports');
       }
       opt('Start something built for the new era', 'build');
       break;

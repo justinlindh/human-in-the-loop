@@ -705,7 +705,7 @@ const list = [
     choices: [
       { label: 'Try copilots', hint: 'Hype on your newest product now; everyone learns faster for 26 weeks', effects: { hype: 15, teamMeaning: 2, modifier: { key: 'xp', value: 0.2, weeks: 26, label: 'Copilot experiments' } }, outcome: 'Everyone gets a copilot license. Three people use it. One of them for poetry.' },
       { label: 'Wait and see', hint: 'Customers stay calmer for 26 weeks; the brand slips a little later', effects: { modifier: { key: 'churn', value: -0.1, weeks: 26, label: 'Steady hands' }, later: [{ inWeeks: 13, effects: { brand: -2 } }] }, outcome: 'You let the hype cycle cycle. Your customers find this oddly soothing.' },
-      { label: 'The board wants an AI strategy', hint: 'Brand up and more signups for 26 weeks; the team rolls its eyes', effects: { brand: 4, teamMeaning: -3, modifier: { key: 'acquisition', value: 0.15, weeks: 26, label: 'AI strategy buzz' } }, outcome: 'The deck has 40 slides. Slide 12 just says "agents". Nobody knows what that means yet.' },
+      { label: 'The board wants an AI strategy', hint: 'Brand up and more signups for 26 weeks; the team rolls its eyes', effects: { brand: 4, teamMeaning: -3, modifier: { key: 'acquisition', value: 0.15, weeks: 26, label: 'AI strategy buzz' } }, outcome: 'The deck has 40 slides. Slide 12 just says "AI". Nobody knows what the strategy is yet.' },
     ],
   },
   {

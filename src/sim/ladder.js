@@ -8,6 +8,7 @@ import { liveProducts } from './projects.js';
 import { eraAtLeast } from './eras.js';
 import { FIRST_NAMES, LAST_NAMES, FAMOUS_NAMES } from '../data/names.js';
 import { RIVAL_NAMES, PET_NAMES, CALL_SCRIPTS } from '../data/ladder.js';
+import { isPeriod, PERIOD_RIVAL_NAMES } from '../data/period-content.js';
 
 const present = (state) => state.staff.filter((p) => p.mood !== 'away');
 const hasPlants = (state) => state.office.placed.some((p) => p.itemId === 'plant' || p.itemId === 'plant_wall');
@@ -71,7 +72,7 @@ function rivalStep(ctx) {
   if (!state.rival && state.stats.launches >= 2 && state.week >= B.rivalFromWeek && live.length) {
     const category = pick(ctx.rng, live).category;
     state.rival = {
-      name: pick(ctx.rng, RIVAL_NAMES), founderName: rivalFounder(ctx.rng),
+      name: pick(ctx.rng, isPeriod(state) ? PERIOD_RIVAL_NAMES : RIVAL_NAMES), founderName: rivalFounder(ctx.rng),
       logoColor: pick(ctx.rng, ['#e5484d', '#9b6bff', '#34c38f', '#4f8cff', '#ffb020']), categoryId: category,
       strength: B.rivalStartStrength, status: 'rising',
     };

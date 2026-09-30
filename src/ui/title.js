@@ -12,6 +12,7 @@ import { B } from '../sim/balance.js';
 import { OFFICE_STAGES } from '../data/office.js';
 import { GOALS } from '../data/goals.js';
 import { erasPreview } from './eraPreview.js';
+import { periodCopy } from '../data/period-content.js';
 
 const NAME_A = ['Loop', 'Pair', 'Kindly', 'Tiny', 'Candor', 'Hearth', 'Paper', 'Lantern', 'Honest', 'Maple', 'Orbit', 'Quiet'];
 const NAME_B = ['works', 'labs', ' & Co', ' Software', 'craft', ' Systems', 'house', ' Collective', 'forge', ' Studio'];
@@ -322,7 +323,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       portrait(archetypePerson(a, i), 64),
       h('b.fname', { text: a.name }),
       roleChip(a.role),
-      h('span.small', { text: archetypeBlurb(a) }),
+      h('span.small', { text: archetypeBlurb(periodCopy(erasPreview ? { era: { id: draft.startEra } } : null, 'founders', a)) }),
       // A non-builder never shows Building as a strength: it would contradict their warning line.
       Array.isArray(a.strengths) && a.strengths.length ? h('span.fstr', null, ...a.strengths.filter((k) => STAT[k] && !(k === 'features' && a.builder === false)).map((k) => h('span.pill.strength', { style: { '--sc': STAT[k].color }, title: `${STAT[k].skill}: drives ${STAT[k].product}` }, icon(STAT[k].icon, { size: 12 }), ` ${STAT[k].skill}`))) : null,
       a.warning ? h('span.small.fcardwarn', null, icon('warn', { size: 11 }), ` ${a.warning}`) : null,

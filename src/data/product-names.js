@@ -14,6 +14,7 @@ export const SILLY_ERA = {
   'Agentic McAgentface': 'agents',
 };
 export const SILLY = Object.keys(SILLY_ERA);
+export const WEB2_NAMES = ['Rounded Corners', 'Perpetual Beta', 'Feed Me', 'Gradient Service'];
 export const CAT_WORD = { notes: 'Note', email: 'Inbox', pm: 'Plan', support: 'Desk', crm: 'Deal', analytics: 'Chart', design: 'Pixel', devtools: 'Ship', hr: 'People', recruiting: 'Hire', accounting: 'Ledger', video: 'Clip', legal: 'Brief', security: 'Vault' };
 
 const sillyFor = (eraId) => {
@@ -24,7 +25,7 @@ const sillyFor = (eraId) => {
 // roll(k) returns an integer in [0, k); n counts names asked for, and every fifth is a joke from eraId or earlier.
 export function productName(category, roll, n, eraId = 'classic') {
   const pick = (a) => a[roll(a.length)];
-  if (PERIOD_MARKETS[eraId]) return n % 5 === 0 ? pick(DOTCOM_NAMES) : `${category && CAT_WORD[category] || pick(PREFIX)}${pick(['ware', 'Works', 'Desk', 'Net'])}`.slice(0, B.productNameMax);
+  if (PERIOD_MARKETS[eraId]) return n % 5 === 0 ? pick(eraId === 'web2' ? WEB2_NAMES : DOTCOM_NAMES) : `${category && CAT_WORD[category] || pick(PREFIX)}${pick(eraId === 'web2' ? ['Feed', 'Space', 'Base', 'Works'] : ['ware', 'Works', 'Desk', 'Net'])}`.slice(0, B.productNameMax);
   if (n % 5 === 0) return pick(sillyFor(eraId));
   const base = category && CAT_WORD[category] && roll(10) < 7 ? CAT_WORD[category] : pick(PREFIX);
   return `${base}${pick(SUFFIX)}`.slice(0, B.productNameMax);

@@ -31,7 +31,7 @@
 | Paranoid | oversight ×1.4, bug catching ×0.15 | agents |
 | Mentor | mentoring ×1.6, meaning recovery ×1.2 | any |
 | Night Owl | output ×1.1, stamina ×1.2 | any |
-| Vibe Coder | features ×1.3, reliability ×0.7, meaning drain ×0.5 | any |
+| Vibe Coder | features ×1.3, reliability ×0.7, meaning drain ×0.5 | chatgbt |
 | Burnout-prone | output ×1.15, stamina ×1.5 | any |
 | Loyal | chance of resigning ×0.4 | any |
 | Job Hopper | chance of resigning ×1.8 | any |
@@ -40,7 +40,7 @@
 | Perfectionist | output ×0.85, reliability ×1.3, polish ×1.2 | any |
 | Fast Learner | learning speed ×1.5 | any |
 | Old Guard | reliability ×1.2, meaning drain ×1.3, bug catching ×0.1 | any |
-| AI Enthusiast | meaning drain ×0.3, oversight ×1.2 | any |
+| AI Enthusiast | meaning drain ×0.3, oversight ×1.2 | chatgbt |
 | People Person | hype ×1.2, meaning recovery ×1.1 | any |
 | Lone Wolf | output ×1.15, mentoring ×0.6 | any |
 | Caffeinated | output ×1.1, stamina ×1.1 | any |

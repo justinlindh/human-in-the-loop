@@ -4,6 +4,7 @@ import { createRng, chance, pick, range, shuffle } from './rng.js';
 import { registerSystem } from './registry.js';
 import { automationExposure } from './automation.js';
 import { CHATTER } from '../data/chatter.js';
+import { periodChatter } from '../data/period-content.js';
 import { MODELS } from '../data/models.js';
 import { CATEGORIES } from '../data/categories.js';
 import { ITEMS } from '../data/items.js';
@@ -94,7 +95,7 @@ export function fillChat(state, rng, text, { speaker = null, product = null, pos
   const values = {
     product: prod?.name,
     category: prod ? CATEGORIES[prod.category].name : null,
-    incumbent: incumbentFor(prod?.category ?? pick(rng, state.market.unlockedCategories)).name,
+    incumbent: incumbentFor(prod?.category ?? pick(rng, state.market.unlockedCategories), state).name,
     coworker: others.length ? pick(rng, others).name.split(' ')[0] : null,
     model: prod?.model ? MODELS[prod.model].name : auto.level > 0 ? MODELS[auto.model].name : null,
     item,
@@ -213,7 +214,8 @@ export function chatSystem(ctx) {
   if (posted || !chance(ctx.rng, B.chatSoloChance * clamp(meaning / 70, 0.3, 1.2))) return;
   const recent = state.flags.recentChat ?? [];
   const p = pick(ctx.rng, team);
-  const pool = eraLines(state, CHATTER[chatterKey(state, p)]).filter((line) => !recent.includes(line));
+  const key = chatterKey(state, p);
+  const pool = eraLines(state, periodChatter(state, key, CHATTER[key])).filter((line) => !recent.includes(line));
   for (let tries = 0; tries < 4 && pool.length; tries++) {
     const line = pick(ctx.rng, pool);
     const text = fillChat(state, ctx.rng, line, { speaker: p });

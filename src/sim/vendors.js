@@ -9,6 +9,7 @@ import { CATEGORIES } from '../data/categories.js';
 import { ANGLES } from '../data/angles.js';
 import { MODELS } from '../data/models.js';
 import { TRENDS } from '../data/trends.js';
+import { periodCopy } from '../data/period-content.js';
 import { ERAS } from '../data/eras.js';
 import { eraIndex, eraAtLeast, eraOnlyAllowsText, currentEra } from './eras.js';
 import { raiseDecision } from './events.js';
@@ -85,7 +86,8 @@ function trendStep(ctx) {
   const next = pick(ctx.rng, (period?.trends ?? Object.keys(TRENDS)).filter((id) => id !== m.trend && trendFits(ctx.state, TRENDS[id])));
   m.trend = next;
   m.trendWeeksLeft = TRENDS[next].weeks;
-  ctx.emit({ type: 'toast', text: `Trend: ${TRENDS[next].name}. ${TRENDS[next].text}`, tone: 'info', trendId: next });
+  const copy = periodCopy(ctx.state, 'trends', TRENDS[next]);
+  ctx.emit({ type: 'toast', text: `Trend: ${copy.name}. ${copy.text}`, tone: 'info', trendId: next });
 }
 
 function vendorRelease(ctx) {

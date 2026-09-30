@@ -20,6 +20,7 @@ import { emitChat } from './chat.js';
 import { eraOnlyAllowsText, eraAtLeast, currentEra, eraIndex } from './eras.js';
 import { openEventPrompt, promptSlotFree } from './prompts.js';
 import { dotcomDecisionOpen } from './dotcom.js';
+import { periodAllows, periodText } from '../data/period-content.js';
 
 // What attackers ask for: sized to the company's cash and revenue, between a floor and a cap, and never
 // more than a share of the cash in hand, so paying hurts without ending a careful company.
@@ -42,7 +43,7 @@ export function decisionVars(state, rng, subjectId) {
   const top = liveProducts(state).reduce((a, b) => (!a || b.mrr > a.mrr ? b : a), null);
   const category = product?.category ?? top?.category ?? pick(rng, state.market.unlockedCategories);
   const collapseWeeks = Math.max(0, B.outageCollapseWeeks - (state.outage?.weeks ?? 0));
-  return { incumbent: incumbentFor(category).name, collapseWeeks, rival: state.rival?.name ?? 'A rival', rivalFounder: state.rival?.founderName ?? 'Their founder', ransom: ransomFor(state),
+  return { incumbent: incumbentFor(category, state).name, collapseWeeks, rival: state.rival?.name ?? 'A rival', rivalFounder: state.rival?.founderName ?? 'Their founder', ransom: ransomFor(state),
     alum: state.flags.alumni?.at(-1)?.name.split(' ')[0] ?? 'A former colleague',
     deal: featuredDeal(state)?.name ?? 'A small company',
     incidentWeeks: state.flags.lastIncident?.weeks ?? 0, incidentCost: { ...(state.flags.lastIncident?.cost ?? { cash: 0, brand: 0, customers: 0 }) } };
@@ -53,7 +54,7 @@ export function fillText(state, rng, text, subjectId, vars = null) {
   const person = state.staff.find((p) => p.id === subjectId);
   const product = state.products.find((p) => p.id === subjectId);
   const v = vars ?? decisionVars(state, rng, subjectId);
-  return text
+  return periodText(state, text)
     .replaceAll('{name}', person?.name ?? 'Someone')
     .replaceAll('{product}', product?.name ?? liveProducts(state).at(-1)?.name ?? 'production')
     .replaceAll('{company}', state.companyName)
@@ -98,6 +99,7 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
   const { state } = ctx;
   const ev = EVENTS[eventId];
   if (!ev || !ev.choices) return false;
+  if (!periodAllows(state, 'events', eventId)) return false;
   if (!dotcomDecisionOpen(state, eventId)) return false;
   if (eventId.startsWith('web2_') && state.era.id !== 'web2') return false;
   if (state.pendingDecision) {
@@ -196,10 +198,12 @@ export function helpers(state) {
 }
 
 // Every player-facing string an event can show, for the era text check.
-const eventText = (ev) => JSON.stringify([ev.title, ev.text, ev.chat ?? '', (ev.choices ?? []).map((c) => [c.label, c.hint, c.outcome ?? ''])]);
+const eventText = (state, ev) => [ev.title, ev.text, ev.chat ?? '', ...(ev.choices ?? []).flatMap((c) => [c.label, c.hint, c.outcome ?? ''])]
+  .map((text) => periodText(state, text)).join(' ');
 
 // An event fits the era if it names the era explicitly, or names none and its text fits.
-export const eventFitsEra = (state, ev) => (ev.eras ? ev.eras.includes(currentEra(state).id) : eraOnlyAllowsText(state, eventText(ev)));
+export const eventFitsEra = (state, ev) => periodAllows(state, 'events', ev.id)
+  && (ev.eras ? ev.eras.includes(currentEra(state).id) : eraOnlyAllowsText(state, eventText(state, ev)));
 
 export function eligibleEvents(state) {
   const h = helpers(state);
