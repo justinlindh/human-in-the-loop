@@ -221,7 +221,7 @@ export function buildPanel(ctx, arg) {
         h('div.section', null, h('h3', null, `3. ${!hasEras ? 'AI angle' : ANGLES.some((a) => a.ai && s.market.unlockedAngles.includes(a.id)) ? 'Angle' : 'Approach'}`, h('span.aside', null, icon('star', { size: 12 }), ' = combos you have launched')), angGrid),
         needsModel ? h('div.section', null, h('h3', null, '4. Model vendor'), modelGrid) : null,
         h('div.section', null, h('h3', null, `${needsModel ? 5 : 4}. Size`), sizeRow,
-          compatibilityMult(s, form.angle) > 1 ? h('div.small.legacy-compat', { text: `Internet Exploder 6 compatibility: +${Math.round((compatibilityMult(s, form.angle) - 1) * 100)}% work included. A present senior Legacy Whisperer reduces the extra work. The estimate locks when you start.` }) : null)),
+          compatibilityMult(s, form.angle) > 1 ? h('div.small.legacy-compat', { text: `Internet Exploder 6 compatibility: +${Math.round((compatibilityMult(s, form.angle) - 1) * 100)}% work included. A present senior Legacy Whisperer reduces the extra work. Senior engineers earn it after ${B.web2.legacyLaunches} contributed compatible launches, with a free trait slot. The estimate locks when you start.` }) : null)),
       h('div.buildside', null,
         h('div.section', null, h('h3', null, `${needsModel ? 6 : 5}. Team`, countEl), avail.length ? team : h('div.empty', { text: 'Everyone is away.' }),
           h('div.small.muted.teamhint', { text: 'Stronger people make a better product. More people make it faster.' })),

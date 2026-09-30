@@ -381,7 +381,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       h('b', { text: 'How are you paying for this?' }),
       cardsEl,
       summary,
-      h('div.small.muted', { text: 'Funding and starting-era score factors multiply. Earlier chapters earn a longer-career bonus; later starts trade score for a kit.' })), start, 'Start the company');
+      h('div.small.muted', { text: 'Funding and starting-era score factors multiply. Classic keeps the full score; other starts trade score for a kit.' })), start, 'Start the company');
     refreshSummary();
   }
 

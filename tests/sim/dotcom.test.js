@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createGame, dispatch, tick, calendarDate } from '../../src/sim/index.js';
+import { createGame, dispatch, tick, calendarDate, scoreRun } from '../../src/sim/index.js';
 import { B } from '../../src/sim/balance.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { calendarStart } from '../../src/sim/vendors.js';
@@ -17,6 +17,16 @@ const at = (s, week) => { s.week = week; s.pendingDecision = null; delete s.flag
 const roundtrip = (s) => { const m = new Map(); const store = { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: (k) => m.delete(k) }; expect(saveGame(s, store)).toBe(true); const r = loadGame(store); expect(r.ok).toBe(true); return r.state; };
 
 describe('dot-com career', () => {
+  it('keeps Classic the higher-scoring path for the same company', () => {
+    const s = game();
+    s.stats.launches = 1;
+    s.gameOver = { won: true };
+    const classic = structuredClone(s);
+    classic.founding.eraScoreMult = B.eraStarts.classic.scoreMult;
+    expect(scoreRun(s).score).toBeLessThan(scoreRun(classic).score);
+    expect(scoreRun(roundtrip(s)).score).toBe(scoreRun(s).score);
+  });
+
   it('starts with period permissions, a versioned bridge and the intended kit', () => {
     const s = game();
     expect(s.cash).toBe(B.funding.bootstrapped.cash + B.eraStarts.dotcom.cash);

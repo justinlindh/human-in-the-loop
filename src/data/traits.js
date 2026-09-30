@@ -7,7 +7,7 @@ export const TRAIT_MOD_KEYS = [
 ];
 
 const rows = [
-  ['legacy_whisperer', 'Legacy Whisperer', 'Earned by shipping compatible web products. Knows which conditional comment must never be removed.', {}],
+  ['legacy_whisperer', 'Legacy Whisperer', `Earned after ${B.web2.legacyLaunches} contributed compatible launches by a senior engineer with a free trait slot. While present, old-browser work on new web projects falls to +${Math.round((B.web2.whispererWorkMult - 1) * 100)}%. Knows why the conditional comment stays.`, {}],
   ['craftsperson', 'Craftsperson', 'Sweats the details. Takes it personally when the craft gets rushed.', { polish: 1.3, meaningDrain: 1.5, meaningRecovery: 1.2 }],
   ['hype_machine', 'Hype Machine', 'Can make a settings page sound like the moon landing.', { hype: 1.5 }],
   ['paranoid', 'Paranoid', 'Reads every agent log. Has been right twice.', { oversight: 1.4, catch: 0.15 }],
@@ -34,7 +34,7 @@ const rows = [
   ['percussive', 'Percussive Maintenance', 'Earned the hard way: two slaps, right side. Fixes the office robot on the spot.', { reliability: 1.05 }],
 ];
 
-// Traits nobody is hired with: natural_mentor comes from mentoring, percussive from slapping the office robot back to life.
+// Traits earned through play, excluded from the hiring pool.
 export const NEVER_HIRED = new Set(['natural_mentor', 'percussive', 'legacy_whisperer']);
 
 // Traits people earn from experience rather than arrive with.
