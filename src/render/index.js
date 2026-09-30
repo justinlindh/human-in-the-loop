@@ -15,6 +15,7 @@ import { createScreens } from './screens.js';
 import { createOffice } from './office.js';
 import { createProps } from './props.js';
 import { createSurroundings } from './surroundings.js';
+import { eraArtEra } from './era-art.js';
 import { isSoftwareRenderer } from '../quality.js';
 import { createProbe } from './probe.js';
 import { createLabels } from './labels.js';
@@ -225,7 +226,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       pendingUpgrade = false;
     }
     // Era dressing; a change after the first build gets the window-light swell.
-    if (office.setEra(state.era?.id ?? 'classic')) {
+    const artEra = eraArtEra(state);
+    surroundings?.setEra(artEra);
+    if (office.setEra(state.era?.id ?? 'classic', artEra)) {
       screens.setEra(office.era, !stageJustBuilt && !firstSync);
       lighting.setEraTone(office.era);
     }

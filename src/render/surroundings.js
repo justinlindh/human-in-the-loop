@@ -3,7 +3,7 @@ import { PALETTE as P } from './palette.js';
 import { mat } from './materials.js';
 import { roundedBox, roundedCylinder, mesh, mergeStatic } from './prims.js';
 import { getModel } from './models.js';
-import { ERA_ART_PREVIEW } from './era-art.js';
+import { ERA_ART_PREVIEW, eraBillboard, ERA_ADS } from './era-art.js';
 
 // The world round the office diorama, per stage: a garage on a suburban lot with a street out
 // front; the Office Floor as a storey of a building above a plaza, among neighbouring towers; HQ on
@@ -228,6 +228,83 @@ function haloTexture() {
   return haloTex;
 }
 
+function advertTexture(era) {
+  const c = document.createElement('canvas'); c.width = 768; c.height = 384;
+  const x = c.getContext('2d');
+  const [title, second, third] = ERA_ADS[era] ?? ERA_ADS.classic;
+  const paper = era === 'consolidation' || era === 'plateau';
+  const bg = paper ? P.paper_sheet : P.screen_bg;
+  const ink = paper ? P.ink : P.paper_sheet;
+  const accent = era === 'plateau' ? P.fabric_teal : paper ? P.fabric_slate : P.screen_cyan;
+  x.fillStyle = bg; x.fillRect(0, 0, c.width, c.height);
+  x.textBaseline = 'middle';
+  const text = (label, px, py, size, color = ink, align = 'left') => {
+    x.fillStyle = color; x.textAlign = align; x.font = `bold ${size}px sans-serif`; x.fillText(label, px, py);
+  };
+  const rect = (px, py, w, h, radius, color) => {
+    x.fillStyle = color; x.beginPath(); x.roundRect(px, py, w, h, radius); x.fill();
+  };
+  const line = (points, color, width = 10) => {
+    x.strokeStyle = color; x.lineWidth = width; x.lineCap = 'round'; x.lineJoin = 'round';
+    x.beginPath(); points.forEach(([px, py], i) => i ? x.lineTo(px, py) : x.moveTo(px, py)); x.stroke();
+  };
+  if (era === 'chatgbt') {
+    // A briefcase with a prompt cursor makes the salary read as a hiring ad.
+    rect(78, 120, 100, 70, 15, accent); rect(94, 136, 68, 46, 8, bg);
+    rect(38, 164, 190, 142, 19, accent);
+    text('>_', 132, 230, 76, bg, 'center');
+    text(title, 263, 115, 52);
+    text(second, 258, 230, 132, accent);
+  } else if (era === 'agents') {
+    // The thinking bot prints an overlong receipt below its meter.
+    rect(40, 128, 145, 95, 20, accent);
+    rect(63, 150, 100, 42, 9, bg); text('$$$', 113, 173, 35, accent, 'center');
+    line([[113, 128], [113, 105]], accent, 8);
+    for (const [cx, cy, r] of [[131, 81, 12], [153, 53, 17], [183, 37, 21]]) {
+      x.fillStyle = accent; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fill();
+    }
+    rect(75, 208, 78, 66, 2, P.paper_sheet);
+    line([[93, 225], [135, 225]], P.ink, 5); line([[93, 244], [125, 244]], P.ink, 5);
+    text(title, 217, 132, 62, accent);
+    text(second, 217, 205, 53);
+    text(third, 217, 275, 67);
+  } else if (era === 'consolidation') {
+    // A rubber stamp covers a stack of deeds.
+    rect(32, 181, 172, 132, 6, P.wall_trim); rect(45, 165, 172, 132, 6, P.wall_warm);
+    rect(76, 130, 124, 51, 7, accent); rect(111, 56, 53, 92, 15, accent);
+    line([[70, 245], [182, 245]], accent, 12);
+    text(title, 245, 89, 56);
+    text(second, 245, 167, 61);
+    text(third, 241, 265, 96, accent);
+  } else if (era === 'plateau') {
+    // Uneven finger lengths and a palm print make the human claim visible.
+    x.fillStyle = accent;
+    x.beginPath(); x.ellipse(133, 236, 54, 66, -0.1, 0, Math.PI * 2); x.fill();
+    for (const [px, py, h, angle] of [[68, 130, 101, -0.25], [100, 98, 126, -0.08], [133, 91, 130, 0.06], [167, 120, 109, 0.19], [38, 199, 77, -0.65]]) {
+      x.save(); x.translate(px, py); x.rotate(angle); rect(0, 0, 25, h, 12, accent); x.restore();
+    }
+    text(title, 250, 116, 78);
+    text(second, 247, 211, 85, accent);
+    text(third, 707, 315, 33, ink, 'right');
+  } else {
+    // An ordinary Tuesday calendar gets the obligatory growth arrow.
+    rect(35, 99, 177, 214, 16, P.paper_sheet); rect(35, 99, 177, 49, 12, accent);
+    line([[73, 84], [73, 119]], P.fabric_mustard, 13);
+    line([[174, 84], [174, 119]], P.fabric_mustard, 13);
+    text('TUE', 123, 185, 43, P.ink, 'center');
+    line([[68, 281], [111, 250], [143, 268], [186, 219]], P.fabric_teal, 14);
+    line([[161, 220], [186, 219], [186, 244]], P.fabric_teal, 12);
+    text(title, 245, 130, 86);
+    text(second, 245, 235, 96, accent);
+  }
+  // A faint pixel grid suggests a panel without adding geometry or an animated texture.
+  x.fillStyle = bg; x.globalAlpha = 0.18;
+  for (let y = 0; y < 384; y += 6) x.fillRect(0, y, 768, 1);
+  const texture = new THREE.CanvasTexture(c); texture.colorSpace = THREE.SRGBColorSpace;
+  texture.flipY = false;
+  return texture;
+}
+
 export function createSurroundings({ parent, low = () => false, lighting = null }) {
   const root = new THREE.Group();
   root.name = 'surroundings';
@@ -235,11 +312,17 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
   let cur = null;          // { group, sides: { px, nx, pz, nz }, facades, bulbs, movers, clouds }
   let viewYaw = Math.PI / 4;
   let built = null;        // { stage, L, lite } of the current build
+  let era = null;
 
   function clear() {
     if (!cur) return;
     root.remove(cur.group);
     cur.group.traverse((o) => { if (o.isMesh && o.geometry.userData.merged) o.geometry.dispose(); });
+    for (const resource of cur.owned) {
+      const backdrop = backdropMats.get(resource);
+      if (backdrop) { backdrop.dispose(); backdropMats.delete(resource); }
+      resource.dispose();
+    }
     cur = null;
   }
 
@@ -256,7 +339,8 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     const flat = new THREE.Group();
     const sides = { px: new THREE.Group(), nx: new THREE.Group(), pz: new THREE.Group(), nz: new THREE.Group() };
     const dyn = new THREE.Group();
-    const facadeMats = new Set(), bulbs = [], movers = [], clouds = [], glows = [];
+    const facadeMats = new Set(), bulbs = [], movers = [], clouds = [], glows = [], owned = [], signMats = [];
+    let rentalFront = null;
     // Floor rectangles of the larger standing things (for checks): { id, x0, x1, z0, z1 }.
     const feet = [];
     const foot = (id, x, z, w, d) => feet.push({ id, x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2 });
@@ -304,6 +388,7 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
         const h = house(w, d, COL.house[i % 3], COL.roof[i % 3]);
         h.position.y = gy;
         tall(h, x, z);
+        if (i === 1) rentalFront = { x: x + w * 0.18, y: gy + 1.7, z: z + d / 2 + 0.08 };
       });
       if (!lite) {
         for (const [x, z, s] of [[hw + 1.6, -hd - 1.2, 2.6], [-hw - 2.2, -hd - 1.4, 3], [hw + M - 2, hd - 1, 2.4], [-hw - M + 2.5, hd + 0.5, 2.8], [hw + 2.8, 1, 2.2]]) {
@@ -326,7 +411,10 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
       // Neighbours: a near row a storey or two taller than this floor, a hazier row further back.
       const towers = [[-hw - 3, -hd - 8, 5, 12, 5, 0], [hw - 4, -hd - 9, 6, 10, 5, 0], [0, -hd - 15, 8, 16, 6, 0.35], [hw + 6, -hd - 14, 6, 14, 6, 0.35],
         [-hw - 9, -2, 5, 11, 5, 0], [-hw - 14, hd - 4, 6, 15, 6, 0.35], [-hw - 8, -hd - 4, 4, 8, 4, 0]];
-      towers.forEach(([x, z, w, h, d, hz], i) => { const b = building(w, h, d, COL.tower[i % COL.tower.length], hz); b.position.y = gy + h / 2; tall(b, x, z); });
+      towers.forEach(([x, z, w, h, d, hz], i) => {
+        const b = building(w, h, d, COL.tower[i % COL.tower.length], hz); b.position.y = gy + h / 2; tall(b, x, z);
+        if (i === 4) rentalFront = { x, y: gy + 3, z: z + d / 2 + 0.08 };
+      });
       if (!lite) {
         for (const [x, z] of [[hw + 2, hd + 1.5], [-hw - 1.5, hd + 1.8], [hw + 3, -hd + 2]]) { const t = tree(2.4); t.position.y = gy; tall(t, x, z); }
         for (const x of [-hw, 0, hw]) { const l = lamp(); l.position.y = gy; bulbs.push(l.children[1]); tall(l, x, sz - 2.6); }
@@ -344,7 +432,10 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
       for (let i = 0; i < 9; i++) sky.push([-hw - 2 + (i / 8) * (2 * hw + 6), -hd - 9 - rnd() * 3, 4 + rnd() * 2, 7 + rnd() * 8, 4 + rnd() * 2, 0]);
       for (let i = 0; i < 6; i++) sky.push([-hw - 8 - rnd() * 3, -hd + (i / 5) * (2 * hd - 2), 4 + rnd() * 2, 6 + rnd() * 7, 4 + rnd() * 2, 0]);
       for (let i = 0; i < 10; i++) sky.push([-hw - 6 + (i / 9) * (2 * hw + 16), -hd - 17 - rnd() * 4, 5 + rnd() * 3, 16 + rnd() * 16, 5 + rnd() * 3, 0.45]);
-      sky.forEach(([x, z, w, h, d, hz], i) => { const b = building(w, h, d, COL.tower[i % COL.tower.length], hz); b.position.y = gy + h / 2; tall(b, x, z); });
+      sky.forEach(([x, z, w, h, d, hz], i) => {
+        const b = building(w, h, d, COL.tower[i % COL.tower.length], hz); b.position.y = gy + h / 2; tall(b, x, z);
+        if (i === 14) rentalFront = { x, y: gy + 3, z: z + d / 2 + 0.08 };
+      });
       // Lawn beds on the plaza in front (flat) and a green strip behind for the trees.
       for (const [x, z, w, d] of [[-hw + 3, hd + 2.3, 5, 1.6], [hw - 3, hd + 2.3, 5, 1.6], [hw + 2.4, 0, 1.6, 6]]) onFlat(mesh(roundedBox(w, 0.08, d, 0.04, 2), m(COL.grass), 0, 0, 0, { cast: false }), x, gy + 0.02, z);
       onFlat(mesh(roundedBox(2 * hw + 4, 0.08, 3, 0.04, 2), m(COL.grass), 0, 0, 0, { cast: false }), 0, gy + 0.02, -hd - 3);
@@ -365,32 +456,65 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
       }
     }
 
-    if (ERA_ART_PREVIEW && stage === 0) {
-      const sign = getModel('era_sock_billboard');
+    if (ERA_ART_PREVIEW) {
+      const [name, technology] = eraBillboard(era);
+      const sign = getModel(name);
       sign.position.y = gy;
-      // Floodlit at night: the lamp lenses take the street lamps' bulb material (lit by update), and
-      // an additive wash over the face fades in. Both are emissive; no light is added.
-      const lens = new THREE.MeshStandardMaterial({ color: new THREE.Color(P.lamp_warm), emissive: new THREE.Color(P.lamp_warm), emissiveIntensity: 0 });
-      sign.traverse((o) => { if (o.isMesh && o.material?.name === 'pal_lamp_warm') o.material = lens; });
-      const wash = new THREE.Mesh(new THREE.PlaneGeometry(3.25, 1.65), new THREE.MeshBasicMaterial({ map: washTexture(), color: new THREE.Color(P.lamp_warm), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
-      wash.position.set(0, 2.05, 0.33);
-      wash.userData.dynamic = true;
-      wash.visible = false;
-      sign.add(wash);
-      glows.push(wash);
-      // A soft halo on each lamp head (its lens faces the board, away from the camera).
-      for (const x of [-1.1, 0, 1.1]) {
-        const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTexture(), color: new THREE.Color(P.lamp_warm), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
-        halo.position.set(x, 2.95, 0.6);
-        halo.scale.setScalar(0.5);
-        halo.userData.dynamic = true;
-        halo.visible = false;
-        sign.add(halo);
-        glows.push(halo);
+      if (technology === 'led') {
+        const tex = advertTexture(era);
+        const display = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false });
+        owned.push(tex, display);
+        sign.traverse((o) => { if (o.isMesh && o.name.endsWith('_screen')) o.material = display; });
+      }
+      if (technology === 'box') {
+        const lit = new Map();
+        sign.traverse((o) => {
+          if (!o.isMesh || ['pal_wood_dark', 'pal_slab_edge', 'pal_metal_dark'].includes(o.material?.name)) return;
+          let material = lit.get(o.material);
+          if (!material) {
+            material = new THREE.MeshBasicMaterial({ color: o.material.color, toneMapped: false });
+            lit.set(o.material, material); owned.push(material); signMats.push({ material, color: material.color.clone() });
+          }
+          o.material = material;
+        });
+      }
+      if (technology === 'painted') {
+        // The wash sits between the painted face and its raised lettering, preserving dark ink.
+        const lens = new THREE.MeshStandardMaterial({ color: new THREE.Color(P.lamp_warm), emissive: new THREE.Color(P.lamp_warm), emissiveIntensity: 0 });
+        owned.push(lens);
+        sign.traverse((o) => { if (o.isMesh && o.material?.name === 'pal_lamp_warm') o.material = lens; });
+        const wash = new THREE.Mesh(new THREE.PlaneGeometry(3.25, 1.65), new THREE.MeshBasicMaterial({ map: washTexture(), color: new THREE.Color(P.lamp_warm), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+        owned.push(wash.geometry, wash.material);
+        wash.position.set(0, 2.05, 0.133);
+        wash.userData.dynamic = true;
+        wash.visible = false;
+        sign.add(wash);
+        glows.push(wash);
+        // A soft halo on each lamp head (its lens faces the board, away from the camera).
+        for (const x of [-1.1, 0, 1.1]) {
+          const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTexture(), color: new THREE.Color(P.lamp_warm), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+          owned.push(halo.material);
+          halo.position.set(x, 2.95, 0.6);
+          halo.scale.setScalar(0.5);
+          halo.userData.dynamic = true;
+          halo.visible = false;
+          sign.add(halo);
+          glows.push(halo);
+        }
       }
       // On the front lawn past the driveway, facing the street, clear of the parked car and bins.
       tall(sign, -hw - 2.2, hd + 1.2);
       foot('billboard', -hw - 2.2, hd + 1.2, BILLBOARD_W, BILLBOARD_D);
+      if (era === 'preinternet') {
+        const phone = getModel('era_payphone'); phone.position.y = gy;
+        tall(phone, -hw - 0.85, hd + 0.20);
+        foot('payphone', -hw - 0.85, hd + 0.20, 0.64, 0.56);
+        // A rental-shop fascia on the neighbouring building, above its front windows.
+        const video = getModel('era_video_sign');
+        video.traverse((o) => { if (o.isMesh) o.material = backdropMaterial(o.material); });
+        video.position.y = rentalFront.y;
+        tall(video, rentalFront.x, rentalFront.z);
+      }
     }
 
     // The diorama board covers everything that stands on it: at least the stage's margin round the
@@ -451,7 +575,7 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     group.add(merged.flat, merged.px, merged.nx, merged.pz, merged.nz, dyn);
     // Bulbs are emissive and change at night: they stay separate (mergeStatic keeps dynamic ones).
     root.add(group);
-    cur = { group, sides: { px: merged.px, nx: merged.nx, pz: merged.pz, nz: merged.nz }, facadeMats, bulbs: collectBulbs(group), movers: movers.map((mv) => ({ ...mv, t: rnd() * mv.gap[1], car: null })), clouds, glows, feet, dyn, gy };
+    cur = { group, sides: { px: merged.px, nx: merged.nx, pz: merged.pz, nz: merged.nz }, facadeMats, bulbs: collectBulbs(group), movers: movers.map((mv) => ({ ...mv, t: rnd() * mv.gap[1], car: null })), clouds, glows, feet, dyn, gy, owned, signMats, rentalFront };
     applyYaw();
   }
 
@@ -479,10 +603,17 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     if (built && built.lite !== low()) setStage(built.stage, built.L);
   }
 
+  function setEra(id) {
+    if (!ERA_ART_PREVIEW || era === id) return;
+    era = id;
+    if (built) setStage(built.stage, built.L);
+  }
+
   function update(dt, env) {
     if (!cur) return;
     const night = env?.night ?? 0;
-    if (built?.lite && lighting) updateBacklight(lighting, night);
+    for (const { material, color } of cur.signMats) material.color.copy(color).multiplyScalar(0.8 + night * 0.2);
+    if ((built?.lite || ERA_ART_PREVIEW) && lighting) updateBacklight(lighting, night);
     for (const fm of cur.facadeMats) fm.emissiveIntensity = night * 1.1;
     for (const b of cur.bulbs) b.material.emissiveIntensity = night * 2.2;
     for (const w of cur.glows) { w.material.opacity = night * (w.isSprite ? 0.9 : 0.7); w.visible = night > 0.02; }
@@ -521,8 +652,8 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
   function exterior() {
     if (!cur) return null;
     const cars = cur.movers.filter((mv) => mv.car).map((mv) => ({ x0: mv.car.position.x - CAR_L / 2, x1: mv.car.position.x + CAR_L / 2, z0: mv.z - CAR_W / 2, z1: mv.z + CAR_W / 2 }));
-    return { feet: cur.feet, cars, lanes: cur.movers.map((mv) => ({ z0: mv.z - CAR_W / 2, z1: mv.z + CAR_W / 2, x0: Math.min(mv.x0, mv.x1) - CAR_L / 2, x1: Math.max(mv.x0, mv.x1) + CAR_L / 2 })) };
+    return { era, billboard: ERA_ART_PREVIEW ? eraBillboard(era)[0] : null, fascia: ERA_ART_PREVIEW && era === 'preinternet' ? cur.rentalFront : null, feet: cur.feet, cars, lanes: cur.movers.map((mv) => ({ z0: mv.z - CAR_W / 2, z1: mv.z + CAR_W / 2, x0: Math.min(mv.x0, mv.x1) - CAR_L / 2, x1: Math.max(mv.x0, mv.x1) + CAR_L / 2 })) };
   }
 
-  return { setStage, setQuality, setViewYaw, update, exterior, get group() { return root; } };
+  return { setStage, setEra, setQuality, setViewYaw, update, exterior, get group() { return root; } };
 }
