@@ -115,7 +115,7 @@ Web 2.0 tuning in `B.web2`: chapter 208 weeks, calendar 2003 to 2019, compatibil
 
 Use #547's profile layer outside run saves, not era completion flags inside one company. Proposed profile ids: `era.preinternet`, `era.dotcom`, `era.web2`, `era.classic`, `era.chatgbt`, `era.agents`, `era.consolidation`, `era.plateau`, `mode.long_career`. Reaching an era records it even in a run that later loses. A union merge of profile achievements handles imports; deleting a company does not delete profile progress. Missing/corrupt profile data must not make an existing save unloadable.
 
-Recommendation: all era starts remain available in a sandbox/custom section; optional career locks provide discovery, never block a returning player's purchased or existing content. Classic is always unlocked. Reaching ChatGBT unlocks its career start, reaching Agents unlocks its start, surviving dot-com unlocks Web 2.0, and finishing any modern career unlocks pre-internet and long career. Existing profiles are grandfathered for all starts exposed before the profile feature. These are recommendations awaiting the owner, not phase-2 restrictions.
+All era starts remain available in a sandbox/custom section; optional career locks provide discovery, never block a returning player's purchased or existing content. Classic is always unlocked. Reaching ChatGBT unlocks its career start, reaching Agents unlocks its start, surviving dot-com unlocks Web 2.0, and finishing any modern career unlocks pre-internet and long career. Existing profiles are grandfathered for all starts exposed before the profile feature. The profile delivery implements these optional locks; phase 2 exposes its preview starts without locks.
 
 Office Space and Silicon Valley content stays core and unlocked, as #547 requires. Do not turn #338's accepted Squish Score, Incubator House, The Box, Tabs or Spaces, Oat Milk and Is it kielbasa? into rewards that must be earned again. Preserve their existing era requirements: Oat Milk's ordering agent and the kielbasa AI app cannot appear in dot-com. Do not add the rejected Better-Place Bingo or Failing Upward concepts.
 
@@ -190,7 +190,7 @@ Each row is one reviewable PR unless the row explicitly assigns an asset handoff
 | E7 | Complete DeskNet/AwayIM/HipCheck reskins and historical content audit across channels, names, marketing, research, advisors, traits and epilogues; safe fallbacks with zero modern leakage; phone/keyboard capture | 3 h | ui plus sim content, one Codex PR if delegated across both | E3 to E6 |
 | E8 | Cubicle/CRT/retail/era props and room dressing replace every documented stand-in; placement, sweep/pose, Low quality and camera-turn evidence | 3 h 30 min initial asset batch; scope to existing geometry | art | E3 to E5, #179 audit |
 | E9 | Period audio cues and music routing, owner-approved candidates, silent fallback and bus tests | 3 h initial cue batch | audio with ui | E7/E8; owner listening |
-| E10 | #547 shared profile achievements, optional era locks and pack picker, grandfathering and profile import/export; storage failure and old-save tests | 3 h 30 min | Codex or sim/save plus ui | E6, owner lock decision |
+| E10 | #547 shared profile achievements, optional era locks and pack picker, grandfathering and profile import/export; storage failure and old-save tests | 3 h 30 min | Codex or sim/save plus ui | E6, #547 profile design |
 | E11 | Final balance and delivery audit: every era/funding pair sampled, all starts 200 seeds, long-career survival and score distributions, historical leakage, interrupted/save-reload replay, feature/media inventory, owner playtest package | 3 h | Codex plus reviewer read-only review | E6 to E10 |
 
 E8 and E9 are bounded initial batches. If their complete asset lists do not fit, their reports must propose numbered asset/cue follow-ups with specific missing ids; E11 cannot call the feature complete while any stand-in or required approved cue is outstanding. The plan includes contract adoption by team-lead alongside each implementation and final integration/media work in E11. No implementation PR closes #5 on the strength of only the later-start slice.
@@ -206,10 +206,12 @@ E8 and E9 are bounded initial batches. If their complete asset lists do not fit,
 
 ## Owner questions and recommendations
 
+The recommendations below have [owner approval](https://github.com/justinlindh/human-in-the-loop/issues/5#issuecomment-5903928292). The [preview requirement](https://github.com/justinlindh/human-in-the-loop/issues/5#issuecomment-5904087166) still holds public release for owner playtesting. These decisions do not approve the visual or audio stand-ins as final assets.
+
 1. Are compressed historical chapters acceptable? Recommend the explicit chapter calendar and visible bridges, keeping company age honest. A literal multi-decade weekly run would greatly extend playtime and require another pacing design.
 2. Founding decision: every era defaults to a new company in a garage with its kit. An established-company takeover is a separate future option. The starting kit does not fabricate products, employees or earned milestones.
 3. Should later starts end at a shared calendar year? Recommend twenty playable years from founding in the modern starts; a fixed world end makes Plateau a short scenario. Keep the displayed score discount.
-4. Should starts be locked? Recommend open sandbox starts and optional career unlocks under #547, with grandfathering. Ship E2 unlocked until that design is approved.
+4. Should starts be locked? Recommend open sandbox starts and optional career unlocks under #547, with grandfathering. Expose the preview starts without locks until the profile delivery.
 5. Are the proposed chat names right? Recommend DeskNet, AwayIM and HipCheck. Preserve Yak from Classic onward and retain all existing thread/reply accessibility.
 6. Should the dot-com flotation end a run? Recommend no: it funds a company that must live through the bust. Keep modern IPO retirement separate and explain the difference in the choice.
 7. How historical should the first playable drafts look? Recommend existing props for the sim drafts, with a visible stand-in list. Art and audio sign-off remain separate gates before calling the entire feature shipped.
