@@ -1,6 +1,7 @@
 import { h, setText, setWidth, fmtMoney, fmtNum, setClass, calendarDate } from '../dom.js';
 import { calendarWeek } from '../../sim/util.js';
 import { ERA_STARTS } from '../../data/era-modes.js';
+import { erasPreview } from '../eraPreview.js';
 import { categoryName, angleName, modelName, CATEGORY, ANGLE } from '../content.js';
 import { liveView, tabs, stars, confirmButton } from '../widgets.js';
 import { icon } from '../icons.js';
@@ -59,7 +60,7 @@ export function reportsPanel(ctx, arg) {
     retireSig = sig;
     const anniv = s.flags?.anniversaryScore;
     bannerHost.replaceChildren(...[
-      s.founding?.startEra ? h('div.card.small', { text: `${ERA_STARTS[s.founding.startEra]?.name ?? s.founding.startEra} start · era score x${s.founding.eraScoreMult}` }) : null,
+      erasPreview && s.founding?.startEra ? h('div.card.small', { text: `${ERA_STARTS[s.founding.startEra]?.name ?? s.founding.startEra} start · era score x${s.founding.eraScoreMult}` }) : null,
       Number.isFinite(anniv) ? h('div.card.annivcard', null, icon('award', { size: 22 }), h('b', { text: 'Anniversary score' }), h('b.num.big', { text: fmtNum(anniv) }), h('span.small.muted', { text: 'Locked in at 20 years. You kept going.' })) : null,
       purposeCard(s),
       rivalCard(s),

@@ -1,0 +1,622 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`keeps the default founding flow and complete state for bootstrapped > state 1`] = `"7ad174c897b930b7ba1069fbb0372c40aff961054b416411ce310e566ecf42a2"`;
+
+exports[`keeps the default founding flow and complete state for bootstrapped 1`] = `
+{
+  "flow": [
+    {
+      "buttons": [
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "🎲 Suggest",
+        },
+        {
+          "disabled": false,
+          "selected": true,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "🎲 Suggest",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "◀ Back",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "Next: founders",
+        },
+      ],
+      "inputs": [
+        {
+          "placeholder": "Company name",
+          "value": "Tiny & Co",
+        },
+        {
+          "placeholder": "Tagline",
+          "value": "Build software. Keep the humans.",
+        },
+        {
+          "placeholder": "Random",
+          "value": "",
+        },
+      ],
+      "text": "A tiny company simHumanin theLoopBuild software. Keep the humans.1 Company2 Founders3 FundingTCompany name🎲 SuggestLogo colorTagline🎲 SuggestSeed optional: the same seed plays the same game◀ BackNext: founders",
+    },
+    {
+      "buttons": [
+        {
+          "disabled": false,
+          "selected": true,
+          "text": "The EngineerEngineerHas opinions about databases and a side project from 2011 that still runs. Builds things that work.🧱 Building🛡️ RigorPragmatist",
+        },
+        {
+          "disabled": false,
+          "selected": true,
+          "text": "The DesignerDesignerNotices the one pixel. Will not ship the ugly version, which is annoying and usually right.🖌️ Craft💡 IdeasCraftsperson",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "The HustlerMarketerCan sell a login page as a movement. Knows a guy at every conference.💡 Ideas🖌️ Craft⚠️ Not a builder: works on products slowly, as a generalist.Hype Machine",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "The OperatorSecurityOwns the checklists, the backups, and the calm voice during outages.🛡️ Rigor🖌️ Craft⚠️ Not a builder: works on products slowly, as a generalist.Steady",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "The ResearcherEngineerLeft a lab to "ship something real". Still reads papers at lunch. Ideas are strange and good.💡 Ideas🧱 BuildingTinkerer",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "The SellerSalesClosed a deal at a wedding. Remembers every customer's dog's name.💡 Ideas🖌️ Craft⚠️ Not a builder: works on products slowly, as a generalist.People Person",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "◀ Back",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "Next: funding",
+        },
+      ],
+      "inputs": [],
+      "text": "A tiny company simHumanin theLoopBuild software. Keep the humans.1 Company2 Founders3 FundingPick two founders2 of 2 pickedThe pair shapes your opening: who builds, who sells, who keeps things running.The EngineerEngineerHas opinions about databases and a side project from 2011 that still runs. Builds things that work.🧱 Building🛡️ RigorPragmatistThe DesignerDesignerNotices the one pixel. Will not ship the ugly version, which is annoying and usually right.🖌️ Craft💡 IdeasCraftspersonThe HustlerMarketerCan sell a login page as a movement. Knows a guy at every conference.💡 Ideas🖌️ Craft⚠️ Not a builder: works on products slowly, as a generalist.Hype MachineThe OperatorSecurityOwns the checklists, the backups, and the calm voice during outages.🛡️ Rigor🖌️ Craft⚠️ Not a builder: works on products slowly, as a generalist.SteadyThe ResearcherEngineerLeft a lab to "ship something real". Still reads papers at lunch. Ideas are strange and good.💡 Ideas🧱 BuildingTinkererThe SellerSalesClosed a deal at a wedding. Remembers every customer's dog's name.💡 Ideas🖌️ Craft⚠️ Not a builder: works on products slowly, as a generalist.People Person◀ BackNext: funding",
+    },
+    {
+      "buttons": [
+        {
+          "disabled": false,
+          "selected": true,
+          "text": "Bootstrapped$110KFull final scoreAbout $110k of savings and a credit card. Nobody to answer to, and a full score if you make it.⚠️ No outside pressure. Also no safety net.",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "Friends and Family$150KFinal score x0.97About $150k from people who love you: more runway, fewer panicked weeks.⚠️ Every so often, someone at dinner asks how the company is doing.",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "Pre-seed VC$300KFinal score x0.96About $300k, a little press, and intros to two senior candidates who would never look at a garage otherwise.⚠️ Investors push for growth now and for automation later. They have a deck about it.",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "◀ Back",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "🚀 Start the company",
+        },
+      ],
+      "inputs": [],
+      "text": "A tiny company simHumanin theLoopBuild software. Keep the humans.1 Company2 Founders3 FundingHow are you paying for this?Bootstrapped$110KFull final scoreAbout $110k of savings and a credit card. Nobody to answer to, and a full score if you make it.⚠️ No outside pressure. Also no safety net.Friends and Family$150KFinal score x0.97About $150k from people who love you: more runway, fewer panicked weeks.⚠️ Every so often, someone at dinner asks how the company is doing.Pre-seed VC$300KFinal score x0.96About $300k, a little press, and intros to two senior candidates who would never look at a garage otherwise.⚠️ Investors push for growth now and for automation later. They have a deck about it.When the game ends, your company gets a final score. More money now means a slightly smaller score later.◀ Back🚀 Start the company",
+    },
+    {
+      "buttons": [
+        {
+          "disabled": false,
+          "selected": true,
+          "text": "Bootstrapped$110KFull final scoreAbout $110k of savings and a credit card. Nobody to answer to, and a full score if you make it.⚠️ No outside pressure. Also no safety net.",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "Friends and Family$150KFinal score x0.97About $150k from people who love you: more runway, fewer panicked weeks.⚠️ Every so often, someone at dinner asks how the company is doing.",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "Pre-seed VC$300KFinal score x0.96About $300k, a little press, and intros to two senior candidates who would never look at a garage otherwise.⚠️ Investors push for growth now and for automation later. They have a deck about it.",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "◀ Back",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "🚀 Start the company",
+        },
+      ],
+      "inputs": [],
+      "text": "A tiny company simHumanin theLoopBuild software. Keep the humans.1 Company2 Founders3 FundingHow are you paying for this?Bootstrapped$110KFull final scoreAbout $110k of savings and a credit card. Nobody to answer to, and a full score if you make it.⚠️ No outside pressure. Also no safety net.Friends and Family$150KFinal score x0.97About $150k from people who love you: more runway, fewer panicked weeks.⚠️ Every so often, someone at dinner asks how the company is doing.Pre-seed VC$300KFinal score x0.96About $300k, a little press, and intros to two senior candidates who would never look at a garage otherwise.⚠️ Investors push for growth now and for automation later. They have a deck about it.When the game ends, your company gets a final score. More money now means a slightly smaller score later.◀ Back🚀 Start the company",
+    },
+  ],
+  "options": {
+    "companyName": "Tiny & Co",
+    "founders": [
+      "engineer",
+      "designer",
+    ],
+    "funding": "bootstrapped",
+    "logoColor": "#ffb020",
+    "seed": 250000000,
+    "tagline": "Build software. Keep the humans.",
+  },
+}
+`;
+
+exports[`keeps the default founding flow and complete state for family > state 1`] = `"56ae3903517ceac837e7f366e2d32b98703cf5c1613f6252360a756f720f9371"`;
+
+exports[`keeps the default founding flow and complete state for family 1`] = `
+{
+  "flow": [
+    {
+      "buttons": [
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "🎲 Suggest",
+        },
+        {
+          "disabled": false,
+          "selected": true,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "🎲 Suggest",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "◀ Back",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "Next: founders",
+        },
+      ],
+      "inputs": [
+        {
+          "placeholder": "Company name",
+          "value": "Tiny & Co",
+        },
+        {
+          "placeholder": "Tagline",
+          "value": "Build software. Keep the humans.",
+        },
+        {
+          "placeholder": "Random",
+          "value": "",
+        },
+      ],
+      "text": "A tiny company simHumanin theLoopBuild software. Keep the humans.1 Company2 Founders3 FundingTCompany name🎲 SuggestLogo colorTagline🎲 SuggestSeed optional: the same seed plays the same game◀ BackNext: founders",
+    },
+    {
+      "buttons": [
+        {
+          "disabled": false,
+          "selected": true,
+          "text": "The EngineerEngineerHas opinions about databases and a side project from 2011 that still runs. Builds things that work.🧱 Building🛡️ RigorPragmatist",
+        },
+        {
+          "disabled": false,
+          "selected": true,
+          "text": "The DesignerDesignerNotices the one pixel. Will not ship the ugly version, which is annoying and usually right.🖌️ Craft💡 IdeasCraftsperson",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "The HustlerMarketerCan sell a login page as a movement. Knows a guy at every conference.💡 Ideas🖌️ Craft⚠️ Not a builder: works on products slowly, as a generalist.Hype Machine",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "The OperatorSecurityOwns the checklists, the backups, and the calm voice during outages.🛡️ Rigor🖌️ Craft⚠️ Not a builder: works on products slowly, as a generalist.Steady",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "The ResearcherEngineerLeft a lab to "ship something real". Still reads papers at lunch. Ideas are strange and good.💡 Ideas🧱 BuildingTinkerer",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "The SellerSalesClosed a deal at a wedding. Remembers every customer's dog's name.💡 Ideas🖌️ Craft⚠️ Not a builder: works on products slowly, as a generalist.People Person",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "◀ Back",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "Next: funding",
+        },
+      ],
+      "inputs": [],
+      "text": "A tiny company simHumanin theLoopBuild software. Keep the humans.1 Company2 Founders3 FundingPick two founders2 of 2 pickedThe pair shapes your opening: who builds, who sells, who keeps things running.The EngineerEngineerHas opinions about databases and a side project from 2011 that still runs. Builds things that work.🧱 Building🛡️ RigorPragmatistThe DesignerDesignerNotices the one pixel. Will not ship the ugly version, which is annoying and usually right.🖌️ Craft💡 IdeasCraftspersonThe HustlerMarketerCan sell a login page as a movement. Knows a guy at every conference.💡 Ideas🖌️ Craft⚠️ Not a builder: works on products slowly, as a generalist.Hype MachineThe OperatorSecurityOwns the checklists, the backups, and the calm voice during outages.🛡️ Rigor🖌️ Craft⚠️ Not a builder: works on products slowly, as a generalist.SteadyThe ResearcherEngineerLeft a lab to "ship something real". Still reads papers at lunch. Ideas are strange and good.💡 Ideas🧱 BuildingTinkererThe SellerSalesClosed a deal at a wedding. Remembers every customer's dog's name.💡 Ideas🖌️ Craft⚠️ Not a builder: works on products slowly, as a generalist.People Person◀ BackNext: funding",
+    },
+    {
+      "buttons": [
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "Bootstrapped$110KFull final scoreAbout $110k of savings and a credit card. Nobody to answer to, and a full score if you make it.⚠️ No outside pressure. Also no safety net.",
+        },
+        {
+          "disabled": false,
+          "selected": true,
+          "text": "Friends and Family$150KFinal score x0.97About $150k from people who love you: more runway, fewer panicked weeks.⚠️ Every so often, someone at dinner asks how the company is doing.",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "Pre-seed VC$300KFinal score x0.96About $300k, a little press, and intros to two senior candidates who would never look at a garage otherwise.⚠️ Investors push for growth now and for automation later. They have a deck about it.",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "◀ Back",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "🚀 Start the company",
+        },
+      ],
+      "inputs": [],
+      "text": "A tiny company simHumanin theLoopBuild software. Keep the humans.1 Company2 Founders3 FundingHow are you paying for this?Bootstrapped$110KFull final scoreAbout $110k of savings and a credit card. Nobody to answer to, and a full score if you make it.⚠️ No outside pressure. Also no safety net.Friends and Family$150KFinal score x0.97About $150k from people who love you: more runway, fewer panicked weeks.⚠️ Every so often, someone at dinner asks how the company is doing.Pre-seed VC$300KFinal score x0.96About $300k, a little press, and intros to two senior candidates who would never look at a garage otherwise.⚠️ Investors push for growth now and for automation later. They have a deck about it.When the game ends, your company gets a final score. More money now means a slightly smaller score later.◀ Back🚀 Start the company",
+    },
+    {
+      "buttons": [
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "Bootstrapped$110KFull final scoreAbout $110k of savings and a credit card. Nobody to answer to, and a full score if you make it.⚠️ No outside pressure. Also no safety net.",
+        },
+        {
+          "disabled": false,
+          "selected": true,
+          "text": "Friends and Family$150KFinal score x0.97About $150k from people who love you: more runway, fewer panicked weeks.⚠️ Every so often, someone at dinner asks how the company is doing.",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "Pre-seed VC$300KFinal score x0.96About $300k, a little press, and intros to two senior candidates who would never look at a garage otherwise.⚠️ Investors push for growth now and for automation later. They have a deck about it.",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "◀ Back",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "🚀 Start the company",
+        },
+      ],
+      "inputs": [],
+      "text": "A tiny company simHumanin theLoopBuild software. Keep the humans.1 Company2 Founders3 FundingHow are you paying for this?Bootstrapped$110KFull final scoreAbout $110k of savings and a credit card. Nobody to answer to, and a full score if you make it.⚠️ No outside pressure. Also no safety net.Friends and Family$150KFinal score x0.97About $150k from people who love you: more runway, fewer panicked weeks.⚠️ Every so often, someone at dinner asks how the company is doing.Pre-seed VC$300KFinal score x0.96About $300k, a little press, and intros to two senior candidates who would never look at a garage otherwise.⚠️ Investors push for growth now and for automation later. They have a deck about it.When the game ends, your company gets a final score. More money now means a slightly smaller score later.◀ Back🚀 Start the company",
+    },
+  ],
+  "options": {
+    "companyName": "Tiny & Co",
+    "founders": [
+      "engineer",
+      "designer",
+    ],
+    "funding": "family",
+    "logoColor": "#ffb020",
+    "seed": 250000000,
+    "tagline": "Build software. Keep the humans.",
+  },
+}
+`;
+
+exports[`keeps the default founding flow and complete state for preseed > state 1`] = `"992906917b5c9e0e82710f39072e624f889a093789190a5c3bb64d94e7b4bbbc"`;
+
+exports[`keeps the default founding flow and complete state for preseed 1`] = `
+{
+  "flow": [
+    {
+      "buttons": [
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "🎲 Suggest",
+        },
+        {
+          "disabled": false,
+          "selected": true,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "🎲 Suggest",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "◀ Back",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "Next: founders",
+        },
+      ],
+      "inputs": [
+        {
+          "placeholder": "Company name",
+          "value": "Tiny & Co",
+        },
+        {
+          "placeholder": "Tagline",
+          "value": "Build software. Keep the humans.",
+        },
+        {
+          "placeholder": "Random",
+          "value": "",
+        },
+      ],
+      "text": "A tiny company simHumanin theLoopBuild software. Keep the humans.1 Company2 Founders3 FundingTCompany name🎲 SuggestLogo colorTagline🎲 SuggestSeed optional: the same seed plays the same game◀ BackNext: founders",
+    },
+    {
+      "buttons": [
+        {
+          "disabled": false,
+          "selected": true,
+          "text": "The EngineerEngineerHas opinions about databases and a side project from 2011 that still runs. Builds things that work.🧱 Building🛡️ RigorPragmatist",
+        },
+        {
+          "disabled": false,
+          "selected": true,
+          "text": "The DesignerDesignerNotices the one pixel. Will not ship the ugly version, which is annoying and usually right.🖌️ Craft💡 IdeasCraftsperson",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "The HustlerMarketerCan sell a login page as a movement. Knows a guy at every conference.💡 Ideas🖌️ Craft⚠️ Not a builder: works on products slowly, as a generalist.Hype Machine",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "The OperatorSecurityOwns the checklists, the backups, and the calm voice during outages.🛡️ Rigor🖌️ Craft⚠️ Not a builder: works on products slowly, as a generalist.Steady",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "The ResearcherEngineerLeft a lab to "ship something real". Still reads papers at lunch. Ideas are strange and good.💡 Ideas🧱 BuildingTinkerer",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "The SellerSalesClosed a deal at a wedding. Remembers every customer's dog's name.💡 Ideas🖌️ Craft⚠️ Not a builder: works on products slowly, as a generalist.People Person",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "◀ Back",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "Next: funding",
+        },
+      ],
+      "inputs": [],
+      "text": "A tiny company simHumanin theLoopBuild software. Keep the humans.1 Company2 Founders3 FundingPick two founders2 of 2 pickedThe pair shapes your opening: who builds, who sells, who keeps things running.The EngineerEngineerHas opinions about databases and a side project from 2011 that still runs. Builds things that work.🧱 Building🛡️ RigorPragmatistThe DesignerDesignerNotices the one pixel. Will not ship the ugly version, which is annoying and usually right.🖌️ Craft💡 IdeasCraftspersonThe HustlerMarketerCan sell a login page as a movement. Knows a guy at every conference.💡 Ideas🖌️ Craft⚠️ Not a builder: works on products slowly, as a generalist.Hype MachineThe OperatorSecurityOwns the checklists, the backups, and the calm voice during outages.🛡️ Rigor🖌️ Craft⚠️ Not a builder: works on products slowly, as a generalist.SteadyThe ResearcherEngineerLeft a lab to "ship something real". Still reads papers at lunch. Ideas are strange and good.💡 Ideas🧱 BuildingTinkererThe SellerSalesClosed a deal at a wedding. Remembers every customer's dog's name.💡 Ideas🖌️ Craft⚠️ Not a builder: works on products slowly, as a generalist.People Person◀ BackNext: funding",
+    },
+    {
+      "buttons": [
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "Bootstrapped$110KFull final scoreAbout $110k of savings and a credit card. Nobody to answer to, and a full score if you make it.⚠️ No outside pressure. Also no safety net.",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "Friends and Family$150KFinal score x0.97About $150k from people who love you: more runway, fewer panicked weeks.⚠️ Every so often, someone at dinner asks how the company is doing.",
+        },
+        {
+          "disabled": false,
+          "selected": true,
+          "text": "Pre-seed VC$300KFinal score x0.96About $300k, a little press, and intros to two senior candidates who would never look at a garage otherwise.⚠️ Investors push for growth now and for automation later. They have a deck about it.",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "◀ Back",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "🚀 Start the company",
+        },
+      ],
+      "inputs": [],
+      "text": "A tiny company simHumanin theLoopBuild software. Keep the humans.1 Company2 Founders3 FundingHow are you paying for this?Bootstrapped$110KFull final scoreAbout $110k of savings and a credit card. Nobody to answer to, and a full score if you make it.⚠️ No outside pressure. Also no safety net.Friends and Family$150KFinal score x0.97About $150k from people who love you: more runway, fewer panicked weeks.⚠️ Every so often, someone at dinner asks how the company is doing.Pre-seed VC$300KFinal score x0.96About $300k, a little press, and intros to two senior candidates who would never look at a garage otherwise.⚠️ Investors push for growth now and for automation later. They have a deck about it.When the game ends, your company gets a final score. More money now means a slightly smaller score later.◀ Back🚀 Start the company",
+    },
+    {
+      "buttons": [
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "Bootstrapped$110KFull final scoreAbout $110k of savings and a credit card. Nobody to answer to, and a full score if you make it.⚠️ No outside pressure. Also no safety net.",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "Friends and Family$150KFinal score x0.97About $150k from people who love you: more runway, fewer panicked weeks.⚠️ Every so often, someone at dinner asks how the company is doing.",
+        },
+        {
+          "disabled": false,
+          "selected": true,
+          "text": "Pre-seed VC$300KFinal score x0.96About $300k, a little press, and intros to two senior candidates who would never look at a garage otherwise.⚠️ Investors push for growth now and for automation later. They have a deck about it.",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "◀ Back",
+        },
+        {
+          "disabled": false,
+          "selected": false,
+          "text": "🚀 Start the company",
+        },
+      ],
+      "inputs": [],
+      "text": "A tiny company simHumanin theLoopBuild software. Keep the humans.1 Company2 Founders3 FundingHow are you paying for this?Bootstrapped$110KFull final scoreAbout $110k of savings and a credit card. Nobody to answer to, and a full score if you make it.⚠️ No outside pressure. Also no safety net.Friends and Family$150KFinal score x0.97About $150k from people who love you: more runway, fewer panicked weeks.⚠️ Every so often, someone at dinner asks how the company is doing.Pre-seed VC$300KFinal score x0.96About $300k, a little press, and intros to two senior candidates who would never look at a garage otherwise.⚠️ Investors push for growth now and for automation later. They have a deck about it.When the game ends, your company gets a final score. More money now means a slightly smaller score later.◀ Back🚀 Start the company",
+    },
+  ],
+  "options": {
+    "companyName": "Tiny & Co",
+    "founders": [
+      "engineer",
+      "designer",
+    ],
+    "funding": "preseed",
+    "logoColor": "#ffb020",
+    "seed": 250000000,
+    "tagline": "Build software. Keep the humans.",
+  },
+}
+`;
