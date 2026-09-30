@@ -65,6 +65,19 @@ describe('starting era', () => {
     expect(agents.automation.engineering.level).toBe(1);
   });
 
+  it('lets an Agents founding earn its move out of the garage', () => {
+    const s = createGame({ startEra: 'agents' });
+    expect(s.officeStage).toBe(0);
+    expect(s.goals.office_floor).toEqual({ done: false, week: null });
+    s.officeStage = s.office.stage = 1;
+    const brand = s.brand;
+    const ctx = makeCtx(s);
+    checkGoals(ctx);
+    expect(s.goals.office_floor.done).toBe(true);
+    expect(s.brand).toBeGreaterThan(brand);
+    expect(ctx.events).toContainEqual({ type: 'goal', goalId: 'office_floor' });
+  });
+
   it('shifts the world schedule without skipping company age or replaying past arrivals', () => {
     const classic = createGame({ seed: 17 });
     const s = createGame({ seed: 17, startEra: 'chatgbt' });
