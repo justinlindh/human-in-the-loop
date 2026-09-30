@@ -1,0 +1,285 @@
+{
+  "query": "",
+  "models": {
+    "attire": false
+  },
+  "characters": [
+    {
+      "role": "engineer",
+      "build": 0,
+      "modern": {
+        "hash": "82829886a754571741fc2a295e4230b2452abc763fcf23b7269548e7e2e0de73",
+        "triangles": 3556,
+        "calls": 6,
+        "textures": 0
+      },
+      "eras": {}
+    },
+    {
+      "role": "engineer",
+      "build": 1,
+      "modern": {
+        "hash": "c26eb1546c9bfa5fdffe55e3cadeebcbbe97b0476c56f6f427898496b1dce85c",
+        "triangles": 3412,
+        "calls": 6,
+        "textures": 0
+      },
+      "eras": {}
+    },
+    {
+      "role": "engineer",
+      "build": 2,
+      "modern": {
+        "hash": "52a58ed1b1a5fc8cc6fd5bddb1629bc8239be8103c0e2fb38da6acabc7f84781",
+        "triangles": 2154,
+        "calls": 6,
+        "textures": 0
+      },
+      "eras": {}
+    },
+    {
+      "role": "designer",
+      "build": 0,
+      "modern": {
+        "hash": "819d9a7023d2cf64c53969d697bae4cca3a87bdb11d0ae3a0f41160b4a752b84",
+        "triangles": 2730,
+        "calls": 6,
+        "textures": 0
+      },
+      "eras": {}
+    },
+    {
+      "role": "designer",
+      "build": 1,
+      "modern": {
+        "hash": "cb087026de447e7c8c39b7253f7afe335c90f9889b053da70eb20b9707d7c79b",
+        "triangles": 4523,
+        "calls": 6,
+        "textures": 0
+      },
+      "eras": {}
+    },
+    {
+      "role": "designer",
+      "build": 2,
+      "modern": {
+        "hash": "f3552d46cefbdffcf95dc89c64febc5fefb6ea083603b2293363df92fb5c64dc",
+        "triangles": 2174,
+        "calls": 6,
+        "textures": 0
+      },
+      "eras": {}
+    },
+    {
+      "role": "marketer",
+      "build": 0,
+      "modern": {
+        "hash": "178c75bb445940a13fa678c4843665213fc0777d8cf49e93810b497181d3deca",
+        "triangles": 2186,
+        "calls": 6,
+        "textures": 0
+      },
+      "eras": {}
+    },
+    {
+      "role": "marketer",
+      "build": 1,
+      "modern": {
+        "hash": "a775936563e835712a999156f351102a78969763554a0b5fcd8c94f7b0070a46",
+        "triangles": 2174,
+        "calls": 6,
+        "textures": 0
+      },
+      "eras": {}
+    },
+    {
+      "role": "marketer",
+      "build": 2,
+      "modern": {
+        "hash": "30f7cb980eb0203b28c896e7c0080b756213c4bf435b41d73e54d80c52dc0aee",
+        "triangles": 2186,
+        "calls": 6,
+        "textures": 0
+      },
+      "eras": {}
+    },
+    {
+      "role": "support",
+      "build": 0,
+      "modern": {
+        "hash": "7853f14412088caf5f1b5da5201e284187b64d5d3de6204a2496b1a1c6028354",
+        "triangles": 5153,
+        "calls": 6,
+        "textures": 0
+      },
+      "eras": {}
+    },
+    {
+      "role": "support",
+      "build": 1,
+      "modern": {
+        "hash": "2d5969a7e8aae88877ba1478f23219715df7b04129fdd29fdfd0ffc8deeb9f85",
+        "triangles": 4630,
+        "calls": 6,
+        "textures": 0
+      },
+      "eras": {}
+    },
+    {
+      "role": "support",
+      "build": 2,
+      "modern": {
+        "hash": "50b6946f08b66588087602a38012927095f6c93c17105f56fe067de2ceff2603",
+        "triangles": 2318,
+        "calls": 6,
+        "textures": 0
+      },
+      "eras": {}
+    },
+    {
+      "role": "security",
+      "build": 0,
+      "modern": {
+        "hash": "d0f6137236baec30280afdd8aa8101feab75a381d5b03734a348c70dc5af37e0",
+        "triangles": 2422,
+        "calls": 6,
+        "textures": 0
+      },
+      "eras": {}
+    },
+    {
+      "role": "security",
+      "build": 1,
+      "modern": {
+        "hash": "8efff6d5f90da80cda96442d757585bd8ca6c3dfc5d47b55d6af881d865bae9c",
+        "triangles": 2410,
+        "calls": 6,
+        "textures": 0
+      },
+      "eras": {}
+    },
+    {
+      "role": "security",
+      "build": 2,
+      "modern": {
+        "hash": "c03f2a49a5107709e1f6c6da1dfac41bfc9d91965067f9ead6b4cd27b63527a3",
+        "triangles": 2422,
+        "calls": 6,
+        "textures": 0
+      },
+      "eras": {}
+    },
+    {
+      "role": "sales",
+      "build": 0,
+      "modern": {
+        "hash": "f74814e7cefd98c8cf1761f003c6e69da5c65565de568f4b4c0f831e2ac1f825",
+        "triangles": 2230,
+        "calls": 6,
+        "textures": 0
+      },
+      "eras": {}
+    },
+    {
+      "role": "sales",
+      "build": 1,
+      "modern": {
+        "hash": "c70d6bb4652dacd33d5b77411b325be910f73c0bff4ef46c85368d18fbef05d4",
+        "triangles": 2218,
+        "calls": 6,
+        "textures": 0
+      },
+      "eras": {}
+    },
+    {
+      "role": "sales",
+      "build": 2,
+      "modern": {
+        "hash": "1afa30353e11d6e9c609b73885ead540d65672f2001a4f5de87a2cb7d8b96ff9",
+        "triangles": 2230,
+        "calls": 6,
+        "textures": 0
+      },
+      "eras": {}
+    }
+  ],
+  "careers": [
+    {
+      "startEra": "classic",
+      "era": "classic",
+      "wardrobes": [
+        null,
+        null
+      ]
+    },
+    {
+      "startEra": "dotcom",
+      "era": "dotcom",
+      "wardrobes": [
+        null,
+        null
+      ]
+    },
+    {
+      "startEra": "web2",
+      "era": "web2",
+      "wardrobes": [
+        null,
+        null
+      ]
+    },
+    {
+      "startEra": "chatgbt",
+      "era": "chatgbt",
+      "wardrobes": [
+        null,
+        null
+      ]
+    },
+    {
+      "startEra": "agents",
+      "era": "agents",
+      "wardrobes": [
+        null,
+        null
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "era": "dotcom",
+      "week": 156,
+      "wardrobe": null
+    },
+    {
+      "era": "web2",
+      "week": 208,
+      "wardrobe": null
+    },
+    {
+      "era": "classic",
+      "week": 416,
+      "wardrobe": null
+    },
+    {
+      "era": "chatgbt",
+      "week": 624,
+      "wardrobe": null
+    },
+    {
+      "era": "agents",
+      "week": 728,
+      "wardrobe": null
+    },
+    {
+      "era": "consolidation",
+      "week": 832,
+      "wardrobe": null
+    },
+    {
+      "era": "plateau",
+      "week": 936,
+      "wardrobe": null
+    }
+  ]
+}

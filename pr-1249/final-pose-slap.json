@@ -1,0 +1,1377 @@
+{
+ "axes": {
+  "views": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "postures": [
+   "stand"
+  ],
+  "builds": [
+   0,
+   1,
+   2
+  ],
+  "rig": [
+   "on",
+   "off"
+  ],
+  "accessory": [
+   "none"
+  ],
+  "side": [
+   "game"
+  ],
+  "cause": [
+   "unplug"
+  ]
+ },
+ "cells": [
+  {
+   "posture": "stand",
+   "build": 0,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": 1,
+   "view": 0,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0169,
+     "max": 0.1769
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0.143,
+     "median": 0.286,
+     "max": 0.429
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 0,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": 1,
+   "view": 1,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0169,
+     "max": 0.1769
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 0,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": 1,
+   "view": 2,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0169,
+     "max": 0.1769
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0,
+     "median": 0.286,
+     "max": 0.286
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 0,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": -1,
+   "view": 3,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0169,
+     "max": 0.1769
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0.714,
+     "median": 0.714,
+     "max": 0.714
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 0,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": 1,
+   "view": 0,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0169,
+     "max": 0.1769
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0.143,
+     "median": 0.286,
+     "max": 0.429
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 0,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": 1,
+   "view": 1,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0169,
+     "max": 0.1769
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 0,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": 1,
+   "view": 2,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0169,
+     "max": 0.1769
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0,
+     "median": 0.286,
+     "max": 0.286
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 0,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": -1,
+   "view": 3,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0169,
+     "max": 0.1769
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0.714,
+     "median": 0.714,
+     "max": 0.714
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 1,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": 1,
+   "view": 0,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0167,
+     "max": 0.1797
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0.143,
+     "median": 0.286,
+     "max": 0.429
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 1,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": 1,
+   "view": 1,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0167,
+     "max": 0.1797
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 1,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": 1,
+   "view": 2,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0167,
+     "max": 0.1797
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0,
+     "median": 0.286,
+     "max": 0.286
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 1,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": -1,
+   "view": 3,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0167,
+     "max": 0.1797
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0.714,
+     "median": 0.714,
+     "max": 0.714
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 1,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": 1,
+   "view": 0,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0167,
+     "max": 0.1797
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0.143,
+     "median": 0.286,
+     "max": 0.429
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 1,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": 1,
+   "view": 1,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0167,
+     "max": 0.1797
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 1,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": 1,
+   "view": 2,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0167,
+     "max": 0.1797
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0,
+     "median": 0.286,
+     "max": 0.286
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 1,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": -1,
+   "view": 3,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0167,
+     "max": 0.1797
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0.714,
+     "median": 0.714,
+     "max": 0.714
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 2,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": 1,
+   "view": 0,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0164,
+     "max": 0.1878
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0.143,
+     "median": 0.286,
+     "max": 0.429
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 2,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": 1,
+   "view": 1,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0164,
+     "max": 0.1878
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 2,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": 1,
+   "view": 2,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0164,
+     "max": 0.1878
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0,
+     "median": 0.286,
+     "max": 0.286
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 2,
+   "rig": "on",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": -1,
+   "view": 3,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0164,
+     "max": 0.1878
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0.714,
+     "median": 0.714,
+     "max": 0.714
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 2,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": 1,
+   "view": 0,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0164,
+     "max": 0.1878
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0.143,
+     "median": 0.286,
+     "max": 0.429
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 2,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": 1,
+   "view": 1,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0164,
+     "max": 0.1878
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 2,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": 1,
+   "view": 2,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0164,
+     "max": 0.1878
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0,
+     "median": 0.286,
+     "max": 0.286
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  },
+  {
+   "posture": "stand",
+   "build": 2,
+   "rig": "off",
+   "accessory": "none",
+   "cause": "unplug",
+   "side": -1,
+   "view": 3,
+   "judged": 33,
+   "stat": {
+    "robotContact": {
+     "min": 0,
+     "median": 0.0164,
+     "max": 0.1878
+    },
+    "robotDepth": {
+     "min": 0,
+     "median": 0,
+     "max": 0
+    },
+    "robotAngle": {
+     "min": 19.1,
+     "median": 22.2,
+     "max": 32.1
+    },
+    "faceVisible": {
+     "min": 0.714,
+     "median": 0.714,
+     "max": 0.714
+    }
+   },
+   "verdicts": [
+    {
+     "rule": "robotContact<=0.06@0.01",
+     "measure": "robotContact",
+     "share": 0.576,
+     "want": 0.01,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 1.99998
+    },
+    {
+     "rule": "robotAngle<=35@0.8",
+     "measure": "robotAngle",
+     "share": 1,
+     "want": 0.8,
+     "pass": true,
+     "gap": 0,
+     "frames": 33,
+     "worstT": 0.933324
+    }
+   ],
+   "pass": true,
+   "na": false
+  }
+ ]
+}

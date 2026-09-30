@@ -1,0 +1,170 @@
+{
+  "gl": "software",
+  "glName": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+  "size": "1280x720",
+  "runs": 3,
+  "warmup": 2,
+  "seconds": 5,
+  "cpus": "30-31",
+  "hostCpus": 32,
+  "loadAtStart": 5.3,
+  "quiet": null,
+  "builds": [
+    {
+      "label": "origin/main(2d87e5fc)",
+      "bundle": {
+        "js": {
+          "raw": 2251059,
+          "gz": 745841
+        },
+        "css": {
+          "raw": 113245,
+          "gz": 20952
+        }
+      },
+      "late": null,
+      "scenes": {
+        "garage/low": {
+          "frames": 31,
+          "p50": 161.5,
+          "p95": 183.4300000000002,
+          "cpu": 160.55000001192093,
+          "render": 159.95000004768372,
+          "calls": 206,
+          "triangles": 74860,
+          "geometries": 177,
+          "textures": 13,
+          "programs": 11,
+          "meshes": 136,
+          "heapMB": 12.69675064086914,
+          "dom": 859,
+          "mutPerSec": 6.2,
+          "loadMs": 250,
+          "best": 159.94999992847443,
+          "load": 11.1,
+          "spread": {
+            "p50": [
+              161.2,
+              164.1,
+              161.5
+            ],
+            "render": [
+              159.95,
+              162.7,
+              159.95
+            ]
+          }
+        },
+        "floor/low": {
+          "frames": 21,
+          "p50": 248.40000000000055,
+          "p95": 279.9200000000002,
+          "cpu": 243.30000007152557,
+          "render": 242.79999995231628,
+          "calls": 325,
+          "triangles": 216979,
+          "geometries": 390,
+          "textures": 32,
+          "programs": 16,
+          "meshes": 249,
+          "heapMB": 15.090595245361328,
+          "dom": 985,
+          "mutPerSec": 31.4,
+          "loadMs": 234,
+          "best": 241.70000004768372,
+          "load": 12.4,
+          "spread": {
+            "p50": [
+              256.5,
+              248.4,
+              246.5
+            ],
+            "render": [
+              255,
+              241.7,
+              242.8
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "codex/era-attire(d9d99060)",
+      "bundle": {
+        "js": {
+          "raw": 2257830,
+          "gz": 748224
+        },
+        "css": {
+          "raw": 113245,
+          "gz": 20952
+        }
+      },
+      "late": null,
+      "scenes": {
+        "garage/low": {
+          "frames": 31,
+          "p50": 161.79999999999995,
+          "p95": 171.37499999999972,
+          "cpu": 161.39999997615814,
+          "render": 160.89999997615814,
+          "calls": 206,
+          "triangles": 76196,
+          "geometries": 177,
+          "textures": 13,
+          "programs": 11,
+          "meshes": 136,
+          "heapMB": 12.773033142089844,
+          "dom": 856,
+          "mutPerSec": 6.2,
+          "loadMs": 216,
+          "best": 160.5,
+          "load": 11.1,
+          "spread": {
+            "p50": [
+              161.8,
+              161.5,
+              163.5
+            ],
+            "render": [
+              160.9,
+              160.5,
+              162.3
+            ]
+          }
+        },
+        "floor/low": {
+          "frames": 21,
+          "p50": 249.0999999999999,
+          "p95": 271.9299999999999,
+          "cpu": 244.39999997615814,
+          "render": 243.69999998807907,
+          "calls": 325,
+          "triangles": 232042,
+          "geometries": 390,
+          "textures": 32,
+          "programs": 16,
+          "meshes": 249,
+          "heapMB": 15.343830108642578,
+          "dom": 985,
+          "mutPerSec": 10.6,
+          "loadMs": 221,
+          "best": 243,
+          "load": 12.4,
+          "spread": {
+            "p50": [
+              250.9,
+              244.55,
+              249.1
+            ],
+            "render": [
+              243.7,
+              243,
+              245
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
