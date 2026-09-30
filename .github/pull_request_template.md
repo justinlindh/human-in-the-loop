@@ -13,6 +13,7 @@
 - **Tests:** <!-- exact command and result line, e.g. `npm test`: "Tests 493 passed (493)" -->
 - **Screenshots or clips:** <!-- post them with `scripts/pr-media.sh <pr> <files>`, which comments them on the PR; paste the markdown here too or reference the comment -->
 - **Gates run:** <!-- the gates that fit this change and their output: sweep and stage specs (render), paired balance runs (sim), a clip of the whole path (motion) -->
+- **Tool runs:** <!-- for a PR that adds or changes a tool: one run each of the documented usage, bad input, an interrupted run and an older checkout, and for a replacement tool its parity with the old one on the same cases. Write "not a tool change" otherwise. -->
 - **Numbers:** <!-- balance tables, perf (draw calls, frame times), pacing, as relevant -->
 
 ## Changes to how the game plays
