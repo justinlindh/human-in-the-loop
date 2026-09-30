@@ -339,19 +339,19 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
   }
 
   function fundingStep() {
-    const kit = B.eraStarts[draft.startEra];
     const eraCards = erasPreview ? h('div.era-starts', { role: 'group', 'aria-label': 'Starting era' }, ...Object.values(ERA_STARTS).map((e) => {
       const k = B.eraStarts[e.id];
       return h(`button.era-start${e.id === draft.startEra ? '.on' : ''}`, {
         'aria-pressed': String(e.id === draft.startEra), dataset: { era: e.id },
-        onclick: () => { draft.startEra = e.id; sfx('click'); fundingStep(); root.querySelector(`[data-era="${e.id}"]`)?.focus(); },
+        onclick: () => { draft.startEra = e.id; sfx('click'); refreshEra(); },
       }, h('b', { text: e.name }), h('span.small', { text: e.blurb }),
       h('span.small', { text: `${OFFICE_STAGES[k.officeStage].name} · ${k.desks} desks · score x${k.scoreMult}` }));
     })) : null;
-    const skipped = ERA_STARTS[draft.startEra].skippedGoals.map((id) => GOALS.find((g) => g.id === id)?.name).join(', ');
-    const unlocks = ERA_STARTS[draft.startEra].unlocks.map((key) => key === 'policy.pair' ? 'AI as Pair' : key[0].toUpperCase() + key.slice(1)).join(', ');
+    const unlockNote = h('div.small.muted');
+    const skippedNote = h('div.small.muted');
     const summary = h('div.era-start-summary', { 'aria-live': 'polite' });
     const refreshSummary = () => {
+      const kit = B.eraStarts[draft.startEra];
       const total = B.funding[draft.funding].cash + kit.cash;
       const mult = Math.round(B.funding[draft.funding].scoreMult * kit.scoreMult * 10000) / 10000;
       const career = draft.startEra === 'dotcom' ? `${B.dotcom.weeks} weeks of dot-com, ${B.web2.weeks} weeks of Web 2.0, then twenty modern years.`
@@ -365,25 +365,48 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
         'aria-pressed': String(f.id === draft.funding),
       },
       h('b.fname', { text: f.name }),
-      h('span.fcash.num', { text: fmtMoney(fundingCash(f) + kit.cash) }),
+      h('span.fcash.num'),
       h('span', { class: mult < 1 ? 'pill warn' : 'pill good', text: erasPreview ? (mult < 1 ? `Funding score x${mult}` : 'Funding score x1') : (mult < 1 ? `Final score x${mult}` : 'Full final score'),
         title: mult < 1 ? `Final score\nWhen the game ends, your company is scored on what it built. Outside money means that score is multiplied by ${mult}.` : 'Final score\nWhen the game ends, your company is scored on what it built. Bootstrapping keeps all of it.' }),
-      h('span.small', { text: draft.startEra === 'classic' ? f.desc ?? '' : KIT_FUNDING[f.id] }),
-      kit.cash ? h('span.small', { text: `Includes ${fmtMoney(kit.cash)} era kit` }) : null,
+      h('span.small.fdesc'),
+      h('span.small.fkit'),
       f.pressure ? h('span.small.fpress', null, icon('warn', { size: 12 }), ` ${f.pressure}`) : null);
       if (f.id === draft.funding) card.classList.add('on');
       return card;
     });
     const cardsEl = h('div.funds', null, ...cards);
+    const refreshEra = () => {
+      const era = ERA_STARTS[draft.startEra];
+      const kit = B.eraStarts[draft.startEra];
+      eraCards?.querySelectorAll('.era-start').forEach((card) => {
+        const selected = card.dataset.era === draft.startEra;
+        card.classList.toggle('on', selected);
+        card.setAttribute('aria-pressed', String(selected));
+      });
+      const skipped = era.skippedGoals.map((id) => GOALS.find((g) => g.id === id)?.name).join(', ');
+      const unlocks = era.unlocks.map((key) => key === 'policy.pair' ? 'AI as Pair' : key[0].toUpperCase() + key.slice(1)).join(', ');
+      setText(unlockNote, unlocks ? `Already open: ${unlocks}. Policies start off.` : 'Classic is the full modern run, with the ordinary unlocks and goals.');
+      setText(skippedNote, skipped ? `Skipped without rewards: ${skipped}.` : '');
+      skippedNote.style.display = skipped ? '' : 'none';
+      cards.forEach((card, i) => {
+        const f = FUNDING[i];
+        setText(card.querySelector('.fcash'), fmtMoney(fundingCash(f) + kit.cash));
+        setText(card.querySelector('.fdesc'), draft.startEra === 'classic' ? f.desc ?? '' : KIT_FUNDING[f.id]);
+        const kitNote = card.querySelector('.fkit');
+        setText(kitNote, kit.cash ? `Includes ${fmtMoney(kit.cash)} era kit` : '');
+        kitNote.style.display = kit.cash ? '' : 'none';
+      });
+      refreshSummary();
+    };
     frame(2, h('div.fbody', null,
       erasPreview ? h('b', { text: 'When does your company begin?' }) : null, eraCards,
-      erasPreview ? h('div.small.muted', { text: unlocks ? `Already open: ${unlocks}. Policies start off.` : 'Classic is the full modern run, with the ordinary unlocks and goals.' }) : null,
-      erasPreview && skipped ? h('div.small.muted', { text: `Skipped without rewards: ${skipped}.` }) : null,
+      erasPreview ? unlockNote : null,
+      erasPreview ? skippedNote : null,
       h('b', { text: 'How are you paying for this?' }),
       cardsEl,
       erasPreview ? summary : null,
       h('div.small.muted', { text: erasPreview ? 'Funding and starting-era score factors multiply. Classic keeps the full score; other starts trade score for a kit.' : 'When the game ends, your company gets a final score. More money now means a slightly smaller score later.' })), start, 'Start the company');
-    refreshSummary();
+    refreshEra();
   }
 
   function start() {
