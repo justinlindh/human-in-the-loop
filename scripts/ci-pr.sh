@@ -271,7 +271,7 @@ fi
 # loosen the checks it is judged by. A PR that changes local CI itself (ci-local.sh, the scripts it
 # runs, its path lists) is also run through its own version, and both must pass.
 run_ci() { # <ci-local.sh> <summary file>
-  CI_DIR="$WT" setsid bash "$1" --base "origin/$base" --title "$title" --summary "$2" 9>&- &
+  CI_PR_SELFTESTS=1 CI_DIR="$WT" setsid bash "$1" --base "origin/$base" --title "$title" --summary "$2" 9>&- &
   ci_pid=$!
   wait "$ci_pid"; local r=$?
   ci_pid=""
