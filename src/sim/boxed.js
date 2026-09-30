@@ -5,6 +5,7 @@ import { raiseDecision, fireEvent } from './events.js';
 import { PREINTERNET_EVENTS, PREINTERNET_CHAT } from '../data/preinternet.js';
 import { emitChat } from './chat.js';
 import { bumpDebt } from './debt.js';
+import { chapterStart } from './util.js';
 
 // Physical installations are never subscription customers. Inventory survives every era transition.
 export const newInventory = () => ({
@@ -111,7 +112,7 @@ export function preinternetEffect(ctx, choice, productId) {
     state.cash -= cost; inv.buybackCost += cost; inv.withdrawn += inv.stock;
     inv.stock = inv.stockCost = 0; inv.returnsSettled = true;
   } else if ((choice === 'cd' || choice === 'disks') && state.era.id === 'preinternet'
-    && state.week - (state.eraSchedule.preinternet ?? 0) >= B.preinternet.cdWeek) {
+    && state.week - chapterStart(state, 'preinternet') >= B.preinternet.cdWeek) {
     const f = state.flags.preinternet ??= {};
     if (f.cdChoice) return;
     f.cdChoice = choice;
@@ -123,7 +124,7 @@ export function preinternetStep(ctx) {
   const { state } = ctx;
   if (state.era.id !== 'preinternet') return;
   const f = state.flags.preinternet ??= {};
-  if (!f.cdOffered && state.week - (state.eraSchedule.preinternet ?? 0) >= B.preinternet.cdWeek) {
+  if (!f.cdOffered && state.week - chapterStart(state, 'preinternet') >= B.preinternet.cdWeek) {
     f.cdOffered = true; raiseDecision(ctx, 'pre_cd_rom', null, { queue: true });
   }
 }

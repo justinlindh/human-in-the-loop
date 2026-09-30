@@ -1,6 +1,14 @@
 // Systems run weekly in ascending order; actions are dispatched by type.
 const systems = [];
 const actions = {};
+const decisionGates = {};
+
+// A rule beyond the event's eras that must hold for a decision to open, such as a market phase.
+export function registerDecisionGate(eventId, fn) {
+  decisionGates[eventId] = fn;
+}
+
+export const decisionGateOpen = (state, eventId) => !Object.hasOwn(decisionGates, eventId) || decisionGates[eventId](state);
 
 export function registerSystem(name, fn, order) {
   const existing = systems.findIndex((s) => s.name === name);
