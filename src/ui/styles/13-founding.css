@@ -34,7 +34,7 @@
 .hitl .funds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6em; }
 .hitl .fund { justify-content: flex-start; padding: 0.8em 0.7em; gap: 0.45em; }
 .hitl .fcash { font-size: 1.6em; font-weight: 700; }
-.hitl .era-starts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6em; }
+.hitl .era-starts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6em; }
 .hitl .era-start { display: flex; flex-direction: column; gap: 0.4em; padding: 0.7em; text-align: left; font: inherit; color: var(--ink); background: var(--cream-2); border: var(--bw) solid var(--ink); border-radius: 0.7em; cursor: pointer; }
 .hitl .era-start.on { background: #fff4dc; box-shadow: 0 0 0 0.15em var(--yellow); }
 .hitl .era-start:focus-visible { outline: 0.2em solid var(--green); outline-offset: 0.15em; }

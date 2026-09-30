@@ -12,6 +12,9 @@ import { TRENDS } from '../data/trends.js';
 import { ERAS } from '../data/eras.js';
 import { eraIndex, eraAtLeast, eraOnlyAllowsText, currentEra } from './eras.js';
 import { raiseDecision } from './events.js';
+import { PERIOD_MARKETS, EARLY_ERAS } from '../data/early-eras.js';
+import { dotcomStep } from './dotcom.js';
+import { web2Step } from './web2.js';
 
 const VENDOR_LINES = [
   '{model} v{version} is here! Smarter, faster, and only slightly more expensive to think about.',
@@ -22,6 +25,12 @@ const VENDOR_LINES = [
 // Opens the categories, angles, and models that the current year and era allow.
 function openMarkets(ctx) {
   const { state } = ctx;
+  const period = PERIOD_MARKETS[state.era.id];
+  if (period) {
+    for (const id of period.categories) if (!state.market.unlockedCategories.includes(id)) state.market.unlockedCategories.push(id);
+    for (const id of period.angles) if (!state.market.unlockedAngles.includes(id)) state.market.unlockedAngles.push(id);
+    return;
+  }
   const { year } = calendarDate(state);
   const m = state.market;
   for (const c of Object.values(CATEGORIES)) {
@@ -33,7 +42,7 @@ function openMarkets(ctx) {
   for (const a of Object.values(ANGLES)) {
     if (eraAtLeast(state, a.era) && !m.unlockedAngles.includes(a.id)) {
       m.unlockedAngles.push(a.id);
-      ctx.emit({ type: 'toast', text: `New AI angle unlocked: ${a.name}.`, tone: 'info' });
+      ctx.emit({ type: 'toast', text: `New ${a.ai ? 'AI angle' : 'approach'} unlocked: ${a.name}.`, tone: 'info' });
     }
   }
   if (!eraAtLeast(state, 'chatgbt')) return;
@@ -49,9 +58,17 @@ function openMarkets(ctx) {
 // Advances to every era whose arrival week has come, with its card and decision.
 function eraStep(ctx) {
   const { state } = ctx;
-  for (const e of ERAS.slice(eraIndex(state) + 1)) {
+  for (const e of EARLY_ERAS) {
+    if (eraAtLeast(state, e.id) || state.eraSchedule[e.id] === undefined || state.week < state.eraSchedule[e.id]) continue;
+    state.era = { id: e.id, since: state.week };
+    if (state.flags.erasVisited && !state.flags.erasVisited.includes(e.id)) state.flags.erasVisited.push(e.id);
+    ctx.emit({ type: 'era', eraId: e.id });
+    openMarkets(ctx);
+  }
+  for (const e of ERAS.slice(Math.max(0, eraIndex(state) + 1))) {
     if (state.week < state.eraSchedule[e.id]) break;
     state.era = { id: e.id, since: state.week };
+    if (state.flags.erasVisited && !state.flags.erasVisited.includes(e.id)) state.flags.erasVisited.push(e.id);
     ctx.emit({ type: 'era', eraId: e.id });
     openMarkets(ctx);
     raiseDecision(ctx, `era_${e.id}`, null, { queue: true });
@@ -64,7 +81,8 @@ function trendStep(ctx) {
   const m = ctx.state.market;
   m.trendWeeksLeft--;
   if (m.trendWeeksLeft > 0) return;
-  const next = pick(ctx.rng, Object.keys(TRENDS).filter((id) => id !== m.trend && trendFits(ctx.state, TRENDS[id])));
+  const period = PERIOD_MARKETS[ctx.state.era.id];
+  const next = pick(ctx.rng, (period?.trends ?? Object.keys(TRENDS)).filter((id) => id !== m.trend && trendFits(ctx.state, TRENDS[id])));
   m.trend = next;
   m.trendWeeksLeft = TRENDS[next].weeks;
   ctx.emit({ type: 'toast', text: `Trend: ${TRENDS[next].name}. ${TRENDS[next].text}`, tone: 'info', trendId: next });
@@ -103,8 +121,10 @@ export function priceHike(ctx, modelId = null) {
 // Weekly calendar step: scheduled consequences, era arrivals, year-start unlocks, trend countdown, and vendor releases.
 export function calendarStart(ctx) {
   const { week } = ctx.state;
+  dotcomStep(ctx);
   processScheduled(ctx);
   eraStep(ctx);
+  web2Step(ctx);
   if (week > 0 && calendarWeek(ctx.state) % 52 === 0) openMarkets(ctx);
   trendStep(ctx);
   const every = eraAtLeast(ctx.state, 'consolidation') ? B.consolidationVendorEveryWeeks : B.vendorReleaseEveryWeeks;

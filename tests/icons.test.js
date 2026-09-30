@@ -22,6 +22,6 @@ describe('icon art', () => {
   it('no icon name falls back to emoji once the objects manifest exists', () => {
     if (!existsSync(resolve(dir, 'objects/manifest.json'))) return;
     const have = covered();
-    expect(Object.keys(ICONS).filter((n) => !have.has(n))).toEqual([]);
+    expect(Object.keys(ICONS).filter((n) => !have.has(n) && !have.has(ICONS[n].alias))).toEqual([]);
   });
 });

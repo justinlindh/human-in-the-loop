@@ -3,6 +3,7 @@
 // otherwise. A key with no caption shows none.
 // Captions are plain text with no placeholders, since they show before anyone has chosen anything.
 export const MOMENT_CAPTIONS = {
+  y2k_rollover: 'Midnight. Nothing breaks. One printer invoices the year 1900.',
   first_user_test: 'A stranger is trying your product. The founders are hiding.',
   resignation_letter: 'There is an envelope on the desk. It is not a birthday card.',
   hackathon: 'Pizza boxes are piling up. So is the questionable architecture.',

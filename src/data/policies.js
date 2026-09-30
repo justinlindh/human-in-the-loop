@@ -1,5 +1,6 @@
 // unlock(state): the trigger. with: opens alongside that unlock key, without a card of its own.
 // era: arrives with that era. Otherwise policies unlock one at a time (see checkUnlocks).
+import { ERA_IDS } from './eras.js';
 export const POLICIES = {
   daily_standups: {
     id: 'daily_standups', with: 'standups', lockText: 'Unlocks at 5 people', name: 'Daily Standups', weeklyCost: 0, unlock: (s) => s.staff.length >= 5, excludes: 'async_standups',
@@ -10,7 +11,7 @@ export const POLICIES = {
     desc: 'Updates go to the #standup channel instead. No output cost, a smaller knowledge boost, and the quiet ones stop posting.',
   },
   pair: {
-    id: 'pair', era: 'chatgbt', lockText: 'Arrives with the ChatGBT moment', name: 'AI as Pair, Not Replacement', weeklyCost: 0, unlock: (s) => s.era.id !== 'classic',
+    id: 'pair', era: 'chatgbt', lockText: 'Arrives with the ChatGBT moment', name: 'AI as Pair, Not Replacement', weeklyCost: 0, unlock: (s) => ERA_IDS.indexOf(s.era.id) > 0,
     desc: 'Automation works alongside people, not in place of them. Much less meaning drain, smaller automation output.',
   },
   craft_fridays: {

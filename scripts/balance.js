@@ -35,7 +35,7 @@ const runs = {};
 for (const name of bots) {
   const results = [];
   for (let seed = 1; seed <= seeds; seed++) {
-    const r = runBot(name, seed, B.runWeeks, { founding: { startEra } });
+    const r = runBot(name, seed, undefined, { founding: { startEra } });
     results.push(r);
     runs[`${name}:${seed}`] = {
       reason: r.reason, exited: r.exited, won: r.won, weeks: r.weeks, score: r.score,
@@ -62,7 +62,7 @@ for (const name of bots) {
     crises: median(results.map((r) => r.crises)),
   });
 }
-console.log(`seeds per bot: ${seeds}, up to ${B.runWeeks} weeks, start: ${startEra}`);
+console.log(`seeds per bot: ${seeds}, start: ${startEra}, through the career checkpoint`);
 console.table(rows);
 
 // Era by era: how many runs reached each era, and median cash, staff, and MRR on arrival.

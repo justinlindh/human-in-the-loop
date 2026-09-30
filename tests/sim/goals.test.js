@@ -25,9 +25,9 @@ describe('goal data', () => {
     }
   });
 
-  it('a new game lists every goal as open', () => {
+  it('a Classic game lists every eligible goal as open', () => {
     const s = createGame({ seed: 2 });
-    expect(Object.keys(s.goals).sort()).toEqual([...GOAL_IDS].sort());
+    expect(Object.keys(s.goals).sort()).toEqual(GOALS.filter((g) => !g.startEras).map((g) => g.id).sort());
     expect(check(s)).toEqual([]);
   });
 });

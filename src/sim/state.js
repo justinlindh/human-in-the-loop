@@ -55,7 +55,7 @@ export function createGame({ seed = 1, companyName = 'Loopworks', logoColor = '#
     era: { id: 'classic', since: 0 },
     eraSchedule: {},
     unlocks: {},
-    goals: Object.fromEntries(GOALS.map((g) => [g.id, { done: false, week: null }])),
+    goals: Object.fromEntries(GOALS.filter((g) => !g.startEras || g.startEras.includes(startEraId(startEra))).map((g) => [g.id, { done: false, week: null }])),
     office: { stage: 0, placed: [], expansion: 0, props: [] },
     fame: 0,
     lockdown: null, workPolicy: null, squads: [], pets: [], rival: null, purpose: null,

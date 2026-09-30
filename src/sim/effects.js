@@ -1,4 +1,6 @@
 import { B } from './balance.js';
+import { dotcomEffect } from './dotcom.js';
+import { applyCompatibility } from './web2.js';
 import { chance, pick } from './rng.js';
 import { clamp, newId, dateOf } from './util.js';
 import { sunsetProduct } from './products.js';
@@ -68,6 +70,7 @@ export function checkCondition(state, id, subjectId) {
     case 'sabbaticalPolicy': return !!state.policies.sabbatical;
     case 'stage1': return state.officeStage >= 1;
     case 'affordConsultants': return state.cash >= B.consultantCost;
+    case 'affordY2kConsultant': return state.cash >= B.y2k.consultantRate * B.y2k.consultantMultiplier;
     case 'noCraftRunning': return !state.projects.some((j) => j.kind === 'craft');
     case 'canBuyEspresso': return !buyItemBlocker(state, 'espresso');
     case 'canUpgradeEspresso': return !upgradeItemBlocker(state, ownedCopy(state, 'espresso'));
@@ -92,6 +95,7 @@ export function requireReason(state, id) {
 }
 
 export const REQUIRE_REASON = {
+  affordY2kConsultant: 'Not enough cash for Clive’s triple rate',
   sabbaticalPolicy: 'Needs the Sabbatical Program', stage1: 'Needs the Office Floor', mentorAvailable: 'No mentor is free',
   subjectCompliant: 'Needs a compliance-friendly model', trustedVendor: 'Needs a trusted model vendor', blameless: 'Needs Blameless Postmortems',
   ik40: 'Needs more institutional knowledge', bestScore7: 'Needs a product scoring 7+', affordConsultants: 'Not enough cash', noCraftRunning: 'A craft project is already running',
@@ -125,6 +129,7 @@ function pivot(ctx) {
     pointsNeeded: B.sizes.medium.points * (1 + B.pointsGrowthPerYear * dateOf(state.week).yearIndex), progress: 0, stats: { features: 0, polish: 0, reliability: 0, novelty: 0 },
     productId: null, startedWeek: state.week, bankedHype: 0,
   });
+  applyCompatibility(state, state.projects.at(-1));
   const dropped = cancelled.length ? ` Cancelled: ${cancelled.map((j) => j.name).join(', ')}.` : '';
   ctx.emit({ type: 'toast', text: `${weakest.name} is sunset.${dropped} The new plan: ${weakest.name} 2.`, tone: 'info' });
 }
@@ -133,9 +138,11 @@ function pivot(ctx) {
 export function applyEffects(ctx, fx, subjectId = null, source = null, vars = null) {
   const { state } = ctx;
   if (!fx) return;
+  if (fx.dotcom) dotcomEffect(ctx, fx.dotcom);
   const person = findStaff(state, subjectId);
   const subjectProduct = findProduct(state, subjectId);
   const product = subjectProduct && !subjectProduct.killed ? subjectProduct : newestLive(state);
+  if (fx.legacyPolish && subjectProduct?.legacyCompatible && !subjectProduct.killed) subjectProduct.stats.polish += fx.legacyPolish;
 
   if (fx.cash) state.cash += fx.cash;
   if (fx.brand) state.brand = clamp(state.brand + fx.brand, 0, 100);
@@ -339,4 +346,3 @@ export function expireModifiers(ctx) {
   state.modifiers = state.modifiers.filter((m) => m.untilWeek > state.week);
   for (const label of new Set(expired.map((m) => m.label))) ctx.emit({ type: 'toast', text: `${label} has ended.`, tone: 'info' });
 }
-

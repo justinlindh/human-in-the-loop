@@ -1,4 +1,5 @@
 import { B } from './balance.js';
+import { PERIOD_MARKETS } from '../data/early-eras.js';
 import { calendarDate, sum, avg } from './util.js';
 import { registerSystem } from './registry.js';
 import { raiseDecision } from './events.js';
@@ -66,6 +67,7 @@ function summit(ctx) {
 // Week-of-year calendar: SaaSCon expo (40), the Saasies awards (50), and the year in review (52).
 export function annualSystem(ctx) {
   const { state } = ctx;
+  if (PERIOD_MARKETS[state.era.id]) return;
   const { week, year, yearIndex } = calendarDate(state);
   if (week === 1) state.flags.yearStart = { resignations: state.stats.resignations, breaches: state.stats.breaches, incidents: state.stats.incidents };
   // An era kit does not give a newly founded company a product to demonstrate.

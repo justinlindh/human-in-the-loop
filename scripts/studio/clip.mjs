@@ -11,7 +11,7 @@ import { cpus } from 'node:os';
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
 // The floor-office groups. `sky` reads pixels back from a 2D canvas, which stays a browser check.
-const ALL = ['seats', 'perks', 'dance', 'walk', 'pets', 'robot', 'props', 'pairs', 'use', 'party'];
+const ALL = ['seats', 'perks', 'dance', 'walk', 'pets', 'robot', 'props', 'y2k', 'pairs', 'use', 'party'];
 const groups = (opt('group', ALL.join(',')) ).split(',').filter(Boolean);
 const bad = groups.filter((g) => !ALL.includes(g));
 if (bad.length) { console.error(`studio clip: unknown group ${bad.join(', ')} (want ${ALL.join(', ')})`); process.exit(2); }

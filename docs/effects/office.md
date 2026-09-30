@@ -6,6 +6,7 @@ Placed in Build mode. Each level's cost and what it adds.
 
 | Item | Kind | From | Effects |
 |---|---|---|---|
+| Banner Rotation Server | shop | any, the dotcom era | L1 $3,000: dot-com customer acquisition +5% · L2 $6,000: dot-com customer acquisition +10% · L3 $12,000: dot-com customer acquisition +15%; only available and effective during dot-com; unique; uses a crate stand-in model |
 | Desk Set | furniture | any | L1 $800; seats one person; every hire needs a free desk. From the Office Floor on, at most 30, plus 5 per expansion |
 | Meeting Table | furniture | any | L1 $3,000; with Daily Standups on, everyone in the weekly standup gains 0.3 knowledge |
 | Whiteboard | furniture | any | L1 $400; novelty +4% for each occupied desk within 2 tiles, shared across the team |

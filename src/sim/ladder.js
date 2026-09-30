@@ -1,6 +1,6 @@
 import { B } from './balance.js';
 import { chance, int, pick, range, shuffle, next } from './rng.js';
-import { clamp, newId } from './util.js';
+import { clamp, newId, calendarWeek } from './util.js';
 import { registerSystem } from './registry.js';
 import { emitChat } from './chat.js';
 import { raiseDecision } from './events.js';
@@ -42,7 +42,7 @@ export const remoteShare = (state) => (state.staff.length ? state.staff.filter((
 
 function lockdownStep(ctx) {
   const { state } = ctx;
-  if (!state.lockdown && state.flags.lockdownWeek === undefined && (state.founding?.calendarOffset ?? 0) <= B.lockdownWeek && state.week + (state.founding?.calendarOffset ?? 0) >= B.lockdownWeek && state.staff.length) {
+  if (!state.lockdown && state.flags.lockdownWeek === undefined && eraAtLeast(state, 'classic') && (state.founding?.calendarOffset ?? 0) <= B.lockdownWeek && calendarWeek(state) >= B.lockdownWeek && state.staff.length) {
     const stayer = pick(ctx.rng, state.staff);
     state.lockdown = { since: state.week, until: state.week + B.lockdownWeeks, stayerId: stayer.id };
     state.flags.lockdownWeek = state.week;

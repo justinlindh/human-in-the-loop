@@ -21,6 +21,7 @@ export const POLICY_EFFECTS = {
 
 // Office item effect keys, as the report names them.
 export const ITEM_EFFECT_LABELS = {
+  bannerAcquisition: 'dot-com customer acquisition',
   meaningRecovery: 'meaning recovery', staminaRecovery: 'stamina recovery', output: 'output', burnoutResign: 'burnout resignations',
   staminaDrain: 'stamina drain', novelty: 'novelty', knowledgeGain: 'knowledge gain', oversight: 'oversight hours',
   maintenanceNeed: 'maintenance needed', uptimeFloor: 'uptime floor', brandDecay: 'brand decay',
@@ -38,6 +39,7 @@ export const TRAIT_MOD_LABELS = {
 
 // Named conditions on a choice (`requires`) or a conditional effect (`cond`).
 export const CONDITION_LABELS = {
+  affordY2kConsultant: 'you can afford Clive’s triple rate',
   subjectCompliant: 'the product runs on a compliance-friendly model', trustedVendor: 'the last incident was on a trusted vendor',
   blameless: 'Blameless Postmortems is on', ik40: 'know-how is 40 or more', bestScore7: 'a live product scores 7 or more',
   sabbaticalPolicy: 'the Sabbatical Program is on', stage1: 'you have the Office Floor', affordConsultants: `you can afford the consultants`,
@@ -47,6 +49,7 @@ export const CONDITION_LABELS = {
 
 // Who or what an event is about (its `subject`).
 export const SUBJECT_LABELS = {
+  compatibleProduct: 'a live product with old-browser compatibility',
   randomStaff: 'anyone in', seniorStaff: 'a senior', juniorStaff: 'a junior', unmentoredJunior: 'a junior without a mentor',
   burnoutStaff: 'someone burnt out', coastingStaff: 'someone coasting', workingStaff: 'someone at work (not a founder)',
   automatedSenior: 'a senior whose work is at least half automated', mentorStaff: 'a mentor', founder: 'a founder',
@@ -55,6 +58,7 @@ export const SUBJECT_LABELS = {
 
 // Office item rules that live in code rather than in the item's effects, as (B) => text.
 export const ITEM_RULES = {
+  dotcom_banner: () => 'only available and effective during dot-com; unique; uses a crate stand-in model',
   desk: (B) => `seats one person; every hire needs a free desk. From the Office Floor on, at most ${B.hqDeskCap}, plus ${B.expansionDeskStep} per expansion`,
   meeting_table: (B) => `with Daily Standups on, everyone in the weekly standup gains ${B.meetingTableKnowledge} knowledge`,
 };

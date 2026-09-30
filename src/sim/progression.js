@@ -86,7 +86,7 @@ export function progressRecords(ctx, p) {
     if (p.assignment.type === 'hardProblem') p.record.hardProblemWeeks++;
   }
   for (const e of EARNED_TRAITS) {
-    if (p.record[e.counter] < e.threshold || p.traits.includes(e.trait) || p.traits.length >= 3) continue;
+    if ((p.record[e.counter] ?? 0) < e.threshold || (e.when && !e.when(p)) || p.traits.includes(e.trait) || p.traits.length >= 3) continue;
     p.traits.push(e.trait);
     ctx.emit({ type: 'traitEarned', staffId: p.id, traitId: e.trait, source: 'record' });
     recordGrowth(ctx.state, p, 'trait', { traitId: e.trait, source: 'record' });

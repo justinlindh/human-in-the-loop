@@ -4,6 +4,7 @@
 // 'shop' (three upgrade levels).
 // footprint: tiles at rot 0. adjacency: { radius, key, value } adds value to every desk whose seat is within
 // radius tiles of the item; with `to`, it adds value for each item of that id within radius instead.
+import { B } from '../sim/balance.js';
 const FURNITURE = [
   ['desk', 'Desk Set', 'A desk, a chair, and a screen. One person each. No desk, no hire.', [800], { w: 1, h: 2 }, null],
   ['meeting_table', 'Meeting Table', 'Standups and arguments happen here. Mostly arguments.', [3000], { w: 3, h: 2 }, null],
@@ -74,6 +75,9 @@ const FRONT_FROM = { noc: 2, espresso: 1, coffee_corner: 1, plant_wall: 1, books
 const OUTDOOR = new Set(['plant', 'couch', 'coffee_corner', 'ping_pong_table', 'plant_wall']);
 
 export const ITEMS = Object.fromEntries([
+  ['dotcom_banner', { id: 'dotcom_banner', name: 'Banner Rotation Server', desc: 'The ad has loaded. The page is considering it. Adds new-customer acquisition during the dot-com chapter.', kind: 'shop',
+    minStage: 0, costs: B.dotcom.bannerCosts, effects: B.dotcom.bannerAcquisition.map((bannerAcquisition) => ({ bannerAcquisition })),
+    requires: null, footprint: { w: 2, h: 1 }, adjacency: null, era: 'dotcom', onlyEras: ['dotcom'], standIn: 'crate', outdoor: false, frontFrom: null, levelStage: null, unique: true }],
   ...FURNITURE.map(([id, name, desc, costs, footprint, adjacency, effect = {}, minStage = 0]) => [
     id, { id, name, desc, kind: 'furniture', minStage, costs, effects: [effect], requires: null, footprint, adjacency, era: null, outdoor: OUTDOOR.has(id), frontFrom: FRONT_FROM[id] ?? null, levelStage: null, unique: false },
   ]),

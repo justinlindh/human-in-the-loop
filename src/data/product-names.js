@@ -1,6 +1,7 @@
 import { B } from '../sim/balance.js';
 import { FOR_SALE } from './forsale.js';
 import { ERA_IDS } from './eras.js';
+import { DOTCOM_NAMES, PERIOD_MARKETS } from './early-eras.js';
 
 // Product names: a word plus a suffix, a category's own word most of the time, and a joke name every fifth one.
 export const PREFIX = ['Inbox', 'Plan', 'Desk', 'Note', 'Deal', 'Chart', 'Pixel', 'Ship', 'Ledger', 'Brief', 'Loop', 'Hire', 'Clip', 'Vault', 'Flow', 'Pilot', 'Nudge', 'Tidy', 'Quill', 'Beacon'];
@@ -23,6 +24,7 @@ const sillyFor = (eraId) => {
 // roll(k) returns an integer in [0, k); n counts names asked for, and every fifth is a joke from eraId or earlier.
 export function productName(category, roll, n, eraId = 'classic') {
   const pick = (a) => a[roll(a.length)];
+  if (PERIOD_MARKETS[eraId]) return n % 5 === 0 ? pick(DOTCOM_NAMES) : `${category && CAT_WORD[category] || pick(PREFIX)}${pick(['ware', 'Works', 'Desk', 'Net'])}`.slice(0, B.productNameMax);
   if (n % 5 === 0) return pick(sillyFor(eraId));
   const base = category && CAT_WORD[category] && roll(10) < 7 ? CAT_WORD[category] : pick(PREFIX);
   return `${base}${pick(SUFFIX)}`.slice(0, B.productNameMax);
