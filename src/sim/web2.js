@@ -1,5 +1,5 @@
 import { B } from './balance.js';
-import { pick } from './rng.js';
+import { pick, sideRng } from './rng.js';
 import { emitChat } from './chat.js';
 import { raiseDecision } from './events.js';
 import { WEB2_CHAT, WEB2_COPY } from '../data/early-eras.js';
@@ -34,7 +34,10 @@ export function web2Step(ctx) {
   if (state.era.id === 'web2') {
     const f = state.flags.web2 ??= { arrived: false, retired: false };
     if (!f.arrived) { f.arrived = true; raiseDecision(ctx, 'web2_recovery', null, { queue: true }); }
-    if (state.week % B.web2.chatterEvery === 0) emitChat(ctx, { channel: 'random', person: pick(ctx.rng, state.staff), text: pick(ctx.rng, WEB2_CHAT.lines) });
+    if (state.week % B.web2.chatterEvery === 0) {
+      const rng = sideRng(state.seed, 'web2_chat', state.week);
+      emitChat(ctx, { channel: 'random', person: pick(rng, state.staff), text: pick(rng, WEB2_CHAT.lines) });
+    }
   } else if (state.flags.web2 && !state.flags.web2.retired) {
     state.flags.web2.retired = true;
     emitChat(ctx, { channel: 'general', from: '@office', important: true,

@@ -4,6 +4,11 @@ export function createRng(seed) {
   return { s: (Number(seed) >>> 0) };
 }
 
+const labelHash = (label) => [...label].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0, 2166136261);
+
+// A throwaway generator for one labelled draw, so a feature's rolls never shift the main stream.
+export const sideRng = (seed, label, n = 0) => createRng((Math.imul(seed >>> 0, 2654435761) + labelHash(label) + n) >>> 0);
+
 export function next(r) {
   r.s = (r.s + 0x6d2b79f5) >>> 0;
   let t = r.s;

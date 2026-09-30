@@ -12,7 +12,7 @@ export const DOTCOM_EVENTS = [
       { label: 'Take the small float', hint: `+$${B.dotcom.floatCash / 1000}K; existing dilution score x0.8; public-company costs during the bust`, effects: { dotcom: 'float' }, outcome: 'The bell rings. Someone still has to answer support mail.' },
     ] },
   { ...triggered, id: 'dotcom_warning', title: 'An interesting market',
-    text: `The analyst has replaced "inevitable" with "interesting". The bust arrives in company week ${B.dotcom.bustWeek}. Keep runway and maintain your products.`,
+    text: `The analyst has replaced "inevitable" with "interesting". The bust arrives in ${B.dotcom.bustWeek - B.dotcom.warningWeek} weeks. Keep runway and maintain your products.`,
     auto: {} },
   { ...triggered, id: 'dotcom_bust', title: 'The market discovers a second direction',
     text: `New-customer acquisition falls to ${B.dotcom.bustAcquisition * 100}% until recovery. Existing customers need reassurance. Public companies also pay a one-time cost capped at $${B.dotcom.floatCostCap / 1000}K or ${B.dotcom.floatCashShare * 100}% of cash, whichever is less. Nobody is automatically laid off.`,

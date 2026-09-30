@@ -45,3 +45,13 @@ export const calendarWeek = (state, week = state.week) => {
 };
 export const calendarDate = (state, week = state.week) => dateOf(calendarWeek(state, week));
 export const earlyWeeks = (state) => sum(state.founding?.earlyChapters ?? [], (c) => c.weeks);
+
+// The company week an early chapter begins, or null when this timeline has no such chapter.
+export function chapterStart(state, id) {
+  let start = 0;
+  for (const chapter of state.founding?.earlyChapters ?? []) {
+    if (chapter.id === id) return start;
+    start += chapter.weeks;
+  }
+  return null;
+}
