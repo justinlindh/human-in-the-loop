@@ -4,7 +4,7 @@
 import { h, fmtMoney, fmtNum } from './dom.js';
 import { icon } from './icons.js';
 import { B } from './content.js';
-import { scoreRun } from '../sim/endgame.js';
+import { scoreRun, exitMrr } from '../sim/endgame.js';
 import { totalMrr } from '../sim/products.js';
 import { FUNDING, fundingMult } from './v2content.js';
 
@@ -24,7 +24,8 @@ export function retireOptions(s) {
     return { ipo: { ok: !why, reason: why }, acquired: { ok: open, reason: open ? null : 'No open offer', by }, any: !why || open };
   }
   const mrr = totalMrr(s);
-  const ipoWhy = mrr < B.ipoMrr ? `Needs ${fmtMoney(B.ipoMrr)} MRR` : s.brand < B.ipoBrand ? `Needs brand ${B.ipoBrand}` : (s.office?.stage ?? s.officeStage) !== 2 ? 'Needs the HQ Building' : null;
+  const ipoBar = exitMrr(s, B.ipoMrr);
+  const ipoWhy = mrr < ipoBar ? `Needs ${fmtMoney(ipoBar)} MRR` : s.brand < B.ipoBrand ? `Needs brand ${B.ipoBrand}` : (s.office?.stage ?? s.officeStage) !== 2 ? 'Needs the HQ Building' : null;
   const offer = offerOf(s);
   const ipo = { ok: !ipoWhy, reason: ipoWhy };
   const acquired = { ok: !!offer, reason: offer ? null : 'No open offer', by: offer?.acquirer ?? offer?.by ?? null };

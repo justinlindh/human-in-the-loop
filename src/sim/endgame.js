@@ -149,10 +149,17 @@ export function historySystem(ctx) {
 registerSystem('endgame', endgameSystem, 90);
 registerSystem('history', historySystem, 95);
 
+// Use the founding start, so a Classic company's takeover keeps its original exit bars.
+export function exitMrr(state, base) {
+  const start = B.eraStarts[state.founding?.startEra ?? 'classic'] ?? B.eraStarts.classic;
+  return Math.round(base * start.exitMrrMult);
+}
+
 // Why an IPO is not available yet, or null when it is.
 export function ipoBlocker(state) {
   if (state.week < B.retireFromWeek) return 'Opens in year 10';
-  if (totalMrr(state) < B.ipoMrr) return `Needs $${B.ipoMrr.toLocaleString('en-US')} MRR`;
+  const bar = exitMrr(state, B.ipoMrr);
+  if (totalMrr(state) < bar) return `Needs $${bar.toLocaleString('en-US')} MRR`;
   if (state.brand < B.ipoBrand) return `Needs brand ${B.ipoBrand}`;
   if (state.officeStage < 2) return 'Needs the HQ Building';
   return null;

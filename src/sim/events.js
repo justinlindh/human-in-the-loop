@@ -1,7 +1,8 @@
 import { emitMomentTalk, momentTalkSystem } from './moment-talk.js';
 import { B } from './balance.js';
+import { exitMrr } from './endgame.js';
 import { chance, pick, weighted } from './rng.js';
-import { registerAction, registerSystem } from './registry.js';
+import { registerAction, registerSystem, decisionGateOpen } from './registry.js';
 import { newId } from './util.js';
 import { mentorOf } from './staff.js';
 import { liveProducts } from './projects.js';
@@ -19,7 +20,6 @@ import { incumbentFor } from '../data/incumbents.js';
 import { emitChat } from './chat.js';
 import { eraOnlyAllowsText, eraAtLeast, currentEra, eraIndex } from './eras.js';
 import { openEventPrompt, promptSlotFree } from './prompts.js';
-import { dotcomDecisionOpen } from './dotcom.js';
 import { periodAllows, periodText } from '../data/period-content.js';
 
 // What attackers ask for: sized to the company's cash and revenue, between a floor and a cap, and never
@@ -100,8 +100,8 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
   const ev = EVENTS[eventId];
   if (!ev || !ev.choices) return false;
   if (!periodAllows(state, 'events', eventId)) return false;
-  if (!dotcomDecisionOpen(state, eventId)) return false;
-  if (eventId.startsWith('web2_') && state.era.id !== 'web2') return false;
+  if (ev.eras && !ev.eras.includes(currentEra(state).id)) return false;
+  if (!decisionGateOpen(state, eventId)) return false;
   if (state.pendingDecision) {
     if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: state.week, kind: 'event', payload: { eventId, subjectId } });
     return false;
@@ -193,7 +193,7 @@ export function helpers(state) {
   const offerMult = eraAtLeast(state, 'consolidation') ? B.consolidationOfferMult : 1;
   return {
     B, mrr, live, bestScore: Math.max(0, ...live.map((p) => p.score)), usesModel: (id) => used.has(id),
-    offerReady: state.week >= B.retireFromWeek && mrr >= B.acquisitionOfferMrr * offerMult && state.brand >= B.acquisitionOfferBrand * offerMult,
+    offerReady: state.week >= B.retireFromWeek && mrr >= exitMrr(state, B.acquisitionOfferMrr) * offerMult && state.brand >= B.acquisitionOfferBrand * offerMult,
   };
 }
 

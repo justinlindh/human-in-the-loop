@@ -6,6 +6,8 @@ import { trackRun } from './lib/timing.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { ERA_STARTS } from '../src/data/era-modes.js';
+import { EARLY_ORDER } from '../src/data/early-eras.js';
+import { ERA_IDS } from '../src/data/eras.js';
 import { compare, markdown } from './events/pair-report.js';
 
 const args = process.argv.slice(2);
@@ -70,10 +72,12 @@ for (const name of bots) {
 console.log(`seeds per bot: ${seeds}, start: ${startEra}/${startMode}, through the career checkpoint`);
 console.table(rows);
 
-// Era by era: how many runs reached each era, and median cash, staff, and MRR on arrival.
+// Era by era after the starting one: how many runs reached each era, and median cash, staff, and MRR on arrival.
+// From an early start, reaching the next chapter means surviving the one before it (the dot-com bust, say).
+const timeline = [...EARLY_ORDER, ...ERA_IDS];
 const eraRows = [];
 for (const name of bots) {
-  for (const era of ['chatgbt', 'agents', 'consolidation', 'plateau']) {
+  for (const era of timeline.slice(timeline.indexOf(startEra) + 1)) {
     const at = all[name].map((r) => r.eras[era]).filter(Boolean);
     eraRows.push({
       bot: name, era, reached: `${Math.round((100 * at.length) / seeds)}%`,

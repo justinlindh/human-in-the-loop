@@ -3,9 +3,45 @@ import { createGame, tick, scoreRun } from '../../src/sim/index.js';
 import { botDecide, botTurn, runBot } from '../../src/sim/bots.js';
 import * as bots from '../../src/sim/bots.js';
 import { B } from '../../src/sim/balance.js';
+import { exitMrr, ipoBlocker } from '../../src/sim/endgame.js';
+import { helpers } from '../../src/sim/events.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
 
 describe('era takeover', () => {
+  it.each(['chatgbt', 'agents'])('reads Classic exit bars for a %s takeover, including after reload', (startEra) => {
+    const original = createGame({ seed: 1, startEra, startMode: 'takeover' });
+    const data = new Map();
+    const storage = { getItem: (k) => data.get(k) ?? null, setItem: (k, v) => data.set(k, v), removeItem: (k) => data.delete(k) };
+    expect(saveGame(original, storage)).toBe(true);
+    const loaded = loadGame(storage);
+    expect(loaded.ok).toBe(true);
+    const classicMult = B.eraStarts.classic.exitMrrMult;
+    try {
+      B.eraStarts.classic.exitMrrMult = 1.1;
+      for (const s of [original, loaded.state]) {
+        expect(s.founding.startEra).toBeUndefined();
+        expect(s.era.id).toBe(startEra);
+        const ipo = Math.round(B.ipoMrr * B.eraStarts.classic.exitMrrMult);
+        const offer = Math.round(B.acquisitionOfferMrr * B.eraStarts.classic.exitMrrMult);
+        expect(exitMrr(s, B.ipoMrr)).toBe(ipo);
+        expect(exitMrr(s, B.acquisitionOfferMrr)).toBe(offer);
+        s.week = B.retireFromWeek;
+        s.brand = 100;
+        s.officeStage = s.office.stage = 2;
+        s.products.forEach((p) => { p.mrr = 0; });
+        const product = s.products.find((p) => !p.killed);
+        product.mrr = ipo - 1;
+        expect(ipoBlocker(s)).toMatch(/MRR/);
+        product.mrr = ipo;
+        expect(ipoBlocker(s)).toBeNull();
+        product.mrr = offer - 1;
+        expect(helpers(s).offerReady).toBe(false);
+        product.mrr = offer;
+        expect(helpers(s).offerReady).toBe(true);
+      }
+    } finally { B.eraStarts.classic.exitMrrMult = classicMult; }
+  });
+
   it.each(['chatgbt', 'agents'])('builds the same %s company twice and preserves the bot run', (startEra) => {
     const options = { seed: 1, startEra, startMode: 'takeover', funding: 'preseed' };
     const first = createGame(options);

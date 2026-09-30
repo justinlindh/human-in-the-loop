@@ -344,6 +344,8 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     refresh();
   }
 
+  // A start's expected score against Classic's, from balance data, so x0.61 never reads as harder than x0.81.
+  const shareText = (kit, long = false) => kit.scoreShare >= 1 ? (long ? 'the same as Classic' : 'full score') : `${Math.round(kit.scoreShare * 100)}% of Classic${long ? '' : ' score'}`;
   function fundingStep() {
     let nextBtn;
     const modeCards = erasPreview ? h('div.takeover-choices', { role: 'group', 'aria-label': 'Company start' },
@@ -360,7 +362,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
         'aria-pressed': String(e.id === draft.startEra), dataset: { era: e.id },
         onclick: () => { draft.startEra = e.id; sfx('click'); refreshEra(); },
       }, h('b', { text: e.name }), h('span.small', { text: e.blurb }),
-      h('span.small', { text: `${OFFICE_STAGES[k.officeStage].name} · ${k.desks} desks · score x${k.scoreMult}` }));
+      h('span.small', { text: `${OFFICE_STAGES[k.officeStage].name} · ${k.desks} desks · ${shareText(k)}` }));
     })) : null;
     const unlockNote = h('div.small.muted');
     const skippedNote = h('div.small.muted');
@@ -372,10 +374,10 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       }
       const kit = B.eraStarts[draft.startEra];
       const total = B.funding[draft.funding].cash + kit.cash;
-      const mult = Math.round(B.funding[draft.funding].scoreMult * kit.scoreMult * 10000) / 10000;
+      const fundMult = B.funding[draft.funding].scoreMult;
       const career = draft.startEra === 'dotcom' ? `${B.dotcom.weeks} weeks of dot-com, ${B.web2.weeks} weeks of Web 2.0, then twenty modern years.`
         : draft.startEra === 'web2' ? `${B.web2.weeks} weeks of Web 2.0, then twenty modern years. New web products include old-browser QA work.` : 'A twenty-year company career.';
-      setText(summary, `${ERA_STARTS[draft.startEra].name}: ${fmtMoney(total)} starting cash, ${OFFICE_STAGES[kit.officeStage].name}, ${kit.desks} desks. Final score x${mult}. Two founders, no products yet. ${career}`);
+      setText(summary, `${ERA_STARTS[draft.startEra].name}: ${fmtMoney(total)} starting cash, ${OFFICE_STAGES[kit.officeStage].name}, ${kit.desks} desks. Expected score ${shareText(kit, true)}${fundMult < 1 ? `, times the funding factor x${fundMult}` : ''}. Two founders, no products yet. ${career}`);
     };
     const cards = FUNDING.map((f) => {
       const mult = fundingMult(f);
@@ -408,15 +410,24 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       setText(error, '');
       error.hidden = true;
       setText(fundingLabel, takeover ? 'How was the company originally funded?' : 'How are you paying for this?');
-      setText(scoreNote, takeover ? `Takeover score x${B.takeover.scoreMult[draft.startEra]}, before funding and any earned dilution. The company keeps its age and twentieth-anniversary checkpoint.`
-        : erasPreview ? 'Funding and starting-era score factors multiply. Classic keeps the full score; other starts trade score for a kit.' : 'When the game ends, your company gets a final score. More money now means a slightly smaller score later.');
+      setText(scoreNote, takeover ? `Expected score ${shareText({ scoreShare: B.takeover.scoreShare[draft.startEra] }, true)}. Funding and earned cuts affect your final score. The company keeps its age and twentieth-anniversary checkpoint.`
+        : erasPreview ? 'Funding then scales the expected score. Classic keeps the full score; other starts trade score for a kit.' : 'When the game ends, your company gets a final score. More money now means a slightly smaller score later.');
       if (nextBtn && erasPreview) nextBtn.replaceChildren(icon('launch'), ' ', takeover ? 'Review the company' : 'Start the company');
       const era = ERA_STARTS[draft.startEra];
       const kit = B.eraStarts[draft.startEra];
       eraCards?.querySelectorAll('.era-start').forEach((card) => {
-        const selected = card.dataset.era === draft.startEra;
+        const id = card.dataset.era;
+        const selected = id === draft.startEra;
         card.classList.toggle('on', selected);
         card.setAttribute('aria-pressed', String(selected));
+        const cardKit = B.eraStarts[id];
+        const inherited = takeover && canTakeOver(id);
+        setText(card.children[1], inherited
+          ? 'Inherit a company built from Classic, with its existing people, products and history.'
+          : ERA_STARTS[id].blurb);
+        setText(card.lastElementChild, inherited
+          ? `Existing company · ${shareText({ scoreShare: B.takeover.scoreShare[id] })}`
+          : `${OFFICE_STAGES[cardKit.officeStage].name} · ${cardKit.desks} desks · ${shareText(cardKit)}`);
       });
       const skipped = era.skippedGoals.map((id) => GOALS.find((g) => g.id === id)?.name).join(', ');
       const unlocks = era.unlocks.map((key) => key === 'policy.pair' ? 'AI as Pair' : key[0].toUpperCase() + key.slice(1)).join(', ');
@@ -490,9 +501,9 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     const costs = Object.values(weeklyCosts(s)).reduce((a, b) => a + b, 0);
     const burn = costs - weeklyRevenue(s);
     const products = s.products.filter((p) => !p.killed);
-    const mult = s.founding.eraScoreMult * B.funding[s.founding.funding].scoreMult
-      * (s.flags.diluted ? B.dilutionScoreMult : 1) * (1 - (s.flags.incubatorCut ?? 0));
-    const factors = [`takeover x${s.founding.eraScoreMult}`, `funding x${B.funding[s.founding.funding].scoreMult}`];
+    const factors = [];
+    const funding = B.funding[s.founding.funding].scoreMult;
+    if (funding < 1) factors.push(`funding x${funding}`);
     if (s.flags.diluted) factors.push(`VC dilution x${B.dilutionScoreMult}`);
     if (s.flags.incubatorCut) factors.push(`incubator cut x${1 - s.flags.incubatorCut}`);
     const fact = (label, value) => h('div.takeover-fact', null, h('span.small', { text: label }), h('b', { text: value }));
@@ -510,7 +521,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
         h('details.takeover-detail', null, h('summary', { text: `See the products (${products.length})` }),
           h('ul', { tabindex: 0, 'aria-label': 'Products' }, ...products.map((p) => h('li', { text: `${p.name}: ${p.customers} customers, ${fmtMoney(p.mrr)} MRR` })))),
         h('p.small', { text: `The company keeps its projects, policies, debts, incidents and history. Its twentieth-anniversary checkpoint is in ${Math.max(0, B.anniversaryWeek - s.week)} weeks.` }),
-        h('p.small', { text: `Score factors: ${factors.join(', ')}. Combined x${Math.round(mult * 10000) / 10000}.` }),
+        h('p.small', { text: `Expected score ${shareText({ scoreShare: B.takeover.scoreShare[s.founding.takeoverEra] }, true)}${factors.length ? ` · ${factors.join(', ')}` : ''}.` }),
         s.pendingDecision ? h('p.small', { text: `Waiting for you: ${s.pendingDecision.title}` }) : null,
         h('div.row.takeover-actions', null,
           h('button.btn.big', { onclick: () => { sfx('click'); fundingStep(); } }, 'Back'),

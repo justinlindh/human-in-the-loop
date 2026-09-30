@@ -36,6 +36,78 @@
       "programs": 36,
       "textures": 83
     },
+    "floor-eras/low": {
+      "calls": 290,
+      "triangles": 215000,
+      "programs": 20,
+      "textures": 39
+    },
+    "floor-eras/high": {
+      "calls": 620,
+      "triangles": 465000,
+      "programs": 39,
+      "textures": 64
+    },
+    "floor-dotcom/low": {
+      "calls": 290,
+      "triangles": 215000,
+      "programs": 20,
+      "textures": 39
+    },
+    "floor-dotcom/high": {
+      "calls": 620,
+      "triangles": 465000,
+      "programs": 39,
+      "textures": 64
+    },
+    "floor-web2/low": {
+      "calls": 290,
+      "triangles": 215000,
+      "programs": 20,
+      "textures": 39
+    },
+    "floor-web2/high": {
+      "calls": 620,
+      "triangles": 465000,
+      "programs": 39,
+      "textures": 64
+    },
+    "hq-eras/low": {
+      "calls": 530,
+      "triangles": 565000,
+      "programs": 19,
+      "textures": 58
+    },
+    "hq-eras/high": {
+      "calls": 1210,
+      "triangles": 1260000,
+      "programs": 36,
+      "textures": 83
+    },
+    "hq-dotcom/low": {
+      "calls": 530,
+      "triangles": 565000,
+      "programs": 19,
+      "textures": 58
+    },
+    "hq-dotcom/high": {
+      "calls": 1210,
+      "triangles": 1260000,
+      "programs": 36,
+      "textures": 83
+    },
+    "hq-web2/low": {
+      "calls": 530,
+      "triangles": 565000,
+      "programs": 19,
+      "textures": 58
+    },
+    "hq-web2/high": {
+      "calls": 1210,
+      "triangles": 1260000,
+      "programs": 36,
+      "textures": 83
+    },
     "music/low": {
       "calls": 320,
       "triangles": 225000,

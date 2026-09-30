@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createDirector, voiceBank, bedSeconds } from './director.js';
 import { ASSETS } from './loader.js';
-import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, GROUP_CUES, DUCK, PLAYLIST_MIN_S, PLAYLIST_PRELOAD_S, MOMENT_CUES } from './manifest.js';
+import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, GROUP_CUES, DUCK, PLAYLIST_MIN_S, PLAYLIST_PRELOAD_S, MOMENT_CUES, musicKey } from './manifest.js';
 
 const contract = readFileSync(new URL('../contract/contract.md', import.meta.url), 'utf8');
 const eventTypes = () => {
@@ -530,6 +530,19 @@ describe('audio director', () => {
       d.update(state(), 3, { speed: 1, running: true });   // a new state object: a new or loaded game
       expect(d.events([{ type: 'levelUp', staffId: 's1', level: 4 }], state(), 4).some((c) => c.cue === 'sfx.levelUp')).toBe(true);
     } finally { ASSETS.sfx = saved; }
+  });
+
+  it('plays the era-mode beds: the bust has its own, and a return to an era takes the other piece', () => {
+    const d = createDirector();
+    const dot = (phase) => state({ era: { id: 'dotcom' }, flags: { dotcom: { phase } } });
+    const bed = (cmds) => cmds.find((c) => c.op === 'music');
+    const a = bed(d.update(dot('boom'), 1));
+    expect(a).toMatchObject({ era: 'dotcom', bed: 'dotcom/a' });
+    const bust = bed(d.update(dot('bust'), 10));
+    expect(bust).toMatchObject({ era: 'dotcom_bust', bed: 'dotcom_bust/a' });
+    expect(bed(d.update(dot('recovery'), 20))).toMatchObject({ era: 'dotcom', bed: 'dotcom/b' });
+    expect(bed(d.update(dot('bust'), 30))).toMatchObject({ era: 'dotcom_bust', bed: 'dotcom_bust/b' });
+    expect(musicKey(state({ era: { id: 'web2' } }))).toBe('web2');
   });
 });
 
