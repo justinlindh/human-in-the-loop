@@ -1,3 +1,4 @@
+import { pnow, pAfter, pClear } from './pclock.js';
 import { phoneLayout } from './media.js';
 import { h } from './dom.js';
 import { icon } from './icons.js';
@@ -47,13 +48,13 @@ export function createToasts(root, { canShow = () => true } = {}) {
   let held = [];
   let frozen = false; // tools hold every toast on screen while they look at it
   function arm(t, ms) {
-    clearTimeout(t.timer);
+    pClear(t.timer);
     t.ms = ms;
-    t.timer = frozen ? 0 : setTimeout(() => remove(t), ms);
+    t.timer = frozen ? 0 : pAfter(ms, () => remove(t));
   }
   function freeze(on) {
     frozen = !!on;
-    for (const t of live) if (frozen) clearTimeout(t.timer); else arm(t, t.ms ?? LIFE[t.tone]);
+    for (const t of live) if (frozen) pClear(t.timer); else arm(t, t.ms ?? LIFE[t.tone]);
   }
   const moreChip = h('button.toast-more', { onclick: () => release() });
   moreChip.style.display = 'none';
@@ -86,7 +87,7 @@ export function createToasts(root, { canShow = () => true } = {}) {
     if (!dock) return;
     if (!live.length) { dock.replaceChildren(h('span.dockidle')); return; }
     // A toast that answers the player's own tap (a refusal's reason) outranks a severe one for a few seconds.
-    const top = dockTop(live, performance.now());
+    const top = dockTop(live, pnow());
     const key = `${top.id}:${live.length}:${held.length}`;
     if (dock.firstChild?.dataset?.key === key) return;
     const n = node(top, 'dtoast', live.length - 1 + held.length);
@@ -109,7 +110,7 @@ export function createToasts(root, { canShow = () => true } = {}) {
     const i = live.indexOf(t);
     if (i < 0) return;
     live.splice(i, 1);
-    clearTimeout(t.timer);
+    pClear(t.timer);
     if (t.node) {
       const n = t.node;
       t.node = null;
@@ -158,7 +159,7 @@ export function createToasts(root, { canShow = () => true } = {}) {
     if (canShow() && (t0 === 'warn' || t0 === 'bad')) { shownThisWeek++; show(text, tone, opts); return; }
     queue.push({ text, tone, opts, n: ++qSeq });
     if (queue.length > 16) { queue.sort((x, y) => weight(y) - weight(x) || x.n - y.n); hold(queue.pop()); }
-    if (!qTimer) qTimer = setTimeout(drain, Math.max(0, nextAt - performance.now()));
+    if (!qTimer) qTimer = pAfter(nextAt - pnow(), drain);
   }
   function hold(q) {
     if (q.text !== lastText) held.push(q);
@@ -168,12 +169,12 @@ export function createToasts(root, { canShow = () => true } = {}) {
   function drain() {
     qTimer = 0;
     if (!queue.length) return;
-    if (!canShow()) { qTimer = setTimeout(drain, GAP_MS); return; }
+    if (!canShow()) { qTimer = pAfter(GAP_MS, drain); return; }
     queue.sort((x, y) => weight(y) - weight(x) || x.n - y.n);
     const q = queue.shift();
     if (!['warn', 'bad'].includes(q.tone) && !q.opts.always && !q.released && shownThisWeek >= WEEK_BUDGET) hold(q);
-    else { shownThisWeek++; show(q.text, q.tone, q.opts); nextAt = performance.now() + GAP_MS; }
-    if (queue.length) qTimer = setTimeout(drain, Math.max(0, nextAt - performance.now()));
+    else { shownThisWeek++; show(q.text, q.tone, q.opts); nextAt = pnow() + GAP_MS; }
+    if (queue.length) qTimer = pAfter(nextAt - pnow(), drain);
   }
 
   // While hidden (a phone during placement or a card), toasts wait instead of timing out unseen.
@@ -189,7 +190,7 @@ export function createToasts(root, { canShow = () => true } = {}) {
       waiting = waiting.slice(-MAX_WAITING);
       return;
     }
-    const now = performance.now();
+    const now = pnow();
     const due = waiting.filter((w) => w.tone === 'warn' || w.tone === 'bad' || now - w.at < STALE_MS);
     waiting = [];
     // Least important first, so the most important are the last trimmed to the phone's two.
@@ -197,7 +198,7 @@ export function createToasts(root, { canShow = () => true } = {}) {
     for (const w of due) show(w.text, w.tone, w.opts, w.at);
   }
 
-  function show(text, tone = 'info', { action, glyph, person, player, timed } = {}, at = performance.now()) {
+  function show(text, tone = 'info', { action, glyph, person, player, timed } = {}, at = pnow()) {
     if (!text) return;
     if (!mayShow({ player })) { push(text, tone, { action, glyph, person }); return; }
     if (hidden) {
@@ -205,7 +206,7 @@ export function createToasts(root, { canShow = () => true } = {}) {
       if (waiting.length > MAX_WAITING) waiting.shift();
       return;
     }
-    const now = performance.now();
+    const now = pnow();
     if (text === lastText && now - lastAt < 800) return;
     lastText = text;
     lastAt = now;

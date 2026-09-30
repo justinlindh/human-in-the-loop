@@ -14,6 +14,7 @@
 // A peek is rare and polite: at most one every PEEK_WEEKS game weeks unless it's more urgent than the
 // last, never at the top speed, never
 // for a line already seen at that tier or higher, and never while something else holds the screen.
+import { pAfter, pClear } from './pclock.js';
 import { h, setText, toggleClass } from './dom.js';
 import { icon } from './icons.js';
 import { SIMX } from './simapi.js';
@@ -194,15 +195,15 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
   }
 
   function setGlow(on) { glowing = on; toggleClass(button, 'glow', on); }
-  function hidePeek() { clearTimeout(peekTimer); peekTimer = 0; peek.classList.remove('show'); }
+  function hidePeek() { pClear(peekTimer); peekTimer = 0; peek.classList.remove('show'); }
   function showPeek(e) {
     const a = who(e.advisor);
     peekFace.replaceChildren(face(e.advisor, 44, { idea: true }));
     setText(peekWho, `${a.name}${a.role ? `, ${a.role}` : ''}`);
     setText(peekText, e.text);
     peek.classList.add('show');
-    clearTimeout(peekTimer);
-    peekTimer = setTimeout(hidePeek, PEEK_MS);
+    pClear(peekTimer);
+    peekTimer = pAfter(PEEK_MS, hidePeek);
   }
 
   // Once a frame: the count, and a waiting peek once the screen is free.

@@ -1,3 +1,4 @@
+import { pTick, pnow } from './pclock.js';
 import { phoneMedia } from './media.js';
 import { trendSummary } from './content.js';
 import { availableItems } from './panels/office.js';
@@ -374,13 +375,14 @@ export function createUI({ root, getState, dispatch, controls }) {
     if (fresh.length) announcer.items(fresh);
   }
 
-  let lastPanelAt = 0;
+  let lastPanelAt = -Infinity;
   let lastFrame = null;
   let lastMovePip = false;
   function update(state) {
     const frameAt = performance.now();
     const dt = lastFrame === null ? 0 : Math.min(250, frameAt - lastFrame);
     lastFrame = frameAt;
+    pTick(dt);
     const running = !holdForMoment() && (ctx.controls?.getSpeed?.() ?? 1) > 0 && !isBusy() && !state.pendingDecision && !state.gameOver && !layer.classList.contains('title-mode');
     spacing.tick(dt, running, !!(popups.open || announcer.open || state.pendingDecision), state.week);
     captions.update();
@@ -405,7 +407,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     callGrid.update(state, !!(menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || gameover.open));
     tutorial.setHeld(!!(holdForMoment() || menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || settings.isOpen));
     logMeaning(state);
-    const now = performance.now();
+    const now = pnow();
     if (now - lastPanelAt >= PANEL_REFRESH_MS) {
       lastPanelAt = now;
       menu.update(state);

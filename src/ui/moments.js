@@ -7,6 +7,7 @@
 // Spotlights (the moments the clock holds for; renderer.spotlight(), hitl:spotlight) add a Skip
 // button to the caption, which ends the moment and lets the clock run. At the top speed a
 // spotlight is skipped as it starts, and its caption becomes a toast instead.
+import { pAfter, pClear } from './pclock.js';
 import { phoneLayout } from './media.js';
 import { h, setText, toggleClass } from './dom.js';
 import { icon } from './icons.js';
@@ -55,7 +56,7 @@ export function createMomentCaptions(layer, { getRenderer = () => null, getSpeed
   function hide(id) {
     if (id && cur !== id) return;
     cur = null;
-    clearTimeout(timer);
+    pClear(timer);
     show();
   }
 
@@ -68,8 +69,8 @@ export function createMomentCaptions(layer, { getRenderer = () => null, getSpeed
     cur = d.id ?? d.key;
     setText(text, line);
     place();
-    clearTimeout(timer);
-    timer = setTimeout(() => hide(cur), MAX_MS);
+    pClear(timer);
+    timer = pAfter(MAX_MS, () => hide(cur));
     show();
   });
 
@@ -78,7 +79,7 @@ export function createMomentCaptions(layer, { getRenderer = () => null, getSpeed
     if (next?.key === spot?.key) return;
     spot = next;
     if (spot) { setText(text, spot.caption || momentCaption(spot.kind)); place(); }
-    else { cur = null; clearTimeout(timer); setText(text, ''); }
+    else { cur = null; pClear(timer); setText(text, ''); }
     show();
   }
   addEventListener('hitl:spotlight', syncSpotlight);

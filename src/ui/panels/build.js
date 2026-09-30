@@ -18,7 +18,7 @@ const SIZE_INFO = { small: { name: 'Small' }, medium: { name: 'Medium' }, large:
 
 export function buildPanel(ctx, arg) {
   let tab = arg?.projectId || arg?.productId ? 'projects' : 'new';
-  const form = { name: suggestName(null, ctx.getState().era.id), category: null, angle: null, model: 'chatgbt', size: 'small', team: null };
+  const form = { name: suggestName(null, ctx.getState().era.id, ctx.getState().seed), category: null, angle: null, model: 'chatgbt', size: 'small', team: null };
   // A starter preset (from the tutorial): fields plus the founders as the team.
   const preset = arg?.preset ?? null;
   if (preset) {
@@ -27,7 +27,7 @@ export function buildPanel(ctx, arg) {
     if (s0.market.unlockedAngles.includes(preset.angle)) form.angle = preset.angle;
     form.model = preset.model ?? form.model;
     form.size = preset.size ?? form.size;
-    form.name = suggestName(form.category, ctx.getState().era.id);
+    form.name = suggestName(form.category, ctx.getState().era.id, ctx.getState().seed);
     form.team = new Set(s0.staff.filter((p) => p.founder && isAvailable(p)).map((p) => p.id));
   }
 
@@ -78,7 +78,7 @@ export function buildPanel(ctx, arg) {
     // Name
     const nameInput = h('input.text', { value: form.name, maxlength: NAME_MAX, placeholder: 'Product name', title: `Up to ${NAME_MAX} characters`, oninput: (e) => { form.name = e.target.value; newView.update(ctx.getState()); } });
     const nameRow = h('div.row', null, nameInput,
-      h('button.btn.small', { onclick: () => { form.name = suggestName(form.category, ctx.getState().era.id); nameInput.value = form.name; }, title: 'Suggest a name' }, icon('dice'), ' Suggest'));
+      h('button.btn.small', { onclick: () => { form.name = suggestName(form.category, ctx.getState().era.id, ctx.getState().seed); nameInput.value = form.name; }, title: 'Suggest a name' }, icon('dice'), ' Suggest'));
 
     // Category grid
     const catGrid = h('div.tiles.cats');
@@ -254,7 +254,7 @@ export function buildPanel(ctx, arg) {
     if (proj) for (const id of form.team) if (ctx.act({ type: 'assign', staffId: id, assignment: { type: 'project', targetId: proj.id } }).ok) placed++;
     if (placed < form.team.size) ctx.toast(`Only ${placed} of ${form.team.size} picked people could join ${proj?.name ?? 'the project'}.`, 'warn');
     ctx.sfx('confirm');
-    form.name = suggestName(null, ctx.getState().era.id);
+    form.name = suggestName(null, ctx.getState().era.id, ctx.getState().seed);
     form.team = null;
     form.angle = null;
     tab = 'projects';

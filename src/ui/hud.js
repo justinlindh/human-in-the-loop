@@ -1,3 +1,4 @@
+import { pnow } from './pclock.js';
 import { phoneLayout } from './media.js';
 import { SIMX } from './simapi.js';
 import { progressBar, goalsDoneText } from './goalProgress.js';
@@ -344,8 +345,8 @@ export function createHud({ root, controls, ui }) {
     setText(cashVal, fmtMoney(s.cash));
     const neg = s.cash < 0;
     toggleClass(cash, 'neg', neg);
-    const now = performance.now();
-    if (now - (last.netAt ?? 0) > 250) { last.net = weeklyNet(s); last.netAt = now; }
+    const now = pnow();
+    if (now - (last.netAt ?? -Infinity) > 250) { last.net = weeklyNet(s); last.netAt = now; }
     const net = last.net;
     if (neg) {
       // Only losing weeks in the red count toward folding, so a profitable week is "holding".
@@ -441,8 +442,8 @@ export function createHud({ root, controls, ui }) {
     const busy = sp > 0 && !!ui.isBusy?.();
     if (busy !== last.busy) { last.busy = busy; menuTag.style.display = busy ? 'inline' : 'none'; }
 
-    const now2 = performance.now();
-    if (now2 - (last.trayAt ?? 0) < 200) { for (const b of trayBinds) b(s); return; }
+    const now2 = pnow();
+    if (now2 - (last.trayAt ?? -Infinity) < 200) { for (const b of trayBinds) b(s); return; }
     last.trayAt = now2;
     // Goal progress bars move weekly, so the week is part of the signature while any goal shows one.
     const sig = `${SIMX.goalHelpers ? s.week : ''}|${Object.entries(s.goals ?? {}).map(([k, v]) => `${k}${v.done}`).join()}|${allNeeds(s).map((n) => `${n.key}${n.text}`).join(',')}|${s.outage ? `${s.outage.productId}:${s.outage.unrecoverable}` : ''}|${s.projects.map((j) => j.id).join(',')}|${s.market?.trend}|${(s.modifiers ?? []).map((m) => m.id).join(',')}`;
