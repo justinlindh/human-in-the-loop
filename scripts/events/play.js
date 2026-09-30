@@ -12,6 +12,7 @@ const KEEP = new Set(['era', 'officeUpgrade', 'incident', 'launch', 'award', 're
 const SNAP = new Set(['era', 'officeUpgrade']);
 const SNAP_PER_ID = 2;
 
+// Workers reuse this module across runs; simulation results must depend only on each game's state.
 export function play({ bot, seed, weeks, dir, profile = false }) {
   const started = performance.now();
   const ms = { sim: 0, extraction: 0, serialization: 0, compression: 0, io: 0 };

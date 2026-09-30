@@ -11,3 +11,5 @@ Every cached call appends a row to `hitl-test-cache.log` in the git directory, a
 UI tests that need DOM APIs put `// @vitest-environment happy-dom` on the first line of a `src/ui/*.test.js` file. Happy DOM is a dev dependency; Node remains the default in `vite.config.js`. These files run in `npm run test:fast` alongside the Node tests. See `src/ui/toasts.dom.test.js` and `src/ui/chat.dom.test.js` for real component mounting, DOM assertions, fake timers and cleanup. Use a browser capture for layout or visual judgment: Happy DOM tests cover DOM behaviour without rendering pixels.
 
 `HITL_TEST_CACHE_DEBUG=1` prints the key's inputs (tree, node version, lockfile hash, arguments) and what happened (hit, ran, or an uncached run and why) to stderr. `test-cache.test.sh` turns it on and prints the lines when a case fails.
+
+`test:fast` excludes the balance suite and `tests/**/*.full.test.js`. `npm test` includes both, so expensive event-index reference and worker-parity checks run with the full suite while the short event fixture stays in the fast gate.

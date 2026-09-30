@@ -1,56 +1,66 @@
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { spawn, spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 import { join, resolve } from 'node:path';
 import { once } from 'node:events';
-import { play } from '../../scripts/events/play.js';
 import { simHash } from '../../scripts/events/lib.js';
 import { referencePlay } from './event-index-reference.js';
+import { build, compareSnapshots, run, shortArgs, shortRun, workspace } from './event-index-fixture.js';
 
-const root = mkdtempSync(join(tmpdir(), 'events-build-'));
-const build = resolve('scripts/events/build.js');
-afterAll(() => rmSync(root, { recursive: true, force: true }));
-const directory = (name) => { const d = join(root, name); mkdirSync(d, { recursive: true }); return d; };
-const run = (cache, args = []) => spawnSync(process.execPath, [build, ...args], {
-  env: { ...process.env, HITL_EVENTS_DIR: cache }, encoding: 'utf8', timeout: 120000,
+const { directory, cleanup } = workspace();
+afterAll(cleanup);
+const fixture = directory('fixture'), hash = simHash();
+beforeAll(() => {
+  const r = run(fixture, shortArgs);
+  expect(r.status, r.stdout + r.stderr).toBe(0);
 });
-const compare = (a, b) => {
-  const files = readdirSync(join(a, 'snapshots')).sort();
-  expect(readdirSync(join(b, 'snapshots')).sort()).toEqual(files);
-  for (const f of files) expect(readFileSync(join(a, 'snapshots', f)).equals(readFileSync(join(b, 'snapshots', f))), f).toBe(true);
-  return files;
-};
+
+async function interruptBuild(cache, stop, force = false) {
+  const child = spawn(process.execPath, [build, ...shortArgs, '--seeds', '1-100', ...(force ? ['--force'] : [])], {
+    env: { ...process.env, HITL_EVENTS_DIR: cache }, stdio: 'ignore',
+  });
+  const exited = once(child, 'exit');
+  let timer;
+  try {
+    const staging = await new Promise((res, rej) => {
+      const start = Date.now();
+      timer = setInterval(() => {
+        const name = readdirSync(cache).find((d) => d.startsWith('.build-'));
+        if (name && existsSync(join(cache, name, 'snapshots')) && readdirSync(join(cache, name, 'snapshots')).length) res(name);
+        else if (Date.now() - start > 20000 || child.exitCode !== null || child.signalCode !== null) rej(new Error('build did not reach snapshot writes'));
+      }, 10);
+    });
+    clearInterval(timer);
+    child.kill(stop);
+    const [code, signal] = await exited;
+    expect({ code, signal }).toEqual(stop === 'SIGKILL'
+      ? { code: null, signal: stop }
+      : { code: stop === 'SIGINT' ? 130 : 143, signal: null });
+    return { staging: join(cache, staging), pid: child.pid };
+  } finally {
+    clearInterval(timer);
+    if (child.exitCode === null && child.signalCode === null) { child.kill('SIGKILL'); await exited; }
+  }
+}
 
 describe('event index snapshots', () => {
-  it('replays exactly the states a single pass captures, including pre-tick and era snapshots', async () => {
-    const a = directory('reference'), b = directory('replay');
-    mkdirSync(join(a, 'snapshots')); mkdirSync(join(b, 'snapshots'));
-    let rows = [];
-    for (const bot of ['balanced', 'sensible', 'allHumans', 'automateAll', 'recklessHumans', 'squads']) {
-      const args = { seed: 7, bot, weeks: bot === 'balanced' ? 1040 : 120 };
-      const expected = await referencePlay({ ...args, dir: a });
-      const actual = play({ ...args, dir: b });
-      expect(JSON.stringify(actual.rows)).toBe(JSON.stringify(expected));
-      rows.push(...actual.rows);
-    }
+  it('replays decision and pre-tick snapshots byte for byte against a single pass', async () => {
+    const a = directory('reference'), b = join(fixture, hash);
+    mkdirSync(join(a, 'snapshots'));
+    const expected = await referencePlay({ ...shortRun, dir: a });
+    const json = gunzipSync(readFileSync(join(b, 'events.jsonl.gz'))).toString();
+    expect(json).toBe(expected.map((r) => JSON.stringify(r)).join('\n') + '\n');
+    const rows = json.trim().split('\n').map(JSON.parse);
     expect(rows.some((r) => r.preTick)).toBe(true);
-    expect(rows.some((r) => r.type === 'era' && r.snapshot)).toBe(true);
-    expect(compare(a, b).length).toBeGreaterThan(10);
-  }, 120000);
+    expect(compareSnapshots(a, b).length).toBeGreaterThan(0);
+  });
 
-  it('writes identical index and snapshot bytes with one or several persistent workers', () => {
-    const a = directory('serial'), b = directory('parallel');
-    const args = ['--seeds', '1-3', '--bots', 'balanced,sensible', '--weeks', '80'];
-    for (const [cache, jobs] of [[a, '1'], [b, '3']]) {
-      const r = run(cache, [...args, '--jobs', jobs]);
-      expect(r.status, r.stdout + r.stderr).toBe(0);
-    }
-    const hash = simHash();
-    expect(readFileSync(join(a, hash, 'events.jsonl.gz')).equals(readFileSync(join(b, hash, 'events.jsonl.gz')))).toBe(true);
-    compare(join(a, hash), join(b, hash));
-    expect(run(a).stdout).toContain('already exists');
-  }, 120000);
+  it('reuses the completed fixture', () => {
+    const r = run(fixture);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toContain('already exists');
+  });
 });
 
 describe('event index build failures', () => {
@@ -68,48 +78,54 @@ describe('event index build failures', () => {
 
   it.each([[false, 'SIGINT'], [true, 'SIGTERM']])('interrupts without publishing partial files, existing index: %s, signal: %s', async (force, stop) => {
     const cache = directory(force ? 'interrupt-force' : 'interrupt-cold');
-    const hash = simHash();
-    if (force) {
-      const r = run(cache, ['--seeds', '1', '--bots', 'balanced', '--weeks', '20']);
-      expect(r.status, r.stdout + r.stderr).toBe(0);
-    }
+    if (force) cpSync(fixture, cache, { recursive: true });
     const index = join(cache, hash, 'events.jsonl.gz');
     const previous = force ? readFileSync(index) : null;
-    const child = spawn(process.execPath, [build, '--jobs', '1', ...(force ? ['--force'] : [])], {
-      env: { ...process.env, HITL_EVENTS_DIR: cache }, stdio: 'ignore',
-    });
-    const exited = once(child, 'exit');
-    let timer;
-    try {
-      await new Promise((res, rej) => {
-        const start = Date.now();
-        timer = setInterval(() => {
-          const staging = readdirSync(cache).find((d) => d.startsWith('.build-'));
-          if (staging && existsSync(join(cache, staging, 'snapshots')) && readdirSync(join(cache, staging, 'snapshots')).length) res();
-          else if (Date.now() - start > 20000 || child.exitCode !== null) rej(new Error('build did not reach snapshot writes'));
-        }, 20);
+    await interruptBuild(cache, stop, force);
+    expect(readdirSync(cache).filter((d) => d.startsWith('.build-'))).toEqual([]);
+    if (force) expect(readFileSync(index).equals(previous)).toBe(true);
+    else {
+      expect(existsSync(index)).toBe(false);
+      const query = spawnSync(process.execPath, [resolve('scripts/events/find.js'), 'printer_jam', '--json'], {
+        env: { ...process.env, HITL_EVENTS_DIR: cache }, encoding: 'utf8', timeout: 10000,
       });
-      clearInterval(timer);
-      child.kill(stop);
-      const [code, signal] = await exited;
-      expect({ code, signal }).toEqual({ code: stop === 'SIGINT' ? 130 : 143, signal: null });
-      expect(readdirSync(cache).filter((d) => d.startsWith('.build-'))).toEqual([]);
-      if (force) expect(readFileSync(index).equals(previous)).toBe(true);
-      else {
-        expect(existsSync(index)).toBe(false);
-        const query = spawnSync(process.execPath, [resolve('scripts/events/find.js'), 'printer_jam', '--json'], {
-          env: { ...process.env, HITL_EVENTS_DIR: cache }, encoding: 'utf8', timeout: 10000,
-        });
-        expect(query.status).toBe(2);
-        expect(JSON.parse(query.stdout).kind).toBe('no-index');
-      }
-      const retry = run(cache, ['--seeds', '1', '--bots', 'balanced', '--weeks', '20']);
-      expect(retry.status, retry.stdout + retry.stderr).toBe(0);
-      expect(retry.stdout.includes('already exists')).toBe(force);
-    } finally {
-      clearInterval(timer);
-      if (child.exitCode === null) child.kill('SIGKILL');
+      expect(query.status).toBe(2);
+      expect(JSON.parse(query.stdout).kind).toBe('no-index');
     }
+    const retry = run(cache, shortArgs);
+    expect(retry.status, retry.stdout + retry.stderr).toBe(0);
+    expect(retry.stdout.includes('already exists')).toBe(force);
+  }, 60000);
+
+  it('reaps an aged SIGKILLed build on cache reuse and cold builds, preserving live or recent staging', async () => {
+    const cache = directory('reap');
+    cpSync(fixture, cache, { recursive: true });
+    const { staging, pid } = await interruptBuild(cache, 'SIGKILL', true);
+    expect(existsSync(staging)).toBe(true);
+    const old = new Date(Date.now() - 10 * 60 * 1000);
+    const live = join(cache, `.build-${hash}-${process.pid}-active`);
+    const unknown = join(cache, `.build-${hash}-no-owner`);
+    const linked = join(cache, `.build-${hash}-${pid}-linked`);
+    for (const dir of [live, unknown]) { mkdirSync(dir); utimesSync(dir, old, old); }
+    symlinkSync(unknown, linked, 'dir');
+    const reused = run(cache);
+    expect(reused.status, reused.stdout + reused.stderr).toBe(0);
+    expect(reused.stdout).toContain('already exists');
+    expect(existsSync(staging)).toBe(true);
+    utimesSync(staging, old, old);
+    const reaped = run(cache);
+    expect(reaped.status, reaped.stdout + reaped.stderr).toBe(0);
+    expect(reaped.stdout).toContain('already exists');
+    expect(existsSync(staging)).toBe(false);
+    const backup = `${staging}-previous`;
+    mkdirSync(backup); utimesSync(backup, old, old);
+    rmSync(join(cache, hash), { recursive: true });
+    const rebuilt = run(cache, shortArgs);
+    expect(rebuilt.status, rebuilt.stdout + rebuilt.stderr).toBe(0);
+    expect(existsSync(backup)).toBe(false);
+    for (const dir of [live, unknown, linked]) expect(existsSync(dir), dir).toBe(true);
+    expect(readFileSync(join(cache, hash, 'events.jsonl.gz')).equals(readFileSync(join(fixture, hash, 'events.jsonl.gz')))).toBe(true);
+    compareSnapshots(join(fixture, hash), join(cache, hash));
   }, 60000);
 });
 

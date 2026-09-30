@@ -43,18 +43,37 @@ function options(argv) {
   return { ...values, seeds, bots, weeks: positive(values.weeks ?? 1040, '--weeks'), jobs: positive(values.jobs ?? Math.min(8, availableParallelism()), '--jobs') };
 }
 
+function reapStaleBuilds() {
+  const cutoff = Date.now() - 5 * 60 * 1000;
+  for (const entry of readdirSync(CACHE, { withFileTypes: true })) {
+    const match = /^\.build-[a-f0-9]{16}-([1-9]\d*)-[A-Za-z0-9]{6}(?:-previous)?$/.exec(entry.name);
+    if (!entry.isDirectory() || !match) continue;
+    const pid = Number(match[1]), path = join(CACHE, entry.name);
+    if (!Number.isSafeInteger(pid)) continue;
+    try {
+      if (statSync(path).mtimeMs >= cutoff) continue;
+      try { process.kill(pid, 0); }
+      catch (err) {
+        // Only ESRCH proves the owner is gone; permission errors must keep its files.
+        if (err.code === 'ESRCH') rmSync(path, { recursive: true, force: true });
+      }
+    } catch { /* Another builder may have removed this directory. */ }
+  }
+}
+
 async function build() {
   const { seeds, bots, weeks, jobs, force, profile } = options(process.argv.slice(2));
   const { BOTS } = await import('../../src/sim/bots.js');
   for (const bot of bots) if (!Object.hasOwn(BOTS, bot)) throw new Error(`unknown bot: ${bot}`);
   const started = performance.now();
   const hash = simHash(), dir = indexDir(hash);
+  mkdirSync(CACHE, { recursive: true });
+  reapStaleBuilds();
   if (existsSync(join(dir, 'events.jsonl.gz')) && !force) {
     console.log(`events: an index for this code (${hash}) already exists at ${dir}; --force rebuilds it`);
     return;
   }
-  mkdirSync(CACHE, { recursive: true });
-  const staging = mkdtempSync(join(CACHE, `.build-${hash}-`));
+  const staging = mkdtempSync(join(CACHE, `.build-${hash}-${process.pid}-`));
   const backup = `${staging}-previous`;
   const workers = new Set();
   let interrupted = false;
