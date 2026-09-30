@@ -32,7 +32,7 @@ try {
   const from = frame('from', 0), to = frame('to', values.from ?? 0);
   if (!every || to < from) throw new Error('every must be positive and to must be at least from');
   const facts = values.facts?.split(',') ?? [];
-  if (facts.some(f => !['intersections', 'clearances', 'visibility', 'projections', 'occupancy'].includes(f))) throw new Error('unknown fact family');
+  if (facts.some(f => !['intersections', 'clearances', 'visibility', 'projections', 'occupancy', 'walker'].includes(f))) throw new Error('unknown fact family');
   for (const k of ['seed', 'week']) if (values[k] != null && (!Number.isSafeInteger(Number(values[k])) || Number(values[k]) < 0)) throw new Error(`${k} must be a nonnegative integer`);
   scene = await openScene({ mock: values.mock ?? 'floor', snapshot: values.snapshot, compose: values.compose,
     seed: values.seed == null ? undefined : Number(values.seed), week: Number(values.week ?? 0), rig: values.rig });

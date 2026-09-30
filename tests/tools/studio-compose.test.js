@@ -284,3 +284,18 @@ describe('the sweep\'s collision rows on a composed scene', () => {
     expect(problemsOf(spec(true))).toEqual([]);
   });
 });
+
+describe('the walker fact', () => {
+  it('reports each walking person\'s route, target, heading, drift and wait', () => {
+    const r = spawnSync(process.execPath, [resolve(__dirname, '../../scripts/studio/scene.mjs'), '--mock', 'floor', '--from', '6', '--to', '6', '--facts', 'walker'], { encoding: 'utf8', timeout: 240000, maxBuffer: 1 << 28 });
+    expect(r.status, r.stderr).toBe(0);
+    const { facts } = JSON.parse(r.stdout.trim().split('\n')[0]);
+    expect(facts.walkers.length).toBeGreaterThan(0);
+    const w = facts.walkers[0];
+    expect(w.id).toMatch(/^person:/);
+    expect(Array.isArray(w.path) && w.path.length > 0).toBe(true);
+    expect(w.target).toHaveLength(2);
+    expect(w.drift).toHaveProperty('rule');
+    expect(w.wait).toHaveProperty('kind');
+  }, 260000);
+});

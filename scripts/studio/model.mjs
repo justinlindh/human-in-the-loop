@@ -94,7 +94,7 @@ export function projectedHead(head, camera, width, height) {
 }
 
 export function sampleScene(R, S, { frame, who = null, facts = [], width = 1600, height = 1000 } = {}) {
-  if (facts.some(f => !['intersections', 'clearances', 'visibility', 'projections', 'occupancy'].includes(f))) throw new Error('scene-engine: unknown fact family');
+  if (facts.some(f => !['intersections', 'clearances', 'visibility', 'projections', 'occupancy', 'walker'].includes(f))) throw new Error('scene-engine: unknown fact family');
   R.scene.updateMatrixWorld(); R.camera.updateMatrixWorld();
   const { records, owners } = inventory(R, S);
   for (const id of who ?? []) if (!records.some(r => r.staffId === id || r.id === id)) throw new Error(`scene-engine: unknown subject ${id}`);
@@ -135,6 +135,12 @@ export function sampleScene(R, S, { frame, who = null, facts = [], width = 1600,
     const nav = R.office?.nav();
     result.facts.occupancy = nav ? { nx: nav.nx, nz: nav.nz, cellM: nav.cell, order: 'x+z*nx',
       origin: [-R.office.current.L.W / 2, -R.office.current.L.D / 2], blocked: Array.from(nav.blocked), obstacles: R.office.obstacles() } : null;
+  }
+  // Why each walking person moves as they do (the renderer's own record: route, next waypoint, heading, speed,
+  // the drift rule that fired, the wait): only people who are walking have one.
+  if (facts.includes('walker')) {
+    if (!R.walkDebug) throw new Error('scene-engine: --facts walker needs R.walkDebug (a checkout that predates it)');
+    result.facts.walkers = records.filter(r => r.kind === 'person' && wanted(r)).map(r => ({ id: r.id, ...R.walkDebug(r.staffId) })).filter(w => w.path);
   }
   if (facts.includes('visibility') || facts.includes('projections')) {
     const local = faceLandmarks(getTemplate('chibi'));
