@@ -27,9 +27,9 @@ export function createAnnouncer({ layer, sfx, openMenu, canShow = () => true, he
     sfx(item.kind === 'era' ? 'confirm' : 'open');
   }
 
-  function eraCard({ eraId, week, decision, keys = [] }, done) {
+  function eraCard({ eraId, week, decision, keys = [], date }, done) {
     const e = ERA[eraId] ?? { name: eraId, blurb: '', changes: [] };
-    const d = dateOf(week ?? 0);
+    const d = date ?? dateOf(week ?? 0);
     const go = h('button.btn.go.big', { onclick: done }, decision ? 'See the decision' : 'Onward');
     setTimeout(() => go.focus(), 0);
     return h(`div.announce.era.${eraId}`, null,
@@ -108,10 +108,10 @@ export function createAnnouncer({ layer, sfx, openMenu, canShow = () => true, he
     get open() { return !!cur; },
     get waiting() { return queue.length; },
     pump: () => show(),
-    era(eraId, week, decision, keys = []) {
+    era(eraId, week, decision, keys = [], date) {
       // Era cards go ahead of unlock explainers.
       const at = queue.findIndex((q) => q.kind !== 'era');
-      queue.splice(at < 0 ? queue.length : at, 0, { kind: 'era', eraId, week, decision, keys });
+      queue.splice(at < 0 ? queue.length : at, 0, { kind: 'era', eraId, week, decision, keys, date });
       show();
     },
     unlock(key, menuId, menuLabel) {

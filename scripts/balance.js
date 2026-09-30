@@ -3,21 +3,46 @@
 import { runBot, BOTS } from '../src/sim/bots.js';
 import { B } from '../src/sim/balance.js';
 import { trackRun } from './lib/timing.js';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { ERA_STARTS } from '../src/data/era-modes.js';
+import { compare, markdown } from './events/pair-report.js';
 
 const args = process.argv.slice(2);
 const arg = (name, dflt) => { const i = args.indexOf(`--${name}`); return i >= 0 ? args[i + 1] : dflt; };
 const seeds = Number(arg('seeds', 100));
 const bots = arg('bots', Object.keys(BOTS).join(',')).split(',');
-trackRun('balance', { seeds, bots: bots.join(',') });
+const startEra = arg('start-era', 'classic');
+const json = arg('json', null);
+const baseline = arg('baseline', null);
+const fail = (message) => { console.error(`balance: ${message}`); process.exit(2); };
+if (!Number.isSafeInteger(seeds) || seeds < 1) fail('--seeds must be a positive whole number');
+if (!Object.hasOwn(ERA_STARTS, startEra)) fail(`unknown starting era: ${startEra}`);
+if (bots.some((bot) => !Object.hasOwn(BOTS, bot))) fail('unknown bot');
+let base;
+if (baseline) {
+  try { base = JSON.parse(readFileSync(baseline, 'utf8')); } catch { fail('cannot read baseline JSON'); }
+  if (!base?.runs || typeof base.runs !== 'object') fail('baseline must contain runs');
+}
+trackRun('balance', { seeds, bots: bots.join(','), startEra });
 
 const median = (xs) => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : 0; };
 const fmt = (n) => Math.round(n).toLocaleString('en-US');
 
 const rows = [];
 const all = {};
+const runs = {};
 for (const name of bots) {
   const results = [];
-  for (let seed = 1; seed <= seeds; seed++) results.push(runBot(name, seed));
+  for (let seed = 1; seed <= seeds; seed++) {
+    const r = runBot(name, seed, B.runWeeks, { founding: { startEra } });
+    results.push(r);
+    runs[`${name}:${seed}`] = {
+      reason: r.reason, exited: r.exited, won: r.won, weeks: r.weeks, score: r.score,
+      incidents: r.incidents, caught: r.state.stats.caught, breaches: r.state.stats.breaches,
+      hash: createHash('sha256').update(JSON.stringify(r.state)).digest('hex'),
+    };
+  }
   all[name] = results;
   const reasons = {};
   for (const r of results) reasons[r.reason] = (reasons[r.reason] ?? 0) + 1;
@@ -37,7 +62,7 @@ for (const name of bots) {
     crises: median(results.map((r) => r.crises)),
   });
 }
-console.log(`seeds per bot: ${seeds}, up to ${B.runWeeks} weeks`);
+console.log(`seeds per bot: ${seeds}, up to ${B.runWeeks} weeks, start: ${startEra}`);
 console.table(rows);
 
 // Era by era: how many runs reached each era, and median cash, staff, and MRR on arrival.
@@ -52,3 +77,9 @@ for (const name of bots) {
   }
 }
 console.table(eraRows);
+if (json) writeFileSync(json, JSON.stringify({ startEra, seeds, bots, runs }, null, 2));
+if (base) {
+  const paired = compare(base.runs, runs);
+  if (paired.onlyA.length || paired.onlyB.length) fail('baseline and run seed sets differ');
+  console.log(markdown(paired, { a: base.startEra, b: startEra }));
+}

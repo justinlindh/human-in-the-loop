@@ -1,7 +1,10 @@
 import { pAfter, pClear } from './pclock.js';
-import { h, fmtMoney, fmtNum, dateOf } from './dom.js';
+import { h, fmtMoney, fmtNum, calendarDate } from './dom.js';
 import * as SIM from '../sim/index.js';
 import { icon } from './icons.js';
+import { B } from '../sim/balance.js';
+import { ERA_STARTS } from '../data/era-modes.js';
+import { erasPreview } from './eraPreview.js';
 
 const HEADLINE = {
   ipo: ['IPO day!', 'The bell rang. Your company is public.'],
@@ -39,7 +42,7 @@ export function createGameOver({ layer, controls, sfx, act }) {
     const [title, sub] = (g.reason === 'retired' ? RETIRED[g.retiredVia] : HEADLINE[g.reason]) ?? [g.won ? 'You won' : 'Game over', ''];
     let run = null;
     try { run = typeof SIM.scoreRun === 'function' ? SIM.scoreRun(s) : null; } catch { run = null; }
-    const d = dateOf(s.week);
+    const d = calendarDate(s);
     const lines = (g.epilogue ?? []).map((t) => h('p.epi', { text: t }));
     const rows = run?.breakdown ? BREAKDOWN.filter(([k]) => k in run.breakdown).map(([k, label]) => {
       const v = Math.round(run.breakdown[k]) || 0;
@@ -51,6 +54,10 @@ export function createGameOver({ layer, controls, sfx, act }) {
       rows.push(h('div.kv.sum', null, h('span', { text: 'Points' }), h('b.num', { text: fmtNum(Math.round(raw)) })));
       if (!g.won) rows.push(h('div.kv', null, h('span', { text: 'Run lost' }), h('b.num.bad-t', { text: 'x0.5' })));
       if (s.flags?.diluted) rows.push(h('div.kv', null, h('span', { text: 'VC dilution' }), h('b.num.bad-t', { text: 'x0.8' })));
+      const funding = B.funding[s.founding?.funding]?.scoreMult ?? 1;
+      if (funding !== 1) rows.push(h('div.kv', null, h('span', { text: 'Funding' }), h('b.num', { text: `x${funding}` })));
+      if (s.flags?.incubatorCut) rows.push(h('div.kv', null, h('span', { text: 'Incubator cut' }), h('b.num', { text: `x${1 - s.flags.incubatorCut}` })));
+      if (erasPreview && s.founding?.startEra) rows.push(h('div.kv', null, h('span', { text: `${ERA_STARTS[s.founding.startEra]?.name ?? s.founding.startEra} start` }), h('b.num', { text: `x${s.founding.eraScoreMult}` })));
       rows.push(h('div.kv.sum', null, h('span', { text: 'Score' }), h('b.num', { text: fmtNum(g.score ?? run.score) })));
     }
     const anniversary = g.reason === 'anniversary';

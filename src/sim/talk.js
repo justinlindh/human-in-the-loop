@@ -1,6 +1,6 @@
 import { B } from './balance.js';
 import { chance, createRng, pick, shuffle, weighted, int } from './rng.js';
-import { avg, article, clamp, newId, dateOf } from './util.js';
+import { avg, article, clamp, newId, calendarDate } from './util.js';
 import { emitChat } from './chat.js';
 import { automationExposure } from './automation.js';
 import { eraAllowsText, currentEra, eraIndex } from './eras.js';
@@ -89,7 +89,7 @@ function slotValues(ctx, cast, context) {
     era: currentEra(state).name,
     company: state.companyName,
     gone: context?.gone ?? null,
-    year: String(dateOf(state.week).year),
+    year: String(calendarDate(state).year),
   };
 }
 

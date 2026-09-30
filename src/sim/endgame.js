@@ -24,7 +24,8 @@ export function scoreRun(state) {
   const funding = B.funding[state.founding?.funding]?.scoreMult ?? 1;
   // The incubator house's cut, if the founders took the free rent.
   const incubator = 1 - (state.flags.incubatorCut ?? 0);
-  const score = Math.round(Math.max(0, raw) * (won ? 1 : 0.5) * (state.flags.diluted ? 0.8 : 1) * funding * incubator);
+  const era = state.founding?.eraScoreMult ?? 1;
+  const score = Math.round(Math.max(0, raw) * (won ? 1 : 0.5) * (state.flags.diluted ? 0.8 : 1) * funding * incubator * era);
   return { score, valuation, breakdown };
 }
 
@@ -48,7 +49,7 @@ function story(state) {
   return {
     officeStage: state.officeStage,
     office: expansion ? `an HQ with ${expansion.name === 'The Annex' ? 'an annex' : `a ${expansion.name.toLowerCase()}`}` : stage.name === 'HQ Building' ? 'its own HQ' : `the ${stage.name}`,
-    eraCount: eraIndex(state) + 1,
+    eraCount: eraIndex(state) - eraIndex({ era: { id: state.founding?.startEra ?? 'classic' } }) + 1,
     launches: state.stats.launches,
     people: state.stats.hires + state.staff.filter((p) => p.founder).length,
     alumni: state.flags.departures ?? state.flags.alumni?.length ?? 0,

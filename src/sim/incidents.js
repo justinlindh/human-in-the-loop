@@ -1,7 +1,7 @@
 import { ensureRecord } from './record.js';
 import { B } from './balance.js';
 import { chance, int, next, pick } from './rng.js';
-import { avg, clamp, dateOf, sum } from './util.js';
+import { avg, clamp, dateOf, calendarDate, sum } from './util.js';
 import { registerAction, registerSystem } from './registry.js';
 import { outputMult, staffMods } from './staff.js';
 import { oversightRequired, oversightProvided, overseers } from './automation.js';
@@ -225,7 +225,7 @@ function resolveIncident(ctx, r) {
 
 function noteWorstOutage(state, product) {
   if (!state.outage?.unrecoverable) return;
-  state.flags.worstOutageYear = dateOf(state.week).yearIndex;
+  state.flags.worstOutageYear = calendarDate(state).yearIndex;
   state.flags.worstOutageProduct = product?.name ?? null;
 }
 

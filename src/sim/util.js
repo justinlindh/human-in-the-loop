@@ -32,3 +32,7 @@ export function dateOf(week) {
   const w = week % WEEKS_PER_YEAR;
   return { year: START_YEAR + yearIndex, yearIndex, week: w + 1, quarter: Math.min(4, Math.floor(w / 13) + 1) };
 }
+
+// Calendar labels and world releases use the founding offset; company age is still state.week.
+export const calendarWeek = (state, week = state.week) => week + (state.founding?.calendarOffset ?? 0);
+export const calendarDate = (state, week = state.week) => dateOf(calendarWeek(state, week));

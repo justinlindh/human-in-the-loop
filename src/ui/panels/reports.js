@@ -1,4 +1,7 @@
-import { h, setText, setWidth, fmtMoney, fmtNum, setClass, dateOf } from '../dom.js';
+import { h, setText, setWidth, fmtMoney, fmtNum, setClass, calendarDate } from '../dom.js';
+import { calendarWeek } from '../../sim/util.js';
+import { ERA_STARTS } from '../../data/era-modes.js';
+import { erasPreview } from '../eraPreview.js';
 import { categoryName, angleName, modelName, CATEGORY, ANGLE } from '../content.js';
 import { liveView, tabs, stars, confirmButton } from '../widgets.js';
 import { icon } from '../icons.js';
@@ -57,6 +60,7 @@ export function reportsPanel(ctx, arg) {
     retireSig = sig;
     const anniv = s.flags?.anniversaryScore;
     bannerHost.replaceChildren(...[
+      erasPreview && s.founding?.startEra ? h('div.card.small', { text: `${ERA_STARTS[s.founding.startEra]?.name ?? s.founding.startEra} start · era score x${s.founding.eraScoreMult}` }) : null,
       Number.isFinite(anniv) ? h('div.card.annivcard', null, icon('award', { size: 22 }), h('b', { text: 'Anniversary score' }), h('b.num.big', { text: fmtNum(anniv) }), h('span.small.muted', { text: 'Locked in at 20 years. You kept going.' })) : null,
       purposeCard(s),
       rivalCard(s),
@@ -74,7 +78,7 @@ export function reportsPanel(ctx, arg) {
     (s) => `${s.history.length}|${s.history[s.history.length - 1]?.week}`,
     (s) => {
       const hist = sample(s.history);
-      const weeks = hist.map((x) => x.week);
+      const weeks = hist.map((x) => calendarWeek(s, x.week));
       const W = chartW(), H = chartH();
       const last = s.history[s.history.length - 1] ?? {};
       return h('div.charts', null,
@@ -96,7 +100,7 @@ export function reportsPanel(ctx, arg) {
     (s) => `${s.history.length}|${s.history[s.history.length - 1]?.week}|${s.staff.length}`,
     (s) => {
       const hist = sample(s.history);
-      const weeks = hist.map((x) => x.week);
+      const weeks = hist.map((x) => calendarWeek(s, x.week));
       const W = chartW(), H = chartH();
       const st = s.stats ?? {};
       const last = s.history[s.history.length - 1] ?? {};
@@ -271,7 +275,7 @@ function purposeCard(s) {
     h('div.small.muted', { text: PURPOSE_INFO?.affects ?? PURPOSE_AFFECTS }),
     tests.length ? h('div.ptests', null, ...tests.map((t) => h('div.ptest', null,
       h(`span.num.${(t.delta ?? 0) >= 0 ? 'good-t' : 'bad-t'}`, { text: `${(t.delta ?? 0) >= 0 ? '+' : ''}${Math.round(t.delta ?? 0)}` }),
-      h('span', { text: t.text ?? '' }), h('span.small.muted', { text: Number.isFinite(t.week) ? `${dateOf(t.week).year} Q${dateOf(t.week).quarter}` : '' })))) : null);
+      h('span', { text: t.text ?? '' }), h('span.small.muted', { text: Number.isFinite(t.week) ? `${calendarDate(s, t.week).year} Q${calendarDate(s, t.week).quarter}` : '' })))) : null);
 }
 
 // Companies for sale: buy one to take on its product, its customers and its people. Big money, so
