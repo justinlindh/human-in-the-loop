@@ -92,6 +92,7 @@ Generated with ACE-Step 1.5 using the same model and settings as the music (XL-s
 | `stingers/era_preinternet.ogg` | pre-internet era arrival (ACE-Step XL-sft plus 4B planner, seed 9914) | 4.3 s |
 | `stingers/era_dotcom.ogg` | dot-com era arrival (same pipeline, seed 9922) | 4.8 s |
 | `stingers/era_web2.ogg` | Web 2.0 era arrival (same pipeline, seed 9931) | 4.3 s |
+| `stingers/dotcom_bust.ogg` | the dot-com bust begins (same pipeline, seed 9941) | 4.6 s |
 
 ## UI sounds (candidates)
 
@@ -157,6 +158,10 @@ All are CC0 1.0 (public domain), from Kenney's packs (kenney.nl) and from freeso
 | `sfx/growth/level_up.ogg` | own synthesis (additive), CC0 1.0 |
 | `sfx/growth/promotion.ogg` | own synthesis (additive), CC0 1.0 |
 | `sfx/growth/trait.ogg` | Kenney (kenney.nl), CC0 1.0: interface-sounds drop_002 |
+| `sfx/disk_seek.ogg` | own synthesis (noise bursts and a motor tone), CC0 1.0: a floppy drive seeking |
+| `sfx/cd_tray.ogg` | own synthesis (motor whir and clicks), CC0 1.0: a CD tray sliding out |
+| `sfx/retail_box.ogg` | own synthesis (filtered noise), CC0 1.0: a cardboard box set down |
+| `sfx/dotcom_bell.ogg` | own synthesis (inharmonic partials), CC0 1.0: a desk bell |
 | `ambience/typing.ogg` | freesound.org 'Keyboard typing.WAV' by beansqueso31, CC0 1.0 (https://freesound.org/people/beansqueso31/sounds/223101/) |
 
 ## Voices (candidates)

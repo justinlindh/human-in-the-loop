@@ -15,7 +15,7 @@
 //   { op: 'stopAll', bus }
 
 import { ASSETS, entryFor } from './loader.js';
-import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, ROTATE_BEDS, musicKey, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
+import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, ROTATE_BEDS, ERA_EXTRAS, musicKey, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
   VOICE_VARIANTS, VOICE, GROUP_CUES, isFirstLaunch, resignReason, isWarmExit, WORLD, PROP_CUES,
   MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision, MUSIC_BARS, PLAYLIST_MIN_S, PLAYLIST_LOOKAHEAD_S, PLAYLIST_PRELOAD_S, MOMENT_CUES, MOMENT_HITS, FOCUS_KEEP, SPOTLIGHT_KEEP, SPOTLIGHT_DEFAULT, OFFICE_PROP_CUES, OFFICE_PROP_LOOPS } from './manifest.js';
 
@@ -242,6 +242,8 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
         const rule = ON_EVENT[e.type];
         const id = typeof rule === 'function' ? rule(e, state) : rule;
         if (id && !seen.has(id)) { seen.add(id); out.push(...playCue(id, t, { speed })); }
+        const extra = ERA_EXTRAS[e.type]?.(e, state);
+        if (extra && !seen.has(extra.cue)) { seen.add(extra.cue); out.push(...playCue(extra.cue, t + extra.delay, { speed })); }
         // A door under arrivals and departures.
         if ((e.type === 'hire' || (e.type === 'resign' && !e.fired)) && !seen.has('sfx.door')) { seen.add('sfx.door'); out.push(...playCue('sfx.door', t + 0.1, { speed })); }
         // Voice moments.
@@ -300,6 +302,8 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
         const bed = ROTATE_BEDS.has(want) ? list[(at + 1) % list.length] : list[Math.floor(rng() * list.length) % list.length];
         const first = music.era === null;
         const fromTitle = music.era === 'title';
+        // The market turning is marked once, when it happens in play (not when a save loads into it).
+        if (want === 'dotcom_bust' && music.era === 'dotcom') out.push(...playCue('stinger.dotcom_bust', t, { speed: speedNow }));
         music.era = want; music.bed = bed; music.lastBed[want] = bed; music.bedAt = t; music.heard = 0;
         out.push({ op: 'music', era: want, bed, at: t, fade: first ? 1.5 : CROSSFADE_BARS * barLen });
         out.push(...pickNext(list));
