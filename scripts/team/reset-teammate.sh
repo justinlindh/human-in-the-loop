@@ -7,7 +7,7 @@
 # the next message, so it is confirmed by sending the command and letting the pane settle; resend the
 # teammate's spawn brief afterwards, since a clear drops it. --log appends a row (time, name, mode,
 # context size, transcript) to that file.
-# The transcript directory is Claude Code's, for this repository's path: ~/.claude/projects/<the path
+# The transcript directory is Claude Code's, for the main checkout's path (found from any worktree): ~/.claude/projects/<the path
 # with every character outside A-Z a-z 0-9 turned into a dash>. CLAUDE_PROJECTS_DIR names another one.
 # A teammate's transcript is the newest one, touched in the last day, whose first lines hold its spawn
 # brief ("You are `<name>`"). Run it from the team lead's session, never for the session you are in.
@@ -28,7 +28,10 @@ case "$mode" in clear|compact) ;; *) echo "mode must be clear or compact" >&2; e
 case "$maxwait" in ''|*[!0-9]*) echo "max-wait must be a number of seconds" >&2; exit 2 ;; esac
 case "$name" in *[!A-Za-z0-9_-]*) echo "name must be letters, digits, dash or underscore" >&2; exit 2 ;; esac
 
-repo="$(cd "$(dirname "$0")/../.." && pwd)"
+# The main checkout (the parent of the shared .git), so running this from any worktree finds the
+# transcripts of sessions started at the repository's root.
+here="$(cd "$(dirname "$0")/../.." && pwd)"
+common="$(git -C "$here" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" && repo="$(dirname "$common")" || repo="$here"
 proj="${CLAUDE_PROJECTS_DIR:-$HOME/.claude/projects/$(printf '%s' "$repo" | sed 's/[^A-Za-z0-9]/-/g')}"
 [ -d "$proj" ] || { echo "no transcript directory at $proj" >&2; exit 1; }
 

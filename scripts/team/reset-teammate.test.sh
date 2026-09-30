@@ -52,11 +52,11 @@ run sim reset 1
 run
 [ $rc -eq 2 ] || fail "no arguments is a usage error: rc $rc"
 
-# Without CLAUDE_PROJECTS_DIR the directory comes from the repo path.
-home="$tmp/home"; enc="$(printf '%s' "$REPO" | sed 's/[^A-Za-z0-9]/-/g')"; mkdir -p "$home/.claude/projects/$enc"
+# Without CLAUDE_PROJECTS_DIR the directory comes from the main checkout's path.
+home="$tmp/home"; enc="$(printf '%s' "$(dirname "$(git -C "$REPO" rev-parse --path-format=absolute --git-common-dir)")" | sed 's/[^A-Za-z0-9]/-/g')"; mkdir -p "$home/.claude/projects/$enc"
 cp "$proj/sim1.jsonl" "$home/.claude/projects/$enc/"
 : >"$SENT"; out="$(env -u CLAUDE_PROJECTS_DIR HOME="$home" TRANSCRIPT="$home/.claude/projects/$enc/sim1.jsonl" bash "$HERE/reset-teammate.sh" sim compact 5 2>&1)"; rc=$?
-[ $rc -eq 0 ] && grep -q 'context before' <<<"$out" || fail "the transcript directory comes from the repo path: rc $rc: $out"
+[ $rc -eq 0 ] && grep -q 'context before' <<<"$out" || fail "the transcript directory comes from the main checkout's path: rc $rc: $out"
 
 [ $fails -eq 0 ] && echo "reset-teammate: all cases pass"
 exit $fails
