@@ -327,9 +327,11 @@ function deskSet(i, stageIdx, screens, era, freeChair = false, artEra = era) {
     cubicle.traverse((c) => { if (c.isMesh) c.castShadow = false; });
     g.add(cubicle);
     // Period gear in the desktop's free corners: the back right takes a phone, a dot-matrix or a fax
-    // in turn, and every other desk keeps a Rolodex left of the monitor.
-    g.add(place(getModel(['era_desk_phone', 'era_dot_matrix', 'era_fax'][i % 3]), 0.29, TOP, -0.33));
-    if (i % 2 === 0) g.add(place(getModel('era_rolodex'), -0.41, TOP, -0.3, 0.25));
+    // in turn, and every third desk keeps a Rolodex left of the monitor. Shadows this small barely
+    // show, so the gear stays out of the shadow pass.
+    const gear = [place(getModel(['era_desk_phone', 'era_dot_matrix', 'era_fax'][i % 3]), 0.29, TOP, -0.33)];
+    if (i % 3 === 0) gear.push(place(getModel('era_rolodex'), -0.41, TOP, -0.3, 0.25));
+    for (const o of gear) { o.traverse((c) => { if (c.isMesh) c.castShadow = false; }); g.add(o); }
   } else {
     desk.scale.set(0.96 / 1.3, TOP / 0.62, 1);
     g.add(place(desk, 0, 0, DESK_Z));
