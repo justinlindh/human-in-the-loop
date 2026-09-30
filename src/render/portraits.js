@@ -24,7 +24,7 @@ function keyOf(p, px) {
   return `${p.id}|${p.role}|${p.mood ?? 'ok'}|${p.legend ? 1 : 0}|${p.roleColor ?? ''}|${p.pose ?? ''}${p.poseT ?? ''}|${JSON.stringify(p.appearance ?? {})}|${px}`;
 }
 
-export function createPortraits({ ready, lowQuality = () => false }) {
+export function createPortraits({ ready, lowQuality = () => false, wardrobe = () => null }) {
   let gl = null;
   let compiled = false;
   let scene, camera;
@@ -71,7 +71,8 @@ export function createPortraits({ ready, lowQuality = () => false }) {
   }
 
   function build(person, caricature = false) {
-    const c = createCharacter(person.appearance ?? {}, person.roleColor ?? ROLE_COLORS[person.role], { role: person.role, seed: person.id });
+    const c = createCharacter(person.appearance ?? {}, person.roleColor ?? ROLE_COLORS[person.role], { role: person.role, seed: person.id,
+      wardrobe: Object.hasOwn(person, 'wardrobe') ? person.wardrobe : wardrobe() });
     if (caricature) {
       // Big head, small body: the party-favour caricature look.
       c.head.scale.setScalar(1.45);
@@ -136,10 +137,11 @@ export function createPortraits({ ready, lowQuality = () => false }) {
   function portrait(person, { size = 64 } = {}) {
     if (!person) return null;
     const px = bucketFor(Math.round(size * Math.min(2, devicePixelRatio || 1)));
-    const k = keyOf(person, px);
+    const era = wardrobe();
+    const k = `${keyOf(person, px)}|${era ?? ''}`;
     const hit = cache.get(k);
     if (hit) { cache.delete(k); cache.set(k, hit); return hit; }
-    if (!queue.has(k) && !pending.has(k)) queue.set(k, { person: { ...person, appearance: { ...(person.appearance ?? {}) } }, px });
+    if (!queue.has(k) && !pending.has(k)) queue.set(k, { person: { ...person, wardrobe: era, appearance: { ...(person.appearance ?? {}) } }, px });
     return null;
   }
 
@@ -209,6 +211,8 @@ export function createPortraits({ ready, lowQuality = () => false }) {
       });
     }
     for (const e of live) {
+      const era = wardrobe();
+      if (e.wardrobe !== era) { e.wardrobe = era; e.drawn = false; }
       if (e.staticOnly) {
         const url = portrait(e.person, { size: e.px });
         if (url && !e.drawn) {
@@ -223,6 +227,7 @@ export function createPortraits({ ready, lowQuality = () => false }) {
       if (lowQuality() && e.char && (e.skip = !e.skip)) continue;
       if (!e.char) e.char = build(e.person);
       else scene.add(e.char.root);
+      e.char.setWardrobe(era);
       e.char.update(e.acc);
       e.acc = 0;
       draw(e.px);

@@ -7,7 +7,7 @@ import { createLighting, createBackdrop } from './lighting.js';
 import { createPost } from './post.js';
 import { createFly } from './fly.js';
 import { setRingsShown } from './character.js';
-import { buildKitBoard, buildPropLineup, buildItemLineup, buildCharLineup, buildCharTurnaround, buildIconBoard } from './debug.js';
+import { buildKitBoard, buildPropLineup, buildItemLineup, buildCharLineup, buildCharTurnaround, buildWardrobeLineup, buildIconBoard } from './debug.js';
 import { setGlowScale, mat } from './materials.js';
 import { loadModels } from './models.js';
 import { setRigEnabled } from './rig.js';
@@ -16,6 +16,7 @@ import { createOffice } from './office.js';
 import { createProps } from './props.js';
 import { createSurroundings } from './surroundings.js';
 import { eraArtEra } from './era-art.js';
+import { wardrobeEra } from './wardrobe.js';
 import { isSoftwareRenderer } from '../quality.js';
 import { createProbe } from './probe.js';
 import { createLabels } from './labels.js';
@@ -60,7 +61,7 @@ const DEBUG_VIEWS = {
   kit: { '1': buildKitBoard },
   props: { '1': buildPropLineup },
   items: { '1': buildItemLineup },
-  chars: { '1': buildCharLineup, '2': buildCharTurnaround },
+  chars: { '1': buildCharLineup, '2': buildCharTurnaround, '3': buildWardrobeLineup, '4': buildWardrobeLineup },
   icons: { objects: (g) => buildIconBoard(g, labelsElRef) },
 };
 
@@ -126,7 +127,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   const floating = createLabels(labelLayer);
   const fx = createFx({ scene, overlayEl: labelsEl });
   let ready = false;
-  const portraits = createPortraits({ ready: () => ready, lowQuality: () => q === 'low' });
+  let currentWardrobe = null;
+  const portraits = createPortraits({ ready: () => ready, lowQuality: () => q === 'low', wardrobe: () => currentWardrobe });
   let firstStage = true;
   if (debugBuild) {
     const b = debugBuild(debugRoot);
@@ -211,6 +213,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let decisionOpen = false;
   function sync(state) {
     decisionOpen = !!state?.pendingDecision;
+    currentWardrobe = state ? wardrobeEra(state) : null;
     if (!office || !ready || !state) return;
     reseed(state.seed, state.week);
     const stage = state.officeStage ?? 0;

@@ -5,6 +5,7 @@ import { createSpeechBudget } from './speech-budget.js';
 import { createStandupSpeech, standupContext, standupRevision, standupText } from './standup-speech.js';
 import * as THREE from 'three';
 import { createCharacter } from './character.js';
+import { wardrobeEra } from './wardrobe.js';
 import { PALETTE as P, ROLE_COLORS } from './palette.js';
 import { glow } from './materials.js';
 import { nocLook } from './noc.js';
@@ -191,7 +192,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   function makeRec(s) {
-    const char = createCharacter(s.appearance, ROLE_COLORS[s.role], { role: s.role, seed: s.id });
+    const char = createCharacter(s.appearance, ROLE_COLORS[s.role], { role: s.role, seed: s.id, wardrobe: wardrobeEra(lastState) });
     if (!charShadows) char.setShadows(false);
     char.pickProxy.userData.staffId = s.id;
     group.add(char.root);
@@ -462,6 +463,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         r.isNew = true;
       }
       r.staff = s;
+      r.char.setWardrobe(wardrobeEra(state));
     }
     if (stageChanged) { for (const r of recs.values()) r.seat = null; momentSpeech.clear(); perks.reset(); pets.reset(); robot.reset(); incentives.reset(); moments.reset(); spotlights.clear(); }
     assignSeats(list, state);

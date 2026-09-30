@@ -2,9 +2,10 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { paletteMaterial } from './materials.js';
 import { ERA_ART_MODELS } from './era-art.js';
+import { WARDROBE_MODELS } from './wardrobe.js';
 
 export const PROP_NAMES = [
-  ...ERA_ART_MODELS,
+  ...ERA_ART_MODELS, ...WARDROBE_MODELS,
   'desk', 'chair', 'monitor', 'laptop', 'server_rack', 'plant_tall', 'plant_small', 'coffee_machine',
   'whiteboard', 'couch', 'bookshelf', 'garage_door', 'window_frame', 'monitoring_wall', 'water_cooler', 'trophy', 'kitchenette', 'ping_pong_table', 'foosball', 'balloons', 'waffle_station',
 ];

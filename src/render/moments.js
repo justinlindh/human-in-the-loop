@@ -3,6 +3,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { pickSpot, spotDebug } from './spots.js';
 import { PALETTE as P } from './palette.js';
 import { createCharacter } from './character.js';
+import { wardrobeEra } from './wardrobe.js';
 import { printerModel, visitorChairModel } from './props.js';
 import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { between, draw } from './rand.js';
@@ -708,8 +709,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       : { skin: Math.floor(rand() * 6), hair: Math.floor(rand() * 8), hairColor: pick(VISITOR_HAIR), shirt: pick(VISITOR_SHIRT), pants: pick(VISITOR_PANTS), build: 1 + Math.floor(rand() * 2), accessory: pick(['none', 'none', 'glasses', 'cap', 'beanie']) };
     return pinned ? { ...look, ...pinned } : look;
   }
-  function makeVisitor(event, anim, rand, key, pinned = null) {
-    const c = createCharacter(visitorLook(event, rand, pinned), P.metal_soft, { seed: `visitor-${key}` });
+  function makeVisitor(event, anim, rand, key, pinned = null, wardrobe = null) {
+    const c = createCharacter(visitorLook(event, rand, pinned), P.metal_soft, { seed: `visitor-${key}`, wardrobe });
     c.setRingScale(0.0001);
     c.pickProxy.visible = false;
     c.setAnim(anim);
@@ -791,7 +792,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const rand = seededRand(key);
     const staged = state?.pendingDecision?.stage?.prop === 'visitor_chair' ? state.pendingDecision.stage : (state?.chatPrompts ?? []).find((x) => !x.resolved && x.stage?.prop === 'visitor_chair')?.stage;
     const pinned = staged?.look ?? null;
-    v.chars.push(makeVisitor(event, v.seat ? 'typing' : 'sit', rand, `${key}|0`, pinned));
+    v.chars.push(makeVisitor(event, v.seat ? 'typing' : 'sit', rand, `${key}|0`, pinned, wardrobeEra(state)));
     // The consultants' chair is staged at the door; their interview sets up a few metres in and to
     // one side, off the path everyone walks in and out by.
     if (event === 'efficiency_consultants') { const q = offDoor(v.at); if (q) v.at = q; }
@@ -810,7 +811,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       // A nervous colleague is interviewed across from the seated consultant, the second consultant
       // behind with a clipboard. Face to face across the camera's view line, each turned three-quarters
       // to the camera, so all three faces read. Arms out low in front, the clipboard tipped up to be read.
-      const rob = makeVisitor(event, 'carryhold', rand, `${key}|1`);
+      const rob = makeVisitor(event, 'carryhold', rand, `${key}|1`, null, wardrobeEra(state));
       rob.root.add(clipboard());
       v.chars.push(rob);
       const yaw = getYaw(), cam = [Math.sin(yaw), Math.cos(yaw)], across = [Math.cos(yaw), -Math.sin(yaw)];
@@ -994,7 +995,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       rob.root.rotation.y = v.robYaw ?? Math.atan2(v.at.x - v.robAt.x, v.at.z - v.robAt.z) + 0.6;
       rob.root.visible = sitter.root.visible;
     }
-    for (const c of v.chars) c.update(dt);
+    for (const c of v.chars) { c.setWardrobe(wardrobeEra(state)); c.update(dt); }
     // Everyone cast gone (resigned, left): nothing to watch.
     if (v.cast.some((r) => !recs.has(r.id))) v.cast = v.cast.filter((r) => recs.has(r.id));
   }

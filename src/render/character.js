@@ -5,7 +5,8 @@ import { getTemplate } from './models.js';
 import { mat, color, paletteMaterial } from './materials.js';
 import { ROLE_COLORS, PALETTE } from './palette.js';
 import { characterLook } from './look.js';
-import { printParts } from './prints.js';
+import { printParts, wardrobePrintParts } from './prints.js';
+import { wardrobeLook } from './wardrobe.js';
 import { emoteMaterial } from './emotes.js';
 import { bakedMaterial, bakeParts } from './bake.js';
 import { rigClips, rigEnabled } from './rig.js';
@@ -189,9 +190,11 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const tpl = getTemplate('chibi');
   const role = opts.role ?? null;
   const look = characterLook(appearance, role, roleColor);
+  const wardrobe = wardrobeLook(appearance, opts.wardrobe);
+  const attire = getTemplate('era_attire');
   const build = look.build;
   // Support's headset is its headwear: no hat or headphones over it (glasses are fine).
-  const acc = look.accessory;
+  const acc = wardrobe?.glasses && look.accessory === 'glasses' ? 'none' : look.accessory;
   const hairIdx = look.hair;
   // Headphones press curly hair flat under the band; long hair covers the hood of a hoodie.
   const hairPart = hairIdx === 6 && acc === 'headphones' ? 'hair_6_hp' : `hair_${hairIdx}`;
@@ -205,6 +208,10 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     pants: new THREE.MeshStandardMaterial({ color: new THREE.Color().setRGB(...look.linear.pants), roughness: 0.85 }),
   };
   const base = Object.fromEntries(Object.entries(own).map(([k, m]) => [k, m.color.clone()]));
+  if (wardrobe) {
+    own.shirt.color.set(wardrobe.shirt);
+    own.pants.color.set(wardrobe.pants);
+  }
   const roleMat = roleMaterial(role, roleColor);
 
   // Only the big shapes cast shadows. Everything but the tiny face and badge details stays in the
@@ -232,6 +239,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const CASTERS = /^(head|hair_|torso_|leg|acc_beanie|acc_cap)/;
   const TINY = /^(eyes|eye_shine|blush|mouth_|lanyard|badge)/;
   const P = (name) => (tpl ? skinMats(part(tpl, name), CASTERS.test(name), !TINY.test(name)) : new THREE.Group());
+  const E = (name) => (attire ? skinMats(part(attire, `attire_${name}`), /^(shirt|polo|fleece|khaki|cargo_|jeans)/.test(name)) : new THREE.Group());
 
   const root = new THREE.Group();
   root.name = 'character';
@@ -244,7 +252,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const legs = [-1, 1].map((sx) => {
     const pivot = new THREE.Group();
     pivot.position.set(sx * 0.075 * (0.85 + build * 0.12), 0, 0);
-    const leg = P('leg');
+    const leg = wardrobe ? E(wardrobe.leg === 'cargo' ? `cargo_${sx < 0 ? 'l' : 'r'}` : wardrobe.leg) : P('leg');
     const shoe = P('shoe');
     shoe.position.y = -LEG_L;
     pivot.add(leg, shoe);
@@ -263,17 +271,43 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const bdepth = [0.9, 1, 1.15][build];
   lanyard.scale.set(wScale, 1, bdepth);
   badge.position.z = (bdepth - 1) * 0.115;
-  torso.add(lanyard, badge);
-  const torsoParts = [torsoMesh, lanyard, badge];
+  const torsoParts = [torsoMesh];
+  if (!wardrobe) {
+    torso.add(lanyard, badge);
+    torsoParts.push(lanyard, badge);
+  }
   let garment = null;
-  if (role && role !== 'support') {
+  if (wardrobe) {
+    if (wardrobe.cut === 'hoodie') {
+      garment = P(hairIdx === 2 && !hat ? 'role_engineer_tucked' : 'role_engineer');
+      garment.traverse((o) => { if (o.isMesh && o.material === roleMat) o.material = own.shirt; });
+    } else if (wardrobe.cut !== 'tee') garment = E(wardrobe.cut);
+    if (garment) {
+      garment.scale.set(wScale, 1, bdepth);
+      torso.add(garment);
+      torsoParts.push(garment);
+    }
+    if (wardrobe.cut === 'hoodie') {
+      const id = E('lanyard');
+      id.scale.set(wScale, 1, bdepth);
+      torso.add(id); torsoParts.push(id);
+    }
+    if (wardrobe.print && wardrobe.cut !== 'hoodie' && attire) {
+      const art = part(attire, `print_${wardrobe.print}`);
+      const targets = garment && wardrobe.cut === 'fleece' ? [garment] : [torsoMesh];
+      const polo = wardrobe.cut !== 'tee';
+      for (const m of wardrobePrintParts(art, torso, targets, `${build}|${wardrobe.cut}|${wardrobe.print}`, wScale, polo)) {
+        torso.add(m); torsoParts.push(m);
+      }
+    }
+  } else if (role && role !== 'support') {
     garment = P(look.garment === 'hood_tucked' ? 'role_engineer_tucked' : `role_${role}`);
     garment.scale.set(wScale, 1, bdepth);
     torso.add(garment);
     torsoParts.push(garment);
   }
   // A role graphic on the shirt front (the engineer's goes on the hoodie pouch).
-  if (look.print) {
+  if (!wardrobe && look.print) {
     const targets = role === 'engineer' && garment ? [torsoMesh, garment] : [torsoMesh];
     for (const m of printParts(look.print, role, torso, targets, `${build}|${look.garment}`, wScale)) { torso.add(m); torsoParts.push(m); }
   }
@@ -309,6 +343,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     headGroup.add(a);
     headParts.push(a);
   }
+  if (wardrobe?.glasses) { const glasses = E('glasses'); headGroup.add(glasses); headParts.push(glasses); }
   if (role === 'support') { const h = P('role_support'); headGroup.add(h); headParts.push(h); }
 
   const arms = [-1, 1].map((sx) => {
@@ -320,8 +355,10 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     const hand = P('hand');
     wrist.add(hand);
     shoulder.add(arm, wrist);
+    const cuff = wardrobe ? E('cuff') : null;
+    if (cuff) shoulder.add(cuff);
     torso.add(shoulder);
-    return { shoulder, wrist, parts: [arm, hand] };
+    return { shoulder, wrist, parts: [arm, hand, ...(cuff ? [cuff] : [])] };
   });
   const mug = P('mug');
   mug.position.set(0, -0.06, 0.04);
@@ -1150,7 +1187,29 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   }
 
   // Low quality drops character shadows (a pass per person) to save draw calls.
-  function setShadows(on) { for (const b of baked) if (b) b.castShadow = on && b.userData.cast; }
+  let shadows = true;
+  function setShadows(on) { shadows = on; for (const b of baked) if (b) b.castShadow = on && b.userData.cast; }
+
+  let currentWardrobe = opts.wardrobe ?? null;
+  function setWardrobe(era) {
+    if (era === currentWardrobe) return;
+    // Replace only the baked surfaces. Animation, contacts, labels and movement keep their pivots.
+    const dressed = createCharacter(appearance, roleColor, { ...opts, wardrobe: era });
+    const next = new Map();
+    dressed.root.traverse((o) => { if (o.userData.part) next.set(o.userData.part, o); });
+    for (const old of baked) {
+      const replacement = next.get(old?.userData.part);
+      if (!replacement) continue;
+      old.geometry.dispose();
+      old.geometry = replacement.geometry.clone();
+      old.geometry.userData.shared = false;
+      old.userData.cast = replacement.userData.cast;
+    }
+    dressed.dispose();
+    currentWardrobe = era;
+    root.userData.wardrobe = era;
+    setShadows(shadows);
+  }
 
   function dispose() {
     if (mixer) { mixer.stopAllAction(); mixer.uncacheRoot(proxy); }
@@ -1181,7 +1240,9 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     o.matrixAutoUpdate = false;
   }
   update(0);
+  root.userData.wardrobe = currentWardrobe;
   return {
+    setWardrobe,
     gesture: playGesture,
     root, head: headGroup, setShadows, setAnim, setHeld, setMoveSpeed, setAnimRate, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
     setPetTarget(target) { petTarget = target; },

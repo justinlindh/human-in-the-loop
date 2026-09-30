@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mat } from './materials.js';
+import { TessellateModifier } from 'three/addons/modifiers/TessellateModifier.js';
 
 // Role graphics on shirt fronts. Each design is a few flat shapes in palette colours, laid onto the
 // torso (or the engineer's hoodie pouch) by casting rays from the front, then baked into the torso
@@ -135,6 +136,49 @@ function isolated(fn) {
 const cache = new Map();
 const ray = new THREE.Raycaster();
 const _o = new THREE.Vector3(), _d = new THREE.Vector3(), _n = new THREE.Vector3();
+
+// Blender's flat shirt artwork follows the same surface projection as the role graphics.
+export function wardrobePrintParts(source, torso, targets, key, wScale, polo = false) {
+  return isolated(() => {
+    const ck = `wardrobe|${key}|${polo}`;
+    let layers = cache.get(ck);
+    if (!layers) {
+      torso.updateMatrixWorld(true);
+      source.updateMatrixWorld(true);
+      const inv = new THREE.Matrix4().copy(torso.matrixWorld).invert();
+      layers = [];
+      source.traverse((o) => {
+        if (!o.isMesh) return;
+        const flat = o.geometry.clone().applyMatrix4(o.matrixWorld);
+        const g = new TessellateModifier(0.012, 10).modify(flat);
+        flat.dispose();
+        const p = g.attributes.position;
+        for (let i = 0; i < p.count; i++) {
+          const x = (p.getX(i) * (polo ? 0.38 : 1) + (polo ? -0.07 : 0)) * wScale;
+          const y = polo ? (p.getY(i) - 0.145) * 0.38 + 0.18 : p.getY(i);
+          const lift = 0.0015 + p.getZ(i);
+          _o.set(x, y, 0.5).applyMatrix4(torso.matrixWorld);
+          _d.set(0, 0, -1).transformDirection(torso.matrixWorld);
+          ray.set(_o, _d);
+          const hit = ray.intersectObjects(targets, true)[0];
+          if (!hit) throw new Error(`Wardrobe print misses shirt: ${key}`);
+          _n.copy(hit.face.normal).transformDirection(hit.object.matrixWorld).transformDirection(inv);
+          const q = hit.point.applyMatrix4(inv).addScaledVector(_n, lift);
+          p.setXYZ(i, q.x, q.y, q.z);
+        }
+        g.computeVertexNormals();
+        g.userData.shared = true;
+        layers.push([o.material, g]);
+      });
+      cache.set(ck, layers);
+    }
+    return layers.map(([material, geometry]) => {
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.userData.noAO = true;
+      return mesh;
+    });
+  });
+}
 
 // Meshes for a role's print, children of `torso`, laid onto `targets` (meshes already under torso).
 // Geometry is built once per design, role, build and garment and shared by everyone who wears it.
