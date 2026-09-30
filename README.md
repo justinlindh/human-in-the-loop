@@ -116,6 +116,18 @@ Temporary members join for one job and leave (the landing page, for one). Lanes 
 
 `CLAUDE.md` is the team's rulebook. When an agent gets something wrong (a runaway render that starved the machine, a merge that beat its review, a comment that went stale and misled the next agent), the fix is a new rule in that file or a check in a script, not a promise to do better.
 
+#### Keeping contexts small
+
+Every turn an agent takes re-reads its whole context, so a session that has been running all day pays for everything it ever saw, again, on every message. Long contexts are the biggest token cost of running a team, and the agents get slower and vaguer as they fill. The fix is to reset them on a schedule, and the routine is short enough to copy:
+
+- **A handoff file.** Each teammate keeps one: its state, what is open, the tools it relies on, and the exact next command to run. It is the only thing that has to survive a reset, so it is written to be read cold.
+- **A nudge.** A hook ([`context-nudge.sh`](scripts/hooks/claude/context-nudge.sh)) watches each session's size, and past about 400k tokens it asks the teammate to write its handoff. The teammate finishes its current step, writes it, and ends its turn with `handoff ready`.
+- **The lead does the reset.** team-lead runs [`scripts/team/reset-teammate.sh`](scripts/team/reset-teammate.sh) `<name> <clear|compact>`. It finds the teammate's tmux pane, waits until it is idle at the prompt, sends `/clear` or `/compact`, and prints the context size it started from. A teammate never resets itself or types into its own pane.
+- **Afterwards.** After a `/compact`, tell the teammate to re-read its handoff and continue. After a `/clear`, resend the spawn brief first, because a clear drops it, then the handoff.
+- **Check the transcript, not the screen.** A compact is confirmed by the `compact_boundary` line in the session's transcript, which is what the script waits for. What the pane shows is not proof.
+- **Clear or compact is a measurement.** A compact keeps a summary and a clear keeps nothing, and which one works better depends on the teammate, so the script's `--log` writes a row per reset and the choice gets made from those numbers.
+- **Respawning is the fallback.** Shutting a teammate down and starting it again is for when the model has to change. Spawn it from the repository, so the project's hooks load, and give it the brief and its handoff.
+
 ### The human in this loop
 
 The one human is the designer and producer, and a veteran professional software engineer. Letting the agents write almost everything is a deliberate choice, not a gap in skills: the experience shows up in how the work is steered, split, gated and reviewed rather than in commits. They talk only to team-lead, in plain language: "the Yak window is still tiny", "this is 2020, why is standup talking about agents?", "make the sledgehammer parody the 1984 ad". The lead turns each note into a GitHub issue, routes it to the lane that owns it, and keeps passing ideas ranked in a pinned backlog issue.
