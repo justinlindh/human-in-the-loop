@@ -1,6 +1,6 @@
 # People (characters, poses, emotes, moods, traits)
 
-- **Legacy Whisperer**: a senior engineer with three compatible web launches they actually contributed work to can earn the trait in a free trait slot. While present, their knowledge reduces new Web 2.0 web-project compatibility work from +20% to +8%. The trait remains on their record after the browser retires. `id: legacy_whisperer`
+- **Legacy Whisperer**: found a Web 2.0 company with `?eras`. A senior engineer with three compatible web launches they actually contributed work to can earn the trait in a free trait slot. While present, their knowledge reduces new Web 2.0 web-project compatibility work from +20% to +8%. The trait remains on their record after the browser retires. `id: legacy_whisperer`
 
 - **Chibi staff**: big-head characters with thirteen hairstyles (among them an afro, space buns, a mohawk, a buzz cut and pigtails), builds, accessories (glasses, headphones, beanie, cap) and role garments (hoodie, blazer, headset, vest); a role-coloured ring under each. `capture 3-1-lineup`
 - **Role graphic tees**: most engineers, designers and support staff wear a print that suits the role: code brackets, a git branch or a terminal prompt on the hoodie pouch; a pen nib, colour swatches or a bezier curve on a designer's chest; a heart or a chat bubble on support's shirt. Close-ups show them best (`?chars=2&role=support&print=heart`).
