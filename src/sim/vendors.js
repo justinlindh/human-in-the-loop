@@ -16,6 +16,7 @@ import { raiseDecision } from './events.js';
 import { PERIOD_MARKETS, EARLY_ERAS } from '../data/early-eras.js';
 import { dotcomStep } from './dotcom.js';
 import { web2Step } from './web2.js';
+import { preinternetStep } from './boxed.js';
 
 const VENDOR_LINES = [
   '{model} v{version} is here! Smarter, faster, and only slightly more expensive to think about.',
@@ -34,6 +35,7 @@ function openMarkets(ctx) {
   }
   const { year } = calendarDate(state);
   const m = state.market;
+  if (m.unlockedAngles.includes('boxed')) m.unlockedAngles = m.unlockedAngles.filter((id) => id !== 'boxed');
   for (const c of Object.values(CATEGORIES)) {
     if (c.unlockYear <= year && !m.unlockedCategories.includes(c.id)) {
       m.unlockedCategories.push(c.id);
@@ -41,7 +43,7 @@ function openMarkets(ctx) {
     }
   }
   for (const a of Object.values(ANGLES)) {
-    if (eraAtLeast(state, a.era) && !m.unlockedAngles.includes(a.id)) {
+    if (a.id !== 'boxed' && eraAtLeast(state, a.era) && !m.unlockedAngles.includes(a.id)) {
       m.unlockedAngles.push(a.id);
       ctx.emit({ type: 'toast', text: `New ${a.ai ? 'AI angle' : 'approach'} unlocked: ${a.name}.`, tone: 'info' });
     }
@@ -62,6 +64,7 @@ function eraStep(ctx) {
   for (const e of EARLY_ERAS) {
     if (eraAtLeast(state, e.id) || state.eraSchedule[e.id] === undefined || state.week < state.eraSchedule[e.id]) continue;
     state.era = { id: e.id, since: state.week };
+    if (e.id === 'dotcom') state.flags.dotcom ??= { phase: 'growth', entered: state.week, float: null, settled: false, recovered: false };
     if (state.flags.erasVisited && !state.flags.erasVisited.includes(e.id)) state.flags.erasVisited.push(e.id);
     ctx.emit({ type: 'era', eraId: e.id });
     openMarkets(ctx);
@@ -127,6 +130,7 @@ export function calendarStart(ctx) {
   processScheduled(ctx);
   eraStep(ctx);
   web2Step(ctx);
+  preinternetStep(ctx);
   if (week > 0 && calendarWeek(ctx.state) % 52 === 0) openMarkets(ctx);
   trendStep(ctx);
   const every = eraAtLeast(ctx.state, 'consolidation') ? B.consolidationVendorEveryWeeks : B.vendorReleaseEveryWeeks;

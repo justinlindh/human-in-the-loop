@@ -4,7 +4,9 @@
 // for a progress bar, with n capped at of; h comes from goalHelpers in src/sim/goals.js.
 import { DOTCOM_GOALS } from './dotcom.js';
 import { WEB2_GOALS } from './web2.js';
+import { PREINTERNET_GOALS } from './preinternet.js';
 export const GOALS = [
+  ...PREINTERNET_GOALS,
   ...DOTCOM_GOALS,
   ...WEB2_GOALS,
   {

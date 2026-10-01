@@ -2,6 +2,7 @@
 const aiUnlocks = ['marketing', 'ops', 'research', 'models', 'automation', 'meaning', 'policy.pair'];
 const tutorialGoals = ['place_desks', 'start_product', 'first_launch'];
 export const ERA_STARTS = {
+  preinternet: { id: 'preinternet', name: 'Pre-internet: Boxed Software', blurb: 'Build, duplicate and restock physical software. A career in chapters: earlier years pass faster.', unlocks: ['retail', 'ops'], skippedGoals: [] },
   dotcom: { id: 'dotcom', name: 'The Dot-com Boom', blurb: 'Websites, an IPO frenzy and a bust. Carry the company through Web 2.0 into Classic.', unlocks: ['marketing', 'ops', 'research', 'squads'], skippedGoals: ['place_desks'] },
   web2: { id: 'web2', name: 'Web 2.0: The IE6 Years', blurb: 'Paying customers, company blogs and an approved browser that refuses to retire.', unlocks: ['marketing', 'ops', 'research'], skippedGoals: ['place_desks'] },
   classic: { id: 'classic', name: 'Classic SaaS', blurb: 'The full modern career. Build the company before the models arrive.', unlocks: [], skippedGoals: [] },

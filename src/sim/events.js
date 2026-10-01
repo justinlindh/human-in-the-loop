@@ -20,6 +20,7 @@ import { incumbentFor } from '../data/incumbents.js';
 import { emitChat } from './chat.js';
 import { eraOnlyAllowsText, eraAtLeast, currentEra, eraIndex } from './eras.js';
 import { openEventPrompt, promptSlotFree } from './prompts.js';
+import { preinternetChoiceReason } from './boxed.js';
 import { periodAllows, periodText } from '../data/period-content.js';
 
 // What attackers ask for: sized to the company's cash and revenue, between a floor and a cap, and never
@@ -78,6 +79,10 @@ export function fillText(state, rng, text, subjectId, vars = null) {
 
 // Why a choice cannot be picked right now (its requirement, or a grant that cannot happen), or null.
 function choiceBlocker(state, c, subjectId) {
+  if (c.effects?.preinternet) {
+    const reason = preinternetChoiceReason(state, c.effects.preinternet, subjectId);
+    if (reason) return reason;
+  }
   if (c.requires && !checkCondition(state, c.requires, subjectId)) return requireReason(state, c.requires);
   return grantBlocker(state, c);
 }

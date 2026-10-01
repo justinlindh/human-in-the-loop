@@ -3,6 +3,7 @@ import { OFFICE_NODS } from './office-nods.js';
 import { SV_NODS } from './sv-nods.js';
 import { DOTCOM_EVENTS } from './dotcom.js';
 import { WEB2_EVENTS } from './web2.js';
+import { PREINTERNET_EVENTS } from './preinternet.js';
 import { Y2K_EVENTS } from './y2k.js';
 // Random and triggered events. `when(state, h)` receives helpers from the sim:
 // h = { B, mrr, live, bestScore, usesModel(id), offerReady }. Optional eras: [eraIds] limits an event to those eras;
@@ -24,6 +25,7 @@ export const SUBJECTS = [
 export const EVENT_KINDS = ['staff', 'leadership', 'market', 'vendor', 'incident', 'cyber', 'annual', 'misc', 'era', 'world'];
 
 export const EFFECT_KEYS = [
+  'preinternet',
   'legacyPolish',
   'dotcom', 'cash', 'summit', 'musicNight', 'moonshot', 'lastBet', 'fame', 'agentAudit', 'agentCap', 'agentInvoice', 'rivalMerge', 'acquireBest', 'expandNow', 'brand', 'debt', 'ik', 'hype', 'customersPct', 'health', 'meaning', 'knowledge', 'teamMeaning',
   'resign', 'assign', 'candidates', 'flag', 'win', 'salaryPct', 'startCraft', 'gpuShortageWeeks',
@@ -1258,7 +1260,7 @@ const list = [
   },
 ];
 
-export const EVENTS = Object.fromEntries([...list, ...OFFICE_NODS, ...SV_NODS, ...DOTCOM_EVENTS, ...WEB2_EVENTS, ...Y2K_EVENTS].map((e) => [e.id, e]));
+export const EVENTS = Object.fromEntries([...list, ...OFFICE_NODS, ...SV_NODS, ...DOTCOM_EVENTS, ...WEB2_EVENTS, ...Y2K_EVENTS, ...PREINTERNET_EVENTS].map((e) => [e.id, e]));
 
 export const INCIDENT_EVENT = {
   db_wipe: 'agent_db_wipe', runaway_spend: 'agent_runaway_spend', mass_email: 'agent_mass_email',

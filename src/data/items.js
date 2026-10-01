@@ -75,6 +75,12 @@ const FRONT_FROM = { noc: 2, espresso: 1, coffee_corner: 1, plant_wall: 1, books
 const OUTDOOR = new Set(['plant', 'couch', 'coffee_corner', 'ping_pong_table', 'plant_wall']);
 
 export const ITEMS = Object.fromEntries([
+  ...[
+    ['disk_duplicator', 'Disk Duplicator', 'The progress bar has a motor.', B.preinternet.duplicatorCosts, 'batchRelief', B.preinternet.duplicatorRelief],
+    ['retail_shelf', 'Retail Display', 'The box has more features than the back of the box can explain.', B.preinternet.shelfCosts, 'retailDemand', B.preinternet.shelfDemand],
+  ].map(([id, name, desc, costs, key, values]) => [id, { id, name, desc, kind: 'shop', minStage: 0, costs,
+    effects: values.map((v) => ({ [key]: v })), requires: null, footprint: { w: 2, h: 1 }, adjacency: null,
+    era: 'preinternet', onlyEras: ['preinternet', 'dotcom', 'web2'], standIn: 'crate', outdoor: false, frontFrom: null, levelStage: null, unique: false }]),
   ['dotcom_banner', { id: 'dotcom_banner', name: 'Banner Rotation Server', desc: 'The ad has loaded. The page is considering it. Adds new-customer acquisition during the dot-com chapter.', kind: 'shop',
     minStage: 0, costs: B.dotcom.bannerCosts, effects: B.dotcom.bannerAcquisition.map((bannerAcquisition) => ({ bannerAcquisition })),
     requires: null, footprint: { w: 2, h: 1 }, adjacency: null, era: 'dotcom', onlyEras: ['dotcom'], standIn: 'crate', outdoor: false, frontFrom: null, levelStage: null, unique: true }],

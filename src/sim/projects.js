@@ -21,6 +21,7 @@ import { applyCompatibility, compatibleLaunch } from './web2.js';
 import { y2kProjectOpen } from './y2k.js';
 import { Y2K_PROJECT } from '../data/y2k.js';
 import { isPeriod, periodCopy } from '../data/period-content.js';
+import { newInventory } from './boxed.js';
 
 const STAT_LABEL = { features: 'Features', polish: 'Polish', reliability: 'Reliability', novelty: 'Freshness' };
 
@@ -100,6 +101,7 @@ function validateNew(state, a) {
   if (!size) return 'Unknown size';
   if (!state.market.unlockedCategories.includes(a.category)) return 'Category is locked';
   if (!state.market.unlockedAngles.includes(a.angle)) return 'Angle is locked';
+  if (a.angle === 'boxed' && eraAtLeast(state, 'classic')) return 'Boxed releases start before Classic';
   if (ANGLES[a.angle].ai) {
     const m = state.models[a.model];
     if (!m || !m.available || m.deprecated) return 'Model is not available';
@@ -191,6 +193,10 @@ function launchNew(ctx, j) {
     copied: false, wrapperHit: false, ownerId: null, migrationDueWeek: null, killed: false,
   };
   state.products.push(product);
+  if (j.angle === 'boxed') {
+    product.boxed = newInventory();
+    if (state.era.id === 'preinternet') raiseDecision(ctx, 'pre_master_disk', product.id, { queue: true });
+  }
   compatibleLaunch(state, j, product);
   const combo = `${j.category}:${j.angle}`;
   if (!(combo in state.discoveredCombos)) state.discoveredCombos[combo] = round(review.fit, 2);

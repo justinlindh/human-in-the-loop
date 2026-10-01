@@ -12,6 +12,7 @@ import { call, SIMX } from '../simapi.js';
 import { touchUI } from '../media.js';
 
 const EFFECT_LABEL = {
+  batchRelief: 'duplication cost relief', retailDemand: 'retail demand',
   staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', burnoutResign: 'burnout resignations',
   output: 'output', staminaDrain: 'stamina drain', novelty: 'freshness', knowledgeGain: 'knowledge gain',
   oversight: 'oversight per person', maintenanceNeed: 'maintenance need', uptimeFloor: 'minimum uptime', brandDecay: 'brand decay',

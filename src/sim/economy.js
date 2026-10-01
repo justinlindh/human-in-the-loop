@@ -7,6 +7,7 @@ import { MODELS } from '../data/models.js';
 import { POLICIES } from '../data/policies.js';
 import { OFFICE_STAGES } from '../data/office.js';
 import { raiseDecision } from './events.js';
+import { boxRevenue } from './boxed.js';
 
 // Dollars per customer per month for a product on this model, including price hikes.
 // A product without a model (a Classic approach) costs nothing per customer.
@@ -51,7 +52,8 @@ export function weeklyCosts(state) {
   };
 }
 
-export const weeklyRevenue = (state) => totalMrr(state) * 12 / 52;
+export const recurringRevenue = (state) => totalMrr(state) * 12 / 52;
+export const weeklyRevenue = (state) => recurringRevenue(state) + boxRevenue(state);
 
 // What the moonshot lab would cost each week if funded now: a share of weekly revenue, with a floor.
 export const moonshotWeekly = (state) => Math.round(Math.max(B.moonshotMinWeekly, B.moonshotRevenueShare * weeklyRevenue(state)) / 1000) * 1000;
