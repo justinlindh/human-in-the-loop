@@ -1,0 +1,37 @@
+e5e-final: exit 0
+{"era":"preinternet","price":250,"mult":1.3,"bot":"automateAll","seeds":200,"exits":0,"median":1674,"dotcom":199,"web2":199,"cash":1834851.323076923,"staff":6}
+{"era":"preinternet","price":250,"mult":1.3,"bot":"allHumans","seeds":200,"exits":85,"median":38896,"dotcom":200,"web2":164,"cash":1323636.4615384603,"staff":14}
+{"era":"preinternet","price":250,"mult":1.3,"bot":"balanced","seeds":200,"exits":126,"median":42157,"dotcom":200,"web2":169,"cash":1318111.215384615,"staff":14}
+{"era":"preinternet","price":250,"mult":1.3,"bot":"sensible","seeds":200,"exits":147,"median":43355,"dotcom":200,"web2":185,"cash":1646265.4307692302,"staff":14}
+{"era":"preinternet","price":250,"mult":1.3,"bot":"recklessHumans","seeds":200,"exits":0,"median":901,"dotcom":192,"web2":89,"cash":927261.2153846152,"staff":14}
+{"era":"preinternet","price":250,"mult":1.3,"bot":"squads","seeds":200,"exits":104,"median":39496,"dotcom":200,"web2":163,"cash":1326495.7538461538,"staff":14}
+pooled median: 33114
+
+e5e-full-tests-final: exit 0
+
+> human-in-the-loop@1.0.0 test
+> vitest run --maxWorkers=4
+
+
+ RUN  v5.0.1 .
+
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+
+ Test Files  206 passed (206)
+      Tests  1711 passed (1711)
+   Start at  17:12:40
+   Duration  407.62s (tests 99%, import 1%)
+
