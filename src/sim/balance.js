@@ -2,7 +2,7 @@
 export const B = {
   preinternet: {
     weeks: 156, startYear: 1990, endYear: 1997,
-    batches: [100, 500, 1000], unitCost: 8, price: 350, retailerShare: 0.3, leadWeeks: 2,
+    batches: [100, 500, 1000], unitCost: 8, price: 250, retailerShare: 0.3, leadWeeks: 2,
     returnScore: 6, returnEvery: 20, valuationWeeks: 52, patchPerCustomer: 2, patchCap: 10000,
     verifyCost: 2000, verifyReliability: 5, rushDebt: 3, rushCash: 3000,
     buybackShare: 0.2, buybackCap: 8000, buybackDelayWeeks: 4, cdWeek: 78, cdCost: 4000, cdCapacity: 0.25,
@@ -170,7 +170,7 @@ export const B = {
   // scoreShare: a start's pooled median final score (six bots, 200 seeds) as a share of Classic's, for the
   // founding screen. It follows from scoreMult and the bots' raw scores, so recalibrating one means re-measuring it.
   eraStarts: {
-    preinternet: { cash: 240000, officeStage: 0, desks: 3, scoreMult: 0.67, scoreShare: 0.95, exitMrrMult: 1.3 },
+    preinternet: { cash: 240000, officeStage: 0, desks: 3, scoreMult: 0.72, scoreShare: 0.95, exitMrrMult: 1.3 },
     web2: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 0.56, scoreShare: 0.75, exitMrrMult: 1.2 },
     dotcom: { cash: 140000, officeStage: 0, desks: 4, scoreMult: 0.61, scoreShare: 0.9, exitMrrMult: 1.35 },
     classic: { cash: 0, officeStage: 0, desks: 2, scoreMult: 1, scoreShare: 1, exitMrrMult: 1 },

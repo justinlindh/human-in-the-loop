@@ -158,9 +158,9 @@ describe('physical distribution arithmetic', () => {
     service.mrr = 5200; service.customers = 100;
     p.boxed.stock = 100; p.boxed.stockCost = 800; p.score = 8;
     sellBoxes(makeCtx(s), p, 100);
-    expect(recurringRevenue(s)).toBe(1200); expect(weeklyRevenue(s)).toBe(25700);
+    expect(recurringRevenue(s)).toBe(1200); expect(weeklyRevenue(s)).toBe(18700);
     const before = s.cash, costs = Object.values(weeklyCosts(s)).reduce((a, b) => a + b, 0);
-    economySystem(makeCtx(s)); expect(s.cash).toBe(before + 25700 - costs);
+    economySystem(makeCtx(s)); expect(s.cash).toBe(before + 18700 - costs);
     s.week++; sellBoxes(makeCtx(s), p, 100);
     const after = s.cash; economySystem(makeCtx(s)); expect(s.cash).toBe(after + 1200 - costs);
     expect(p.mrr).toBe(0); expect(p.customers).toBe(0); expect(service.mrr).toBe(5200);
@@ -204,9 +204,9 @@ describe('physical distribution arithmetic', () => {
     const s = game(), p = product(s); p.boxed.stock = 100; p.boxed.stockCost = 800; p.score = 5;
     sellBoxes(makeCtx(s), p, 200);
     expect(p.boxed.stock).toBe(0); expect(p.boxed.unitsSold).toBe(100); expect(p.boxed.returns).toBe(5);
-    expect(p.boxed.installed).toBe(95); expect(p.boxed.grossSales).toBe(35000);
-    expect(p.boxed.retailerFees).toBe(10500); expect(p.boxed.refunds).toBe(1225);
-    expect(p.boxed.weeklyNet).toBe(23275); expect(p.mrr).toBe(0); expect(p.customers).toBe(0);
+    expect(p.boxed.installed).toBe(95); expect(p.boxed.grossSales).toBe(25000);
+    expect(p.boxed.retailerFees).toBe(7500); expect(p.boxed.refunds).toBe(875);
+    expect(p.boxed.weeklyNet).toBe(16625); expect(p.mrr).toBe(0); expect(p.customers).toBe(0);
     sellBoxes(makeCtx(s), p, 200); expect(p.boxed.weeklyNet).toBe(0); expect(p.boxed.unitsSold).toBe(100);
   });
 

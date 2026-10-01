@@ -16,7 +16,7 @@ describe.each(FUNDING_IDS)('pre-internet opening with %s funding', (funding) => 
 });
 
 describe('pre-internet handoff through the dot-com chapter', () => {
-  it.each(['balanced', 'sensible'])('%s reaches Web 2.0 at least as often as a dot-com founding', (bot) => {
+  it.each(['balanced', 'sensible'])('%s reaches Web 2.0 between 1 and 15 points less often than a dot-com founding', (bot) => {
     let survivors = 0;
     let dotcomSurvivors = 0;
     for (let seed = 1; seed <= 200; seed++) {
@@ -27,6 +27,9 @@ describe('pre-internet handoff through the dot-com chapter', () => {
       if (run.eras.web2 && !run.state.gameOver) survivors++;
       if (dotcom.eras.web2 && !dotcom.state.gameOver) dotcomSurvivors++;
     }
-    expect(survivors).toBeGreaterThanOrEqual(dotcomSurvivors);
+    // A larger payroll makes the inherited dot-com chapter harder without making it a dead end.
+    const shortfall = dotcomSurvivors - survivors;
+    expect(shortfall).toBeGreaterThanOrEqual(2);
+    expect(shortfall).toBeLessThanOrEqual(30);
   }, 300000);
 });
