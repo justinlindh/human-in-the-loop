@@ -29,7 +29,7 @@
   },
   "type": "module",
   "dependencies": {
-    "three": "0.186.0"
+    "three": "0.186.1"
   },
   "devDependencies": {
     "@semantic-release/commit-analyzer": "13.0.1",
@@ -40,8 +40,8 @@
     "playwright": "^1.63.0",
     "semantic-release": "25.0.9",
     "three-mesh-bvh": "0.9.15",
-    "vite": "^8.3.0",
-    "vitest": "^5.0.1"
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2"
   },
   "private": true
 }
