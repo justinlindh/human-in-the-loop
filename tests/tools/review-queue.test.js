@@ -78,6 +78,19 @@ describe('review-queue command', () => {
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
   });
 
+  it('--wait at an interval of 15 s or more reads the shared snapshot; a one-shot run still asks GitHub', () => {
+    const t = setup([pr(4)]);
+    try {
+      const env = { ...t.env, HITL_PR_SNAPSHOT: join(t.dir, 'snapshot.json') };
+      const first = run(env, '--wait', '--interval', '15', '--timeout', '20');
+      expect([first.status, first.stdout.trim()]).toEqual([0, 'READY #4 4aaaaaaa tools/x4: t4']);
+      t.set([]);
+      const second = run(env, '--wait', '--interval', '15', '--timeout', '1');
+      expect([second.status, second.stdout.trim()]).toEqual([0, 'READY #4 4aaaaaaa tools/x4: t4']);
+      expect(run(env).status).toBe(3);
+    } finally { rmSync(t.dir, { recursive: true, force: true }); }
+  });
+
   it('--wait blocks until something wakes it and then prints all of it, pending CI included', async () => {
     const t = setup([pr(3, {}, 'PENDING')]);
     try {
