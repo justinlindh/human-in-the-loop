@@ -177,6 +177,51 @@ export function stripTrailers(command: string): string {
   return /\b(git\s+commit|gh\s+pr\s+(create|edit|comment))\b/.test(command) ? command.replace(TRAILER, '') : command;
 }
 
+// The PR a non-draft `gh pr create` opened, from the URL it printed; undefined for a draft, another
+// command, or output with no PR URL.
+export function createdPr(command: string, output: string): number | undefined {
+  const creates = segments(command).some((s) => { const { cmd, args } = commandOf(s.words); return cmd === 'gh' && args[0] === 'pr' && args[1] === 'create' && !args.includes('--draft') && !args.includes('-d'); });
+  if (!creates) return undefined;
+  const m = /github\.com\/[^/\s]+\/[^/\s]+\/pull\/(\d+)/.exec(output);
+  return m ? Number(m[1]) : undefined;
+}
+
+// A PR held back from auto-merge: a draft, or one labelled for the owner (`awaiting-user`) or Codex.
+export function heldPr(info: { isDraft?: boolean; autoMergeRequest?: unknown; labels?: { name: string }[] }): 'draft' | 'label' | null {
+  if (info.isDraft) return 'draft';
+  return info.labels?.some((l) => l.name === 'awaiting-user' || l.name === 'codex') ? 'label' : null;
+}
+
+// A command that runs a render or a capture: the checks, captures, benches and renders that take the GPU
+// slot and starve when the machine is loaded. Only a program that runs it counts, not a commit message or a
+// grep that mentions the path.
+const RENDER_JOB = /with-render-lock\.sh|scripts\/capture\.js|npm (run )?capture|scripts\/(reels|feature-media)\/|blender\/checks\/(golden|sweep|stage|clip|standup|pose|onscreen|scene|dump)|scripts\/perf\/bench|scripts\/snap\.js|npm run (snap|gates)\b/;
+const RUNNERS = /^(node|npm|npx|bash|sh|timeout|nice|env)$/;
+
+export function isRenderJob(command: string): boolean {
+  return segments(command).some((s) => {
+    const { cmd, args } = commandOf(s.words);
+    if (!cmd || cmd === 'git' || cmd === 'gh' || cmd === 'grep' || cmd === 'rg' || cmd === 'cat' || cmd === 'echo') return false;
+    if (!RUNNERS.test(cmd) && !cmd.endsWith('.sh')) return false;
+    return RENDER_JOB.test([cmd, ...args].join(' '));
+  });
+}
+
+// The 1-minute load average from /proc/loadavg text, or null when it does not read as one.
+export function loadOf(text: string): number | null {
+  const n = Number.parseFloat(text.trim().split(/\s+/)[0] ?? '');
+  return Number.isFinite(n) ? n : null;
+}
+
+// Local paths in the text of a `gh pr create|edit|comment` made repo-relative: this checkout's top, and any
+// sibling worktree of the repo (`/home/<user>/src/<repo>[-lane]/`). Paths outside a repo are left as written.
+export function repoRelative(command: string, top: string | null): string {
+  if (!segments(command).some((s) => { const { cmd, args } = commandOf(s.words); return cmd === 'gh' && args[0] === 'pr' && ['create', 'edit', 'comment'].includes(args[1] ?? ''); })) return command;
+  let out = command;
+  if (top) out = out.split(`${top}/`).join('');
+  return out.replace(/\/home\/[^/\s"'`]+\/src\/[^/\s"'`]+\//g, '');
+}
+
 // A background task's notification, as the row the session keeps reads: the output file, the status
 // and exit code, and for a Bash task its command.
 export type Notice = { outputFile: string; status: string; exitCode: number | null; command: string | null };
