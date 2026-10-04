@@ -18,7 +18,11 @@ describe('orderGoals', () => {
     expect(ids({ week: 5, founding: { earlyChapters: chapters } })).toEqual(['dot', 'base', 'web2']);
   });
   it('moves on when the next chapter starts', () => {
-    expect(ids({ week: 150, founding: { earlyChapters: chapters } })).toEqual(['web2', 'dot', 'base']);
+    expect(ids({ week: 150, founding: { earlyChapters: chapters } })).toEqual(['web2', 'base', 'dot']);
+  });
+  it('has no current chapter once every chapter is over', () => {
+    expect(ids({ week: 200, founding: { earlyChapters: chapters } })).toEqual(['base', 'web2', 'dot']);
+    expect(ids({ week: 900, founding: { earlyChapters: chapters } })).toEqual(['base', 'web2', 'dot']);
   });
 });
 
