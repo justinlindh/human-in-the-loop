@@ -2,10 +2,11 @@
 //
 //   node blender/checks/golden.mjs            compare; exits 1 if any scene differs
 //   node blender/checks/golden.mjs --update   rewrite the references (commit them deliberately)
-//   --only=a,b    just these scenes      --jobs=N   scenes rendered at once (default 8)
+//   --only=a,b    just these scenes      --software  SwiftShader instead of the GPU
+//   --jobs=N      scenes rendered at once under --software (default 8); a GPU run renders one at a time
 //
-// Scenes render concurrently, each in its own page with its own seeded random and frozen clock, so
-// the pixels do not depend on the order or the overlap. Each scene that passes (or is updated) is
+// Each scene renders in its own page with its own seeded random and frozen clock, so the pixels do
+// not depend on the order. Each scene that passes (or is updated) is
 // recorded with every file its page loaded (cache.mjs); a later run, verify or --update, skips a
 // scene when none of those files, its reference, or anything else in its base key changed, and
 // starts no browser at all when every scene is unchanged and the frame-by-frame identity check (below)
@@ -19,7 +20,7 @@
 // render depends only on the code.
 // Differences are counted per pixel (any channel off by more than CHANNEL_TOL); a scene fails when
 // more than MAX_SHARE of pixels differ. Failures write <scene>.actual.png and <scene>.diff.png next to the reference.
-import { startHarness } from './harness.mjs';
+import { startHarness, wantGpu } from './harness.mjs';
 import { sceneBase, sceneUpToDate, recordScene, clearScene, requestedFiles } from './cache.mjs';
 import { logTiming } from '../../scripts/lib/timing.js';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
@@ -33,7 +34,11 @@ const REF = join(HERE, 'golden');
 const OUT = process.env.HITL_GOLDEN_OUT ? resolve(process.env.HITL_GOLDEN_OUT) : resolve(HERE, '..', '..', 'shots', 'golden');
 const UPDATE = process.argv.includes('--update');
 const ONLY = process.argv.find((a) => a.startsWith('--only='))?.slice(7).split(',');
-const JOBS = Math.max(1, Number(process.argv.find((a) => a.startsWith('--jobs='))?.slice(7)) || 8);
+// The references are GPU renders, reproduced byte for byte only while scenes render one at a time, so a
+// GPU run is serial and ignores --jobs. --software (SwiftShader) still renders --jobs scenes at once,
+// for a machine without the GPU; its pixels differ from the references.
+const GPU = wantGpu();
+const JOBS = GPU ? 1 : Math.max(1, Number(process.argv.find((a) => a.startsWith('--jobs='))?.slice(7)) || 8);
 const CHANNEL_TOL = 24;
 const MAX_SHARE = 0.004;
 const W = 960, H_PX = 640;
@@ -74,13 +79,13 @@ const selected = SCENES.filter((sc) => !ONLY || ONLY.includes(sc.name));
 // that scene's page before it steps (a test hook for a deliberate temporal effect).
 const IDENTITY = { ...SCENES.find((sc) => sc.name === 'char-lineup'), setup: process.env.HITL_GOLDEN_IDENTITY_SETUP || undefined };
 const IDENTITY_CHECK = 'golden-identity';
-IDENTITY.base = sceneBase(IDENTITY_CHECK, { ...IDENTITY, base: undefined, W, H_PX }, TOOL_FILES);
+IDENTITY.base = sceneBase(IDENTITY_CHECK, { ...IDENTITY, base: undefined, W, H_PX, gpu: GPU }, TOOL_FILES);
 const identityFresh = sceneUpToDate(IDENTITY_CHECK, IDENTITY.name, IDENTITY.base, 'blender/checks/golden.mjs');
 logTiming({ kind: 'cache', tool: 'golden', scene: `${IDENTITY.name}:identity`, cache: IDENTITY.base ? (identityFresh ? 'hit' : 'miss') : 'off', input: IDENTITY.base });
 const results = new Map();
 const todo = [];
 for (const sc of selected) {
-  sc.base = sceneBase('golden', { ...sc, base: undefined }, TOOL_FILES);
+  sc.base = sceneBase('golden', { ...sc, base: undefined, gpu: GPU }, TOOL_FILES);
   const fresh = sceneUpToDate('golden', sc.name, sc.base, refRel(sc));
   logTiming({ kind: 'cache', tool: 'golden', scene: sc.name, cache: sc.base ? (fresh ? 'hit' : 'miss') : 'off', input: sc.base });
   if (fresh) results.set(sc.name, `${sc.name}: unchanged, skipped`);
@@ -92,8 +97,7 @@ if (!todo.length && identityFresh) {
   process.exit(0);
 }
 
-// Golden images compare exact pixels, which only SwiftShader reproduces on every machine.
-const H = await startHarness({ gpu: false, browsers: Math.max(1, Math.min(JOBS, todo.length)) });
+const H = await startHarness({ gpu: GPU, browsers: Math.max(1, Math.min(JOBS, todo.length)) });
 mkdirSync(REF, { recursive: true });
 mkdirSync(OUT, { recursive: true });
 

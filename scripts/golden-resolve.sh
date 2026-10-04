@@ -4,7 +4,7 @@
 # rendering the merge. Run it in a checkout where `git merge` stopped on those conflicts.
 #   1. It refuses while any other file still conflicts (resolve and add those first).
 #   2. It keeps both sides of each conflicted image, renders just those scenes with
-#      `golden.mjs --update --only=<scenes>` (on the software render lock, taken by the harness), and
+#      `golden.mjs --update --only=<scenes>` (on the GPU, under the render lock the harness takes), and
 #      stages the new references.
 #   3. It writes a sheet per scene (this branch | merged in | regenerated) under shots/golden-resolve/:
 #      post them with scripts/pr-media.sh for review as an image diff, then commit the merge.
