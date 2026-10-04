@@ -49,5 +49,7 @@ export default defineConfig({
   // maxWorkers caps the suite's parallelism (the default is a worker per core, and tool tests start
   // browsers of their own); HITL_TEST_WORKERS raises or lowers it, and --maxWorkers overrides both.
   // The slow files start first (scripts/tools/test-order.mjs), so the run never waits on one alone.
-  test: { include: ['tests/**/*.test.js', 'src/**/*.test.js'], environment: 'node', testTimeout: 20000, maxWorkers: Number(process.env.HITL_TEST_WORKERS) || 4, sequence: { sequencer: LongestFirst } },
+  // They then run side by side, which on a four-core runner slows each case several times over: the
+  // timeout leaves room for that and still stops a hung test within a minute.
+  test: { include: ['tests/**/*.test.js', 'src/**/*.test.js'], environment: 'node', testTimeout: 60000, maxWorkers: Number(process.env.HITL_TEST_WORKERS) || 4, sequence: { sequencer: LongestFirst } },
 });
