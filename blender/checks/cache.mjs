@@ -317,3 +317,60 @@ export function recordGraphPass(check, base, loaded, entry = process.argv[1]) {
     }
   } catch (e) { skipped(check, `could not write the record: ${e.message}`); }
 }
+
+// Per-item records for media made from game captures (feature media, #550): one record per item id
+// under ~/.cache/hitl-ci/<kind>-items/, so a run re-renders only the items whose inputs changed.
+//   const base = itemBase('feature-media', item, ['scripts/feature-media/render.mjs', 'scripts/capture.js'])
+//   itemStatus('feature-media', item.id, base)  -> { upToDate, reason }
+//   clearItem('feature-media', item.id)          before re-rendering it
+//   recordItem('feature-media', item.id, base, loaded)   after a good render
+// itemBase covers what is not a loaded file: the item's spec (functions in it by their source), the
+// tool files with their import graphs, and what graphBase covers. `loaded` is what the capture loaded:
+// the page's request URLs, repo paths, or both. A record holds each loaded file's hash and the file
+// names under every directory a loaded module globs. Any doubt means "stale".
+const itemFile = (kind, id) => join(dir(`${kind}-items`), `${encodeURIComponent(String(id))}.json`);
+const specText = (spec) => JSON.stringify(spec, (_, v) => (typeof v === 'function' ? `fn:${v.toString()}` : v));
+
+export function itemBase(kind, spec, toolFiles = []) {
+  if (process.env.HITL_NO_CHECK_CACHE === '1') return null;
+  try {
+    const tools = loadedFiles(toolFiles.flatMap((f) => [f, ...moduleGraph(join(ROOT, f))]));
+    const parts = [...BASE_FILES, ...tools].map((f) => `${f}:${fileHash(f)}`);
+    return createHash('sha256').update(`${kind}\n${specText(spec)}\n${process.version}\n${installed()}\n${parts.join('\n')}`).digest('hex').slice(0, 32);
+  } catch (e) {
+    skipped(kind, `could not build the key: ${e.message}`);
+    return null;
+  }
+}
+
+export function itemStatus(kind, id, base) {
+  if (!base) return { upToDate: false, reason: 'cache off' };
+  let rec;
+  try { rec = JSON.parse(readFileSync(itemFile(kind, id), 'utf8')); } catch { return { upToDate: false, reason: 'no record' }; }
+  if (rec.base !== base) return { upToDate: false, reason: 'spec or tools changed' };
+  for (const [f, h] of Object.entries(rec.files ?? {})) if (!f.includes(':') && fileHash(f) !== h) return { upToDate: false, reason: `changed: ${f}` };
+  for (const [d, h] of Object.entries(rec.lists ?? {})) if (listHash(d) !== h) return { upToDate: false, reason: `files added or removed under ${d}` };
+  return { upToDate: true, reason: null, commit: rec.commit };
+}
+
+export function recordItem(kind, id, base, loaded) {
+  if (!base) return false;
+  try {
+    const urls = loaded.filter((p) => /^[a-z]+:\/\//i.test(p));
+    const rels = [...new Set([...requestedFiles(urls), ...loadedFiles(loaded.filter((p) => !urls.includes(p)))])].sort();
+    if (!rels.some((f) => f.startsWith('src/'))) { skipped(kind, `${id}: no game source loaded`); return false; }
+    const files = Object.fromEntries(rels.map((f) => [f, f.includes(':') ? f : fileHash(f)]));
+    const missing = Object.keys(files).filter((f) => files[f] === null);
+    if (missing.length) { skipped(kind, `${id}: a loaded file is missing (${missing[0]})`); return false; }
+    const lists = Object.fromEntries(globDirs(rels).map((d) => [d, listHash(d)]));
+    let commit = 'uncommitted';
+    try { commit = execSync('git rev-parse --short HEAD', { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch { /* not a checkout */ }
+    mkdirSync(dir(`${kind}-items`), { recursive: true });
+    writeFileSync(itemFile(kind, id), JSON.stringify({ base, commit, files, lists }));
+    return true;
+  } catch (e) { skipped(kind, `${id}: could not write the record: ${e.message}`); return false; }
+}
+
+export function clearItem(kind, id) {
+  try { rmSync(itemFile(kind, id), { force: true }); } catch { /* unremovable: the base still guards it */ }
+}

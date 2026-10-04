@@ -1,5 +1,5 @@
 import type { Register, EngineInterface } from 'claude-code'
-import { branchSwitch, noticeNote, ownersOf, parseNotice, shellWrites, stripTrailers, type ShellWrite } from './rules.ts'
+import { branchSwitch, createdPr, heldPr, isRenderJob, loadOf, loadWaitPrefix, noticeNote, ownersOf, parseNotice, repoRelative, shellWrites, stripTrailers, type ShellWrite } from './rules.ts'
 
 // Shared guards for the Human in the Loop lanes (issue #1313). Each guard fails open: an error in one
 // passes the call on untouched.
@@ -64,12 +64,74 @@ async function watchersOf($: EngineInterface, cwd: string): Promise<string[]> {
   return found
 }
 
+const LOAD_LIMIT = 40
+const HOLD_POLL_MS = 15_000
+const HOLD_MAX_MS = 10 * 60_000
+
+async function readLoad($: EngineInterface): Promise<number | null> {
+  try { return loadOf(await $.fs.read('/proc/loadavg')) } catch { return null }
+}
+
+// The PR-open hook that turns on auto-merge can miss: read the PR back and turn it on when it is off.
+// A draft, or a PR held for the owner or for Codex, is left alone.
+async function ensureAutoMerge($: EngineInterface, pr: string): Promise<string | undefined> {
+  const cwd = await dirFor($, null)
+  const view = await $.process.run(['gh', 'pr', 'view', pr, '--json', 'isDraft,autoMergeRequest,labels'], { cwd, timeoutMs: 30000 })
+  if (view.exitCode !== 0) return undefined
+  const info = JSON.parse(view.stdout)
+  if (heldPr(info) || info.autoMergeRequest) return undefined
+  const r = await $.process.run(['gh', 'pr', 'merge', pr, '--auto', '--merge'], { cwd, timeoutMs: 30000 })
+  return r.exitCode === 0
+    ? `hitl-guards: auto-merge was off on ${pr}; turned it on.`
+    : `hitl-guards: auto-merge is off on ${pr} and turning it on failed: ${r.stderr.trim()}`
+}
+
 export const register: Register = on => {
+  // A render or a capture waits for the machine instead of being refused: while the 1-minute load is at
+  // or above the limit it holds, up to ten minutes, then runs, or refuses if the load never dropped.
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    let waited = 0
+    try {
+      if (isRenderJob(e.command) && e.run_in_background) {
+        // A background call must not hold the turn: the wait runs in the shell, ahead of the command.
+        return next({ ...e, command: loadWaitPrefix(LOAD_LIMIT, HOLD_MAX_MS / HOLD_POLL_MS) + e.command })
+      }
+      if (isRenderJob(e.command)) {
+        let load = await readLoad($)
+        while (load !== null && load >= LOAD_LIMIT && waited < HOLD_MAX_MS) {
+          $.ui.status(`hitl-guards: holding a render for load ${load.toFixed(0)} (below ${LOAD_LIMIT} to start)`)
+          await $.clock.sleep(HOLD_POLL_MS, { signal: next.signal })
+          waited += HOLD_POLL_MS
+          load = await readLoad($)
+        }
+        if (waited) $.ui.status(undefined)
+        if (load !== null && load >= LOAD_LIMIT) return { deny: `hitl-guards: load is still ${load.toFixed(0)} after ${waited / 60000} min (limit ${LOAD_LIMIT}), so this render did not start. Retry later, or start it with run_in_background and end the turn (that waits in the shell).` }
+      }
+    } catch { /* fail open */ }
+    const ran = await next(e)
+    return waited && ran.deny === undefined ? { ...ran, context: [...(ran.context ?? []), `hitl-guards: held ${waited / 1000} s for the load to drop below ${LOAD_LIMIT}, then ran it.`] } : ran
+  })
+
   // Session trailers in a commit message or PR text: the commit-msg hook refuses them after the gate.
+  // Local paths in PR text become repo-relative. After a non-draft `gh pr create`, auto-merge is checked.
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     let command = e.command
-    try { command = stripTrailers(e.command) } catch { /* fail open */ }
-    return next(command === e.command ? e : { ...e, command })
+    try { command = stripTrailers(command) } catch { /* fail open */ }
+    try {
+      if (/\bgh\s+pr\b/.test(command)) {
+        const cwd = await dirFor($, null)
+        const top = (await git($, cwd, 'rev-parse', '--show-toplevel')).stdout.trim()
+        const wt = (await git($, cwd, 'worktree', 'list', '--porcelain')).stdout.split('\n').filter((l) => l.startsWith('worktree ')).map((l) => l.slice(9).trim())
+        command = repoRelative(command, [top || null, ...wt])
+      }
+    } catch { /* fail open */ }
+    const ran = await next(command === e.command ? e : { ...e, command })
+    try {
+      const pr = ran.deny === undefined && !ran.isError ? createdPr(command, ran.text ?? '') : undefined
+      const note = pr === undefined ? undefined : await ensureAutoMerge($, pr)
+      if (note) return { ...ran, context: [...(ran.context ?? []), note] }
+    } catch { /* fail open */ }
+    return ran
   })
 
   // Rewrites of tracked files from the shell: lane-guard only sees Edit and Write, so answer up front

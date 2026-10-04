@@ -1,7 +1,7 @@
 import { describe, it, expect, afterAll } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { resolve, join } from 'node:path';
-import { readdirSync, rmSync } from 'node:fs';
+import { readdirSync, readFileSync, rmSync } from 'node:fs';
 import { makeTemp } from '../../scripts/tools/tmp.mjs';
 import { compare, markdown, parseFields, sideKey } from '../../scripts/events/pair-report.js';
 
@@ -150,5 +150,23 @@ describe('pair.js arguments and fields', () => {
       expect([list(), readdirSync(tmp), readdirSync(sys)]).toEqual([[], [], []]);
     } finally { for (const d of [tmp, sys]) rmSync(d, { recursive: true, force: true }); }
   });
+});
+
+describe('pair.js run records', () => {
+  it('logs one record per side with the games it played and its CPU, and the total on the run', () => {
+    const dir = makeTemp('pair-timings-');
+    const file = join(dir, 'timings.jsonl');
+    try {
+      const r = spawnSync(process.execPath, [PAIR, '--a', '.', '--b', '.', '--bots', 'automateAll', '--seeds', '2', '--jobs', '1'],
+        { encoding: 'utf8', timeout: 120000, env: { ...process.env, HITL_TIMINGS: file, HITL_NO_CHECK_CACHE: '1' } });
+      expect(r.status).toBe(0);
+      const recs = readFileSync(file, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)).filter((x) => x.kind === 'run');
+      const sides = recs.filter((x) => x.tool === 'pair-side');
+      expect(sides.map((x) => x.side).sort()).toEqual(['a', 'b']);
+      for (const s of sides) { expect(s.games).toBe(2); expect(s.cpu_s).toBeGreaterThan(0); }
+      const run = recs.find((x) => x.tool === 'pair');
+      expect(run.games).toBe(4);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  }, 120000);
 });
 

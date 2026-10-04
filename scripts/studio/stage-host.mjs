@@ -23,7 +23,7 @@ export async function hostStage(task) {
   console.error = (...a) => { const text = a.map(String).join(' '); if (!ENGINE_NOISE.test(text)) errors.push(text); };
   const mock = new URLSearchParams(task.query).get('mock') ?? 'floor';
   // A harness page starts unsynced: its first sync is the check's first step.
-  const rt = await createRuntime({ mock, quality: 'medium', initialSync: false });
+  const rt = await createRuntime({ mock, quality: 'medium', era: task.era ?? null, initialSync: false });
   const { R, S, clock } = rt;
   // Nothing is drawn: a render steps the scene without the final draw.
   const render = R.render.bind(R);

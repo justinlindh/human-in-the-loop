@@ -467,6 +467,24 @@ export function held(R) {
   return out;
 }
 
+// The scenery outside the room (the renderer's `exterior()`): standing things (the neighbours, the data
+// centre, the billboard) that overlap each other or sit across a lane a car or bike drives down, and
+// vehicles that overlap each other. Each is a pair of floor rectangles; depth is how far they overlap on
+// the shorter side. A renderer without the hook, or no scenery built yet, has none.
+export function exteriorOverlaps(R, { tol = 0.02 } = {}) {
+  const e = R.exterior?.();
+  if (!e) return [];
+  const depth = (a, b) => Math.min(Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0), Math.min(a.z1, b.z1) - Math.max(a.z0, b.z0));
+  const out = [];
+  const add = (kind, a, b, d) => { if (d > tol) out.push({ kind, a, b, depth: d }); };
+  e.feet.forEach((a, i) => {
+    for (const b of e.feet.slice(i + 1)) add('standing', a.id, b.id, depth(a, b));
+    e.lanes.forEach((l, k) => add('lane', a.id, `${l.bike ? 'bike' : 'car'} lane ${k}`, depth(a, l)));
+  });
+  e.cars.forEach((a, i) => { for (const b of e.cars.slice(i + 1)) add('vehicles', a.bike ? 'bike' : 'car', b.bike ? 'bike' : 'car', depth(a, b)); });
+  return out;
+}
+
 // Bodies outside the room: past the walls' inner faces or below the floor, by more than tol.
 export function bounds(R, list, { tol = 0.02 } = {}) {
   const L = R.office.current.L;

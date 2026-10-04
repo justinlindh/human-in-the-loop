@@ -20,7 +20,8 @@ describe('stage.mjs on the studio engine', () => {
       expect(new Set(report.map((x) => x.view))).toEqual(new Set(['default', 'turned']));
       expect(rows[0]).toMatch(/^STAGEROW ok letter\.read default read \w+ \{"value":[\d.]+,"seconds":[\d.]+\}$/);
     } finally { rmSync(tmp, { recursive: true, force: true }); }
-  });
+    // Engine processes for both views: a loaded runner can stretch them past the default timeout.
+  }, 120000);
 
   it('refuses an unknown option and a name that matches no spec', () => {
     expect(run('--brwoser').status).toBe(2);

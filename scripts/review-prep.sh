@@ -194,7 +194,10 @@ checkouts() {
     git -C "$REPO" fetch -q origin "$head_at" 2>/dev/null
     hsha="$(git -C "$REPO" rev-parse -q --verify "$head_at^{commit}")" || { echo "review-prep: --head-at $head_at is not a commit I can find" >&2; exit 2; }
     # One of the PR's own commits, by GitHub's list: a sha from anywhere else is refused.
-    gh api "repos/{owner}/{repo}/pulls/$pr/commits" --paginate --jq '.[].sha' | grep -qx "$hsha" || { echo "review-prep: --head-at $head_at is not one of #$pr's commits" >&2; exit 2; }
+    # The list is read whole first: grep -q exits at the first match, and the writer then dies of
+    # SIGPIPE, which pipefail would turn into "not one of the PR's commits".
+    pr_commits="$(gh api "repos/{owner}/{repo}/pulls/$pr/commits" --paginate --jq '.[].sha')"
+    grep -qx "$hsha" <<<"$pr_commits" || { echo "review-prep: --head-at $head_at is not one of #$pr's commits" >&2; exit 2; }
     put "$root/review-$pr-at-${hsha:0:7}" "$hsha" head-at
     from="$hsha"
   fi

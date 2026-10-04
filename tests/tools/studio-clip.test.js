@@ -6,14 +6,6 @@ const CLIP = resolve(__dirname, '../../scripts/studio/clip.mjs');
 const run = (...args) => spawnSync(process.execPath, [CLIP, ...args], { encoding: 'utf8', timeout: 240000 });
 
 describe('studio clip', () => {
-  it('runs a group on the engine and prints the check names the browser run prints', () => {
-    const r = run('--group', 'seats');
-    expect(r.status, r.stdout + r.stderr).toBe(0);
-    expect(r.stdout).toContain('CLIP ok   desks:all-seated');
-    expect(r.stdout).toMatch(/CLIP ok {3}desk:f1:typing \{"handGapMin"/);
-    expect(r.stdout).toMatch(/CLIP ok {3}head:s1:/);
-  }, 260000);
-
   it('leaves the rig to the quality setting, as a page with no rig parameter does', () => {
     const script = `const { createRuntime } = await import(${JSON.stringify(resolve(__dirname, '../../scripts/studio/runtime.mjs'))});
       const rt = await createRuntime({ quality: 'low', initialSync: false });

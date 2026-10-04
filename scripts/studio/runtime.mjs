@@ -7,13 +7,20 @@ const HOLD_S = 1e9;
 
 // width/height: the page's viewport in CSS pixels (the camera fit and HUD insets follow it), with the
 // canvas filling it from the top-left corner as a harness page's does. transform: the loader's (loader.mjs).
-export async function createRuntime({ state, mock = 'floor', quality = 'low', rig = null, traceRandom = false, initialPerkDelay, script = [], initialSync = true, width, height, transform } = {}) {
+// era: an era id the scene's company was founded in (`preinternet`, `dotcom`, `web2`, `agents`, ...), so
+// the scene wears that era's art as a founded era career does.
+export async function createRuntime({ state, mock = 'floor', quality = 'low', rig = null, era = null, traceRandom = false, initialPerkDelay, script = [], initialSync = true, width, height, transform } = {}) {
   const clock = installPlatform(fileURLToPath(new URL('../../', import.meta.url)), { quality, rig });
   installLoader({ initialPerkDelay, transform });
   const { createRenderer } = await import('../../src/render/index.js');
   const { createMockSim } = await import('../../src/dev/mockSim.js');
   const S = state ?? createMockSim({ scenario: mock, seed: 7 }).state;
   if (!Array.isArray(S.staff) || !Number.isInteger(S.officeStage)) throw new Error('scene-engine: expected a game state with staff and officeStage');
+  if (era) {
+    S.founding = { ...S.founding, startEra: era };
+    S.era = { id: era, since: 0 };
+    if (era === 'dotcom') S.flags = { ...S.flags, dotcom: { phase: 'growth', entered: 0, float: null, settled: false, recovered: false } };
+  }
   const canvas = new Element('canvas');
   if (width && height) {
     globalThis.innerWidth = canvas.clientWidth = width;
