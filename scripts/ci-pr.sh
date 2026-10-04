@@ -297,7 +297,9 @@ fi
 secs=$(( $(date +%s) - t0 ))
 case $rc in 0) verdict=PASS; state=success ;; 3) verdict="ERROR (the machine, not the code)"; state=error ;; *) verdict=FAIL; state=failure ;; esac
 # setup_s: everything before local CI (fetching, the worktree, waiting for this PR's lock, installing).
-timing_log kind=run tool=ci-pr wall_s=$SECONDS ci_s=$secs setup_s=$(( SECONDS - secs )) exit=$rc
+# merge_only: 1 when this head only merged the base into the PR's earlier tested head, 0 for new work, na unknown.
+merge_only="$(bash "$TOOLS/scripts/ci-merge-only.sh" "$pr" "$head" "$base" --repo "$REPO" 2>/dev/null || echo na)"
+timing_log kind=run tool=ci-pr wall_s=$SECONDS ci_s=$secs setup_s=$(( SECONDS - secs )) exit=$rc merge_only="${merge_only:-na}"
 
 # A machine failure that repeats one from this PR's previous Local CI ERROR may be the code's doing.
 repeat=""
