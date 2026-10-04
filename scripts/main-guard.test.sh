@@ -6,6 +6,7 @@ REPO="$(cd "$HERE/.." && pwd)"
 tmp="$(mktemp -d)"; bg=""
 trap '[ -n "$bg" ] && { pkill -P "$bg" 2>/dev/null; kill "$bg" 2>/dev/null; }; rm -rf "$tmp"; git -C "$REPO" worktree prune' EXIT
 mkdir -p "$tmp/bin"
+export HITL_TESTED_TREES="$tmp/trees"  # never the real record of tested trees
 # GH_OPEN holds "label number [hand]" lines: an open issue per line, opened by the guard (its body carries
 # the marker) or, with "hand", filed by a person under the same label (no marker).
 cat >"$tmp/bin/gh" <<'GH'
@@ -256,6 +257,14 @@ tipcase 'a tip after a check that was not green runs' "$before" "" "$tmp/skip-al
 tipcase 'a tip inside the minimum gap waits' "$before" "$before" "$tmp/skip-none" 90 skipped new
 tipcase 'a tip past the minimum gap runs' "$before" "$before" "$tmp/skip-none" 90 ran old
 tipcase 'a first run has no gap to wait out' "" "" "$tmp/skip-none" 90 ran
+# A tip whose tree local CI already passed in full (scripts/tested-trees.sh) runs nothing, even with no
+# green check before it; the tree of another commit does not count.
+tipcase 'a tip with an unrecorded tree runs' "$before" "" "$tmp/skip-none" 0 ran old
+tree="$(git -C "$REPO" rev-parse "$tip^{tree}")"; mkdir -p "$tmp/trees"; echo "pr=9 head=abc1234 base=main at=2026-01-01T00:00:00Z" >"$tmp/trees/$tree"
+tipcase 'a tip whose tree local CI passed runs nothing' "$before" "" "$tmp/skip-none" 0 skipped old
+grep -q "has the tree local CI already passed (pr=9" "$tmp/tip.log.out" || { echo "FAIL the recorded pass should be printed"; fails=$((fails + 1)); }
+[ "$(cat "$case_root/main-guard/last-green")" = "$tip" ] || { echo "FAIL a recorded tree should move last-green"; fails=$((fails + 1)); }
+rm -f "$tmp/trees/$tree"
 
 [ $fails -eq 0 ] && echo "main-guard: all cases pass" || echo "main-guard: $fails failing"
 [ $fails -eq 0 ]
