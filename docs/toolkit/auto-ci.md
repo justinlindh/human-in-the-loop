@@ -13,5 +13,6 @@ The one path to local CI. Every 2 minutes it starts `scripts/ci-pr.sh` on each o
 - **The `ci-rerun` label** asks for a fresh run of the current head, whatever its status. The label comes off when the run starts. A rerun or a retry sets `local-ci` to pending on the head first, so `wait-for.sh` waits on it instead of reading the old result.
 - **Its worktree's install** is what runs link to when the lockfiles match. When `npm ls` finds it stale, auto CI reinstalls it (`npm ci`) at the first pass with none of its runs going.
 - **Machine hygiene:** each pass clears vitest's leftover `/tmp/<21-character id>/ssr` directories over an hour old. Vitest leaves one behind per run, and on a tmpfs `/tmp` they cost memory.
+- **Admission floor:** no new run starts (a docs-only PR still does) while `/tmp` has under 8 GB free or the machine has under 6 GB of memory available (`AUTO_CI_TMP_MIN_GB`, `AUTO_CI_MEM_MIN_GB`); the log says which. `/tmp` is a RAM-backed tmpfs here, and a full one fails every checkout. The `hitl-tmp-clean` timer (see tmp-clean) keeps it clear.
 - **The log** is in `~/.cache/hitl-ci/auto/log`, and each run's output in `pr-<n>.log` next to it.
 - **Install:** `scripts/systemd/install.sh` installs the timer with its own worktree of main (`~/.cache/hitl-ci/auto/worktree`). `journalctl --user -u hitl-auto-ci` shows it.
