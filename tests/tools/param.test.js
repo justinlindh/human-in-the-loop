@@ -104,7 +104,8 @@ describe('param on declarations as they are written', () => {
       }
     }
     expect(n).toBeGreaterThan(100);
-  });
+    // One parse per const in the renderer: hundreds, which a loaded runner can stretch past the default.
+  }, 120000);
 });
 
 describe('param-sweep', () => {

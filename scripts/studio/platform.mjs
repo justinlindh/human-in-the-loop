@@ -90,7 +90,9 @@ export function installPlatform(root, { quality = 'low', rig = null } = {}) {
   g.document.children = [html]; html.parentNode = g.document;
   g.document.documentElement = html; g.document.head = html.appendChild(new Element('head')); g.document.body = html.appendChild(new Element('body'));
   g.innerWidth = 1600; g.innerHeight = 1000; g.devicePixelRatio = 1;
-  g.location = { search: `?snap=1&quality=${quality}${rig == null ? '' : `&rig=${rig ? 1 : 0}`}`, href: 'http://scene.invalid/' };
+  // `eras` is always on, so a state that carries an era founding wears its era art (runtime.mjs `era`);
+  // a Classic state keeps the ordinary office.
+  g.location = { search: `?snap=1&eras&quality=${quality}${rig == null ? '' : `&rig=${rig ? 1 : 0}`}`, href: 'http://scene.invalid/' };
   // Events the game dispatches on window (the spotlight, sounds) reach the checks that listen for them.
   const listeners = new Map();
   g.addEventListener = (type, fn) => { if (!listeners.has(type)) listeners.set(type, new Set()); listeners.get(type).add(fn); };
