@@ -23,6 +23,11 @@ import { pathToFileURL } from 'node:url';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
+// --check (and --write-baseline) answer from the docs and manifests alone: nothing is rendered.
+if (argv.includes('--check') || argv.includes('--write-baseline')) {
+  const { check } = await import('./check.mjs');
+  process.exit(await check({ writeBaseline: argv.includes('--write-baseline') }));
+}
 const MANIFEST = resolve(opt('manifest', 'scripts/feature-media/manifest.js'));
 const OUT = resolve(opt('out', 'shots/feature-media'));
 const RAW = join(OUT, '.raw');
