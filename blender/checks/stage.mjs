@@ -21,9 +21,8 @@ import { startHarness } from './harness.mjs';
 import { createReport } from './report.mjs';
 import { graphBase, graphPassedAt, recordGraphPass, requestedFiles } from './cache.mjs';
 import { execFileSync, fork } from 'node:child_process';
-import { readFileSync, rmSync } from 'node:fs';
-import { cpus, tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { cpus } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { touchedSpecs } from './stage-touched.js';
 
@@ -349,8 +348,9 @@ const rep = createReport('stage');
 const hash = ONLY || args.includes('--rows') ? null : graphBase('stage', `closed:${[...closedIssues].sort((x, y) => x - y).join(',')}\n${BROWSER ? 'browser' : 'engine'}`);
 const before = graphPassedAt('stage', hash);
 if (before) { console.log(`stage: inputs unchanged since ${before}, skipped`); process.exit(0); }
-// Each engine process lists the files it loads here (scripts/studio/load-log.mjs).
-const LOAD_LOG = hash && !BROWSER ? join(tmpdir(), `stage-loaded-${process.pid}.txt`) : null;
+// Each engine process reports the files it loads (scripts/studio/load-log.mjs) with its result.
+const TRACK_LOADS = !!hash && !BROWSER;
+const loadedByHosts = new Set();
 const LOAD_LOG_HOOK = new URL('../../scripts/studio/load-log.mjs', import.meta.url).href;
 // Browsers default to 6; engine processes to a quarter of the cores.
 const JOBS = Math.max(1, Number(args.find((a) => a.startsWith('--jobs='))?.slice(7)) || (BROWSER ? 6 : cpus().length >> 2));
@@ -372,11 +372,11 @@ const stageArgs = ({ moment, scenario, view }) => {
 const hosts = new Set();
 for (const s of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(s, () => { for (const p of hosts) p.kill('SIGTERM'); process.exit(143); });
 const onEngine = (task) => new Promise((resolve) => {
-  const p = fork(fileURLToPath(new URL('../../scripts/studio/stage-host.mjs', import.meta.url)), [], { serialization: 'advanced', stdio: ['ignore', 'ignore', 'pipe', 'ipc'], ...(LOAD_LOG ? { execArgv: [...process.execArgv, '--import', LOAD_LOG_HOOK], env: { ...process.env, HITL_LOAD_LOG: LOAD_LOG } } : {}) });
+  const p = fork(fileURLToPath(new URL('../../scripts/studio/stage-host.mjs', import.meta.url)), [], { serialization: 'advanced', stdio: ['ignore', 'ignore', 'pipe', 'ipc'], ...(TRACK_LOADS ? { execArgv: [...process.execArgv, '--import', LOAD_LOG_HOOK], env: { ...process.env, HITL_LOAD_TRACK: '1' } } : {}) });
   hosts.add(p);
   let got = null, err = '';
   p.stderr.on('data', (d) => { err += d; });
-  p.on('message', (m) => { got = m; });
+  p.on('message', (m) => { got = m; for (const f of m.loaded ?? []) loadedByHosts.add(f); });
   p.on('exit', (code, signal) => {
     hosts.delete(p);
     if (got?.ok) resolve({ res: got.res, errors: got.errors });
@@ -437,8 +437,7 @@ for (const task of tasks) {
 // What the run loaded: the engine processes' lists, or every file the pages requested.
 let loaded = [];
 if (hash) {
-  try { loaded = BROWSER ? requestedFiles(H.requested()) : readFileSync(LOAD_LOG, 'utf8').split('\n').filter(Boolean); } catch { /* nothing loaded: nothing recorded */ }
-  if (LOAD_LOG) rmSync(LOAD_LOG, { force: true });
+  loaded = BROWSER ? requestedFiles(H.requested()) : [...loadedByHosts];
 }
 await H?.close();
 const code = rep.finish({ out: OUT });
