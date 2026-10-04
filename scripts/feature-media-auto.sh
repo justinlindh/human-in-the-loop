@@ -46,6 +46,9 @@ report_green() {
   for n in $(own_issues); do "$GH" issue close "$n" --comment "Green again at $short: the feature media refresh passes." >/dev/null && say "closed #$n"; done
 }
 
+# A main without the --stale option yet (it lands in its own PR): nothing to ask, nothing to report, and
+# the commit is not recorded, so the next pass looks again.
+if ! grep -q -- '--stale' scripts/feature-media/render.mjs 2>/dev/null; then say "feature-media --stale is not on $short yet; skipping"; exit 0; fi
 stale="$(npm run -s feature-media -- --stale 2>>"$log")"; rc=$?
 if [ $rc -ne 0 ]; then say "--stale failed (exit $rc)"; report_red "--stale exited $rc"; echo "$sha" >"$STATE/last"; exit 1; fi
 ids="$(grep -E '^[A-Za-z0-9_.-]+$' <<<"$stale" | paste -sd, -)"

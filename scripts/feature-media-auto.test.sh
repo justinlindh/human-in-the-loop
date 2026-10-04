@@ -35,6 +35,9 @@ export GH="$tmp/gh" FM_AUTO_ORIGIN="$tmp/origin.git" FM_AUTO_STATE="$tmp/state" 
 run() { rm -f "$FM_CALLS" "$FM_GH_CALLS"; bash "$HERE/feature-media-auto.sh" "$@" >"$tmp/out" 2>&1; rc=$?; }
 
 printf '' >"$FM_STALE"
+run; [ $rc -eq 0 ] && grep -q 'is not on .* yet; skipping' "$tmp/out" && [ ! -e "$FM_CALLS" ] && [ ! -e "$tmp/state/last" ] \
+  || fail "a main without --stale is skipped and not recorded: $rc $(cat "$tmp/out")"
+( cd "$tmp/seed" && mkdir -p scripts/feature-media && echo "// --stale" >scripts/feature-media/render.mjs && g add -A && g commit -q -m "add --stale" && g push -q "$tmp/origin.git" main )
 run; [ $rc -eq 0 ] && grep -q 'nothing stale' "$tmp/out" && ! grep -q -- '--publish' "$FM_CALLS" || fail "nothing stale renders nothing: $rc $(cat "$tmp/out")"
 run; [ $rc -eq 0 ] && [ ! -e "$FM_CALLS" ] || fail "an already handled main does nothing"
 printf 'moment-a\nmoment-b\n' >"$FM_STALE"
