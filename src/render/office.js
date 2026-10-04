@@ -247,6 +247,7 @@ const KIND = {
   ping_pong_table: 'pingpong', ping_pong: 'pingpong', foosball: 'foosball',
 };
 export const kindOf = (itemId) => KIND[itemId] ?? itemId;
+const SHADOWLESS = new Set(['disk_duplicator', 'retail_shelf']);
 const FREE_STANDING = new Set(['desk', 'meeting', 'plant', 'couch', 'pingpong', 'foosball']);
 // Models with a piece meant to stand on the tile in front of their footprint.
 const FRONT_ZONE = new Set(['espresso_l3', 'standing_desk_l2', 'standing_desk_l3', 'server_rack_l3', 'noc_l2', 'noc_l3']);
@@ -492,6 +493,8 @@ export function buildPlacedModel(p, stageIdx, screens = null, seed = 0, era = 'c
   else if (kind === 'foosball') inner = getModel('foosball');
   else if (hasModel(itemModelName(p.itemId, p.level))) inner = getModel(itemModelName(p.itemId, p.level));
   else inner = crate(f.w, f.h);
+  // Era shop items stay off the shadow pass, which the early-era offices have no draw calls to spare for.
+  if (SHADOWLESS.has(p.itemId)) inner.traverse((c) => { if (c.isMesh) c.castShadow = false; });
   if (kind !== 'desk') screensFor(inner, screens, seed);
   // LEDs blink per mesh and foosball rods turn, so they stay out of the static merge.
   inner.traverse((c) => { if (c.isMesh && /_led/.test(c.name)) { c.userData.dynamic = true; c.userData.noAO = true; } });

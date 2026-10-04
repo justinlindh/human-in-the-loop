@@ -1,6 +1,6 @@
 # The office (stages, items, perks)
 
-- **Retail equipment**: Disk Duplicator costs $3K/$6K/$12K and reduces batch duplication costs by 10/20/30%. Retail Display costs $2K/$4K/$8K and increases physical demand by 10/15/20%. Both are available before Classic, have two-by-one footprints and use ordinary item stacking. Both use crate stand-ins; their icons reuse Server Racks and Bookshelf. `id: disk_duplicator` `id: retail_shelf`
+- **Retail equipment**: Disk Duplicator costs $3K/$6K/$12K and reduces batch duplication costs by 10/20/30%. Retail Display costs $2K/$4K/$8K and increases physical demand by 10/15/20%. Both are available before Classic, have two-by-one footprints and use ordinary item stacking. The Disk Duplicator is a beige tower of lit drive bays on a work table (level 2 adds a second tower with spindles of blanks, level 3 is a floor-standing autoloader beside a packing table). The Retail Display is a table of boxed software (level 2 a store endcap of face-out boxes under a header, level 3 a double endcap with a lit header and a giant box standee). Neither casts a shadow. Their icons still reuse Server Racks and Bookshelf. `id: disk_duplicator` `id: retail_shelf`
 
 - **Banner Rotation Server**: found a dot-com company with `?eras` to see this unique shop item, $3K/$6K/$12K across three levels, with +5/+10/+15% customer acquisition during dot-com. Its effect stops at recovery and its crate stand-in remains in the office. `id: dotcom_banner`
 
