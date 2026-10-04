@@ -1,5 +1,5 @@
 export const EVENT_TYPES = [
-  'bubble', 'toast', 'chat', 'launch', 'incident', 'resign',
+  'bubble', 'toast', 'chat', 'launch', 'deal', 'incident', 'resign',
   'hire', 'decision', 'officeUpgrade', 'celebrate', 'award', 'gameOver', 'standup', 'era', 'unlock', 'goal', 'say',
 ];
 
