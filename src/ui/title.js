@@ -357,7 +357,8 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       const kit = B.eraStarts[draft.startEra];
       const total = B.funding[draft.funding].cash + kit.cash;
       const fundMult = B.funding[draft.funding].scoreMult;
-      const career = draft.startEra === 'dotcom' ? `${B.dotcom.weeks} weeks of dot-com, ${B.web2.weeks} weeks of Web 2.0, then twenty modern years.`
+      const career = draft.startEra === 'preinternet' ? `${B.preinternet.weeks} weeks of boxed software, ${B.dotcom.weeks} of dot-com, ${B.web2.weeks} of Web 2.0, then twenty modern years. Earlier years pass faster.`
+        : draft.startEra === 'dotcom' ? `${B.dotcom.weeks} weeks of dot-com, ${B.web2.weeks} weeks of Web 2.0, then twenty modern years.`
         : draft.startEra === 'web2' ? `${B.web2.weeks} weeks of Web 2.0, then twenty modern years. New web products include old-browser QA work.` : 'A twenty-year company career.';
       setText(summary, `${ERA_STARTS[draft.startEra].name}: ${fmtMoney(total)} starting cash, ${OFFICE_STAGES[kit.officeStage].name}, ${kit.desks} desks. Expected score ${shareText(kit, true)}${fundMult < 1 ? `, times the funding factor x${fundMult}` : ''}. Two founders, no products yet. ${career}`);
     };

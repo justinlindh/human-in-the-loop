@@ -1,6 +1,7 @@
 // Approaches (ai false) exist from the start; AI angles arrive with their era and need a model.
 // agentic: the product acts on its own and needs oversight.
 const rows = [
+  ['boxed', 'Boxed Software', 'preinternet', false, false, 'Duplicate disks, print manuals and order batches. Sales need stock; patches travel by post.'],
   ['web', 'Web App', 'classic', false, false, 'A login page, a dashboard, and a settings screen nobody finds.'],
   ['mobile', 'Mobile-first', 'classic', false, false, 'Designed for thumbs. The desktop version is a sad afterthought.'],
   ['api', 'API-first', 'classic', false, false, 'The product is the docs. Developers love it; their managers need a demo.'],

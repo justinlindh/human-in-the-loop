@@ -19,7 +19,7 @@ export function applyEraStart(state, requested) {
   state.era = { id, since: 0 };
   for (const era of Object.keys(state.eraSchedule)) state.eraSchedule[era] = Math.max(0, state.eraSchedule[era] - offset);
   if (period) {
-    const chapters = (id === 'dotcom' ? ['dotcom', 'web2'] : ['web2']).map((chapter) => {
+    const chapters = (id === 'preinternet' ? ['preinternet', 'dotcom', 'web2'] : id === 'dotcom' ? ['dotcom', 'web2'] : ['web2']).map((chapter) => {
       const { weeks, startYear, endYear } = B[chapter];
       return { id: chapter, weeks, startYear, endYear };
     });
@@ -27,10 +27,11 @@ export function applyEraStart(state, requested) {
     const duration = chapters.reduce((n, c) => n + c.weeks, 0);
     for (const era of Object.keys(state.eraSchedule)) state.eraSchedule[era] += duration;
     state.eraSchedule.classic = duration;
+    let elapsed = 0;
+    for (const chapter of chapters) { state.eraSchedule[chapter.id] = elapsed; elapsed += chapter.weeks; }
     if (id === 'dotcom') {
-      state.eraSchedule.web2 = B.dotcom.weeks;
       state.flags.dotcom = { phase: 'growth', entered: 0, float: null, settled: false, recovered: false };
-    } else state.eraSchedule.web2 = 0;
+    }
     state.flags.erasVisited = [id];
   }
   state.cash += kit.cash;
@@ -39,6 +40,6 @@ export function applyEraStart(state, requested) {
   for (const goal of data.skippedGoals) state.goals[goal].skipped = true;
   const { year } = calendarDate(state);
   state.market.unlockedCategories = period ? [...period.categories] : Object.values(CATEGORIES).filter((c) => c.unlockYear <= year).map((c) => c.id);
-  state.market.unlockedAngles = period ? [...period.angles] : Object.values(ANGLES).filter((a) => eraAtLeast(state, a.era)).map((a) => a.id);
+  state.market.unlockedAngles = period ? [...period.angles] : Object.values(ANGLES).filter((a) => a.id !== 'boxed' && eraAtLeast(state, a.era)).map((a) => a.id);
   for (const m of Object.values(MODELS)) state.models[m.id].available = m.releaseYear <= year;
 }

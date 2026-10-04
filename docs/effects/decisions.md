@@ -1352,3 +1352,27 @@ era · raised by a rule · cooldown 52 weeks
 | I’ll take the pager | volunteer on call; no cost or work penalty |
 | Share the watch | volunteer on call; no cost or work penalty |
 | Book Clive at triple rate | cash -$9,000; Clive on call; no extra protection; requires you can afford Clive’s triple rate |
+
+## The gold master `pre_master_disk`
+
+misc · raised by a rule · cooldown 156 weeks
+
+| Choice | Effects |
+|---|---|
+| Verify the master | cash -$2,000; product reliability and maximum health +5 |
+| Ship on the deadline | cash +$3,000; debt +3 |
+
+## The boxes came back `pre_retail_returns`
+
+misc · raised by a rule · cooldown 156 weeks
+
+Happens: withdraw unsold stock; pay 20% of its manufacturing cost, capped at $8,000, once per product
+
+## More room, same deadline `pre_cd_rom`
+
+misc · raised by a rule · cooldown 156 weeks
+
+| Choice | Effects |
+|---|---|
+| Master a CD release | cash -$4,000; next batch capacity +25%, charged per copy |
+| Keep the disks | keep disks; no cost |

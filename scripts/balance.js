@@ -56,6 +56,7 @@ for (const name of bots) {
     reasons: Object.entries(reasons).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(', '),
     weeks: median(results.map((r) => r.weeks)),
     firstLaunch: median(results.map((r) => r.firstLaunch ?? 999)),
+    pastOpening: `${Math.round(100 * results.filter((r) => r.weeks > B.preinternet.weeks).length / seeds)}%`,
     peakMrr: fmt(median(results.map((r) => r.peakMrr))),
     score: fmt(median(results.map((r) => r.score))),
     hq: `${Math.round((100 * results.filter((r) => r.maxStage === 2).length) / seeds)}%`,

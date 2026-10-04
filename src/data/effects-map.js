@@ -21,6 +21,7 @@ export const POLICY_EFFECTS = {
 
 // Office item effect keys, as the report names them.
 export const ITEM_EFFECT_LABELS = {
+  batchRelief: 'duplication cost relief', retailDemand: 'retail demand',
   bannerAcquisition: 'dot-com customer acquisition',
   meaningRecovery: 'meaning recovery', staminaRecovery: 'stamina recovery', output: 'output', burnoutResign: 'burnout resignations',
   staminaDrain: 'stamina drain', novelty: 'novelty', knowledgeGain: 'knowledge gain', oversight: 'oversight hours',

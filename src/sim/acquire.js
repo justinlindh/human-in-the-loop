@@ -78,7 +78,7 @@ export function acquireCompany(ctx, targetId) {
   const cat = CATEGORIES[t.categoryId];
   const mrr = t.arr / 12;
   const customers = Math.max(1, Math.round(mrr / cat.price));
-  const angles = Object.values(ANGLES).filter((a) => !a.ai || eraAtLeast(state, a.era));
+  const angles = Object.values(ANGLES).filter((a) => a.id !== 'boxed' && (!a.ai || eraAtLeast(state, a.era)));
   const angle = pick(rng, angles.filter((a) => !a.ai)).id;
   const product = {
     id: newId(state, 'p'), name: t.name, category: t.categoryId, angle, model: null, modelVersion: 0, version: 1, size: 'medium',

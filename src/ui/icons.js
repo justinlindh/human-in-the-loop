@@ -99,6 +99,8 @@ export const ICONS = {
   'item.office_robot': I('🤖', 'Office shop item card', 30),
   'item.server_rack': I('🗄️', 'Office shop item card', 30),
   'item.dotcom_banner': { ...I('🗄️', 'Office shop item card', 30), alias: 'item.server_rack' },
+  'item.disk_duplicator': { ...I('🗄️', 'Disk duplicator uses the server rack icon', 30), alias: 'item.server_rack' },
+  'item.retail_shelf': { ...I('📚', 'Retail display uses the bookshelf icon', 30), alias: 'item.bookshelf' },
   'item.trophy_case': I('🏆', 'Office shop item card', 30),
   'research.eval_harness': I('🧪', 'Internal tools card', 26),
   'research.agent_sandbox': I('📦', 'Internal tools card', 26),

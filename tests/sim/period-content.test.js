@@ -57,7 +57,7 @@ describe('historical content boundaries', () => {
     expect(JSON.stringify(result.events)).not.toMatch(/\bagents?\b/i);
     expect(s.era.id).toBe('chatgbt');
   });
-  it.each(['dotcom', 'web2', 'classic', 'chatgbt'])('has safe nonempty fallbacks in %s', (startEra) => {
+  it.each(['preinternet', 'dotcom', 'web2', 'classic', 'chatgbt'])('has safe nonempty fallbacks in %s', (startEra) => {
     const s = createGame({ seed: 11, startEra });
     for (const pool of [[], ['The agents approved the agentic roadmap.'], ['AI agents use ChatGBT models.']]) {
       const lines = eraLines(s, pool);
@@ -65,7 +65,7 @@ describe('historical content boundaries', () => {
       expect(lines.every((l) => eraOnlyAllowsText(s, l))).toBe(true);
     }
   });
-  it.each(['dotcom', 'web2'])('keeps %s advice, posts and endings in period', (startEra) => {
+  it.each(['preinternet', 'dotcom', 'web2'])('keeps %s advice, posts and endings in period', (startEra) => {
     for (let seed = 1; seed <= 50; seed++) {
       const s = createGame({ seed, startEra });
       expect(JSON.stringify(advice(s))).not.toMatch(/\b(agent|agents|AI|podcast)\b/i);
@@ -79,7 +79,7 @@ describe('historical content boundaries', () => {
       expect(s.chatLog.at(-1).text).not.toMatch(/laptop|tabs I have open|merging on a Friday/i);
     }
   });
-  it.each(['dotcom', 'web2'])('audits every eligible %s content pool and fallback', (startEra) => {
+  it.each(['preinternet', 'dotcom', 'web2'])('audits every eligible %s content pool and fallback', (startEra) => {
     const s = createGame({ seed: 17, startEra });
     for (const [key, lines] of Object.entries(CHATTER)) {
       const pool = eraLines(s, periodChatter(s, key, lines));
@@ -183,12 +183,12 @@ describe('historical content boundaries', () => {
       expect(seen).toBeGreaterThan(0);
     }
   }, 120000);
-  it.each(['dotcom', 'web2'])('emits deterministic period-safe content across seeded %s play', (startEra) => {
+  it.each(['preinternet', 'dotcom', 'web2'])('emits deterministic period-safe content across seeded %s play', (startEra) => {
     const trace = (seed) => {
       const seen = [];
       let state;
       const inspect = (events) => {
-        if (!['dotcom', 'web2'].includes(state.era.id)) return;
+        if (!['preinternet', 'dotcom', 'web2'].includes(state.era.id)) return;
         for (const e of events) for (const text of visibleStrings(e)) {
           if (state.era.id === 'dotcom') expect(text).not.toMatch(/wi-?fi/i);
           safe(text, `${startEra} seed ${seed} week ${state.week}`); seen.push(text);
