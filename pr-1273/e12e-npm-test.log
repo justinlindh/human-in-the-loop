@@ -1,0 +1,27 @@
+
+> human-in-the-loop@1.0.0 test
+> vitest run --maxWorkers=2
+
+
+ RUN  v5.0.2 <worktree>
+
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+warning: You appear to have cloned an empty repository.
+
+ Test Files  209 passed (209)
+      Tests  1761 passed (1761)
+   Start at  23:04:56
+   Duration  713.22s (tests 99%, import 1%)
+
