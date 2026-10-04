@@ -26,7 +26,7 @@ function host(on: any, { tracked = [] as string[], watcher = false } = {}) {
     throw new Error('no such file')
   })
   on('fs.list', () => { throw new Error('no such dir') })
-  on('tool.call', { tool: 'Bash' }, () => ({ text: 'ran' }))
+  on('tool.call', { tool: 'Bash' }, (_$: unknown, e: { command: string }) => ({ text: `ran: ${e.command}` }))
 }
 
 test('answers a sed -i of a tracked file with Edit and its owner lane', async ($, on) => {
@@ -40,7 +40,7 @@ test('lets a shell write to an untracked file through', async ($, on) => {
   host(on)
   const r = await $.tool.call({ tool: 'Bash', command: 'echo hi > /tmp/scratch/out.txt' })
   expect(r.deny).toBeUndefined()
-  expect(r.text).toBe('ran')
+  expect(r.text).toBe('ran: echo hi > /tmp/scratch/out.txt')
 })
 
 test('refuses a branch switch in a worktree a wait-for.sh is watching', async ($, on) => {
@@ -52,5 +52,11 @@ test('refuses a branch switch in a worktree a wait-for.sh is watching', async ($
 test('lets a branch switch through when nothing watches the worktree', async ($, on) => {
   host(on)
   const r = await $.tool.call({ tool: 'Bash', command: 'git switch -c tools/new' })
-  expect(r.text).toBe('ran')
+  expect(r.text).toBe('ran: git switch -c tools/new')
+})
+
+test('strips a session trailer from a commit message before it runs', async ($, on) => {
+  host(on)
+  const r = await $.tool.call({ tool: 'Bash', command: 'git commit -m "fix(ui): x\n\nClaude-Session: https://claude.ai/code/session_01ABC"' })
+  expect(r.text).toBe('ran: git commit -m "fix(ui): x\n\n"')
 })

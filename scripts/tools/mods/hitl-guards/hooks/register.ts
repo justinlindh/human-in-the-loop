@@ -1,5 +1,5 @@
 import type { Register, EngineInterface } from 'claude-code'
-import { branchSwitch, noticeNote, ownersOf, parseNotice, shellWrites, type ShellWrite } from './rules.ts'
+import { branchSwitch, noticeNote, ownersOf, parseNotice, shellWrites, stripTrailers, type ShellWrite } from './rules.ts'
 
 // Shared guards for the Human in the Loop lanes (issue #1313). Each guard fails open: an error in one
 // passes the call on untouched.
@@ -65,6 +65,13 @@ async function watchersOf($: EngineInterface, cwd: string): Promise<string[]> {
 }
 
 export const register: Register = on => {
+  // Session trailers in a commit message or PR text: the commit-msg hook refuses them after the gate.
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    let command = e.command
+    try { command = stripTrailers(e.command) } catch { /* fail open */ }
+    return next(command === e.command ? e : { ...e, command })
+  })
+
   // Rewrites of tracked files from the shell: lane-guard only sees Edit and Write, so answer up front
   // with the tool to use and the lane that owns the file.
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {

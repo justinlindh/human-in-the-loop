@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { segments, shellWrites, ownersOf, branchSwitch, parseNotice, noticeNote } from '../../scripts/tools/mods/hitl-guards/hooks/rules.ts';
+import { segments, shellWrites, ownersOf, branchSwitch, parseNotice, noticeNote, stripTrailers } from '../../scripts/tools/mods/hitl-guards/hooks/rules.ts';
 
 const LANES = readFileSync(resolve(__dirname, '../../scripts/hooks/claude/lanes.txt'), 'utf8');
 const paths = (cmd) => shellWrites(cmd).map((w) => `${w.how}: ${w.path}`);
@@ -72,5 +72,17 @@ describe('hitl-guards rules', () => {
     expect(noticeNote(n, 'CLIP ok   desk:f1 {}\nclip: 1 of 1 passed\n')).not.toContain('no result rows');
     expect(noticeNote({ ...n, command: 'ls' }, '')).not.toContain('no result rows');
     expect(parseNotice('no notification here')).toBe(null);
+  });
+
+  it('drops session trailers from commits and PR text and leaves other commands alone', () => {
+    const commit = "git commit -m \"$(cat <<'EOF'\nfix(ui): x\n\nClaude-Session: https://claude.ai/code/session_01ABC\nEOF\n)\"";
+    expect(stripTrailers(commit)).toBe("git commit -m \"$(cat <<'EOF'\nfix(ui): x\n\nEOF\n)\"");
+    expect(stripTrailers('gh pr create --body "text\nhttps://claude.ai/code/session_01ABC\n"')).toBe('gh pr create --body "text\n"');
+    expect(stripTrailers('gh pr edit 5 --body "a\r\n  Claude-Session: x\r\nb"')).toBe('gh pr edit 5 --body "a\r\nb"');
+    expect(stripTrailers('gh pr comment 5 --body "see https://claude.ai/code/session_01ABC inline"')).toBe('gh pr comment 5 --body "see https://claude.ai/code/session_01ABC inline"');
+    expect(stripTrailers('git commit -m "fix(ui): x\n\nClaude-Session: https://claude.ai/code/session_01ABC"')).toBe('git commit -m "fix(ui): x\n\n"');
+    expect(stripTrailers("gh pr create --body 'a\nhttps://claude.ai/code/session_01ABC'")).toBe("gh pr create --body 'a\n'");
+    expect(stripTrailers('echo Claude-Session: x')).toBe('echo Claude-Session: x');
+    expect(stripTrailers('gh pr view 5')).toBe('gh pr view 5');
   });
 });

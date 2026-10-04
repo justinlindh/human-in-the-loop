@@ -161,6 +161,15 @@ export function branchSwitch(command: string): BranchSwitch | null {
   return null;
 }
 
+// Session trailers the commit-msg hook refuses, dropped from commit messages and PR text before the
+// command runs (it would otherwise fail after the gate and lose the commit). A quote closing the
+// message on the same line stays.
+const TRAILER = /^[ \t]*(Claude-Session:[^\r\n"']*|https:\/\/claude\.ai\/code\/session_[^\s"']+)[ \t]*\r?\n?/gm;
+
+export function stripTrailers(command: string): string {
+  return /\b(git\s+commit|gh\s+pr\s+(create|edit|comment))\b/.test(command) ? command.replace(TRAILER, '') : command;
+}
+
 // A background task's notification, as the row the session keeps reads: the output file, the status
 // and exit code, and for a Bash task its command.
 export type Notice = { outputFile: string; status: string; exitCode: number | null; command: string | null };
