@@ -121,6 +121,9 @@ jobs:
         if: steps.cls.outputs.mode == 'full' && steps.bal.outputs.run == 'true'
       - run: npm run test:balance
         if: steps.cls.outputs.mode == 'full' && steps.bal.outputs.run == 'true'
+      # The whole-game cases test:fast leaves out (tests/**/*.full.test.js), beside the balance run.
+      - run: npm run test:full
+        if: steps.cls.outputs.mode == 'full' && steps.bal.outputs.run == 'true'
 
   browser:
     runs-on: ubuntu-latest

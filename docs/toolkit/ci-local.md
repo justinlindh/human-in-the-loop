@@ -7,7 +7,7 @@ The same checks in the current worktree, with a summary table. It runs golden (o
 
 It keeps only what needs this machine: the GPU render checks, golden, phone-check, stage, pose-nodraw and the tooling self-tests. GitHub's own checks run the rest on the same merged code, so a PR run records those steps as covered there:
 - test:fast, build and syntax (`test`);
-- test:balance (`balance`);
+- test:balance and test:full, the `*.full.test.js` whole-game cases that test:fast leaves out (`balance`; the main guard runs both itself);
 - soak and lifecycle (`browser`);
 - commits (`commits`);
 - the main guard's cases and the renderer counts against `scripts/perf/budget.json` (`tools`).

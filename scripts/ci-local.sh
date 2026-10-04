@@ -300,6 +300,8 @@ if [ -z "$VITEST_WORKERS" ]; then
   timing_log kind=vitest tool=ci-local workers="$VITEST_WORKERS" cores="$(nproc)" load1="$(load1)" runs="$(ci_runs_going)"
 fi
 gh_step test:fast test npm run test:fast -- --maxWorkers="$VITEST_WORKERS"
+# The whole-game cases test:fast leaves out (tests/**/*.full.test.js); GitHub runs them in the balance job.
+gh_step test:full balance npm run test:full -- --maxWorkers="$VITEST_WORKERS"
 gh_step build test npm run build
 # Trailer and landing beats (tests/sim/trailer-beats/replay.mjs, sim only, about 20 s), for changes to
 # what a beat's capture setup runs against or the setups themselves. A beat whose setup throws (its
