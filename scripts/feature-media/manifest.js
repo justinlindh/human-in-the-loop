@@ -138,7 +138,7 @@ export const ITEMS = [
     id: 'site-lockdown', title: 'Landing page: lockdown, the call over the empty office', query: 'seed=1&speed=1', warmup: 1, still: true,
     setup: `(async () => { await ${PLAY({ weeks: 200, until: 's.lockdown', after: CHAT_HISTORY })}; ${BARE}; })()`,
     actions: [...DISMISS_AT([0.1, 1, 2, 3, 4, 5, 6, 7, 8, 9]), ...CHOOSE_WHEN(null, 0, 1, 10, 2)], screenshots: [10],
-    out: [{ path: 'img/lockdown.webp', size: '1920x1080' }],
+    out: [{ path: 'img/lockdown.webp', size: '1920x1080', publishAs: 'lockdown' }], publish: true,
   },
   {
     // The live week launches the first product; a decision raised the same week is answered first.
@@ -165,7 +165,7 @@ export const ITEMS = [
     id: 'era-arrival', title: 'Era arrival: the card, then the office redresses', query: 'seed=1&speed=1', moment: 'era --era chatgbt --stage floor --snapshot', seconds: 16, warmup: 0.5,
     setup: `(() => { ${CLEAN}; })()`,
     actions: [...DISMISS_AT([9, 10, 11], { escape: false }), ...CAMLOG(16)], screenshots: [3, 7, 12],
-    out: [{ path: 'era-arrival.mp4', size: '1280x720', from: 1, seconds: 13, loop: 'none' }],
+    out: [{ path: 'era-arrival.mp4', size: '1280x720', from: 1, seconds: 13, loop: 'none' }], publish: true,
   },
   {
     // A real incident on the Office Floor: the alarm, and the nearest people run to the servers. A
