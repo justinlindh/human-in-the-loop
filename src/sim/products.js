@@ -19,6 +19,7 @@ import { rivalPressure } from './ladder.js';
 import { purposeLift } from './purpose.js';
 import { outageProductGone } from './incidents.js';
 import { installedCustomers, sellBoxes } from './boxed.js';
+import { addDeal, flushDeals } from './deals.js';
 
 // Addressable customers in a category right now: the AI market grows toward full size over the early years.
 export function marketSize(state, category) {
@@ -118,6 +119,7 @@ export function productsSystem(ctx) {
       const won = (p.customers - before) * share;
       soldCustomers += won;
       soldMrr += won * CATEGORIES[p.category].price;
+      addDeal(ctx, p, won, won * CATEGORIES[p.category].price, sellers);
     }
     const inOutage = state.outage?.productId === p.id;
     const churnWith = (down) => Math.max(B.minChurn, B.baseChurn - B.churnBrandRelief * state.brand
@@ -146,6 +148,7 @@ export function productsSystem(ctx) {
     addToRecord(state, p, 'salesMrr', soldMrr * part);
     addToRecord(state, p, 'deals', (soldCustomers * part) / B.recordCustomersPerDeal);
   }
+  flushDeals(ctx);
   state.stats.peakMrr = Math.max(state.stats.peakMrr, totalMrr(state));
 }
 
