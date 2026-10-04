@@ -7,7 +7,7 @@ import { confirmGate } from './confirm-gate.js';
 import { SAVE_NOTE, SAVE_NOTE_SHORT } from './saveNote.js';
 import { downloadSave, pickSaveFile } from './saveFiles.js';
 import { STAT } from './stats.js';
-import { ERA_STARTS } from '../data/era-modes.js';
+import { ERA_STARTS, CAREER_MODES } from '../data/era-modes.js';
 import { B } from '../sim/balance.js';
 import { OFFICE_STAGES } from '../data/office.js';
 import { GOALS } from '../data/goals.js';
@@ -345,6 +345,8 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
   }
 
   // A start's expected score against Classic's, from balance data, so x0.61 never reads as harder than x0.81.
+  const routeOf = (startEra) => Object.values(CAREER_MODES).find((m) => m.startEra === startEra) ?? null;
+  const takeoverNames = () => Object.keys(B.takeover.scoreShare).map((id) => ERA_STARTS[id]?.name ?? id).join(' or ');
   const shareText = (kit, long = false) => kit.scoreShare >= 1 ? (long ? 'the same as Classic' : 'full score') : `${Math.round(kit.scoreShare * 100)}% of Classic${long ? '' : ' score'}`;
   function fundingStep() {
     let nextBtn;
@@ -361,7 +363,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       return h(`button.era-start${e.id === draft.startEra ? '.on' : ''}`, {
         'aria-pressed': String(e.id === draft.startEra), dataset: { era: e.id },
         onclick: () => { draft.startEra = e.id; sfx('click'); refreshEra(); },
-      }, h('b', { text: e.name }), h('span.small', { text: e.blurb }),
+      }, h('b', { text: e.name }), routeOf(e.id) ? h('span.pill.trait', { text: `Route: ${routeOf(e.id).name}` }) : null, h('span.small.eblurb', { text: e.blurb }),
       h('span.small', { text: `${OFFICE_STAGES[k.officeStage].name} · ${k.desks} desks · ${shareText(k)}` }));
     })) : null;
     const unlockNote = h('div.small.muted');
@@ -378,7 +380,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       const career = draft.startEra === 'preinternet' ? `${B.preinternet.weeks} weeks of boxed software, ${B.dotcom.weeks} of dot-com, ${B.web2.weeks} of Web 2.0, then twenty modern years. Earlier years pass faster.`
         : draft.startEra === 'dotcom' ? `${B.dotcom.weeks} weeks of dot-com, ${B.web2.weeks} weeks of Web 2.0, then twenty modern years.`
         : draft.startEra === 'web2' ? `${B.web2.weeks} weeks of Web 2.0, then twenty modern years. New web products include old-browser QA work.` : 'A twenty-year company career.';
-      setText(summary, `${ERA_STARTS[draft.startEra].name}: ${fmtMoney(total)} starting cash, ${OFFICE_STAGES[kit.officeStage].name}, ${kit.desks} desks. Expected score ${shareText(kit, true)}${fundMult < 1 ? `, times the funding factor x${fundMult}` : ''}. Two founders, no products yet. ${career}`);
+      setText(summary, `${ERA_STARTS[draft.startEra].name}${routeOf(draft.startEra) ? ` (${routeOf(draft.startEra).name})` : ''}: ${fmtMoney(total)} starting cash, ${OFFICE_STAGES[kit.officeStage].name}, ${kit.desks} desks. Expected score ${shareText(kit, true)}${fundMult < 1 ? `, times the funding factor x${fundMult}` : ''}. Two founders, no products yet. ${career}`);
     };
     const cards = FUNDING.map((f) => {
       const mult = fundingMult(f);
@@ -405,7 +407,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
           const selected = b.dataset.startMode === draft.startMode;
           b.disabled = b.dataset.startMode === 'takeover' && !canTakeOver(draft.startEra);
           if (b.dataset.startMode === 'takeover') setText(b.lastElementChild, b.disabled
-            ? 'Takeover starts from ChatGBT. Choose ChatGBT or Agents.'
+            ? `Takeover is for ${takeoverNames()}. Pick one of those.`
             : 'Inherit the people, products and history of a company already running.');
           b.classList.toggle('on', selected);
           b.setAttribute('aria-pressed', String(selected));
@@ -427,7 +429,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
         const cardKit = B.eraStarts[id];
         const inherited = takeover && canTakeOver(id);
         card.disabled = takeover && !canTakeOver(id);
-        setText(card.children[1], inherited
+        setText(card.querySelector('.eblurb'), inherited
           ? 'Inherit a company built from Classic, with its existing people, products and history.'
           : card.disabled ? 'Choose Found a company to start in this era.' : ERA_STARTS[id].blurb);
         setText(card.lastElementChild, inherited

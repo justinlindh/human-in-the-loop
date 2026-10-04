@@ -18,6 +18,7 @@
 # changes local CI is also run through its own version. A clean checkout on the base
 # branch that is behind updates itself first and starts again.
 set -uo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/lib/tmpdir.sh"
 
 usage="usage: scripts/ci-pr.sh <pr-number> [--no-comment] [--head <sha>] [--allow-bot]"
 pr="${1:?$usage}"; shift

@@ -49,6 +49,26 @@ describe('deal events', () => {
     } finally { B.dealNotableMrr = B0; }
   });
 
+  it('makes every deal in a week notable once the week\'s total reaches B.dealNotableMrr', () => {
+    const s = company(1);
+    addProduct(s, { category: 'email', angle: 'web', model: null, customers: 10, hype: 5 });
+    const first = deals(s);
+    expect(first).toHaveLength(2);
+    const weekMrr = first.reduce((n, d) => n + d.mrr, 0);
+    for (const d of first) expect(d.weekMrr).toBe(weekMrr);
+    const B0 = B.dealNotableMrr;
+    try {
+      const later = () => deals(structuredClone(s));
+      const total = later().reduce((n, d) => n + d.mrr, 0);
+      const biggest = Math.max(...later().map((d) => d.mrr));
+      expect(biggest).toBeLessThan(total);
+      B.dealNotableMrr = total;
+      expect(later().every((d) => d.notable && !d.first)).toBe(true);
+      B.dealNotableMrr = total + 1;
+      expect(later().some((d) => d.notable)).toBe(false);
+    } finally { B.dealNotableMrr = B0; }
+  });
+
   it('is silent without a sales team', () => {
     expect(deals(company(0))).toEqual([]);
   });

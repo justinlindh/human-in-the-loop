@@ -19,7 +19,7 @@ import { rivalPressure } from './ladder.js';
 import { purposeLift } from './purpose.js';
 import { outageProductGone } from './incidents.js';
 import { installedCustomers, sellBoxes } from './boxed.js';
-import { addDeal } from './deals.js';
+import { addDeal, flushDeals } from './deals.js';
 
 // Addressable customers in a category right now: the AI market grows toward full size over the early years.
 export function marketSize(state, category) {
@@ -148,6 +148,7 @@ export function productsSystem(ctx) {
     addToRecord(state, p, 'salesMrr', soldMrr * part);
     addToRecord(state, p, 'deals', (soldCustomers * part) / B.recordCustomersPerDeal);
   }
+  flushDeals(ctx);
   state.stats.peakMrr = Math.max(state.stats.peakMrr, totalMrr(state));
 }
 

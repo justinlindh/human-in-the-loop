@@ -65,6 +65,16 @@ allowed "npm run build 2>&1 | tail -5" "$repo"
 allowed "perl -MList::Util -e 'print 1' > /dev/null" "$repo"
 allowed "git commit -m \"fix: replace sed -i on $T\"" "$repo"
 allowed "echo 'a > $T'" "$repo"
+allowed "gh issue comment 5 --body \"first line
+git show main:$T > $T
+last line\"" "$repo"
+allowed "gh issue comment 5 --body 'first line
+sed -i s/a/b/ $T
+last'" "$repo"
+allowed "gh issue comment 5 --body \"say \\\"hi\\\" then > $T\"" "$repo"
+denied "echo \"ok\" > $T" "$repo"
+run bash-guard.sh "$(bashjson "git show main:$T > $T" "$repo")"
+[[ "$err" == *"git checkout <ref> -- <file>"* ]] || fail "the tracked-file refusal should point at git checkout (got: $err)"
 allowed "cat > /tmp/body.md <<'EOF'
 go > $T
 EOF" "$repo"
@@ -88,6 +98,18 @@ for c in 'cat scripts/ci-pr.sh' 'bash -n scripts/ci-pr.sh' 'grep -n trap scripts
   'scripts/ci-pr.sh 781 --allow-bot --head abc' 'HITL_MANUAL_CI=1 bash scripts/ci-pr.sh 766' $'cat <<EOF\nrun scripts/ci-pr.sh 5\nEOF'; do allowed "$c"; done
 run bash-guard.sh "$(bashjson 'bash scripts/ci-pr.sh 766')"
 [[ "$err" == *"ci-rerun label"* ]] || fail "the ci-pr refusal should say what to do instead (got: $err)"
+
+# review-verdict.sh: only the reviewer (detached) and team-lead (main, lead/) post verdicts.
+g -C "$repo" checkout -q main
+allowed 'scripts/review-verdict.sh 5 pass body.md' "$repo"
+g -C "$repo" checkout -q -b lead/x; allowed 'bash scripts/review-verdict.sh 5 pass body.md' "$repo"
+g -C "$repo" checkout -q --detach; allowed 'bash scripts/review-verdict.sh 5 pass body.md' "$repo"
+g -C "$repo" checkout -q -b perf/x
+denied 'scripts/review-verdict.sh 5 pass body.md' "$repo"
+denied 'cd x && nice bash scripts/review-verdict.sh 5 changes body.md --head abc' "$repo"
+allowed 'cat scripts/review-verdict.sh' "$repo"
+allowed "git commit -m 'review-verdict.sh 5 pass'" "$repo"
+g -C "$repo" checkout -q main
 
 # Sleeping between checks of PR or CI state costs a turn per wait: wait-for.sh in the background instead.
 allowed 'sleep 5; gh pr view 12 --json statusCheckRollup'

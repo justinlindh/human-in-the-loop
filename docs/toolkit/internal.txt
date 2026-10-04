@@ -3,6 +3,7 @@
 blender/checks/harness.mjs        the page every render check runs in
 blender/checks/panels.js          the visible-panel reader play.mjs and onscreen.mjs share
 blender/checks/report.mjs         the report format stage.mjs and the sweep share
+scripts/lib/tmpdir.sh             sourced by ci-pr, ci-local, auto-ci, the main guard, the pre-push hook and nice10 to put TMPDIR on disk
 blender/checks/diag.mjs           failure detail shared by loop.mjs and clip.mjs
 scripts/events/lib.js             the event index's location and key, for build.js and find.js
 scripts/events/load.js            opens a page at an indexed moment, for the tools' --moment flags

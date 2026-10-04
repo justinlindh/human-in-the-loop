@@ -9,6 +9,7 @@ stop_holder() { [ -n "$bg" ] || return 0; pkill -P "$bg" 2>/dev/null; kill "$bg"
 trap 'stop_holder; rm -rf "$tmp"' EXIT
 export HITL_LOCK_DIR="$tmp"; L="$tmp/render-checks.lock"
 export HITL_TIMINGS=off
+export HITL_SOFT_SLOTS=1   # the pool cases below set their own
 fails=0
 expect() { [ "$2" = "$3" ] || { echo "FAIL $1: want $3, got $2"; fails=$((fails + 1)); }; }
 
@@ -52,5 +53,29 @@ out="$(HITL_GPU_SLOTS=1 RENDER_LOCK_WAIT=1 bash "$W" --software bash "$W" --gpu 
 expect 'a GPU run nested in a software run goes straight through' "$out" inner
 out="$(bash "$W" --gpu bash "$W" --software bash -c "$(declare -f busy); busy $L")"
 expect 'a software run nested in a GPU run still takes the software lock' "$out" held
+# Software pool (three slots; the load cap is lifted unless a case sets it).
+export HITL_SOFT_SLOTS=3 HITL_SOFT_LOAD=100000
+S1="$L"; S2="$tmp/render-checks-2.lock"; S3="$tmp/render-checks-3.lock"
+out="$(bash "$W" --software bash -c "$(declare -f busy); busy $S1 $S2 $S3")"
+expect 'a software run holds one slot' "$out" held
+holders=()
+flock "$S1" sleep 30 & holders+=($!)
+sleep 0.3
+out="$(RENDER_LOCK_WAIT=2 bash "$W" --software bash -c "$(declare -f busy); busy $S2")"
+expect 'a busy first slot sends a software run to the next one' "$out" held
+out="$(RENDER_LOCK_WAIT=2 bash "$W" --software bash -c "$(declare -f busy); busy $S1")"
+expect 'the busy slot stays held by its owner' "$out" held
+flock "$S2" sleep 30 & holders+=($!)
+flock "$S3" sleep 30 & holders+=($!)
+sleep 0.3
+SOFT_POLL=1 RENDER_LOCK_WAIT=2 bash "$W" --software echo ran >/dev/null 2>&1; expect 'waits, then exits 75 when every software slot is busy' "$?" 75
+out="$(RENDER_LOCK_WAIT=2 bash "$W" --gpu echo ran)"; expect 'busy software slots do not block a GPU run' "$out" ran
+for h in "${holders[@]}"; do pkill -P "$h" 2>/dev/null; kill "$h" 2>/dev/null; wait "$h" 2>/dev/null; done
+# A loaded machine uses only slot 1.
+flock "$S1" sleep 30 & bg=$!
+sleep 0.3
+HITL_SOFT_LOAD=0 SOFT_POLL=1 RENDER_LOCK_WAIT=2 bash "$W" --software echo ran >/dev/null 2>&1; expect 'over the load cap only slot 1 is used' "$?" 75
+stop_holder
+out="$(bash "$W" --software bash "$W" --software echo inner)"; expect 'a software run nested in a software run does not take a second slot' "$out" inner
 [ $fails -eq 0 ] && echo "with-render-lock: all cases pass" || echo "with-render-lock: $fails failing"
 [ $fails -eq 0 ]

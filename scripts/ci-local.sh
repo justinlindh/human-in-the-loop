@@ -7,6 +7,7 @@
 # The balance suite runs alongside the other steps; the rest run in order. Exit 0 when all pass, 1
 # when a step fails on the code, 3 when the only failures are the machine's (see machine_why).
 set -uo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/lib/tmpdir.sh"
 
 BASE="origin/main"; TITLE=""; SUMMARY=""
 while [ $# -gt 0 ]; do
@@ -138,19 +139,19 @@ if [ "${CI_FULL:-}" != 1 ]; then
     tool_changes=0
   fi
 fi
-# Under ci-pr (CI_PR_SELFTESTS=1) a self-test the PR changes runs as the PR wrote it, from a copy
-# beside main's scripts, so a PR that fixes a broken test is judged by the fix. The run says so.
-pr_selftest() { # <name> <command...>: sets PR_TEST_TMP when the step's test file was swapped
-  PR_TEST_TMP=""
+# Under ci-pr (CI_PR_SELFTESTS=1) a self-test the PR changes runs as the PR wrote it, in place in the
+# PR's tree, so it exercises the PR's own copies of the scripts it tests (a PR that adds behaviour and
+# its test together passes, and one that fixes a broken test is judged by the fix). The run says so.
+pr_selftest() { # <name> <command...>: sets PR_TEST_TMP to the PR's test file when the step's test was swapped
+  PR_TEST_TMP=""; PR_TEST_ORIG=""
   [ "${CI_PR_SELFTESTS:-}" = 1 ] && [ -n "${tool_mb:-}" ] || return 0
   local arg rel
   for arg in "${@:2}"; do
     case "$arg" in "$SELF"/*.test.sh|"$SELF"/*.test.mjs|"$SELF"/*/*.test.sh|"$SELF"/*/*.test.mjs) rel="${arg#"$SELF"/}" ;; *) continue ;; esac
     [ -f "scripts/$rel" ] && ! cmp -s "scripts/$rel" "$arg" || return 0
     git diff --quiet --no-renames "$tool_mb" -- "scripts/$rel" 2>/dev/null && return 0
-    PR_TEST_TMP="$(dirname "$arg")/.pr-$(basename "$arg")"
-    cp "scripts/$rel" "$PR_TEST_TMP"
-    note "$1 ran this PR's version of \`scripts/$rel\`, not main's; check the test was not weakened"
+    PR_TEST_ORIG="$arg"; PR_TEST_TMP="$PWD/scripts/$rel"
+    note "$1 ran this PR's version of \`scripts/$rel\` against the PR's scripts, not main's; check the test was not weakened"
     return 0
   done
 }
@@ -159,8 +160,8 @@ tool_step() { # <name> <command...>
     pr_selftest "$@"
     if [ -n "$PR_TEST_TMP" ]; then
       local args=() a
-      for a in "$@"; do [ "$a" = "${PR_TEST_TMP/\/.pr-/\/}" ] && a="$PR_TEST_TMP"; args+=("$a"); done
-      step "${args[@]}"; rm -f "$PR_TEST_TMP"
+      for a in "$@"; do [ "$a" = "$PR_TEST_ORIG" ] && a="$PR_TEST_TMP"; args+=("$a"); done
+      step "${args[@]}"
     else step "$@"; fi
   else record "$1" "skipped: no tooling changes" 0; timing_log kind=step tool=ci-local step="$1" skipped=1 wall_s=0 exit=0; fi
 }
@@ -208,6 +209,9 @@ tool_step review-prep bash "$SELF/review-prep.test.sh"
 tool_step review-verdict bash "$SELF/review-verdict.test.sh"
 tool_step pr-body bash "$SELF/pr-body.test.sh"
 tool_step test-cache bash "$SELF/test-cache.test.sh"
+tool_step tmp-clean bash "$SELF/tmp-clean.test.sh"
+tool_step nice10 bash "$SELF/nice10.test.sh"
+tool_step test-push bash "$SELF/test-push.test.sh"
 tool_step ci-pr-trust bash "$SELF/ci-pr-trust.test.sh"
 tool_step drive bash "$SELF/tools/drive.test.sh"
 tool_step reset-teammate bash "$SELF/team/reset-teammate.test.sh"
@@ -323,12 +327,11 @@ step beats beats_check
 #   render-checks  clipping with and without the rig, standups, and (unless CI_SKIP_SWEEP=1) the scene sweep (new violations in
 #                  mocks and props fail; seed-only ones are advisory), on the GPU (a GPU slot). They
 #                  check geometry and behaviour, not exact pixels.
-#   golden         the golden images, on SwiftShader under the software lock: only software GL draws
-#                  the same pixels on every machine. GOLDEN_JOBS browsers render at once.
+#   golden         the golden images, on the GPU (a GPU slot), one scene at a time: the references are
+#                  GPU renders, reproduced byte for byte only when scenes render serially.
 # A run can lose a page to vite reloading while it optimizes a dependency, so a failed pass is
 # retried once; a real failure fails both. A retry is reported in the summary (and so in the PR
 # comment) with the first pass's error.
-GOLDEN_JOBS="${GOLDEN_JOBS:-4}"
 render_pass() { # <gpu|software> <command>
   HITL_GL="$1" bash "$SELF/with-render-lock.sh" "--$1" timeout 600 bash -c "$2"
 }
@@ -431,11 +434,11 @@ golden_font_check() {
   if ! grep -qE '^(src/render/(emotes|debug|index)\.js$|public/fonts/|index\.html$|blender/checks/(harness|golden|golden-font-controls)\.mjs$)' <<<"$files"; then
     echo "skipped: no text-emote, font, lineup or golden harness changes"; return 0
   fi
-  render_step golden-font software "node blender/checks/golden-font-controls.mjs"
+  render_step golden-font gpu "node blender/checks/golden-font-controls.mjs"
 }
-# golden renders in software (SwiftShader, on the CPU), so it runs in the background while the GPU
-# steps run one after another: those open many browsers each, and running them all at once exhausts
-# the GPU's WebGL contexts (Chromium then blocks WebGL for the page).
+# golden opens one page at a time, so it runs in the background while the other GPU steps run one
+# after another: those open many browsers each, and running them all at once exhausts the GPU's
+# WebGL contexts (Chromium then blocks WebGL for the page).
 browser_t0=$(now)
 # CI_TIER=tests (ci-pr sets it for a change only tests read, scripts/ci-tests-only-paths) leaves out the
 # render, browser and perf checks; the main guard (CI_FULL=1) always runs them.
@@ -446,7 +449,7 @@ if [ "${CI_TIER:-}" = tests ] && [ "${CI_FULL:-}" != 1 ]; then
   done
   note "Tests tier: every changed file is on scripts/ci-skip-paths or scripts/ci-tests-only-paths, so the tests and the light checks ran, and the render, browser and balance checks did not."
 else
-pstep golden render_step golden software "node blender/checks/golden.mjs --jobs=$GOLDEN_JOBS"
+pstep golden render_step golden gpu "node blender/checks/golden.mjs"
 pstep golden-font golden_font_check
 gh_step lifecycle browser bash "$SELF/with-render-lock.sh" --gpu npm run lifecycle -- --quality low --no-shots
 gh_step soak browser bash "$SELF/with-render-lock.sh" --gpu npm run soak

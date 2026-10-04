@@ -76,7 +76,8 @@ export async function hostStage(task) {
 
 if (process.argv[1] === new URL(import.meta.url).pathname && process.send) {
   process.once('message', async (task) => {
-    try { process.send({ ok: true, ...(await hostStage(task)) }, () => process.exit(0)); }
+    // `loaded` is the files this run used, when the caller asked for them (load-log.mjs).
+    try { process.send({ ok: true, ...(await hostStage(task)), loaded: [...(globalThis.__hitlLoaded ?? [])] }, () => process.exit(0)); }
     catch (e) { process.send({ ok: false, error: e.stack ?? String(e) }, () => process.exit(1)); }
   });
 }

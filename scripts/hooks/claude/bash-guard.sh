@@ -4,6 +4,8 @@
 #   - git push to main, or a forced push;
 #   - scripts/ci-pr.sh by hand: auto CI (scripts/auto-ci.sh) is the one path to local CI. The reviewer's
 #     --allow-bot runs and an explicit HITL_MANUAL_CI=1 get through;
+#   - scripts/review-verdict.sh from a worktree on a lane branch (<lane>/<topic> other than lead/): only
+#     the reviewer (detached worktrees) and team-lead (main, lead/) post verdicts;
 #   - a test run piped into grep, tail or head that gates a git commit or push: the gate then rides on
 #     the pipe's last command, not the tests (unless pipefail or PIPESTATUS is used);
 #   - a foreground loop that sleeps between checks of PR or CI state (gh pr, gh run, gh api,
@@ -21,7 +23,7 @@ set -f
 input="$(cat)" || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 cmd="$(jq -r '.tool_input.command // empty' <<<"$input" 2>/dev/null)" || exit 0
-case "$cmd" in *pkill*|*pgrep*|*push*|*commit*|*stash*|*ci-pr*|*sleep*|*"gh pr"*|*"gh api"*|*sed*|*perl*|*tee*|*'>'*) ;; *) exit 0 ;; esac
+case "$cmd" in *pkill*|*pgrep*|*push*|*commit*|*stash*|*ci-pr*|*review-verdict*|*sleep*|*"gh pr"*|*"gh api"*|*sed*|*perl*|*tee*|*'>'*) ;; *) exit 0 ;; esac
 cwd="$(jq -r '.cwd // empty' <<<"$input" 2>/dev/null)"
 deny() { echo "Blocked by the team's hook (scripts/hooks/claude/bash-guard.sh): $1" >&2; exit 2; }
 
@@ -35,6 +37,19 @@ cipr_cmds="$(awk '/<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ && !inside { match($0
   | grep -E '(^|[[:space:]/;&|(])ci-pr\.sh[[:space:]]+[0-9]+([[:space:];&|)]|$)' || true)"
 if [ -n "$cipr_cmds" ] && ! grep -qE -- '--allow-bot|HITL_MANUAL_CI=1' <<<"$cipr_cmds"; then
   deny "local CI has one path: auto CI runs scripts/ci-pr.sh on every PR head within a couple of minutes (scripts/auto-ci.sh). Watch the local-ci status instead, or add the ci-rerun label for a fresh run. If you really need a run by hand (the integrator debugging CI), prefix it with HITL_MANUAL_CI=1."
+fi
+
+# review-verdict.sh run from a lane's worktree (a branch <lane>/<topic> other than lead/ or main): only the
+# reviewer (detached review worktrees) and team-lead (main, lead/) post verdicts.
+verdict_cmds="$(awk '/<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ && !inside { match($0, /<<-?[[:space:]]*'"'"'?[A-Za-z_]+/); tag=substr($0, RSTART, RLENGTH); gsub(/<<-?[[:space:]]*'"'"'?/, "", tag); print; inside=1; next } inside && $0 == tag { inside=0; next } !inside { print }' <<<"$cmd" \
+  | sed -E "s/'[^']*'/Q/g; s/\"([^\"\\\\]|\\\\.)*\"/Q/g" \
+  | grep -E '(^|[[:space:]/;&|(])review-verdict\.sh[[:space:]]+[0-9]+([[:space:];&|)]|$)' || true)"
+if [ -n "$verdict_cmds" ] && [ -n "$cwd" ]; then
+  vbranch="$(git -C "$cwd" symbolic-ref -q --short HEAD 2>/dev/null || true)"
+  case "$vbranch" in
+    ''|main|lead/*) ;;
+    */*) deny "review verdicts are posted only by the reviewer and team-lead; this worktree is on $vbranch. Ask the reviewer (or team-lead for lead and integrator PRs) for the verdict." ;;
+  esac
 fi
 
 # A loop sleeping between checks of PR or CI state, outside heredoc bodies and quoted text (lines are
@@ -94,8 +109,8 @@ done < <(grep -oE 'git([[:space:]]+-C[[:space:]]+[^[:space:];&|]+)?[[:space:]]+p
 # becomes Q, and only words that name a file tracked in the working directory's repository are refused.
 if grep -qE 'sed|perl|tee|>' <<<"$cmd"; then
   wtext="$(awk '/<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ && !inside { match($0, /<<-?[[:space:]]*'"'"'?[A-Za-z_]+/); tag=substr($0, RSTART, RLENGTH); gsub(/<<-?[[:space:]]*'"'"'?/, "", tag); print; inside=1; next } inside && $0 == tag { inside=0; next } !inside { print }' <<<"$cmd" \
-    | sed -E "s/'([A-Za-z0-9_.\/@+-]+)'/\1/g; s/\"([A-Za-z0-9_.\/@+-]+)\"/\1/g" \
-    | sed -E "s/'[^']*'/Q/g; s/\"([^\"\\\\]|\\\\.)*\"/Q/g" | sed -E 's/[0-9]*>&[0-9-]+/R/g; s/&>>?/>/g')"
+    | sed -zE "s/'([A-Za-z0-9_.\/@+-]+)'/\1/g; s/\"([A-Za-z0-9_.\/@+-]+)\"/\1/g" \
+    | sed -zE "s/'[^']*'/Q/g; s/\"([^\"\\\\]|\\\\.)*\"/Q/g" | sed -E 's/[0-9]*>&[0-9-]+/R/g; s/&>>?/>/g')"
   wtargets="$({
     # Redirect targets: > file, >> file, 2> file, >| file (not >&N, not process substitution).
     grep -oE '[0-9]*>>?\|?[[:space:]]*[^[:space:];&|)<>(]+' <<<"$wtext" | sed -E 's/^[0-9]*>>?\|?[[:space:]]*//'
@@ -113,7 +128,7 @@ if grep -qE 'sed|perl|tee|>' <<<"$cmd"; then
     [ -n "$t" ] || continue
     case "$t" in '$'*|'~'*|/dev/*) continue ;; esac
     if git -C "${cwd:-.}" ls-files --error-unmatch -- "$t" >/dev/null 2>&1; then
-      deny "$t is a tracked file, and sed -i, perl -i, > and tee would change it without lane-guard seeing it. Change tracked files with the Edit or Write tool (lane-guard checks those); write scratch output outside the repo or to an untracked file."
+      deny "$t is a tracked file, and sed -i, perl -i, > and tee would change it without lane-guard seeing it. Change tracked files with the Edit or Write tool (lane-guard checks those). To take a file from another ref or a merge side, use git checkout <ref> -- <file> (or git checkout --ours/--theirs -- <file> in a conflict). Write scratch output outside the repo or to an untracked file."
     fi
   done <<<"$wtargets"
 fi

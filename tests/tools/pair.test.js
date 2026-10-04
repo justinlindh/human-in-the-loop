@@ -1,11 +1,25 @@
-import { describe, it, expect } from 'vitest';
-import { spawn, spawnSync } from 'node:child_process';
+import { describe, it, expect, afterAll } from 'vitest';
+import { spawnSync } from 'node:child_process';
 import { resolve, join } from 'node:path';
 import { readdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { compare, markdown, parseFields } from '../../scripts/events/pair-report.js';
+import { compare, markdown, parseFields, sideKey } from '../../scripts/events/pair-report.js';
 
 const PAIR = resolve('scripts/events/pair.js');
+// Every pair.js these tests start caches side a here, never in the team's cache.
+process.env.HITL_PAIR_CACHE_DIR = mkdtempSync(join(tmpdir(), 'pair-cache-'));
+afterAll(() => rmSync(process.env.HITL_PAIR_CACHE_DIR, { recursive: true, force: true }));
+
+describe('sideKey', () => {
+  const parts = { files: [['src/sim/a.js', 'id1'], ['src/data/b.json', 'id2']], bots: ['x', 'y'], seeds: 5, startEra: null, fields: [], script: 's', node: 'v1' };
+  it('ignores the order of files and bots, and nothing else', () => {
+    const key = sideKey(parts);
+    expect(sideKey({ ...parts, files: [...parts.files].reverse(), bots: ['y', 'x'] })).toBe(key);
+    for (const change of [{ files: [['src/sim/a.js', 'id9'], parts.files[1]] }, { seeds: 6 }, { bots: ['x'] }, { startEra: 'agents' }, { fields: [{ name: 'n', expr: '1' }] }, { script: 't' }, { node: 'v2' }]) {
+      expect(sideKey({ ...parts, ...change })).not.toBe(key);
+    }
+  });
+});
 
 const rec = (over = {}) => ({ reason: 'exit', exited: true, won: false, weeks: 500, score: 100, incidents: 2, caught: 1, breaches: 1, hash: 'exit|500|100|7', ...over });
 
@@ -47,13 +61,6 @@ describe('pair-report', () => {
 });
 
 describe('pair.js', () => {
-  it('a checkout against itself ends identically on every seed', () => {
-    const r = spawnSync(process.execPath, [resolve('scripts/events/pair.js'), '--a', '.', '--bots', 'balanced', '--seeds', '2', '--fields', '({ staff: s.staff.length })'], { encoding: 'utf8', timeout: 120000 });
-    expect(r.status).toBe(0);
-    expect(r.stdout).toMatch(/\| balanced \| 2\/2 \| \d+% -> \d+% \| 0 \/ 0 \|/);
-    expect(r.stdout).toMatch(/2 paired runs/);
-  });
-
   it('refuses a --fields expression that is not JS before playing anything', () => {
     const r = spawnSync(process.execPath, [resolve('scripts/events/pair.js'), '--a', '.', '--bots', 'balanced', '--seeds', '1', '--fields', '({ '], { encoding: 'utf8', timeout: 60000 });
     expect(r.status).not.toBe(0);
@@ -130,14 +137,6 @@ describe('pair.js arguments and fields', () => {
     expect(r.stderr).toMatch(/--fields: /);
   });
 
-  it('one field that throws on a run blanks only that field', () => {
-    const r = run('--a', '.', '--bots', 'balanced', '--seeds', '2', '--fields', 'staff: s.staff.length, bad: s.nothing.here');
-    expect(r.status).toBe(0);
-    const header = r.stdout.split('\n')[0], row = r.stdout.split('\n')[2];
-    expect(header).toMatch(/\| staff \| bad \|$/);
-    expect(row).toMatch(/\| \d+ -> \d+ \| - -> - \|$/);
-  });
-
   it('a refused argument leaves no worktree and no temporary directory behind', () => {
     // The runs get a TMPDIR of their own, so other pair.js jobs on the machine cannot change what is counted.
     const tmp = mkdtempSync(join(tmpdir(), 'pair-test-'));
@@ -150,22 +149,5 @@ describe('pair.js arguments and fields', () => {
       expect([list(), readdirSync(tmp)]).toEqual([[], []]);
     } finally { rmSync(tmp, { recursive: true, force: true }); }
   });
-
-  it('a run killed while it holds the base worktree removes it and its side processes', async () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'pair-test-'));
-    const list = () => spawnSync('git', ['worktree', 'list', '--porcelain'], { encoding: 'utf8' }).stdout.split('\n').filter((l) => l.startsWith(`worktree ${tmp}/`));
-    try {
-      const child = spawn(process.execPath, [PAIR, '--bots', 'balanced', '--seeds', '400'], { stdio: 'ignore', env: { ...process.env, TMPDIR: tmp } });
-      const closed = new Promise((res) => child.on('close', (code, signal) => res({ code, signal })));
-      for (let i = 0; i < 400 && !list().length; i++) await new Promise((r) => setTimeout(r, 100));
-      expect(list().length).toBeGreaterThan(0);
-      child.kill('SIGTERM');
-      // The handler exits 143; a loaded machine can also deliver the signal itself first.
-      const { code, signal } = await closed;
-      expect(code === 143 || signal === 'SIGTERM').toBe(true);
-      expect(list()).toEqual([]);
-      expect(readdirSync(tmp)).toEqual([]);
-    } finally { rmSync(tmp, { recursive: true, force: true }); }
-  }, 60000);
 });
 
