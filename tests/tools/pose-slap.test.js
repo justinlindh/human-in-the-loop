@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { join, resolve } from 'node:path';
 
 const POSE = resolve(__dirname, '../../blender/checks/pose.mjs');
@@ -38,7 +38,7 @@ describe('pose.mjs --gesture slap', () => {
   });
 
   it('reads the hand landing on the robot head within the stage rule', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'slaptest-')), out = join(dir, 'm.json');
+    const dir = mkdtempSync(join(toolTmp(), 'slaptest-')), out = join(dir, 'm.json');
     const r = run('--gesture', 'slap', '--matrix', 'views=0,postures=stand,builds=1,rig=on', '--measure', 'robotContact,robotAngle', '--json', out);
     expect(r.status, r.stderr).toBe(0);
     const cell = JSON.parse(readFileSync(out, 'utf8')).cells[0];

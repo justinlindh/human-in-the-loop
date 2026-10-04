@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { join } from 'node:path';
 import { parseAst } from 'vite';
 import { readdirSync, readFileSync } from 'node:fs';
@@ -16,7 +16,7 @@ function f() { const inner = 5; return inner; }
 `;
 
 function tree(files) {
-  const root = mkdtempSync(join(tmpdir(), 'param-test-'));
+  const root = mkdtempSync(join(toolTmp(), 'param-test-'));
   for (const [f, text] of Object.entries(files)) { mkdirSync(join(root, f, '..'), { recursive: true }); writeFileSync(join(root, f), text); }
   return root;
 }

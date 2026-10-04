@@ -12,7 +12,7 @@
 # its timeout), and 3 when wait itself timed out with the job still running. State lives in
 # <git dir>/hitl-jobs (HITL_JOBS_DIR overrides it), so each worktree has its own job names.
 set -uo pipefail
-dir="${HITL_JOBS_DIR:-$(git rev-parse --git-dir 2>/dev/null || echo "${TMPDIR:-/tmp}")/hitl-jobs}"
+dir="${HITL_JOBS_DIR:-$(git rev-parse --git-dir 2>/dev/null || echo "${HITL_TMP:-$HOME/.cache/hitl-ci/tmp}")/hitl-jobs}"
 die() { echo "job: $*" >&2; exit 2; }
 usage() { sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2; }
 cmd="${1:-}"; [ -n "$cmd" ] || usage; shift

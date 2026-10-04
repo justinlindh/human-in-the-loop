@@ -2,7 +2,7 @@
 # Cases for scripts/tools/job.sh in a scratch state directory. Exit 0 when all pass.
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
-tmp="$(mktemp -d)"; trap 'bash "$HERE/job.sh" ls >/dev/null 2>&1; for n in slow big; do bash "$HERE/job.sh" stop $n >/dev/null 2>&1; done; rm -rf "$tmp"' EXIT
+mkdir -p "${HITL_TMP:=$HOME/.cache/hitl-ci/tmp}"; tmp="$(mktemp -d -p "$HITL_TMP")"; trap 'bash "$HERE/job.sh" ls >/dev/null 2>&1; for n in slow big; do bash "$HERE/job.sh" stop $n >/dev/null 2>&1; done; rm -rf "$tmp"' EXIT
 export HITL_JOBS_DIR="$tmp/jobs"
 fails=0; fail() { echo "FAIL $*"; fails=$((fails + 1)); }
 J="$HERE/job.sh"

@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { join } from 'node:path';
 
 let dir;
-beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'check-cache-')); process.env.HITL_CHECK_CACHE_DIR = dir; });
+beforeEach(() => { dir = mkdtempSync(join(toolTmp(), 'check-cache-')); process.env.HITL_CHECK_CACHE_DIR = dir; });
 afterEach(() => { delete process.env.HITL_CHECK_CACHE_DIR; rmSync(dir, { recursive: true, force: true }); });
 
 const load = () => import('../../blender/checks/cache.mjs');

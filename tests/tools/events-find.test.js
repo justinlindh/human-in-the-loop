@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { join, resolve } from 'node:path';
 import { gzipSync, gunzipSync } from 'node:zlib';
 import { simHash } from '../../scripts/events/lib.js';
@@ -11,7 +11,7 @@ let dir;
 // A tiny index: two hand-written rows, so a query answered from the index and one that needs a scan
 // can be told apart without building the real one.
 beforeAll(() => {
-  dir = mkdtempSync(join(tmpdir(), 'events-find-'));
+  dir = mkdtempSync(join(toolTmp(), 'events-find-'));
   const idx = join(dir, simHash());
   mkdirSync(idx, { recursive: true });
   const rows = [{ seed: 1, bot: 'balanced', week: 5, era: 'x', stage: 0, staff: 2, type: 'decision', id: 'printer_jam', choice: 0 }];

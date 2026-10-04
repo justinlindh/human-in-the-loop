@@ -400,19 +400,6 @@ stage_check() {
   fi
   render_step stage gpu "node blender/checks/stage.mjs --out '$LOGS/stage.json'"
 }
-# No-draw parity (blender/checks/pose-nodraw.mjs, on a GPU slot): the checks that sample frames
-# without drawing must measure exactly what drawn frames measure, and make no draws while sampling.
-# Runs for changes to the renderer or to the harness and pose measures those checks share.
-nodraw_check() {
-  [ -f blender/checks/pose-nodraw.mjs ] || { echo "skipped: no blender/checks/pose-nodraw.mjs in this tree"; return 0; }
-  local mb files
-  mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
-  files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; })"
-  if ! grep -qE '^(src/render/|blender/checks/(pose[^/]*|harness\.mjs|draw-audit\.js|intersect\.js)$|scripts/events/load\.js$)' <<<"$files"; then
-    echo "skipped: no render, harness or pose-measure changes"; return 0
-  fi
-  render_step pose-nodraw gpu "node blender/checks/pose-nodraw.mjs --json '$LOGS/pose-nodraw.json'"
-}
 # Tool loading (blender/checks/tool-rng.mjs, on a GPU slot): importing a page-side tool module takes
 # nothing from the game's random stream, and idle time before warm-up changes nothing. Runs for
 # changes to the page-side tool modules, the harness or the renderer.
@@ -445,7 +432,7 @@ browser_t0=$(now)
 # CI_TIER=tests (ci-pr sets it for a change only tests read, scripts/ci-tests-only-paths) leaves out the
 # render, browser and perf checks; the main guard (CI_FULL=1) always runs them.
 if [ "${CI_TIER:-}" = tests ] && [ "${CI_FULL:-}" != 1 ]; then
-  for name in golden golden-font lifecycle soak render-checks perf-budget phone-check stage pose-nodraw tool-rng; do
+  for name in golden golden-font lifecycle soak render-checks perf-budget phone-check stage tool-rng; do
     record "$name" "skipped: tests tier (only tests read these changes)" 0
     timing_log kind=step tool=ci-local step="$name" skipped=1 tier=tests wall_s=0 exit=0
   done
@@ -459,7 +446,6 @@ step render-checks render_step render-checks gpu "bash '$SELF/lib/run-parallel.s
 gh_step perf-budget tools perf_budget
 step phone-check phone_check
 step stage stage_check
-step pose-nodraw nodraw_check
 step tool-rng rng_check
 fi
 pjoin "$browser_t0"

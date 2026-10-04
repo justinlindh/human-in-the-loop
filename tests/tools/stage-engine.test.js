@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { join, resolve } from 'node:path';
 
 const STAGE = resolve(__dirname, '../../blender/checks/stage.mjs');
@@ -10,7 +10,7 @@ const alive = (pid) => { try { process.kill(pid, 0); return true; } catch { retu
 
 describe('stage.mjs on the studio engine', () => {
   it('plays a scenario in both views and prints a parity row per report row', () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'stage-engine-'));
+    const tmp = mkdtempSync(join(toolTmp(), 'stage-engine-'));
     try {
       const r = run('--only=letter', '--rows', '--out', join(tmp, 'report.json'));
       expect(r.status, r.stdout + r.stderr).toBe(0);
@@ -28,7 +28,7 @@ describe('stage.mjs on the studio engine', () => {
   });
 
   it('stops its engine processes when interrupted', async () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'stage-engine-'));
+    const tmp = mkdtempSync(join(toolTmp(), 'stage-engine-'));
     try {
       const child = spawn(process.execPath, [STAGE, '--only=printer,hammer', '--jobs=2', '--out', join(tmp, 'r.json')], { stdio: 'ignore', env: { ...process.env, HITL_NO_CHECK_CACHE: '1' } });
       const closed = new Promise((res) => child.on('close', (code, signal) => res({ code, signal })));

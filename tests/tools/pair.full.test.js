@@ -2,12 +2,12 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { spawn, spawnSync } from 'node:child_process';
 import { resolve, join } from 'node:path';
 import { readdirSync, mkdtempSync, rmSync, cpSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { toolTmp } from '../../scripts/tools/tmp.mjs';
 
 // Cases that play both sides or hold the base worktree: too slow for test:fast, run by local CI.
 const PAIR = resolve('scripts/events/pair.js');
 // Every pair.js these tests start caches side a here, never in the team's cache.
-process.env.HITL_PAIR_CACHE_DIR = mkdtempSync(join(tmpdir(), 'pair-cache-'));
+process.env.HITL_PAIR_CACHE_DIR = mkdtempSync(join(toolTmp(), 'pair-cache-'));
 afterAll(() => rmSync(process.env.HITL_PAIR_CACHE_DIR, { recursive: true, force: true }));
 
 describe('pair.js plays', () => {
@@ -29,10 +29,11 @@ describe('pair.js plays', () => {
   });
 
   it('a run killed while it holds the base worktree removes it and its side processes', async () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'pair-test-'));
+    // Its own scratch directory (HITL_TMP), and a TMPDIR standing in for the system's, which stays empty.
+    const tmp = mkdtempSync(join(toolTmp(), 'pair-test-')), sys = mkdtempSync(join(toolTmp(), 'pair-sys-'));
     const list = () => spawnSync('git', ['worktree', 'list', '--porcelain'], { encoding: 'utf8' }).stdout.split('\n').filter((l) => l.startsWith(`worktree ${tmp}/`));
     try {
-      const child = spawn(process.execPath, [PAIR, '--bots', 'balanced', '--seeds', '400'], { stdio: 'ignore', env: { ...process.env, TMPDIR: tmp } });
+      const child = spawn(process.execPath, [PAIR, '--bots', 'balanced', '--seeds', '400'], { stdio: 'ignore', env: { ...process.env, HITL_TMP: tmp, TMPDIR: sys } });
       const closed = new Promise((res) => child.on('close', (code, signal) => res({ code, signal })));
       for (let i = 0; i < 400 && !list().length; i++) await new Promise((r) => setTimeout(r, 100));
       expect(list().length).toBeGreaterThan(0);
@@ -42,13 +43,14 @@ describe('pair.js plays', () => {
       expect(code === 143 || signal === 'SIGTERM').toBe(true);
       expect(list()).toEqual([]);
       expect(readdirSync(tmp)).toEqual([]);
-    } finally { rmSync(tmp, { recursive: true, force: true }); }
+      expect(readdirSync(sys)).toEqual([]);
+    } finally { for (const d of [tmp, sys]) rmSync(d, { recursive: true, force: true }); }
   }, 60000);
 });
 
 describe('side a cache', () => {
   // A scratch repository holding just the sim and its data, played as side a against this checkout.
-  const base = mkdtempSync(join(tmpdir(), 'pair-base-'));
+  const base = mkdtempSync(join(toolTmp(), 'pair-base-'));
   const git = (...args) => spawnSync('git', ['-C', base, '-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { encoding: 'utf8' });
   const play = (extra = [], env = {}) => spawnSync(process.execPath, [PAIR, '--a', base, ...extra, '--bots', 'balanced', '--seeds', '2'], { encoding: 'utf8', timeout: 120000, env: { ...process.env, ...env } });
   const table = (r) => r.stdout.split('\n').filter((l) => l.startsWith('| balanced'));

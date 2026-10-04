@@ -1,7 +1,7 @@
 import { expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { join, resolve } from 'node:path';
 
 export const build = resolve('scripts/events/build.js');
@@ -11,7 +11,7 @@ export const run = (cache, args = []) => spawnSync(process.execPath, [build, ...
   env: { ...process.env, HITL_EVENTS_DIR: cache }, encoding: 'utf8', timeout: 120000,
 });
 export function workspace() {
-  const root = mkdtempSync(join(tmpdir(), 'events-build-'));
+  const root = mkdtempSync(join(toolTmp(), 'events-build-'));
   return {
     directory(name) { const dir = join(root, name); mkdirSync(dir, { recursive: true }); return dir; },
     cleanup() { rmSync(root, { recursive: true, force: true }); },

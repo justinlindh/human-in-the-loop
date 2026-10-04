@@ -4,7 +4,7 @@
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 TREE="${CI_DIR:-$HERE/../..}"
-tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+mkdir -p "${HITL_TMP:=$HOME/.cache/hitl-ci/tmp}"; tmp="$(mktemp -d -p "$HITL_TMP")"; trap 'rm -rf "$tmp"' EXIT
 fails=0; fail() { echo "FAIL $*"; fails=$((fails + 1)); }
 export HITL_TIMINGS=off
 d() { (cd "$TREE" && timeout 240 node scripts/tools/drive.mjs "$@" 2>&1); }
