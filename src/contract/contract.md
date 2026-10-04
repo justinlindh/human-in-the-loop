@@ -102,6 +102,12 @@ Product = {
                                           // image: optional { id, alt } on posts that carry a picture (a meme); id is a meme image id from src/data/memes.js, and ui maps it to its files;
                                           // alt is the picture's short caption and equals text, so readers of text alone still get a sensible line; ui shows text when the image is missing
 { type: 'launch', productId }
+{ type: 'deal', productId, customer, customers, mrr, week, sellerId, first, notable }
+                                          // the sales team won customers on a product this week. customer: a parody company name; customers: how many;
+                                          // mrr: monthly revenue they add; sellerId: the salesperson with the largest share of the sales boost;
+                                          // first: the product's first deal; notable: first, or mrr at least B.dealNotableMrr. Organic growth emits nothing
+{ type: 'deal', productId, units, revenue, week, boxed: true, first, notable }
+                                          // boxed-software sales (pre-internet): units sold and net receipts this week; notable: first, or revenue at least B.dealNotableBoxRevenue
 { type: 'incident', kind, productId, caught, severity, misread }   // misread: true when the NOC's agents read the alert as routine (NOC, #342)
 { type: 'resign', staffId, name, fired, reason }    // fired: true when the player fired them; reason: 'fired'|'burnout'|'moved_on'|'poached'|'retired' (older saves may omit it; treat missing as 'burnout' when fired is false)
 { type: 'hire', staffId }
