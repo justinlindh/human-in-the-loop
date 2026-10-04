@@ -45,15 +45,17 @@ export async function check({ writeBaseline = false } = {}) {
   const itemIds = new Set(Object.values(itemsByManifest).flat().map((i) => i.id));
 
   const entries = parseEntries();
-  const uncovered = new Set();
+  // An id is covered when any entry of its file that carries it is. (A file may repeat an entry.)
+  const seen = new Set(), done = new Set();
   for (const e of entries) {
     // `media: pending (#<issue>)`: the thing does not read on video yet; the issue is the owner's fix.
     const covered = e.names.length > 0 || e.none || e.pending;
-    for (const id of e.ids) if (!covered) uncovered.add(`${e.file}:${id}`);
+    for (const id of e.ids) { seen.add(`${e.file}:${id}`); if (covered) done.add(`${e.file}:${id}`); }
     for (const n of e.names) {
       if (!itemIds.has(n) && !itemIds.has(ALIASES[n])) problems.push(`${e.file}:${e.line}: media "${n}" names no manifest item (add the item, or an alias in check.mjs)`);
     }
   }
+  const uncovered = new Set([...seen].filter((k) => !done.has(k)));
   const baseline = new Set(existsSync(BASELINE) ? JSON.parse(readFileSync(BASELINE, 'utf8')) : []);
   if (writeBaseline) {
     writeFileSync(BASELINE, `${JSON.stringify([...uncovered].sort(), null, 1)}\n`);
