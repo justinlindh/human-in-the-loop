@@ -1093,6 +1093,7 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
   }
 
   function updatePoster() {
+    dropBatch();
     if (dressing) { dressing.removeFromParent(); disposeDressing(dressing); dressing = null; }
     if (!cur) return;
     dressing = eraDressing(cur.L, era, wallBlockers(), artEra);
@@ -1209,6 +1210,14 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
         if (!m.isMesh || !m.visible) continue;
         if (!m.userData.dynamic) members.push(m);
         else if (m.userData.batch) swaps.push(m);
+      }
+    }
+    // The wall dressing shares most of its palette materials with the furniture, so its merged
+    // meshes join the batch and those materials draw once.
+    if (dressing?.parent) {
+      owners.push(dressing);
+      for (const m of dressing.children) {
+        if (m.isMesh && m.visible && !m.userData.dynamic && !Array.isArray(m.material) && !m.material.map) members.push(m);
       }
     }
     if (members.length + swaps.length < 2) return;
