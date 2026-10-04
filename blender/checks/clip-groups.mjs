@@ -1,6 +1,6 @@
 // Which clip groups run where, so a group can never be skipped without a word (used by clip.mjs and
 // scripts/studio/clip.mjs).
-import { OWN_PAGES } from './clip-pages.js';
+import { OWN_PAGES, ERA_SEATS } from './clip-pages.js';
 
 // Each group of checks and the names of its cases (the fixed part; desk, head and use cases add ids).
 export const GROUPS = {
@@ -20,6 +20,8 @@ export const GROUPS = {
   celebrations: ['moment:growth', 'moment:company_party'],
   respond: ['moment:respond:rack', 'moment:respond:desk'],
   control: ['control:head-through-slab'],
+  // The seated checks in each founded era's office.
+  ...Object.fromEntries(ERA_SEATS.map(([era]) => [`era-${era}`, [`era:${era}:`]])),
 };
 
 // Groups that open their own scene; every other registered group runs on a fresh floor-office page.

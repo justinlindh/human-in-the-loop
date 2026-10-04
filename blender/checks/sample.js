@@ -72,6 +72,8 @@ function checkFrame(R, C, t, memo) {
     for (const o of X.bounds(R, list, { tol: C.tol.bounds })) if (!OUTSIDE[o.b.label]?.includes(stage)) C.add(R, 'bounds', t, o.b.label, 'room', o.over, o.at);
   }
   for (const h of X.held(R)) if (h.gap > C.tol.hand) C.add(R, 'hand', t, h.label, 'wrist', h.gap, h.at);
+  // The scenery outside (neighbours, data centre, billboard, the lanes cars and bikes drive down).
+  for (const o of X.exteriorOverlaps(R)) C.add(R, 'exterior', t, o.a, o.b, o.depth, null, `${o.kind}: ${o.a} ~ ${o.b} by ${o.depth.toFixed(2)}`);
 }
 
 // People against the world and each other: nobody's head or torso (or legs, walking) inside
