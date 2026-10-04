@@ -3,6 +3,7 @@ import { execSync } from 'node:child_process';
 import { readFileSync, mkdirSync, readdirSync, statSync, rmSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { LongestFirst } from './scripts/tools/test-order.mjs';
 
 // vitest keeps a module cache of tens of megabytes per run in a fresh directory under TMPDIR and
 // leaves it behind when a run is killed; /tmp is RAM on the team's machine. Under vitest (also a
@@ -47,5 +48,6 @@ export default defineConfig({
   // DOM tests opt in per file with // @vitest-environment happy-dom; sim tests stay in Node.
   // maxWorkers caps the suite's parallelism (the default is a worker per core, and tool tests start
   // browsers of their own); HITL_TEST_WORKERS raises or lowers it, and --maxWorkers overrides both.
-  test: { include: ['tests/**/*.test.js', 'src/**/*.test.js'], environment: 'node', testTimeout: 20000, maxWorkers: Number(process.env.HITL_TEST_WORKERS) || 4 },
+  // The slow files start first (scripts/tools/test-order.mjs), so the run never waits on one alone.
+  test: { include: ['tests/**/*.test.js', 'src/**/*.test.js'], environment: 'node', testTimeout: 20000, maxWorkers: Number(process.env.HITL_TEST_WORKERS) || 4, sequence: { sequencer: LongestFirst } },
 });
