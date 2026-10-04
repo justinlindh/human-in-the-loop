@@ -2,7 +2,7 @@
 import { afterAll, afterEach, expect, it, vi } from 'vitest';
 import { createTitle } from './title.js';
 import { createGame } from '../sim/state.js';
-import { ERA_STARTS } from '../data/era-modes.js';
+import { ERA_STARTS, CAREER_MODES } from '../data/era-modes.js';
 import { B } from '../sim/balance.js';
 import { fmtMoney } from './dom.js';
 vi.mock('./eraPreview.js', () => ({ erasPreview: true }));
@@ -85,6 +85,9 @@ it('keeps the funding dialog, buttons, focus and scroll while refreshing each er
     }
     const summary = dialog.querySelector('.era-start-summary').textContent;
     expect(summary).toContain(ERA_STARTS[id].name);
+    const route = Object.values(CAREER_MODES).find((m) => m.startEra === id);
+    expect(summary.includes(`(${route?.name})`)).toBe(!!route);
+    expect(button.textContent.includes(`Route: ${route?.name}`)).toBe(!!route);
     expect(summary).toContain(fmtMoney(B.funding.family.cash + kit.cash));
     expect(summary).toContain(kit.scoreShare >= 1 ? 'the same as Classic' : `${Math.round(kit.scoreShare * 100)}% of Classic`);
     expect(summary).toContain(`funding factor x${B.funding.family.scoreMult}`);
