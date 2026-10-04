@@ -140,13 +140,14 @@ async function boot() {
     // True after an auto-pause until the player picks a speed again (for a "paused while away" hint).
     get awayPaused() { return awayPaused; },
     // No options means "back to the title" (the game-over screen's New Game).
-    newGame: (opts) => {
+    newGame: (opts, preparedState) => {
       if (!opts) { showTitle(); return; }
       const seed = Number.isFinite(opts.seed) ? opts.seed : randomSeed();
       // Founding options (logoColor, tagline, founders, funding) pass straight through to the sim.
       const founding = { ...opts, seed, companyName: opts.companyName || 'Loopworks' };
       // A fresh state has no slot yet; its first save takes a new one, so earlier companies stay.
-      startPlaying(realSim ? simMod.createGame(founding) : sim.state);
+      // The takeover review hands off its prepared state to avoid running the predecessor again.
+      startPlaying(realSim ? preparedState ?? simMod.createGame(founding) : sim.state);
     },
     // Loads a slot by id (default: the last one written).
     continueGame: (id) => {

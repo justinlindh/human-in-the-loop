@@ -22,13 +22,14 @@ function applySets(sets) {
 }
 
 // One bot over the seeds; only what the tables and the JSON need, so it can cross a thread.
-function runSeeds(name, seeds, startEra) {
+function runSeeds(name, seeds, startEra, startMode) {
   const out = [];
   for (let seed = 1; seed <= seeds; seed++) {
-    const r = runBot(name, seed, undefined, { founding: { startEra } });
+    const r = runBot(name, seed, undefined, { founding: { startEra, startMode } });
     const mult = r.state.founding?.eraScoreMult ?? 1;
     out.push({
       exited: r.exited, won: r.won, reason: r.reason, weeks: r.weeks, score: r.score, raw: r.score / (mult || 1),
+      elapsedWeeks: r.weeks - (r.state.founding?.takeoverWeek ?? 0),
       peakMrr: r.peakMrr, maxStage: r.maxStage, firstLaunch: r.firstLaunch, stageWeeks: r.stageWeeks, eras: r.eras,
       resignations: r.resignations, incidents: r.incidents, crises: r.crises,
       caught: r.state.stats.caught, breaches: r.state.stats.breaches,
@@ -40,7 +41,7 @@ function runSeeds(name, seeds, startEra) {
 
 if (!isMainThread) {
   applySets(workerData.sets);
-  parentPort.postMessage(runSeeds(workerData.name, workerData.seeds, workerData.startEra));
+  parentPort.postMessage(runSeeds(workerData.name, workerData.seeds, workerData.startEra, workerData.startMode));
 } else {
   await main();
 }
@@ -54,6 +55,7 @@ async function main() {
   const seeds = Number(arg('seeds', 100));
   const bots = arg('bots', Object.keys(BOTS).join(',')).split(',');
   const startEra = arg('start-era', 'classic');
+  const startMode = arg('start-mode', 'garage');
   const json = arg('json', null);
   const baseline = arg('baseline', null);
   const jobs = Number(arg('jobs', 1));
@@ -65,6 +67,8 @@ async function main() {
   if (!Number.isSafeInteger(seeds) || seeds < 1) fail('--seeds must be a positive whole number');
   if (!Number.isSafeInteger(jobs) || jobs < 1) fail('--jobs must be a positive whole number');
   if (!Object.hasOwn(ERA_STARTS, startEra)) fail(`unknown starting era: ${startEra}`);
+  if (!['garage', 'takeover'].includes(startMode)) fail('unknown starting mode');
+  if (startMode === 'takeover' && !Object.hasOwn(B.takeover.scoreMult, startEra)) fail('takeover requires ChatGBT or Agents');
   if (bots.some((bot) => !Object.hasOwn(BOTS, bot))) fail('unknown bot');
   try { applySets(sets); } catch (e) { fail(e.message); }
   let base;
@@ -72,21 +76,21 @@ async function main() {
     try { base = JSON.parse(readFileSync(baseline, 'utf8')); } catch { fail('cannot read baseline JSON'); }
     if (!base?.runs || typeof base.runs !== 'object') fail('baseline must contain runs');
   }
-  trackRun('balance', { seeds, bots: bots.join(','), startEra });
+  trackRun('balance', { seeds, bots: bots.join(','), startEra, startMode });
 
   const median = (xs) => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : 0; };
   const fmt = (n) => Math.round(n).toLocaleString('en-US');
 
   const all = {};
   if (jobs === 1) {
-    for (const name of bots) all[name] = runSeeds(name, seeds, startEra);
+    for (const name of bots) all[name] = runSeeds(name, seeds, startEra, startMode);
   } else {
     const queue = [...bots];
     const worker = async () => {
       while (queue.length) {
         const name = queue.shift();
         all[name] = await new Promise((resolve, reject) => {
-          const w = new Worker(new URL(import.meta.url), { workerData: { name, seeds, startEra, sets } });
+          const w = new Worker(new URL(import.meta.url), { workerData: { name, seeds, startEra, startMode, sets } });
           w.once('message', resolve);
           w.once('error', reject);
           w.once('exit', (code) => { if (code) reject(new Error(`worker ${name} exited with ${code}`)); });
@@ -103,7 +107,7 @@ async function main() {
     results.forEach((r, i) => {
       runs[`${name}:${i + 1}`] = {
         reason: r.reason, exited: r.exited, won: r.won, weeks: r.weeks, score: r.score,
-        incidents: r.incidents, caught: r.caught, breaches: r.breaches, hash: r.hash,
+        incidents: r.incidents, caught: r.caught, breaches: r.breaches, elapsedWeeks: r.elapsedWeeks, hash: r.hash,
       };
     });
     const reasons = {};
@@ -115,6 +119,7 @@ async function main() {
       hqWeek: median(results.map((r) => r.stageWeeks[2] ?? 9999)),
       reasons: Object.entries(reasons).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(', '),
       weeks: median(results.map((r) => r.weeks)),
+      playedWeeks: median(results.map((r) => r.elapsedWeeks)),
       firstLaunch: median(results.map((r) => r.firstLaunch ?? 999)),
       pastOpening: `${Math.round(100 * results.filter((r) => r.weeks > B.preinternet.weeks).length / seeds)}%`,
       peakMrr: fmt(median(results.map((r) => r.peakMrr))),
@@ -125,7 +130,7 @@ async function main() {
       crises: median(results.map((r) => r.crises)),
     });
   }
-  console.log(`seeds per bot: ${seeds}, start: ${startEra}, through the career checkpoint${sets.length ? `, set ${sets.map(([p, v]) => `${p}=${v}`).join(' ')}` : ''}`);
+  console.log(`seeds per bot: ${seeds}, start: ${startEra}/${startMode}, through the career checkpoint${sets.length ? `, set ${sets.map(([p, v]) => `${p}=${v}`).join(' ')}` : ''}`);
   console.table(rows);
   const pooled = bots.flatMap((name) => all[name]);
   console.log(`pooled median score ${fmt(median(pooled.map((r) => r.score)))}, before the era factor ${fmt(median(pooled.map((r) => r.raw)))}`);
@@ -144,10 +149,10 @@ async function main() {
     }
   }
   console.table(eraRows);
-  if (json) writeFileSync(json, JSON.stringify({ startEra, seeds, bots, runs }, null, 2));
+  if (json) writeFileSync(json, JSON.stringify({ startEra, startMode, seeds, bots, runs }, null, 2));
   if (base) {
     const paired = compare(base.runs, runs);
     if (paired.onlyA.length || paired.onlyB.length) fail('baseline and run seed sets differ');
-    console.log(markdown(paired, { a: base.startEra, b: startEra }));
+    console.log(markdown(paired, { a: `${base.startEra}/${base.startMode ?? 'garage'}`, b: `${startEra}/${startMode}` }));
   }
 }
