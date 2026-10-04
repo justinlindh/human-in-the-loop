@@ -4,15 +4,15 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 fails=0
 fail() { echo "FAIL $*"; fails=$((fails + 1)); }
-# Each case reads the process's own nice right before it runs, so a renice from outside (a load guard,
-# a scheduler) between cases cannot fail one.
-expect() { local b; b="$(nice)"; echo $(( b >= 10 ? b : 10 )); }
-got="$(bash "$HERE/nice10.sh" nice)"
-[ "$got" -eq "$(expect)" ] || fail "an unniced command should run at nice $(expect) (got $got)"
-outer="$(nice -n 15 nice)"
-[ "$outer" -ge 10 ] && [ "$(nice -n 15 bash "$HERE/nice10.sh" nice)" -eq "$outer" ] || fail "a process already niced to 10 or more should keep its level"
-once="$(bash "$HERE/nice10.sh" nice)"; twice="$(bash "$HERE/nice10.sh" bash "$HERE/nice10.sh" nice)"
-[ "$twice" -eq "$once" ] || fail "wrapping twice should not stack (once $once, twice $twice)"
+# The command must run at max(nice, 10), where nice is the level of the process that started it. That
+# level is read just before and just after the run, and either one matches: a renice from outside (a
+# load guard, a scheduler) in between cannot fail a case.
+CHK='b=$(nice); r=$("$@"); a=$(nice)
+for n in $b $a; do [ "$r" -eq $(( n >= 10 ? n : 10 )) ] && exit 0; done
+echo "ran at $r (nice $b before, $a after)"; exit 1'
+msg="$(bash -c "$CHK" _ bash "$HERE/nice10.sh" nice)" || fail "an unniced command should run at nice 10 or its own level: $msg"
+msg="$(nice -n 15 bash -c "$CHK" _ bash "$HERE/nice10.sh" nice)" || fail "a process already niced to 10 or more should keep its level: $msg"
+msg="$(bash -c "$CHK" _ bash "$HERE/nice10.sh" bash "$HERE/nice10.sh" nice)" || fail "wrapping twice should not stack: $msg"
 bash "$HERE/nice10.sh" true || fail "exit 0 should pass through"
 bash "$HERE/nice10.sh" false && fail "a failing command should fail"
 bash "$HERE/nice10.sh" 2>/dev/null; [ $? -eq 2 ] || fail "no command should exit 2"
