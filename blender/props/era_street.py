@@ -114,6 +114,27 @@ def datacentre_overgrown():
     join(parts, 'era_datacentre_overgrown')
 
 
+def datacentre_plot():
+    # Before any steel: a hoarded plot with a site cabin and a "coming soon" board facing the street.
+    parts = [box('ground', (W, D, 0.06), (0, 0, 0.03), 'slab_edge', 0.01, 1)]
+    hh = 1.8
+    for i, (x, y, w, d) in enumerate(((0, -D / 2, W, 0.08), (0, D / 2, W, 0.08), (-W / 2, 0, 0.08, D), (W / 2, 0, 0.08, D))):
+        parts.append(box(f'hoard{i}', (w, d, hh), (x, y, hh / 2 + 0.004), 'wood_honey', 0.01, 1))
+    for k in range(5):
+        parts.append(box(f'stripe{k}', (0.5, 0.02, 0.12), (-2.4 + k * 1.2, -D / 2 - 0.05, hh - 0.2), 'fabric_mustard', 0, 1))
+    parts += [box('cabin', (2.0, 1.2, 1.3), (1.6, 1.0, hh + 0.65), 'wall_cream', 0.03, 1),
+              box('cabin_window', (0.8, 0.03, 0.5), (1.4, 0.38, hh + 0.75), 'glass_frame', 0.01, 1),
+              box('cabin_base', (2.1, 1.3, 0.08), (1.6, 1.0, hh + 0.04), 'metal_dark', 0.01, 1),
+              box('pipes', (1.6, 0.6, 0.5), (-1.6, 1.0, 0.25), 'metal_soft', 0.02, 1),
+              box('board_post_l', (0.1, 0.1, 3.2), (-1.9, -D / 2 - 0.25, 1.6), 'metal_dark', 0, 1),
+              box('board_post_r', (0.1, 0.1, 3.2), (-0.1, -D / 2 - 0.25, 1.6), 'metal_dark', 0, 1),
+              box('board', (2.2, 0.06, 1.2), (-1.0, -D / 2 - 0.3, 2.55), 'paper_sheet', 0.02, 1),
+              box('board_band', (2.26, 0.08, 0.3), (-1.0, -D / 2 - 0.3, 2.0), 'fabric_teal', 0, 1),
+              lettering('soon_a', 'CLOUD REGION', (-1.0, -D / 2 - 0.35, 2.75), 0.26, 'ink'),
+              lettering('soon_b', 'COMING SOON', (-1.0, -D / 2 - 0.35, 2.42), 0.22, 'fabric_teal')]
+    join(parts, 'era_datacentre_plot')
+
+
 def datacentre_build():
     # Going up: the slab, a steel frame two bays high, half the cladding, and a tower crane.
     parts = [box('slab', (W + 0.1, D + 0.1, 0.25), (0, 0, 0.125), 'slab_edge', 0.03, 1)]
@@ -127,18 +148,21 @@ def datacentre_build():
             parts.append(box(f'tie{z}{x}', (0.12, D, 0.14), (x, 0, z), 'fabric_terracotta', 0, 1))
     parts.append(box('cladding', (W / 3 - 0.1, 0.06, H - 0.3), (-W / 3, -D / 2, H / 2 + 0.05), 'wall_cream', 0.01, 1))
     # The crane: a lattice mast drawn as a tall box with braces, a jib, a counterweight and a hook.
-    mx, my = W / 2 + 0.9, D / 2 - 0.4
-    mast_h = 9.0
+    # It stands off the site's left end (toward the middle of the game's view) and reaches right over it.
+    mx, my = -(W / 2 + 0.9), D / 2 - 0.4
+    mast_h = 7.5
     parts.append(box('mast', (0.5, 0.5, mast_h), (mx, my, mast_h / 2), 'fabric_mustard', 0, 1))
-    for k in range(6):
+    for k in range(5):
         z = 0.8 + k * 1.4
         parts.append(rod(f'brace{k}', (mx - 0.26, my - 0.26, z), (mx + 0.26, my - 0.26, z + 1.3), 0.03, 'ink'))
-    parts += [box('jib', (7.5, 0.4, 0.4), (mx - 2.6, my, mast_h + 0.2), 'fabric_mustard', 0, 1),
-              box('cab', (0.7, 0.6, 0.6), (mx + 0.2, my - 0.5, mast_h - 0.3), 'wall_cream', 0.03, 1),
-              box('counter', (1.0, 0.7, 0.6), (mx + 1.3, my, mast_h - 0.1), 'slab_edge', 0.02, 1),
-              rod('cable', (mx - 4.5, my, mast_h), (mx - 4.5, my, 4.6), 0.015, 'ink'),
-              box('load', (1.4, 0.2, 0.2), (mx - 4.5, my, 4.5), 'fabric_terracotta', 0, 1),
-              box('tip_light', (0.12, 0.12, 0.12), (mx - 6.3, my, mast_h + 0.45), 'led_red', 0)]
+    parts += [box('jib', (7.5, 0.4, 0.4), (mx + 2.6, my, mast_h + 0.2), 'fabric_mustard', 0, 1),
+              box('cab', (0.7, 0.6, 0.6), (mx - 0.2, my - 0.5, mast_h - 0.3), 'wall_cream', 0.03, 1),
+              box('counter', (1.0, 0.7, 0.6), (mx - 1.3, my, mast_h - 0.1), 'slab_edge', 0.02, 1),
+              rod('cable', (mx + 4.5, my, mast_h), (mx + 4.5, my, 4.6), 0.015, 'ink'),
+              box('load', (1.4, 0.2, 0.2), (mx + 4.5, my, 4.5), 'fabric_terracotta', 0, 1),
+              # Aircraft warning lights at the jib tip and the mast head; the game adds a halo to each at night.
+              box('tip_light', (0.32, 0.32, 0.32), (mx + 6.2, my, mast_h + 0.56), 'led_red', 0),
+              box('mast_light', (0.28, 0.28, 0.28), (mx, my, mast_h + 0.54), 'led_red', 0)]
     join(parts, 'era_datacentre_build')
 
 
@@ -148,3 +172,4 @@ reset(); drone(); export(path('era_drone'), budget=800)
 reset(); datacentre(); export(path('era_datacentre'), budget=3000)
 reset(); datacentre_overgrown(); export(path('era_datacentre_overgrown'), budget=3000)
 reset(); datacentre_build(); export(path('era_datacentre_build'), budget=3000)
+reset(); datacentre_plot(); export(path('era_datacentre_plot'), budget=3000)
