@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { join, resolve } from 'node:path';
 import { storageEntries } from '../../scripts/tools/drive.mjs';
 import { INDEX_KEY, listSaves, loadGame } from '../../src/save/save.js';
@@ -20,7 +20,7 @@ describe('drive storage seeding', () => {
   });
 
   it('adds keys from a file over the saves, stringifying non-strings', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'drive-storage-'));
+    const dir = mkdtempSync(join(toolTmp(), 'drive-storage-'));
     try {
       const file = join(dir, 's.json');
       writeFileSync(file, JSON.stringify({ a: 'x', b: { n: 1 }, [INDEX_KEY]: 'over' }));
@@ -34,7 +34,7 @@ describe('drive storage seeding', () => {
   it('refuses bad input before any browser starts', async () => {
     for (const saves of [0, 7, 1.5, 'x', true]) await expect(storageEntries({ saves })).rejects.toThrow(/--saves wants/);
     await expect(storageEntries({ storageFile: '/nonexistent/s.json' })).rejects.toThrow(/--storage-file/);
-    const dir = mkdtempSync(join(tmpdir(), 'drive-storage-'));
+    const dir = mkdtempSync(join(toolTmp(), 'drive-storage-'));
     try {
       const file = join(dir, 'a.json');
       writeFileSync(file, '[1]');

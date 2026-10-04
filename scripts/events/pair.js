@@ -26,8 +26,9 @@
 import { createHash } from 'node:crypto';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { spawn, execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readdirSync, renameSync, rmSync, readFileSync, statSync, writeFileSync, existsSync } from 'node:fs';
-import { tmpdir, cpus, homedir } from 'node:os';
+import { mkdirSync, readdirSync, renameSync, rmSync, readFileSync, statSync, writeFileSync, existsSync } from 'node:fs';
+import { cpus, homedir } from 'node:os';
+import { makeTemp } from '../tools/tmp.mjs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createWorktree } from '../tools/worktree.mjs';
@@ -54,7 +55,7 @@ function simFiles(repo, rev) {
       .filter((p) => p && SIM_FILE.test(p) && !p.endsWith('.test.js') && existsSync(join(repo, p)));
     const ids = git(repo, ['hash-object', '--stdin-paths'], `${paths.join('\n')}\n`).split('\n').filter(Boolean);
     return paths.map((p, i) => [p, ids[i]]);
-  } catch { return null; }
+  } catch (e) { console.error(`pair: cache: skipped (git cannot list the sim files: ${String(e.message).split('\n')[0]})`); return null; }
 }
 const cacheDir = () => process.env.HITL_PAIR_CACHE_DIR || join(homedir(), '.cache', 'hitl-ci', 'pair');
 function readSide(key) {
@@ -71,7 +72,7 @@ function writeSide(key, records) {
       const f = join(cacheDir(), n);
       if (Date.now() - statSync(f).mtimeMs > 14 * 864e5) rmSync(f, { force: true });
     }
-  } catch { /* a cache that cannot be written only costs a run next time */ }
+  } catch (e) { console.error(`pair: cache: skipped (could not write side a: ${e.message})`); }
 }
 
 async function runOne({ root, bot, seed, fields, startEra }) {
@@ -145,7 +146,7 @@ if (!isMainThread) {
     if (!Object.hasOwn(ERA_STARTS, startEra)) fail(`unknown starting era: ${startEra}`);
   }
   const spec = JSON.stringify({ bots, seeds, jobs, fields: parsed, startEra });
-  const tmp = mkdtempSync(join(tmpdir(), 'pair-'));
+  const tmp = makeTemp('pair-');
   let baseWorktree = null;
   let code = 0;
   // Each side's process runs until it ends or this process does, whichever comes first.

@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { join } from 'node:path';
 
 let dir;
-beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'check-cache-')); process.env.HITL_CHECK_CACHE_DIR = dir; });
+beforeEach(() => { dir = mkdtempSync(join(toolTmp(), 'check-cache-')); process.env.HITL_CHECK_CACHE_DIR = dir; });
 afterEach(() => { delete process.env.HITL_CHECK_CACHE_DIR; rmSync(dir, { recursive: true, force: true }); });
 
 const load = () => import('../../blender/checks/cache.mjs');
@@ -48,6 +48,29 @@ describe('whole-check records keyed by the files a pass loaded', () => {
     c.recordGraphPass('probe', base, ['src/render/checks.js', 'src/render/no-such-file.js']);
     c.recordGraphPass('probe', null, LOADED);
     expect(existsSync(join(dir, 'probe'))).toBe(false);
+  });
+
+  it('says why on stderr when it records nothing, and stays quiet for a null base or a good record', async () => {
+    const c = await load();
+    const base = c.graphBase('probe', 'x');
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      c.recordGraphPass('probe', base, ['blender/checks/golden.mjs']);
+      c.recordGraphPass('probe', base, ['src/render/checks.js', 'src/render/no-such-file.js']);
+      expect(spy.mock.calls.map((a) => a[0])).toEqual([
+        'probe: cache: skipped (no game source loaded)',
+        'probe: cache: skipped (a loaded file is missing (src/render/no-such-file.js))',
+      ]);
+      spy.mockClear();
+      c.recordGraphPass('probe', null, LOADED);
+      c.recordGraphPass('probe', base, LOADED);
+      expect(spy).not.toHaveBeenCalled();
+      // A record that cannot be written (the cache dir is a file) is named too.
+      writeFileSync(join(dir, 'blocked'), 'x');
+      process.env.HITL_CHECK_CACHE_DIR = join(dir, 'blocked');
+      c.recordGraphPass('probe', base, LOADED);
+      expect(spy.mock.calls[0][0]).toMatch(/^probe: cache: skipped \(could not write the record: /);
+    } finally { spy.mockRestore(); }
   });
 
   it('turns absolute paths into repo paths and drops node_modules and outside files', async () => {

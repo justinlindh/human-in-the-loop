@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { spawn, spawnSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { join, resolve } from 'node:path';
 import { ensureFresh, interval, read, signature, trimComments } from '../../scripts/tools/pr-snapshot.mjs';
 
@@ -9,7 +9,7 @@ const SCRIPT = resolve('scripts/tools/pr-snapshot.mjs');
 const pr = (number, over = {}) => ({ number, title: `pr ${number}`, state: 'OPEN', isDraft: false, headRefName: 'x/y', headRefOid: `h${number}`, baseRefName: 'main', mergeStateStatus: 'CLEAN', mergeable: 'MERGEABLE', labels: [], statusCheckRollup: [], comments: [], ...over });
 
 let dir, file;
-beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'pr-snapshot-')); file = join(dir, 'snap.json'); });
+beforeEach(() => { dir = mkdtempSync(join(toolTmp(), 'pr-snapshot-')); file = join(dir, 'snap.json'); });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 describe('interval', () => {
