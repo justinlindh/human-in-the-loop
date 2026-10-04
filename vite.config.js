@@ -27,5 +27,7 @@ export default defineConfig({
   server: { port: 5173 },
   build: { target: 'es2022', chunkSizeWarningLimit: 2000 },
   // DOM tests opt in per file with // @vitest-environment happy-dom; sim tests stay in Node.
-  test: { include: ['tests/**/*.test.js', 'src/**/*.test.js'], environment: 'node', testTimeout: 20000 },
+  // maxWorkers caps the suite's parallelism (the default is a worker per core, and tool tests start
+  // browsers of their own); HITL_TEST_WORKERS raises or lowers it, and --maxWorkers overrides both.
+  test: { include: ['tests/**/*.test.js', 'src/**/*.test.js'], environment: 'node', testTimeout: 20000, maxWorkers: Number(process.env.HITL_TEST_WORKERS) || 4 },
 });
