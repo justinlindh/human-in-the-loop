@@ -1,0 +1,10 @@
+[Unit]
+Description=Check for a new main commit and refresh stale feature media every 10 minutes
+
+[Timer]
+OnBootSec=15min
+OnUnitInactiveSec=10min
+Persistent=false
+
+[Install]
+WantedBy=timers.target
