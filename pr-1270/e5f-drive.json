@@ -1,0 +1,420 @@
+{
+ "desktop": {
+  "setup": {
+   "loaded": {
+    "ok": true,
+    "id": "s1"
+   },
+   "week": 44,
+   "cash": 461138.0769230769,
+   "product": {
+    "id": "p155",
+    "name": "InboxNet",
+    "category": "email",
+    "angle": "boxed",
+    "model": null,
+    "modelVersion": 0,
+    "version": 1,
+    "size": "small",
+    "stats": {
+     "features": 87.20000000000007,
+     "polish": 283.4000000000001,
+     "reliability": 5,
+     "novelty": 146.39999999999995
+    },
+    "score": 7,
+    "reviews": [
+     {
+      "outlet": "Byte Register",
+      "score": 7.5,
+      "quote": "A promising v1. We look forward to v2 fixing v1."
+     },
+     {
+      "outlet": "Desktop Review",
+      "score": 7,
+      "quote": "Useful on Tuesdays. Tuesdays are good now."
+     },
+     {
+      "outlet": "The Shareware Circular",
+      "score": 7,
+      "quote": "It works. We were surprised enough to write that down."
+     },
+     {
+      "outlet": "Wired-ish",
+      "score": 6.5,
+      "quote": "Fine. Genuinely, reassuringly, boringly fine."
+     }
+    ],
+    "customers": 0,
+    "mrr": 0,
+    "hype": 15.897600000000002,
+    "novelty": 8.255164410058022,
+    "health": 55,
+    "baseHealth": 55,
+    "uptime": 0.775,
+    "launchedWeek": 41,
+    "copyAtWeek": 82,
+    "copied": false,
+    "wrapperHit": false,
+    "ownerId": null,
+    "migrationDueWeek": null,
+    "killed": false,
+    "boxed": {
+     "stock": 847,
+     "stockCost": 6776,
+     "installed": 153,
+     "deliveries": [],
+     "unitsOrdered": 1000,
+     "unitsSold": 153,
+     "returns": 0,
+     "returnUnits": 0,
+     "salesHistory": [
+      {
+       "week": 41,
+       "net": 0
+      },
+      {
+       "week": 42,
+       "net": 0
+      },
+      {
+       "week": 43,
+       "net": 26775
+      }
+     ],
+     "grossSales": 38250,
+     "retailerFees": 11475,
+     "refunds": 0,
+     "manufacturingCost": 8000,
+     "patchCost": 0,
+     "patches": 0,
+     "patchedVersion": 1,
+     "weeklyNet": 26775,
+     "salesWeek": 43,
+     "delivered": 1000,
+     "buybackCost": 0,
+     "withdrawn": 0,
+     "buybackWeek": 48,
+     "returnsSettled": false,
+     "master": "verify"
+    }
+   },
+   "quote": {
+    "cost": 306,
+    "reason": "Installed copies are already patched"
+   }
+  },
+  "Fresh v1 Mail patch is disabled with a visible reason": true,
+  "freshV1": {
+   "week": 44,
+   "cash": 461138.0769230769,
+   "product": {
+    "id": "p155",
+    "name": "InboxNet",
+    "category": "email",
+    "angle": "boxed",
+    "model": null,
+    "modelVersion": 0,
+    "version": 1,
+    "size": "small",
+    "stats": {
+     "features": 87.20000000000007,
+     "polish": 283.4000000000001,
+     "reliability": 5,
+     "novelty": 146.39999999999995
+    },
+    "score": 7,
+    "reviews": [
+     {
+      "outlet": "Byte Register",
+      "score": 7.5,
+      "quote": "A promising v1. We look forward to v2 fixing v1."
+     },
+     {
+      "outlet": "Desktop Review",
+      "score": 7,
+      "quote": "Useful on Tuesdays. Tuesdays are good now."
+     },
+     {
+      "outlet": "The Shareware Circular",
+      "score": 7,
+      "quote": "It works. We were surprised enough to write that down."
+     },
+     {
+      "outlet": "Wired-ish",
+      "score": 6.5,
+      "quote": "Fine. Genuinely, reassuringly, boringly fine."
+     }
+    ],
+    "customers": 0,
+    "mrr": 0,
+    "hype": 15.897600000000002,
+    "novelty": 8.255164410058022,
+    "health": 55,
+    "baseHealth": 55,
+    "uptime": 0.775,
+    "launchedWeek": 41,
+    "copyAtWeek": 82,
+    "copied": false,
+    "wrapperHit": false,
+    "ownerId": null,
+    "migrationDueWeek": null,
+    "killed": false,
+    "boxed": {
+     "stock": 847,
+     "stockCost": 6776,
+     "installed": 153,
+     "deliveries": [],
+     "unitsOrdered": 1000,
+     "unitsSold": 153,
+     "returns": 0,
+     "returnUnits": 0,
+     "salesHistory": [
+      {
+       "week": 41,
+       "net": 0
+      },
+      {
+       "week": 42,
+       "net": 0
+      },
+      {
+       "week": 43,
+       "net": 26775
+      }
+     ],
+     "grossSales": 38250,
+     "retailerFees": 11475,
+     "refunds": 0,
+     "manufacturingCost": 8000,
+     "patchCost": 0,
+     "patches": 0,
+     "patchedVersion": 1,
+     "weeklyNet": 26775,
+     "salesWeek": 43,
+     "delivered": 1000,
+     "buybackCost": 0,
+     "withdrawn": 0,
+     "buybackWeek": 48,
+     "returnsSettled": false,
+     "master": "verify"
+    }
+   }
+  },
+  "patchInView": true,
+  "helpInView": true,
+  "Inventory displays the $250 box price": true,
+  "Reports tabs stay inside the viewport": true,
+  "video": "/home/justin/src/gamedev-codex-e5/shots/e5f-evidence/media/page@9fe72a55d9637c35232fb7395c2fe023.webm",
+  "problems": []
+ },
+ "phone": {
+  "setup": {
+   "loaded": {
+    "ok": true,
+    "id": "s1"
+   },
+   "week": 44,
+   "cash": 461138.0769230769,
+   "product": {
+    "id": "p155",
+    "name": "InboxNet",
+    "category": "email",
+    "angle": "boxed",
+    "model": null,
+    "modelVersion": 0,
+    "version": 1,
+    "size": "small",
+    "stats": {
+     "features": 87.20000000000007,
+     "polish": 283.4000000000001,
+     "reliability": 5,
+     "novelty": 146.39999999999995
+    },
+    "score": 7,
+    "reviews": [
+     {
+      "outlet": "Byte Register",
+      "score": 7.5,
+      "quote": "A promising v1. We look forward to v2 fixing v1."
+     },
+     {
+      "outlet": "Desktop Review",
+      "score": 7,
+      "quote": "Useful on Tuesdays. Tuesdays are good now."
+     },
+     {
+      "outlet": "The Shareware Circular",
+      "score": 7,
+      "quote": "It works. We were surprised enough to write that down."
+     },
+     {
+      "outlet": "Wired-ish",
+      "score": 6.5,
+      "quote": "Fine. Genuinely, reassuringly, boringly fine."
+     }
+    ],
+    "customers": 0,
+    "mrr": 0,
+    "hype": 15.897600000000002,
+    "novelty": 8.255164410058022,
+    "health": 55,
+    "baseHealth": 55,
+    "uptime": 0.775,
+    "launchedWeek": 41,
+    "copyAtWeek": 82,
+    "copied": false,
+    "wrapperHit": false,
+    "ownerId": null,
+    "migrationDueWeek": null,
+    "killed": false,
+    "boxed": {
+     "stock": 847,
+     "stockCost": 6776,
+     "installed": 153,
+     "deliveries": [],
+     "unitsOrdered": 1000,
+     "unitsSold": 153,
+     "returns": 0,
+     "returnUnits": 0,
+     "salesHistory": [
+      {
+       "week": 41,
+       "net": 0
+      },
+      {
+       "week": 42,
+       "net": 0
+      },
+      {
+       "week": 43,
+       "net": 26775
+      }
+     ],
+     "grossSales": 38250,
+     "retailerFees": 11475,
+     "refunds": 0,
+     "manufacturingCost": 8000,
+     "patchCost": 0,
+     "patches": 0,
+     "patchedVersion": 1,
+     "weeklyNet": 26775,
+     "salesWeek": 43,
+     "delivered": 1000,
+     "buybackCost": 0,
+     "withdrawn": 0,
+     "buybackWeek": 48,
+     "returnsSettled": false,
+     "master": "verify"
+    }
+   },
+   "quote": {
+    "cost": 306,
+    "reason": "Installed copies are already patched"
+   }
+  },
+  "Fresh v1 Mail patch is disabled with a visible reason": true,
+  "freshV1": {
+   "week": 44,
+   "cash": 461138.0769230769,
+   "product": {
+    "id": "p155",
+    "name": "InboxNet",
+    "category": "email",
+    "angle": "boxed",
+    "model": null,
+    "modelVersion": 0,
+    "version": 1,
+    "size": "small",
+    "stats": {
+     "features": 87.20000000000007,
+     "polish": 283.4000000000001,
+     "reliability": 5,
+     "novelty": 146.39999999999995
+    },
+    "score": 7,
+    "reviews": [
+     {
+      "outlet": "Byte Register",
+      "score": 7.5,
+      "quote": "A promising v1. We look forward to v2 fixing v1."
+     },
+     {
+      "outlet": "Desktop Review",
+      "score": 7,
+      "quote": "Useful on Tuesdays. Tuesdays are good now."
+     },
+     {
+      "outlet": "The Shareware Circular",
+      "score": 7,
+      "quote": "It works. We were surprised enough to write that down."
+     },
+     {
+      "outlet": "Wired-ish",
+      "score": 6.5,
+      "quote": "Fine. Genuinely, reassuringly, boringly fine."
+     }
+    ],
+    "customers": 0,
+    "mrr": 0,
+    "hype": 15.897600000000002,
+    "novelty": 8.255164410058022,
+    "health": 55,
+    "baseHealth": 55,
+    "uptime": 0.775,
+    "launchedWeek": 41,
+    "copyAtWeek": 82,
+    "copied": false,
+    "wrapperHit": false,
+    "ownerId": null,
+    "migrationDueWeek": null,
+    "killed": false,
+    "boxed": {
+     "stock": 847,
+     "stockCost": 6776,
+     "installed": 153,
+     "deliveries": [],
+     "unitsOrdered": 1000,
+     "unitsSold": 153,
+     "returns": 0,
+     "returnUnits": 0,
+     "salesHistory": [
+      {
+       "week": 41,
+       "net": 0
+      },
+      {
+       "week": 42,
+       "net": 0
+      },
+      {
+       "week": 43,
+       "net": 26775
+      }
+     ],
+     "grossSales": 38250,
+     "retailerFees": 11475,
+     "refunds": 0,
+     "manufacturingCost": 8000,
+     "patchCost": 0,
+     "patches": 0,
+     "patchedVersion": 1,
+     "weeklyNet": 26775,
+     "salesWeek": 43,
+     "delivered": 1000,
+     "buybackCost": 0,
+     "withdrawn": 0,
+     "buybackWeek": 48,
+     "returnsSettled": false,
+     "master": "verify"
+    }
+   }
+  },
+  "patchInView": true,
+  "helpInView": true,
+  "Inventory displays the $250 box price": true,
+  "Reports tabs stay inside the viewport": true,
+  "video": "/home/justin/src/gamedev-codex-e5/shots/e5f-evidence/media/page@9c9f5fb76cae7f964ee5c56d608d9cdf.webm",
+  "problems": []
+ }
+}
