@@ -1,0 +1,1 @@
+{ "name": "hitl-guards", "version": "0.1.0", "description": "Shared guards for the Human in the Loop lanes: shell rewrites of tracked files, branch switches under a watcher, background job exits." }
