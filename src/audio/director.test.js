@@ -339,6 +339,27 @@ describe('audio director', () => {
     expect(Math.abs(loops - Math.round(loops))).toBeLessThan(1e-6);
   });
 
+  it('keeps playlist switches on the audio clock through a 2 s hitch', () => {
+    const d = createDirector({ seed: 5, beds: { classic: ['classic/a', 'classic/b', 'classic/c'] } });
+    const s = state();
+    let frame = 0, audio = 100;
+    let first = null;
+    const switches = [];
+    for (let i = 0; i < 4000; i++) {
+      frame += 0.25; audio += 0.25;
+      // One hitch: audio time moves 2 s while frame time moves one capped step.
+      if (i === 200) audio += 2;
+      for (const c of d.update(s, frame, { speed: 1, running: true, audioT: audio })) {
+        if (c.op !== 'music') continue;
+        if (!first) { first = c; d.musicStarted(c.bed, c.at); } else switches.push({ c, audio });
+      }
+    }
+    expect(switches.length).toBeGreaterThan(1);
+    for (const { c, audio: seenAt } of switches) expect(c.at).toBeGreaterThanOrEqual(seenAt);
+    const loops = (switches[0].c.at - first.at) / bedSeconds('classic', first.bed);
+    expect(Math.abs(loops - Math.round(loops))).toBeLessThan(1e-6);
+  });
+
   it('does not count paused time toward the next bed, and keeps a single bed forever', () => {
     const d = createDirector({ seed: 5, beds: { classic: ['classic/a', 'classic/b'] } });
     const s = state();

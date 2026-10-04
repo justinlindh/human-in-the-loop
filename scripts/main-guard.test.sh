@@ -236,5 +236,26 @@ expect 'a commit unjudged twice is filed' "$cl" "--label main-unjudged|!--label 
 [ "$(cat "$case_root/main-guard/last" 2>/dev/null)" = "$(git -C "$REPO" rev-parse HEAD)" ] \
   || { echo "FAIL a commit unjudged twice should be recorded as checked"; fails=$((fails + 1)); shown "$cl"; }
 
+# Tip runs (no --sha): a tip whose changes since the last green check are all on the skip list runs
+# nothing, and a tip inside the minimum gap after the last check waits.
+printf '**\n' >"$tmp/skip-all"; printf 'nothing/matches\n' >"$tmp/skip-none"
+tip="$(git -C "$REPO" rev-parse HEAD)"; before="$(git -C "$REPO" rev-parse HEAD~1)"
+tipcase() { # <name> <last> <green> <skip list> <min minutes> <expected: ran|skipped> [touch last: old|new]
+  case_root="$tmp/root-tip-$RANDOM"; mkdir -p "$case_root/main-guard"; local l="$tmp/tip.log"; : >"$l"; rm -f "$tmp/tip.ran"
+  [ -n "$2" ] && echo "$2" >"$case_root/main-guard/last"; [ -n "$3" ] && echo "$3" >"$case_root/main-guard/last-green"
+  [ "${7:-}" = old ] && touch -d '3 hours ago' "$case_root/main-guard/last"
+  guard "$l" /dev/null MAIN_GUARD_REF="$tip" MAIN_GUARD_SKIP_LIST="$4" MAIN_GUARD_MIN_MINUTES="$5" MAIN_GUARD_SUITE="touch '$tmp/tip.ran'; $PASS" MAIN_GUARD_STRICT="$CLEAN" -- --no-post
+  if [ "$6" = ran ]; then [ -e "$tmp/tip.ran" ] || { echo "FAIL $1: the gate should have run"; fails=$((fails + 1)); }
+  else [ ! -e "$tmp/tip.ran" ] || { echo "FAIL $1: the gate should not have run"; fails=$((fails + 1)); }; fi
+}
+tipcase 'a tip changing only skip-list paths since a green check inherits it' "$before" "$before" "$tmp/skip-all" 0 skipped old
+grep -q "inherits its green verdict" "$tmp/tip.log.out" || { echo "FAIL the inherited verdict should be printed"; fails=$((fails + 1)); }
+[ "$(cat "$case_root/main-guard/last-green")" = "$tip" ] || { echo "FAIL an inherited verdict should move last-green"; fails=$((fails + 1)); }
+tipcase 'a tip changing checked paths runs' "$before" "$before" "$tmp/skip-none" 0 ran old
+tipcase 'a tip after a check that was not green runs' "$before" "" "$tmp/skip-all" 0 ran old
+tipcase 'a tip inside the minimum gap waits' "$before" "$before" "$tmp/skip-none" 90 skipped new
+tipcase 'a tip past the minimum gap runs' "$before" "$before" "$tmp/skip-none" 90 ran old
+tipcase 'a first run has no gap to wait out' "" "" "$tmp/skip-none" 90 ran
+
 [ $fails -eq 0 ] && echo "main-guard: all cases pass" || echo "main-guard: $fails failing"
 [ $fails -eq 0 ]

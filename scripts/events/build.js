@@ -9,12 +9,21 @@ import { join, resolve } from 'node:path';
 import { availableParallelism } from 'node:os';
 import { CACHE, simHash, indexDir } from './lib.js';
 
+// Set by a SIGINT or SIGTERM: the process then leaves by finishing, never by process.exit, because
+// exiting the process while worker threads are still shutting down can abort it.
+let stopCode = 0;
+
 if (!isMainThread) {
   const { play } = await import('./play.js');
   parentPort.on('message', (run) => parentPort.postMessage(play(run)));
 } else {
   try { await build(); }
-  catch (err) { console.error(`events: ${err.message}`); process.exitCode = 2; }
+  catch (err) {
+    // An interrupt makes the workers exit under build(), so the failure it reports is the interrupt's own.
+    if (!stopCode) console.error(`events: ${err.message}`);
+    process.exitCode = 2;
+  }
+  if (stopCode) process.exitCode = stopCode;
 }
 
 function options(argv) {
@@ -81,11 +90,9 @@ async function build() {
   const interrupt = (signal) => {
     if (interrupted) return;
     interrupted = true;
+    stopCode = signal === 'SIGINT' ? 130 : 143;
     // Workers write only into the unpublished directory. Stop them before removing it.
-    Promise.all([...workers].map((w) => w.terminate())).finally(() => {
-      cleanup();
-      process.exit(signal === 'SIGINT' ? 130 : 143);
-    });
+    Promise.all([...workers].map((w) => w.terminate())).finally(cleanup);
   };
   const onInt = () => interrupt('SIGINT'), onTerm = () => interrupt('SIGTERM');
   process.on('SIGINT', onInt);

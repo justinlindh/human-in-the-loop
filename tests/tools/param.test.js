@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseAst } from 'vite';
 import { readdirSync, readFileSync } from 'node:fs';
-import { applyParams, resolveParams, paramSpecs, paramPlugin } from '../../blender/checks/param.js';
+import { applyParams, currentText, resolveParams, paramSpecs, paramPlugin } from '../../blender/checks/param.js';
 import { splitTop, cellValue, flatRows } from '../../blender/checks/param-sweep.js';
 
 const SRC = `import x from 'y';
@@ -31,6 +31,19 @@ describe('param', () => {
       expect(out).toContain('const ARR = [7,8,9];\nARR[1] = 0.5;');
       expect(out).toContain('const inner = 5;');
       expect(out).not.toContain('3];');
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it('reads what a param\'s target holds in source: a whole value, an element, a key', () => {
+    const root = tree({ 'src/a.js': `${SRC}const OBJ = { aside: 0.12, radii: [1, 2] };\n` });
+    try {
+      const [k, arr, el, key, str, missing] = resolveParams(['K=0', 'ARR=0', 'ARR[2]=0', 'OBJ.aside=0', 'OTHER=0', 'ARR[9]=0'], root);
+      expect(currentText(k)).toBe('3');
+      expect(currentText(arr)).toBe('[1, 2, 3]');
+      expect(currentText(el)).toBe('3');
+      expect(currentText(key)).toBe('0.12');
+      expect(currentText(str)).toBe("'a;b'");
+      expect(currentText(missing)).toBe(null);
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 
