@@ -99,6 +99,15 @@ describe('side a cache', () => {
     expect([r.status, cached(r), cacheFiles().length]).toEqual([0, false, before]);
   });
 
+  it('says on stderr when side a cannot be cached, and still prints the table', () => {
+    const blocked = join(process.env.HITL_PAIR_CACHE_DIR, 'blocked-file');
+    writeFileSync(blocked, 'x');
+    const r = play(['--seeds', '1'], { HITL_PAIR_CACHE_DIR: join(blocked, 'sub') });
+    expect(r.status).toBe(0);
+    expect(r.stderr).toMatch(/pair: cache: skipped \(could not write side a: /);
+    expect(table(r)[0]).toMatch(/\| balanced \| 1\/1 /);
+  });
+
   it('a damaged cache entry is played over, not trusted', () => {
     play(['--seeds', '5']);
     for (const n of cacheFiles()) writeFileSync(join(process.env.HITL_PAIR_CACHE_DIR, n), '{ not json');
