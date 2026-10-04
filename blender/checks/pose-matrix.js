@@ -20,10 +20,28 @@ export const POSTURES = { stand: 'idle', sit: 'typing', lie: 'lie' };
 // The facepalm: a hand covers the near eye in at least 70% of the frames the face shows (faceCam <= 80).
 // The slap: the right hand reaches the robot head (0.06 m) at some frame, the face within 35 degrees of
 // the head for 80% of the frames (stage.mjs's robot.slap and robot.windup rules).
+// tunedBy: the consts the matrix prints with their values in source. guide: a continuous number a sweep
+// shows per value (the mean over cells of the smallest of these measures' medians, lower is closer),
+// which still moves while every cell reads 0%.
 export const PRESETS = {
-  facepalm: { measures: ['coverHandEyeNear', 'faceCam', 'hand0Eye', 'hand1Eye', 'clearance'], rules: ['coverHandEyeNear>=0.5@0.7 if faceCam<=80'] },
-  slap: { measures: ['robotContact', 'robotDepth', 'robotAngle', 'faceVisible'], rules: ['robotContact<=0.06@0.01', 'robotAngle<=35@0.8'] },
+  facepalm: {
+    measures: ['coverHandEyeNear', 'faceCam', 'hand0Eye', 'hand1Eye', 'clearance'], rules: ['coverHandEyeNear>=0.5@0.7 if faceCam<=80'],
+    tunedBy: ['src/render/character.js:PALM_SIT', 'src/render/character.js:PALM_STAND', 'src/render/character.js:PALM_BUILD_K', 'src/render/character.js:PALM_SHOULDER_REF'],
+    guide: { label: 'hand-eye', measures: ['hand0Eye', 'hand1Eye'], unit: 'm' },
+  },
+  slap: {
+    measures: ['robotContact', 'robotDepth', 'robotAngle', 'faceVisible'], rules: ['robotContact<=0.06@0.01', 'robotAngle<=35@0.8'],
+    tunedBy: ['src/render/robot.js:SLAP', 'src/render/character.js:SLAP_AT'],
+    guide: { label: 'contact', measures: ['robotContact'], unit: 'm' },
+  },
 };
+
+// The preset's guide over a matrix's cells: per cell the smallest median among guide.measures, averaged
+// over the cells that measured any. Null when no cell carries those measures.
+export function guideOf(cells, guide) {
+  const per = cells.map((c) => Math.min(...guide.measures.map((m) => c.stat?.[m]?.median ?? Infinity))).filter(Number.isFinite);
+  return per.length ? +(per.reduce((a, b) => a + b, 0) / per.length).toFixed(4) : null;
+}
 const ACCESSORIES = ['none', 'glasses', 'headphones', 'beanie', 'cap'];
 
 const list = (v, all) => (v === 'all' ? all : v);

@@ -13,7 +13,7 @@ import { cpus, tmpdir } from 'node:os';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseAxis, cartesian } from './param-sweep.js';
-import { margin, rowLabel, tally, worstOf } from './pose-matrix.js';
+import { PRESETS, guideOf, margin, rowLabel, tally, worstOf } from './pose-matrix.js';
 
 export const DEFAULT_MAX_RUNS = 64;
 export const defaultJobs = () => Math.max(1, cpus().length >> 2);
@@ -61,6 +61,10 @@ export async function runMatrixSweep(argv, script) {
   const num = (k, d) => { const v = all(k)[0]; return v === undefined ? d : Number(v); };
   let axes, cols;
   try { axes = all('sweep').map((s) => parseAxis(s, 'sweep')); cols = cartesian(axes); } catch (e) { console.error(e.message); return 2; }
+  // The gesture's guide measure, when its measures are among the ones the matrix records.
+  const preset = PRESETS[all('gesture')[0]];
+  const measured = all('measure').length ? all('measure').join(',').split(',') : preset?.measures ?? [];
+  const guide = preset?.guide && preset.guide.measures.some((m) => measured.includes(m)) ? preset.guide : null;
   const jobs = num('jobs', defaultJobs());
   const maxRuns = num('max-runs', DEFAULT_MAX_RUNS);
   if (!(jobs >= 1) || !(maxRuns >= 1)) { console.error('pose: --jobs and --max-runs want a positive number'); return 2; }
@@ -94,13 +98,13 @@ export async function runMatrixSweep(argv, script) {
       // Counted as the matrix counts them: a cell with nothing to judge is n/a, not a pass.
       const t = tally(m.cells);
       const judged = m.cells.reduce((a, x) => a + (x.verdicts ?? []).reduce((b, v) => b + (v.frames ?? 0), 0), 0);
-      return { c, pass: t.pass, fail: t.fail, na: t.na, total: t.total, judged, worst, axes: m.axes, margin: margin(worst) };
+      return { c, pass: t.pass, fail: t.fail, na: t.na, total: t.total, judged, worst, axes: m.axes, margin: margin(worst), guide: guide ? guideOf(m.cells, guide) : null };
     });
   } finally {
     for (const [s, h] of handlers) process.off(s, h);
     rmSync(dir, { recursive: true, force: true });
   }
-  const { lines, code } = formatSweep(rows, axes);
+  const { lines, code } = formatSweep(rows, axes, guide);
   for (const l of lines) console.log(l);
   return code;
 }
@@ -109,17 +113,19 @@ const label = (c) => c.map(([n, v]) => `${n}=${v}`).join(' ');
 
 // The sweep's table: per value the cells that pass, fail and have nothing to judge (as the matrix
 // counts them), the frames judged, and the worst cell. rows: { c, pass, fail, na, total, judged, worst,
-// axes } or { c, error }. Returns { lines, code }: 2 on any error, 0 when some value fails no cell.
-export function formatSweep(rows, axes) {
+// axes, guide } or { c, error }; guide (a PRESETS guide, optional) adds its mean per value. Returns
+// { lines, code }: 2 on any error, 0 when some value fails no cell.
+export function formatSweep(rows, axes, guide = null) {
   const lines = [];
   const w = Math.max(...rows.map((r) => label(r.c).length));
-  lines.push('SWEEP matrix: cells per value (pass, fail, n/a) and the frames their rules judged');
+  lines.push(`SWEEP matrix: cells per value (pass, fail, n/a), the frames their rules judged${guide ? `, ${guide.label} (mean over cells of the median ${guide.measures.join(' or ')}, lower is closer)` : ''}`);
   const ok = rows.filter((r) => !r.error);
   const jw = Math.max(1, ...ok.map((r) => String(r.judged).length));
   for (const r of rows) {
     if (r.error) { lines.push(`SWEEP ${label(r.c).padEnd(w)}  error: ${r.error}`); continue; }
     const at = !r.fail ? (r.na ? 'no cell fails' : 'ALL PASS') : `worst ${rowLabel(r.worst, r.axes)} view ${r.worst.view} (${r.worst.verdicts.filter((v) => !v.pass).map((v) => `${v.rule} ${Math.round(v.share * 100)}%`).join('; ')})`;
-    lines.push(`SWEEP ${label(r.c).padEnd(w)}  ${String(r.pass).padStart(3)} pass ${String(r.fail).padStart(3)} fail ${String(r.na).padStart(3)} n/a of ${r.total}  judged ${String(r.judged).padStart(jw)} frames  ${at}`);
+    const g = guide && r.guide != null ? `  ${guide.label} ${r.guide.toFixed(3)} ${guide.unit}` : '';
+    lines.push(`SWEEP ${label(r.c).padEnd(w)}  ${String(r.pass).padStart(3)} pass ${String(r.fail).padStart(3)} fail ${String(r.na).padStart(3)} n/a of ${r.total}  judged ${String(r.judged).padStart(jw)} frames${g}  ${at}`);
   }
   // A rule's `if` filter decides which frames are judged, so a value can pass more cells by judging
   // fewer frames (the face turned past the filter) while the hand never moves closer.
