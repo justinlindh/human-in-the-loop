@@ -135,7 +135,10 @@ pjoin() { # <start time> [phase name]
 tool_changes=1
 if [ "${CI_FULL:-}" != 1 ]; then
   tool_mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || tool_mb=""
-  if [ -n "$tool_mb" ] && ! { git diff --name-only --no-renames "$tool_mb"; git ls-files --others --exclude-standard; } | grep -qE '^(scripts/|\.claude/|package\.json$|package-lock\.json$|vite\.config\.js$)'; then
+  # The file list is read whole before matching: grep -q exits at the first match and a writer still
+  # sending would die of SIGPIPE, which pipefail turns into "no match" (the self-tests skipped).
+  tool_files="$({ git diff --name-only --no-renames "$tool_mb"; git ls-files --others --exclude-standard; } 2>/dev/null)"
+  if [ -n "$tool_mb" ] && ! grep -qE '^(scripts/|\.claude/|package\.json$|package-lock\.json$|vite\.config\.js$)' <<<"$tool_files"; then
     tool_changes=0
   fi
 fi
@@ -213,6 +216,8 @@ tool_step review-verdict bash "$SELF/review-verdict.test.sh"
 tool_step pr-body bash "$SELF/pr-body.test.sh"
 tool_step test-cache bash "$SELF/test-cache.test.sh"
 tool_step tmp-clean bash "$SELF/tmp-clean.test.sh"
+tool_step heavy bash "$SELF/heavy.test.sh"
+tool_step ci-merge-only bash "$SELF/ci-merge-only.test.sh"
 tool_step nice10 bash "$SELF/nice10.test.sh"
 tool_step test-push bash "$SELF/test-push.test.sh"
 tool_step ci-pr-trust bash "$SELF/ci-pr-trust.test.sh"
@@ -348,6 +353,8 @@ render_step() { # <name> <gpu|software> <command>
   [ $rc -eq 0 ] && return 0
   # A lock wait that runs out (30 minutes by default) exits 75: nothing rendered, so nothing to retry.
   if [ $rc -eq 75 ]; then note "$name: timed out waiting for the $mode render lock"; return 75; fi
+  # A pass that hit its 600 s limit would only hit it again: a retry doubles the loss.
+  if [ $rc -eq 124 ]; then note "$name: timed out after 600 s while running; not retried"; return 124; fi
   echo "$name: first pass failed; retrying once"
   local why; why="$(grep -m1 -E 'Error|FAIL|failed' "$first" | cut -c1-200)"
   # A machine that ran out of something gets a moment to recover first.

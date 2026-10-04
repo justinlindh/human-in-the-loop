@@ -16,12 +16,14 @@
 #                printed in the verdict
 #   --repo       the repository the PR is in, one of the two this project uses (default: the one this
 #                checkout points at)
-#   --as         post as that lane's GitHub App bot (scripts/tools/gh-as.sh env <lane>): only this script's
-#                gh calls carry the token, never the checkout under review. With no key for the lane, or no
-#                gh-as.sh in this tree, it warns and posts as the default identity. HITL_GH_AS names another
-#                gh-as.sh (tests).
+#   --as         the lane whose GitHub App bot posts (scripts/tools/gh-as.sh env <lane>), default reviewer:
+#                branch protection takes the `review` status only from the reviewer app, so whoever
+#                posts (the reviewer or team-lead) posts as it. Only this script's gh calls carry the
+#                token, never the checkout under review. With no key for the lane, or no gh-as.sh in this
+#                tree, it refuses (exit 2) before posting anything: a status from another identity would
+#                leave the PR blocked with every check green. HITL_GH_AS names another gh-as.sh (tests).
 # Exit 0 when posted, 1 when the head moved (before posting, or during it) or a pass doesn't name
-# the PR's media, 2 on usage or lookup errors.
+# the PR's media, 2 on usage or lookup errors or with no app token.
 set -uo pipefail
 
 usage="usage: scripts/review-verdict.sh <pr> pass|changes <body-file> [--head <sha>] [--watched <url or file>]... [--superseded <url or file>]... [--code-only <why>] [--repo <owner/name>] [--as <lane>]"
@@ -30,7 +32,7 @@ case "$pr" in ''|*[!0-9]*) echo "$usage" >&2; exit 2 ;; esac
 case "$verdict" in pass|changes) ;; *) echo "$usage" >&2; exit 2 ;; esac
 [ -f "$body" ] || { echo "review-verdict: no such body file: $body" >&2; exit 2; }
 shift 3
-want=""; repo=""; watched=(); superseded=(); why=""; as=""
+want=""; repo=""; watched=(); superseded=(); why=""; as="reviewer"
 while [ $# -gt 0 ]; do
   case "$1" in
     --head) want="${2:?$usage}"; shift 2 ;;
@@ -47,11 +49,13 @@ case "$repo" in
   *) echo "review-verdict: --repo must be justinlindh/human-in-the-loop or justinlindh/humanintheloopgame-site" >&2; exit 2 ;;
 esac
 # The bot's token goes only to this script's own gh calls (exported here, so its helpers inherit it).
-if [ -n "$as" ]; then
-  gh_as="${HITL_GH_AS:-$(dirname "$0")/tools/gh-as.sh}"
-  if [ -f "$gh_as" ]; then eval "$(bash "$gh_as" env "$as")"
-  else echo "review-verdict: no $gh_as; posting as the default identity" >&2; fi
-fi
+gh_as="${HITL_GH_AS:-$(dirname "$0")/tools/gh-as.sh}"
+[ -f "$gh_as" ] || { echo "review-verdict: no $gh_as, so no $as app token; nothing posted (a status from another identity can't satisfy branch protection)" >&2; exit 2; }
+token_env="$(bash "$gh_as" env "$as")"
+case "$token_env" in
+  *GH_TOKEN=?*) eval "$token_env" ;;
+  *) echo "review-verdict: no GitHub App key for $as (scripts/tools/gh-as.sh); nothing posted (a status from another identity can't satisfy branch protection)" >&2; exit 2 ;;
+esac
 R=(); api="repos/{owner}/{repo}"
 [ -n "$repo" ] && { R=(-R "$repo"); api="repos/$repo"; }
 

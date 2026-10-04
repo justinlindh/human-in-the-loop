@@ -18,7 +18,7 @@ beforeAll(() => {
   writeFileSync(join(repo, 'out.js'), 'console.log(JSON.stringify({ a: 1, b: { c: 2 }, rows: [{ id: "x", v: 1 }, { id: "y", v: 2 }] }));\n');
   writeFileSync(join(repo, 'txt.js'), 'console.log("line one\\nline two");\n');
   writeFileSync(join(repo, 'fail.js'), 'console.error("nope"); process.exit(4);\n');
-  writeFileSync(join(repo, 'slow.js'), 'setTimeout(() => console.log("one"), 5000);\n');
+  writeFileSync(join(repo, 'slow.js'), 'setTimeout(() => console.log("one"), Number(process.env.SLOW_MS ?? 5000));\n');
   git('add', '.');
   git('commit', '-q', '-m', 'base');
   base = git('rev-parse', 'HEAD');
@@ -82,8 +82,9 @@ describe('ab.sh', () => {
   });
 
   it('a run waiting on the base result takes over when the run computing it is killed', async () => {
-    const start = () => {
-      const c = spawn('bash', [AB, '--base', base, '--', 'node', 'slow.js'], { cwd: repo, env: { ...process.env, HITL_AB_DIR: cache }, stdio: ['ignore', 'pipe', 'pipe'] });
+    // The first run holds the lock until it is killed; the one that takes over finishes at once.
+    const start = (slowMs) => {
+      const c = spawn('bash', [AB, '--base', base, '--', 'node', 'slow.js'], { cwd: repo, env: { ...process.env, HITL_AB_DIR: cache, SLOW_MS: String(slowMs) }, stdio: ['ignore', 'pipe', 'pipe'] });
       let out = '', err = '';
       c.stdout.on('data', (d) => { out += d; });
       c.stderr.on('data', (d) => { err += d; });
@@ -92,10 +93,10 @@ describe('ab.sh', () => {
     const lockDir = join(cache, base);
     const locked = () => existsSync(lockDir) && readdirSync(lockDir).some((f) => f.endsWith('.lock'));
     const wait = async (cond, ms = 15000) => { for (let t = 0; t < ms && !cond(); t += 100) await new Promise((r) => setTimeout(r, 100)); };
-    const a = start();
+    const a = start(60000);
     await wait(locked);
     expect(locked()).toBe(true);
-    const b = start();
+    const b = start(50);
     await wait(() => /waiting for it/.test(b.err()));
     expect(b.err()).toContain('waiting for it');
     a.c.kill('SIGINT');

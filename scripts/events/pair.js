@@ -26,54 +26,21 @@
 import { createHash } from 'node:crypto';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { spawn, execFileSync } from 'node:child_process';
-import { mkdirSync, readdirSync, renameSync, rmSync, readFileSync, statSync, writeFileSync, existsSync } from 'node:fs';
-import { cpus, homedir } from 'node:os';
+import { rmSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { cpus } from 'node:os';
 import { makeTemp } from '../tools/tmp.mjs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createWorktree } from '../tools/worktree.mjs';
-import { logTiming } from '../lib/timing.js';
+import { logTiming, trackRun } from '../lib/timing.js';
 import { compare, markdown, parseFields, sideKey } from './pair-report.js';
+import { readSide, simFiles, writeSide } from './side-cache.js';
 
 const fail = (msg) => { console.error(`pair: ${msg}`); process.exit(2); };
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SELF = fileURLToPath(import.meta.url);
 
-// What a side's runs depend on: the sim and its data (nothing in src/sim imports from elsewhere).
-const SIM_FILE = /^src\/(sim|data)\/.*\.(js|mjs|json)$/;
 const createHashOf = (file) => createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 16);
-const git = (cwd, args, input) => execFileSync('git', args, { cwd, encoding: 'utf8', input, stdio: ['pipe', 'pipe', 'ignore'], maxBuffer: 1 << 26 });
-// [path, blob id] for each sim and data file of a checkout (as it stands on disk) or of a revision;
-// null when git cannot say, which means no caching.
-function simFiles(repo, rev) {
-  try {
-    if (rev) {
-      return git(repo, ['ls-tree', '-r', rev, '--', 'src/sim', 'src/data']).split('\n').filter(Boolean)
-        .map((l) => { const [meta, path] = l.split('\t'); return [path, meta.split(' ')[2]]; }).filter(([p]) => SIM_FILE.test(p) && !p.endsWith('.test.js'));
-    }
-    const paths = git(repo, ['ls-files', '--cached', '--others', '--exclude-standard', '--', 'src/sim', 'src/data']).split('\n')
-      .filter((p) => p && SIM_FILE.test(p) && !p.endsWith('.test.js') && existsSync(join(repo, p)));
-    const ids = git(repo, ['hash-object', '--stdin-paths'], `${paths.join('\n')}\n`).split('\n').filter(Boolean);
-    return paths.map((p, i) => [p, ids[i]]);
-  } catch (e) { console.error(`pair: cache: skipped (git cannot list the sim files: ${String(e.message).split('\n')[0]})`); return null; }
-}
-const cacheDir = () => process.env.HITL_PAIR_CACHE_DIR || join(homedir(), '.cache', 'hitl-ci', 'pair');
-function readSide(key) {
-  try { return JSON.parse(readFileSync(join(cacheDir(), `${key}.json`), 'utf8')); } catch { return null; }
-}
-function writeSide(key, records) {
-  try {
-    mkdirSync(cacheDir(), { recursive: true });
-    const tmpFile = join(cacheDir(), `${key}.${process.pid}.tmp`);
-    writeFileSync(tmpFile, JSON.stringify(records));
-    renameSync(tmpFile, join(cacheDir(), `${key}.json`));
-    // Entries for bases that no longer exist are never matched again.
-    for (const n of readdirSync(cacheDir())) {
-      const f = join(cacheDir(), n);
-      if (Date.now() - statSync(f).mtimeMs > 14 * 864e5) rmSync(f, { force: true });
-    }
-  } catch (e) { console.error(`pair: cache: skipped (could not write side a: ${e.message})`); }
-}
 
 async function runOne({ root, bot, seed, fields, startEra }) {
   const { runBot } = await import(pathToFileURL(join(root, 'src/sim/bots.js')).href);
@@ -102,6 +69,8 @@ if (!isMainThread) {
   const spec = JSON.parse(process.env.PAIR_SPEC);
   try { process.setPriority(10); } catch { /* keep the default */ }
   const runs = spec.bots.flatMap((bot) => Array.from({ length: spec.seeds }, (_, i) => ({ bot, seed: i + 1 })));
+  // One timings record per side: the games it played and its CPU (worker threads included).
+  trackRun('pair-side', { side: process.env.PAIR_SIDE_NAME, games: runs.length, seeds: spec.seeds, bots: spec.bots.join(','), startEra: spec.startEra ?? 'classic' });
   const n = Math.max(1, Math.min(spec.jobs, runs.length));
   // Runs are dealt out one at a time so a slow bot does not leave one worker with all the work.
   const chunks = Array.from({ length: n }, () => []);
@@ -147,6 +116,9 @@ if (!isMainThread) {
   }
   const spec = JSON.stringify({ bots, seeds, jobs, fields: parsed, startEra });
   const tmp = makeTemp('pair-');
+  // The run's record counts the games both sides played (side a plays none on a cache hit); each side's own
+  // record carries its CPU, which this process does not see.
+  const run = trackRun('pair', { seeds, bots: bots.join(','), startEra: startEra ?? 'classic', games: 0 });
   let baseWorktree = null;
   let code = 0;
   // Each side's process runs until it ends or this process does, whichever comes first.
@@ -168,13 +140,14 @@ if (!isMainThread) {
     const t0 = Date.now();
     const side = (root, name) => new Promise((res) => {
       const out = join(tmp, `${name}.json`);
-      const child = spawn(process.execPath, [SELF, '--side', root, '--out', out], { env: { ...process.env, PAIR_SPEC: spec }, stdio: ['ignore', 'inherit', 'inherit'] });
+      const child = spawn(process.execPath, [SELF, '--side', root, '--out', out], { env: { ...process.env, PAIR_SPEC: spec, PAIR_SIDE_NAME: name }, stdio: ['ignore', 'inherit', 'inherit'] });
       sides.add(child);
       const timer = setTimeout(() => child.kill('SIGKILL'), timeoutMs);
       child.on('exit', (c) => { clearTimeout(timer); sides.delete(child); res({ name, code: c, out }); });
     });
     // Wait on both processes, never on a sleep.
     if (cachedA) console.log(`pair: side a read from the cache (${keyA.slice(0, 8)}), not played`);
+    run.games = bots.length * seeds * (cachedA ? 1 : 2);
     const [sa, sb] = await Promise.all([cachedA ? { name: 'a', code: 0 } : side(a, 'a'), side(b, 'b')]);
     if (sa.code !== 0 || sb.code !== 0) { console.error(`pair: side ${sa.code !== 0 ? 'a' : 'b'} failed (exit ${sa.code !== 0 ? sa.code : sb.code}) or timed out`); code = 2; }
     else {

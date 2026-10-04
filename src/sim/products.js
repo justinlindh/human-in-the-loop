@@ -18,7 +18,7 @@ import { autoArrange, spentOn } from './office.js';
 import { rivalPressure } from './ladder.js';
 import { purposeLift } from './purpose.js';
 import { outageProductGone } from './incidents.js';
-import { installedCustomers, sellBoxes } from './boxed.js';
+import { ageInstalls, installedCustomers, sellBoxes } from './boxed.js';
 import { addDeal, flushDeals } from './deals.js';
 
 // Addressable customers in a category right now: the AI market grows toward full size over the early years.
@@ -108,6 +108,7 @@ export function productsSystem(ctx) {
         * Math.max(0, 1 + modifierBonus(state, 'acquisition')) * pathAcquisition * dotcomAcquisition(state);
       const demand = Math.max(0, target - p.boxed.installed) * Math.min(1, rate) * (1 + itemBonus(state, 'retailDemand'));
       sellBoxes(ctx, p, state.outage?.productId === p.id ? 0 : demand);
+      ageInstalls(p);
     } else if (p.customers < target) {
       const rate = (B.acquisitionRate + B.hypeAcquisition * p.hype + salesBoost) * (1 + state.brand / 200)
         * Math.max(0, 1 + modifierBonus(state, 'acquisition')) * pathAcquisition

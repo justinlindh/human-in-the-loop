@@ -12,12 +12,14 @@ cat >"$tmp/bin/gh" <<F
 echo "\$*" >>"$tmp/calls"
 case "\$*" in
   "pr view"*) cat "$tmp/pr.json" ;;
+  "pr list"*) cat "$tmp/list.json" 2>/dev/null || exit 1 ;;
   api*/protection*) [ -f "$tmp/required" ] && cat "$tmp/required" || exit 1 ;;
   api*/comments*) echo '[]' ;;
   *) exit 1 ;;
 esac
 F
 chmod +x "$tmp/bin/gh"
+export HITL_PR_SNAPSHOT="$tmp/snap.json"  # never the real shared snapshot
 pr() { # <state> <checks as name=STATE,...>: statuses for local-ci and review, check runs for the rest
   jq -n --arg st "$1" --arg c "$2" '{state: $st, headRefOid: "abc1234def", headRefName: "x/y", baseRefName: "main", mergeStateStatus: "CLEAN", mergeable: "MERGEABLE",
     statusCheckRollup: [$c | split(",")[] | select(. != "") | split("=") | if (.[0] == "local-ci" or .[0] == "review") then {__typename: "StatusContext", context: .[0], state: .[1]} else {__typename: "CheckRun", name: .[0], status: "COMPLETED", conclusion: .[1]} end]}' >"$tmp/pr.json"
@@ -42,6 +44,16 @@ pr OPEN 'test=SUCCESS'
 w; [ $rc -eq 124 ] && grep -q 'waiting on: local-ci' "$tmp/out" && ! grep -q -- ' -R ' "$tmp/calls" || fail "without protection rules, local-ci stands in: $rc $(cat "$tmp/out")"
 pr OPEN 'test=SUCCESS,local-ci=SUCCESS,review=PENDING'
 w; [ $rc -eq 0 ] || fail "local-ci and checks green, review pending: $rc $(cat "$tmp/out")"
+
+# Without --repo the PR is read from the shared snapshot (one pr list), not pr view; a PR missing from it
+# (merged or closed) falls back to pr view.
+echo '[{"number":9,"state":"OPEN","headRefOid":"abc1234def","headRefName":"x/y","baseRefName":"main","mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","labels":[],"comments":[],"statusCheckRollup":[{"__typename":"StatusContext","context":"local-ci","state":"SUCCESS"}]}]' >"$tmp/list.json"
+pr OPEN 'test=SUCCESS,local-ci=FAILURE'
+w; [ $rc -eq 0 ] && grep -q '^pr list' "$tmp/calls" && ! grep -q '^pr view' "$tmp/calls" || fail "an open PR is read from the snapshot: $rc $(cat "$tmp/out") $(cat "$tmp/calls")"
+echo '[]' >"$tmp/list.json"; rm -f "$tmp/snap.json"
+pr MERGED ''
+w; [ $rc -eq 0 ] && grep -q '^pr view' "$tmp/calls" || fail "a PR gone from the snapshot is looked up with pr view: $rc $(cat "$tmp/out")"
+rm -f "$tmp/list.json" "$tmp/snap.json"
 
 # Branch updates, in a scratch repository: a PR that is behind main gets main merged in and pushed, unless
 # the worktree has been switched to another branch since the wait began.

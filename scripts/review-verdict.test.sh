@@ -36,10 +36,12 @@ run() { # <gh-as script or ->  [extra args]: sets rc, out and the tokens the gh 
 run "$tmp/gh-as-key" --as reviewer
 [ $rc -eq 0 ] && [ "$(sort -u "$tmp/tokens")" = bot-token ] && [ "$(wc -l <"$tmp/tokens")" -ge 5 ] || fail "--as reviewer: every gh call carries the bot token (rc $rc, tokens: $(sort -u "$tmp/tokens" | tr '\n' ' '))"
 run "$tmp/gh-as-key"
-[ $rc -eq 0 ] && [ "$(sort -u "$tmp/tokens")" = none ] || fail "without --as no call carries a token (rc $rc, tokens: $(sort -u "$tmp/tokens" | tr '\n' ' '))"
-run "$tmp/gh-as-nokey" --as reviewer
-[ $rc -eq 0 ] && [ "$(sort -u "$tmp/tokens")" = none ] && [[ "$out" == *"no GitHub App key"* ]] || fail "--as with no key warns and posts as before (rc $rc: $out)"
-run "$tmp/absent" --as reviewer
-[ $rc -eq 0 ] && [ "$(sort -u "$tmp/tokens")" = none ] && [[ "$out" == *"posting as the default identity"* ]] || fail "--as with no gh-as.sh warns and posts as before (rc $rc: $out)"
+[ $rc -eq 0 ] && [ "$(sort -u "$tmp/tokens")" = bot-token ] && [ "$(wc -l <"$tmp/tokens")" -ge 5 ] || fail "without --as it posts as the reviewer app (rc $rc, tokens: $(sort -u "$tmp/tokens" | tr '\n' ' '))"
+run "$tmp/gh-as-nokey"
+[ $rc -eq 2 ] && [ ! -s "$tmp/tokens" ] && [[ "$out" == *"no GitHub App key for reviewer"*"nothing posted"* ]] || fail "with no key it refuses before any gh call (rc $rc, calls $(wc -l <"$tmp/tokens"): $out)"
+run "$tmp/gh-as-nokey" --as lead
+[ $rc -eq 2 ] && [ ! -s "$tmp/tokens" ] && [[ "$out" == *"no GitHub App key for lead"* ]] || fail "--as a lane with no key refuses (rc $rc: $out)"
+run "$tmp/absent"
+[ $rc -eq 2 ] && [ ! -s "$tmp/tokens" ] && [[ "$out" == *"no reviewer app token; nothing posted"* ]] || fail "with no gh-as.sh it refuses before any gh call (rc $rc: $out)"
 [ $fails -eq 0 ] && echo "review-verdict: all cases pass" || echo "review-verdict: $fails failing"
 [ $fails -eq 0 ]
