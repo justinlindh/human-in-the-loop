@@ -23,6 +23,15 @@ describe('hitl-guards rules', () => {
     expect(paths('git log | tee -a out.log')).toEqual(['tee: out.log']);
     expect(paths(`python3 - <<'PY'\nopen('src/ui/a.js', 'w').write(s)\nPY`)).toEqual(['python code: src/ui/a.js']);
     expect(paths(`nice -n 10 node -e "require('fs').writeFileSync('package.json', x)"`)).toEqual(['node code: package.json']);
+    expect(paths(`node -e "require('fs').writeFileSync('/home/u/w/src/sim/balance.js', s)"`)).toEqual(['node code: /home/u/w/src/sim/balance.js']);
+    expect(paths(`python3 -c "open('./notes.md', mode='a').write('x')"`)).toEqual(['python code: ./notes.md']);
+    expect(paths(`python3 - <<'PY'\nfrom pathlib import Path\nPath('docs/x.md').write_text(t)\nPY`)).toEqual(['python code: docs/x.md']);
+  });
+
+  it('takes only the path a Python or Node write call names, not files the code reads', () => {
+    expect(paths(`python3 -c "import json,sys; d=json.load(open('package.json')); sys.stdout.write(d['name'])"`)).toEqual([]);
+    expect(paths(`node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync('package.json','utf8')); fs.writeFileSync('/var/tmp/out.json', JSON.stringify(d))"`)).toEqual(['node code: /var/tmp/out.json']);
+    expect(paths(`python3 -c "p='a.js'; open(p, 'w').write('x')"`)).toEqual([]);
   });
 
   it('reads malformed and empty commands without throwing', () => {
@@ -65,9 +74,9 @@ describe('hitl-guards rules', () => {
   });
 
   it('reads a background task notification and flags a check that printed no rows', () => {
-    const text = '<task-notification>\n<task-id>b1</task-id>\n<output-file>/tmp/t/b1.output</output-file>\n<status>completed</status>\n<summary>Background command "cd /w &amp;&amp; node blender/checks/clip.mjs" completed (exit code 0)</summary>\n</task-notification>';
+    const text = '<task-notification>\n<task-id>b1</task-id>\n<output-file>/w/t/b1.output</output-file>\n<status>completed</status>\n<summary>Background command "cd /w &amp;&amp; node blender/checks/clip.mjs" completed (exit code 0)</summary>\n</task-notification>';
     const n = parseNotice(text);
-    expect(n).toEqual({ outputFile: '/tmp/t/b1.output', status: 'completed', exitCode: 0, command: 'cd /w && node blender/checks/clip.mjs' });
+    expect(n).toEqual({ outputFile: '/w/t/b1.output', status: 'completed', exitCode: 0, command: 'cd /w && node blender/checks/clip.mjs' });
     expect(noticeNote(n, 'harness: GL gpu\n')).toContain('exit 0, no result rows');
     expect(noticeNote(n, 'CLIP ok   desk:f1 {}\nclip: 1 of 1 passed\n')).not.toContain('no result rows');
     expect(noticeNote({ ...n, command: 'ls' }, '')).not.toContain('no result rows');

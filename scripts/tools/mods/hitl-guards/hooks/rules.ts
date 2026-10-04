@@ -108,10 +108,17 @@ export function shellWrites(command: string): ShellWrite[] {
       for (const a of args) if (!a.startsWith('-') && !notAFile(a)) out.push({ path: a, how: 'tee' });
     } else if (/^(python[0-9.]*|node)$/.test(cmd)) {
       const code = [seg.heredoc ?? '', ...args].join('\n');
-      if (!/open\([^)]*['"][wa]b?\+?['"]|write_text\(|write_bytes\(|writeFileSync\(|appendFileSync\(|\.write\(/.test(code)) continue;
-      // Every quoted literal in the code that names a file (a slash or an extension) is a candidate.
-      const lits = [...code.matchAll(/(['"])((?:[\w.-]+\/)*[\w.-]+\.\w+|(?:[\w.-]+\/)+[\w.-]+)\1/g)].map((m) => m[2]);
-      for (const p of new Set(lits)) out.push({ path: p, how: cmd.startsWith('node') ? 'node code' : 'python code' });
+      // Only the path a write call names: the first argument of writeFile(Sync)/appendFile(Sync)/
+      // createWriteStream, open(path, 'w'|'a'|'x'), or the receiver of Path(path).write_text/bytes.
+      // A path held in a variable isn't known here and passes; .write( alone (stdout, a handle) names none.
+      const LIT = String.raw`(['"\x60])([^'"\x60\n]+)\1`;
+      const calls = [
+        new RegExp(String.raw`\b(?:writeFileSync|appendFileSync|writeFile|appendFile|createWriteStream)\(\s*${LIT}`, 'g'),
+        new RegExp(String.raw`\bopen\(\s*${LIT}\s*,\s*(?:mode\s*=\s*)?['"][rb]*[wax]`, 'g'),
+        new RegExp(String.raw`\bPath\(\s*${LIT}\s*\)\s*\.\s*write_(?:text|bytes)\(`, 'g'),
+      ];
+      const paths = calls.flatMap((re) => [...code.matchAll(re)].map((m) => m[2] ?? ''));
+      for (const p of new Set(paths)) if (p && !notAFile(p)) out.push({ path: p, how: cmd.startsWith('node') ? 'node code' : 'python code' });
     }
   }
   return found.flatMap((ws, i) => ws.map((w) => ({ ...w, dir: dirs[i] })));
