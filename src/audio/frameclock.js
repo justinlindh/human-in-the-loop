@@ -17,9 +17,10 @@ export function createFrameClock() {
     },
     toAudio: (v) => ct + (v - vt),
     fromAudio: (a) => vt + (a - ct),
-    // Commands from the director carry virtual `at`; the host plays them at context time.
+    // Commands from the director carry frame-time `at`; the host plays them at context time.
+    // Music commands already carry context time.
     mapCommands(cmds) {
-      return cmds.map((c) => (Number.isFinite(c.at) ? { ...c, at: ct + (c.at - vt) } : c));
+      return cmds.map((c) => (Number.isFinite(c.at) && c.op !== 'music' ? { ...c, at: ct + (c.at - vt) } : c));
     },
   };
 }

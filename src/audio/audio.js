@@ -114,7 +114,7 @@ export function createAudio({ quality = 'high' } = {}) {
     // A playlist switch is scheduled on a bar line (cmd.at); an era change starts now.
     const t = Math.max(ctx.currentTime, cmd.at ?? 0);
     src.start(t);
-    director.musicStarted(cmd.bed, clock.fromAudio(t));
+    director.musicStarted(cmd.bed, t);
     g.gain.setTargetAtTime(1, t, cmd.fade / 3);
     if (music) {
       const old = music;
@@ -202,7 +202,7 @@ export function createAudio({ quality = 'high' } = {}) {
     lastCtx = c;
     lastUpdateAt = performance.now();
     clock.advance(dt, ctx?.currentTime);
-    if (ready()) runD(director.update(state, now(), c));
+    if (ready()) runD(director.update(state, now(), { ...c, audioT: ctx.currentTime }));
   }
 
   // Until the host calls update() every frame, keep music and ambient barks going from the last state seen.
@@ -216,7 +216,7 @@ export function createAudio({ quality = 'high' } = {}) {
       if (idle) clock.advance((t - lastTickAt) / 1000, ctx?.currentTime);
       lastTickAt = t;
       if (ready()) ducked?.pump();
-      if (ready() && s && idle) runD(director.update(s, now(), { ...lastCtx, ...hostCtx() }));
+      if (ready() && s && idle) runD(director.update(s, now(), { ...lastCtx, ...hostCtx(), audioT: ctx.currentTime }));
       requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
