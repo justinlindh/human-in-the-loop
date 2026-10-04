@@ -125,7 +125,8 @@ export const register: Register = on => {
       description: 'Stop watching a pull request.',
       inputSchema: { type: 'object', properties: { number: { type: 'integer' } }, required: ['number'] },
     })
-    $.clock.every(POLL_MS, () => poll($))
+    // A bug in one pass must not end the timer or the session's turn.
+    $.clock.every(POLL_MS, () => poll($).catch(() => undefined))
     showStatus($, await loadWatches($))
     return next(e)
   })
