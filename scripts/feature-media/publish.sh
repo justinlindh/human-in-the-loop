@@ -28,6 +28,21 @@ if [ ! -e "$WT/.git" ]; then
   fi
 fi
 cd "$WT"
+# The next steps reset and clean this directory, so it must be a worktree of this repository that is on
+# feature-media or detached at a commit of it, and never the checkout the script runs from.
+top="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+[ -n "$top" ] && [ "$top" = "$(realpath -- "$WT")" ] && [ "$top" != "$REPO" ] \
+  || { echo "publish: $WT is not a git worktree of its own; refusing to reset it" >&2; exit 1; }
+[ "$(git rev-parse --git-common-dir | xargs realpath)" = "$(git -C "$REPO" rev-parse --git-common-dir | xargs realpath)" ] \
+  || { echo "publish: $WT belongs to another repository; refusing to reset it" >&2; exit 1; }
+branch="$(git symbolic-ref -q --short HEAD || true)"
+if [ -n "$branch" ]; then
+  [ "$branch" = feature-media ] || { echo "publish: $WT is on branch $branch, not feature-media; refusing to reset it" >&2; exit 1; }
+else
+  git fetch -q origin feature-media 2>/dev/null || true
+  git merge-base --is-ancestor HEAD origin/feature-media 2>/dev/null \
+    || { echo "publish: $WT is detached at a commit that is not on feature-media; refusing to reset it" >&2; exit 1; }
+fi
 if git ls-remote --exit-code --heads origin feature-media >/dev/null; then
   git fetch -q origin feature-media
   git reset -q --hard origin/feature-media

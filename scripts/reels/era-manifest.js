@@ -34,7 +34,9 @@ export const ITEMS = [
   clip('era-preinternet', 'Pre-internet garage', 'preinternet-7-pre', { camera: PUSH }),
   clip('era-dotcom-boom', 'Dot-com boom', 'dotcom-7-boom', { camera: PUSH }),
   clip('era-y2k', 'Y2K rollover', 'dotcom-7-y2k', { seconds: 30, screenshots: [] }),
-  clip('era-dotcom-bust', 'Dot-com bust', 'dotcom-7-bust', { camera: PUSH }),
+  // Saved the week before the bust: the tick flips the billboard to FOR LEASE and raises the decision, with
+  // on the game's own wide view, which keeps the billboard in frame beside the card.
+  clip('era-dotcom-bust', 'Dot-com bust', 'dotcom-7-bustpre'),
   clip('era-web2', 'Web 2.0', 'dotcom-7-w2', { camera: PUSH }),
 ];
 
