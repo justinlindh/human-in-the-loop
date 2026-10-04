@@ -2,9 +2,11 @@
 @media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
   .hitl .chat:not(.max) .chat-tabs { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 0.2em 0.35em; }
   .hitl .chat:not(.max) .chat-tabs::-webkit-scrollbar { display: none; }
-  .hitl .chat:not(.max) .ctab { flex: none; min-height: 32px; padding: 0 0.6em; }
+  .hitl .chat:not(.max) .ctab { flex: none; min-height: 40px; padding: 0 0.6em; }
+  /* The last tab fades out at the edge when the row runs past it, so a clipped label reads as "scroll for more". */
+  .hitl .chat:not(.max) .chat-tabs { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 1.6em), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 1.6em), transparent); }
 }
 /* Portrait phones have the height: the feed gets the room the tabs gave back. */
 @media (max-width: 480px) {
-  .hitl .chat:not(.max) .chat-body { height: calc(var(--yak-h, 12em) + 60px); }
+  .hitl .chat:not(.max) .chat-body { height: calc(var(--yak-h, 12em) + 52px); }
 }
