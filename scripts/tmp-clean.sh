@@ -29,5 +29,15 @@ for d in "$TMP"/tmp.*/ ; do
   d="${d%/}"; [ -O "$d" ] || continue
   stale "$d" && drop "$d"
 done
+# The team's disk temp directory (TMPDIR for CI, the guard and the test scripts): entries nothing has
+# touched within the window go, files and directories alike.
+DISK="${TMP_CLEAN_DISK:-${HITL_TMPDIR:-$HOME/.cache/hitl-ci/tmp}}"
+if [ -d "$DISK" ]; then
+  for d in "$DISK"/* "$DISK"/.[!.]*; do
+    [ -e "$d" ] || continue
+    [ -O "$d" ] || continue
+    stale "$d" && drop "$d"
+  done
+fi
 [ $dry = 1 ] || git -C "$REPO" worktree prune 2>/dev/null || true
 echo "tmp-clean: $gone director$([ $gone = 1 ] && echo y || echo ies) $([ $dry = 1 ] && echo would go || echo removed)"

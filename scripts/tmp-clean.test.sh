@@ -10,7 +10,9 @@ old='3 days ago'
 touch -d "$old" "$t/claude-1000/-proj/old/sub/f" "$t/claude-1000/-proj/old/sub" "$t/claude-1000/-proj/old" "$t/tmp.AAA/f" "$t/tmp.AAA" "$t/other" "$t/other/f"
 touch -d "$old" "$t/claude-1000/-proj/touched/x" "$t/claude-1000/-proj/touched"   # a fresh file inside keeps it
 touch -d "$old" "$t/tmp.BBB"
-run() { TMP_CLEAN_DIR="$t" TMP_CLEAN_REPO="$tmp" bash "$HERE/tmp-clean.sh" "$@" 2>&1; }
+disk="$tmp/disk"; mkdir -p "$disk/oldrun" "$disk/newrun"; touch "$disk/oldrun/f" "$disk/newrun/f" "$disk/oldfile" "$disk/newfile"
+touch -d "$old" "$disk/oldrun/f" "$disk/oldrun" "$disk/oldfile"
+run() { TMP_CLEAN_DIR="$t" TMP_CLEAN_DISK="$disk" TMP_CLEAN_REPO="$tmp" bash "$HERE/tmp-clean.sh" "$@" 2>&1; }
 run --dry-run >/dev/null
 [ -d "$t/claude-1000/-proj/old" ] || fail "a dry run removes nothing"
 run >/dev/null
@@ -20,5 +22,7 @@ run >/dev/null
 [ ! -e "$t/tmp.AAA" ] || fail "an old mktemp directory goes"
 [ -d "$t/tmp.BBB" ] || fail "a mktemp directory with a recent file stays"
 [ -d "$t/other" ] || fail "other directories are never touched"
+[ ! -e "$disk/oldrun" ] && [ ! -e "$disk/oldfile" ] || fail "untouched entries in the disk temp directory go"
+[ -d "$disk/newrun" ] && [ -e "$disk/newfile" ] || fail "recent entries in the disk temp directory stay"
 [ $fails -eq 0 ] && echo "tmp-clean: all cases pass" || echo "tmp-clean: $fails failing"
 [ $fails -eq 0 ]
