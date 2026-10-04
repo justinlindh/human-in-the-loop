@@ -175,3 +175,136 @@ export function recordScene(check, name, base, requested, refRel) {
 export function clearScene(check, name) {
   try { rmSync(sceneFile(check, name), { force: true }); } catch { /* unremovable: the base key still guards it */ }
 }
+
+// Whole-check records keyed by the files a pass loaded, for checks that run many scenes (stage, clip,
+// standup). graphBase(check, extra) covers what is not a loaded file: the check's flags (extra), Node,
+// the installed tools and browser, the lockfile, build config and page shell, and the recorder that
+// feeds it. recordGraphPass stores every file the clean pass loaded with its hash: what the caller
+// reports (the engine processes' module loads, the pages' requests) plus the static import graph of
+// the check's own entry script, which covers the code the checking process itself runs. The file
+// names under a directory a loaded module globs are stored too, so a file added there re-runs the
+// check. graphPassedAt skips only while all of it is unchanged, so an edit to a file the check never
+// loaded (the UI, the audio, a reference image, another check) keeps the skip. Any doubt means "run".
+const BASE_FILES = ['package-lock.json', 'package.json', 'vite.config.js', 'index.html', 'scripts/studio/load-log.mjs'];
+
+export function graphBase(check, extra = '') {
+  if (process.env.HITL_NO_CHECK_CACHE === '1') return null;
+  try {
+    const parts = BASE_FILES.map((f) => `${f}:${fileHash(f)}`);
+    return createHash('sha256').update(`${check}\n${extra}\n${process.version}\n${installed()}\n${parts.join('\n')}`).digest('hex').slice(0, 32);
+  } catch {
+    return null;
+  }
+}
+
+// The repo files an entry script imports, transitively, by literal specifier (static, re-exported
+// and dynamic). A dynamic import whose specifier is computed adds every module beside that file.
+const SCRIPT = /\.(m?js|ts)$/;
+export function moduleGraph(entry) {
+  const seen = new Set();
+  const pending = [resolve(entry)];
+  const resolveSpec = (from, spec) => {
+    const base = spec.startsWith('.') ? resolve(dirname(from), spec) : /^\/(src|blender|scripts)\//.test(spec) ? join(ROOT, spec) : null;
+    if (!base) return null;
+    for (const c of [base, `${base}.js`, `${base}.mjs`, join(base, 'index.js')]) {
+      try { if (statSync(c).isFile()) return c; } catch { /* try the next spelling */ }
+    }
+    return null;
+  };
+  while (pending.length) {
+    const file = pending.pop();
+    if (seen.has(file) || !SCRIPT.test(file) || /(^|\/)node_modules\//.test(file) || relative(ROOT, file).startsWith('..')) continue;
+    let text;
+    try { text = readFileSync(file, 'utf8'); } catch { continue; }
+    seen.add(file);
+    const specs = new Set();
+    for (const re of [/\b(?:import|export)\b[^'"`;]*?\bfrom\s*['"]([^'"]+)['"]/g, /\bimport\s*['"]([^'"]+)['"]/g, /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g]) {
+      for (const m of text.matchAll(re)) specs.add(m[1]);
+    }
+    for (const spec of specs) { const r = resolveSpec(file, spec); if (r) pending.push(r); }
+    if (/\bimport\(\s*(?!['"])/.test(text)) {
+      for (const n of readdirSync(dirname(file))) if (SCRIPT.test(n)) pending.push(join(dirname(file), n));
+    }
+  }
+  return [...seen];
+}
+
+// The directories a module globs with a wildcard (import.meta.glob), with a hash of the file names
+// under each: a file added there changes what the module imports without touching any loaded file.
+function globDirs(rels) {
+  const dirs = new Set();
+  for (const rel of rels) {
+    if (!rel.startsWith('src/') || !SCRIPT.test(rel)) continue;
+    let text;
+    try { text = readFileSync(join(ROOT, rel), 'utf8'); } catch { continue; }
+    for (const call of text.matchAll(/import\.meta\.glob\(\s*(\[[^\]]*\]|'[^']*'|"[^"]*"|`[^`]*`)/g)) {
+      for (const lit of call[1].matchAll(/['"`]([^'"`]+)['"`]/g)) {
+        const pattern = lit[1];
+        if (!/[*{?[]/.test(pattern)) continue;
+        const abs = pattern.startsWith('/') ? join(ROOT, pattern) : resolve(dirname(join(ROOT, rel)), pattern);
+        const head = abs.split(/[*{?[]/)[0];
+        dirs.add(relative(ROOT, head.endsWith('/') ? head.slice(0, -1) : dirname(head)) || '.');
+      }
+    }
+  }
+  return [...dirs].sort();
+}
+function listHash(rel) {
+  const out = [];
+  files(rel, out);
+  return createHash('sha256').update(out.join('\n')).digest('hex').slice(0, 24);
+}
+
+const graphFile = (check, base) => join(dir(check), `graph-${base}.json`);
+
+// The files a run loaded, as repo-relative paths: absolute paths under the repo are made relative;
+// node_modules (covered by the installed versions) and anything outside the repo are dropped; a
+// marker with a colon (another host's address) is kept and always counts as unchanged.
+export function loadedFiles(paths) {
+  const out = new Set();
+  for (const p of paths) {
+    if (!p) continue;
+    if (p.includes(':') && !p.startsWith('/')) { out.add(p); continue; }
+    const rel = p.startsWith('/') ? relative(ROOT, p) : p;
+    if (rel.startsWith('..') || /(^|\/)node_modules(\/|$)/.test(rel)) continue;
+    out.add(rel);
+  }
+  return [...out].sort();
+}
+
+// The commit a previous clean pass recorded when every file it loaded is unchanged, or null. A lookup
+// goes to the timing log as a hit or a miss, as passedAt's does.
+export function graphPassedAt(check, base) {
+  if (!base) { logTiming({ kind: 'cache', tool: check, cache: 'off' }); return null; }
+  let at = null;
+  try {
+    const rec = JSON.parse(readFileSync(graphFile(check, base), 'utf8'));
+    const same = Object.entries(rec.files).every(([f, h]) => (f.includes(':') ? true : fileHash(f) === h))
+      && Object.entries(rec.lists ?? {}).every(([d, h]) => listHash(d) === h);
+    if (same) at = rec.commit || 'an earlier run';
+  } catch { /* none or unreadable: run */ }
+  logTiming({ kind: 'cache', tool: check, cache: at ? 'hit' : 'miss', input: base });
+  return at;
+}
+
+// A run that loaded no game source recorded nothing that proves what it ran, so it records nothing.
+// `loaded` is what the run reports; the entry script's own import graph is added here.
+export function recordGraphPass(check, base, loaded, entry = process.argv[1]) {
+  if (!base) return;
+  try {
+    const rels = loadedFiles([...loaded, ...(entry ? moduleGraph(entry) : [])]);
+    if (!rels.some((f) => f.startsWith('src/'))) return;
+    const lists = Object.fromEntries(globDirs(rels).map((d) => [d, listHash(d)]));
+    const files = Object.fromEntries(rels.map((f) => [f, f.includes(':') ? f : fileHash(f)]));
+    if (Object.values(files).some((h) => h === null)) return;
+    let commit = 'uncommitted';
+    try { commit = execSync('git rev-parse --short HEAD', { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch { /* not a checkout */ }
+    mkdirSync(dir(check), { recursive: true });
+    writeFileSync(graphFile(check, base), JSON.stringify({ commit, files, lists }));
+    // Records pile up, one per distinct base; old ones are never matched again.
+    for (const name of readdirSync(dir(check))) {
+      const f = join(dir(check), name);
+      if (name.startsWith('graph-') && Date.now() - statSync(f).mtimeMs > 14 * 864e5) rmSync(f, { force: true });
+    }
+  } catch { /* a record that cannot be written only costs a run next time */ }
+}

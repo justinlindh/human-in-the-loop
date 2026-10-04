@@ -3,7 +3,7 @@ import { h, fmtMoney, fmtNum, calendarDate } from './dom.js';
 import * as SIM from '../sim/index.js';
 import { icon } from './icons.js';
 import { B } from '../sim/balance.js';
-import { ERA_STARTS } from '../data/era-modes.js';
+import { ERA_STARTS, CAREER_MODES, careerMode } from '../data/era-modes.js';
 import { erasPreview } from './eraPreview.js';
 
 const HEADLINE = {
@@ -40,7 +40,9 @@ export function createGameOver({ layer, controls, sfx, act }) {
     timers.forEach(pClear);
     timers = [];
     const [title, sub] = (g.reason === 'anniversary' && s.founding?.earlyChapters?.length
-      ? ['A career worth keeping', 'The early chapter and twenty modern years are complete. The company can keep going.']
+      ? careerMode(s) === 'long_career'
+        ? [`${CAREER_MODES.long_career.name}, complete`, 'From a box on a shelf to the modern run: every chapter and twenty modern years are done. The company can keep going.']
+        : ['A career worth keeping', 'The early chapter and twenty modern years are complete. The company can keep going.']
       : g.reason === 'retired' ? RETIRED[g.retiredVia] : HEADLINE[g.reason]) ?? [g.won ? 'You won' : 'Game over', ''];
     let run = null;
     try { run = typeof SIM.scoreRun === 'function' ? SIM.scoreRun(s) : null; } catch { run = null; }

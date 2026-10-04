@@ -225,7 +225,7 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
     const dancers = new Set([e.staffId, ...(e.dancers ?? [])].filter(Boolean));
     const crowd = dancers.size ? { ...s, staff: (s?.staff ?? []).filter((p) => dancers.has(p.id)) } : s;
     const after = cheer('musicNight', crowd, end + 0.2, e.staffId, { force: true }).map((c) => ({ ...c, at: c.at - end }));
-    return [{ op: 'dance', cue: 'music.night', genre, file: `musicNight/${genre}/${i}`, bus: 'sfx', gain: 0.75, at: t + 0.4, duck: 'dance', expect: len, after }];
+    return [{ op: 'dance', cue: 'music.night', genre, file: `musicNight/${genre}/${i}`, bus: 'sfx', gain: 0.75, at: t + 0.4, duck: 'dance', expect: len, startsIn: 0.4, after }];
   }
 
   const voiceMomentOk = (t) => t - lastVoiceMoment.t >= VOICE.globalGap;

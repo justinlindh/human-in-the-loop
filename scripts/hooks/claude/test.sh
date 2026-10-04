@@ -99,6 +99,18 @@ for c in 'cat scripts/ci-pr.sh' 'bash -n scripts/ci-pr.sh' 'grep -n trap scripts
 run bash-guard.sh "$(bashjson 'bash scripts/ci-pr.sh 766')"
 [[ "$err" == *"ci-rerun label"* ]] || fail "the ci-pr refusal should say what to do instead (got: $err)"
 
+# review-verdict.sh: only the reviewer (detached) and team-lead (main, lead/) post verdicts.
+g -C "$repo" checkout -q main
+allowed 'scripts/review-verdict.sh 5 pass body.md' "$repo"
+g -C "$repo" checkout -q -b lead/x; allowed 'bash scripts/review-verdict.sh 5 pass body.md' "$repo"
+g -C "$repo" checkout -q --detach; allowed 'bash scripts/review-verdict.sh 5 pass body.md' "$repo"
+g -C "$repo" checkout -q -b perf/x
+denied 'scripts/review-verdict.sh 5 pass body.md' "$repo"
+denied 'cd x && nice bash scripts/review-verdict.sh 5 changes body.md --head abc' "$repo"
+allowed 'cat scripts/review-verdict.sh' "$repo"
+allowed "git commit -m 'review-verdict.sh 5 pass'" "$repo"
+g -C "$repo" checkout -q main
+
 # Sleeping between checks of PR or CI state costs a turn per wait: wait-for.sh in the background instead.
 allowed 'sleep 5; gh pr view 12 --json statusCheckRollup'
 denied 'until gh pr checks 12; do sleep 30; done'

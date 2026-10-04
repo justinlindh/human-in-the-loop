@@ -39,6 +39,7 @@
 .hitl .era-start.on, .hitl .start-mode.on { background: #fff4dc; box-shadow: 0 0 0 0.15em var(--yellow); }
 .hitl .era-start:focus-visible, .hitl .start-mode:focus-visible { outline: 0.2em solid var(--green); outline-offset: 0.15em; }
 .hitl .era-start:disabled, .hitl .start-mode:disabled { opacity: 0.6; cursor: default; }
+.hitl .era-start .pill { align-self: flex-start; }
 .hitl .era-start-summary { padding: 0.7em; background: var(--cream-3); border-radius: 0.5em; font-weight: 600; }
 .hitl .takeover-choices, .hitl .takeover-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6em; }
 .hitl .takeover-fact { display: flex; flex-direction: column; gap: 0.25em; padding: 0.65em; background: var(--cream-3); border-radius: 0.5em; overflow-wrap: anywhere; }

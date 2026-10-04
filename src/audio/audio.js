@@ -162,8 +162,9 @@ export function createAudio({ quality = 'high' } = {}) {
           lastDance = { file: c.file, real: loader.ready(c.file), duration: src.buffer.duration, startAt: src.startAt };
           // The playing track holds its buffer through pauses, so every night track can leave the cache.
           loader.release((id) => id.startsWith('musicNight/'));
-          // The renderer stretches the dance to the track that actually plays.
-          dispatchEvent(new CustomEvent('hitl:musicTrack', { detail: { genre: c.genre, seconds: src.buffer.duration, startsIn: Math.max(0, src.startAt - ctx.currentTime) } }));
+          // The renderer fits the dance to the track's length and lead from the director (the
+          // manifest), not the decoded buffer or the context clock, so it is the same on every machine.
+          dispatchEvent(new CustomEvent('hitl:musicTrack', { detail: { genre: c.genre, seconds: c.expect, startsIn: c.startsIn } }));
         } });
         else if (c.op === 'moment') {
           // Timed to the staging from its first frame: a cue still decoding is skipped, not late.
