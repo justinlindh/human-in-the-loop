@@ -7,6 +7,7 @@
 # The balance suite runs alongside the other steps; the rest run in order. Exit 0 when all pass, 1
 # when a step fails on the code, 3 when the only failures are the machine's (see machine_why).
 set -uo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/lib/tmpdir.sh"
 
 BASE="origin/main"; TITLE=""; SUMMARY=""
 while [ $# -gt 0 ]; do

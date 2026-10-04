@@ -24,6 +24,7 @@
 #      ci-pr; default this script's), AUTO_CI_GH and AUTO_CI_PR (stand-ins for tests).
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/tmpdir.sh"
 STATE="${AUTO_CI_STATE:-$HOME/.cache/hitl-ci/auto}"
 TREE="${AUTO_CI_TREE:-$(cd "$HERE/.." && pwd)}"
 GH="${AUTO_CI_GH:-gh}"
