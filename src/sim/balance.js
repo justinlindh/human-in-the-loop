@@ -9,6 +9,8 @@ export const B = {
     duplicatorCosts: [3000, 6000, 12000], duplicatorRelief: [0.1, 0.2, 0.3],
     shelfCosts: [2000, 4000, 8000], shelfDemand: [0.1, 0.15, 0.2],
     launchReward: { cash: 5000, brand: 2 }, botPatchHealth: 50,
+    // Mean weeks an installed copy lasts before its owner wants the new version (the upgrade cycle).
+    upgradeWeeks: 520,
   },
   web2: {
     weeks: 208, startYear: 2003, endYear: 2019,
