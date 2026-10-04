@@ -62,9 +62,9 @@ async function playInBrowser(groups) {
   const H = await startHarness();
   for (const group of groups) {
     const own = P.OWN_PAGES[group];
-    const { page, errors: pageErrors } = await H.openScene(`quality=low&mock=${own?.mock ?? 'floor'}${!own || own.rig ? rig : ''}`, { width: 800, height: 500 });
+    const { page, errors: pageErrors } = await H.openScene(`quality=low&mock=${own?.mock ?? 'floor'}${!own || own.rig ? rig : ''}${own?.era ? `&eras&eraArt=${own.era}` : ''}`, { width: 800, height: 500 });
     await page.evaluate(P.installExact);
-    resultsBy[group] = own ? await page.evaluate(own.fn) : await page.evaluate(P.mainPage, Object.fromEntries(MAIN.map((g) => [g, g === group])));
+    resultsBy[group] = own ? P.prefixed(own, await page.evaluate(own.fn, own.arg)) : await page.evaluate(P.mainPage, Object.fromEntries(MAIN.map((g) => [g, g === group])));
     errors.push(...pageErrors);
     await page.close();
   }
