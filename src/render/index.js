@@ -180,6 +180,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   function applyQuality() {
     setRigEnabled(rigWanted());
     lighting.setShadowSize(q === 'low' ? 1024 : 2048);
+    // Sampling the sun's shadow map costs every lit pixel, which software GL draws on the CPU.
+    lighting.sun.castShadow = !(q === 'low' && softwareGL);
     lighting.setInteriorBudget(q === 'low' ? 2 : 6);
     surroundings?.setQuality();
     staff?.setCharacterShadows(q !== 'low');
