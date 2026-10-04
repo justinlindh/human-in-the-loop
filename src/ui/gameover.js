@@ -71,15 +71,15 @@ export function createGameOver({ layer, controls, sfx, act }) {
     const cardData = runCardData(s, { title, score: g.score ?? run?.score ?? 0 });
     const cardCanvas = h('canvas.go-card-img', { 'aria-label': `${cardData.company}: ${title}, score ${fmtNum(cardData.score)}` });
     const shareNote = h('span.small.muted.go-share-note', { role: 'status' });
-    const shareBtn = (label, ic, run_) => h('button.btn', { onclick: async () => {
+    const shareBtn = (label, ic, run_, done, failed) => h('button.btn', { onclick: async () => {
       shareNote.textContent = '';
-      try { await run_(); sfx('confirm'); } catch (err) { shareNote.textContent = err?.message ?? 'That did not work'; }
+      try { await run_(); sfx('confirm'); shareNote.textContent = done; } catch { shareNote.textContent = failed; }
     } }, icon(ic), ` ${label}`);
     const share = h('div.go-share', null,
       cardCanvas,
       h('div.row.wrap', null,
-        shareBtn('Save as image', 'save.export', () => saveRunCard(cardCanvas, cardFileName(cardData))),
-        canCopyImage() ? shareBtn('Copy image', 'save.export', () => copyRunCard(cardCanvas)) : null,
+        shareBtn('Save as image', 'save.export', () => saveRunCard(cardCanvas, cardFileName(cardData)), 'Saved to your downloads.', 'The picture could not be saved.'),
+        canCopyImage() ? shareBtn('Copy image', 'save.export', () => copyRunCard(cardCanvas), 'Copied. Paste it anywhere.', 'This browser would not copy the picture. Save as image works instead.') : null,
         shareNote));
     drawRunCard(cardData, cardCanvas).catch((err) => { shareNote.textContent = err?.message ?? 'The card could not be drawn'; });
     const keep = anniversary && act ? h('button.btn.big', { onclick: () => { if (act({ type: 'keepPlaying' }).ok) sfx('confirm'); } }, icon('speed.play'), ' Keep playing') : null;

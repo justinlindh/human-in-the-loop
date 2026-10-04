@@ -11,6 +11,16 @@ const WEEKS_PER_YEAR = 52;
 const SITE = 'humanintheloopgame.com';
 const C = { ink: '#2a2630', inkSoft: '#5b5361', cream: '#fbf5ea', cream3: '#e9dbc2', yellow: '#ffb020', blue: '#4f8cff', lost: '#cfc6d6' };
 
+// One line of the in-game press: the best review of the run's best product when the run was won, and the worst
+// review of its weakest product when it was lost. Null when no product was ever reviewed.
+export function pressLine(s, won) {
+  const reviewed = (s.products ?? []).filter((p) => p.reviews?.length);
+  if (!reviewed.length) return null;
+  const pickProduct = reviewed.reduce((a, b) => ((won ? b.score > a.score : b.score < a.score) ? b : a));
+  const r = pickProduct.reviews.reduce((a, b) => ((won ? b.score > a.score : b.score < a.score) ? b : a));
+  return r.quote ? { quote: r.quote, outlet: r.outlet, product: pickProduct.name } : null;
+}
+
 // What the card says, from the finished game. `title` is the end screen's headline, `score` its final score.
 export function runCardData(s, { title, score }) {
   const mode = careerMode(s);
@@ -29,6 +39,7 @@ export function runCardData(s, { title, score }) {
     years,
     ending: title,
     won: !!s.gameOver?.won,
+    press: pressLine(s, !!s.gameOver?.won),
     score: Math.round(score ?? 0),
     share: share != null && share < 1 ? Math.round(share * 100) : null,
     stats: [
@@ -85,15 +96,23 @@ export async function drawRunCard(data, canvas = document.createElement('canvas'
   // Ending headline.
   ctx.fillStyle = C.ink;
   fit(ctx, data.ending, 700, 76, CARD_W - 140);
-  ctx.fillText(data.ending, 64, 276);
+  ctx.fillText(data.ending, 64, 262);
   // Score block.
   ctx.fillStyle = C.inkSoft; ctx.font = '600 28px Fredoka, system-ui, sans-serif';
-  ctx.fillText('FINAL SCORE', 64, 346);
+  ctx.fillText('FINAL SCORE', 64, 318);
   ctx.fillStyle = C.ink; ctx.font = '700 120px Fredoka, system-ui, sans-serif';
-  ctx.fillText(fmtNum(data.score), 60, 450);
+  ctx.fillText(fmtNum(data.score), 60, 422);
   if (data.share != null) {
     ctx.fillStyle = C.inkSoft; ctx.font = '600 26px Fredoka, system-ui, sans-serif';
-    ctx.fillText(`This start scores ${data.share}% of a Classic run`, 64, 492);
+    ctx.fillText(`This start scores ${data.share}% of a Classic run`, 64, 460);
+  }
+  // The press line, in quotes, under the score.
+  if (data.press) {
+    ctx.fillStyle = C.ink; const q = `\u201c${data.press.quote}\u201d`;
+    fit(ctx, q, 600, 30, CARD_W - 64 * 2 - 270 - 40);
+    ctx.fillText(q, 64, 508);
+    ctx.fillStyle = C.inkSoft; ctx.font = '600 22px Fredoka, system-ui, sans-serif';
+    ctx.fillText(`${data.press.outlet} on ${data.press.product}`, 64, 538);
   }
   // Highlight stats in sticker tiles on the right.
   const tileW = 270, tileH = 96, gap = 18, x = CARD_W - 64 - tileW;
