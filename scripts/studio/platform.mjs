@@ -107,6 +107,7 @@ export function installPlatform(root, { quality = 'low', rig = null } = {}) {
     if (/^[a-z]+:/i.test(url)) throw new Error(`scene-engine: network fetch forbidden: ${url}`);
     const file = resolve(publicRoot, decodeURIComponent(url).replace(/^\/+/, ''));
     if (!file.startsWith(publicRoot + sep)) throw new Error('scene-engine: asset escapes public');
+    globalThis.__hitlLoaded?.add(file);
     return new Response(readFileSync(file));
   };
   let tick = 0;
