@@ -10,7 +10,11 @@
 set -euo pipefail
 [ "$#" -gt 0 ] || { echo "usage: scripts/feature-media/publish.sh <file>..." >&2; exit 1; }
 files=()
-for f in "$@"; do [ -f "$f" ] || { echo "publish: not a file: $f" >&2; exit 1; }; files+=("$(realpath -- "$f")"); done
+for f in "$@"; do
+  [ -f "$f" ] || { echo "publish: not a file: $f" >&2; exit 1; }
+  case "${f,,}" in *.png|*.mp4|*.webp|*.gif) ;; *) echo "publish: unsupported file type: $f" >&2; exit 1 ;; esac
+  files+=("$(realpath -- "$f")")
+done
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 SLUG="$(cd "$REPO" && gh repo view --json nameWithOwner --jq .nameWithOwner)"
@@ -18,7 +22,7 @@ WT="${FEATURE_MEDIA_WORKTREE:-$HOME/.cache/hitl-feature-media}"
 if [ ! -e "$WT/.git" ]; then
   git -C "$REPO" fetch -q origin
   if git -C "$REPO" ls-remote --exit-code --heads origin feature-media >/dev/null; then
-    git -C "$REPO" worktree add -q -B feature-media "$WT" origin/feature-media
+    git -C "$REPO" worktree add -q --detach "$WT" origin/feature-media
   else
     git -C "$REPO" worktree add -q --orphan -b feature-media "$WT"
   fi
@@ -28,6 +32,8 @@ if git ls-remote --exit-code --heads origin feature-media >/dev/null; then
   git fetch -q origin feature-media
   git reset -q --hard origin/feature-media
 fi
+# An interrupted earlier run can leave half-written files; they must not be committed.
+git clean -fdq
 
 url() { echo "https://github.com/$SLUG/blob/feature-media/$1?raw=true"; }
 out=""
@@ -47,6 +53,6 @@ done
 git add -A .
 if ! git diff --cached --quiet; then
   git commit -q -m "Feature media: ${files[*]##*/}"
-  git push -q -u origin feature-media || { echo "publish: push failed" >&2; exit 1; }
+  git push -q origin HEAD:feature-media || { echo "publish: push failed" >&2; exit 1; }
 fi
 printf '%s' "$out"
