@@ -34,6 +34,12 @@ const PRESETS = {
     old: 'node blender/checks/stage.mjs --browser --rows', new: 'node blender/checks/stage.mjs --rows',
     grep: '^STAGEROW', tolerance: 0.005,
   },
+  // The standup cases (speech included) in harness pages against the engine; the live conversations
+  // run in a browser either way, so both leave them out.
+  standup: {
+    old: 'HITL_NO_CHECK_CACHE=1 node blender/checks/standup.mjs --browser --no-live', new: 'HITL_NO_CHECK_CACHE=1 node blender/checks/standup.mjs --no-live',
+    grep: '^STANDUP', tolerance: 0.005,
+  },
   // The pose matrices in a harness page against the engine, every cell's verdicts and measure ranges,
   // judged by each gesture's own pass rule (pose-matrix.js PRESETS).
   facepalm: matrixPreset('--gesture facepalm --matrix views=all,postures=all,builds=all,rig=on,off'),

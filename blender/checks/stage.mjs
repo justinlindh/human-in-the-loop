@@ -448,4 +448,5 @@ if (args.includes('--rows')) {
   }
 }
 if (!code) recordPass('stage', hash);
-process.exit(code);
+// Exit once stdout drains: a reader slower than the rows (parity.mjs under load) would lose the tail.
+process.stdout.write('', () => process.exit(code));

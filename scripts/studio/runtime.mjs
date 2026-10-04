@@ -12,7 +12,8 @@ export async function createRuntime({ state, mock = 'floor', quality = 'low', ri
   const { createMockSim } = await import('../../src/dev/mockSim.js');
   const S = state ?? createMockSim({ scenario: mock, seed: 7 }).state;
   if (!Array.isArray(S.staff) || !Number.isInteger(S.officeStage)) throw new Error('scene-engine: expected a game state with staff and officeStage');
-  const R = createRenderer({ canvas: new Element('canvas'), labelsEl: new Element(), quality });
+  // The label layer sits under body, as the page's does, so a check that queries the document finds it.
+  const R = createRenderer({ canvas: document.body.appendChild(new Element('canvas')), labelsEl: document.body.appendChild(new Element()), quality });
   const { loadModels } = await import('../../src/render/models.js');
   await loadModels();
   for (let attempts = 0; !R.ready && attempts < 1000; attempts++) await new Promise(resolve => setTimeout(resolve, 1));
