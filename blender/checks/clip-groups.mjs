@@ -17,7 +17,7 @@ export const GROUPS = {
   party: ['waffle:crowd'],
   sky: ['sky:trailing'],
   garage: ['pairs:garage'],
-  celebrations: ['moment:growth', 'moment:company_party'],
+  celebrations: ['moment:growth', 'moment:company_party', 'moment:deal'],
   respond: ['moment:respond:rack', 'moment:respond:desk'],
   control: ['control:head-through-slab'],
 };

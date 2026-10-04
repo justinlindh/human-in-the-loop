@@ -1,5 +1,5 @@
 import { B } from '../sim/balance.js';
-import { GROWTH } from './growth-tune.js';
+import { GROWTH, DEAL } from './growth-tune.js';
 import { createMomentSpeech } from './moment-speech.js';
 import { createSpeechBudget } from './speech-budget.js';
 import { createStandupSpeech, standupContext, standupRevision, standupText } from './standup-speech.js';
@@ -599,6 +599,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
           }
           break;
         }
+        case 'deal': dealBell(e); break;
         case 'posted': postReaction(e.outcome); break;
         case 'incident': incident(e, state); break;
         case 'standup': if (e.mode === 'daily') startStandup(e, state); break;
@@ -794,6 +795,39 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (r.temp?.moment) { traceLine(r.id, 'refuse', { by: 'celebrate', why: `in moment ${r.temp.moment}` }); return; }
     if (!roomToCelebrate(r)) { traceLine(r.id, 'refuse', { by: 'celebrate', why: 'no room' }); return; }
     r.temp = { anim: 'celebrate', t: seconds, keepPos: true };
+  }
+
+  // A notable deal: the seller, seated at their desk, throws a hand up and rings it like a sales bell,
+  // turned toward the camera as far as the chair allows, and the nearest seated coworkers turn to
+  // clap. Low plays the seller alone. Nobody stands or walks, and the clock never holds for it.
+  function dealBell(e) {
+    const seller = e.notable && e.sellerId && recs.get(e.sellerId);
+    if (!seller || seller.hidden || seller.temp || seller.path.length || !seller.char.seated || !seller.goal) return;
+    if (seller.staff.mood === 'away' || spotlights.current() || standup || incentives.party || incentives.dance) return;
+    const turn = (r, yaw) => {
+      const d = Math.atan2(Math.sin(yaw - r.goal.yaw), Math.cos(yaw - r.goal.yaw));
+      return r.goal.yaw + Math.max(-DEAL.turnLimit, Math.min(DEAL.turnLimit, d));
+    };
+    // The arm on the side the turn leaves facing the camera pumps; the other one stays behind the head.
+    const camYaw = rig?.yaw ?? Math.PI / 4, turnTo = turn(seller, camYaw);
+    emote(seller, 'sparkle', DEAL.seconds);
+    seller.temp = {
+      anim: 'typing', t: DEAL.seconds, keepPos: true, moment: 'deal', stage: { beat: 'ring', role: 'seller' },
+      tick: (r, dt) => { r.yaw = angleLerp(r.yaw, turnTo, 1 - Math.exp(-dt * 8)); return false; },
+    };
+    seller.char.gesture('deal', DEAL.seconds, Math.sin(turnTo - camYaw) >= 0 ? -1 : 1);
+    if (low()) return;
+    const crowd = [...recs.values()]
+      .filter((r) => r !== seller && !r.hidden && !r.temp && !r.path.length && r.char.seated && r.goal && r.staff.mood !== 'away' && r.pos.distanceTo(seller.pos) < DEAL.nearby)
+      .sort((a, b) => a.pos.distanceTo(seller.pos) - b.pos.distanceTo(seller.pos))
+      .slice(0, DEAL.coworkerMax);
+    for (const r of crowd) {
+      r.temp = {
+        anim: 'growthclapsit', t: DEAL.clapSeconds, delay: DEAL.clapDelay, keepPos: true, moment: 'deal',
+        stage: { beat: 'cheer', role: 'coworker', target: seller.char.root },
+        tick: (rr, dt) => { rr.yaw = angleLerp(rr.yaw, turn(rr, Math.atan2(seller.pos.x - rr.pos.x, seller.pos.z - rr.pos.z)), 1 - Math.exp(-dt * 8)); return false; },
+      };
+    }
   }
 
   const officeGrowth = createOfficeGrowth({ recs, labels, parent: group, low,
