@@ -6,8 +6,9 @@ import { DEAL_CUSTOMERS } from '../data/deal-customers.js';
 
 // Deal events: what the sales team (or the retail shelf) sold, for ui, art and audio to show. They change
 // nothing the game plays on. Each product's sales add up over B.dealGroupWeeks and are reported once at the
-// end of the window; a deal is notable at B.dealNotableMrr (boxed: B.dealNotableBoxRevenue) or as a
-// product's first. Names come from a stream of their own, so the game's random state never moves.
+// end of the window. A week whose reported sales reach B.dealNotableMrr (boxed: B.dealNotableBoxRevenue)
+// makes all of them notable, the weekly beat; a product's first deal is always notable; the rest belong in
+// a quiet line. Names come from a stream of their own, so the game's random state never moves.
 
 const tally = (state) => (state.flags.deals ??= { open: {}, firsts: [] });
 const windowEnds = (state) => (state.week + 1) % Math.max(1, B.dealGroupWeeks) === 0;
@@ -22,6 +23,8 @@ function first(state, productId) {
 // The salesperson with the largest share of the boost, the same weights that split sales records.
 const topSeller = (sellers) => sellers.reduce((best, p) => (!best || staffMods(p).salesBoost > staffMods(best).salesBoost ? p : best), null);
 
+const pending = (ctx) => (ctx.deals ??= []);
+
 export function addDeal(ctx, product, customers, mrr, sellers) {
   const { state } = ctx;
   if (!(customers > 0) || !sellers.length) return;
@@ -31,11 +34,10 @@ export function addDeal(ctx, product, customers, mrr, sellers) {
   if (!windowEnds(state)) return;
   delete tally(state).open[product.id];
   const names = DEAL_CUSTOMERS.filter((c) => eraOnlyAllowsText(state, c.name));
-  const customer = pick(sideRng(state.seed, `deal:${product.id}`, state.week), names).name;
-  const isFirst = first(state, product.id);
-  ctx.emit({
-    type: 'deal', productId: product.id, customer, customers: Math.max(1, Math.round(open.customers)), mrr: Math.round(open.mrr),
-    week: state.week, sellerId: topSeller(sellers).id, first: isFirst, notable: isFirst || open.mrr >= B.dealNotableMrr,
+  pending(ctx).push({
+    type: 'deal', productId: product.id, customer: pick(sideRng(state.seed, `deal:${product.id}`, state.week), names).name,
+    customers: Math.max(1, Math.round(open.customers)), mrr: Math.round(open.mrr), week: state.week,
+    sellerId: topSeller(sellers).id, first: first(state, product.id),
   });
 }
 
@@ -47,9 +49,21 @@ export function addBoxDeal(ctx, product, units, revenue) {
   open.revenue += revenue;
   if (!windowEnds(state)) return;
   delete tally(state).open[product.id];
-  const isFirst = first(state, product.id);
-  ctx.emit({
+  pending(ctx).push({
     type: 'deal', productId: product.id, units: open.units, revenue: Math.round(open.revenue), week: state.week, boxed: true,
-    first: isFirst, notable: isFirst || open.revenue >= B.dealNotableBoxRevenue,
+    first: first(state, product.id),
   });
+}
+
+// Emits the week's deals with the week's totals: weekMrr over sales-team deals, weekRevenue over boxed ones.
+export function flushDeals(ctx) {
+  const deals = ctx.deals ?? [];
+  ctx.deals = [];
+  const weekMrr = deals.reduce((n, d) => n + (d.mrr ?? 0), 0);
+  const weekRevenue = deals.reduce((n, d) => n + (d.revenue ?? 0), 0);
+  for (const d of deals) {
+    ctx.emit(d.boxed
+      ? { ...d, weekRevenue, notable: d.first || weekRevenue >= B.dealNotableBoxRevenue }
+      : { ...d, weekMrr, notable: d.first || weekMrr >= B.dealNotableMrr });
+  }
 }
