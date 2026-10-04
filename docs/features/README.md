@@ -6,7 +6,7 @@ Conventions:
 - A star at the start of a bullet marks a reel-worthy highlight.
 - "How to see it" hints: `?mock=<scenario>` is a canned scene (`garage`, `floor`, `hq`, `incident`, `night`, `ending`); `find.js <event> --choice N` is `node scripts/events/find.js`, whose snapshot `scene.mjs --moment '<query>'` stages; `capture <id>` is `npm run capture -- --only <id>`.
 - A bullet backed by data ends with its ids, one code span each: Spoken: "It has paper. I checked its demands." `id: printer_jam`.
-- A bullet with ids also carries its media: `Media: [clip](<feature-media url>)` after the ids (links to files on the `feature-media` branch, published by `scripts/feature-media/publish.sh`), or `media: none (<reason>)` for a rule or number with nothing to see. `npm run feature-media -- --check` fails a PR that adds an id with neither. `docs/toolkit/feature-media.md` has the rest.
+- A bullet with ids also carries its media: `Media: [clip](<feature-media url>)` after the ids (links to files on the `feature-media` branch, published by `scripts/feature-media/publish.sh`), or `media: none (<reason>)` for a rule or number with nothing to see, or `media: pending (#<issue>)` while a game fix keeps it from reading on video. `npm run feature-media -- --check` fails a PR that adds an id with neither. `docs/toolkit/feature-media.md` has the rest.
 
 Areas, one file each:
 - [Company and progression](company.md)
