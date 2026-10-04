@@ -20,13 +20,13 @@ describe('starting era', () => {
   it('keeps omitted, explicit and invalid Classic starts identical', () => {
     for (const seed of [1, 17, 200]) {
       const classic = createGame({ seed });
-      for (const startEra of ['classic', 'unknown', 'toString', 'plateau', null]) {
+      for (const startEra of ['classic', 'unknown', 'toString', 'long_career', null]) {
         expect(createGame({ seed, startEra })).toEqual(classic);
       }
     }
   });
 
-  it.each(['chatgbt', 'agents'])('starts a new %s company with every funding choice', (startEra) => {
+  it.each(['chatgbt', 'agents', 'consolidation', 'plateau'])('starts a new %s company with every funding choice', (startEra) => {
     for (const funding of Object.keys(B.funding)) {
       const s = createGame({ seed: 11, startEra, funding });
       const kit = B.eraStarts[startEra];
@@ -169,7 +169,7 @@ describe('starting era', () => {
     expect(run.score).toBe(Math.round(raw * B.funding.family.scoreMult * 0.8 * 0.9 * B.eraStarts.agents.scoreMult));
   });
 
-  it.each(['classic', 'chatgbt', 'agents'])('round-trips %s and continues deterministically', (startEra) => {
+  it.each(['classic', 'chatgbt', 'agents', 'consolidation', 'plateau'])('round-trips %s and continues deterministically', (startEra) => {
     const s = createGame({ seed: 9, startEra });
     const mem = storage();
     expect(saveGame(s, mem)).toBe(true);

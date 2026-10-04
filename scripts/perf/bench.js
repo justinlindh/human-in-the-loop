@@ -14,6 +14,9 @@
 // measured after the window's time ran out are marked.
 // --profile samples the main thread with the CPU profiler while recording and prints the functions
 // with the most self time per scene (module and line, from the unminified build).
+// --phases drains the GPU at every framebuffer switch in a render and prints each pass's median time
+// and draw count (shadow, scene, tone map, FXAA), numbered in render order. It adds a sync per pass, so
+// read it as proportions, and take frame time from a run without it.
 // --cores N pins the browser (not the build) to the last N cores, a weak-device proxy; --cpus names them.
 // GL comes from scripts/lib/gl.js: the GPU unless --software or HITL_GL=software. SwiftShader pinned
 // with --cores 2 stands in for a weak device. Without --refs it measures the working tree. With --refs it builds each
@@ -49,6 +52,7 @@ const [W, H] = String(arg('size', '1280x720')).split('x').map(Number);
 const REFS = typeof arg('refs', null) === 'string' ? arg('refs').split(',') : null;
 const REF_DIR = join(ROOT, '.vite/perf-refs');
 const PROFILE = !!arg('profile', false);
+const PHASES = !!arg('phases', false);
 const QUIET = arg('quiet', null) === null ? null : arg('quiet') === true ? 20 : Number(arg('quiet'));
 const CPUS = typeof arg('cpus', null) === 'string' ? arg('cpus')
   : arg('cores', null) ? `${cpus().length - Number(arg('cores'))}-${cpus().length - 1}` : null;
@@ -125,6 +129,21 @@ const MUSIC_NIGHT = `(() => {
   window.__HITL.emit([{ type: 'incentive', staffId: here[0].id, reward: 'music_night', genre: 'corporate_synthwave', dancers: here.slice(1, 5).map((p) => p.id) }]);
 })()`;
 
+// Puts a disk duplicator and a retail display on the first free tiles, so the pre-internet scenes draw
+// both models. The page keeps the placed ids on window.__perfProps for the report.
+const PREINTERNET_PROPS = `(() => {
+  const H = window.__HITL;
+  H.state.cash = Math.max(H.state.cash, 1e9);
+  const got = {};
+  for (const itemId of ['disk_duplicator', 'retail_shelf']) {
+    outer: for (let y = 0; y < 16; y++) for (let x = 0; x < 21; x++) for (const rot of [0, 1]) {
+      const r = H.dispatch({ type: 'placeItem', itemId, x, y, rot });
+      if (r?.ok) { got[itemId] = [x, y, rot]; break outer; }
+    }
+  }
+  window.__perfProps = got;
+})()`;
+
 const SCENE_DEFS = {
   garage: { query: 'mock=garage' },
   floor: { query: 'mock=floor' },
@@ -138,7 +157,13 @@ const SCENE_DEFS = {
   'hq-eras': { query: 'mock=hq&eras&eraArt=classic' },
   'hq-dotcom': { query: 'mock=hq&eras&eraArt=dotcom' },
   'hq-web2': { query: 'mock=hq&eras&eraArt=web2' },
+  'floor-preinternet': { query: 'mock=floor&eras&eraArt=preinternet', setup: PREINTERNET_PROPS },
+  'hq-preinternet': { query: 'mock=hq&eras&eraArt=preinternet', setup: PREINTERNET_PROPS },
 };
+{
+  const unknown = SCENES.filter((s) => !SCENE_DEFS[s]);
+  if (unknown.length) { console.error(`perf: unknown scene ${unknown.join(', ')}; known: ${Object.keys(SCENE_DEFS).join(', ')}`); process.exit(2); }
+}
 
 // Installed before page scripts: sums every rAF callback's work per frame, keyed by the frame's
 // timestamp, and counts DOM mutations while recording.
@@ -154,6 +179,50 @@ function instrument() {
   });
   new MutationObserver((list) => { if (P.on) P.mutations += list.length; })
     .observe(document, { subtree: true, childList: true, attributes: true, characterData: true });
+  // With --phases, every framebuffer switch inside a render drains the GPU (a one pixel read from a scratch
+  // target, since gl.finish does not wait on every backend) and charges the time
+  // since the last switch to the pass that was bound, so each pass's cost shows up per frame.
+  P.phases = new Map();
+  if (window.__PHASES) {
+    const G = WebGL2RenderingContext.prototype;
+    const bind = G.bindFramebuffer, vp = G.viewport, de = G.drawElements, da = G.drawArrays, dei = G.drawElementsInstanced;
+    let seg = null, cur = null, scratch = null;
+    const drain = (gl) => {
+      if (!scratch) {
+        const rb = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, 1, 1);
+        scratch = gl.createFramebuffer();
+        // Only the read binding is touched, so the draw framebuffer three.js caches stays as it was.
+        bind.call(gl, gl.READ_FRAMEBUFFER, scratch);
+        gl.framebufferRenderbuffer(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+        scratch.px = new Uint8Array(4);
+      }
+      bind.call(gl, gl.READ_FRAMEBUFFER, scratch);
+      gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, scratch.px);
+      bind.call(gl, gl.READ_FRAMEBUFFER, cur);
+    };
+    const close = (gl) => {
+      if (!seg) return;
+      drain(gl);
+      const key = seg.i + ':' + seg.vp;
+      const e = P.phases.get(key) ?? { ms: [], draws: [] };
+      e.ms.push(performance.now() - seg.t0); e.draws.push(seg.draws);
+      P.phases.set(key, e);
+      seg = null;
+    };
+    P.openSeg = () => { P.n = 0; seg = { i: P.n++, t0: performance.now(), draws: 0, vp: '' }; };
+    P.closeSeg = (gl) => { if (P.on && P.inRender) close(gl); seg = null; P.inRender = false; };
+    G.bindFramebuffer = function (t, fb) {
+      if (P.inRender && P.on) { close(this); seg = { i: P.n++, t0: performance.now(), draws: 0, vp: '' }; }
+      if (t === this.FRAMEBUFFER || t === this.READ_FRAMEBUFFER) cur = fb;
+      return bind.call(this, t, fb);
+    };
+    G.viewport = function (x, y, w, h) { if (seg && !seg.vp) seg.vp = w + 'x' + h; return vp.call(this, x, y, w, h); };
+    const cnt = (f) => function (...a) { if (seg) { seg.draws++; if (!seg.vp) { const v = this.getParameter(this.VIEWPORT); seg.vp = v[2] + 'x' + v[3]; } } return f.apply(this, a); };
+    G.drawElements = cnt(de); G.drawArrays = cnt(da); G.drawElementsInstanced = cnt(dei);
+  }
   P.wrapRender = () => {
     const r = window.__HITL?.controls?.renderer;
     if (!r || r.__perfWrapped) return;
@@ -162,7 +231,9 @@ function instrument() {
     const px = new Uint8Array(4);
     r.render = (dt) => {
       const t0 = performance.now();
+      if (window.__PHASES) { P.inRender = true; P.openSeg(); }
       orig(dt);
+      if (window.__PHASES) P.closeSeg(gl);
       gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
       if (P.on) P.render.push(performance.now() - t0);
     };
@@ -218,6 +289,7 @@ async function measure(browser, b, scene, quality) {
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  if (PHASES) await page.addInitScript(() => { window.__PHASES = true; });
   await page.addInitScript(instrument);
   if (def.late) await page.addInitScript((entries) => { for (const [k, v] of entries) localStorage.setItem(k, v); }, b.late.entries);
   const t0 = Date.now();
@@ -231,6 +303,10 @@ async function measure(browser, b, scene, quality) {
   }
   await page.evaluate(() => window.__perf.wrapRender());
   if (def.setup) await page.evaluate(def.setup);
+  if (def.setup === PREINTERNET_PROPS) {
+    const got = await page.evaluate(() => window.__perfProps);
+    if (!got?.disk_duplicator || !got?.retail_shelf) throw new Error(`could not place the pre-internet props: ${JSON.stringify(got)}`);
+  }
   const keep = setInterval(() => { page.evaluate(KEEP_PLAYING).catch(() => {}); }, 1000);
   const cdp = await ctx.newCDPSession(page);
   let profile = null;
@@ -250,6 +326,7 @@ async function measure(browser, b, scene, quality) {
     return {
       ts, cpu: ts.map((t) => P.frames.get(t)), render: P.render, mutations: P.mutations,
       info: window.__HITL.controls.renderer?.perf ?? null,
+      phases: [...P.phases].map(([k, e]) => [k, e.ms, e.draws]),
     };
   });
   await cdp.send('HeapProfiler.collectGarbage');
@@ -263,6 +340,7 @@ async function measure(browser, b, scene, quality) {
     calls: raw.info?.calls, triangles: raw.info?.triangles, geometries: raw.info?.geometries, textures: raw.info?.textures,
     programs: raw.info?.programs, meshes: raw.info?.meshes, heapMB: heap.usedSize / 2 ** 20, dom: dom.nodes,
     mutPerSec: raw.mutations / SECONDS, loadMs, profile: profile && selfTimes(profile),
+    phases: PHASES ? raw.phases.map(([k, ms, d]) => ({ pass: k, ms: median(ms), draws: median(d), frames: ms.length })) : undefined,
   };
 }
 
@@ -351,6 +429,9 @@ try {
         if (quiet?.ended) med.quietEnded = 1;
         b.scenes[key] = { ...med, spread: { p50: rs.map((r) => +r.p50.toFixed(2)), render: rs.map((r) => +r.render.toFixed(2)) } };
         console.log(`${formatRow(b.label, key, med)}  load ${med.load}${med.quietEnded ? '  (after the quiet window)' : ''}`);
+        if (PHASES) {
+          for (const ph of rs[Math.floor(rs.length / 2)].phases) console.log(`  phase ${ph.pass.padEnd(14)} ${f1(ph.ms).padStart(8)}ms  draws ${String(ph.draws).padStart(4)}`);
+        }
         if (PROFILE) {
           const total = {};
           for (const r of rs) for (const [k, ms] of Object.entries(r.profile)) total[k] = (total[k] ?? 0) + ms / rs.length;

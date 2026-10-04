@@ -65,6 +65,16 @@ allowed "npm run build 2>&1 | tail -5" "$repo"
 allowed "perl -MList::Util -e 'print 1' > /dev/null" "$repo"
 allowed "git commit -m \"fix: replace sed -i on $T\"" "$repo"
 allowed "echo 'a > $T'" "$repo"
+allowed "gh issue comment 5 --body \"first line
+git show main:$T > $T
+last line\"" "$repo"
+allowed "gh issue comment 5 --body 'first line
+sed -i s/a/b/ $T
+last'" "$repo"
+allowed "gh issue comment 5 --body \"say \\\"hi\\\" then > $T\"" "$repo"
+denied "echo \"ok\" > $T" "$repo"
+run bash-guard.sh "$(bashjson "git show main:$T > $T" "$repo")"
+[[ "$err" == *"git checkout <ref> -- <file>"* ]] || fail "the tracked-file refusal should point at git checkout (got: $err)"
 allowed "cat > /tmp/body.md <<'EOF'
 go > $T
 EOF" "$repo"

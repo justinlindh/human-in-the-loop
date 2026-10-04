@@ -20,6 +20,7 @@
 #   --no-post   no status, no issues: print the verdict only
 #   --loop      check, sleep, and check again forever (for running it by hand)
 set -uo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/lib/tmpdir.sh"
 usage="usage: scripts/main-guard.sh [--sha <commit>] [--no-post] [--loop <seconds>]"
 sha_arg=""; post=1; loop=""
 while [ $# -gt 0 ]; do
@@ -104,15 +105,29 @@ sync_shared
 # MAIN_GUARD_FETCH replaces the fetch in tests, so they don't depend on reaching GitHub.
 if [ -n "${MAIN_GUARD_FETCH:-}" ]; then bash -c "$MAIN_GUARD_FETCH"; else git -C "$REPO" fetch -q origin main; fi \
   || { echo "main-guard: cannot fetch origin/main" >&2; exit 2; }
-sha="$(git -C "$REPO" rev-parse "${sha_arg:-origin/main}")" || exit 2
+sha="$(git -C "$REPO" rev-parse "${sha_arg:-${MAIN_GUARD_REF:-origin/main}}")" || exit 2
 short="${sha:0:7}"
 if [ -z "$sha_arg" ] && [ "$(cat "$STATE/last" 2>/dev/null)" = "$sha" ]; then exit 0; fi
+# A tip run waits MAIN_GUARD_MIN_MINUTES (default 90) after the last finished check, so a day of
+# merges is checked a few times, not once per merge; a red still gets its first bad merge named by the
+# bisect. --sha always runs.
+if [ -z "$sha_arg" ] && [ -f "$STATE/last" ] && [ -n "$(find "$STATE/last" -mmin "-${MAIN_GUARD_MIN_MINUTES:-90}" 2>/dev/null)" ]; then exit 0; fi
 
 status() { # <state> <description>
   [ $post = 1 ] || return 0
   gh api "repos/{owner}/{repo}/statuses/$sha" -f state="$1" -f context=main-guard -f description="${2:0:140}" >/dev/null 2>&1 \
     || echo "main-guard: could not set the status" >&2
 }
+# When the last checked commit was green and nothing changed since that any check reads (only paths on
+# scripts/ci-skip-paths: docs and the like), the new tip inherits the verdict and nothing runs.
+prev="$(cat "$STATE/last" 2>/dev/null)"
+if [ -z "$sha_arg" ] && [ -n "$prev" ] && [ "$prev" = "$(cat "$STATE/last-green" 2>/dev/null)" ] \
+  && [ "$(git -C "$REPO" diff --name-only --no-renames "$prev" "$sha" 2>/dev/null | bash "$REPO/scripts/ci-classify.sh" "${MAIN_GUARD_SKIP_LIST:-$REPO/scripts/ci-skip-paths}")" = light ]; then
+  echo "main-guard: $short changes only paths no check reads since ${prev:0:7}; inherits its green verdict"
+  status success "Unchanged for the checks since ${prev:0:7} (docs and other paths no check reads)"
+  echo "$sha" >"$STATE/last"; echo "$sha" >"$STATE/last-green"
+  exit 0
+fi
 
 # Each run can be replaced for tests (scripts/main-guard.test.sh): MAIN_GUARD_SUITE (writes $SUMMARY),
 # MAIN_GUARD_STRICT (writes $OUT/report.json), MAIN_GUARD_GOLDEN (the uncached golden run) and
