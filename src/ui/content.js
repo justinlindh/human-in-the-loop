@@ -80,6 +80,11 @@ export function policyLockText(p) {
 export function categoryName(id) { return CATEGORY[id]?.name ?? id; }
 export function angleName(id) { return ANGLE[id]?.name ?? id; }
 export function modelName(id) { return MODEL[id]?.name ?? id; }
+// "Category x Angle · Model", leaving out any part the product doesn't have (period products have no angle or model).
+export function productSubtitle(p) {
+  const kind = [p.category && categoryName(p.category), p.angle && angleName(p.angle)].filter(Boolean).join(' × ');
+  return [kind, p.model && modelName(p.model)].filter(Boolean).join(' · ');
+}
 export function modelColor(id) { return MODEL[id]?.color ?? '#8a8a8a'; }
 export function roleColor(role) { return ROLES[role]?.color ?? '#8a8a8a'; }
 export function roleName(role) { return ROLES[role]?.name ?? role; }

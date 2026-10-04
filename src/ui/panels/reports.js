@@ -2,7 +2,7 @@ import { h, setText, setWidth, fmtMoney, fmtNum, setClass, calendarDate } from '
 import { calendarWeek } from '../../sim/util.js';
 import { ERA_STARTS } from '../../data/era-modes.js';
 import { erasPreview } from '../eraPreview.js';
-import { categoryName, angleName, modelName, CATEGORY, ANGLE } from '../content.js';
+import { categoryName, angleName, modelName, productSubtitle, CATEGORY, ANGLE } from '../content.js';
 import { liveView, tabs, stars, confirmButton } from '../widgets.js';
 import { icon } from '../icons.js';
 import { pressOutlet } from '../press.js';
@@ -174,7 +174,7 @@ export function reportsPanel(ctx, arg) {
           h('div.row', null,
             h(`div.score.${scoreClass(p.score)}`, { title: 'Review average' }, p.score.toFixed(1)),
             h('div', { style: { minWidth: 0 } }, h('b.pname', { text: `${p.name} v${p.version}` }),
-              h('div.small.muted', { text: `${categoryName(p.category)} × ${angleName(p.angle)} · ${modelName(p.model)}` }))),
+              h('div.small.muted', { text: productSubtitle(p) }))),
           h('div.reviews', null, ...(p.reviews ?? []).slice(0, 4).map((r) => h('div.review', { title: r.quote },
             pressOutlet(r.outlet, { compact: true }), h(`b.num.${scoreClass(r.score)}`, { text: String(r.score) }), h('span.quote', { text: `"${r.quote}"` })))),
           h('div.pnums', null,

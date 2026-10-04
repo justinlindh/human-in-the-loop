@@ -37,6 +37,7 @@ import { createTooltips } from './tooltip.js';
 import { createSceneTips } from './sceneTips.js';
 import { createMomentCaptions } from './moments.js';
 import { retireOptions } from './retire.js';
+import { orderGoals } from './goalOrder.js';
 import { GOALS, GOAL, goalReward, SIM_HAS_MEANING_UNLOCK, unlockInfo } from './v2content.js';
 
 // UI sound cues go out as window events so the audio lane needs no reference to the UI.
@@ -248,7 +249,7 @@ export function createUI({ root, getState, dispatch, controls }) {
 
   function goalsModal() {
     const s = getState();
-    const list = GOALS.filter((g) => s.goals?.[g.id] && (erasPreview || !s.goals[g.id].skipped));
+    const list = orderGoals(GOALS, s).filter((g) => s.goals?.[g.id] && (erasPreview || !s.goals[g.id].skipped));
     let group = null;
     const body = h('div.goallist', null, ...list.flatMap((g) => {
       const st = s.goals[g.id];
