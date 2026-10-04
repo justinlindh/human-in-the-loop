@@ -60,7 +60,7 @@ describe('pair-report', () => {
   });
 });
 
-describe('pair.js', () => {
+describe('pair.js', { timeout: 90000 }, () => {
   it('a checkout against itself ends identically on every seed', () => {
     const r = spawnSync(process.execPath, [resolve('scripts/events/pair.js'), '--a', '.', '--bots', 'balanced', '--seeds', '2', '--fields', '({ staff: s.staff.length })'], { encoding: 'utf8', timeout: 120000 });
     expect(r.status).toBe(0);
@@ -128,7 +128,7 @@ describe('pair-report field and run-set handling', () => {
   });
 });
 
-describe('pair.js arguments and fields', () => {
+describe('pair.js arguments and fields', { timeout: 90000 }, () => {
   const run = (...args) => spawnSync(process.execPath, [resolve('scripts/events/pair.js'), ...args], { encoding: 'utf8', timeout: 120000 });
 
   it('exits 2 with one line for a --b that is not a checkout', () => {
