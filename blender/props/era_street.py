@@ -127,18 +127,21 @@ def datacentre_build():
             parts.append(box(f'tie{z}{x}', (0.12, D, 0.14), (x, 0, z), 'fabric_terracotta', 0, 1))
     parts.append(box('cladding', (W / 3 - 0.1, 0.06, H - 0.3), (-W / 3, -D / 2, H / 2 + 0.05), 'wall_cream', 0.01, 1))
     # The crane: a lattice mast drawn as a tall box with braces, a jib, a counterweight and a hook.
-    mx, my = W / 2 + 0.9, D / 2 - 0.4
-    mast_h = 9.0
+    # It stands off the site's left end (toward the middle of the game's view) and reaches right over it.
+    mx, my = -(W / 2 + 0.9), D / 2 - 0.4
+    mast_h = 7.5
     parts.append(box('mast', (0.5, 0.5, mast_h), (mx, my, mast_h / 2), 'fabric_mustard', 0, 1))
-    for k in range(6):
+    for k in range(5):
         z = 0.8 + k * 1.4
         parts.append(rod(f'brace{k}', (mx - 0.26, my - 0.26, z), (mx + 0.26, my - 0.26, z + 1.3), 0.03, 'ink'))
-    parts += [box('jib', (7.5, 0.4, 0.4), (mx - 2.6, my, mast_h + 0.2), 'fabric_mustard', 0, 1),
-              box('cab', (0.7, 0.6, 0.6), (mx + 0.2, my - 0.5, mast_h - 0.3), 'wall_cream', 0.03, 1),
-              box('counter', (1.0, 0.7, 0.6), (mx + 1.3, my, mast_h - 0.1), 'slab_edge', 0.02, 1),
-              rod('cable', (mx - 4.5, my, mast_h), (mx - 4.5, my, 4.6), 0.015, 'ink'),
-              box('load', (1.4, 0.2, 0.2), (mx - 4.5, my, 4.5), 'fabric_terracotta', 0, 1),
-              box('tip_light', (0.12, 0.12, 0.12), (mx - 6.3, my, mast_h + 0.45), 'led_red', 0)]
+    parts += [box('jib', (7.5, 0.4, 0.4), (mx + 2.6, my, mast_h + 0.2), 'fabric_mustard', 0, 1),
+              box('cab', (0.7, 0.6, 0.6), (mx - 0.2, my - 0.5, mast_h - 0.3), 'wall_cream', 0.03, 1),
+              box('counter', (1.0, 0.7, 0.6), (mx - 1.3, my, mast_h - 0.1), 'slab_edge', 0.02, 1),
+              rod('cable', (mx + 4.5, my, mast_h), (mx + 4.5, my, 4.6), 0.015, 'ink'),
+              box('load', (1.4, 0.2, 0.2), (mx + 4.5, my, 4.5), 'fabric_terracotta', 0, 1),
+              # Aircraft warning lights at the jib tip and the mast head; the game adds a halo to each at night.
+              box('tip_light', (0.32, 0.32, 0.32), (mx + 6.2, my, mast_h + 0.56), 'led_red', 0),
+              box('mast_light', (0.28, 0.28, 0.28), (mx, my, mast_h + 0.54), 'led_red', 0)]
     join(parts, 'era_datacentre_build')
 
 

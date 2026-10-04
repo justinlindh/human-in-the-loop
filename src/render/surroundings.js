@@ -161,6 +161,7 @@ function tree(h = 2.6) {
 
 const CAR_L = 2.2, CAR_W = 1.05; // a car's body, along and across its heading
 const BIKE_L = 1.1, BIKE_W = 0.45; // a bike with its rider and box
+const DC_HQ_X = 2.5;               // the HQ data centre's x, right of centre behind the office
 // era_sock_billboard's frame width and its feet's depth, and the scale that keeps the whole board clear of the
 // HUD's left column at the default garage camera.
 const BILLBOARD_W = 3.4, BILLBOARD_D = 0.66, BILLBOARD_SCALE = 0.8;
@@ -367,8 +368,21 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     const life = (era && ERA_STREET[era]) || null;
     const datacentre = (x, z, w, h, d) => {
       const dc = getModel(life.datacentre);
-      dc.scale.set(w / 6, h / 3.2, d / 4.5);
+      const crane = life.datacentre === 'era_datacentre_build';
+      // The building site stretches less upward, so its crane keeps a believable height.
+      dc.scale.set(w / 6, crane ? Math.min(h / 3.2, 1.6) : h / 3.2, d / 4.5);
       dc.position.y = gy;
+      // Red halos on the crane's warning lights (model space: jib tip, mast head), lit at night.
+      if (crane) for (const [lx, ly] of [[2.3, 8.06], [-3.9, 8.04]]) {
+        const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTexture(), color: new THREE.Color(P.led_red), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+        owned.push(halo.material);
+        halo.position.set(lx, ly, -1.85);
+        halo.scale.set(1.1 / dc.scale.x, 1.1 / dc.scale.y, 1);
+        halo.userData.dynamic = true;
+        halo.visible = false;
+        dc.add(halo);
+        glows.push(halo);
+      }
       tall(dc, x, z);
       foot('datacentre', x, z, w, d);
     };
@@ -399,12 +413,13 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
       fence(-hw - M + 1, -hd - 2.5, hw + M - 1, -hd - 2.5);
       // Houses behind the fence and to the far left.
       [[-hw + 1, -hd - 6.5, 5, 4], [hw + 2.5, -hd - 6, 6, 4.5], [-hw - 7, -hd - 3, 4.5, 4]].forEach(([x, z, w, d], i) => {
-        if (i === 0 && life?.datacentre) { datacentre(x, z, w, 3.2, d); return; }
         const h = house(w, d, COL.house[i % 3], COL.roof[i % 3]);
         h.position.y = gy;
         tall(h, x, z);
         if (i === 1) rentalFront = { x: x + w * 0.18, y: gy + 1.7, z: z + d / 2 + 0.08 };
       });
+      // The empty lot behind the fence, between the two back houses, where the default camera sees it.
+      if (life?.datacentre) datacentre(hw - 2.8, -hd - 4.7, 4.2, 3.2, 4);
       if (!lite) {
         for (const [x, z, s] of [[hw + 1.6, -hd - 1.2, 2.6], [-hw - 2.2, -hd - 1.4, 3], [hw + M - 2, hd - 1, 2.4], [-hw - M + 2.5, hd + 0.5, 2.8], [hw + 2.8, 1, 2.2]]) {
           const t = tree(s); t.position.y = gy; tall(t, x, z);
@@ -427,7 +442,8 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
       const towers = [[-hw - 3, -hd - 8, 5, 12, 5, 0], [hw - 4, -hd - 9, 6, 10, 5, 0], [0, -hd - 15, 8, 16, 6, 0.35], [hw + 6, -hd - 14, 6, 14, 6, 0.35],
         [-hw - 9, -2, 5, 11, 5, 0], [-hw - 14, hd - 4, 6, 15, 6, 0.35], [-hw - 8, -hd - 4, 4, 8, 4, 0]];
       towers.forEach(([x, z, w, h, d, hz], i) => {
-        if (i === 1 && life?.datacentre) { datacentre(x, z, w, 4.2, d); return; }
+        // Drawn in from the right edge and tall enough to clear this floor's own building.
+        if (i === 1 && life?.datacentre) { datacentre(hw - 7.5, z, w, 9, d); return; }
         const b = building(w, h, d, COL.tower[i % COL.tower.length], hz); b.position.y = gy + h / 2; tall(b, x, z);
         if (i === 4) rentalFront = { x, y: gy + 3, z: z + d / 2 + 0.08 };
       });
@@ -449,17 +465,22 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
       for (let i = 0; i < 6; i++) sky.push([-hw - 8 - rnd() * 3, -hd + (i / 5) * (2 * hd - 2), 4 + rnd() * 2, 6 + rnd() * 7, 4 + rnd() * 2, 0]);
       for (let i = 0; i < 10; i++) sky.push([-hw - 6 + (i / 9) * (2 * hw + 16), -hd - 17 - rnd() * 4, 5 + rnd() * 3, 16 + rnd() * 16, 5 + rnd() * 3, 0.45]);
       sky.forEach(([x, z, w, h, d, hz], i) => {
-        if (i === 3 && life?.datacentre) { datacentre(x, z, Math.min(w, 4.6), 4.2, d); return; }
         const b = building(w, h, d, COL.tower[i % COL.tower.length], hz); b.position.y = gy + h / 2; tall(b, x, z);
         if (i === 14) rentalFront = { x, y: gy + 3, z: z + d / 2 + 0.08 };
       });
+      // On the lawn behind the office, in the gap it leaves in the tree row, where the default camera sees it.
+      if (life?.datacentre) datacentre(DC_HQ_X, -hd - 4.6, 5, 4.2, 4);
       // Lawn beds on the plaza in front (flat) and a green strip behind for the trees.
       for (const [x, z, w, d] of [[-hw + 3, hd + 2.3, 5, 1.6], [hw - 3, hd + 2.3, 5, 1.6], [hw + 2.4, 0, 1.6, 6]]) onFlat(mesh(roundedBox(w, 0.08, d, 0.04, 2), m(COL.grass), 0, 0, 0, { cast: false }), x, gy + 0.02, z);
       onFlat(mesh(roundedBox(2 * hw + 4, 0.08, 3, 0.04, 2), m(COL.grass), 0, 0, 0, { cast: false }), 0, gy + 0.02, -hd - 3);
       onFlat(mesh(roundedBox(3, 0.08, 2 * hd + 4, 0.04, 2), m(COL.grass), 0, 0, 0, { cast: false }), -hw - 3, gy + 0.02, 0);
       if (!lite) {
         const planters = [];
-        for (let i = 0; i < 7; i++) { const t = tree(2.6 + rnd() * 1.2); t.position.y = gy; tall(t, -hw + 1 + (i / 6) * (2 * hw - 2), -hd - 3 + (rnd() - 0.5)); }
+        for (let i = 0; i < 7; i++) {
+          const t = tree(2.6 + rnd() * 1.2), x = -hw + 1 + (i / 6) * (2 * hw - 2), z = -hd - 3 + (rnd() - 0.5);
+          if (life?.datacentre && Math.abs(x - DC_HQ_X) < 3.6) continue;
+          t.position.y = gy; tall(t, x, z);
+        }
         for (let i = 0; i < 5; i++) { const t = tree(2.6 + rnd() * 1.2); t.position.y = gy; tall(t, -hw - 3 + (rnd() - 0.5), -hd + 1 + (i / 4) * (2 * hd - 2)); }
         for (const [x, z] of planters) {
           const g = new THREE.Group();
