@@ -5,8 +5,10 @@
 //   import { runCases } from '../../scripts/studio/page-host.mjs'
 //   const results = await runCases([{ page: { mock: 'floor', quality: 'low' }, module: '/abs/standup-pages.js', fn: 'geometry', arg }], { jobs: 4 })
 //
-// A case is { page, module, fn, arg }: `page` the scene a harness URL would open (mock or seed, quality,
-// rig), `module` an absolute path to a module exporting `fn(arg)`. Each result is { value } or { error }.
+// A case is { page, module, fn, arg }: `page` the scene a harness URL would open (mock or seed, with
+// `weeks` played as the page plays them or `week` played by the bots, quality, rig, the viewport's
+// width and height, and --param overrides as param.js resolves them), `module` an
+// absolute path to a module exporting `fn(arg)`. Each result is { value } or { error }.
 import { fork } from 'node:child_process';
 import { registerHooks } from 'node:module';
 import { cpus } from 'node:os';
@@ -15,9 +17,22 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const self = fileURLToPath(import.meta.url);
 const ROOT = new URL('../../', import.meta.url);
 
+// A page's `?seed=N&weeks=W` game (src/main.js): W weeks, each open decision answered with its first choice.
+async function pageWeeks(seed, weeks) {
+  const { createGame, tick, dispatch } = await import('../../src/sim/index.js');
+  const S = createGame({ seed: Number(seed) });
+  for (let i = 0; i < weeks; i++) {
+    if (S.pendingDecision) dispatch(S, { type: 'resolveDecision', choice: 0 });
+    if (S.gameOver) break;
+    tick(S);
+  }
+  return S;
+}
+
 // Opens one scene and installs what a harness page has: the renderer and state, the clock and steppers,
-// the game-stream reseed, and imports by site path (`/src/...`, `/blender/...`) from this checkout.
-export async function openPage({ mock = 'floor', seed, week, quality = 'low', rig = null } = {}) {
+// the game-stream reseed, the tool-side helpers (__wallNow, __drawAudit, __fastRaycast), and imports by
+// site path (`/src/...`, `/blender/...`) from this checkout.
+export async function openPage({ mock = 'floor', seed, week, weeks, quality = 'low', rig = null, width, height, params = [] } = {}) {
   registerHooks({
     resolve(specifier, context, next) {
       if (/^\/(src|blender|scripts|public)\//.test(specifier)) return next(new URL(specifier.slice(1), ROOT).href, context);
@@ -26,10 +41,43 @@ export async function openPage({ mock = 'floor', seed, week, quality = 'low', ri
   });
   const { createRuntime } = await import('./runtime.mjs');
   const { resolveState } = await import('./state.mjs');
-  const state = seed == null ? undefined : await resolveState({ seed, week });
-  const rt = await createRuntime({ state, mock, quality, rig, initialSync: false });
+  let transform;
+  if (params.length) {
+    const { applyParams } = await import('../../blender/checks/param.js');
+    const byFile = Map.groupBy(params, (p) => p.file);
+    transform = (file, source) => (byFile.has(file) ? applyParams(source, byFile.get(file)) : source);
+  }
+  const state = seed == null ? undefined : weeks ? await pageWeeks(seed, weeks) : await resolveState({ seed, week });
+  const rt = await createRuntime({ state, mock, quality, rig, width, height, transform, initialSync: false });
   const { R, S } = rt;
   const g = globalThis;
+  // The platform's performance.now is the frame clock; a tool's timings read the wall.
+  g.__wallNow = () => Number(process.hrtime.bigint()) / 1e6;
+  // Nothing here reaches a GPU, so every draw count is zero.
+  g.__drawAudit = () => ({ total: 0 });
+  // As the harness page's: tool modules that make three.js objects on load (each takes a UUID from
+  // Math.random) load on the tool stream, and __fastRaycast patches raycast to per-mesh trees.
+  {
+    const game = Math.random;
+    Math.random = g.__tool(() => Math.random);
+    try { await import('three-mesh-bvh'); } finally { Math.random = game; }
+  }
+  g.__fastRaycast = async ({ install = true } = {}) => {
+    if (g.__fastRaycastOn || !install) return;
+    const bvh = await import('three-mesh-bvh');
+    const THREE = R.THREE;
+    const slow = THREE.Mesh.prototype.raycast;
+    THREE.Mesh.prototype.raycast = function (raycaster, hits) {
+      const geo = this.geometry;
+      if (this.isSkinnedMesh || this.isInstancedMesh || this.morphTargetInfluences || !geo?.attributes?.position || geo.morphAttributes?.position) return slow.call(this, raycaster, hits);
+      if (!geo.boundsTree) {
+        if ((geo.index ? geo.index.count : geo.attributes.position.count) / 3 < 64) return slow.call(this, raycaster, hits);
+        g.__tool(() => { geo.boundsTree = new bvh.MeshBVH(geo, { indirect: true }); });
+      }
+      return bvh.acceleratedRaycast.call(this, raycaster, hits);
+    };
+    g.__fastRaycastOn = true;
+  };
   g.__hitlRender = R;
   g.__HITL = { state: S };
   // The page's clock moves in milliseconds; the engine's in frames of 1/30 s.
