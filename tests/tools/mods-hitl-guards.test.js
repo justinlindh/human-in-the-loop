@@ -97,8 +97,10 @@ describe('hitl-guards rules', () => {
 
   it('names the PR a non-draft gh pr create opened, and nothing for a draft or another command', () => {
     const out = 'Creating pull request\nhttps://github.com/me/repo/pull/1234\n';
-    expect(createdPr('gh pr create --base main --head tools/x --title t --body-file pr.tmp', out)).toBe(1234);
-    expect(createdPr('cp a pr.tmp && gh pr create --title t', out)).toBe(1234);
+    const url = 'https://github.com/me/repo/pull/1234';
+    expect(createdPr('gh pr create --base main --head tools/x --title t --body-file pr.tmp', out)).toBe(url);
+    expect(createdPr('cp a pr.tmp && gh pr create --title t', out)).toBe(url);
+    expect(createdPr('cd ../site && gh pr create --title t', 'https://github.com/me/site/pull/12\n')).toBe('https://github.com/me/site/pull/12');
     expect(createdPr('gh pr create --draft --title t', out)).toBeUndefined();
     expect(createdPr('gh pr create -d --title t', out)).toBeUndefined();
     expect(createdPr('gh pr view 5', out)).toBeUndefined();
@@ -116,7 +118,8 @@ describe('hitl-guards rules', () => {
 
   it('knows a render or capture command from one that only mentions it', () => {
     for (const c of ['node blender/checks/golden.mjs', 'nice -n 10 node blender/checks/stage.mjs --only=a', 'scripts/with-render-lock.sh --gpu node scripts/capture.js --manifest m', 'npm run capture -- --only x', 'node scripts/perf/bench.js --refs a,b', 'cd ../w && timeout 600 node scripts/reels/era-snaps.mjs preinternet 7 "x=1"', 'npm run gates -- --only clip']) expect(isRenderJob(c), c).toBe(true);
-    for (const c of ['git commit -m "fix: blender/checks/golden.mjs"', 'grep -n capture scripts/capture.js', 'cat blender/checks/stage.mjs', 'gh pr comment 5 --body "ran node blender/checks/clip.mjs"', 'npm run test:push', 'ls scripts/reels/']) expect(isRenderJob(c), c).toBe(false);
+    for (const c of ['git commit -m "fix: blender/checks/golden.mjs"', 'grep -n capture scripts/capture.js', 'cat blender/checks/stage.mjs', 'gh pr comment 5 --body "ran node blender/checks/clip.mjs"', 'npm run test:push', 'ls scripts/reels/', 'node scripts/feature-media/check.mjs']) expect(isRenderJob(c), c).toBe(false);
+    expect(isRenderJob('node scripts/feature-media/render.mjs --all')).toBe(true);
   });
 
   it('reads the 1-minute load from /proc/loadavg text', () => {
@@ -127,9 +130,17 @@ describe('hitl-guards rules', () => {
 
   it('makes this checkout and sibling worktree paths in gh pr text repo-relative, and only there', () => {
     const body = 'gh pr create --body "see /home/u/src/gamedev-tools2/docs/toolkit/x.md and /home/u/src/gamedev-art/src/render/a.js, log /home/u/.cache/hitl-ci/t.log"';
-    expect(repoRelative(body, '/home/u/src/gamedev-tools2')).toBe('gh pr create --body "see docs/toolkit/x.md and src/render/a.js, log /home/u/.cache/hitl-ci/t.log"');
-    expect(repoRelative('gh pr comment 5 --body "/w/docs/a.md"', '/w')).toBe('gh pr comment 5 --body "docs/a.md"');
-    expect(repoRelative('echo /home/u/src/gamedev/docs/a.md', '/home/u/src/gamedev')).toBe('echo /home/u/src/gamedev/docs/a.md');
-    expect(repoRelative('git commit -m "/w/docs/a.md"', '/w')).toBe('git commit -m "/w/docs/a.md"');
+    const roots = ['/home/u/src/gamedev-tools2', '/home/u/src/gamedev-art'];
+    expect(repoRelative(body, roots)).toBe('gh pr create --body "see docs/toolkit/x.md and src/render/a.js, log /home/u/.cache/hitl-ci/t.log"');
+    expect(repoRelative('gh pr comment 5 --body "/w/docs/a.md"', ['/w'])).toBe('gh pr comment 5 --body "docs/a.md"');
+    expect(repoRelative('gh pr create --title=/w/x --body \'/w/y\'', ['/w'])).toBe('gh pr create --title=x --body \'y\'');
+    expect(repoRelative('echo /home/u/src/gamedev/docs/a.md', ['/home/u/src/gamedev'])).toBe('echo /home/u/src/gamedev/docs/a.md');
+    expect(repoRelative('git commit -m "/w/docs/a.md"', ['/w'])).toBe('git commit -m "/w/docs/a.md"');
+  });
+
+  it('rewrites nothing but the --body and --title values', () => {
+    const roots = ['/w'];
+    for (const c of ['cd /w/sub && gh pr create --fill', 'gh pr create --body-file /w/pr.tmp --title t', 'gh pr comment 5 --body "see /home/u/src/other/docs/a.md"', 'gh pr create --head /w/x']) expect(repoRelative(c, roots), c).toBe(c);
+    expect(repoRelative('cd /w && gh pr create --body-file /w/p.tmp --title "/w/t"', roots)).toBe('cd /w && gh pr create --body-file /w/p.tmp --title "t"');
   });
 });

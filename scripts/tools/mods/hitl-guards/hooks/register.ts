@@ -1,5 +1,5 @@
 import type { Register, EngineInterface } from 'claude-code'
-import { branchSwitch, createdPr, heldPr, isRenderJob, loadOf, noticeNote, ownersOf, parseNotice, repoRelative, shellWrites, stripTrailers, type ShellWrite } from './rules.ts'
+import { branchSwitch, createdPr, heldPr, isRenderJob, loadOf, loadWaitPrefix, noticeNote, ownersOf, parseNotice, repoRelative, shellWrites, stripTrailers, type ShellWrite } from './rules.ts'
 
 // Shared guards for the Human in the Loop lanes (issue #1313). Each guard fails open: an error in one
 // passes the call on untouched.
@@ -74,16 +74,16 @@ async function readLoad($: EngineInterface): Promise<number | null> {
 
 // The PR-open hook that turns on auto-merge can miss: read the PR back and turn it on when it is off.
 // A draft, or a PR held for the owner or for Codex, is left alone.
-async function ensureAutoMerge($: EngineInterface, pr: number): Promise<string | undefined> {
+async function ensureAutoMerge($: EngineInterface, pr: string): Promise<string | undefined> {
   const cwd = await dirFor($, null)
-  const view = await $.process.run(['gh', 'pr', 'view', String(pr), '--json', 'isDraft,autoMergeRequest,labels'], { cwd, timeoutMs: 30000 })
+  const view = await $.process.run(['gh', 'pr', 'view', pr, '--json', 'isDraft,autoMergeRequest,labels'], { cwd, timeoutMs: 30000 })
   if (view.exitCode !== 0) return undefined
   const info = JSON.parse(view.stdout)
   if (heldPr(info) || info.autoMergeRequest) return undefined
-  const r = await $.process.run(['gh', 'pr', 'merge', String(pr), '--auto', '--merge'], { cwd, timeoutMs: 30000 })
+  const r = await $.process.run(['gh', 'pr', 'merge', pr, '--auto', '--merge'], { cwd, timeoutMs: 30000 })
   return r.exitCode === 0
-    ? `hitl-guards: auto-merge was off on #${pr}; turned it on.`
-    : `hitl-guards: auto-merge is off on #${pr} and turning it on failed: ${r.stderr.trim()}`
+    ? `hitl-guards: auto-merge was off on ${pr}; turned it on.`
+    : `hitl-guards: auto-merge is off on ${pr} and turning it on failed: ${r.stderr.trim()}`
 }
 
 export const register: Register = on => {
@@ -92,6 +92,10 @@ export const register: Register = on => {
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     let waited = 0
     try {
+      if (isRenderJob(e.command) && e.run_in_background) {
+        // A background call must not hold the turn: the wait runs in the shell, ahead of the command.
+        return next({ ...e, command: loadWaitPrefix(LOAD_LIMIT, HOLD_MAX_MS / HOLD_POLL_MS) + e.command })
+      }
       if (isRenderJob(e.command)) {
         let load = await readLoad($)
         while (load !== null && load >= LOAD_LIMIT && waited < HOLD_MAX_MS) {
@@ -101,7 +105,7 @@ export const register: Register = on => {
           load = await readLoad($)
         }
         if (waited) $.ui.status(undefined)
-        if (load !== null && load >= LOAD_LIMIT) return { deny: `hitl-guards: load is still ${load.toFixed(0)} after ${waited / 60000} min (limit ${LOAD_LIMIT}), so this render did not start. Run it in the background and end the turn, or retry later.` }
+        if (load !== null && load >= LOAD_LIMIT) return { deny: `hitl-guards: load is still ${load.toFixed(0)} after ${waited / 60000} min (limit ${LOAD_LIMIT}), so this render did not start. Retry later, or start it with run_in_background and end the turn (that waits in the shell).` }
       }
     } catch { /* fail open */ }
     const ran = await next(e)
@@ -115,8 +119,10 @@ export const register: Register = on => {
     try { command = stripTrailers(command) } catch { /* fail open */ }
     try {
       if (/\bgh\s+pr\b/.test(command)) {
-        const top = (await git($, await dirFor($, null), 'rev-parse', '--show-toplevel')).stdout.trim()
-        command = repoRelative(command, top || null)
+        const cwd = await dirFor($, null)
+        const top = (await git($, cwd, 'rev-parse', '--show-toplevel')).stdout.trim()
+        const wt = (await git($, cwd, 'worktree', 'list', '--porcelain')).stdout.split('\n').filter((l) => l.startsWith('worktree ')).map((l) => l.slice(9).trim())
+        command = repoRelative(command, [top || null, ...wt])
       }
     } catch { /* fail open */ }
     const ran = await next(command === e.command ? e : { ...e, command })

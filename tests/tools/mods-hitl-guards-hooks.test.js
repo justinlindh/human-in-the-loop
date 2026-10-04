@@ -31,9 +31,9 @@ function engine({ loads = ['10 10 10 1/1 1\n'], answer = () => undefined } = {})
     },
   };
   const bashHooks = hooks.filter((h) => h.event === 'tool.call' && h.matcher?.tool === 'Bash');
-  const bash = (command, output = 'ok') => {
+  const bash = (command, output = 'ok', extra = {}) => {
     const chain = (i, e) => (i === bashHooks.length ? Promise.resolve({ text: output, _command: e.command }) : bashHooks[i].hook($, e, Object.assign((x) => chain(i + 1, x ?? e), { signal: undefined })));
-    return chain(0, { tool: 'Bash', command }).then((r) => { ran.push(r._command ?? null); return r; });
+    return chain(0, { tool: 'Bash', command, ...extra }).then((r) => { ran.push(r._command ?? null); return r; });
   };
   return { bash, ran, statuses, calls, get sleeps() { return sleeps; } };
 }
@@ -67,6 +67,15 @@ describe('holding a render for the load', () => {
     expect(calm.sleeps).toBe(0);
   });
 
+  it('does not hold the turn for a background render: the wait moves into the shell', async () => {
+    const t = engine({ loads: ['90 80 70 1/1 1'] });
+    const r = await t.bash('node blender/checks/stage.mjs', 'ok', { run_in_background: true });
+    expect(t.sleeps).toBe(0);
+    expect(r._command).toMatch(/^bash -c '.*\/proc\/loadavg.*'; node blender\/checks\/stage\.mjs$/);
+    const plain = engine({ loads: ['90 80 70 1/1 1'] });
+    expect((await plain.bash('git status', 'ok', { run_in_background: true }))._command).toBe('git status');
+  });
+
   it('runs the render when the load cannot be read', async () => {
     // An empty list makes the fake's read of /proc/loadavg return nothing to parse.
     const t = engine({ loads: [] });
@@ -79,8 +88,14 @@ describe('auto-merge after gh pr create', () => {
   it('turns it on when the PR has none and is neither a draft nor held', async () => {
     const t = engine({ answer: view({ isDraft: false, autoMergeRequest: null, labels: [] }) });
     const r = await t.bash('gh pr create --title t --body b', CREATED);
-    expect(t.calls).toContain('gh pr merge 77 --auto --merge');
-    expect(r.context.join('\n')).toContain('auto-merge was off on #77; turned it on');
+    expect(t.calls).toContain('gh pr merge https://github.com/me/repo/pull/77 --auto --merge');
+    expect(r.context.join('\n')).toContain('auto-merge was off on https://github.com/me/repo/pull/77; turned it on');
+  });
+
+  it('acts on the URL the create printed, so a create in another repo is read there', async () => {
+    const t = engine({ answer: view({ isDraft: false, autoMergeRequest: null, labels: [] }) });
+    await t.bash('cd ../site && gh pr create --title t --body b', 'https://github.com/me/site/pull/12\n');
+    expect(t.calls).toContain('gh pr view https://github.com/me/site/pull/12 --json isDraft,autoMergeRequest,labels');
   });
 
   it('leaves a PR that has it, a draft, and one labelled awaiting-user or codex alone', async () => {
@@ -96,7 +111,7 @@ describe('auto-merge after gh pr create', () => {
     for (const [command, output] of [['gh pr create --draft --title t', CREATED], ['gh pr view 77', CREATED], ['gh pr create --title t', 'error: nothing to compare']]) {
       const t = engine({ answer: view({ isDraft: false, autoMergeRequest: null, labels: [] }) });
       await t.bash(command, output);
-      expect(t.calls.some((c) => c.includes('pr view 77') || c.includes('pr merge')), command).toBe(false);
+      expect(t.calls.some((c) => c.includes('pr view') || c.includes('pr merge')), command).toBe(false);
     }
   });
 
@@ -110,8 +125,8 @@ describe('auto-merge after gh pr create', () => {
 
 describe('local paths in gh pr text', () => {
   it('reach the command as repo-relative paths', async () => {
-    const t = engine({ answer: (argv) => (argv.join(' ') === 'git rev-parse --show-toplevel' ? { stdout: '/home/u/src/gamedev-tools2\n' } : undefined) });
-    const r = await t.bash('gh pr comment 5 --body "see /home/u/src/gamedev-tools2/docs/toolkit/x.md"');
-    expect(r._command).toBe('gh pr comment 5 --body "see docs/toolkit/x.md"');
+    const t = engine({ answer: (argv) => (argv.join(' ') === 'git rev-parse --show-toplevel' ? { stdout: '/home/u/src/gamedev-tools2\n' } : argv.join(' ') === 'git worktree list --porcelain' ? { stdout: 'worktree /home/u/src/gamedev\nHEAD x\n\nworktree /home/u/src/gamedev-art\n' } : undefined) });
+    const r = await t.bash('gh pr comment 5 --body "see /home/u/src/gamedev-tools2/docs/toolkit/x.md and /home/u/src/gamedev-art/a.js and /home/u/src/other/b.js"');
+    expect(r._command).toBe('gh pr comment 5 --body "see docs/toolkit/x.md and a.js and /home/u/src/other/b.js"');
   });
 });

@@ -179,11 +179,12 @@ export function stripTrailers(command: string): string {
 
 // The PR a non-draft `gh pr create` opened, from the URL it printed; undefined for a draft, another
 // command, or output with no PR URL.
-export function createdPr(command: string, output: string): number | undefined {
+// The URL is what the caller passes to `gh pr view|merge`, so a create run in another repo
+// (`cd ../site && gh pr create`) is acted on there, not on the session's repo.
+export function createdPr(command: string, output: string): string | undefined {
   const creates = segments(command).some((s) => { const { cmd, args } = commandOf(s.words); return cmd === 'gh' && args[0] === 'pr' && args[1] === 'create' && !args.includes('--draft') && !args.includes('-d'); });
   if (!creates) return undefined;
-  const m = /github\.com\/[^/\s]+\/[^/\s]+\/pull\/(\d+)/.exec(output);
-  return m ? Number(m[1]) : undefined;
+  return /https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/pull\/\d+/.exec(output)?.[0];
 }
 
 // A PR held back from auto-merge: a draft, or one labelled for the owner (`awaiting-user`) or Codex.
@@ -195,7 +196,7 @@ export function heldPr(info: { isDraft?: boolean; autoMergeRequest?: unknown; la
 // A command that runs a render or a capture: the checks, captures, benches and renders that take the GPU
 // slot and starve when the machine is loaded. Only a program that runs it counts, not a commit message or a
 // grep that mentions the path.
-const RENDER_JOB = /with-render-lock\.sh|scripts\/capture\.js|npm (run )?capture|scripts\/(reels|feature-media)\/|blender\/checks\/(golden|sweep|stage|clip|standup|pose|onscreen|scene|dump)|scripts\/perf\/bench|scripts\/snap\.js|npm run (snap|gates)\b/;
+const RENDER_JOB = /with-render-lock\.sh|scripts\/capture\.js|npm (run )?capture|scripts\/reels\/|scripts\/feature-media\/render\.mjs|blender\/checks\/(golden|sweep|stage|clip|standup|pose|onscreen|scene|dump)|scripts\/perf\/bench|scripts\/snap\.js|npm run (snap|gates)\b/;
 const RUNNERS = /^(node|npm|npx|bash|sh|timeout|nice|env)$/;
 
 export function isRenderJob(command: string): boolean {
@@ -213,13 +214,28 @@ export function loadOf(text: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-// Local paths in the text of a `gh pr create|edit|comment` made repo-relative: this checkout's top, and any
-// sibling worktree of the repo (`/home/<user>/src/<repo>[-lane]/`). Paths outside a repo are left as written.
-export function repoRelative(command: string, top: string | null): string {
-  if (!segments(command).some((s) => { const { cmd, args } = commandOf(s.words); return cmd === 'gh' && args[0] === 'pr' && ['create', 'edit', 'comment'].includes(args[1] ?? ''); })) return command;
+// A shell prefix that waits for the 1-minute load to drop below `limit` (polling every 15 s, at most
+// `max` times), for a background command that must not hold the turn.
+export function loadWaitPrefix(limit: number, max: number): string {
+  return `bash -c 'i=0; while [ "$(cut -d. -f1 /proc/loadavg)" -ge ${limit} ] && [ $i -lt ${max} ]; do sleep 15; i=$((i+1)); done'; `;
+}
+
+// Local paths in the --body and --title values of a `gh pr create|edit|comment` made repo-relative:
+// each root given (this checkout and its sibling worktrees, as absolute paths). Anything else in the
+// command (a cd, a --body-file, another project's path) is left as written.
+const TEXT_FLAG = /((?:^|\s)(?:--body|--title|-b|-t)(?:=|\s+))("(?:\\[\s\S]|[^"\\])*"|'[^']*'|\S+)/g;
+
+export function repoRelative(command: string, roots: (string | null)[]): string {
+  const rs = [...new Set(roots.filter((r): r is string => !!r))].sort((a, b) => b.length - a.length);
+  if (!rs.length) return command;
   let out = command;
-  if (top) out = out.split(`${top}/`).join('');
-  return out.replace(/\/home\/[^/\s"'`]+\/src\/[^/\s"'`]+\//g, '');
+  for (const s of segments(command)) {
+    const { cmd, args } = commandOf(s.words);
+    if (!(cmd === 'gh' && args[0] === 'pr' && ['create', 'edit', 'comment'].includes(args[1] ?? ''))) continue;
+    const fixed = s.text.replace(TEXT_FLAG, (_m, flag: string, val: string) => flag + rs.reduce((v, r) => v.split(`${r}/`).join(''), val));
+    if (fixed !== s.text) out = out.replace(s.text, () => fixed);
+  }
+  return out;
 }
 
 // A background task's notification, as the row the session keeps reads: the output file, the status
