@@ -369,8 +369,10 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     const datacentre = (x, z, w, h, d) => {
       const dc = getModel(life.datacentre);
       const crane = life.datacentre === 'era_datacentre_build';
-      // The building site stretches less upward, so its crane keeps a believable height.
-      dc.scale.set(w / 6, crane ? Math.min(h / 3.2, 1.6) : h / 3.2, d / 4.5);
+      // Only the finished building stretches to the plot's height; the empty plot and the building
+      // site keep a believable cabin and crane.
+      const stretch = { era_datacentre_plot: 1.2, era_datacentre_build: 1.6 }[life.datacentre] ?? Infinity;
+      dc.scale.set(w / 6, Math.min(h / 3.2, stretch), d / 4.5);
       dc.position.y = gy;
       // Red halos on the crane's warning lights (model space: jib tip, mast head), lit at night.
       if (crane) for (const [lx, ly] of [[2.3, 8.06], [-3.9, 8.04]]) {

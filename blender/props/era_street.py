@@ -114,6 +114,27 @@ def datacentre_overgrown():
     join(parts, 'era_datacentre_overgrown')
 
 
+def datacentre_plot():
+    # Before any steel: a hoarded plot with a site cabin and a "coming soon" board facing the street.
+    parts = [box('ground', (W, D, 0.06), (0, 0, 0.03), 'slab_edge', 0.01, 1)]
+    hh = 1.8
+    for i, (x, y, w, d) in enumerate(((0, -D / 2, W, 0.08), (0, D / 2, W, 0.08), (-W / 2, 0, 0.08, D), (W / 2, 0, 0.08, D))):
+        parts.append(box(f'hoard{i}', (w, d, hh), (x, y, hh / 2 + 0.004), 'wood_honey', 0.01, 1))
+    for k in range(5):
+        parts.append(box(f'stripe{k}', (0.5, 0.02, 0.12), (-2.4 + k * 1.2, -D / 2 - 0.05, hh - 0.2), 'fabric_mustard', 0, 1))
+    parts += [box('cabin', (2.0, 1.2, 1.3), (1.6, 1.0, hh + 0.65), 'wall_cream', 0.03, 1),
+              box('cabin_window', (0.8, 0.03, 0.5), (1.4, 0.38, hh + 0.75), 'glass_frame', 0.01, 1),
+              box('cabin_base', (2.1, 1.3, 0.08), (1.6, 1.0, hh + 0.04), 'metal_dark', 0.01, 1),
+              box('pipes', (1.6, 0.6, 0.5), (-1.6, 1.0, 0.25), 'metal_soft', 0.02, 1),
+              box('board_post_l', (0.1, 0.1, 3.2), (-1.9, -D / 2 - 0.25, 1.6), 'metal_dark', 0, 1),
+              box('board_post_r', (0.1, 0.1, 3.2), (-0.1, -D / 2 - 0.25, 1.6), 'metal_dark', 0, 1),
+              box('board', (2.2, 0.06, 1.2), (-1.0, -D / 2 - 0.3, 2.55), 'paper_sheet', 0.02, 1),
+              box('board_band', (2.26, 0.08, 0.3), (-1.0, -D / 2 - 0.3, 2.0), 'fabric_teal', 0, 1),
+              lettering('soon_a', 'CLOUD REGION', (-1.0, -D / 2 - 0.35, 2.75), 0.26, 'ink'),
+              lettering('soon_b', 'COMING SOON', (-1.0, -D / 2 - 0.35, 2.42), 0.22, 'fabric_teal')]
+    join(parts, 'era_datacentre_plot')
+
+
 def datacentre_build():
     # Going up: the slab, a steel frame two bays high, half the cladding, and a tower crane.
     parts = [box('slab', (W + 0.1, D + 0.1, 0.25), (0, 0, 0.125), 'slab_edge', 0.03, 1)]
@@ -151,3 +172,4 @@ reset(); drone(); export(path('era_drone'), budget=800)
 reset(); datacentre(); export(path('era_datacentre'), budget=3000)
 reset(); datacentre_overgrown(); export(path('era_datacentre_overgrown'), budget=3000)
 reset(); datacentre_build(); export(path('era_datacentre_build'), budget=3000)
+reset(); datacentre_plot(); export(path('era_datacentre_plot'), budget=3000)
