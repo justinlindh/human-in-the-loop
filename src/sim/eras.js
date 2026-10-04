@@ -46,13 +46,35 @@ const NEEDS_ITEM = [
   [/meeting table/i, ['meeting_table']],
 ];
 
-const officeHas = (state, text) => NEEDS_ITEM.every(([re, ids]) => !re.test(text)
-  || (state.office?.placed ?? []).some((p) => ids.includes(p.itemId)));
+const modernOffice = /\b(Yak|Slack|Zoom|TikTok|Twitter|LinkedOut|GitHug|podcasts?|cloud|mobile|smartphone|video call|ring light|Product Hunch|Hackerspews|creator economy|remote wave|pull requests?|PRs?|livestream|cryptocurrency|crypto|bitcoin|vibes|touch grass|starred the repo|custom emoji)\b/i;
+
+// Which of the text gates a line trips. Pure in the text, so it is worked out once per distinct line;
+// the cache is dropped whole when it grows large (lines with names filled in are many).
+const TEXT_MARKS = new Map();
+const TEXT_MARKS_MAX = 20000;
+function marks(text) {
+  let m = TEXT_MARKS.get(text);
+  if (m) return m;
+  if (TEXT_MARKS.size >= TEXT_MARKS_MAX) TEXT_MARKS.clear();
+  m = {
+    ai: AI_WORDS.test(text),
+    agent: AGENT_WORDS.test(text),
+    modern: modernOffice.test(text),
+    items: NEEDS_ITEM.filter(([re]) => re.test(text)).map(([, ids]) => ids),
+    progress: NEEDS_PROGRESS.filter(([re]) => re.test(text)).map(([, ok]) => ok),
+  };
+  TEXT_MARKS.set(text, m);
+  return m;
+}
+
+const officeHas = (state, text) => marks(text).items.every((ids) => (state.office?.placed ?? []).some((p) => ids.includes(p.itemId)));
 
 // Whether text fits the current era, ignoring the office (events gate on the office themselves).
-const modernOffice = /\b(Yak|Slack|Zoom|TikTok|Twitter|LinkedOut|GitHug|podcasts?|cloud|mobile|smartphone|video call|ring light|Product Hunch|Hackerspews|creator economy|remote wave|pull requests?|PRs?|livestream|cryptocurrency|crypto|bitcoin|vibes|touch grass|starred the repo|custom emoji)\b/i;
-export const eraOnlyAllowsText = (state, text) => (eraIndex(state) > 0 || !isAiText(String(text ?? ''))) && agentsAllowed(state, String(text ?? ''))
-  && (!PERIOD_MARKETS[state.era?.id] || !modernOffice.test(String(text ?? '')));
+export const eraOnlyAllowsText = (state, text) => {
+  const m = marks(String(text ?? ''));
+  return (eraIndex(state) > 0 || !m.ai) && (!m.agent || eraAtLeast(state, 'agents'))
+    && (!PERIOD_MARKETS[state.era?.id] || !m.modern);
+};
 
 // Words that assume progress the company may not have yet, and what they need.
 export const NEEDS_PROGRESS = [
@@ -65,7 +87,7 @@ export const NEEDS_PROGRESS = [
   [/\b(donuts?|kitchen|lunch|pizza|in the office|at my desk)\b/i, (s) => (s.staff?.filter((p) => p.remote).length ?? 0) * 2 < (s.staff?.length ?? 0)],
 ];
 
-const progressAllows = (state, text) => NEEDS_PROGRESS.every(([re, ok]) => !re.test(text) || !state.stats || ok(state));
+const progressAllows = (state, text) => !state.stats || marks(text).progress.every((ok) => ok(state));
 
 // Whether a piece of player-facing text fits the current era, the office as it is, and the company's progress.
 export const eraAllowsText = (state, text) => {
