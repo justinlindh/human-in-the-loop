@@ -8,6 +8,20 @@ export const ERA_STARTS = {
   classic: { id: 'classic', name: 'Classic SaaS', blurb: 'The full modern career. Build the company before the models arrive.', unlocks: [], skippedGoals: [] },
   chatgbt: { id: 'chatgbt', name: 'The ChatGBT Moment', blurb: 'Found a company as the chatbots arrive. Copilots, models and gentle automation are ready.', unlocks: aiUnlocks, skippedGoals: tutorialGoals },
   agents: { id: 'agents', name: 'Agents', blurb: 'A garage with full automation and milder incidents for the first five company years. Grow your team here.', unlocks: [...aiUnlocks, 'squads'], skippedGoals: tutorialGoals },
+  consolidation: { id: 'consolidation', name: 'Consolidation', blurb: 'Everyone is buying everyone, and the model you built on was deprecated on Tuesday. Found the company anyway.', unlocks: [...aiUnlocks, 'squads'], skippedGoals: tutorialGoals },
+  plateau: { id: 'plateau', name: 'The Plateau', blurb: 'Everyone has the same robots. Start where taste, trust and people are the whole game.', unlocks: [...aiUnlocks, 'squads'], skippedGoals: tutorialGoals },
 };
 
 export const startEraId = (id) => Object.hasOwn(ERA_STARTS, id) ? id : 'classic';
+
+// Named routes for the founding screen. Each founds through its start; the long career is the pre-internet
+// start, which carries every early chapter into the modern run.
+export const CAREER_MODES = {
+  long_career: { id: 'long_career', name: 'The Long Career', blurb: 'Every era, from a box on a shelf to the Plateau. Earlier years pass faster.', startEra: 'preinternet' },
+  classic_career: { id: 'classic_career', name: 'Classic Career', blurb: 'Twenty years from 2019. The models arrive while you are busy.', startEra: 'classic' },
+};
+
+export function careerMode(state) {
+  if (state.founding?.earlyChapters?.[0]?.id === 'preinternet') return 'long_career';
+  return (state.founding?.startEra ?? 'classic') === 'classic' ? 'classic_career' : 'era_start';
+}

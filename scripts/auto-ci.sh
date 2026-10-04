@@ -24,6 +24,7 @@
 #      ci-pr; default this script's), AUTO_CI_GH and AUTO_CI_PR (stand-ins for tests).
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/tmpdir.sh"
 STATE="${AUTO_CI_STATE:-$HOME/.cache/hitl-ci/auto}"
 TREE="${AUTO_CI_TREE:-$(cd "$HERE/.." && pwd)}"
 GH="${AUTO_CI_GH:-gh}"
@@ -50,6 +51,14 @@ exec 9>"$STATE/lock"
 flock -n 9 || exit 0
 log() { printf '%s %s\n' "$(date -Is)" "$*" >>"$STATE/log"; }
 alive() { kill -0 -- "-$1" 2>/dev/null; }
+
+# The mods worktree follows origin/main (the pass has just fetched), so mods loaded from it reload
+# on each merge. A worktree with local changes is left alone.
+MODS="${AUTO_CI_MODS:-$HOME/src/gamedev-mods}"
+if [ -e "$MODS/.git" ]; then
+  if [ -n "$(git -C "$MODS" status --porcelain 2>/dev/null)" ]; then log "mods worktree has local changes; left as is"
+  else git -C "$MODS" checkout -q --detach origin/main 2>/dev/null || log "mods worktree: checkout of origin/main failed"; fi
+fi
 
 # Open PRs: number, draft or untrusted, head, local-ci state on the head, rerun label, review state,
 # and whether auto-merge is still to be turned on (not a draft, no awaiting-user label, not on yet).
@@ -89,6 +98,14 @@ stop() {
   rm -f "$JOBS/$pr"
 }
 
+# Admission floor: no new run starts while the RAM-backed tmp has under AUTO_CI_TMP_MIN_GB free or the
+# machine has under AUTO_CI_MEM_MIN_GB of memory available (a full tmpfs fails every checkout).
+# AUTO_CI_TMP_FREE_GB and AUTO_CI_MEM_FREE_GB stand in for the readings in tests.
+tmp_free="${AUTO_CI_TMP_FREE_GB:-$(df -Pk "${AUTO_CI_TMP_DIR:-/tmp}" 2>/dev/null | awk 'NR == 2 { print int($4 / 1048576) }')}"
+mem_free="${AUTO_CI_MEM_FREE_GB:-$(awk '/^MemAvailable:/ { print int($2 / 1048576) }' /proc/meminfo 2>/dev/null)}"
+low=""
+[ -n "$tmp_free" ] && [ "$tmp_free" -lt "${AUTO_CI_TMP_MIN_GB:-8}" ] && low="tmp has ${tmp_free}G free, under ${AUTO_CI_TMP_MIN_GB:-8}G"
+[ -z "$low" ] && [ -n "$mem_free" ] && [ "$mem_free" -lt "${AUTO_CI_MEM_MIN_GB:-6}" ] && low="${mem_free}G of memory available, under ${AUTO_CI_MEM_MIN_GB:-6}G"
 running=0
 for f in "$JOBS"/*; do
   [ -e "$f" ] || continue
@@ -135,6 +152,8 @@ for pr in $(order); do
   light=0
   if [ "$running" -ge "$MAX" ]; then
     if is_light "$pr"; then light=1; else log "#$pr ${h:0:7} waits: $running of $MAX runs going"; continue; fi
+  elif [ -n "$low" ] && ! is_light "$pr"; then
+    log "#$pr ${h:0:7} waits: $low"; continue
   fi
   # Mark the head pending before the label comes off, so a waiter (wait-for.sh) never reads the old
   # result as final in the time ci-pr takes to set its own status.

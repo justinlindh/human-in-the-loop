@@ -1,0 +1,10 @@
+# Clears stale agent scratch directories out of the RAM-backed /tmp (scripts/tmp-clean.sh).
+[Unit]
+Description=Human in the Loop: clear stale scratch directories from /tmp
+
+[Service]
+Type=oneshot
+Nice=19
+IOSchedulingClass=idle
+Environment=HITL_REPO=%h/.cache/hitl-ci/auto/worktree
+ExecStart=/bin/bash -c 'exec bash "$HITL_REPO/scripts/tmp-clean.sh"'

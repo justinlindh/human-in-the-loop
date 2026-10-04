@@ -3,7 +3,7 @@ import { PALETTE as P } from './palette.js';
 import { mat } from './materials.js';
 import { roundedBox, roundedCylinder, mesh, mergeStatic } from './prims.js';
 import { getModel } from './models.js';
-import { eraBillboard, ERA_ADS } from './era-art.js';
+import { eraBillboard, ERA_ADS, ERA_STREET } from './era-art.js';
 
 // The world round the office diorama, per stage: a garage on a suburban lot with a street out
 // front; the Office Floor as a storey of a building above a plaza, among neighbouring towers; HQ on
@@ -97,13 +97,13 @@ function backdropMaterial(std) {
   return b;
 }
 const tmpDir = new THREE.Vector3();
-function updateBacklight(lighting, night) {
+function updateBacklight(lighting, night, windows = 1.1) {
   const { sun, hemi } = lighting;
   LIT.uSunDir.value.copy(tmpDir.copy(sun.position).sub(sun.target.position).normalize());
   LIT.uSunColor.value.copy(sun.color).multiplyScalar(sun.intensity);
   LIT.uSky.value.copy(hemi.color).multiplyScalar(hemi.intensity);
   LIT.uGround.value.copy(hemi.groundColor).multiplyScalar(hemi.intensity);
-  LIT.uNight.value = night * 1.1;
+  LIT.uNight.value = night * windows;
 }
 
 // A building: facade walls (a box whose UVs count windows), a cap over the roof in the wall colour,
@@ -136,11 +136,16 @@ function building(w, h, d, wallHex, haze = 0, roof = true) {
 function house(w, d, wallHex, roofHex) {
   const g = new THREE.Group();
   g.add(mesh(roundedBox(w, 2.4, d, 0.06, 2), m(wallHex), 0, 1.2, 0));
-  const roof = new THREE.Mesh(new THREE.CylinderGeometry(0.01, w * 0.62, 1.5, 4, 1), m(roofHex));
-  roof.rotation.y = Math.PI / 4;
-  roof.scale.set(1, 1, (d / w) * 1.02);
-  roof.position.y = 2.4 + 0.75;
-  g.add(roof);
+  // A hip roof: a four-sided cone turned so its base edges run along the walls, then stretched to
+  // the footprint plus an eave overhang. Turning before the stretch keeps the base a rectangle, and
+  // flat normals give each face one shade.
+  let roofGeo = new THREE.CylinderGeometry(0.01, 1, 1.5, 4, 1);
+  roofGeo.rotateY(Math.PI / 4);
+  const EAVE = 0.18;
+  roofGeo.scale((w / 2 + EAVE) / Math.SQRT1_2, 1, (d / 2 + EAVE) / Math.SQRT1_2);
+  roofGeo = roofGeo.toNonIndexed();
+  roofGeo.computeVertexNormals();
+  g.add(mesh(roofGeo, m(roofHex), 0, 2.4 + 0.75, 0));
   const door = mesh(roundedBox(0.8, 1.6, 0.06, 0.02, 1), m(P.wood_dark), 0, 0.8, d / 2 + 0.02);
   g.add(door);
   for (const sx of [-1, 1]) g.add(mesh(roundedBox(0.8, 0.8, 0.05, 0.02, 1), m('#9fb3c4'), sx * w * 0.28, 1.5, d / 2 + 0.02));
@@ -160,6 +165,7 @@ function tree(h = 2.6) {
 }
 
 const CAR_L = 2.2, CAR_W = 1.05; // a car's body, along and across its heading
+const BIKE_L = 1.1, BIKE_W = 0.45; // a bike with its rider and box
 // era_sock_billboard's frame width and its feet's depth, and the scale that keeps the whole board clear of the
 // HUD's left column at the default garage camera.
 const BILLBOARD_W = 3.4, BILLBOARD_D = 0.66, BILLBOARD_SCALE = 0.8;
@@ -361,6 +367,17 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     const streets = [];
     const street = (z0, width) => { streets.push({ z0, width }); return z0 + width / 2; };
 
+    // Modern eras turn one neighbour into a data centre: the model (6 x 3.2 x 4.5 m) is stretched
+    // to the plot it takes over.
+    const life = (era && ERA_STREET[era]) || null;
+    const datacentre = (x, z, w, h, d) => {
+      const dc = getModel(life.datacentre);
+      dc.scale.set(w / 6, h / 3.2, d / 4.5);
+      dc.position.y = gy;
+      tall(dc, x, z);
+      foot('datacentre', x, z, w, d);
+    };
+
     if (stage === 0) {
       // Suburban lot: lawn, the street out front, a driveway from the garage door, houses behind.
       const sz = street(hd + 3.2, 3.4);
@@ -387,6 +404,7 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
       fence(-hw - M + 1, -hd - 2.5, hw + M - 1, -hd - 2.5);
       // Houses behind the fence and to the far left.
       [[-hw + 1, -hd - 6.5, 5, 4], [hw + 2.5, -hd - 6, 6, 4.5], [-hw - 7, -hd - 3, 4.5, 4]].forEach(([x, z, w, d], i) => {
+        if (i === 0 && life?.datacentre) { datacentre(x, z, w, 3.2, d); return; }
         const h = house(w, d, COL.house[i % 3], COL.roof[i % 3]);
         h.position.y = gy;
         tall(h, x, z);
@@ -414,6 +432,7 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
       const towers = [[-hw - 3, -hd - 8, 5, 12, 5, 0], [hw - 4, -hd - 9, 6, 10, 5, 0], [0, -hd - 15, 8, 16, 6, 0.35], [hw + 6, -hd - 14, 6, 14, 6, 0.35],
         [-hw - 9, -2, 5, 11, 5, 0], [-hw - 14, hd - 4, 6, 15, 6, 0.35], [-hw - 8, -hd - 4, 4, 8, 4, 0]];
       towers.forEach(([x, z, w, h, d, hz], i) => {
+        if (i === 1 && life?.datacentre) { datacentre(x, z, w, 4.2, d); return; }
         const b = building(w, h, d, COL.tower[i % COL.tower.length], hz); b.position.y = gy + h / 2; tall(b, x, z);
         if (i === 4) rentalFront = { x, y: gy + 3, z: z + d / 2 + 0.08 };
       });
@@ -435,6 +454,7 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
       for (let i = 0; i < 6; i++) sky.push([-hw - 8 - rnd() * 3, -hd + (i / 5) * (2 * hd - 2), 4 + rnd() * 2, 6 + rnd() * 7, 4 + rnd() * 2, 0]);
       for (let i = 0; i < 10; i++) sky.push([-hw - 6 + (i / 9) * (2 * hw + 16), -hd - 17 - rnd() * 4, 5 + rnd() * 3, 16 + rnd() * 16, 5 + rnd() * 3, 0.45]);
       sky.forEach(([x, z, w, h, d, hz], i) => {
+        if (i === 3 && life?.datacentre) { datacentre(x, z, Math.min(w, 4.6), 4.2, d); return; }
         const b = building(w, h, d, COL.tower[i % COL.tower.length], hz); b.position.y = gy + h / 2; tall(b, x, z);
         if (i === 14) rentalFront = { x, y: gy + 3, z: z + d / 2 + 0.08 };
       });
@@ -537,6 +557,50 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
       }
     }
 
+    const drones = [];
+    if (life) {
+      const { z0, width } = streets[0];
+      // Hire scooters parked across the pavement by the kerb, right of centre and clear of the lamps.
+      if (life.scooters) {
+        const sx = stage === 0 ? -hw + 0.3 : 1.0, sz = z0 - 0.9;
+        for (let i = 0; i < 4; i++) {
+          const s = getModel('era_hire_scooter');
+          s.scale.setScalar(1.25);
+          s.rotation.y = -Math.PI / 2 + (i % 2 ? 0.12 : -0.08);
+          onFlat(s, sx + i * 0.5, gy, sz);
+        }
+        foot('scooters', sx + 0.75, sz, 2.0, 0.8);
+      }
+      // Riders keep to the far kerb, outside the far car lane. The Plateau has fewer cars, and its
+      // cyclists ride without the delivery box.
+      if (life.quiet) for (const mv of movers) mv.gap = mv.gap.map((g) => g * 2);
+      if (!lite) {
+        movers.push({
+          make: () => {
+            const b = getModel('era_delivery_bike');
+            if (life.cyclists) { const cube = b.getObjectByName('bike_box'); if (cube) cube.visible = false; }
+            return b;
+          },
+          z: z0 + width - 0.14, x0: -BW / 2 + 1, x1: BW / 2 - 1, speed: life.cyclists ? 1.4 : 1.9, gap: life.bikes, bike: true,
+        });
+        // Parcel drones cross the sky behind the office, placed from the view each frame like the clouds.
+        for (let i = 0; i < (life.drones ?? 0); i++) {
+          const d = getModel('era_drone');
+          // Larger than life so it reads from the diorama camera.
+          d.scale.setScalar(1.8);
+          d.userData.u = -BW / 2 + (i / Math.max(1, life.drones)) * BW;
+          d.userData.depth = Math.max(hw, hd) + 2 + i * 1.6;
+          d.userData.y = L.wallH + 0.9 + i * 0.7;
+          d.userData.speed = 1.3 + i * 0.25;
+          d.userData.noAO = true;
+          d.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
+          dyn.add(d);
+          drones.push(d);
+        }
+        drones.bounds = [-BW / 2 - 4, BW / 2 + 4];
+      }
+    }
+
     // The diorama board covers everything that stands on it: at least the stage's margin round the
     // office, grown on any side where a building, tree or fence reaches further, so nothing overhangs
     // its edge from any view.
@@ -589,13 +653,15 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
       g.traverse((o) => {
         if (!o.isMesh) return;
         o.castShadow = false; o.receiveShadow = false;
-        if (lite && lighting && o.material.isMeshStandardMaterial && !o.material.userData.keepLit) o.material = backdropMaterial(o.material);
+        // Glowing palette parts (the data centre's status strip, a crane's warning light) keep their glow.
+        const glowing = !o.material.emissiveMap && o.material.emissiveIntensity > 0 && o.material.emissive?.getHex() !== 0;
+        if (lite && lighting && o.material.isMeshStandardMaterial && !o.material.userData.keepLit && !glowing) o.material = backdropMaterial(o.material);
       });
     }
     group.add(merged.flat, merged.px, merged.nx, merged.pz, merged.nz, dyn);
     // Bulbs are emissive and change at night: they stay separate (mergeStatic keeps dynamic ones).
     root.add(group);
-    cur = { group, sides: { px: merged.px, nx: merged.nx, pz: merged.pz, nz: merged.nz }, facadeMats, bulbs: collectBulbs(group), movers: movers.map((mv) => ({ ...mv, t: rnd() * mv.gap[1], car: null })), clouds, glows, feet, dyn, gy, owned, signMats, paintMats, rentalFront };
+    cur = { group, sides: { px: merged.px, nx: merged.nx, pz: merged.pz, nz: merged.nz }, facadeMats, bulbs: collectBulbs(group), movers: movers.map((mv) => ({ ...mv, t: rnd() * mv.gap[1], car: null })), clouds, drones, glows, feet, dyn, gy, owned, signMats, paintMats, rentalFront };
     applyYaw();
   }
 
@@ -634,8 +700,10 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
     if (!cur) return;
     const night = env?.night ?? 0;
     for (const { material, color } of cur.signMats) material.color.copy(color).multiplyScalar(0.8 + night * 0.2);
-    if ((built?.lite || era) && lighting) updateBacklight(lighting, night);
-    for (const fm of cur.facadeMats) fm.emissiveIntensity = night * 1.1;
+    // The Plateau's skyline keeps fewer lights on at night.
+    const windows = era && ERA_STREET[era]?.quiet ? 0.3 : 1.1;
+    if ((built?.lite || era) && lighting) updateBacklight(lighting, night, windows);
+    for (const fm of cur.facadeMats) fm.emissiveIntensity = night * windows;
     for (const b of cur.bulbs) b.material.emissiveIntensity = night * 2.2;
     for (const pm of cur.paintMats) pm.emissiveIntensity = night * 0.35;
     for (const w of cur.glows) { w.material.opacity = night * (w.isSprite ? 0.9 : 0.7); w.visible = night > 0.02; }
@@ -648,6 +716,12 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
       c.position.x = bx * c.userData.depth + sx * c.userData.u;
       c.position.z = bz * c.userData.depth + sz * c.userData.u;
       c.material.opacity = 0.8 * (1 - night * 0.8);
+    }
+    for (const d of cur.drones) {
+      d.userData.u += d.userData.speed * dt;
+      if (d.userData.u > cur.drones.bounds[1]) d.userData.u = cur.drones.bounds[0];
+      d.position.set(bx * d.userData.depth + sx * d.userData.u, d.userData.y + Math.sin(d.userData.u * 1.7) * 0.12, bz * d.userData.depth + sz * d.userData.u);
+      d.rotation.y = Math.atan2(-sz, sx);
     }
     for (const mv of cur.movers) {
       if (!mv.car) {
@@ -673,8 +747,10 @@ export function createSurroundings({ parent, low = () => false, lighting = null 
   // Checks: the standing things' floor rectangles and each moving car's rectangle right now.
   function exterior() {
     if (!cur) return null;
-    const cars = cur.movers.filter((mv) => mv.car).map((mv) => ({ x0: mv.car.position.x - CAR_L / 2, x1: mv.car.position.x + CAR_L / 2, z0: mv.z - CAR_W / 2, z1: mv.z + CAR_W / 2 }));
-    return { era, billboard: era ? eraBillboard(era)[0] : null, fascia: era === 'preinternet' ? cur.rentalFront : null, feet: cur.feet, cars, lanes: cur.movers.map((mv) => ({ z0: mv.z - CAR_W / 2, z1: mv.z + CAR_W / 2, x0: Math.min(mv.x0, mv.x1) - CAR_L / 2, x1: Math.max(mv.x0, mv.x1) + CAR_L / 2 })) };
+    const size = (mv) => (mv.bike ? [BIKE_L, BIKE_W] : [CAR_L, CAR_W]);
+    const cars = cur.movers.filter((mv) => mv.car).map((mv) => { const [l, w] = size(mv); return { bike: !!mv.bike, x0: mv.car.position.x - l / 2, x1: mv.car.position.x + l / 2, z0: mv.z - w / 2, z1: mv.z + w / 2 }; });
+    const lanes = cur.movers.map((mv) => { const [l, w] = size(mv); return { bike: !!mv.bike, z0: mv.z - w / 2, z1: mv.z + w / 2, x0: Math.min(mv.x0, mv.x1) - l / 2, x1: Math.max(mv.x0, mv.x1) + l / 2 }; });
+    return { era, billboard: era ? eraBillboard(era)[0] : null, fascia: era === 'preinternet' ? cur.rentalFront : null, feet: cur.feet, cars, lanes };
   }
 
   return { setStage, setEra, setQuality, setViewYaw, update, exterior, get group() { return root; } };
