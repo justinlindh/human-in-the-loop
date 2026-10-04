@@ -4,13 +4,16 @@
 #   never reach main. Put them on a new branch and open a new PR instead.
 # - runs scripts/check-commits.sh over the commits the push adds beyond origin/main, so a commit that
 #   isn't `type(scope): summary` (a wip: commit) or carries attribution never reaches a PR.
-# - runs `npm run test:fast` and refuses the push when it fails. The run is cached per tree
-#   (scripts/test-cache.sh), so a tree that already passed costs well under a second. It tests the
-#   checkout as it is, uncommitted changes included. Skipped in CI, for a push that only touches the
-#   pr-media branch or deletes branches, and where package.json has no test:fast.
+# - runs `npm run test:push` (the tests related to the changed JS, scripts/test-push.sh; GitHub's
+#   required test check runs the full suite) and refuses the push when it fails. Where package.json
+#   has no test:push it runs `npm run test:fast`. The run is cached per tree (scripts/test-cache.sh),
+#   so a tree that already passed costs well under a second. It tests the checkout as it is,
+#   uncommitted changes included. Skipped in CI, for a push that only touches the pr-media branch
+#   or deletes branches, and where package.json has neither script.
 # Installed by `npm run hooks` (core.hooksPath scripts/hooks: each worktree runs its own copy).
 # Skip once with `git push --no-verify`.
 set -u
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/tmpdir.sh"
 refs="$(cat)"
 status=0
 if command -v gh >/dev/null 2>&1; then
@@ -54,14 +57,16 @@ while read -r local_ref local_sha remote_ref remote_sha; do
 done <<<"$refs"
 [ $code_push = 1 ] || exit 0
 [ -n "${CI:-}" ] && exit 0
-grep -q '"test:fast"' package.json 2>/dev/null || exit 0
+if grep -q '"test:push"' package.json 2>/dev/null; then script=test:push
+elif grep -q '"test:fast"' package.json 2>/dev/null; then script=test:fast
+else exit 0; fi
 # Git exports GIT_DIR and friends to hooks; tests that drive their own scratch repos would act on
 # this one instead.
 unset $(git rev-parse --local-env-vars 2>/dev/null)
 log="$(mktemp)"; trap 'rm -f "$log"' EXIT
-if ! npm run -s test:fast >"$log" 2>&1; then
+if ! npm run -s "$script" >"$log" 2>&1; then
   tail -25 "$log" >&2
-  echo "pre-push: refusing the push: npm run test:fast failed on this checkout (last lines above). Fix it, or push with --no-verify if the failure isn't yours." >&2
+  echo "pre-push: refusing the push: npm run $script failed on this checkout (last lines above). Fix it, or push with --no-verify if the failure isn't yours." >&2
   exit 1
 fi
 [ -z "$(git status --porcelain --untracked-files=no 2>/dev/null)" ] || echo "pre-push: note: tests ran on this checkout including uncommitted changes, not only the pushed commits" >&2

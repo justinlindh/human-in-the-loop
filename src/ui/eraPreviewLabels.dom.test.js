@@ -28,6 +28,17 @@ it.each([false, true])('shows saved-era labels only in preview: %s', (enabled) =
   }
 });
 
+it.each([['preinternet', 'The Long Career, complete'], ['dotcom', 'A career worth keeping']])('titles the %s anniversary screen', (startEra, title) => {
+  vi.useFakeTimers();
+  preview.erasPreview = true;
+  const state = createGame({ seed: 11, startEra });
+  const layer = document.createElement('div');
+  document.body.append(layer);
+  state.gameOver = { won: true, reason: 'anniversary', score: 1, epilogue: [] };
+  createGameOver({ layer, controls: {}, sfx: () => {} }).update(state);
+  expect(layer.querySelector('h1').textContent).toBe(title);
+});
+
 // Building a takeover company plays its predecessor, so both preview settings share one.
 let takeoverState = null;
 it.each([false, true])('gates takeover score labels behind the preview: %s', (enabled) => {

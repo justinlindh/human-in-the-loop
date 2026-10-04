@@ -22,10 +22,14 @@
 //   --json               the queue as JSON
 // A PR with local-ci pending or missing is listed but does not end a --wait or hold a --drain open: its CI
 // will finish and it will move to READY.
+// --wait and --drain at an interval of 15 s or more read the current repository's PRs from the shared
+// snapshot (pr-snapshot.mjs), so several queues and watchers cost one `gh pr list` per interval; a
+// one-shot run always asks GitHub.
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import { ensureFresh } from './pr-snapshot.mjs';
 
 const FIELDS = 'number,title,isDraft,labels,headRefOid,headRefName,author,isCrossRepository,statusCheckRollup';
 const DEPENDABOT = /^(app\/)?dependabot(\[bot\])?$/;
@@ -57,12 +61,27 @@ export function trustedLogins(file) {
   return readFileSync(file, 'utf8').split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
 }
 
-function look(trusted, repos) {
-  return repos.flatMap((repo) => {
-    const r = spawnSync('gh', ['pr', 'list', ...(repo ? ['--repo', repo] : []), '--base', 'main', '--state', 'open', '--limit', '100', '--json', FIELDS], { encoding: 'utf8', maxBuffer: 1 << 26 });
-    if (r.status !== 0) throw new Error(`gh pr list failed${repo ? ` for ${repo}` : ''}: ${(r.stderr || r.stdout).trim().split('\n').slice(-1)[0]}`);
-    return queue(JSON.parse(r.stdout), trusted, repo);
-  });
+// While waiting at a normal pace (an interval of 15 s or more) the current repository's PRs come from
+// the shared snapshot (pr-snapshot.mjs), refreshed when older than maxAgeMs. A one-shot run, a faster
+// interval and another repository ask GitHub directly.
+const MIN_SNAPSHOT_AGE_MS = 15000;
+async function look(trusted, repos, maxAgeMs) {
+  const out = [];
+  for (const repo of repos) {
+    let prs;
+    if (!repo && maxAgeMs >= MIN_SNAPSHOT_AGE_MS) {
+      const snap = await ensureFresh({ maxAgeMs });
+      if (!snap) throw new Error('gh pr list failed: no PR snapshot and GitHub could not be read');
+      if (snap.isStale) console.error(`review-queue: GitHub could not be read (${snap.error ?? 'unknown'}); using the snapshot from ${Math.round((Date.now() - snap.fetchedAt) / 1000)} s ago`);
+      prs = snap.prs.filter((p) => (p.baseRefName ?? 'main') === 'main');
+    } else {
+      const r = spawnSync('gh', ['pr', 'list', ...(repo ? ['--repo', repo] : []), '--base', 'main', '--state', 'open', '--limit', '100', '--json', FIELDS], { encoding: 'utf8', maxBuffer: 1 << 26 });
+      if (r.status !== 0) throw new Error(`gh pr list failed${repo ? ` for ${repo}` : ''}: ${(r.stderr || r.stdout).trim().split('\n').slice(-1)[0]}`);
+      prs = JSON.parse(r.stdout);
+    }
+    out.push(...queue(prs, trusted, repo));
+  }
+  return out;
 }
 
 const sleep = (s) => new Promise((resolve) => setTimeout(resolve, s * 1000));
@@ -86,7 +105,7 @@ async function main() {
       const shown = new Set();
       let woke = false;
       for (;;) {
-        const all = look(trusted, repos);
+        const all = await look(trusted, repos, interval * 1000);
         const fresh = all.filter((w) => !shown.has(key(w)));
         if (fresh.length) { out(fresh); for (const w of fresh) shown.add(key(w)); }
         // Done once something that needed a look has been shown and nothing does now; a queue that so far holds
@@ -98,7 +117,7 @@ async function main() {
       }
     }
     for (;;) {
-      const all = look(trusted, repos);
+      const all = await look(trusted, repos, values.wait ? interval * 1000 : 0);
       if (values.wait ? all.some((w) => w.wake) : all.length) { out(all); return 0; }
       if (!values.wait) { if (values.json) out(all); return 3; }
       if (expired()) return 4;

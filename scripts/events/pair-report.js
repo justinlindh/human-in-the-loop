@@ -4,6 +4,15 @@
 // A record is { reason, exited, won, weeks, score, incidents, caught, breaches, hash, fields }, keyed
 // "<bot>:<seed>". `hash` is the identity of the run (ending reason, weeks, score and the final random
 // state), so two runs are the same run when their hashes match.
+import { createHash } from 'node:crypto';
+
+// The cache key of one side's records: everything its runs depend on. `files` is [path, content id]
+// for the sim and data files, order-independent; the rest are the run set and the code that plays it.
+export function sideKey({ files, bots, seeds, startEra, fields, script, node }) {
+  const body = JSON.stringify({ files: [...files].sort((p, q) => (p[0] < q[0] ? -1 : p[0] > q[0] ? 1 : 0)), bots: [...bots].sort(), seeds, startEra: startEra ?? null, fields: fields ?? [], script, node });
+  return createHash('sha256').update(body).digest('hex').slice(0, 24);
+}
+
 const med = (xs) => { if (!xs.length) return null; const s = [...xs].sort((p, q) => p - q); return s[s.length >> 1]; };
 const pct = (n, d) => (d ? Math.round((100 * n) / d) : 0);
 const sum = (rs, f) => rs.reduce((t, r) => t + (r[f] ?? 0), 0);

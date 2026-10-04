@@ -84,7 +84,10 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   soft="$DIR/render-checks.lock"; max="${QUIET_DRAIN_WAIT:-1800}"; t0=$SECONDS
   while :; do
     runs="$(ci_runs_going)"; load="$(cut -d' ' -f1 /proc/loadavg)"
-    soft_free=1; [ -e "$soft" ] && ! flock -n "$soft" true 2>/dev/null && soft_free=0
+    soft_free=1
+    for soft in "$DIR"/render-checks.lock "$DIR"/render-checks-[0-9]*.lock; do
+      [ -e "$soft" ] && ! flock -n "$soft" true 2>/dev/null && soft_free=0
+    done
     if [ "$runs" -eq 0 ] && [ $soft_free = 1 ] && awk -v l="$load" -v m="${QUIET_LOAD:-10}" 'BEGIN { exit !(l < m) }'; then break; fi
     if [ $((SECONDS - t0)) -ge "$max" ]; then
       why="$runs CI run(s) going"; [ $soft_free = 1 ] || why+=", the software render lock held"; why+=", load1 $load"

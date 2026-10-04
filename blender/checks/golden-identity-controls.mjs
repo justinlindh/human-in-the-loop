@@ -1,7 +1,7 @@
 // Controls for golden's identity cache record: each case runs golden.mjs for real against a
 // scratch cache (HITL_CHECK_CACHE_DIR) and checks its exit code and output.
 //   node blender/checks/golden-identity-controls.mjs
-// Takes the software render lock through golden itself; run under timeout and nice.
+// Takes golden's render lock through golden itself; run under timeout and nice.
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync, existsSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';

@@ -23,6 +23,7 @@ export function installLoader({ initialPerkDelay, root: rootDir, transform } = {
         source: `export * from ${JSON.stringify(nativeThree)}; export { WebGLRenderer } from ${JSON.stringify(presentation)};` };
       if (url.startsWith(new URL('src/', root).href) && url.endsWith('.js')) {
         let source = readFileSync(new URL(url), 'utf8');
+        globalThis.__hitlLoaded?.add(fileURLToPath(url));
         if (url === new URL('src/render/character.js', root).href) source = instrumentCharacter(source);
         if (initialPerkDelay != null && url === new URL('src/render/perks.js', root).href) source = controlPerkDelay(source, initialPerkDelay);
         if (transform) source = transform(fileURLToPath(url), source);

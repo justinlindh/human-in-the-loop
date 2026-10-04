@@ -1,6 +1,8 @@
 name: pages
 
-# Tagged builds only: every published version release is tested, built for the Pages path, and deployed.
+# Tagged builds only: every published version release is built for the Pages path and deployed. The
+# commit was already tested (the required `test` check on its PR and the main guard), so the full
+# suite is not repeated on the hosted runner, where its long balance tests time out.
 on:
   release:
     types: [published]
@@ -38,7 +40,6 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npm test
       - name: Build for the Pages path
         run: npm run build -- --base "/"
         env:

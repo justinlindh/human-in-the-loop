@@ -94,50 +94,85 @@ const shapeOf = (layout) => (typeof layout === 'number' ? officeShape(layout) : 
 export const layoutOf = (state) => ({ stage: state.officeStage, expansion: state.office.expansion ?? 0 });
 
 // Whether every desk's chair has a free tile beside it that can be walked to from the door.
-export function pathsClear(stageIdx, placed) {
-  const st = shapeOf(stageIdx);
+const STEPS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+// A stage's grid with the blocked tiles and every placed item's footprint marked solid (1).
+function solidGrid(st, placed) {
   const { w, h } = st.grid;
-  const solid = new Set(st.blocked.map(([x, y]) => key(x, y)));
-  for (const p of placed) for (const [x, y] of footprintCells(p.itemId, p.x, p.y, p.rot)) solid.add(key(x, y));
-  const open = (x, y) => x >= 0 && y >= 0 && x < w && y < h && !solid.has(key(x, y));
-  if (!open(st.door.x, st.door.y)) return false;
-  const seen = new Set([key(st.door.x, st.door.y)]);
-  const queue = [[st.door.x, st.door.y]];
-  const STEPS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-  while (queue.length) {
-    const [x, y] = queue.shift();
+  const solid = new Uint8Array(w * h);
+  const mark = (x, y) => { if (x >= 0 && y >= 0 && x < w && y < h) solid[y * w + x] = 1; };
+  for (const [x, y] of st.blocked) mark(x, y);
+  for (const p of placed) for (const [x, y] of footprintCells(p.itemId, p.x, p.y, p.rot)) mark(x, y);
+  return solid;
+}
+
+// Flood fill from the door over open tiles; then whether every desk's chair has a reached tile beside it.
+function seatsReachable(st, solid, desks) {
+  const { w, h } = st.grid;
+  const { x: dx0, y: dy0 } = st.door;
+  if (dx0 < 0 || dy0 < 0 || dx0 >= w || dy0 >= h || solid[dy0 * w + dx0]) return false;
+  const seen = new Uint8Array(w * h);
+  seen[dy0 * w + dx0] = 1;
+  const queue = [dy0 * w + dx0];
+  for (let i = 0; i < queue.length; i++) {
+    const x = queue[i] % w, y = (queue[i] - x) / w;
     for (const [dx, dy] of STEPS) {
-      const k = key(x + dx, y + dy);
-      if (!seen.has(k) && open(x + dx, y + dy)) { seen.add(k); queue.push([x + dx, y + dy]); }
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+      const k = ny * w + nx;
+      if (!seen[k] && !solid[k]) { seen[k] = 1; queue.push(k); }
     }
   }
-  return desksOf(placed).every((d) => {
+  return desks.every((d) => {
     const [sx, sy] = seatTile(d);
-    return STEPS.some(([dx, dy]) => seen.has(key(sx + dx, sy + dy)));
+    return STEPS.some(([dx, dy]) => {
+      const nx = sx + dx, ny = sy + dy;
+      return nx >= 0 && ny >= 0 && nx < w && ny < h && seen[ny * w + nx] === 1;
+    });
   });
 }
 
-// Why an item cannot go at (x, y, rot) on a stage given the other placed items, or null. Layout only.
-function layoutProblem(stageIdx, others, { itemId, x, y, rot, level = 1 }) {
+export function pathsClear(stageIdx, placed) {
   const st = shapeOf(stageIdx);
-  if (![x, y, rot].every(Number.isInteger) || rot < 0 || rot > 3) return 'Out of bounds';
-  const cells = footprintCells(itemId, x, y, rot);
-  if (cells.some(([cx, cy]) => cx < 0 || cy < 0 || cx >= st.grid.w || cy >= st.grid.h)) return 'Out of bounds';
+  return seatsReachable(st, solidGrid(st, placed), desksOf(placed));
+}
+
+// A checker for many candidate spots against one layout: the stage and the other items' tiles are
+// worked out once. check({ itemId, x, y, rot, level }) says why the item cannot go there, or null.
+function layoutChecker(stageIdx, others) {
+  const st = shapeOf(stageIdx);
+  const { w, h } = st.grid;
   const blocked = new Set(st.blocked.map(([bx, by]) => key(bx, by)));
-  if (cells.some(([cx, cy]) => blocked.has(key(cx, cy)))) return 'Blocked';
-  if (cells.some(([cx, cy]) => cx === st.door.x && cy === st.door.y)) return 'Keep the door clear';
-  const inTerrace = (cx, cy) => st.zones.some((z) => z.id === 'terrace' && cx >= z.x0 && cx <= z.x1 && cy >= z.y0 && cy <= z.y1);
-  if (!ITEMS[itemId]?.outdoor && cells.some(([cx, cy]) => inTerrace(cx, cy))) return 'Only outdoor items go on the terrace';
   const taken = new Set();
   for (const p of others) for (const [ox, oy] of footprintCells(p.itemId, p.x, p.y, p.rot)) taken.add(key(ox, oy));
-  if (cells.some(([cx, cy]) => taken.has(key(cx, cy)))) return 'Overlaps something';
-  const front = frontCells(itemId, x, y, rot, level);
-  if (front.some(([fx, fy]) => fx < 0 || fy < 0 || fx >= st.grid.w || fy >= st.grid.h || blocked.has(key(fx, fy)) || taken.has(key(fx, fy)))) return FRONT_REASON;
   const zones = new Set();
   for (const p of others) for (const [fx, fy] of frontCells(p.itemId, p.x, p.y, p.rot, p.level)) zones.add(key(fx, fy));
-  if (cells.some(([cx, cy]) => zones.has(key(cx, cy)))) return FRONT_REASON;
-  if (!pathsClear(stageIdx, [...others, { itemId, x, y, rot }])) return 'Would block the path to a desk';
-  return null;
+  const solid = solidGrid(st, others);
+  const desks = desksOf(others);
+  const inTerrace = (cx, cy) => st.zones.some((z) => z.id === 'terrace' && cx >= z.x0 && cx <= z.x1 && cy >= z.y0 && cy <= z.y1);
+  return ({ itemId, x, y, rot, level = 1 }) => {
+    if (![x, y, rot].every(Number.isInteger) || rot < 0 || rot > 3) return 'Out of bounds';
+    const cells = footprintCells(itemId, x, y, rot);
+    if (cells.some(([cx, cy]) => cx < 0 || cy < 0 || cx >= w || cy >= h)) return 'Out of bounds';
+    if (cells.some(([cx, cy]) => blocked.has(key(cx, cy)))) return 'Blocked';
+    if (cells.some(([cx, cy]) => cx === st.door.x && cy === st.door.y)) return 'Keep the door clear';
+    if (!ITEMS[itemId]?.outdoor && cells.some(([cx, cy]) => inTerrace(cx, cy))) return 'Only outdoor items go on the terrace';
+    if (cells.some(([cx, cy]) => taken.has(key(cx, cy)))) return 'Overlaps something';
+    const front = frontCells(itemId, x, y, rot, level);
+    if (front.some(([fx, fy]) => fx < 0 || fy < 0 || fx >= w || fy >= h || blocked.has(key(fx, fy)) || taken.has(key(fx, fy)))) return FRONT_REASON;
+    if (cells.some(([cx, cy]) => zones.has(key(cx, cy)))) return FRONT_REASON;
+    for (const [cx, cy] of cells) solid[cy * w + cx] = 1;
+    const item = { itemId, x, y, rot };
+    const clear = seatsReachable(st, solid, itemId === 'desk' ? [...desks, item] : desks);
+    for (const [cx, cy] of cells) solid[cy * w + cx] = 0;
+    if (!clear) return 'Would block the path to a desk';
+    return null;
+  };
+}
+
+// Why an item cannot go at (x, y, rot) on a stage given the other placed items, or null. Layout only.
+function layoutProblem(stageIdx, others, spot) {
+  return layoutChecker(stageIdx, others)(spot);
 }
 
 // Why a new copy of an item cannot be bought right now, ignoring where it goes, or null.
@@ -185,12 +220,12 @@ export function placementCheck(state, { itemId, x, y, rot = 0, id = null }) {
 
 // The first free spot for an item, scanning rows from the back corner, or null.
 // The first spot that fits; with level, one that also keeps that level's front zone clear.
-export function findSpot(stageIdx, placed, itemId, rots = [0, 1, 2, 3], level = 1) {
+export function findSpot(stageIdx, placed, itemId, rots = [0, 1, 2, 3], level = 1, check = layoutChecker(stageIdx, placed)) {
   const { w, h } = shapeOf(stageIdx).grid;
   for (const rot of rots) {
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
-        if (!layoutProblem(stageIdx, placed, { itemId, x, y, rot, level })) return { x, y, rot };
+        if (!check({ itemId, x, y, rot, level })) return { x, y, rot };
       }
     }
   }
@@ -222,9 +257,10 @@ export function suggestPlacement(state, itemId) {
   if (!ITEMS[itemId]) return null;
   const stage = layoutOf(state);
   const placed = state.office.placed;
+  const check = layoutChecker(stage, placed);
   if (itemId === 'desk') {
-    const slot = islandSlots(stage).find((sl) => !layoutProblem(stage, placed, { itemId, ...sl }));
-    return slot ?? findSpot(stage, placed, itemId, [0, 2, 1, 3]);
+    const slot = islandSlots(stage).find((sl) => !check({ itemId, ...sl }));
+    return slot ?? findSpot(stage, placed, itemId, [0, 2, 1, 3], 1, check);
   }
   const adj = ITEMS[itemId].adjacency;
   if (adj && !adj.to) {
@@ -243,14 +279,14 @@ export function suggestPlacement(state, itemId) {
             tried.add(k);
             const cells = footprintCells(itemId, x, y, rot);
             const v = seats.filter(([ax, ay]) => cells.some(([cx, cy]) => Math.max(Math.abs(cx - ax), Math.abs(cy - ay)) <= adj.radius)).length;
-            if (v && (!best || v > best.v) && !layoutProblem(stage, placed, { itemId, x, y, rot })) best = { x, y, rot, v };
+            if (v && (!best || v > best.v) && !check({ itemId, x, y, rot })) best = { x, y, rot, v };
           }
         }
       }
     }
     if (best) return { x: best.x, y: best.y, rot: best.rot };
   }
-  return findSpot(stage, placed, itemId);
+  return findSpot(stage, placed, itemId, undefined, 1, check);
 }
 
 // Packs existing furniture into a stage: desks first (into islands), then bigger items. Returns what did not fit.
@@ -261,9 +297,10 @@ export function autoArrange(stageIdx, placed) {
   const left = [];
   const islands = islandSlots(stageIdx);
   for (const p of order) {
-    const slot = p.itemId === 'desk' ? islands.find((sl) => !layoutProblem(stageIdx, out, { itemId: 'desk', ...sl })) : null;
+    const check = layoutChecker(stageIdx, out);
+    const slot = p.itemId === 'desk' ? islands.find((sl) => !check({ itemId: 'desk', ...sl })) : null;
     // Each item goes where its current level fits, so a front zone it has grown into stays clear.
-    const spot = slot ?? findSpot(stageIdx, out, p.itemId, p.itemId === 'desk' ? [0, 2, 1, 3] : [0, 1, 2, 3], p.level ?? 1);
+    const spot = slot ?? findSpot(stageIdx, out, p.itemId, p.itemId === 'desk' ? [0, 2, 1, 3] : [0, 1, 2, 3], p.level ?? 1, check);
     if (spot) out.push({ ...p, ...spot });
     else left.push(p);
   }

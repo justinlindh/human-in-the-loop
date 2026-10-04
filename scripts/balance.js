@@ -9,6 +9,9 @@ import { ERA_STARTS } from '../src/data/era-modes.js';
 import { EARLY_ORDER } from '../src/data/early-eras.js';
 import { ERA_IDS } from '../src/data/eras.js';
 
+// Bots run in parallel worker threads by default, a few at a time so a run stays polite on a shared machine.
+const DEFAULT_JOBS = 3;
+
 // --set eraStarts.plateau.exitMrrMult=0.6 overrides one number in B for this run (repeatable).
 function applySets(sets) {
   for (const [path, value] of sets) {
@@ -58,7 +61,7 @@ async function main() {
   const startMode = arg('start-mode', 'garage');
   const json = arg('json', null);
   const baseline = arg('baseline', null);
-  const jobs = Number(arg('jobs', 1));
+  const jobs = Number(arg('jobs', DEFAULT_JOBS));
   const sets = args.flatMap((a, i) => (a === '--set' ? [args[i + 1] ?? ''] : [])).map((s) => {
     const [path, value] = s.split('=');
     if (!path || value === undefined || value === '' || !Number.isFinite(Number(value))) fail(`--set wants path=number, got ${s}`);

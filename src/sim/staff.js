@@ -49,7 +49,22 @@ const DEFAULT_MODS = {
 const LEGEND_BOOST = 1.25;
 
 // Trait mods and career-path mods merged. A Legend's path perk is 25% further from neutral.
+// The result depends only on traits, path and legend, so it is shared (frozen) between people and weeks.
+// Traits are only ever appended, so a person's entry stays valid while the same array keeps its length.
+const MODS_CACHE = new Map();
+const MODS_BY_PERSON = new WeakMap();
 export function staffMods(person) {
+  const { traits, path = null, legend = false } = person;
+  const hit = MODS_BY_PERSON.get(person);
+  if (hit && hit.traits === traits && hit.n === traits.length && hit.path === path && hit.legend === legend) return hit.m;
+  const k = `${traits.join(',')}|${path ?? ''}|${legend ? 1 : 0}`;
+  let m = MODS_CACHE.get(k);
+  if (!m) { m = Object.freeze(buildMods(person)); MODS_CACHE.set(k, m); }
+  MODS_BY_PERSON.set(person, { traits, n: traits.length, path, legend, m });
+  return m;
+}
+
+function buildMods(person) {
   const m = { ...DEFAULT_MODS };
   for (const id of person.traits) {
     const t = TRAITS[id];

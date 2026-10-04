@@ -1423,14 +1423,17 @@ export async function runRobotChecks(R, S) {
   return results;
 }
 
-export async function runPetChecks(R, S) {
+// The pet moment's cases, in one fixed order. `part` of `parts` plays every parts-th case starting
+// at index `part`, so separate pages can share the run; each case sets up its own passer and pet.
+export async function runPetChecks(R, S, { part = 0, parts = 1 } = {}) {
   const results = [];
+  const todo = [];
   const headings = [null, 2.104, ...Array.from({ length: 24 }, (_, i) => i * Math.PI / 12)];
   const cases = headings.map((yaw, i) => ({ name: `heading-${i}`, yaw }));
   cases.push({ name: 'approach', distance: 1.35 }, { name: 'near', yaw: 2.104, distance: 0.56 });
   cases.push({ name: 'near-side-turn', yaw: 2.104, petYaw: -Math.PI / 2 });
   for (const petYaw of [Math.PI / 2, Math.PI, -Math.PI / 2]) cases.push({ name: `pet-turn-${petYaw}`, yaw: 2.104, petYaw, distance: 1.0 });
-  for (const species of ['dog', 'cat']) for (const { name, yaw = null, distance = 0.65, petYaw = 0 } of cases) {
+  for (const species of ['dog', 'cat']) for (const { name, yaw = null, distance = 0.65, petYaw = 0 } of cases) todo.push(() => {
     R.pets.reset(); R.setQuality('medium');
     const { id } = setupPetPasser(R, S, species, yaw, distance, petYaw);
     const root = charOf(R.scene, id);
@@ -1456,8 +1459,8 @@ export async function runPetChecks(R, S) {
     }
     results.push({ name: `moment:pet:${species}:${name}`, pass: samples >= 80 && stroke >= 80 && resumed && resumedDistance > 0.3 && worst < 0.01 && petInside < 0.01,
       yaw, samples, stroke, resumed, resumedDistance: +resumedDistance.toFixed(2), firstInsidePct: firstInside === null ? null : +(firstInside * 100).toFixed(2), petInsidePct: +(petInside * 100).toFixed(2), insidePct: +(worst * 100).toFixed(2), worstFrame, worstActor });
-  }
-  for (const phase of ['turn', 'approach', 'stroke']) for (const interrupt of ['remove', 'staff-remove', 'away', 'priority', 'decision', 'low']) {
+  });
+  for (const phase of ['turn', 'approach', 'stroke']) for (const interrupt of ['remove', 'staff-remove', 'away', 'priority', 'decision', 'low']) todo.push(() => {
     R.pets.reset(); R.setQuality('medium');
     const { id } = setupPetPasser(R, S, 'dog', 2.104, 1.0);
     for (let f = 0; f < 90; f++) {
@@ -1477,8 +1480,8 @@ export async function runPetChecks(R, S) {
     const priority = interrupt !== 'priority' || R.walkOf(id)?.temp?.anim === 'celebrate';
     results.push({ name: `moment:pet:${phase}:${interrupt}`, pass: started && ended && priority, started, ended, priority });
     staff.mood = mood; S.staff = roster; S.pendingDecision = null;
-  }
-  for (const blocked of ['busy', 'stationary', 'distant']) {
+  });
+  for (const blocked of ['busy', 'stationary', 'distant']) todo.push(() => {
     R.pets.reset(); R.setQuality('medium');
     const { id, at } = setupPetPasser(R, S);
     if (blocked === 'busy') R.catchFor(id, { anim: 'idle', t: 5, moment: 'other' });
@@ -1486,12 +1489,15 @@ export async function runPetChecks(R, S) {
     if (blocked === 'distant') R.pets.standAt('check_pet', at.x - 3, at.z + 2);
     window.__advance(1);
     results.push({ name: `moment:pet:skip-${blocked}`, pass: !R.pets.peek('check_pet')?.petter });
-  }
-  R.pets.reset(); R.setQuality('low');
-  const { id } = setupPetPasser(R, S);
-  window.__advance(20);
-  const skipped = !R.pets.peek('check_pet')?.petter && R.walkOf(id)?.temp?.moment !== 'pet';
-  results.push({ name: 'moment:pet:low-skip', pass: skipped });
+  });
+  todo.push(() => {
+    R.pets.reset(); R.setQuality('low');
+    const { id } = setupPetPasser(R, S);
+    window.__advance(20);
+    const skipped = !R.pets.peek('check_pet')?.petter && R.walkOf(id)?.temp?.moment !== 'pet';
+    results.push({ name: 'moment:pet:low-skip', pass: skipped });
+  });
+  todo.forEach((run, i) => { if (i % parts === part) run(); });
   S.pets = []; R.sync(S);
   return results;
 }

@@ -1,0 +1,6 @@
+{
+  "name": "pr-watch",
+  "version": "0.1.0",
+  "description": "Follow a pull request to its merge and wake the session only on a merge, a failed check, a review verdict, a conflict or a close",
+  "types": "./types/index.d.ts"
+}

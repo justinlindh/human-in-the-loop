@@ -50,7 +50,7 @@ it('keeps both modes discoverable and requires garage mode before picking an ear
   const choices = document.querySelector('.takeover-choices');
   expect(choices.hidden).toBe(false);
   expect(choices.querySelector('[data-start-mode="takeover"]').disabled).toBe(true);
-  expect(choices.textContent).toContain('Takeover starts from ChatGBT');
+  expect(choices.textContent).toContain('Takeover is for The ChatGBT Moment or Agents');
   for (const era of ['chatgbt', 'agents']) {
     document.querySelector(`[data-era="${era}"]`).click();
     expect(choices.hidden).toBe(false);
@@ -61,7 +61,7 @@ it('keeps both modes discoverable and requires garage mode before picking an ear
   for (const era of ['preinternet', 'dotcom', 'web2', 'classic']) {
     const card = document.querySelector(`[data-era="${era}"]`);
     expect(card.disabled).toBe(true);
-    expect(card.children[1].textContent).toBe('Choose Found a company to start in this era.');
+    expect(card.querySelector('.eblurb').textContent).toBe('Choose Found a company to start in this era.');
     card.click();
     expect(choices.querySelector('[data-start-mode="takeover"]').getAttribute('aria-pressed')).toBe('true');
   }

@@ -19,10 +19,9 @@
 import { spotReasons } from '../../src/render/spots.js';
 import { startHarness } from './harness.mjs';
 import { createReport } from './report.mjs';
-import { inputHash, passedAt, recordPass } from './cache.mjs';
+import { graphBase, graphPassedAt, recordGraphPass, requestedFiles } from './cache.mjs';
 import { execFileSync, fork } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { cpus } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { touchedSpecs } from './stage-touched.js';
@@ -344,18 +343,15 @@ for (const o of ONLY ?? []) {
   if (!Object.keys(SPECS).some((k) => k === o || k.startsWith(`${o}.`))) { console.error(`stage: --only "${o}" matches no spec (specs: ${Object.keys(SPECS).join(', ')})`); process.exit(2); }
 }
 const rep = createReport('stage');
-// A full pass is recorded against a hash of every input (cache.mjs); unchanged inputs skip the run.
+// A full pass is recorded with the files it loaded (cache.mjs); the run is skipped while none changed.
 // Which marker issues are closed changes what fails, so it is part of the inputs a cached pass covers.
-// The engine run also depends on the engine itself (scripts/studio), outside the cache's usual inputs.
-const STUDIO = new URL('../../scripts/studio/', import.meta.url);
-const engineHash = () => {
-  const h = createHash('sha256');
-  for (const f of readdirSync(STUDIO).filter((n) => n.endsWith('.mjs')).sort()) h.update(`${f}\n`).update(readFileSync(new URL(f, STUDIO)));
-  return h.digest('hex').slice(0, 16);
-};
-const hash = ONLY || args.includes('--rows') ? null : inputHash('stage', `closed:${[...closedIssues].sort((x, y) => x - y).join(',')}\n${BROWSER ? 'browser' : `engine:${engineHash()}`}`);
-const before = passedAt('stage', hash);
+const hash = ONLY || args.includes('--rows') ? null : graphBase('stage', `closed:${[...closedIssues].sort((x, y) => x - y).join(',')}\n${BROWSER ? 'browser' : 'engine'}`);
+const before = graphPassedAt('stage', hash);
 if (before) { console.log(`stage: inputs unchanged since ${before}, skipped`); process.exit(0); }
+// Each engine process reports the files it loads (scripts/studio/load-log.mjs) with its result.
+const TRACK_LOADS = !!hash && !BROWSER;
+const loadedByHosts = new Set();
+const LOAD_LOG_HOOK = new URL('../../scripts/studio/load-log.mjs', import.meta.url).href;
 // Browsers default to 6; engine processes to a quarter of the cores.
 const JOBS = Math.max(1, Number(args.find((a) => a.startsWith('--jobs='))?.slice(7)) || (BROWSER ? 6 : cpus().length >> 2));
 const H = BROWSER ? await startHarness({ browsers: JOBS }) : null;
@@ -376,11 +372,11 @@ const stageArgs = ({ moment, scenario, view }) => {
 const hosts = new Set();
 for (const s of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(s, () => { for (const p of hosts) p.kill('SIGTERM'); process.exit(143); });
 const onEngine = (task) => new Promise((resolve) => {
-  const p = fork(fileURLToPath(new URL('../../scripts/studio/stage-host.mjs', import.meta.url)), [], { serialization: 'advanced', stdio: ['ignore', 'ignore', 'pipe', 'ipc'] });
+  const p = fork(fileURLToPath(new URL('../../scripts/studio/stage-host.mjs', import.meta.url)), [], { serialization: 'advanced', stdio: ['ignore', 'ignore', 'pipe', 'ipc'], ...(TRACK_LOADS ? { execArgv: [...process.execArgv, '--import', LOAD_LOG_HOOK], env: { ...process.env, HITL_LOAD_TRACK: '1' } } : {}) });
   hosts.add(p);
   let got = null, err = '';
   p.stderr.on('data', (d) => { err += d; });
-  p.on('message', (m) => { got = m; });
+  p.on('message', (m) => { got = m; for (const f of m.loaded ?? []) loadedByHosts.add(f); });
   p.on('exit', (code, signal) => {
     hosts.delete(p);
     if (got?.ok) resolve({ res: got.res, errors: got.errors });
@@ -438,6 +434,11 @@ for (const task of tasks) {
     }
   }
 }
+// What the run loaded: the engine processes' lists, or every file the pages requested.
+let loaded = [];
+if (hash) {
+  loaded = BROWSER ? requestedFiles(H.requested()) : [...loadedByHosts];
+}
 await H?.close();
 const code = rep.finish({ out: OUT });
 // The rows for parity.mjs: the beat's length goes with the value, so a beat that runs longer differs.
@@ -447,5 +448,6 @@ if (args.includes('--rows')) {
     console.log(`STAGEROW ${r.pass ? 'ok' : 'FAIL'} ${r.check} ${r.view} ${beat} ${r.metric} ${JSON.stringify({ value: typeof r.value === 'number' && !Number.isFinite(r.value) ? String(r.value) : r.value, seconds: secs ? Number(secs) : null })}`);
   }
 }
-if (!code) recordPass('stage', hash);
-process.exit(code);
+if (!code) recordGraphPass('stage', hash, loaded);
+// Exit once stdout drains: a reader slower than the rows (parity.mjs under load) would lose the tail.
+process.stdout.write('', () => process.exit(code));
