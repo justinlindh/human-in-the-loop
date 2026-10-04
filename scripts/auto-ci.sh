@@ -98,6 +98,14 @@ stop() {
   rm -f "$JOBS/$pr"
 }
 
+# Admission floor: no new run starts while the RAM-backed tmp has under AUTO_CI_TMP_MIN_GB free or the
+# machine has under AUTO_CI_MEM_MIN_GB of memory available (a full tmpfs fails every checkout).
+# AUTO_CI_TMP_FREE_GB and AUTO_CI_MEM_FREE_GB stand in for the readings in tests.
+tmp_free="${AUTO_CI_TMP_FREE_GB:-$(df -Pk "${AUTO_CI_TMP_DIR:-/tmp}" 2>/dev/null | awk 'NR == 2 { print int($4 / 1048576) }')}"
+mem_free="${AUTO_CI_MEM_FREE_GB:-$(awk '/^MemAvailable:/ { print int($2 / 1048576) }' /proc/meminfo 2>/dev/null)}"
+low=""
+[ -n "$tmp_free" ] && [ "$tmp_free" -lt "${AUTO_CI_TMP_MIN_GB:-8}" ] && low="tmp has ${tmp_free}G free, under ${AUTO_CI_TMP_MIN_GB:-8}G"
+[ -z "$low" ] && [ -n "$mem_free" ] && [ "$mem_free" -lt "${AUTO_CI_MEM_MIN_GB:-6}" ] && low="${mem_free}G of memory available, under ${AUTO_CI_MEM_MIN_GB:-6}G"
 running=0
 for f in "$JOBS"/*; do
   [ -e "$f" ] || continue
@@ -144,6 +152,8 @@ for pr in $(order); do
   light=0
   if [ "$running" -ge "$MAX" ]; then
     if is_light "$pr"; then light=1; else log "#$pr ${h:0:7} waits: $running of $MAX runs going"; continue; fi
+  elif [ -n "$low" ] && ! is_light "$pr"; then
+    log "#$pr ${h:0:7} waits: $low"; continue
   fi
   # Mark the head pending before the label comes off, so a waiter (wait-for.sh) never reads the old
   # result as final in the time ci-pr takes to set its own status.
