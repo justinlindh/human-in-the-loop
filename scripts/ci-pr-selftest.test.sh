@@ -19,22 +19,23 @@ echo 'echo old' >scripts/a.test.sh; echo 'echo old' >scripts/hooks/b.test.sh; ec
 git add -A && git commit -qm base
 tool_mb="$(git rev-parse HEAD)"
 cp scripts/a.test.sh scripts/c.test.sh "$SELF/"; cp scripts/hooks/b.test.sh "$SELF/hooks/"
-echo 'echo fixed' >scripts/a.test.sh; echo 'echo fixed' >scripts/hooks/b.test.sh
+echo old >"$SELF/lib.txt"
+echo 'echo fixed-$(cat "$(dirname "$0")/lib.txt")' >scripts/a.test.sh; echo 'echo fixed' >scripts/hooks/b.test.sh; echo new >scripts/lib.txt
 git add -A && git commit -qm pr
 
 LOGS="$tmp/logs"; mkdir -p "$LOGS"
 note() { echo "$*" >>"$LOGS/notes"; }
 # step stub: runs the test file it is handed and records which copy that was.
-step() { case "${*: -1}" in */.pr-*) ran="PR:$(bash "${@: -1}")" ;; *) ran="MAIN:$(bash "${@: -1}")" ;; esac; }
+step() { case "${*: -1}" in "$tmp"/tree/*) ran="PR:$(bash "${@: -1}")" ;; *) ran="MAIN:$(bash "${@: -1}")" ;; esac; }
 tool_changes=1
 source "$tmp/fns.sh"
 run() { ran=""; : >"$LOGS/notes"; tool_step "$@"; }
 
 CI_PR_SELFTESTS=1
 run a bash "$SELF/a.test.sh"
-[ "$ran" = "PR:fixed" ] || fail "changed test should run the PR's copy (got $ran)"
+[ "$ran" = "PR:fixed-new" ] || fail "changed test should run the PR's copy against the PR's scripts (got $ran)"
 grep -q 'scripts/a.test.sh' "$LOGS/notes" || fail "the note should name the file"
-[ ! -e "$SELF/.pr-a.test.sh" ] || fail "the copy should be removed after the step"
+[ -e "$tmp/tree/scripts/a.test.sh" ] || fail "the PR's own test file must stay in its tree"
 run b bash "$SELF/hooks/b.test.sh"
 [ "$ran" = "PR:fixed" ] || fail "a test in a subdirectory should swap too (got $ran)"
 run c bash "$SELF/c.test.sh"

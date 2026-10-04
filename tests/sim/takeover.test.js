@@ -8,8 +8,8 @@ import { helpers } from '../../src/sim/events.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
 
 describe('era takeover', () => {
-  it.each([['chatgbt', 0.5], ['agents', 0.3]])('targets a %s share below its garage start', (era, share) => {
-    expect(B.takeover.scoreShare[era]).toBe(share);
+  it.each(['chatgbt', 'agents'])('targets three quarters of the %s garage share', (era) => {
+    expect(B.takeover.scoreShare[era]).toBeCloseTo(0.75 * B.eraStarts[era].scoreShare, 1);
     expect(B.takeover.scoreShare[era]).toBeGreaterThan(0);
     expect(B.takeover.scoreShare[era]).toBeLessThan(B.eraStarts[era].scoreShare);
   });
