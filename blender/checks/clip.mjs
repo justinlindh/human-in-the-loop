@@ -16,8 +16,8 @@
 // is held to (`node scripts/studio/parity.mjs --preset clip` compares the two).
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
-import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { makeTemp } from '../../scripts/tools/tmp.mjs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inputHash, passedAt, recordPass } from './cache.mjs';
@@ -85,7 +85,7 @@ else {
   const onEngine = studio.ENGINE_GROUPS.filter((g) => runs[g]);
   // The browser-only groups play in a child process of their own (its own process group, so ending it
   // ends the browser and the render-lock wrapper it starts), while the engine groups run here.
-  const dir = mkdtempSync(join(tmpdir(), 'clip-step-'));
+  const dir = makeTemp('clip-step-');
   let step = null;
   const stopStep = () => { if (step?.exitCode === null) try { process.kill(-step.pid, 'SIGTERM'); } catch { /* already gone */ } };
   // While the engine groups run, their own handler (runGroups, registered after this one) stops them and exits.
