@@ -1,9 +1,36 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { resolve } from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawnAsync } from './spawn-async.js';
 import { compose, ComposeError } from '../../scripts/studio/compose.mjs';
 
 const EX = resolve(__dirname, '../../scripts/studio/examples');
+const STUDIO = resolve(__dirname, '../../scripts/studio');
+const scene = (...args) => spawnAsync(process.execPath, [`${STUDIO}/scene.mjs`, ...args], { timeout: 240000 });
+const sweep = (...args) => spawnAsync(process.execPath, [`${STUDIO}/compare-sweep.mjs`, ...args], { timeout: 240000 });
+const comp = (file, ...args) => scene('--compose', `${EX}/${file}`, ...args);
+
+// Every engine run the file reads, started together before the first test so they overlap; a test awaits
+// its own by name.
+const RUNS = {
+  slap: () => comp('slap.json', '--from', '0', '--to', '1', '--every', '0.2'),
+  coffeeLines: () => comp('coffee-visit.json', '--from', '0', '--to', '1', '--every', '0.25'),
+  coffeeArray: () => comp('coffee-visit.json', '--from', '0', '--to', '1', '--every', '0.25', '--json-array'),
+  coffeeBad: () => comp('coffee-visit.json', '--from', '0', '--to', '1', '--every', '0.25', '--every', '0'),
+  coffeeVisit: () => comp('coffee-visit.json', '--from', '0', '--to', '9', '--every', '1'),
+  coffeeWait: () => comp('coffee-wait.json', '--from', '0', '--to', '12', '--every', '0.5', '--facts', 'intersections'),
+  facepalm: () => comp('facepalm.json', '--from', '0', '--to', '1', '--every', '1'),
+  facepalmLater: () => comp('facepalm.json', '--from', '0.5', '--to', '0.5'),
+  slapMoment: () => comp('slap-moment.json', '--from', '0', '--to', '6', '--every', '0.1', '--who', 's1'),
+  musicNight: () => comp('music-night.json', '--from', '0', '--to', '6', '--every', '1'),
+  overlap: () => sweep('--compose', `${EX}/overlap.json`),
+  gridPlant: () => sweep('--grid', 'plant', '--positions', '20'),
+  gridDesk: () => sweep('--grid', 'desk', '--positions', '12'),
+  walker: () => scene('--mock', 'floor', '--from', '6', '--to', '6', '--facts', 'walker'),
+};
+const started = {};
+const run = (key) => (started[key] ??= RUNS[key]());
+beforeAll(() => { for (const k of Object.keys(RUNS)) run(k); });
+const lines = (r) => { expect(r.status, r.stderr).toBe(0); return r.stdout.trim().split('\n').map((l) => JSON.parse(l)); };
 const problemsOf = (spec) => { try { compose(spec); return []; } catch (e) { expect(e).toBeInstanceOf(ComposeError); return e.problems; } };
 const base = { base: 'incident', items: [{ item: 'desk', at: [6, 6], id: 'd1' }] };
 
@@ -76,15 +103,11 @@ describe('studio compose', () => {
 });
 
 describe('studio scene --compose', () => {
-  const frames = (file, args) => {
-    const r = spawnSync(process.execPath, [resolve(__dirname, '../../scripts/studio/scene.mjs'), '--compose', `${EX}/${file}`, ...args], { encoding: 'utf8', timeout: 240000, maxBuffer: 1 << 28 });
-    expect(r.status, r.stderr).toBe(0);
-    return r.stdout.trim().split('\n').map((l) => JSON.parse(l));
-  };
+  const frames = async (key) => lines(await run(key));
   const person = (frame, id) => frame.objects.find((o) => o.id === `person:${id}`);
 
-  it('stands the fixer at the composed spot, and the slap plays from its frame', () => {
-    const rows = frames('slap.json', ['--from', '0', '--to', '1', '--every', '0.2']);
+  it('stands the fixer at the composed spot, and the slap plays from its frame', async () => {
+    const rows = await frames('slap');
     const fixer = rows.map((r) => person(r, 'fixer'));
     expect(fixer[0].world.slice(12, 15).map((v) => +v.toFixed(2))).toEqual([-2.5, 0, -1.4]);
     // The slap is at frame 12 (0.4 s) and a sample at frame 12 already shows it.
@@ -98,23 +121,21 @@ describe('studio scene --compose', () => {
     expect(off).toBeLessThan(3);
   }, 260000);
 
-  it('gives every object a position, rounds --every to a whole frame and says so, and prints an array on request', () => {
-    const args = ['--compose', `${EX}/coffee-visit.json`, '--from', '0', '--to', '1', '--every', '0.25'];
-    const run = (...more) => spawnSync(process.execPath, [resolve(__dirname, '../../scripts/studio/scene.mjs'), ...args, ...more], { encoding: 'utf8', timeout: 240000, maxBuffer: 1 << 28 });
-    const lines = run();
-    expect(lines.status, lines.stderr).toBe(0);
-    expect(lines.stderr).toMatch(/every 0\.25 s is not a whole frame; sampling every 8 frames/);
-    const records = lines.stdout.trim().split('\n').map((l) => JSON.parse(l));
+  it('gives every object a position, rounds --every to a whole frame and says so, and prints an array on request', async () => {
+    const out = await run('coffeeLines');
+    expect(out.status, out.stderr).toBe(0);
+    expect(out.stderr).toMatch(/every 0\.25 s is not a whole frame; sampling every 8 frames/);
+    const records = out.stdout.trim().split('\n').map((l) => JSON.parse(l));
     expect(records).toHaveLength(4);
     for (const o of records[0].objects) expect(o.position).toEqual(o.world.slice(12, 15));
-    const array = run('--json-array');
+    const array = await run('coffeeArray');
     expect(JSON.parse(array.stdout)).toEqual(records);
-    const bad = run('--every', '0');
+    const bad = await run('coffeeBad');
     expect(bad.status).toBe(2);
   }, 260000);
 
-  it('sends a person to a coffee corner, holds another until a time, then lets them walk', () => {
-    const rows = frames('coffee-visit.json', ['--from', '0', '--to', '9', '--every', '1']);
+  it('sends a person to a coffee corner, holds another until a time, then lets them walk', async () => {
+    const rows = await frames('coffeeVisit');
     const acts = (id) => rows.map((r) => person(r, id).person.activity);
     expect(acts('ada')).toContain('sip');
     // bo stands still for the six seconds before `until`, then walks
@@ -124,8 +145,8 @@ describe('studio scene --compose', () => {
     expect(new Set(held).size).toBe(1);
   }, 260000);
 
-  it('coffee wait: a person stands on the step-out point by name, and the visitor never walks into them', () => {
-    const rows = frames('coffee-wait.json', ['--from', '0', '--to', '12', '--every', '0.5', '--facts', 'intersections']);
+  it('coffee wait: a person stands on the step-out point by name, and the visitor never walks into them', async () => {
+    const rows = await frames('coffeeWait');
     const at = (r, id) => person(r, id).position;
     const act = (r, id) => person(r, id).person.activity;
     const bo = rows.map((r) => at(r, 'bo'));
@@ -151,12 +172,12 @@ describe('studio scene --compose', () => {
     }
   }, 260000);
 
-  it('seats the composed person at the desk and plays the gesture over it', () => {
-    const rows = frames('facepalm.json', ['--from', '0', '--to', '1', '--every', '1']);
+  it('seats the composed person at the desk and plays the gesture over it', async () => {
+    const rows = await frames('facepalm');
     const ada = person(rows[0], 'ada');
     expect(ada.person.walk.goal.seated).toBe(true);
     expect(ada.person.activity).toBe('typing');
-    const later = frames('facepalm.json', ['--from', '0.5', '--to', '0.5'])[0];
+    const later = (await frames('facepalmLater'))[0];
     expect(person(later, 'ada').person.activity).toBe('facepalmsit');
     expect(rows[0].objects.find((o) => o.id === 'item:d1')).toBeTruthy();
     expect(rows[0].objects.find((o) => o.id === 'item:w1')).toBeTruthy();
@@ -221,10 +242,8 @@ describe('compose moments, era and keep', () => {
 });
 
 describe('composed staged moments', () => {
-  it('the composed slap reproduces the game: the fixer\'s right hand reaches the robot head like stage.mjs reads', () => {
-    const r = spawnSync(process.execPath, [resolve(__dirname, '../../scripts/studio/scene.mjs'), '--compose', `${EX}/slap-moment.json`, '--from', '0', '--to', '6', '--every', '0.1', '--who', 's1'], { encoding: 'utf8', timeout: 240000, maxBuffer: 1 << 28 });
-    expect(r.status, r.stderr).toBe(0);
-    const rows = r.stdout.trim().split('\n').map((l) => JSON.parse(l));
+  it('the composed slap reproduces the game: the fixer\'s right hand reaches the robot head like stage.mjs reads', async () => {
+    const rows = lines(await run('slapMoment'));
     let best = Infinity;
     for (const row of rows) {
       const fixer = row.objects.find((o) => o.id === 'person:s1');
@@ -243,10 +262,8 @@ describe('composed staged moments', () => {
 });
 
 describe('composed music night', () => {
-  it('the dancers dance and the robot leaves its dock for the floor', () => {
-    const r = spawnSync(process.execPath, [resolve(__dirname, '../../scripts/studio/scene.mjs'), '--compose', `${EX}/music-night.json`, '--from', '0', '--to', '6', '--every', '1'], { encoding: 'utf8', timeout: 240000, maxBuffer: 1 << 28 });
-    expect(r.status, r.stderr).toBe(0);
-    const rows = r.stdout.trim().split('\n').map((l) => JSON.parse(l));
+  it('the dancers dance and the robot leaves its dock for the floor', async () => {
+    const rows = lines(await run('musicNight'));
     const last = rows.at(-1).objects;
     expect(last.filter((o) => /^dance_/.test(o.person?.activity ?? '')).length).toBeGreaterThanOrEqual(4);
     const at = (row) => row.objects.find((o) => o.kind === 'robot').position;
@@ -255,22 +272,22 @@ describe('composed music night', () => {
 });
 
 describe('the sweep\'s collision rows on a composed scene', () => {
-  it('give the same person-against-furniture rows as the engine, within 5 mm', () => {
-    const r = spawnSync(process.execPath, [resolve(__dirname, '../../scripts/studio/compare-sweep.mjs'), '--compose', `${EX}/overlap.json`], { encoding: 'utf8', timeout: 240000, maxBuffer: 1 << 28 });
+  it('give the same person-against-furniture rows as the engine, within 5 mm', async () => {
+    const r = await run('overlap');
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toMatch(/match {2}ada\|c1\|torso\|pal_plastic_white/);
     expect(r.stdout).toMatch(/match {2}ada\|c1\|head\|pal_plastic_white/);
     expect(r.stdout).toContain('5 of 5 pairs match within 0.005 m');
   }, 260000);
 
-  it('runs a grid of positions round an item and finds no pair the engine misses (plant: every pair matches)', () => {
-    const r = spawnSync(process.execPath, [resolve(__dirname, '../../scripts/studio/compare-sweep.mjs'), '--grid', 'plant', '--positions', '20'], { encoding: 'utf8', timeout: 240000, maxBuffer: 1 << 28 });
+  it('runs a grid of positions round an item and finds no pair the engine misses (plant: every pair matches)', async () => {
+    const r = await run('gridPlant');
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toMatch(/plant +20 positions, \d+ pairs: \d+ match, 0 missed by the engine, 0 differ/);
   }, 260000);
 
-  it('compares the desk too: the sweep\'s own-furniture rule is not applied, so every desk pair matches', () => {
-    const r = spawnSync(process.execPath, [resolve(__dirname, '../../scripts/studio/compare-sweep.mjs'), '--grid', 'desk', '--positions', '12'], { encoding: 'utf8', timeout: 240000, maxBuffer: 1 << 28 });
+  it('compares the desk too: the sweep\'s own-furniture rule is not applied, so every desk pair matches', async () => {
+    const r = await run('gridDesk');
     expect(r.status, r.stdout + r.stderr).toBe(0);
     const m = /desk +12 positions, (\d+) pairs: (\d+) match, 0 missed by the engine, 0 differ, 0 engine-only/.exec(r.stdout);
     expect(m, r.stdout).toBeTruthy();
@@ -286,8 +303,8 @@ describe('the sweep\'s collision rows on a composed scene', () => {
 });
 
 describe('the walker fact', () => {
-  it('reports each walking person\'s route, target, heading, drift and wait', () => {
-    const r = spawnSync(process.execPath, [resolve(__dirname, '../../scripts/studio/scene.mjs'), '--mock', 'floor', '--from', '6', '--to', '6', '--facts', 'walker'], { encoding: 'utf8', timeout: 240000, maxBuffer: 1 << 28 });
+  it('reports each walking person\'s route, target, heading, drift and wait', async () => {
+    const r = await run('walker');
     expect(r.status, r.stderr).toBe(0);
     const { facts } = JSON.parse(r.stdout.trim().split('\n')[0]);
     expect(facts.walkers.length).toBeGreaterThan(0);

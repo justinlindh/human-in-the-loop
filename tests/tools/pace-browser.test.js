@@ -1,16 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { spawnSync } from 'node:child_process';
+import { spawnAsync } from './spawn-async.js';
 import { readFileSync } from 'node:fs';
 import { summarize, presentationMetadata } from '../../scripts/pace-browser.js';
 
-describe('observed pacing arguments and metadata', () => {
+describe.concurrent('observed pacing arguments and metadata', () => {
   it.each([
     [['--player', 'eager'], 'modeled option --player'],
     [['--speed', '3'], 'speed must be'],
     [['--minutes', '-1'], 'positive number'],
     [['--bot', 'missing'], 'unknown bot'],
-  ])('rejects unsupported arguments before launching a browser: %j', (args, message) => {
-    const result = spawnSync(process.execPath, ['scripts/pace.js', '--browser', ...args], { encoding: 'utf8', timeout: 15000 });
+  ])('rejects unsupported arguments before launching a browser: %j', async (args, message) => {
+    const result = await spawnAsync(process.execPath, ['scripts/pace.js', '--browser', ...args], { timeout: 15000 });
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain(message);
   });

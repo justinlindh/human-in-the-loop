@@ -94,17 +94,25 @@ describe('param on declarations as they are written', () => {
     let n = 0;
     for (const f of files('src/render')) {
       const text = readFileSync(f, 'utf8');
+      const lines = text.split('\n').length, consts = (text.match(/^(?:export\s+)?const\s/gm) ?? []).length;
+      const ok = [];
       for (const m of text.matchAll(/^(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=/gm)) {
+        const p = { name: m[1], index: null, value: '0' };
         let out;
-        try { out = applyParams(text, [{ name: m[1], index: null, value: '0' }]); } catch (e) { expect(String(e.message), `${f} ${m[1]}`).toMatch(/where .* declaration ends/); continue; }
-        expect(() => parseAst(out), `${f} ${m[1]}`).not.toThrow();
-        expect(out.split('\n').length, `${f} ${m[1]} line count`).toBeLessThanOrEqual(text.split('\n').length);
-        expect((out.match(/^(?:export\s+)?const\s/gm) ?? []).length, `${f} ${m[1]} const count`).toBe((text.match(/^(?:export\s+)?const\s/gm) ?? []).length);
+        try { out = applyParams(text, [p]); } catch (e) { expect(String(e.message), `${f} ${m[1]}`).toMatch(/where .* declaration ends/); continue; }
+        expect(out.split('\n').length, `${f} ${m[1]} line count`).toBeLessThanOrEqual(lines);
+        expect((out.match(/^(?:export\s+)?const\s/gm) ?? []).length, `${f} ${m[1]} const count`).toBe(consts);
+        ok.push(p);
         n++;
+      }
+      if (!ok.length) continue;
+      // Every rewrite parses when all of a file's rewrites do at once: one parse per file, and only a
+      // failing file is re-parsed const by const to name the one that broke.
+      try { parseAst(applyParams(text, ok)); } catch {
+        for (const p of ok) expect(() => parseAst(applyParams(text, [p])), `${f} ${p.name}`).not.toThrow();
       }
     }
     expect(n).toBeGreaterThan(100);
-    // One parse per const in the renderer: hundreds, which a loaded runner can stretch past the default.
   }, 120000);
 });
 

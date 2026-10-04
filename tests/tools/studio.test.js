@@ -1,18 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
+import { spawnAsync } from './spawn-async.js';
 
-const run = (script) => spawnSync(process.execPath, [resolve(__dirname, '../../scripts/studio', script)], { encoding: 'utf8', timeout: 240000 });
+const run = (script) => spawnAsync(process.execPath, [resolve(__dirname, '../../scripts/studio', script)], { timeout: 240000 });
 
-describe('studio engine', () => {
-  it('its verification checks pass', () => {
-    const r = run('verify.mjs');
+// The two scripts are independent, so they run side by side.
+describe.concurrent('studio engine', () => {
+  it('its verification checks pass', async () => {
+    const r = await run('verify.mjs');
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toContain('"passed":7');
   }, 260000);
 
-  it('its planted geometry controls pass', () => {
-    const r = run('controls.mjs');
+  it('its planted geometry controls pass', async () => {
+    const r = await run('controls.mjs');
     expect(r.status, r.stdout + r.stderr).toBe(0);
   }, 260000);
 });
