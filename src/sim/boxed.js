@@ -11,7 +11,7 @@ import { chapterStart } from './util.js';
 export const newInventory = () => ({
   stock: 0, stockCost: 0, installed: 0, deliveries: [], unitsOrdered: 0, unitsSold: 0, returns: 0,
   returnUnits: 0, salesHistory: [], grossSales: 0, retailerFees: 0, refunds: 0, manufacturingCost: 0,
-  patchCost: 0, patches: 0, patchedVersion: 0, weeklyNet: 0, salesWeek: null,
+  patchCost: 0, patches: 0, patchedVersion: 1, weeklyNet: 0, salesWeek: null,
   delivered: 0, buybackCost: 0, withdrawn: 0, buybackWeek: null, returnsSettled: false, master: null,
 });
 
@@ -37,7 +37,7 @@ export function batchQuote(state, p, requested) {
 export function patchQuote(state, p) {
   const cost = Math.min(B.preinternet.patchCap, (p?.boxed?.installed ?? 0) * B.preinternet.patchPerCustomer);
   const reason = !liveBox(p) ? 'No live boxed product' : !p.boxed.installed ? 'No installed customers'
-    : p.health >= p.baseHealth && p.boxed.patchedVersion >= p.version ? 'Installed copies are already patched'
+    : p.health >= p.baseHealth && Math.max(1, p.boxed.patchedVersion ?? 1) >= p.version ? 'Installed copies are already patched'
       : state.cash < cost ? 'Not enough cash' : null;
   return { cost, reason };
 }

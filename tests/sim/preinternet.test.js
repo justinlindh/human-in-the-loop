@@ -56,6 +56,7 @@ describe('pre-internet founding and chapters', () => {
     const j = s.projects[0], ctx = makeCtx(s), pts = { features: 10000, reliability: 10000, polish: 10000, novelty: 10000 };
     ctx.weekEffort = { [j.id]: pts }; ctx.weekStats = { [j.id]: pts }; ctx.contributors = {};
     projectsSystem(ctx); const p = s.products[0]; expect(p.boxed.stock).toBe(0);
+    expect(p.boxed.patchedVersion).toBe(p.version);
     p.boxed.installed = 500; p.boxed.stock = 100;
     for (const era of ['dotcom', 'web2', 'classic']) {
       s.pendingDecision = null; s.week = s.eraSchedule[era]; calendarStart(makeCtx(s));
@@ -216,6 +217,51 @@ describe('physical distribution arithmetic', () => {
     expect(p.boxed.returns).toBe(1); expect(p.boxed.installed).toBe(19);
     p.score = 6; p.boxed.stock = 100; sellBoxes(makeCtx(s), p, 100);
     expect(p.boxed.returns).toBe(1); expect(p.boxed.installed).toBe(119);
+  });
+
+  it('refuses a fresh full-health release without charging or emitting chat or a toast', () => {
+    const s = game(), p = product(s); p.boxed.installed = 153;
+    p.health = p.baseHealth;
+    const before = structuredClone(s), reason = 'Installed copies are already patched';
+    expect(patchQuote(s, p)).toEqual({ cost: 306, reason });
+    expect(dispatch(s, { type: 'mailPatch', productId: p.id })).toMatchObject({ ok: false, reason, events: [] });
+    expect(s).toEqual(before);
+  });
+
+  it('mails a version update once even when health is full', () => {
+    const s = game(), p = product(s); p.boxed.installed = 100; p.health = p.baseHealth;
+    expect(dispatch(s, { type: 'startProject', kind: 'update', productId: p.id, size: 'small' }).ok).toBe(true);
+    const j = s.projects[0], ctx = makeCtx(s), pts = { features: 10000, reliability: 10000, polish: 10000, novelty: 10000 };
+    ctx.weekEffort = { [j.id]: pts }; ctx.weekStats = { [j.id]: pts }; ctx.contributors = {};
+    projectsSystem(ctx);
+    expect(p.version).toBe(2); expect(p.boxed.patchedVersion).toBe(1);
+    expect(patchQuote(s, p)).toEqual({ cost: 200, reason: null });
+    const cash = s.cash;
+    expect(dispatch(s, { type: 'mailPatch', productId: p.id }).ok).toBe(true);
+    expect(s.cash).toBe(cash - 200); expect(p.boxed.patchedVersion).toBe(2);
+    expect(p.boxed.patches).toBe(1); expect(p.boxed.patchCost).toBe(200);
+    const before = structuredClone(s);
+    expect(dispatch(s, { type: 'mailPatch', productId: p.id })).toMatchObject({ ok: false, events: [] });
+    expect(s).toEqual(before);
+  });
+
+  it.each([1, 2])('loads a zero patch marker as the launch version for a v%s product', (version) => {
+    const s = game(), p = product(s); p.boxed.installed = 153; p.health = p.baseHealth;
+    p.version = version; p.boxed.patchedVersion = 0;
+    const loaded = roundtrip(s), saved = loaded.products[0];
+    expect(saved.boxed.patchedVersion).toBe(1);
+    expect(saved.boxed.patches).toBe(0); expect(saved.boxed.patchCost).toBe(0);
+    expect(patchQuote(loaded, saved).reason).toBe(version === 1 ? 'Installed copies are already patched' : null);
+    expect(roundtrip(loaded)).toEqual(loaded);
+  });
+
+  it('refuses a zero patch marker on a full-health v1 without mutating the quote input', () => {
+    const s = game(), p = product(s); p.boxed.installed = 153; p.health = p.baseHealth;
+    p.boxed.patchedVersion = 0;
+    const before = structuredClone(s), reason = 'Installed copies are already patched';
+    expect(patchQuote(s, p).reason).toBe(reason);
+    expect(dispatch(s, { type: 'mailPatch', productId: p.id })).toMatchObject({ ok: false, reason, events: [] });
+    expect(s).toEqual(before);
   });
 
   it('caps the mailed patch, requires installed customers and charges before restoring health', () => {

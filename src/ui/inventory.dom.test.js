@@ -36,6 +36,23 @@ it('orders by tap, preserves focus during refresh, and shows shipment and patch 
   expect(p.mrr).toBe(0);
 });
 
+it('disables a fresh full-health release with a visible reason and enables a version update', () => {
+  const s = createGame({ seed: 17, startEra: 'preinternet' }), p = addProduct(s);
+  p.angle = 'boxed'; p.boxed = newInventory(); p.boxed.installed = 153; p.health = p.baseHealth;
+  const act = vi.fn((a) => dispatch(s, a));
+  const view = inventoryView({ getState: () => s, act, open: vi.fn() });
+  document.body.append(view.el); view.update(s, true);
+  const patch = [...view.el.querySelectorAll('button')].find((b) => b.textContent.startsWith('Mail patch'));
+  expect(patch.disabled).toBe(true);
+  expect(patch.parentElement.textContent).toContain('Installed copies are already patched');
+  patch.click(); expect(act).not.toHaveBeenCalled();
+  p.version++; view.update(s);
+  expect(patch.disabled).toBe(false);
+  patch.click(); view.update(s);
+  expect(act).toHaveBeenCalledOnce(); expect(p.boxed.patchedVersion).toBe(2);
+  expect(patch.disabled).toBe(true);
+});
+
 it('keeps inventory controls available in a saved career without the preview parameter', () => {
   vi.useFakeTimers();
   const s = createGame({ seed: 17, startEra: 'preinternet' });

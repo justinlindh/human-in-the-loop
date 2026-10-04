@@ -137,6 +137,8 @@ function normalize(state) {
     delete state.flags.shippedBy;
   }
   for (const j of state.projects) if (!('researchId' in j)) j.researchId = null;
+  // Installed copies include the launch release even when no patch has been mailed.
+  for (const p of state.products) if (p.boxed) p.boxed.patchedVersion = Math.max(1, p.boxed.patchedVersion ?? 1);
   // Per-id maps gain an entry for every id the data knows, so lookups by id never miss.
   for (const m of Object.values(MODELS)) {
     state.models[m.id] ??= { version: 1, capability: m.capability, costMult: 1, available: false, deprecated: false };
