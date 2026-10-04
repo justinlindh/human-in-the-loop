@@ -88,7 +88,7 @@ cat >"$tmp/bin/gh" <<F
 case "\$1 \$2" in
   "pr view") jq -n --arg h "$head" '{number: 9, title: "t", author: {login: "justinlindh"}, isCrossRepository: false, headRefName: "tools/x", headRefOid: \$h, baseRefName: "main", isDraft: false, labels: [], body: "", createdAt: "2026-01-01T00:00:00Z", mergeable: "MERGEABLE", statusCheckRollup: [], comments: [], reviews: [], files: [], url: "u"}' ;;
   "api repos/{owner}/{repo}/pulls/9/files") printf 'b\t1\t0\n' ;;
-  "api repos/{owner}/{repo}/pulls/9/commits") printf '%s\n%s\n' "$first" "$head" ;;
+  "api repos/{owner}/{repo}/pulls/9/commits") printf '%s\n' "$first"; sleep 0.3; printf '%s\n' "$head" ;;
   *) echo "unexpected gh \$*" >&2; exit 1 ;;
 esac
 F

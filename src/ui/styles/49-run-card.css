@@ -1,0 +1,5 @@
+/* The end screen's share card: the canvas is both the preview and the saved picture. */
+.hitl .go-share { display: flex; flex-direction: column; gap: 0.6em; align-items: flex-start; padding: 0 1.1em 1em; }
+.hitl .go-card-img { width: min(100%, 30em); height: auto; aspect-ratio: 1200 / 630; border-radius: 0.7em; border: 0.14em solid var(--line); background: var(--cream-2); }
+.hitl .go-share .btn { min-height: 44px; }
+.hitl .go-share-note { align-self: center; }

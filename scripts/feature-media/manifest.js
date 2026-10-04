@@ -115,6 +115,14 @@ const MOMENTS = [
   ['user-test', 'first_user_test --choice 1', 'visitor_chair', 1, 2.6],
 ];
 
+// [item id, camera zoom, era the item needs] of the shop items shown in docs/features/office.md.
+const ITEM_STILLS = [
+  ['disk_duplicator', 3.2, 'preinternet'], ['retail_shelf', 3.2, 'preinternet'], ['dotcom_banner', 3.2, 'dotcom'],
+  ['desk'], ['meeting_table'], ['whiteboard'], ['coffee_corner'], ['plant'], ['bookshelf'], ['couch'], ['foosball'], ['ping_pong_table'],
+  ['espresso'], ['plant_wall'], ['nap_pod'], ['arcade'], ['standing_desk'], ['whiteboard_wall'], ['library'], ['monitoring_wall'], ['noc'],
+  ['office_robot'], ['server_rack'], ['trophy_case'],
+];
+
 export const ITEMS = [
   // The office, by stage and time.
   {
@@ -384,5 +392,32 @@ export const ITEMS = [
     actions: [{ at: 0, js: NO_SAY }, ...OPEN(), ...(zoom ? FOLLOW([prop], zoom, 0, length) : []), { at: 6.5, js: KEY(String(choice + 1), `Digit${choice + 1}`) }, ...DISMISS_AT([7, 7.5, 9, 12], { escape: false }), ...CAMLOG(length)],
     screenshots: [5],
     out: [{ path: `moments/${name}.mp4`, size: '1280x720', from: 1.5, seconds: length - 4, loop: 'none' }],
+  })),
+
+  // Feature inventory: each shop item placed in the HQ mock the way a player would and upgraded to its top
+  // level, the camera held close on it.
+  ...ITEM_STILLS.map(([itemId, zoom = 3.2, era]) => ({
+    id: `office-${itemId}`, title: `Office item: ${itemId}`, query: `mock=hq&time=day${era ? `&eras&eraArt=${era}` : ''}`, still: true, warmup: 1.5, record: '3840x2160',
+    setup: `(async () => {
+      const H = window.__HITL, s = H.state; s.cash = 1e9;
+      ${era ? `s.era = { id: '${era}', since: s.week };` : ''}
+      // An empty office, so the one item is the subject.
+      s.office.placed = []; s.staff = [];
+      const { suggestPlacement } = await import('/src/sim/office.js');
+      const spot = suggestPlacement(s, ${JSON.stringify(itemId)});
+      if (!spot) throw new Error('no free spot for ${itemId}');
+      const r = H.dispatch({ type: 'placeItem', itemId: ${JSON.stringify(itemId)}, x: spot.x, y: spot.y, rot: spot.rot });
+      if (!r.ok) throw new Error('placeItem refused: ' + (r.reason ?? ''));
+      const p = s.office.placed.filter((q) => q.itemId === ${JSON.stringify(itemId)}).pop();
+      for (let i = 0; i < 4; i++) if (!H.dispatch({ type: 'upgradeItem', id: p.id }).ok) break;
+      ${CLEAN};
+      // The "new things to place" card that a stage or era change raises would cover the item.
+      document.getElementById('clean-shot').textContent += ' #ui .announce-back, #ui .modal-back, #ui .modal-dock { display: none !important; }';
+    })()`,
+    actions: [0.2, 0.6, 1, 1.4, 1.8].map((at) => ({ at, js: CLEAR_CARDS })),
+    camera: [{ at: 0, target: { js: `(() => { let o = null; window.__hitlRender.scene.traverse((x) => { if (!o && x.userData.itemId === ${JSON.stringify(itemId)}) o = x; }); if (!o) return null; const v = o.getWorldPosition(new o.position.constructor()); return { x: v.x, z: v.z }; })()` }, zoom }],
+    screenshots: [2],
+    // The item sits at the middle of the frame; the 4K recording is cropped tight round it.
+    out: [{ path: `items/${itemId}.webp`, size: '1280x720', from: 2, crop: { x: 0.31, y: 0.285, w: 0.38, h: 0.43 } }],
   })),
 ];

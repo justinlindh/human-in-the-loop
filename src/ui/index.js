@@ -39,6 +39,7 @@ import { createMomentCaptions } from './moments.js';
 import { retireOptions } from './retire.js';
 import { orderGoals } from './goalOrder.js';
 import { dealBeats } from './deals.js';
+import { cardOptions, showCard } from './cards.js';
 import { GOALS, GOAL, goalReward, SIM_HAS_MEANING_UNLOCK, unlockInfo } from './v2content.js';
 
 // UI sound cues go out as window events so the audio lane needs no reference to the UI.
@@ -51,6 +52,8 @@ const PANEL_REFRESH_MS = 150;
 export function createUI({ root, getState, dispatch, controls }) {
   const layer = h('div.hitl');
   root.append(layer);
+  const cardOpts = cardOptions(globalThis.location?.search);
+  if (cardOpts) showCard(layer, cardOpts);
   setPortraitSource(() => controls.renderer ?? controls.getRenderer?.() ?? null);
   const tooltips = createTooltips(layer);
   const captions = createMomentCaptions(layer, {

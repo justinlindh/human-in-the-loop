@@ -5,7 +5,7 @@ import { makeCtx } from '../../src/sim/registry.js';
 import { projectsSystem } from '../../src/sim/projects.js';
 import { productsSystem, totalMrr } from '../../src/sim/products.js';
 import { calendarStart } from '../../src/sim/vendors.js';
-import { newInventory, sellBoxes, batchQuote, patchQuote, preinternetEffect, preinternetStep } from '../../src/sim/boxed.js';
+import { newInventory, sellBoxes, batchQuote, patchQuote, preinternetEffect, preinternetStep, ageInstalls } from '../../src/sim/boxed.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
 import { FUNDING_IDS } from '../../src/data/funding.js';
 import { addProduct } from './helpers.js';
@@ -343,4 +343,46 @@ it('anchors dot-com beats after the physical chapter, including a queued bust', 
   s.week = s.eraSchedule.web2; dotcomStep(makeCtx(s));
   expect(s.flags.dotcom.settled).toBe(true); expect(s.flags.dotcom.recovered).toBe(true);
   const cash = s.cash; dotcomStep(makeCtx(s)); expect(s.cash).toBe(cash);
+});
+
+describe('the upgrade cycle (#1315)', () => {
+  it('ages installed copies out at one in B.preinternet.upgradeWeeks a week, in whole copies', () => {
+    const s = game(), p = product(s);
+    p.boxed.installed = B.preinternet.upgradeWeeks * 5;
+    ageInstalls(p);
+    expect(p.boxed.installed).toBe(B.preinternet.upgradeWeeks * 4 + B.preinternet.upgradeWeeks - 5);
+    expect(Number.isInteger(p.boxed.installed)).toBe(true);
+  });
+
+  it('carries fractions, so a small install base still turns over', () => {
+    const s = game(), p = product(s);
+    p.boxed.installed = 50;
+    for (let w = 0; w < B.preinternet.upgradeWeeks; w++) ageInstalls(p);
+    expect(p.boxed.installed).toBeLessThan(25);
+    expect(p.boxed.installed).toBeGreaterThan(12);
+    expect(Number.isInteger(p.boxed.installed)).toBe(true);
+    assertFinite(p.boxed);
+  });
+
+  it('reads a save from before the cycle (no carry) as a zero carry', () => {
+    const s = game(), p = product(s);
+    p.boxed.installed = 10; delete p.boxed.upgradeCarry;
+    ageInstalls(p);
+    expect(p.boxed.upgradeCarry).toBeGreaterThan(0);
+    assertFinite(p.boxed);
+  });
+
+  it('a saturated product sells again once its copies age out', () => {
+    const s = game(), p = product(s); p.score = 8; p.boxed.stock = 100000;
+    s.ops.maintenanceCapacity = 100000;
+    productsSystem(makeCtx(s));
+    // Saturate: the install base already covers the market.
+    p.boxed.installed = 1e7; p.boxed.unitsSold = 0;
+    productsSystem(makeCtx(s));
+    expect(p.boxed.unitsSold).toBe(0);
+    for (let w = 0; w < 20 * B.preinternet.upgradeWeeks; w++) ageInstalls(p);
+    expect(p.boxed.installed).toBeLessThan(1e7 / 1000);
+    productsSystem(makeCtx(s));
+    expect(p.boxed.unitsSold).toBeGreaterThan(0);
+  });
 });

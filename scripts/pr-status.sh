@@ -17,8 +17,16 @@ echo
 printf '%-5s %-10s %-20s %-8s %-9s %-28s %-11s %-30s %s\n' PR MERGE HOLD REVIEW LOCAL-CI 'CHECKS NOT PASSING' OWNER ASK TITLE
 # Owner records count only from logins in scripts/ci-trusted (anyone can comment on a public repo).
 trusted="$(grep -Ev '^[[:space:]]*(#|$)' "$(dirname "$0")/ci-trusted" | jq -Rnc '[inputs]')"
-for pr in $(gh pr list --base main --state open --limit 100 --json number --jq '.[].number' | sort -n); do
-  gh pr view "$pr" --json number,title,mergeStateStatus,isDraft,labels,statusCheckRollup,comments,headRefName,headRefOid --jq '
+# One JSON object per open PR into main, from the shared snapshot (scripts/tools/pr-snapshot.mjs: one
+# gh pr list per interval for every reader), else per-PR gh pr view.
+prs_json() {
+  node "$(dirname "$0")/tools/pr-snapshot.mjs" 2>/dev/null \
+    | jq -c '.prs | map(select(.baseRefName == "main")) | sort_by(.number) | .[]' 2>/dev/null && return 0
+  for pr in $(gh pr list --base main --state open --limit 100 --json number --jq '.[].number' | sort -n); do
+    gh pr view "$pr" --json number,title,mergeStateStatus,isDraft,labels,statusCheckRollup,comments,headRefName,headRefOid
+  done
+}
+prs_json | jq -r '
     def ctx(n): [(.statusCheckRollup // [])[] | select(.__typename == "StatusContext" and .context == n) | .state] | first // "none";
     # The owner record (scripts/pr-owner.sh): its owner and ask, the ask marked (old) once the head moved.
     ([.comments[] | select((.body | contains("<!-- hitl-owner")) and (.author.login as $a | '"$trusted"' | index($a)))] | last | .body // "") as $rec
@@ -39,7 +47,6 @@ for pr in $(gh pr list --base main --state open --limit 100 --json number --jq '
       (if $ask == "" then "-" elif $at != "" and $at != .headRefOid then "(old) " + $ask else $ask end),
       .title ] | @tsv' \
   | awk -F'\t' '{ printf "%-5s %-10s %-20s %-8s %-9s %-28s %-11s %-30s %s\n", "#"$1, $2, $3, $4, $5, $6, $7, substr($8, 1, 30), $9 }'
-done
 
 holds="$(gh issue list --state open --label awaiting-user --limit 100 --json number,title --jq '.[] | "#\(.number)\t\(.title)"')"
 echo
