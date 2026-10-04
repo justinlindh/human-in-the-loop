@@ -364,6 +364,21 @@ describe('audio director', () => {
     expect(Math.abs(loops - Math.round(loops))).toBeLessThan(1e-6);
   });
 
+  it('rings the register for a notable deal in every era, once per cooldown, and stays quiet otherwise', () => {
+    const d = createDirector();
+    const plays = (cmds) => cmds.filter((c) => c.op === 'play').map((c) => c.cue);
+    const deal = (notable, extra = {}) => ({ type: 'deal', productId: 'p1', week: 1, notable, ...extra });
+    for (const [i, era] of ['preinternet', 'dotcom', 'web2', 'classic', 'agents'].entries()) {
+      const s = state({ era: { id: era } });
+      expect(plays(d.events([deal(true)], s, 100 + i * 100))).toEqual(['sfx.sales_register']);
+    }
+    const s = state();
+    expect(plays(d.events([deal(false)], s, 1000))).toEqual([]);
+    expect(plays(d.events([deal(true, { boxed: true })], s, 2000))).toEqual(['sfx.sales_register']);
+    expect(plays(d.events([deal(true)], s, 2010))).toEqual([]);
+    expect(CUES['sfx.sales_register']).toMatchObject({ bus: 'sfx', cooldown: 30 });
+  });
+
   it('does not count paused time toward the next bed, and keeps a single bed forever', () => {
     const d = createDirector({ seed: 5, beds: { classic: ['classic/a', 'classic/b'] } });
     const s = state();

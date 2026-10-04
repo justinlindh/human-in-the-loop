@@ -13,8 +13,8 @@
 // --pick min|median|max|mean   how the kept values collapse to one cell (default min)
 // Each cell is one full pose.mjs run, one after another, so a big grid takes a while.
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync, rmSync } from 'node:fs';
+import { makeTemp } from '../../scripts/tools/tmp.mjs';
 import { join } from 'node:path';
 import { COVER_MEASURE } from './pose-rules.js';
 
@@ -78,7 +78,7 @@ export function runSweep(argv, script) {
     base.push(a);
   }
   if (COVER_MEASURE.test(measure) && !base.includes('--cover') && base.includes('--scene')) base.push('--cover', measure);
-  const dir = mkdtempSync(join(tmpdir(), 'pose-sweep-'));
+  const dir = makeTemp('pose-sweep-');
   const label = (c) => c.map(([n, v]) => `${n}=${v}`).join(' ');
   const cells = [];
   let bad = 0;

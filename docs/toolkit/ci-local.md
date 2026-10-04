@@ -5,7 +5,7 @@ covers: scripts/ci-local.sh
 ---
 The same checks in the current worktree, with a summary table. It runs golden (on the GPU, one scene at a time) in the background while the other GPU steps run one after another, and runs the tooling self-tests only when a change touches `scripts/` or `.claude/` (the main guard runs them all).
 
-It keeps only what needs this machine: the GPU render checks, golden, phone-check, stage, pose-nodraw and the tooling self-tests. GitHub's own checks run the rest on the same merged code, so a PR run records those steps as covered there:
+It keeps only what needs this machine: the GPU render checks, golden, phone-check, stage and the tooling self-tests. GitHub's own checks run the rest on the same merged code, so a PR run records those steps as covered there:
 - test:fast, build and syntax (`test`);
 - test:balance (`balance`);
 - soak and lifecycle (`browser`);

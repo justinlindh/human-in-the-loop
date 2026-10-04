@@ -37,36 +37,45 @@ describe('deal events', () => {
     expect(d.customers).toBeGreaterThan(0);
   });
 
-  it('marks only the first deal per product, and later small deals as not notable', () => {
+  it('marks only the first deal per product as first', () => {
     const s = company(1);
     expect(deals(s)[0].first).toBe(true);
-    const B0 = B.dealNotableMrr;
-    try {
-      B.dealNotableMrr = 1e12;
-      const [d] = deals(s);
-      expect(d.first).toBe(false);
-      expect(d.notable).toBe(false);
-    } finally { B.dealNotableMrr = B0; }
+    expect(deals(s)[0].first).toBe(false);
   });
 
-  it('makes every deal in a week notable once the week\'s total reaches B.dealNotableMrr', () => {
+  // A week is notable when its total tops B.dealBeatPace times the trailing average of the last
+  // B.dealBeatWeeks weekly totals, and reaches B.dealBeatFloor.
+  it('makes every deal in a week notable when the week beats the company\'s own pace', () => {
     const s = company(1);
     addProduct(s, { category: 'email', angle: 'web', model: null, customers: 10, hype: 5 });
     const first = deals(s);
     expect(first).toHaveLength(2);
     const weekMrr = first.reduce((n, d) => n + d.mrr, 0);
     for (const d of first) expect(d.weekMrr).toBe(weekMrr);
-    const B0 = B.dealNotableMrr;
+    s.flags.deals.firsts = s.products.map((p) => p.id);
+    const total = deals(structuredClone(s)).reduce((n, d) => n + d.mrr, 0);
+    expect(total).toBeGreaterThan(B.dealBeatFloor);
+    const withPace = (avg) => { const c = structuredClone(s); c.flags.deals.paceMrr = [avg]; return deals(c); };
+    expect(withPace(total / B.dealBeatPace - 1).every((d) => d.notable && !d.first)).toBe(true);
+    expect(withPace(total / B.dealBeatPace + 1).some((d) => d.notable)).toBe(false);
+  });
+
+  it('keeps a quiet week under the floor even against no history, and remembers B.dealBeatWeeks weeks', () => {
+    const s = company(1);
+    s.flags.deals = { open: {}, firsts: s.products.map((p) => p.id), paceMrr: [] };
+    const floor = B.dealBeatFloor;
     try {
-      const later = () => deals(structuredClone(s));
-      const total = later().reduce((n, d) => n + d.mrr, 0);
-      const biggest = Math.max(...later().map((d) => d.mrr));
-      expect(biggest).toBeLessThan(total);
-      B.dealNotableMrr = total;
-      expect(later().every((d) => d.notable && !d.first)).toBe(true);
-      B.dealNotableMrr = total + 1;
-      expect(later().some((d) => d.notable)).toBe(false);
-    } finally { B.dealNotableMrr = B0; }
+      B.dealBeatFloor = 1e9;
+      expect(deals(s).some((d) => d.notable)).toBe(false);
+    } finally { B.dealBeatFloor = floor; }
+    for (let i = 0; i < B.dealBeatWeeks + 5; i++) deals(s);
+    expect(s.flags.deals.paceMrr).toHaveLength(B.dealBeatWeeks);
+  });
+
+  it('counts silent weeks in the pace, so a week after a dry spell stands out', () => {
+    const s = company(1);
+    s.flags.deals = { open: {}, firsts: s.products.map((p) => p.id), paceMrr: Array(B.dealBeatWeeks).fill(0) };
+    expect(deals(s).every((d) => d.notable)).toBe(true);
   });
 
   it('is silent without a sales team', () => {

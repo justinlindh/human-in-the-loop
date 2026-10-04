@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readdirSync, readFileSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { makeTemp } from '../../scripts/tools/tmp.mjs';
 import { sensitivity, formatSweep } from '../../blender/checks/pose-matrix-sweep.js';
 import { parseMatrix, cellsOf, parseRule, judgeCell, margin, worstOf, formatMatrix, valueOf, tally, tallyText, runMatrix, PRESETS, guideOf } from '../../blender/checks/pose-matrix.js';
 
@@ -230,11 +230,11 @@ describe('pose.mjs --matrix', () => {
   });
 
   it('a sweep killed mid-run removes its temp dir and stops its runs', async () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'msweep-test-'));
+    const tmp = makeTemp('msweep-test-');
     const dirs = () => readdirSync(tmp).filter((n) => n.startsWith('pose-msweep-'));
     try {
       const values = Array.from({ length: 24 }, (_, i) => (0.2 + i * 0.01).toFixed(2)).join(',');
-      const child = spawn(process.execPath, [POSE, ...base, '--expect', 'coverHandEyeNear>=0.5@0.7', '--sweep', `PALM_STAND[2]=${values}`, '--jobs', '2'], { stdio: 'ignore', env: { ...process.env, TMPDIR: tmp } });
+      const child = spawn(process.execPath, [POSE, ...base, '--expect', 'coverHandEyeNear>=0.5@0.7', '--sweep', `PALM_STAND[2]=${values}`, '--jobs', '2'], { stdio: 'ignore', env: { ...process.env, HITL_TMP: tmp } });
       const closed = new Promise((res) => child.on('close', (code, signal) => res({ code, signal })));
       for (let i = 0; i < 300 && !dirs().length; i++) await new Promise((r) => setTimeout(r, 50));
       expect(dirs().length).toBeGreaterThan(0);
@@ -267,7 +267,7 @@ describe('pose.mjs --matrix', () => {
   });
 
   it('gives the same cells over several processes as over one, and refuses a bad --jobs', () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'matrix-jobs-'));
+    const tmp = makeTemp('matrix-jobs-');
     try {
       const cells = ['--gesture', 'facepalm', '--matrix', 'views=0,3,postures=stand,sit,builds=1,rig=on', '--measure', 'coverHandEyeNear,faceCam', '--expect', 'coverHandEyeNear>=0.5@0.7 if faceCam<=80'];
       const one = run(...cells, '--jobs', '1', '--rows', '--json', join(tmp, '1.json'));

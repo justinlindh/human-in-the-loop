@@ -6,9 +6,11 @@ import { DEAL_CUSTOMERS } from '../data/deal-customers.js';
 
 // Deal events: what the sales team (or the retail shelf) sold, for ui, art and audio to show. They change
 // nothing the game plays on. Each product's sales add up over B.dealGroupWeeks and are reported once at the
-// end of the window. A week whose reported sales reach B.dealNotableMrr (boxed: B.dealNotableBoxRevenue)
-// makes all of them notable, the weekly beat; a product's first deal is always notable; the rest belong in
-// a quiet line. Names come from a stream of their own, so the game's random state never moves.
+// end of the window. A week whose reported sales top B.dealBeatPace times the company's own average over the
+// last B.dealBeatWeeks weeks (silent weeks count as zero), and reach B.dealBeatFloor, makes all of them
+// notable: the weekly beat. Sales-team MRR and box revenue keep separate paces. A product's first deal is
+// always notable; the rest belong in a quiet line. Names come from a stream of their own, so the game's
+// random state never moves.
 
 const tally = (state) => (state.flags.deals ??= { open: {}, firsts: [] });
 const windowEnds = (state) => (state.week + 1) % Math.max(1, B.dealGroupWeeks) === 0;
@@ -61,9 +63,20 @@ export function flushDeals(ctx) {
   ctx.deals = [];
   const weekMrr = deals.reduce((n, d) => n + (d.mrr ?? 0), 0);
   const weekRevenue = deals.reduce((n, d) => n + (d.revenue ?? 0), 0);
+  const t = tally(ctx.state);
+  const beatMrr = beats(t.paceMrr ??= [], weekMrr);
+  const beatBox = beats(t.paceBox ??= [], weekRevenue);
   for (const d of deals) {
     ctx.emit(d.boxed
-      ? { ...d, weekRevenue, notable: d.first || weekRevenue >= B.dealNotableBoxRevenue }
-      : { ...d, weekMrr, notable: d.first || weekMrr >= B.dealNotableMrr });
+      ? { ...d, weekRevenue, notable: d.first || beatBox }
+      : { ...d, weekMrr, notable: d.first || beatMrr });
   }
+}
+
+// Whether this week's total beats the trailing average, then adds the week to it.
+function beats(pace, total) {
+  const avg = pace.length ? pace.reduce((n, x) => n + x, 0) / pace.length : 0;
+  pace.push(total);
+  if (pace.length > B.dealBeatWeeks) pace.splice(0, pace.length - B.dealBeatWeeks);
+  return total >= B.dealBeatFloor && total >= B.dealBeatPace * avg;
 }

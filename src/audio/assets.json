@@ -586,6 +586,10 @@
   "dotcom_bell": {
    "file": "sfx/dotcom_bell.ogg",
    "duration": 1.72
+  },
+  "sales_register": {
+   "file": "sfx/sales_register.ogg",
+   "duration": 1.053
   }
  },
  "voice": {

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { spawnSync, execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync, chmodSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { join, resolve } from 'node:path';
 
 const SCRIPT = resolve('scripts/wait-for.sh');
@@ -38,7 +38,7 @@ const run = (...args) => spawnSync('bash', [SCRIPT, ...args], { cwd: work, encod
   env: cleanEnv({ PATH: `${bin}:${process.env.PATH}`, FAKE_GH_DIR: ghDir, WORK: work }) });
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), 'wait-for-'));
+  root = mkdtempSync(join(toolTmp(), 'wait-for-'));
   bin = join(root, 'bin'); ghDir = join(root, 'gh'); mkdirSync(bin); mkdirSync(ghDir);
   writeFileSync(join(bin, 'gh'), FAKE_GH); chmodSync(join(bin, 'gh'), 0o755);
   writeFileSync(join(ghDir, 'comments.json'), JSON.stringify([{ body: '### Local CI: FAIL', html_url: 'https://example.test/c/1' }]));

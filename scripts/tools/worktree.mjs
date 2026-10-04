@@ -21,6 +21,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { mkdtempSync, rmSync, symlinkSync, copyFileSync, mkdirSync, writeFileSync, readdirSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir, constants as osConstants } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
+import { toolTmp } from './tmp.mjs';
 
 const PREFIX = 'hitl-wt-';
 const live = new Set();
@@ -36,15 +37,20 @@ function removeTree(repo, tmp) {
   try { git(repo, ['worktree', 'prune']); } catch { /* the repo may be gone */ }
 }
 
-// Trees whose owning process died without cleaning up (SIGKILL, a crash of the machine).
+// Trees whose owning process died without cleaning up (SIGKILL, a crash of the machine), in the
+// tools' scratch directory and in the system one, where an older checkout of this module puts them.
 function reapStale() {
-  for (const name of readdirSync(tmpdir())) {
-    if (!name.startsWith(PREFIX)) continue;
-    const tmp = join(tmpdir(), name);
-    try {
-      const { pid, repo } = JSON.parse(readFileSync(join(tmp, 'owner.json'), 'utf8'));
-      if (!isAlive(pid)) removeTree(repo, tmp);
-    } catch { /* not ours, or being created */ }
+  for (const root of new Set([toolTmp(), tmpdir()])) {
+    let names = [];
+    try { names = readdirSync(root); } catch { continue; }
+    for (const name of names) {
+      if (!name.startsWith(PREFIX)) continue;
+      const tmp = join(root, name);
+      try {
+        const { pid, repo } = JSON.parse(readFileSync(join(tmp, 'owner.json'), 'utf8'));
+        if (!isAlive(pid)) removeTree(repo, tmp);
+      } catch { /* not ours, or being created */ }
+    }
   }
 }
 
@@ -61,7 +67,7 @@ export async function createWorktree({ repo = process.cwd(), rev = 'HEAD', label
   hook();
   reapStale();
   repo = resolve(repo);
-  const tmp = mkdtempSync(join(tmpdir(), `${PREFIX}${label}-`));
+  const tmp = mkdtempSync(join(toolTmp(), `${PREFIX}${label}-`));
   writeFileSync(join(tmp, 'owner.json'), JSON.stringify({ pid: process.pid, repo }));
   const path = join(tmp, 'tree');
   const children = new Set();

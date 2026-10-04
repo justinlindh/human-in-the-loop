@@ -204,9 +204,10 @@ export const B = {
   incentiveEveryWeeks: 8, musicNightDancers: [3, 5], waffleLaunches: 20, waffleLevel: 20, waffleCooldownWeeks: 156, incentiveWinnerMeaning: 6, incentiveEnvy: 1, incentiveOutput: 0.06, incentiveFatigue: 0.01,
   awardAiScore: 8.5, awardWorkplaceStaff: 10, awardWorkplaceMeaning: 78, awardWorkplaceStreak: 2, awardTrustedIncidents: 0, awardAiHype: 15, awardWorkplacePride: 1, awardTrustedBrand: 2,
   recordEngPointsPerFeature: 8, recordDesignPointsPerFeature: 120, recordPointsPerPr: 30, recordTicketHours: 2, recordCustomersPerDeal: 25,
-  // Deal events: weeks of sales grouped into one report per product, and the week's total that makes its reports
-  // the weekly beat (smaller weeks get a quiet line; a product's first deal is always shown).
-  dealGroupWeeks: 1, dealNotableMrr: 1000, dealNotableBoxRevenue: 5000,
+  // Deal events: weeks of sales grouped into one report per product. A week is the weekly beat when its total
+  // tops dealBeatPace x the company's own average over the last dealBeatWeeks weeks and reaches dealBeatFloor
+  // (new MRR, or box revenue for boxed sales); other weeks get a quiet line; a product's first deal always shows.
+  dealGroupWeeks: 1, dealBeatPace: 1.1, dealBeatWeeks: 26, dealBeatFloor: 250,
   // Squads: how many, how big, and the headcount that unlocks them without the Office Floor.
   squadMax: 6, squadMaxMembers: 8, squadUnlockStaff: 8,
   // After a launch the benched part of a squad waits this long for a new posting; cohesion fills over

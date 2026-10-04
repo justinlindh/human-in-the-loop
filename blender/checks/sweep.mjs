@@ -121,7 +121,7 @@ async function startControl(spec) {
   // A checkout given by path counts with its uncommitted edits to tracked files (a control patch).
   const patch = asRoot ? execFileSync('git', ['-C', spec, 'diff', 'HEAD', '--binary'], { maxBuffer: 1 << 28 }) : null;
   const overlay = Object.fromEntries(['sweep.mjs', 'sample.js', 'sweep-plan.js'].map((f) => [`blender/checks/${f}`, join(HERE, f)]));
-  overlay['scripts/tools/worktree.mjs'] = join(repoRoot, 'scripts/tools/worktree.mjs');
+  for (const f of ['worktree.mjs', 'tmp.mjs']) overlay[`scripts/tools/${f}`] = join(repoRoot, 'scripts/tools', f);
   // An engine run on the other checkout is this checkout's engine on that checkout's game code.
   if (engine) {
     overlay['blender/checks/intersect.js'] = join(HERE, 'intersect.js');

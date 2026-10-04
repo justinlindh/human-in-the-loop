@@ -10,7 +10,7 @@
 //   node blender/checks/pose.mjs --scene [--mock floor | --seed N [--week W] | --moment '<query>' | --snapshot <path>]
 //        [--patch-js '<js>'] [--event '<json>'] [--warm 30] [--frames 0,15,30 | --clip <s> --every 6]
 //        [--who s3,s5] [--view 0] [--expect 's3:faceCovered<=0.1@0.8'] [--expect 'faceVisible>=0.9']
-//        [--slow-raycast] [--render-reference] [--profile <file>] [--json out.json]
+//        [--slow-raycast] [--render-reference] [--browser] [--profile <file>] [--json out.json]
 //   node blender/checks/pose.mjs --scene --serve     (one NDJSON request per stdin line, see below)
 //
 // Prints a row every --every frames (t, phase, animation, hand-to-face and hand-to-head distances in
@@ -28,8 +28,12 @@
 // param.js); --sweep NAME=a,b,c runs the measurement once per value and prints one table (see
 // param-sweep.js: --across, --measure, --rows, --pick). Neither works with --serve.
 //
-// --scene runs in a harness page under the render lock, drawing nothing: warm-up and sampling both
-// run through the update path with no draw call. For each person: faceCovered (how much of the head
+// --scene plays on the studio engine (scripts/studio/page-host.mjs, a 1280x800 Medium scene in its own
+// Node process), drawing nothing. A request that needs a page runs in a harness page under the render
+// lock instead, also drawing nothing (browserReason: --browser, --snapshot, --moment, --render-reference,
+// a faceCovered rule or bubble cover, which read the page's label layout, or a --patch-js that calls
+// the page's game controls). The engine lays out no labels, so its faceCovered and coveredBy are null.
+// For each person: faceCovered (how much of the head
 // a label or emote covers), faceVisible (the share of seven facial landmarks the camera sees, and
 // what hides them; not which way the face points), faceCam (the face's angle to the camera, degrees)
 // and facePx (the drawn head's height). Rules use faceCovered, faceVisible, bodyVisible, faceCam and
@@ -42,8 +46,8 @@
 // compare. --render-reference retains rendered scene stepping for comparison. --profile <file> writes
 // phase timings and actual WebGL draw counts separately from the unchanged --json rows.
 //
-// --serve keeps the browser and Vite server open across requests instead of paying their startup
-// every time, but opens a fresh page for each one, so results always match a cold run exactly: each
+// --serve answers every request in a harness page: it keeps the browser and Vite server open across
+// requests instead of paying their startup every time, but opens a fresh page for each one, so results always match a cold run exactly: each
 // stdin line is a JSON object with the same fields as the flags above in camelCase (mock, moment,
 // snapshot, patchJs, event, warm, frames, clip, every, who, view, rig, expect (an array), slowRaycast,
 // renderReference, profile, json), printed and judged exactly like a single cold run, then a
@@ -212,55 +216,46 @@ function normalizeSceneRequest({ get, flag, getAll }) {
   };
 }
 
-// The page-side sampling pass: turn to the requested view (a delta from the camera's current step,
-// which is always 0 on the fresh page each request gets), warm up, reseed and sample every requested
-// frame. Shared by a single cold run and every --serve request, each against its own freshly opened
-// page; the page and whatever target it shows are the caller's job.
+// The sampling pass (pose-scene-page.js), against a freshly opened page or engine scene; the page and
+// whatever target it shows are the caller's job.
+const sampleArg = (req) => ({ view: req.view, warm: req.warm, patchJs: req.patchJs, events: req.events, frames: req.frames, who: req.who, cover: req.cover, renderReference: req.renderReference, slowRaycast: req.slowRaycast });
 async function runSample(page, req) {
-  return page.evaluate(async (o) => {
-    const R = window.__hitlRender, S = window.__HITL.state;
-    // The visibility probes raycast every person every frame; a tree per mesh makes that cheap and
-    // finds the same hits (harness.mjs). --slow-raycast keeps three.js's own raycast.
-    await window.__fastRaycast({ install: !o.slowRaycast });
-    const M = await import('/blender/checks/pose-scene.js');
-    const wanted = ((o.view % 4) + 4) % 4, have = ((R.yawStep ?? 0) % 4 + 4) % 4;
-    for (let i = 0, n = (wanted - have + 4) % 4; i < n; i++) { dispatchEvent(new KeyboardEvent('keydown', { key: 'e' })); dispatchEvent(new KeyboardEvent('keyup', { key: 'e' })); }
-    const initialization = window.__drawAudit();
-    const warmStart = window.__wallNow();
-    // A real draw allocates lazy Three.js resources whose UUIDs draw from the seeded stream, so
-    // --render-reference (the only mode that samples by drawing every frame, for comparison) keeps
-    // its warmup draw; the default, no-draw mode never draws at all. Either way, reseeding right
-    // after puts both on the same stream from here on, so which one drew during warmup can't move a
-    // later actor choice. __settle only draws on its last frame, so --warm 0 gives --render-reference
-    // zero warmup draws too, pushing its own first draw (and the resource allocation it triggers)
-    // past the reseed and into the sampled frames. Nothing passes --warm 0 today; a caller who does
-    // should not expect it to match a separate --warm 0 run of the other mode.
-    (o.renderReference ? window.__settle : window.__sample)(o.warm);
-    window.__reseedGame();
-    const warmMs = window.__wallNow() - warmStart;
-    const warmed = window.__drawAudit();
-    const skipDraw = !o.renderReference;
-    const sampleStart = window.__wallNow();
-    // Async, so a patch can import the sim and play weeks (await sim.tick) before the frames start.
-    if (o.patchJs) await new (Object.getPrototypeOf(async () => {}).constructor)('S', 'R', o.patchJs)(S, R);
-    if (o.events) R.handleEvents([].concat(o.events), S);
-    const out = [];
-    let at = 0;
-    for (const f of o.frames) {
-      (skipDraw ? window.__sample : window.__step)(Math.max(0, f - at)); at = f;
-      for (const r of window.__tool(() => M.measureScene(R, S, { who: o.who, cover: o.cover }))) out.push({ frame: f, ...r });
-    }
-    const sampleMs = window.__wallNow() - sampleStart;
-    const total = window.__drawAudit();
-    return { rows: out, profile: { initialization, warmupDraws: warmed.total - initialization.total, sampleDraws: total.total - warmed.total, total, warmMs, sampleMs, samplingMode: skipDraw ? 'no-draw' : 'rendered' } };
-  }, { view: req.view, warm: req.warm, patchJs: req.patchJs, events: req.events, frames: req.frames, who: req.who, cover: req.cover, renderReference: req.renderReference, slowRaycast: req.slowRaycast });
+  const { scenePage } = await import('./pose-scene-page.js');
+  return page.evaluate(scenePage, sampleArg(req));
+}
+
+// Why a request needs a browser page, or null when the studio engine answers it. Label and bubble
+// rectangles come from the page's CSS layout, a snapshot or moment loads through the game's own
+// continueGame, and --render-reference draws.
+function browserReason(req) {
+  if (argv.includes('--browser')) return '--browser';
+  if (req.snapshot || req.moment) return req.snapshot ? '--snapshot' : '--moment';
+  if (req.renderReference) return '--render-reference';
+  if (/__HITL\s*\.\s*(?!state\b)\w/.test(req.patchJs ?? '')) return "--patch-js uses the page's game controls";
+  if (req.rules.some((r) => r.measure === 'faceCovered')) return 'a faceCovered rule needs label rectangles';
+  if (req.cover.some((c) => /Bubble/.test(c))) return 'a bubble cover needs label rectangles';
+  return null;
+}
+
+// The same pass on the studio engine, in a fresh Node process: a 1280x800 Medium page, no browser and no
+// render slot. Labels are not laid out there, so faceCovered and coveredBy are null and overlays hold
+// emotes only.
+async function engineSample(req) {
+  const { runCases } = await import('../../scripts/studio/page-host.mjs');
+  const source = req.seed != null ? { seed: Number(req.seed), weeks: req.week ? Number(req.week) : 0 } : { mock: req.mock ?? 'floor' };
+  const page = { ...source, quality: 'medium', rig: req.rig, width: 1280, height: 800, params: PARAMS };
+  const [r] = await runCases([{ page, module: fileURLToPath(new URL('./pose-scene-page.js', import.meta.url)), fn: 'scenePage', arg: sampleArg(req) }], { jobs: 1 });
+  if (r.error) throw new Error(`pose: engine: ${r.error}`);
+  for (const row of r.value.rows) { row.faceCovered = null; row.coveredBy = null; }
+  return r.value;
 }
 
 // The table, verdicts and (on failure) exit code a request's rows earn: identical for a single cold
 // run and every --serve request, so a warm answer reads exactly like a cold one.
 function printSceneResult(req, rows, profile, errors) {
   let code = 0;
-  console.log(`pose: draws initialization=${profile.initialization.total}, bootstrap/warmup=${profile.warmupDraws}, sampling=${profile.sampleDraws} (${profile.samplingMode}); warmup ${profile.warmMs.toFixed(0)} ms, sampling ${profile.sampleMs.toFixed(0)} ms`);
+  if (profile.samplingMode === 'engine') console.log(`pose: studio engine, nothing drawn, no label rectangles (--browser measures faceCovered); warmup ${profile.warmMs.toFixed(0)} ms, sampling ${profile.sampleMs.toFixed(0)} ms`);
+  else console.log(`pose: draws initialization=${profile.initialization.total}, bootstrap/warmup=${profile.warmupDraws}, sampling=${profile.sampleDraws} (${profile.samplingMode}); warmup ${profile.warmMs.toFixed(0)} ms, sampling ${profile.sampleMs.toFixed(0)} ms`);
   if (profile.samplingMode === 'no-draw' && (profile.warmupDraws !== 0 || profile.sampleDraws !== 0)) {
     console.error('POSE FAIL no-drawing assertion: WebGL draw submissions detected (see --profile); use --render-reference to diagnose');
     code = 1;
@@ -284,15 +279,30 @@ function printSceneResult(req, rows, profile, errors) {
   return { code, ids };
 }
 
-// One cold run: open the target, sample once, print, close. Identical output to before --serve
-// existed.
+// One cold run: open the target, sample once, print, close. On the studio engine unless the request
+// needs a browser page (browserReason).
 async function sceneMode() {
+  const t0 = performance.now();
+  let req;
+  try { req = normalizeSceneRequest(cliSource()); } catch (e) { console.error(e.message); return 2; }
+  const { MOCK_SCENARIOS } = await import('../../src/dev/mockSim.js');
+  if (req.mock != null && !MOCK_SCENARIOS.includes(req.mock)) { console.error(`pose: no mock scenario "${req.mock}" (want one of ${MOCK_SCENARIOS.join(', ')})`); return 2; }
+  const why = browserReason(req);
+  if (!why) {
+    const { rows, profile } = await engineSample(req);
+    profile.samplingMode = 'engine';
+    Object.assign(profile, { readyMs: null, mode: 'engine', frames: req.frames, who: req.who });
+    if (req.profilePath) writeFileSync(req.profilePath, JSON.stringify(profile, null, 2));
+    const { code, ids } = printSceneResult(req, rows, profile, []);
+    console.log(`pose: scene, ${ids.length} people, ${req.frames.length} frames in ${(performance.now() - t0).toFixed(0)} ms`);
+    return code;
+  }
+  // The render lock re-runs this command under it, so nothing is printed before this.
   const { holdRenderLock, glMode } = await import('../../scripts/lib/gl.js');
   holdRenderLock(glMode({ argv }));
-  const t0 = performance.now();
+  console.log(`pose: scene in a browser page (${why})`);
   const { startHarness } = await import('./harness.mjs');
   const { resolveTarget, openAt } = await import('../../scripts/events/load.js');
-  const req = normalizeSceneRequest(cliSource());
   const H = await startHarness({ auditDraws: true, params: PARAMS });
   let code = 0;
   try {
