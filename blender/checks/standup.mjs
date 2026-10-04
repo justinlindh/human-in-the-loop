@@ -4,7 +4,7 @@
 //
 //   node blender/checks/standup.mjs      prints one line per case; exits 1 if any fails
 import { startHarness } from './harness.mjs';
-import { inputHash, passedAt, recordPass } from './cache.mjs';
+import { graphBase, graphPassedAt, recordGraphPass, requestedFiles } from './cache.mjs';
 import { spawnSync } from 'node:child_process';
 
 const CASES = [];
@@ -17,10 +17,10 @@ for (const path of ['denied', 'ambient', 'priority', 'pause', 'menu', 'speed', '
 for (const mock of ['floor', 'hq']) for (const quality of ['medium', 'low']) CASES.push({ mock, strip: 'none', table: true, quality });
 
 // Cases run concurrently (--jobs=N, default 8), each in its own seeded page; a full pass is
-// recorded against a hash of every input (cache.mjs) and unchanged inputs skip the run.
+// recorded with the files it loaded (cache.mjs) and the run is skipped while none changed.
 const JOBS = Math.max(1, Number(process.argv.find((a) => a.startsWith('--jobs='))?.slice(7)) || 8);
-const hash = inputHash('standup');
-const before = passedAt('standup', hash);
+const hash = graphBase('standup');
+const before = graphPassedAt('standup', hash);
 if (before) {
   console.log(`standup: inputs unchanged since ${before}, skipped`);
   process.exit(0);
@@ -63,6 +63,7 @@ await Promise.all(Array.from({ length: Math.min(JOBS, CASES.length) }, async (_,
     try { await runCase(c, slot); } catch (e) { failed++; lines.set(c, `STANDUP FAIL ${c.seed ? `seed${c.seed}` : c.mock}:${c.strip} error: ${e.message.split('\n')[0]}`); }
   }
 }));
+const loaded = requestedFiles(H.requested());
 await H.close();
 for (const c of CASES) console.log(lines.get(c));
 console.log(`standup: ${CASES.length - failed} of ${CASES.length} passed`);
@@ -71,5 +72,5 @@ if (!failed) {
   if (live.status !== 0) failed++;
   console.log(`standup: live conversations ${live.status === 0 ? 'passed' : 'FAILED'}`);
 }
-if (!failed) recordPass('standup', hash);
+if (!failed) recordGraphPass('standup', hash, loaded);
 process.exit(failed ? 1 : 0);

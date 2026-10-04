@@ -11,7 +11,7 @@
 // arcade stool, library armchair), and pair games (foosball) ready to start and playable on the floor
 // and in the garage. Runs through harness.mjs, so the result depends only on the code.
 import { startHarness } from './harness.mjs';
-import { inputHash, passedAt, recordPass } from './cache.mjs';
+import { graphBase, graphPassedAt, recordGraphPass, requestedFiles } from './cache.mjs';
 import { fmtTrace, fmtActor } from './diag.mjs';
 import { mainGroups, emptyGroups } from './clip-groups.mjs';
 
@@ -53,9 +53,9 @@ const installExact = async () => {
 const noMatch = () => { console.log(`clip: no case matches --only=${ONLY.join(',')}`); process.exit(1); };
 const wanted = (name) => !ONLY || ONLY.some((p) => name.includes(p));
 const runs = Object.fromEntries(Object.entries(GROUPS).map(([g, names]) => [g, !ONLY || ONLY.some((p) => names.some((n) => n.includes(p) || p.startsWith(n)))]));
-// A full pass is recorded against a hash of every input (cache.mjs); unchanged inputs skip the run.
-const hash = inputHash('clip', rig);
-const before = passedAt('clip', hash);
+// A full pass is recorded with the files it loaded (cache.mjs); the run is skipped while none changed.
+const hash = graphBase('clip', rig);
+const before = graphPassedAt('clip', hash);
 if (ONLY && !Object.values(runs).some(Boolean)) noMatch();
 if (before && !ONLY) {
   console.log(`clip${rig ? ' --rig' : ''}: inputs unchanged since ${before}, skipped`);
@@ -212,6 +212,7 @@ if (runs.control) {
   await g.page.close();
   ownDone('control');
 }
+const loaded = requestedFiles(H.requested());
 await H.close();
 const shown = out.filter((r) => wanted(r.name));
 if (ONLY && !shown.length) noMatch();
@@ -231,5 +232,5 @@ for (const r of shown) {
 }
 if (errors.length) { failed++; console.log(`page errors: ${errors.join('; ')}`); }
 console.log(`clip: ${shown.length - failed} of ${shown.length} passed${ONLY ? ` (--only=${ONLY.join(',')})` : ''}`);
-if (!failed && !ONLY) recordPass('clip', hash);
+if (!failed && !ONLY) recordGraphPass('clip', hash, loaded);
 process.exit(failed ? 1 : 0);
