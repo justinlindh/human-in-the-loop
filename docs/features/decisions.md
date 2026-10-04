@@ -14,7 +14,7 @@ Props appear on the desk, wall, floor, kitchen or door while a decision is open;
 - **The cloud bill has feelings**: a server rack running hot. `id: agent_runaway_spend`
 - **The CEO wants gift cards**: a stack of gift cards on the desk. Spoken: "The gift cards are a strange enterprise feature." `id: phishing_ceo`
 - **The first user test and the consultants**: a visitor chair pulled up. `id: first_user_test` `id: efficiency_consultants`
-- ★ **Lockdown**: moving boxes by the door, a monitor peeking out, then the office empties. Spoken: "My monitor is coming home before my desk." `id: lockdown_start`
+- ★ **Lockdown**: moving boxes by the door, a monitor peeking out, then the office empties. Spoken: "My monitor is coming home before my desk." `id: lockdown_start` Media: [still](https://github.com/justinlindh/human-in-the-loop/blob/feature-media/lockdown.webp?raw=true).
 - **Pets**: laminated dog photos on a desk; a cat carrier by the door; a chewed network cable after a pet mishap. Spoken: "The network cable lost a very short argument." `id: pet_request` `id: cat_request` `id: pet_mishap`
 - **Days since the rival copied us**: "Rise above it" hangs a sign with the rival's name and a flip counter stuck on 0, until the rival is gone. `id: rival_jab`
 - **The invoices**: an itemised agent invoice stamped PAST DUE with a total of "$$$$$$"; the classic-era hosting bill uses the same sheet. Spoken: "The invoice has an appendix for thinking." Spoken: "The bill charges us for leaving." `id: agent_invoice` `id: cloud_bill`
