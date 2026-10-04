@@ -138,3 +138,59 @@ describe('per-scene check records', () => {
     expect(existsSync(join(dir, 'probe-scenes'))).toBe(false);
   });
 });
+
+describe('per-item records for captured media', () => {
+  const ITEM = { id: 'printer', query: 'mock=floor', setup: (S) => S.week };
+  const TOOLS = ['scripts/feature-media/render.mjs'];
+  const LOADED = ['http://localhost:5173/src/render/checks.js', 'http://localhost:5173/models/chibi.glb', 'src/ui/simapi.js', 'https://fonts.example/f.woff2'];
+  const recFile = (id) => join(dir, 'media-items', `${id}.json`);
+
+  it('an item is up to date after a record, and stale with no record, another spec or a changed tool', async () => {
+    const c = await load();
+    const base = c.itemBase('media', ITEM, TOOLS);
+    expect(c.itemStatus('media', 'printer', base)).toEqual({ upToDate: false, reason: 'no record' });
+    expect(c.recordItem('media', 'printer', base, LOADED)).toBe(true);
+    expect(c.itemStatus('media', 'printer', base)).toMatchObject({ upToDate: true, reason: null });
+    // A spec function counts by its source, so editing one changes the base.
+    expect(c.itemBase('media', { ...ITEM, setup: (S) => S.month }, TOOLS)).not.toBe(base);
+    expect(c.itemBase('media', { ...ITEM, query: 'mock=hq' }, TOOLS)).not.toBe(base);
+    expect(c.itemBase('media', ITEM, [])).not.toBe(base);
+    expect(c.itemStatus('media', 'printer', c.itemBase('media', { ...ITEM, query: 'mock=hq' }, TOOLS))).toEqual({ upToDate: false, reason: 'spec or tools changed' });
+  });
+
+  it('records the repo files behind the URLs and paths, names a changed one, and a glob directory', async () => {
+    const c = await load();
+    const base = c.itemBase('media', ITEM, TOOLS);
+    c.recordItem('media', 'printer', base, LOADED);
+    const rec = JSON.parse(readFileSync(recFile('printer'), 'utf8'));
+    expect(Object.keys(rec.files)).toEqual(expect.arrayContaining(['src/render/checks.js', 'public/models/chibi.glb', 'src/ui/simapi.js', 'url:https://fonts.example/f.woff2']));
+    expect(Object.keys(rec.lists)).toContain('src/sim');
+    writeFileSync(recFile('printer'), JSON.stringify({ ...rec, files: { ...rec.files, 'src/render/checks.js': 'stale' } }));
+    expect(c.itemStatus('media', 'printer', base)).toEqual({ upToDate: false, reason: 'changed: src/render/checks.js' });
+    writeFileSync(recFile('printer'), JSON.stringify({ ...rec, lists: { ...rec.lists, 'src/sim': 'stale' } }));
+    expect(c.itemStatus('media', 'printer', base)).toEqual({ upToDate: false, reason: 'files added or removed under src/sim' });
+  });
+
+  it('records nothing without game source or with a missing file, clears, keeps ids apart, and is off with the cache', async () => {
+    const c = await load();
+    const base = c.itemBase('media', ITEM, TOOLS);
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect(c.recordItem('media', 'a', base, ['http://localhost:5173/models/chibi.glb'])).toBe(false);
+      expect(c.recordItem('media', 'a', base, ['src/render/no-such-file.js'])).toBe(false);
+      expect(spy.mock.calls.map((x) => x[0])).toEqual(['media: cache: skipped (a: no game source loaded)', 'media: cache: skipped (a: a loaded file is missing (src/render/no-such-file.js))']);
+    } finally { spy.mockRestore(); }
+    c.recordItem('media', 'a/b', base, LOADED);
+    expect(c.itemStatus('media', 'a/b', base).upToDate).toBe(true);
+    expect(c.itemStatus('media', 'a', base).reason).toBe('no record');
+    c.clearItem('media', 'a/b');
+    expect(c.itemStatus('media', 'a/b', base).reason).toBe('no record');
+    expect(() => c.clearItem('media', 'never')).not.toThrow();
+    process.env.HITL_NO_CHECK_CACHE = '1';
+    try {
+      expect(c.itemBase('media', ITEM, TOOLS)).toBeNull();
+      expect(c.recordItem('media', 'x', null, LOADED)).toBe(false);
+      expect(c.itemStatus('media', 'x', null)).toEqual({ upToDate: false, reason: 'cache off' });
+    } finally { delete process.env.HITL_NO_CHECK_CACHE; }
+  });
+});
