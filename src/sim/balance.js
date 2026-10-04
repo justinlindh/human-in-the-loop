@@ -167,8 +167,9 @@ export const B = {
     family: { cash: 150000, scoreMult: 0.97, brand: 0, seniorCandidates: 0 },
     preseed: { cash: 300000, scoreMult: 0.96, brand: 8, seniorCandidates: 2 },
   },
-  // scoreShare: a start's pooled median final score (six bots, 200 seeds) as a share of Classic's, for the
-  // founding screen. It follows from scoreMult and the bots' raw scores, so recalibrating one means re-measuring it.
+  dilutionScoreMult: 0.8,
+  // scoreShare: a start's pooled median final score (six bots, seeds 1 to 200) as a share of Classic's,
+  // for the founding screen. Retuning scoreMult means re-measuring that share against the target.
   eraStarts: {
     preinternet: { cash: 240000, officeStage: 0, desks: 3, scoreMult: 0.72, scoreShare: 0.95, exitMrrMult: 1.3 },
     web2: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 0.56, scoreShare: 0.75, exitMrrMult: 1.2 },
@@ -177,6 +178,10 @@ export const B = {
     chatgbt: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 1, scoreShare: 0.67, exitMrrMult: 0.8 },
     agents: { cash: 240000, officeStage: 0, desks: 4, scoreMult: 0.81, scoreShare: 0.4, exitMrrMult: 0.7, incidentGraceWeeks: 260, incidentSeverityCap: 2 },
   },
+  // Takeover scoreShare targets use the same pooled median ratio, including the inherited career.
+  // Derive scoreMult from the target and raw median. Re-measure after factor, balance or bot changes,
+  // including any change to the bot that builds the inherited company.
+  takeover: { bot: 'sensible', scoreMult: { chatgbt: 0.45, agents: 0.27 }, scoreShare: { chatgbt: 0.5, agents: 0.3 } },
   founderStrengthBonus: 3, founderIkWeight: 0.4, founderGeneralistWeights: { features: 0.3, polish: 0.15, reliability: 0.2, novelty: 0.1 },
   botBuildersPerProject: 6, botTimeOffStrain: 70, botCancelUnstaffedWeeks: 2, botExpandCushion: 2, botDialCash: 3000000, botAcquireCushion: 4, botAcquireDesks: 3, botMoonshotCushion: 3, botFameBelow: 30, botFameCushion: 6,
   eraAutoEngMult: { classic: 1, chatgbt: 1, agents: 3, consolidation: 3, plateau: 2 },

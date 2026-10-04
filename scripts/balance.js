@@ -15,18 +15,21 @@ const arg = (name, dflt) => { const i = args.indexOf(`--${name}`); return i >= 0
 const seeds = Number(arg('seeds', 100));
 const bots = arg('bots', Object.keys(BOTS).join(',')).split(',');
 const startEra = arg('start-era', 'classic');
+const startMode = arg('start-mode', 'garage');
 const json = arg('json', null);
 const baseline = arg('baseline', null);
 const fail = (message) => { console.error(`balance: ${message}`); process.exit(2); };
 if (!Number.isSafeInteger(seeds) || seeds < 1) fail('--seeds must be a positive whole number');
 if (!Object.hasOwn(ERA_STARTS, startEra)) fail(`unknown starting era: ${startEra}`);
+if (!['garage', 'takeover'].includes(startMode)) fail('unknown starting mode');
+if (startMode === 'takeover' && !Object.hasOwn(B.takeover.scoreMult, startEra)) fail('takeover requires ChatGBT or Agents');
 if (bots.some((bot) => !Object.hasOwn(BOTS, bot))) fail('unknown bot');
 let base;
 if (baseline) {
   try { base = JSON.parse(readFileSync(baseline, 'utf8')); } catch { fail('cannot read baseline JSON'); }
   if (!base?.runs || typeof base.runs !== 'object') fail('baseline must contain runs');
 }
-trackRun('balance', { seeds, bots: bots.join(','), startEra });
+trackRun('balance', { seeds, bots: bots.join(','), startEra, startMode });
 
 const median = (xs) => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : 0; };
 const fmt = (n) => Math.round(n).toLocaleString('en-US');
@@ -37,11 +40,12 @@ const runs = {};
 for (const name of bots) {
   const results = [];
   for (let seed = 1; seed <= seeds; seed++) {
-    const r = runBot(name, seed, undefined, { founding: { startEra } });
+    const r = runBot(name, seed, undefined, { founding: { startEra, startMode } });
     results.push(r);
     runs[`${name}:${seed}`] = {
       reason: r.reason, exited: r.exited, won: r.won, weeks: r.weeks, score: r.score,
       incidents: r.incidents, caught: r.state.stats.caught, breaches: r.state.stats.breaches,
+      elapsedWeeks: r.weeks - (r.state.founding.takeoverWeek ?? 0),
       hash: createHash('sha256').update(JSON.stringify(r.state)).digest('hex'),
     };
   }
@@ -55,6 +59,7 @@ for (const name of bots) {
     hqWeek: median(results.map((r) => r.stageWeeks[2] ?? 9999)),
     reasons: Object.entries(reasons).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(', '),
     weeks: median(results.map((r) => r.weeks)),
+    playedWeeks: median(results.map((r) => r.weeks - (r.state.founding.takeoverWeek ?? 0))),
     firstLaunch: median(results.map((r) => r.firstLaunch ?? 999)),
     pastOpening: `${Math.round(100 * results.filter((r) => r.weeks > B.preinternet.weeks).length / seeds)}%`,
     peakMrr: fmt(median(results.map((r) => r.peakMrr))),
@@ -65,7 +70,7 @@ for (const name of bots) {
     crises: median(results.map((r) => r.crises)),
   });
 }
-console.log(`seeds per bot: ${seeds}, start: ${startEra}, through the career checkpoint`);
+console.log(`seeds per bot: ${seeds}, start: ${startEra}/${startMode}, through the career checkpoint`);
 console.table(rows);
 
 // Era by era after the starting one: how many runs reached each era, and median cash, staff, and MRR on arrival.
@@ -82,9 +87,9 @@ for (const name of bots) {
   }
 }
 console.table(eraRows);
-if (json) writeFileSync(json, JSON.stringify({ startEra, seeds, bots, runs }, null, 2));
+if (json) writeFileSync(json, JSON.stringify({ startEra, startMode, seeds, bots, runs }, null, 2));
 if (base) {
   const paired = compare(base.runs, runs);
   if (paired.onlyA.length || paired.onlyB.length) fail('baseline and run seed sets differ');
-  console.log(markdown(paired, { a: base.startEra, b: startEra }));
+  console.log(markdown(paired, { a: `${base.startEra}/${base.startMode ?? 'garage'}`, b: `${startEra}/${startMode}` }));
 }
