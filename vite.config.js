@@ -1,6 +1,24 @@
 import { defineConfig } from 'vite';
 import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdirSync, readdirSync, statSync, rmSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+
+// vitest keeps a module cache of tens of megabytes per run in a fresh directory under TMPDIR and
+// leaves it behind when a run is killed; /tmp is RAM on the team's machine. Under vitest (also a
+// direct `npx vitest`), a caller with no TMPDIR, or /tmp, gets a directory on disk instead.
+if (process.env.VITEST && (!process.env.TMPDIR || process.env.TMPDIR === '/tmp')) {
+  const disk = process.env.HITL_TMPDIR || join(homedir(), '.cache', 'hitl-ci', 'tmp');
+  try {
+    mkdirSync(disk, { recursive: true });
+    process.env.TMPDIR = disk;
+    // Run directories left over from killed runs go once they are two hours old.
+    for (const name of readdirSync(disk)) {
+      const dir = join(disk, name);
+      if (/^[A-Za-z0-9_-]{21}$/.test(name) && Date.now() - statSync(dir).mtimeMs > 2 * 3600e3) rmSync(dir, { recursive: true, force: true });
+    }
+  } catch { /* keep the default */ }
+}
 
 // The version the title shows: HITL_VERSION when the release build sets it, else the nearest
 // release tag (v0.4.0, or v0.4.0-3-gabc1234 past it), else the package version plus '-dev'.

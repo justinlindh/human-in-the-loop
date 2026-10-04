@@ -20,6 +20,7 @@
 #   --no-post   no status, no issues: print the verdict only
 #   --loop      check, sleep, and check again forever (for running it by hand)
 set -uo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/lib/tmpdir.sh"
 usage="usage: scripts/main-guard.sh [--sha <commit>] [--no-post] [--loop <seconds>]"
 sha_arg=""; post=1; loop=""
 while [ $# -gt 0 ]; do

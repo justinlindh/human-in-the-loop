@@ -7,6 +7,7 @@
 # The balance suite runs alongside the other steps; the rest run in order. Exit 0 when all pass, 1
 # when a step fails on the code, 3 when the only failures are the machine's (see machine_why).
 set -uo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/lib/tmpdir.sh"
 
 BASE="origin/main"; TITLE=""; SUMMARY=""
 while [ $# -gt 0 ]; do
@@ -208,6 +209,7 @@ tool_step review-prep bash "$SELF/review-prep.test.sh"
 tool_step review-verdict bash "$SELF/review-verdict.test.sh"
 tool_step pr-body bash "$SELF/pr-body.test.sh"
 tool_step test-cache bash "$SELF/test-cache.test.sh"
+tool_step tmp-clean bash "$SELF/tmp-clean.test.sh"
 tool_step nice10 bash "$SELF/nice10.test.sh"
 tool_step test-push bash "$SELF/test-push.test.sh"
 tool_step ci-pr-trust bash "$SELF/ci-pr-trust.test.sh"

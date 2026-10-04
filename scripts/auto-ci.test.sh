@@ -31,7 +31,7 @@ cat >"$tmp/npm" <<'SH'
 case "$1" in ls) [ ! -e "$T/npm-stale" ] ;; ci) echo ci >>"$T/npm-ci" ;; esac
 SH
 chmod +x "$tmp/gh" "$tmp/ci-pr" "$tmp/npm"
-export T="$tmp" FIXTURE="$tmp/prs.json" AUTO_CI_STATE="$tmp/state" AUTO_CI_GH="$tmp/gh" AUTO_CI_PR="$tmp/ci-pr" AUTO_CI_TREE="$tmp" AUTO_CI_JOBS=2 AUTO_CI_TMP="$tmp/tmpfs" AUTO_CI_NPM="$tmp/npm" AUTO_CI_GUARD_RED="$tmp/red" AUTO_CI_MODS="$tmp/mods"
+export T="$tmp" FIXTURE="$tmp/prs.json" AUTO_CI_STATE="$tmp/state" AUTO_CI_GH="$tmp/gh" AUTO_CI_PR="$tmp/ci-pr" AUTO_CI_TREE="$tmp" AUTO_CI_JOBS=2 AUTO_CI_TMP="$tmp/tmpfs" AUTO_CI_NPM="$tmp/npm" AUTO_CI_GUARD_RED="$tmp/red" AUTO_CI_MODS="$tmp/mods" AUTO_CI_TMP_FREE_GB=100 AUTO_CI_MEM_FREE_GB=100
 
 pr() { # number head local-ci-state [draft] [author] [label] [review-state] [auto-merge: on]
   local ctx='[]'; [ "$3" != none ] && ctx="[{\"context\":\"local-ci\",\"state\":\"$3\"}]"
@@ -203,6 +203,18 @@ fixture "$(pr 20 bot1 none false app/loop-reviewer-justinlindh)" "$(pr 21 bot2 n
 run
 has started "20 bot1" || fail "a listed app's PR should start"
 has started "21 bot2" && fail "an unlisted app's PR should not start"
+
+# Admission floor: low tmp space or low memory holds a PR that needs a run.
+: >"$tmp/started"; rm -f "$tmp/state/jobs"/* "$tmp/state/retried"/* "$tmp/state/pending"/*
+fixture "$(pr 30 floor1 none)"
+AUTO_CI_TMP_FREE_GB=1 run
+has started "30 floor1" && fail "a PR should wait while tmp is under its floor"
+grep -q "waits: tmp has 1G free" "$tmp/state/log" || fail "the log should say tmp is low"
+AUTO_CI_MEM_FREE_GB=2 run
+has started "30 floor1" && fail "a PR should wait while memory is under its floor"
+grep -q "waits: 2G of memory available" "$tmp/state/log" || fail "the log should say memory is low"
+run
+has started "30 floor1" || fail "a PR should start once tmp and memory are above the floors"
 
 # The mods worktree moves to origin/main when clean and stays put when it has local changes.
 g() { git -c user.name=t -c user.email=t@t "$@"; }
