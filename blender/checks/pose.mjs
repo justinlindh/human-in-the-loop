@@ -64,24 +64,40 @@ import { cpus } from 'node:os';
 import { createInterface } from 'node:readline';
 import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { applyParams, paramSpecs, resolveParams } from './param.js';
+import { applyParams, currentText, paramSpecs, resolveParams } from './param.js';
 import { runSweep } from './param-sweep.js';
 import { runMatrixSweep } from './pose-matrix-sweep.js';
 
 const argv = process.argv.slice(2);
+// A bare --matrix (last, or followed by another flag) is the whole matrix: every axis at its default.
+{ const i = argv.indexOf('--matrix'); if (i >= 0 && (argv[i + 1] === undefined || argv[i + 1].startsWith('--'))) argv.splice(i + 1, 0, 'views=all'); }
+// Axes split by spaces reach argv as loose words the matrix would never read: refused, with the joined flag.
+{
+  const AXIS = /^(views|postures|builds|rig|accessory|side|cause)=/;
+  const loose = argv.filter((a, i) => AXIS.test(a) && argv[i - 1] !== '--matrix');
+  if (loose.length) {
+    const head = argv[argv.indexOf('--matrix') + 1];
+    console.error(`pose: matrix axes are one comma-joined word: --matrix ${[head, ...loose].filter((a) => a && AXIS.test(a)).join(',')} (got ${loose.join(' ')} as separate words)`);
+    process.exit(2);
+  }
+}
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
 const all = (k) => argv.flatMap((a, i) => (a === `--${k}` ? [argv[i + 1]] : []));
 const ROOT = resolve(opt('root', join(import.meta.dirname, '../..')));
 // --sweep runs this script again once per value, so it goes before anything takes a render slot.
-// A swept name that can't be resolved (not found, or declared in two files) is refused before any run.
+// A swept name that can't be resolved (not found, or declared in two files) is refused before any run;
+// each one's value in source is printed first, so the sweep's range can be chosen around it.
 if (opt('sweep')) {
   const swept = all('sweep').map((s) => { const i = s.indexOf('='); return i < 1 ? { spec: s } : { spec: `${s.slice(0, i)}=${s.slice(i + 1).split(',')[0]}`, values: s.slice(i + 1) }; });
   for (const w of swept) {
-    try { resolveParams([w.spec], ROOT); } catch (e) {
+    let p;
+    try { [p] = resolveParams([w.spec], ROOT); } catch (e) {
       // The refusal's suggested flags, as --sweep with every value.
       console.error(e.message.replace(/--param (\S+)=\S+/g, (_, head) => `--sweep '${head}=${w.values ?? ''}'`).replace(/ \(the same file: prefix works in --sweep\)/, ''));
       process.exit(2);
     }
+    const now = currentText(p);
+    if (now !== null) console.log(`SWEEP ${w.spec.slice(0, w.spec.indexOf('='))} is ${now} in ${p.file.slice(ROOT.length + 1)}`);
   }
 }
 if (opt('sweep')) process.exit(await (opt('matrix') ? runMatrixSweep : runSweep)(argv, fileURLToPath(import.meta.url)));
@@ -407,6 +423,13 @@ try {
     // Neither --measure nor --expect: the gesture's own pass rule (PRESETS), said on the first line.
     const preset = !opt('measure') && !all('expect').length ? X.PRESETS[OPTS.gesture] : null;
     if (preset && !SLICE) console.log(`pose: ${OPTS.gesture}'s pass rule: --measure ${preset.measures.join(',')} ${preset.rules.map((r) => `--expect '${r}'`).join(' ')}`);
+    // The consts that tune this gesture, as source holds them (--param overrides are on the command line).
+    const tuned = X.PRESETS[OPTS.gesture]?.tunedBy;
+    if (tuned && !SLICE) {
+      const now = tuned.map((s) => { try { const [p] = resolveParams([`${s}=0`], ROOT); const v = currentText(p); return v === null ? null : { file: s.split(':')[0], text: `${p.name} = ${v}` }; } catch { return null; } }).filter(Boolean);
+      const byFile = Map.groupBy(now, (x) => x.file);
+      if (now.length) console.log(`pose: tuned by ${[...byFile].map(([f, xs]) => `${xs.map((x) => x.text).join(', ')} in ${f}`).join('; ')} (docs/toolkit/pose/constants-map.md says which moves what)`);
+    }
     const measures = preset ? [...preset.measures] : String(opt('measure', '')).split(',').map((s) => s.trim()).filter(Boolean);
     const rules = (preset ? preset.rules : all('expect')).map((r) => X.parseRule(r, measures));
     if (!measures.length) throw new Error(`pose: --matrix needs --measure <m1,m2> (e.g. coverHandEyeNear,faceCam,clearance); ${Object.keys(X.PRESETS).join(' and ')} have a pass rule used without one`);

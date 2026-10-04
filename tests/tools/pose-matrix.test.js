@@ -4,7 +4,7 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { sensitivity, formatSweep } from '../../blender/checks/pose-matrix-sweep.js';
-import { parseMatrix, cellsOf, parseRule, judgeCell, margin, worstOf, formatMatrix, valueOf, tally, tallyText, runMatrix, PRESETS } from '../../blender/checks/pose-matrix.js';
+import { parseMatrix, cellsOf, parseRule, judgeCell, margin, worstOf, formatMatrix, valueOf, tally, tallyText, runMatrix, PRESETS, guideOf } from '../../blender/checks/pose-matrix.js';
 
 const POSE = resolve(__dirname, '../../blender/checks/pose.mjs');
 const run = (...args) => spawnSync(process.execPath, [POSE, ...args], { encoding: 'utf8', timeout: 180000 });
@@ -127,6 +127,51 @@ describe('pose.mjs --matrix', () => {
     expect(r.stdout).toMatch(/PALM_STAND\[2\]=0\.27\s+1 pass\s+0 fail\s+0 n\/a of 1\s+judged \d+ frames\s+ALL PASS/);
     expect(r.stdout).toMatch(/PALM_STAND\[2\]=0\.9\s+0 pass\s+1 fail\s+0 n\/a of 1\s+judged \d+ frames\s+worst/);
     expect(r.stdout).toContain('SWEEP passing every judged cell: PALM_STAND[2]=0.27');
+    const src = readFileSync(resolve(__dirname, '../../src/render/character.js'), 'utf8');
+    const now = JSON.parse(/^const PALM_STAND = (\[[^\]]*\]);/m.exec(src)[1])[2];
+    expect(r.stdout.split('\n')[0]).toBe(`SWEEP PALM_STAND[2] is ${now} in src/render/character.js`);
+  });
+
+  it('shows the preset guide per value, a closeness that moves while every cell fails', () => {
+    const cell = (h0, h1) => ({ posture: 'sit', build: 1, rig: 'on', accessory: 'none', view: 0, pass: false, na: false, stat: { hand0Eye: { median: h0 }, hand1Eye: h1 == null ? null : { median: h1 } }, verdicts: [{ rule: 'r', pass: false, share: 0, want: 0.7, frames: 10 }] });
+    expect(guideOf([cell(0.2, 0.4), cell(0.5, 0.1), { stat: {} }], PRESETS.facepalm.guide)).toBe(0.15);
+    expect(guideOf([{ stat: {} }], PRESETS.facepalm.guide)).toBe(null);
+    const axes = parseMatrix('views=0,postures=sit,builds=1,rig=on');
+    const rows = [['0.2', 0.16], ['0.3', 0.06]].map(([v, g]) => { const cells = [cell(g, null)]; return { c: [['PALM_SIT[0]', v]], ...tally(cells), judged: 10, worst: worstOf(cells), axes, guide: guideOf(cells, PRESETS.facepalm.guide) }; });
+    const { lines } = formatSweep(rows, [{ name: 'PALM_SIT[0]', values: ['0.2', '0.3'] }], PRESETS.facepalm.guide);
+    expect(lines[0]).toContain('hand-eye (mean over cells of the median hand0Eye or hand1Eye, lower is closer)');
+    expect(lines.find((l) => l.includes('=0.2 '))).toMatch(/judged 10 frames\s+hand-eye 0\.160 m\s+worst/);
+    expect(lines.find((l) => l.includes('=0.3 '))).toMatch(/hand-eye 0\.060 m/);
+    expect(formatSweep(rows, [{ name: 'PALM_SIT[0]', values: ['0.2', '0.3'] }]).lines.join('\n')).not.toContain('hand-eye');
+  });
+
+  it('shows the guide in a real sweep of a preset gesture', () => {
+    const r = run('--gesture', 'facepalm', '--matrix', 'views=0,postures=sit,builds=1,rig=on', '--sweep', 'PALM_SIT[0]=-2.1,-2.75');
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    const g = (v) => Number(new RegExp(`PALM_SIT\\[0\\]=${v}\\s.*hand-eye ([\\d.]+) m`).exec(r.stdout)[1]);
+    expect(g('-2.75')).toBeLessThan(g('-2.1'));
+  });
+
+  it('prints the constants that tune a preset gesture with their values in source', () => {
+    const src = readFileSync(resolve(__dirname, '../../src/render/character.js'), 'utf8');
+    const sit = /^const PALM_SIT = (\[[^\]]*\]);/m.exec(src)[1];
+    const r = run('--gesture', 'facepalm', '--matrix', 'views=0,postures=sit,builds=1,rig=on');
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toContain(`pose: tuned by PALM_SIT = ${sit}, PALM_STAND = `);
+    expect(r.stdout).toMatch(/PALM_BUILD_K = \S+, PALM_SHOULDER_REF = \S+ in src\/render\/character\.js \(docs\/toolkit\/pose\/constants-map\.md/);
+  });
+
+  it('reads a bare --matrix before another flag as the whole matrix', () => {
+    const r = run('--gesture', 'facepalm', '--matrix', '--param', 'PALM_SIT[0]=-2.75');
+    expect(r.stderr).not.toContain('--matrix wants');
+    expect(r.stdout).toMatch(/MATRIX facepalm: \d+ pass, \d+ fail, \d+ n\/a \(72 cells\)/);
+  });
+
+  it('refuses matrix axes split by spaces, and prints the joined flag', () => {
+    const r = run('--gesture', 'facepalm', '--matrix', 'postures=sit', 'builds=0', 'views=1');
+    expect(r.status).toBe(2);
+    expect(r.stdout).toBe('');
+    expect(r.stderr).toContain('--matrix postures=sit,builds=0,views=1');
   });
 
   it('counts n/a cells apart from passes, as the matrix does, and warns when a value judges fewer frames', () => {
