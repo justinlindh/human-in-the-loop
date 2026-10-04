@@ -58,5 +58,5 @@ describe('Crunch Mode', () => {
     expect(p.strain).toBe(B.vacationMaxPostpones * B.vacationPostponeStrain);
   });
 
-  // The real-run burnout check is in full-runs.test.js.
+  // The real-run burnout check is in full-runs.full.test.js.
 });

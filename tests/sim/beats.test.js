@@ -151,4 +151,4 @@ describe('the floor next door and the first deals', () => {
   });
 });
 
-// Beats in real runs are checked in full-runs.test.js.
+// Beats in real runs are checked in full-runs.full.test.js.
