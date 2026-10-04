@@ -113,6 +113,48 @@ describe('polling a watch', () => {
     expect(t.statuses.at(-1)).toMatch(/#9 waiting test/);
   });
 
+  describe('with the shared snapshot', () => {
+    const lookCount = (t) => t.calls.filter(([a]) => Array.isArray(a) && waitFor(a)).length;
+    const snapshot = (cur) => (argv) => (argv[0] === 'node' && argv[1] === 'scripts/tools/pr-snapshot.mjs'
+      ? (cur.sig === null ? { code: 1, out: '', err: 'no snapshot' } : { code: 0, out: JSON.stringify({ signature: cur.sig }) })
+      : undefined);
+
+    it('skips the full look while the PR is unchanged, looks again when it changes or after ten quiet minutes', async () => {
+      const cur = { sig: 'S1' };
+      const t = await watching(snapshot(cur));
+      expect(lookCount(t)).toBe(1);
+      await tick(t); await tick(t);
+      expect(lookCount(t)).toBe(1);
+      expect(t.statuses.at(-1)).toMatch(/#9 waiting test/);
+      cur.sig = 'S2';
+      await tick(t);
+      expect(lookCount(t)).toBe(2);
+      await tick(t);
+      expect(lookCount(t)).toBe(2);
+      const real = Date.now;
+      Date.now = () => real() + 11 * 60_000;
+      try { await tick(t); } finally { Date.now = real; }
+      expect(lookCount(t)).toBe(3);
+    });
+
+    it('looks on every pass when the snapshot cannot be read', async () => {
+      const t = await watching(snapshot({ sig: null }));
+      await tick(t); await tick(t);
+      expect(lookCount(t)).toBe(3);
+    });
+
+    it('a change that arrives with the snapshot still wakes the session once', async () => {
+      const cur = { sig: 'S1' };
+      const t = await watching(snapshot(cur));
+      await tick(t);
+      cur.sig = 'S2';
+      t.cur.look = { code: 6, out: say('#9 was closed without merging') };
+      await tick(t);
+      expect(t.prompts).toHaveLength(1);
+      expect(t.state.get('watches')).toEqual([]);
+    });
+  });
+
   it('wakes once on a failed check with the log tail, and again only for a new failure', async () => {
     const comment = '### Local CI: FAIL\n\n| step | result | seconds |\n|---|---|---|\n| render-checks | FAIL | 1200 |\n| deps | pass | 1 |\n';
     const t = await watching((argv) => (argv.includes('comments') ? { code: 0, out: comment } : undefined));
