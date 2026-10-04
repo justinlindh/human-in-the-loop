@@ -135,7 +135,10 @@ pjoin() {
 tool_changes=1
 if [ "${CI_FULL:-}" != 1 ]; then
   tool_mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || tool_mb=""
-  if [ -n "$tool_mb" ] && ! { git diff --name-only --no-renames "$tool_mb"; git ls-files --others --exclude-standard; } | grep -qE '^(scripts/|\.claude/|package\.json$|package-lock\.json$|vite\.config\.js$)'; then
+  # The file list is read whole before matching: grep -q exits at the first match and a writer still
+  # sending would die of SIGPIPE, which pipefail turns into "no match" (the self-tests skipped).
+  tool_files="$({ git diff --name-only --no-renames "$tool_mb"; git ls-files --others --exclude-standard; } 2>/dev/null)"
+  if [ -n "$tool_mb" ] && ! grep -qE '^(scripts/|\.claude/|package\.json$|package-lock\.json$|vite\.config\.js$)' <<<"$tool_files"; then
     tool_changes=0
   fi
 fi
