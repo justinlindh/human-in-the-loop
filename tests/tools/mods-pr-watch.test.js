@@ -21,7 +21,7 @@ function engine(answer) {
     process: {
       run: async (argv, init = {}) => {
         calls.push([argv, init.cwd]);
-        const r = answer(argv, init.cwd) ?? { code: 1, out: '', err: 'unanswered' };
+        const r = (await answer(argv, init.cwd)) ??{ code: 1, out: '', err: 'unanswered' };
         return { exitCode: r.code, stdout: r.out, stderr: r.err };
       },
     },
@@ -179,6 +179,44 @@ describe('polling a watch', () => {
     await tick(t);
     expect(t.prompts[0]).toMatch(/last 3 looks failed/);
     expect(t.state.get('watches')).toHaveLength(1);
+  });
+
+  // A look that is still running while the session adds, replaces or removes a watch.
+  async function slowLook() {
+    let release;
+    const gate = new Promise((r) => { release = r; });
+    const t = engine((argv, cwd) => (waitFor(argv) ? gate.then(() => waiting('aaaa1111')) : prView()(argv, cwd)));
+    await t.run('session.start', { cwd: '/w' });
+    await t.run('tool.call', { tool: WATCH, number: 9 }, WATCH);
+    // watch_pr starts the first pass, which now waits on the gate.
+    await new Promise((r) => setTimeout(r, 0));
+    return { t, release };
+  }
+  const numbers = (t) => t.state.get('watches').map((w) => w.number);
+
+  it('keeps a watch added while a look is running', async () => {
+    const { t, release } = await slowLook();
+    await t.run('tool.call', { tool: WATCH, number: 10 }, WATCH);
+    release();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(numbers(t).sort((a, b) => a - b)).toEqual([9, 10]);
+  });
+
+  it('keeps a watch removed while a look is running removed', async () => {
+    const { t, release } = await slowLook();
+    await t.run('tool.call', { tool: UNWATCH, number: 9 }, UNWATCH);
+    release();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(numbers(t)).toEqual([]);
+  });
+
+  it('keeps a watch replaced while a look is running as the session stored it', async () => {
+    const { t, release } = await slowLook();
+    await t.run('tool.call', { tool: WATCH, number: 9, cwd: '/other' }, WATCH);
+    release();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(t.state.get('watches')).toHaveLength(1);
+    expect(t.state.get('watches')[0].cwd).toBe('/other');
   });
 
   it('unwatch_pr stops it', async () => {

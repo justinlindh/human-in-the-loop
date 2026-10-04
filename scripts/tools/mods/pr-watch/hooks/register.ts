@@ -39,7 +39,7 @@ async function look($: EngineInterface, w: PrWatch) {
   const argv = [
     'timeout', '-k', '5', String(LOOK_SECONDS),
     'bash', 'scripts/wait-for.sh', String(w.number), '--merged', '--timeout', '0', '--poll', '1',
-    '--test', 'npm run test:fast', ...(w.update ? [] : ['--no-update']),
+    '--test', 'npm run test:push', ...(w.update ? [] : ['--no-update']),
   ]
   const r = await run($, argv, w.cwd, (LOOK_SECONDS + 10) * 1000)
   return parseLook(r.code, r.out + r.err, w.number)
@@ -80,7 +80,8 @@ async function poll($: EngineInterface): Promise<void> {
   try {
     const watches = await loadWatches($)
     if (!watches.length) return
-    const next: PrWatch[] = []
+    const started = new Map(watches.map(w => [w.number, JSON.stringify(w)]))
+    const results = new Map<number, { watch: PrWatch; done: boolean }>()
     const wake: string[] = []
     for (const w of watches) {
       const l = await look($, w)
@@ -92,8 +93,17 @@ async function poll($: EngineInterface): Promise<void> {
       }
       if (l.kind === 'waiting') line.set(w.number, `#${w.number} ${l.allPassed ? 'green, merging' : `waiting ${l.waiting.join(',') || l.running.join(',')}`}, review ${l.review}`)
       else if (l.kind === 'failed') line.set(w.number, `#${w.number} failing ${l.failing.join(',')}`)
-      if (!d.done) next.push(d.watch)
-      else line.delete(w.number)
+      results.set(w.number, { watch: d.watch, done: d.done })
+      if (d.done) line.delete(w.number)
+    }
+    // A look can last minutes, and watch_pr or unwatch_pr may have changed the list meanwhile: reload it
+    // and apply this pass's results only to watches that are still as they were read. A watch added or
+    // replaced meanwhile is kept as stored; one removed meanwhile stays removed.
+    const next: PrWatch[] = []
+    for (const s of await loadWatches($)) {
+      const r = results.get(s.number)
+      if (r && started.get(s.number) === JSON.stringify(s)) { if (!r.done) next.push(r.watch) }
+      else next.push(s)
     }
     await saveWatches($, next)
     showStatus($, next)
