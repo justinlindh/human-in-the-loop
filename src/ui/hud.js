@@ -8,6 +8,7 @@ import { B, trendName, trendText, trendEffects, trendPct, capacityOf } from './c
 import { icon } from './icons.js';
 import { debtReadout, fmtRate } from './debtFlow.js';
 import { projectLabel, stalledProject } from './panels/common.js';
+import { orderGoals } from './goalOrder.js';
 import { GOALS, ERA, strainOf, STRAIN_WARN, incidentLabel } from './v2content.js';
 import { weeklyCosts, weeklyRevenue } from '../sim/economy.js';
 
@@ -274,7 +275,7 @@ export function createHud({ root, controls, ui }) {
     }
     // Goals: the next couple of milestones, from state.goals in the data's order.
     if (s.goals) {
-      const all = GOALS.filter((g) => s.goals[g.id] && !s.goals[g.id].skipped);
+      const all = orderGoals(GOALS, s).filter((g) => s.goals[g.id] && !s.goals[g.id].skipped);
       const done = all.filter((g) => s.goals[g.id].done).length;
       const next = all.filter((g) => !s.goals[g.id].done).slice(0, 2);
       if (next.length) {

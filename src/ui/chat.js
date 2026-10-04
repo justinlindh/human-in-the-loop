@@ -285,7 +285,7 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
       for (const c of CHANNELS) toggleClass(tabBtns[c], 'prompt', open.some((p) => (p.channel ?? 'general') === c));
     }
     const weeks = lastGeneralWeek === null ? 0 : s.week - lastGeneralWeek;
-    const text = current === 'general' && weeks >= QUIET_WEEKS ? `It's been quiet in #general for ${weeks} weeks.` : '';
+    const text = current === 'general' && weeks >= QUIET_WEEKS ? `It's been quiet in ${app.channels?.general ?? '#general'} for ${weeks} weeks.` : '';
     if (text !== quietText) {
       quietText = text;
       setText(quiet, text);
