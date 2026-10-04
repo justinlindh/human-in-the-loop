@@ -14,6 +14,8 @@ It keeps only what needs this machine: the GPU render checks, golden, phone-chec
 
 The main guard (`CI_FULL=1`) still runs all of them here, so a red main gets its issue and bisect.
 
+The tooling self-tests run four at a time (`CI_SELFTEST_JOBS`), each in the background with its own log, and are collected into the summary table before the balance step. The timing log records the group as `phase=selftests`.
+
 The tooling self-tests include `pace-browser`: browser fixtures check visible presentation records, toast queue provenance, and panel origins under the shared render lock.
 The `golden-font` step checks char-lineup identity under both early and late font arrival when a change touches emotes, lineup initialization, fonts, the harness, golden or its font control. It renders on the GPU under a GPU slot, and compares exact pixels without a cache. The tests tier records it as skipped alongside the other render steps; it runs only in the full-run branch. See [golden](golden.md).
 
