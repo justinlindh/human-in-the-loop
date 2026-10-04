@@ -13,6 +13,7 @@
 # Installed by `npm run hooks` (core.hooksPath scripts/hooks: each worktree runs its own copy).
 # Skip once with `git push --no-verify`.
 set -u
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/tmpdir.sh"
 refs="$(cat)"
 status=0
 if command -v gh >/dev/null 2>&1; then

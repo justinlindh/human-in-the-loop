@@ -11,4 +11,5 @@ Nice=19
 IOSchedulingClass=idle
 TimeoutStartSec=90min
 Environment=GUARD_CLONE=%h/.cache/hitl-ci/main-guard/clone
+Environment=TMPDIR=%h/.cache/hitl-ci/tmp
 ExecStart=/bin/bash -c 'set -e; cd "$GUARD_CLONE"; git fetch -q origin main; git checkout -q --detach origin/main; npm ls --depth=0 >/dev/null 2>&1 || npm ci --no-audit --no-fund; exec bash scripts/main-guard.sh'

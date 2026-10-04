@@ -8,13 +8,7 @@
 # hours old. HITL_TMPDIR picks another place.
 # Usage: scripts/nice10.sh <command...>
 [ $# -gt 0 ] || { echo "usage: scripts/nice10.sh <command...>" >&2; exit 2; }
-if [ -z "${TMPDIR:-}" ] || [ "$TMPDIR" = /tmp ]; then
-  disk="${HITL_TMPDIR:-$HOME/.cache/hitl-ci/tmp}"
-  if mkdir -p "$disk" 2>/dev/null; then
-    export TMPDIR="$disk"
-    find "$disk" -mindepth 1 -maxdepth 1 -type d -regextype posix-extended -regex '.*/[A-Za-z0-9_-]{21}' -mmin +120 -exec rm -rf {} + 2>/dev/null
-  fi
-fi
+source "$(dirname "${BASH_SOURCE[0]}")/lib/tmpdir.sh"
 cur="$(nice 2>/dev/null || echo 0)"
 [ "$cur" -ge 10 ] 2>/dev/null || exec nice -n $(( 10 - cur )) "$@"
 exec "$@"
