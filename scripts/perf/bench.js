@@ -160,6 +160,10 @@ const SCENE_DEFS = {
   'floor-preinternet': { query: 'mock=floor&eras&eraArt=preinternet', setup: PREINTERNET_PROPS },
   'hq-preinternet': { query: 'mock=hq&eras&eraArt=preinternet', setup: PREINTERNET_PROPS },
 };
+{
+  const unknown = SCENES.filter((s) => !SCENE_DEFS[s]);
+  if (unknown.length) { console.error(`perf: unknown scene ${unknown.join(', ')}; known: ${Object.keys(SCENE_DEFS).join(', ')}`); process.exit(2); }
+}
 
 // Installed before page scripts: sums every rAF callback's work per frame, keyed by the frame's
 // timestamp, and counts DOM mutations while recording.
@@ -189,8 +193,10 @@ function instrument() {
         gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
         gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, 1, 1);
         scratch = gl.createFramebuffer();
-        bind.call(gl, gl.FRAMEBUFFER, scratch);
-        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb);
+        // Only the read binding is touched, so the draw framebuffer three.js caches stays as it was.
+        bind.call(gl, gl.READ_FRAMEBUFFER, scratch);
+        gl.framebufferRenderbuffer(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, null);
         scratch.px = new Uint8Array(4);
       }
       bind.call(gl, gl.READ_FRAMEBUFFER, scratch);
@@ -210,7 +216,7 @@ function instrument() {
     P.closeSeg = (gl) => { if (P.on && P.inRender) close(gl); seg = null; P.inRender = false; };
     G.bindFramebuffer = function (t, fb) {
       if (P.inRender && P.on) { close(this); seg = { i: P.n++, t0: performance.now(), draws: 0, vp: '' }; }
-      cur = fb;
+      if (t === this.FRAMEBUFFER || t === this.READ_FRAMEBUFFER) cur = fb;
       return bind.call(this, t, fb);
     };
     G.viewport = function (x, y, w, h) { if (seg && !seg.vp) seg.vp = w + 'x' + h; return vp.call(this, x, y, w, h); };
