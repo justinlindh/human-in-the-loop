@@ -26,8 +26,9 @@
 import { createHash } from 'node:crypto';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { spawn, execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readdirSync, renameSync, rmSync, readFileSync, statSync, writeFileSync, existsSync } from 'node:fs';
-import { tmpdir, cpus, homedir } from 'node:os';
+import { mkdirSync, readdirSync, renameSync, rmSync, readFileSync, statSync, writeFileSync, existsSync } from 'node:fs';
+import { cpus, homedir } from 'node:os';
+import { makeTemp } from '../tools/tmp.mjs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createWorktree } from '../tools/worktree.mjs';
@@ -145,7 +146,7 @@ if (!isMainThread) {
     if (!Object.hasOwn(ERA_STARTS, startEra)) fail(`unknown starting era: ${startEra}`);
   }
   const spec = JSON.stringify({ bots, seeds, jobs, fields: parsed, startEra });
-  const tmp = mkdtempSync(join(tmpdir(), 'pair-'));
+  const tmp = makeTemp('pair-');
   let baseWorktree = null;
   let code = 0;
   // Each side's process runs until it ends or this process does, whichever comes first.

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { join, resolve } from 'node:path';
 import { pairDepths, touching, useInterior } from '../../blender/checks/intersect.js';
 import { meshContact, depthAtTol } from '../../scripts/studio/geometry.mjs';
@@ -44,7 +44,7 @@ describe('the engine reads a mesh pair as the sweep does', () => {
 });
 
 describe('sweep-parity', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'sweep-parity-'));
+  const dir = mkdtempSync(join(toolTmp(), 'sweep-parity-'));
   const report = (name, rows) => { const f = join(dir, name); writeFileSync(f, JSON.stringify({ violations: rows })); return f; };
   const row = (key, value, states = ['mock:floor'], check = 'person') => ({ check, key, value, state: states[0], states });
   const run = (a, b) => spawnSync(process.execPath, [script('scripts/studio/sweep-parity.mjs'), a, b], { encoding: 'utf8' });
@@ -72,7 +72,7 @@ describe('sweep-parity', () => {
 
 describe('sweep --engine', () => {
   it('runs the mocks on the studio engine and finds what the browser sweep finds there', () => {
-    const out = mkdtempSync(join(tmpdir(), 'sweep-engine-'));
+    const out = mkdtempSync(join(toolTmp(), 'sweep-engine-'));
     const r = spawnSync(process.execPath, [script('blender/checks/sweep.mjs'), '--no-screen', '--mocks', 'garage,night', '--seeds', 'none', '--out', out], { encoding: 'utf8', timeout: 240000 });
     rmSync(out, { recursive: true, force: true });
     expect(r.status, r.stdout + r.stderr).toBe(0);
@@ -81,7 +81,7 @@ describe('sweep --engine', () => {
   }, 260000);
 
   it('replays one state from a report in seconds, and refuses an indexed moment', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'sweep-replay-'));
+    const dir = mkdtempSync(join(toolTmp(), 'sweep-replay-'));
     const v = (state) => ({ check: 'person', key: 'person|a|b', state, states: [state], a: 'a', b: 'b', value: 0.1 });
     const write = (name, report) => { const f = join(dir, name); writeFileSync(f, JSON.stringify({ mode: 'fast', ...report })); return f; };
     const t0 = Date.now();
@@ -96,7 +96,7 @@ describe('sweep --engine', () => {
   // A cold event index builds 60 seeded runs first, which takes longer than a hosted runner allows
   // this test; where the index is warm (a lane's machine, the local CI) it runs.
   it.skipIf(process.env.GITHUB_ACTIONS)('plays an indexed moment from its snapshot, replays it from the report, and takes it as a control run', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'sweep-moment-'));
+    const dir = mkdtempSync(join(toolTmp(), 'sweep-moment-'));
     const sweep = (...args) => spawnSync(process.execPath, [script('blender/checks/sweep.mjs'), '--no-screen', '--seeds', 'none', '--mocks', 'none', ...args], { encoding: 'utf8', timeout: 500000 });
     let r = sweep('--moments', 'printer_jam --choice 0', '--out', join(dir, 'a'));
     expect(r.status, r.stdout + r.stderr).toBe(0);

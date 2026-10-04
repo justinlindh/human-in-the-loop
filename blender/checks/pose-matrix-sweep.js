@@ -9,8 +9,9 @@
 // is printed first, and a grid over --max-runs (default 64) is refused. --jobs N runs that many values at
 // once (default: a quarter of the cores, at least 1).
 import { spawn } from 'node:child_process';
-import { cpus, tmpdir } from 'node:os';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { cpus } from 'node:os';
+import { readFileSync, rmSync } from 'node:fs';
+import { makeTemp } from '../../scripts/tools/tmp.mjs';
 import { join } from 'node:path';
 import { parseAxis, cartesian } from './param-sweep.js';
 import { PRESETS, guideOf, margin, rowLabel, tally, worstOf } from './pose-matrix.js';
@@ -76,7 +77,7 @@ export async function runMatrixSweep(argv, script) {
   }
   const base = [];
   for (let i = 0; i < argv.length; i++) { if (OWN.has(argv[i])) { i++; continue; } base.push(argv[i]); }
-  const dir = mkdtempSync(join(tmpdir(), 'pose-msweep-'));
+  const dir = makeTemp('pose-msweep-');
   // A signal skips the finally below, so stop the running values and remove the dir here.
   const onSignal = (sig) => () => {
     for (const p of running) p.kill('SIGTERM');

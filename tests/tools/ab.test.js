@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { spawn, spawnSync, execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { join, resolve } from 'node:path';
 import { jsonDiff } from '../../scripts/tools/ab-diff.mjs';
 
@@ -12,8 +12,8 @@ const ab = (...args) => spawnSync('bash', [AB, ...args], { cwd: repo, encoding: 
 const worktrees = () => git('worktree', 'list', '--porcelain').split('\n').filter((l) => l.startsWith('worktree ')).length;
 
 beforeAll(() => {
-  repo = mkdtempSync(join(tmpdir(), 'abrepo-'));
-  cache = mkdtempSync(join(tmpdir(), 'abcache-'));
+  repo = mkdtempSync(join(toolTmp(), 'abrepo-'));
+  cache = mkdtempSync(join(toolTmp(), 'abcache-'));
   git('init', '-q');
   writeFileSync(join(repo, 'out.js'), 'console.log(JSON.stringify({ a: 1, b: { c: 2 }, rows: [{ id: "x", v: 1 }, { id: "y", v: 2 }] }));\n');
   writeFileSync(join(repo, 'txt.js'), 'console.log("line one\\nline two");\n');

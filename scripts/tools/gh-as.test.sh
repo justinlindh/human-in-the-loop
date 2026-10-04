@@ -4,7 +4,7 @@
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 GH="$HERE/gh-as.sh"
-tmp="$(mktemp -d)"; spid=''
+mkdir -p "${HITL_TMP:=$HOME/.cache/hitl-ci/tmp}"; tmp="$(mktemp -d -p "$HITL_TMP")"; spid=''
 cleanup() { [ -n "$spid" ] && kill "$spid" 2>/dev/null; rm -rf "$tmp"; }
 trap cleanup EXIT
 fails=0; fail() { echo "FAIL $*"; fails=$((fails + 1)); }

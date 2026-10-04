@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { join, resolve } from 'node:path';
 
 const HOST = resolve(__dirname, '../../scripts/studio/page-host.mjs');
@@ -42,7 +42,7 @@ describe('studio page host', () => {
   }, 210000);
 
   it('runs each case in its own process with imports by site path, and reports an error per case', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'page-host-test-'));
+    const dir = mkdtempSync(join(toolTmp(), 'page-host-test-'));
     try {
       const mod = join(dir, 'pages.mjs');
       writeFileSync(mod, `export const staff = async (n) => { const L = await import('/src/render/layout.js'); window.__tick(1000 / 30 * n); return { staff: window.__HITL.state.staff.length, hasLayout: typeof L.footprint === 'function' }; };
