@@ -1,11 +1,25 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { spawn, spawnSync } from 'node:child_process';
 import { resolve, join } from 'node:path';
-import { readdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { readdirSync, mkdtempSync, rmSync, cpSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { compare, markdown, parseFields } from '../../scripts/events/pair-report.js';
+import { compare, markdown, parseFields, sideKey } from '../../scripts/events/pair-report.js';
 
 const PAIR = resolve('scripts/events/pair.js');
+// Every pair.js these tests start caches side a here, never in the team's cache.
+process.env.HITL_PAIR_CACHE_DIR = mkdtempSync(join(tmpdir(), 'pair-cache-'));
+afterAll(() => rmSync(process.env.HITL_PAIR_CACHE_DIR, { recursive: true, force: true }));
+
+describe('sideKey', () => {
+  const parts = { files: [['src/sim/a.js', 'id1'], ['src/data/b.json', 'id2']], bots: ['x', 'y'], seeds: 5, startEra: null, fields: [], script: 's', node: 'v1' };
+  it('ignores the order of files and bots, and nothing else', () => {
+    const key = sideKey(parts);
+    expect(sideKey({ ...parts, files: [...parts.files].reverse(), bots: ['y', 'x'] })).toBe(key);
+    for (const change of [{ files: [['src/sim/a.js', 'id9'], parts.files[1]] }, { seeds: 6 }, { bots: ['x'] }, { startEra: 'agents' }, { fields: [{ name: 'n', expr: '1' }] }, { script: 't' }, { node: 'v2' }]) {
+      expect(sideKey({ ...parts, ...change })).not.toBe(key);
+    }
+  });
+});
 
 const rec = (over = {}) => ({ reason: 'exit', exited: true, won: false, weeks: 500, score: 100, incidents: 2, caught: 1, breaches: 1, hash: 'exit|500|100|7', ...over });
 
@@ -167,5 +181,66 @@ describe('pair.js arguments and fields', () => {
       expect(readdirSync(tmp)).toEqual([]);
     } finally { rmSync(tmp, { recursive: true, force: true }); }
   }, 60000);
+});
+
+describe('side a cache', { timeout: 90000 }, () => {
+  // A scratch repository holding just the sim and its data, played as side a against this checkout.
+  const base = mkdtempSync(join(tmpdir(), 'pair-base-'));
+  const git = (...args) => spawnSync('git', ['-C', base, '-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { encoding: 'utf8' });
+  const play = (extra = [], env = {}) => spawnSync(process.execPath, [PAIR, '--a', base, ...extra, '--bots', 'balanced', '--seeds', '2'], { encoding: 'utf8', timeout: 120000, env: { ...process.env, ...env } });
+  const table = (r) => r.stdout.split('\n').filter((l) => l.startsWith('| balanced'));
+  const cached = (r) => /side a read from the cache/.test(r.stdout);
+  const cacheFiles = () => readdirSync(process.env.HITL_PAIR_CACHE_DIR).filter((n) => n.endsWith('.json'));
+
+  beforeAll(() => {
+    cpSync('src/sim', join(base, 'src/sim'), { recursive: true });
+    cpSync('src/data', join(base, 'src/data'), { recursive: true });
+    git('init', '-q'); git('add', '-A'); git('commit', '-q', '-m', 'base');
+  });
+  afterAll(() => rmSync(base, { recursive: true, force: true }));
+
+  it('plays side a on a miss, reads it on a repeat, and prints the same table both times', () => {
+    const first = play(), second = play();
+    expect([first.status, second.status]).toEqual([0, 0]);
+    expect([cached(first), cached(second)]).toEqual([false, true]);
+    expect(table(second)).toEqual(table(first));
+    expect(table(first)[0]).toMatch(/\| balanced \| 2\/2 /);
+  });
+
+  it('a different seed count, bot set or --fields is a miss', () => {
+    play();
+    expect(cached(play(['--seeds', '3']))).toBe(false);
+    expect(cached(play(['--fields', 'n: s.staff.length + 1000']))).toBe(false);
+    expect(cached(play(['--fields', 'n: s.staff.length + 1000']))).toBe(true);
+  });
+
+  it('a changed sim file on side a is a miss, and putting it back is a hit again', () => {
+    play();
+    const file = join(base, 'src/sim/rng.js');
+    const original = readFileSync(file, 'utf8');
+    writeFileSync(file, `${original}\n// changed\n`);
+    try { expect(cached(play())).toBe(false); } finally { writeFileSync(file, original); }
+    expect(cached(play())).toBe(true);
+  });
+
+  it('a file that is not sim or data, or a test file, does not change the key', () => {
+    play();
+    writeFileSync(join(base, 'README.md'), 'x');
+    writeFileSync(join(base, 'src/sim/some.test.js'), 'x');
+    try { expect(cached(play())).toBe(true); } finally { rmSync(join(base, 'README.md')); rmSync(join(base, 'src/sim/some.test.js')); }
+  });
+
+  it('HITL_NO_CHECK_CACHE=1 neither reads nor writes it', () => {
+    const before = cacheFiles().length;
+    const r = play(['--seeds', '4'], { HITL_NO_CHECK_CACHE: '1' });
+    expect([r.status, cached(r), cacheFiles().length]).toEqual([0, false, before]);
+  });
+
+  it('a damaged cache entry is played over, not trusted', () => {
+    play(['--seeds', '5']);
+    for (const n of cacheFiles()) writeFileSync(join(process.env.HITL_PAIR_CACHE_DIR, n), '{ not json');
+    const r = play(['--seeds', '5']);
+    expect([r.status, cached(r)]).toEqual([0, false]);
+  }, 90000);
 });
 
