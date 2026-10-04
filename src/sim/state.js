@@ -14,6 +14,7 @@ import { rollEraSchedule } from './eras.js';
 import { findSpot, assignSeats } from './office.js';
 import { applyEraStart } from './era-start.js';
 import { startEraId } from '../data/era-modes.js';
+import { buildTakeover } from './takeover.js';
 
 export const FUNCTIONS = ['engineering', 'support', 'sales', 'marketing', 'qa', 'ops'];
 // state.robot from the week an office robot is placed.
@@ -26,7 +27,8 @@ function founderPair(founders) {
   return ok ? [...founders] : [...DEFAULT_FOUNDERS];
 }
 
-export function createGame({ seed = 1, companyName = 'Loopworks', logoColor = '#ffb020', tagline = '', founders, funding = 'bootstrapped', startEra = 'classic' } = {}) {
+export function createGame({ seed = 1, companyName = 'Loopworks', logoColor = '#ffb020', tagline = '', founders, funding = 'bootstrapped', startEra = 'classic', startMode = 'garage' } = {}) {
+  if (startMode === 'takeover') return buildTakeover({ seed, companyName, logoColor, tagline, founders, funding, startEra });
   const fundingId = FUNDING[funding] ? funding : 'bootstrapped';
   const pair = founderPair(founders);
   const state = {
