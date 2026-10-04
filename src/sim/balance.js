@@ -184,7 +184,7 @@ export const B = {
   // Takeover scoreShare targets use the same pooled median ratio, including the inherited career.
   // Derive scoreMult from the target and raw median. Re-measure after factor, balance or bot changes,
   // including any change to the bot that builds the inherited company.
-  takeover: { bot: 'sensible', scoreMult: { chatgbt: 0.45, agents: 0.27 }, scoreShare: { chatgbt: 0.5, agents: 0.3 } },
+  takeover: { bot: 'sensible', scoreMult: { chatgbt: 0.49, agents: 0.27 }, scoreShare: { chatgbt: 0.55, agents: 0.3 } },
   founderStrengthBonus: 3, founderIkWeight: 0.4, founderGeneralistWeights: { features: 0.3, polish: 0.15, reliability: 0.2, novelty: 0.1 },
   botBuildersPerProject: 6, botTimeOffStrain: 70, botCancelUnstaffedWeeks: 2, botExpandCushion: 2, botDialCash: 3000000, botAcquireCushion: 4, botAcquireDesks: 3, botMoonshotCushion: 3, botFameBelow: 30, botFameCushion: 6,
   eraAutoEngMult: { classic: 1, chatgbt: 1, agents: 3, consolidation: 3, plateau: 2 },
