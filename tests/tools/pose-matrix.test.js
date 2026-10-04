@@ -161,11 +161,14 @@ describe('pose.mjs --matrix', () => {
     expect(r.stdout).toMatch(/PALM_BUILD_K = \S+, PALM_SHOULDER_REF = \S+ in src\/render\/character\.js \(docs\/toolkit\/pose\/constants-map\.md/);
   });
 
+  // The slap's whole matrix is its smallest (the side-on views, one posture).
   it('reads a bare --matrix before another flag as the whole matrix', () => {
-    const r = run('--gesture', 'facepalm', '--matrix', '--param', 'PALM_SIT[0]=-2.75');
+    const r = run('--gesture', 'slap', '--matrix', '--param', 'SLAP_AT=0.5');
     expect(r.stderr).not.toContain('--matrix wants');
-    expect(r.stdout).toMatch(/MATRIX facepalm: \d+ pass, \d+ fail, \d+ n\/a \(72 cells\)/);
-  });
+    const whole = cellsOf(parseMatrix('', 'slap')).length;
+    expect(whole).toBeLessThan(cellsOf(parseMatrix('views=all', 'slap')).length);
+    expect(r.stdout).toMatch(new RegExp(`MATRIX slap: \\d+ pass, \\d+ fail, \\d+ n/a \\(${whole} cells\\)`));
+  }, 120000);
 
   it('refuses matrix axes split by spaces, and prints the joined flag', () => {
     const r = run('--gesture', 'facepalm', '--matrix', 'postures=sit', 'builds=0', 'views=1');

@@ -70,7 +70,8 @@ import { runMatrixSweep } from './pose-matrix-sweep.js';
 
 const argv = process.argv.slice(2);
 // A bare --matrix (last, or followed by another flag) is the whole matrix: every axis at its default.
-{ const i = argv.indexOf('--matrix'); if (i >= 0 && (argv[i + 1] === undefined || argv[i + 1].startsWith('--'))) argv.splice(i + 1, 0, 'views=all'); }
+// rig=on,off is every gesture's rig default, so it leaves each axis as the gesture would have it.
+{ const i = argv.indexOf('--matrix'); if (i >= 0 && (argv[i + 1] === undefined || argv[i + 1].startsWith('--'))) argv.splice(i + 1, 0, 'rig=on,off'); }
 // Axes split by spaces reach argv as loose words the matrix would never read: refused, with the joined flag.
 {
   const AXIS = /^(views|postures|builds|rig|accessory|side|cause)=/;
