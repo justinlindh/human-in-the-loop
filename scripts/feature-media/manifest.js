@@ -100,6 +100,21 @@ const HERO_AT = (dx, dz) => ({ js: `(() => { const c = window.__heroC ??= (() =>
 // it and the page's corner controls don't cover it.
 const CARD_IN = `(() => { const st = document.createElement('style'); st.textContent = '#ui .modal.decision { translate: -180px -120px; }'; document.head.append(st); })();`;
 
+// [name, event id and index filters, prop to follow, choice index to make, follow zoom (none: the game's
+// wide view, for scenes on every screen)]. The big offices need a closer zoom than the garage.
+const MOMENTS = [
+  ['pizza', 'hackathon_week --stage floor --choice 0', 'pizza_boxes', 0, 2.8],
+  ['hammer', 'open_plan_office --stage floor --choice 0', 'sledgehammer', 0, 2.8],
+  ['carrier', 'cat_request --choice 0', 'pet_carrier', 0, 2.8],
+  ['consultants', 'efficiency_consultants --choice 1', 'visitor_chair', 1, 3.2],
+  ['letter', 'hearing_summons --choice 0', 'envelope_thick', 0, 3.4],
+  ['fumes', 'coffee_machine_broke --stage floor --choice 0', 'smoke_puff', 0, 2.8],
+  ['bridge-loan', 'bridge_loan --choice 0', 'screens_red', 0],
+  ['ransomware', 'ransomware --stage garage --choice 0', 'screens_skull', 0],
+  ['printer', 'printer_jam --stage floor --choice 0', 'printer_jammed', 0, 2.6, 27],
+  ['user-test', 'first_user_test --choice 1', 'visitor_chair', 1, 2.6],
+];
+
 // [item id, camera zoom, era the item needs] of the shop items shown in docs/features/office.md.
 const ITEM_STILLS = [
   ['disk_duplicator', 3.2, 'preinternet'], ['retail_shelf', 3.2, 'preinternet'], ['dotcom_banner', 3.2, 'dotcom'],
@@ -365,6 +380,18 @@ export const ITEMS = [
       { at: 0.5, js: `(() => { const s = window.__HITL.state; (window.__captureMarks ??= []).push({ t: 0, label: 'headcount ' + s.staff.filter((p) => p.mood !== 'away').length + ' era ${era}' }); })()` }],
     ...(GROWTH_CAMERA[name] ? { camera: GROWTH_CAMERA[name] } : {}),
     screenshots: [2, 5.5],
+  })),
+
+  // Feature inventory: one clip per staged moment in docs/features/moments.md. The week before the
+  // decision comes from the event index, the game's own tick raises it, the camera follows the prop,
+  // and the card is held about 5 s before its choice is made by key.
+  ...MOMENTS.map(([name, query, prop, choice, zoom, length = 18]) => ({
+    id: `moment-${name}`, title: `Staged moment: ${name}`, query: 'seed=1&speed=1', moment: query, pre: true, seconds: length, warmup: 6.5,
+    setup: CLEAN,
+    // No zoom: the game's wide view.
+    actions: [{ at: 0, js: NO_SAY }, ...OPEN(), ...(zoom ? FOLLOW([prop], zoom, 0, length) : []), { at: 6.5, js: KEY(String(choice + 1), `Digit${choice + 1}`) }, ...DISMISS_AT([7, 7.5, 9, 12], { escape: false }), ...CAMLOG(length)],
+    screenshots: [5],
+    out: [{ path: `moments/${name}.mp4`, size: '1280x720', from: 1.5, seconds: length - 4, loop: 'none' }],
   })),
 
   // Feature inventory: each shop item placed in the HQ mock the way a player would and upgraded to its top
