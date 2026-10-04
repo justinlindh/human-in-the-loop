@@ -13,7 +13,7 @@ The staging probe (#350): does each character moment read on screen? Plays every
 
 When a readability spec fails, the check prints spot-search summaries from `R.debug.spots`: rejected requirements with counts, the chosen point, and whether it was a fallback. Use the dump's `spotSearches` for the individual candidates. This also prints for failures excused by a known issue.
 
-The `fumes` specs measure its fanning beat from both views. `growth` checks the honoree and coworkers during a career celebration; `company_party` checks the company cheer.
+The `fumes` specs measure its fanning beat from both views. `growth` checks the honoree and coworkers during a career celebration; `company_party` checks the company cheer. Both also play in each founded era's office (`growth_preinternet`, `growth_dotcom`, `growth_web2`, `growth_agents`, and `company_party_<era>`): the same rules, with that era's art on (desks, clothes, street), so era art is checked as Classic is.
 
 `--only=y2k` checks the millennium watch in the Garage: watchers face the equipment and stay visible through the countdown, quiet rollover and invoice beats, in both views.
 

@@ -35,10 +35,10 @@ async function engineMeasure() {
 }
 
 // One scene: the runtime, and the globals a page would hold.
-async function open({ state, mock }) {
+async function open({ state, mock, era, quality }) {
   mapped || mapAbsolutePaths();
   globalThis.__sweepMeasure ??= await engineMeasure();
-  const rt = await createRuntime({ state, mock });
+  const rt = await createRuntime({ state, mock, era, quality });
   const { R, S } = rt;
   // There is nothing to draw on: a render refreshes the scene and skips the draw.
   const render = R.render.bind(R);
@@ -61,9 +61,10 @@ async function open({ state, mock }) {
   return { rt, R, S, game };
 }
 
-export async function hostMock({ name, ...options }) {
+// `mock` and `era` name the scene when the report's name for it differs (`floor@dotcom`).
+export async function hostMock({ name, mock, era, quality, ...options }) {
   const { sampleMock } = await import('../../blender/checks/sample.js');
-  await open({ mock: name });
+  await open({ mock: mock ?? name, era, quality });
   return sampleMock({ name, ...options, crops: 0 });
 }
 
