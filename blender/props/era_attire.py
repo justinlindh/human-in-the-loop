@@ -20,7 +20,7 @@ role = slot('role', 'fabric_teal')
 
 def collar(name):
     return [box(name + str(s), (0.075, 0.025, 0.068), (s * 0.047, -0.098, 0.263), shirt,
-                0.009, 2, rot=(0, s * math.radians(28), 0)) for s in (-1, 1)]
+                0.009, 1, rot=(0, s * math.radians(28), 0)) for s in (-1, 1)]
 
 
 join(collar('collar') + [
@@ -38,22 +38,22 @@ join(collar('polo_collar') + [
 # The fleece leaves the polo's collar visible and stops inside the existing shoulder envelope.
 fleece = [box('fleece_body', (0.312, 0.222, 0.30), (0, 0, 0.15), 'fabric_slate', 0.10, 3)]
 fleece += collar('fleece_collar')
-fleece += [box('zip', (0.012, 0.012, 0.15), (0, -0.113, 0.172), 'wall_trim', 0.004),
-           box('zip_pull', (0.02, 0.012, 0.026), (0, -0.13, 0.227), 'metal_soft', 0.004)]
+fleece += [box('zip', (0.012, 0.012, 0.15), (0, -0.113, 0.172), 'wall_trim', 0.004, 1),
+           box('zip_pull', (0.02, 0.012, 0.026), (0, -0.13, 0.227), 'metal_soft', 0.004, 1)]
 for s in (-1, 1):
     fleece.append(box('fleece_pocket', (0.063, 0.012, 0.015), (s * 0.08, -0.106, 0.073), 'ink', 0.005, 1,
                       rot=(0, s * math.radians(-18), 0)))
 join(fleece, 'attire_fleece')
 
 for kind, radius in [('khaki', 0.058), ('cargo_l', 0.051), ('cargo_r', 0.051), ('jeans', 0.046)]:
-    parts = [cyl(kind, radius, 0.25, (0, 0, -0.125), pants, verts=12, bevel=0.028, segments=2)]
+    parts = [cyl(kind, radius, 0.25, (0, 0, -0.125), pants, verts=12, bevel=0.028, segments=1)]
     if kind == 'khaki':
         for x in (-0.021, 0.021):
             parts.append(box('pleat', (0.006, 0.01, 0.12), (x, -0.058, -0.082), 'baseboard', 0.003, 1))
     if kind.startswith('cargo'):
         for s in (-1,) if kind == 'cargo_l' else (1,):
-            parts += [box('cargo_pocket', (0.018, 0.048, 0.082), (s * 0.046, 0, -0.125), pants, 0.008),
-                      box('cargo_flap', (0.018, 0.048, 0.018), (s * 0.046, 0, -0.087), 'baseboard', 0.006)]
+            parts += [box('cargo_pocket', (0.018, 0.048, 0.082), (s * 0.046, 0, -0.125), pants, 0.008, 1),
+                      box('cargo_flap', (0.018, 0.048, 0.018), (s * 0.046, 0, -0.087), 'baseboard', 0.006, 1)]
     if kind == 'jeans':
         parts.append(cyl('cuff', 0.048, 0.025, (0, 0, -0.232), 'fabric_slate', verts=12, bevel=0.005, segments=1))
     join(parts, 'attire_' + kind)
