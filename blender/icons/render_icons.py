@@ -22,7 +22,7 @@ OUTLINE = 9            # px at render size
 PAD = 0.05              # share of the frame left around the object
 
 ITEMS = ['espresso', 'plant_wall', 'nap_pod', 'arcade', 'standing_desk', 'whiteboard_wall', 'library', 'office_robot',
-         'monitoring_wall', 'server_rack', 'trophy_case']
+         'monitoring_wall', 'server_rack', 'trophy_case', 'disk_duplicator', 'retail_shelf']
 ITEM_LEVEL = 2
 # Flat objects read better from nearly in front than from the isometric angle: (yaw, pitch) degrees.
 FRONT = (22, 14)
