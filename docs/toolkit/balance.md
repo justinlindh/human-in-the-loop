@@ -1,5 +1,5 @@
 ---
-tool: `npm run balance -- --seeds N [--bots a,b] [--start-era preinternet|dotcom|web2|classic|chatgbt|agents|consolidation|plateau] [--start-mode garage|takeover] [--jobs N] [--set path=value] [--json out.json] [--baseline classic.json]`
+tool: `npm run balance -- --seeds N [--bots a,b] [--start-era preinternet|dotcom|web2|classic|chatgbt|agents|consolidation|plateau] [--start-mode garage|takeover] [--jobs N] [--set path=value] [--json out.json] [--baseline classic.json|main]`
 section: sim
 who: sim, reviewer
 covers: scripts/balance.js
@@ -7,6 +7,8 @@ covers: scripts/balance.js
 Seeded bot games with a win and exit table, plus era by era arrival stats. Use paired runs on the same seeds to compare two builds.
 
 `--start-era` founds every bot company in that era (default Classic). `--json` writes one compact result per bot and seed, with a SHA-256 of its full final state. `--baseline` reads that output and prints the existing paired-report table, including lost/gained exits, scores, weeks and incidents. Seed sets must match; bad era/bot/seed arguments, unreadable baseline files and mismatched seed sets exit 2. A run stopped before completion does not write a partial JSON result. The baseline file may come from a different checkout that supports these options; use `scripts/events/pair.js` when comparing with an older checkout's default run.
+
+`--baseline main` compares with origin/main on the same bots, seeds, era and mode, so a sweep with `--set` reads as a paired table against unmodified main. Main is played by its own `balance.js` in a temporary worktree and cached under `~/.cache/hitl-ci/balance/` (`HITL_BALANCE_CACHE_DIR` moves it, `HITL_NO_CHECK_CACHE=1` turns it off), keyed by the content of main's `src/sim`, `src/data` and `scripts/balance.js`, the arguments and Node. It prints `baseline: played origin/main` the first time and `baseline: origin/main read from the cache` after that, until main's sim changes. Entries older than 14 days are removed. If main's run fails, the tool exits 2.
 
 `--jobs N` runs up to N bots at once in worker threads (default 3; `--jobs 1` plays them one after another); the results and JSON are identical to a single-thread run. `--set path=value` (repeatable) overrides one number in `B` for the run, for sweeps before editing `balance.js`: `--set eraStarts.plateau.exitMrrMult=0.55`. A path that is not a number in `B` exits 2. The summary line under the main table gives the pooled median score over every bot and seed, and the same median before the start's era factor, which is what an era start's `scoreMult` and `scoreShare` are calibrated from.
 
