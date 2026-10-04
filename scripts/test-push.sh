@@ -16,5 +16,13 @@ if [ -z "$files" ]; then
   echo "test-push: no changed JS under src, tests or scripts: nothing to run here (GitHub runs the full suite)"
   exit 0
 fi
+# A change that reaches many test files (a core module, the config) gains nothing from a long local
+# run that GitHub repeats; past HITL_PUSH_TEST_MAX test files (default 40) the push leaves it there.
+max="${HITL_PUSH_TEST_MAX:-40}"
+count="$(npx vitest list --filesOnly --changed "$base" 2>/dev/null | grep -c '\.test\.[cm]\?js$')"
+if [ "${count:-0}" -gt "$max" ]; then
+  echo "test-push: the changes reach $count test files (more than $max): skipped here, GitHub's test check runs the full suite"
+  exit 0
+fi
 # shellcheck disable=SC2086
 exec bash scripts/nice10.sh bash scripts/tools/test-related.sh --files $files
