@@ -8,6 +8,7 @@ Description=Human in the Loop main guard: the full suite on each new main commit
 [Service]
 Type=oneshot
 Nice=19
+CPUWeight=10
 IOSchedulingClass=idle
 TimeoutStartSec=90min
 Environment=GUARD_CLONE=%h/.cache/hitl-ci/main-guard/clone
