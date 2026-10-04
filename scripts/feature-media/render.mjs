@@ -17,10 +17,9 @@
 //   --compare  prints each file's size next to the same path in <dir> (a site checkout, say)
 // Recordings are 30 fps; capture.js takes a GPU render slot.
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { copyFileSync } from 'node:fs';
 import { itemBase, itemStatus, recordItem, clearItem } from '../../blender/checks/cache.mjs';
 
 const argv = process.argv.slice(2);
@@ -48,6 +47,8 @@ if (argv.includes('--stale')) {
 }
 const publishing = argv.includes('--publish');
 if (publishing && !only) { console.error('feature-media: --publish needs --only <id,id>'); process.exit(2); }
+const unknown = (only ?? []).filter((id) => !ITEMS.some((it) => it.id === id));
+if (unknown.length) { console.error(`feature-media: --only names no manifest item: ${unknown.join(', ')}`); process.exit(2); }
 const items = ITEMS.filter((it) => !only || only.includes(it.id));
 if (!items.length) { console.error(`feature-media: nothing matches --only ${only}`); process.exit(1); }
 if (publishing) {
@@ -76,6 +77,9 @@ const sizes = [...new Set(items.map((i) => i.record ?? REC))];
 const recorded = new Map();
 for (const size of sizes) {
   const dir = join(RAW, size), group = items.filter((i) => (i.record ?? REC) === size);
+  // Publishing starts from an empty recording folder, so a capture that dies cannot leave an old render
+  // (or its index) to be published and recorded as current.
+  if (publishing) rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
   console.log(`feature-media: recording at ${size}: ${group.map((i) => i.id).join(', ')}`);
   const cap = spawnSync('node', ['scripts/capture.js', '--manifest', MANIFEST, '--only', group.map((i) => i.id).join(','), '--out', dir, '--size', size, '--fps', String(FPS0), '--no-webm'], { stdio: 'inherit' });
