@@ -54,7 +54,7 @@ function simFiles(repo, rev) {
       .filter((p) => p && SIM_FILE.test(p) && !p.endsWith('.test.js') && existsSync(join(repo, p)));
     const ids = git(repo, ['hash-object', '--stdin-paths'], `${paths.join('\n')}\n`).split('\n').filter(Boolean);
     return paths.map((p, i) => [p, ids[i]]);
-  } catch { return null; }
+  } catch (e) { console.error(`pair: cache: skipped (git cannot list the sim files: ${String(e.message).split('\n')[0]})`); return null; }
 }
 const cacheDir = () => process.env.HITL_PAIR_CACHE_DIR || join(homedir(), '.cache', 'hitl-ci', 'pair');
 function readSide(key) {
@@ -71,7 +71,7 @@ function writeSide(key, records) {
       const f = join(cacheDir(), n);
       if (Date.now() - statSync(f).mtimeMs > 14 * 864e5) rmSync(f, { force: true });
     }
-  } catch { /* a cache that cannot be written only costs a run next time */ }
+  } catch (e) { console.error(`pair: cache: skipped (could not write side a: ${e.message})`); }
 }
 
 async function runOne({ root, bot, seed, fields, startEra }) {

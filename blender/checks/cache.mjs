@@ -44,7 +44,8 @@ export function inputHash(check, extra = '') {
       if (!f.endsWith(':missing')) h.update(readFileSync(join(ROOT, f)));
     }
     return h.digest('hex').slice(0, 32);
-  } catch {
+  } catch (e) {
+    skipped(check, `could not build the key: ${e.message}`);
     return null;
   }
 }
@@ -58,6 +59,9 @@ function installed() {
 
 // HITL_CHECK_CACHE_DIR moves the whole cache (tests use a scratch one).
 const dir = (check) => join(process.env.HITL_CHECK_CACHE_DIR || join(homedir(), '.cache', 'hitl-ci'), check);
+
+// A pass that cannot be recorded says so on stderr, so a cache that never hits is not silent.
+const skipped = (check, why) => console.error(`${check}: cache: skipped (${why})`);
 
 // The commit a previous clean pass recorded for this hash, or null.
 // Each lookup goes to the team's timing log as a hit or a miss.
@@ -79,8 +83,9 @@ export function recordPass(check, hash) {
     let sha = 'uncommitted';
     try { sha = execSync('git rev-parse --short HEAD', { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch { /* not a checkout */ }
     writeFileSync(join(dir(check), `${hash}.pass`), `${sha}\n`);
-  } catch {
+  } catch (e) {
     // A cache that cannot be written only costs a render next time.
+    skipped(check, `could not write the record: ${e.message}`);
   }
 }
 
@@ -141,7 +146,8 @@ export function sceneBase(check, scene, toolFiles) {
   try {
     baseCache ??= `${process.version}\n${installed()}\n${['package-lock.json', 'vite.config.js', 'index.html', ...toolFiles].map((f) => `${f}:${fileHash(f)}`).join('\n')}\n${createHash('sha256').update(tree()).digest('hex')}`;
     return createHash('sha256').update(`${check}\n${JSON.stringify(scene)}\n${baseCache}`).digest('hex').slice(0, 32);
-  } catch {
+  } catch (e) {
+    skipped(check, `could not build the key: ${e.message}`);
     return null;
   }
 }
@@ -164,10 +170,11 @@ export function recordScene(check, name, base, requested, refRel) {
   try {
     fileHashes.delete(refRel);
     const files = Object.fromEntries(requested.map((f) => [f, f.includes(':') ? f : fileHash(f)]));
-    if (Object.values(files).some((h) => h === null)) return;
+    const missing = Object.keys(files).filter((f) => files[f] === null);
+    if (missing.length) { skipped(check, `${name}: a requested file is missing (${missing[0]})`); return; }
     mkdirSync(dir(`${check}-scenes`), { recursive: true });
     writeFileSync(sceneFile(check, name), JSON.stringify({ base, ref: fileHash(refRel), files }));
-  } catch { /* a record that cannot be written only costs a render next time */ }
+  } catch (e) { skipped(check, `${name}: could not write the record: ${e.message}`); }
 }
 
 // Forget a scene's record, so a failed or interrupted run cannot leave an earlier success behind
@@ -192,7 +199,8 @@ export function graphBase(check, extra = '') {
   try {
     const parts = BASE_FILES.map((f) => `${f}:${fileHash(f)}`);
     return createHash('sha256').update(`${check}\n${extra}\n${process.version}\n${installed()}\n${parts.join('\n')}`).digest('hex').slice(0, 32);
-  } catch {
+  } catch (e) {
+    skipped(check, `could not build the key: ${e.message}`);
     return null;
   }
 }
@@ -293,10 +301,11 @@ export function recordGraphPass(check, base, loaded, entry = process.argv[1]) {
   if (!base) return;
   try {
     const rels = loadedFiles([...loaded, ...(entry ? moduleGraph(entry) : [])]);
-    if (!rels.some((f) => f.startsWith('src/'))) return;
+    if (!rels.some((f) => f.startsWith('src/'))) { skipped(check, 'no game source loaded'); return; }
     const lists = Object.fromEntries(globDirs(rels).map((d) => [d, listHash(d)]));
     const files = Object.fromEntries(rels.map((f) => [f, f.includes(':') ? f : fileHash(f)]));
-    if (Object.values(files).some((h) => h === null)) return;
+    const missing = Object.keys(files).filter((f) => files[f] === null);
+    if (missing.length) { skipped(check, `a loaded file is missing (${missing[0]})`); return; }
     let commit = 'uncommitted';
     try { commit = execSync('git rev-parse --short HEAD', { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch { /* not a checkout */ }
     mkdirSync(dir(check), { recursive: true });
@@ -306,5 +315,5 @@ export function recordGraphPass(check, base, loaded, entry = process.argv[1]) {
       const f = join(dir(check), name);
       if (name.startsWith('graph-') && Date.now() - statSync(f).mtimeMs > 14 * 864e5) rmSync(f, { force: true });
     }
-  } catch { /* a record that cannot be written only costs a run next time */ }
+  } catch (e) { skipped(check, `could not write the record: ${e.message}`); }
 }
