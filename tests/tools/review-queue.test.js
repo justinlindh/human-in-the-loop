@@ -55,6 +55,11 @@ describe('review-queue command', () => {
     return { dir, set: (v) => writeFileSync(join(dir, 'queue.json'), typeof v === 'string' ? v : JSON.stringify(v)), env: { ...process.env, PATH: `${dir}:${process.env.PATH}` } };
   };
   const run = (env, ...args) => spawnSync(process.execPath, [QUEUE, ...args], { encoding: 'utf8', env, timeout: 30000 });
+  // Polls until `ready()` holds or the deadline passes: a loaded machine can take seconds to start node.
+  const until = async (ready, ms = 10000) => {
+    for (const end = Date.now() + ms; !ready() && Date.now() < end;) await new Promise((r) => setTimeout(r, 50));
+  };
+  const lines = (out) => out.trim().split('\n');
 
   it('lists every waiting PR and exits 0, or exits 3 when the queue is empty', () => {
     const t = setup([pr(4), pr(2), pr(6, { author: { login: 'app/dependabot' } }, null)]);
@@ -101,17 +106,20 @@ describe('review-queue command', () => {
       child.stdout.on('data', (d) => { out += d; });
       let code = null;
       child.on('close', (c) => { code = c; });
-      await new Promise((r) => setTimeout(r, 700));
-      expect(out.trim().split('\n')).toEqual(['READY #7 7aaaaaaa tools/x7: t7']);
+      // Each wait sees the line arrive, then a few more polls go by so a repeat would show.
+      await until(() => out.trim());
+      await new Promise((r) => setTimeout(r, 600));
+      expect(lines(out)).toEqual(['READY #7 7aaaaaaa tools/x7: t7']);
       expect(code).toBeNull();
       t.set([pr(7), pr(9)]);
-      await new Promise((r) => setTimeout(r, 700));
-      expect(out.trim().split('\n')).toEqual(['READY #7 7aaaaaaa tools/x7: t7', 'READY #9 9aaaaaaa tools/x9: t9']);
+      await until(() => lines(out).length >= 2);
+      await new Promise((r) => setTimeout(r, 600));
+      expect(lines(out)).toEqual(['READY #7 7aaaaaaa tools/x7: t7', 'READY #9 9aaaaaaa tools/x9: t9']);
       t.set([pr(11, {}, 'PENDING')]);
-      for (let i = 0; i < 50 && code === null; i++) await new Promise((r) => setTimeout(r, 100));
+      await until(() => code !== null);
       expect(code).toBe(0);
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
-  }, 20000);
+  }, 30000);
 
   it('--drain on a queue that holds only pending CI keeps waiting until that PR is ready and then reviewed', async () => {
     const t = setup([pr(3, {}, 'PENDING')]);
@@ -121,18 +129,19 @@ describe('review-queue command', () => {
       child.stdout.on('data', (d) => { out += d; });
       let code = null;
       child.on('close', (c) => { code = c; });
-      await new Promise((r) => setTimeout(r, 800));
+      await until(() => out.trim());
+      await new Promise((r) => setTimeout(r, 600));
       expect(out.trim()).toBe('CI #3 3aaaaaaa tools/x3: t3 (local-ci pending)');
       expect(code).toBeNull();
       t.set([pr(3, {}, 'SUCCESS')]);
-      await new Promise((r) => setTimeout(r, 600));
-      expect(out.trim().split('\n').pop()).toBe('READY #3 3aaaaaaa tools/x3: t3');
+      await until(() => lines(out).length >= 2);
+      expect(lines(out).pop()).toBe('READY #3 3aaaaaaa tools/x3: t3');
       expect(code).toBeNull();
       t.set([pr(3, {}, 'SUCCESS', 'SUCCESS')]);
-      for (let i = 0; i < 50 && code === null; i++) await new Promise((r) => setTimeout(r, 100));
+      await until(() => code !== null);
       expect(code).toBe(0);
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
-  }, 20000);
+  }, 30000);
 
   it('--drain prints a PR again when it moves from pending CI to ready on the same head', async () => {
     const t = setup([pr(3, {}, 'PENDING'), pr(5)]);
@@ -140,14 +149,14 @@ describe('review-queue command', () => {
       const child = spawn(process.execPath, [QUEUE, '--drain', '--interval', '0.2'], { env: t.env });
       let out = '';
       child.stdout.on('data', (d) => { out += d; });
-      await new Promise((r) => setTimeout(r, 600));
-      expect(out.trim().split('\n')).toEqual(['READY #5 5aaaaaaa tools/x5: t5', 'CI #3 3aaaaaaa tools/x3: t3 (local-ci pending)']);
+      await until(() => lines(out).length >= 2);
+      expect(lines(out)).toEqual(['READY #5 5aaaaaaa tools/x5: t5', 'CI #3 3aaaaaaa tools/x3: t3 (local-ci pending)']);
       t.set([pr(3, {}, 'SUCCESS'), pr(5)]);
-      await new Promise((r) => setTimeout(r, 600));
-      expect(out.trim().split('\n')).toEqual(['READY #5 5aaaaaaa tools/x5: t5', 'CI #3 3aaaaaaa tools/x3: t3 (local-ci pending)', 'READY #3 3aaaaaaa tools/x3: t3']);
+      await until(() => lines(out).length >= 3);
+      expect(lines(out)).toEqual(['READY #5 5aaaaaaa tools/x5: t5', 'CI #3 3aaaaaaa tools/x3: t3 (local-ci pending)', 'READY #3 3aaaaaaa tools/x3: t3']);
       child.kill('SIGTERM');
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
-  }, 20000);
+  }, 30000);
 
   it('refuses bad options, reports a failing gh, and times out a wait', () => {
     const t = setup([]);
