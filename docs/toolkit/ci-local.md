@@ -3,11 +3,11 @@ tool: `npm run ci` (`scripts/ci-local.sh`)
 section: pr
 covers: scripts/ci-local.sh
 ---
-The same checks in the current worktree, with a summary table. It runs golden (on the GPU, one scene at a time) in the background while the other GPU steps run one after another, and runs the tooling self-tests only when a change touches `scripts/` or `.claude/` (the main guard runs them all).
+The same checks in the current worktree, with a summary table. It runs golden (on the GPU, one scene at a time) in the background while the other GPU steps run one after another, and runs the tooling self-tests only when a change touches `scripts/` or `.claude/` (the main guard runs them all). The `harness-uuid` step runs `tests/tools/harness-uuid.full.test.js` on a GPU slot for renderer, harness or probe changes (always in the main guard).
 
 It keeps only what needs this machine: the GPU render checks, golden, phone-check, stage and the tooling self-tests. GitHub's own checks run the rest on the same merged code, so a PR run records those steps as covered there:
 - test:fast, build and syntax (`test`);
-- test:balance and test:full, the `*.full.test.js` whole-game cases that test:fast leaves out (`balance`; the main guard runs both itself);
+- test:balance and test:full, the `*.full.test.js` whole-game cases that test:fast leaves out, except `harness-uuid.full.test.js`, which needs a browser (`balance`; the main guard runs both itself);
 - soak and lifecycle (`browser`);
 - commits (`commits`);
 - the main guard's cases and the renderer counts against `scripts/perf/budget.json` (`tools`).

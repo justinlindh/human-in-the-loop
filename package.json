@@ -12,7 +12,7 @@
     "test": "bash scripts/nice10.sh vitest run",
     "test:fast": "bash scripts/nice10.sh bash scripts/test-cache.sh vitest run --exclude tests/sim/balance.test.js --exclude 'tests/**/*.full.test.js'",
     "test:push": "bash scripts/test-push.sh",
-    "test:full": "bash scripts/nice10.sh vitest run .full.test.js",
+    "test:full": "bash scripts/nice10.sh vitest run .full.test.js --exclude tests/tools/harness-uuid.full.test.js",
     "test:balance":"bash scripts/nice10.sh vitest run tests/sim/balance.test.js",
     "ci": "bash scripts/nice10.sh bash scripts/ci-local.sh",
     "gates": "bash scripts/gates.sh",
