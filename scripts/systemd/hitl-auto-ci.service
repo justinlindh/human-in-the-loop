@@ -11,4 +11,5 @@ KillMode=process
 Nice=10
 TimeoutStartSec=5min
 Environment=AUTO_CI_TREE=%h/.cache/hitl-ci/auto/worktree
+Environment=TMPDIR=%h/.cache/hitl-ci/tmp
 ExecStart=/bin/bash -c 'set -e; cd "$AUTO_CI_TREE"; git fetch -q origin main; git checkout -q --detach origin/main; exec bash scripts/auto-ci.sh'
