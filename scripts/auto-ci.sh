@@ -34,7 +34,7 @@ JOBS="$STATE/jobs"
 mkdir -p "$JOBS" "$STATE/retried" "$STATE/pending"
 STUCK="${AUTO_CI_STUCK_MINUTES:-75}"
 GUARD_RED="${AUTO_CI_GUARD_RED:-$HOME/.cache/hitl-ci/main-guard/red}"
-RENDER_STEPS=" stage render-checks golden golden-uncached pose-nodraw sweep "
+RENDER_STEPS=" stage render-checks golden golden-uncached sweep "
 red_render=""
 if [ -f "$GUARD_RED" ] && [ -z "$(find "$GUARD_RED" -mmin "+$(( ${AUTO_CI_RED_HOURS:-3} * 60 ))" 2>/dev/null)" ]; then
   for step in $(cut -d' ' -f2- "$GUARD_RED" | tr ',' ' '); do
