@@ -12,8 +12,8 @@
 //       each item alone, a standing person at a lattice of positions round and inside its footprint
 import { parseArgs } from 'node:util';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync, rmSync } from 'node:fs';
+import { makeTemp } from '../tools/tmp.mjs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -21,7 +21,7 @@ const { values } = parseArgs({ options: { compose: { type: 'string' }, grid: { t
 if (!values.compose && !values.grid) { console.error('usage: compare-sweep.mjs --compose file.json [--frame 30] [--detail] | --grid coffee_corner,desk,... [--positions 20]  [--tolerance 0.005] [--json out.json]'); process.exit(2); }
 const TOL_PERSON = 0.02;   // sweep.mjs's tolerance for people
 const tolerance = Number(values.tolerance ?? 0.005), frame = Number(values.frame ?? 30);
-const scratch = mkdtempSync(join(tmpdir(), 'compare-sweep-'));
+const scratch = makeTemp('compare-sweep-');
 process.on('exit', () => rmSync(scratch, { recursive: true, force: true }));
 
 // A compose file compiles in its own process: the engine's module loader must see src/render first.

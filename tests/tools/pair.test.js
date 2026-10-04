@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { spawn, spawnSync } from 'node:child_process';
 import { resolve, join } from 'node:path';
-import { readdirSync, mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readdirSync, rmSync } from 'node:fs';
+import { makeTemp } from '../../scripts/tools/tmp.mjs';
 import { compare, markdown, parseFields } from '../../scripts/events/pair-report.js';
 
 const PAIR = resolve('scripts/events/pair.js');
@@ -139,23 +139,24 @@ describe('pair.js arguments and fields', () => {
   });
 
   it('a refused argument leaves no worktree and no temporary directory behind', () => {
-    // The runs get a TMPDIR of their own, so other pair.js jobs on the machine cannot change what is counted.
-    const tmp = mkdtempSync(join(tmpdir(), 'pair-test-'));
-    const runIn = (...args) => spawnSync(process.execPath, [PAIR, ...args], { encoding: 'utf8', timeout: 120000, env: { ...process.env, TMPDIR: tmp } });
+    // The runs get a scratch directory (HITL_TMP) of their own, so other pair.js jobs on the machine
+    // cannot change what is counted, and a TMPDIR standing in for the system's, which stays empty.
+    const tmp = makeTemp('pair-test-'), sys = makeTemp('pair-sys-');
+    const runIn = (...args) => spawnSync(process.execPath, [PAIR, ...args], { encoding: 'utf8', timeout: 120000, env: { ...process.env, HITL_TMP: tmp, TMPDIR: sys } });
     const list = () => spawnSync('git', ['worktree', 'list', '--porcelain'], { encoding: 'utf8' }).stdout.split('\n').filter((l) => l.startsWith(`worktree ${tmp}/`));
     try {
       expect(runIn('--bots', 'balanced', '--seeds', '1', '--fields', 'oops').status).toBe(2);
       expect(runIn('--a', '.', '--b', '/nonexistent/dir', '--bots', 'balanced', '--seeds', '1').status).toBe(2);
       expect(runIn('--a', '.', '--bots', 'balanced', '--seeds', '1', '--fields', 'oops').status).toBe(2);
-      expect([list(), readdirSync(tmp)]).toEqual([[], []]);
-    } finally { rmSync(tmp, { recursive: true, force: true }); }
+      expect([list(), readdirSync(tmp), readdirSync(sys)]).toEqual([[], [], []]);
+    } finally { for (const d of [tmp, sys]) rmSync(d, { recursive: true, force: true }); }
   });
 
   it('a run killed while it holds the base worktree removes it and its side processes', async () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'pair-test-'));
+    const tmp = makeTemp('pair-test-'), sys = makeTemp('pair-sys-');
     const list = () => spawnSync('git', ['worktree', 'list', '--porcelain'], { encoding: 'utf8' }).stdout.split('\n').filter((l) => l.startsWith(`worktree ${tmp}/`));
     try {
-      const child = spawn(process.execPath, [PAIR, '--bots', 'balanced', '--seeds', '400'], { stdio: 'ignore', env: { ...process.env, TMPDIR: tmp } });
+      const child = spawn(process.execPath, [PAIR, '--bots', 'balanced', '--seeds', '400'], { stdio: 'ignore', env: { ...process.env, HITL_TMP: tmp, TMPDIR: sys } });
       const closed = new Promise((res) => child.on('close', (code, signal) => res({ code, signal })));
       for (let i = 0; i < 400 && !list().length; i++) await new Promise((r) => setTimeout(r, 100));
       expect(list().length).toBeGreaterThan(0);
@@ -165,7 +166,8 @@ describe('pair.js arguments and fields', () => {
       expect(code === 143 || signal === 'SIGTERM').toBe(true);
       expect(list()).toEqual([]);
       expect(readdirSync(tmp)).toEqual([]);
-    } finally { rmSync(tmp, { recursive: true, force: true }); }
+      expect(readdirSync(sys)).toEqual([]);
+    } finally { for (const d of [tmp, sys]) rmSync(d, { recursive: true, force: true }); }
   }, 60000);
 });
 

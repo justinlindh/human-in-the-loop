@@ -1,7 +1,7 @@
 // The diff ab.sh prints: structured when both outputs are JSON, a unified text diff otherwise.
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync, rmSync } from 'node:fs';
+import { makeTemp } from './tmp.mjs';
 import { join } from 'node:path';
 
 const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v);
@@ -47,7 +47,7 @@ export function diffOutputs(baseOut, nowOut, { tol = 0, id = null, ignore = null
     return { kind: 'json', count: list.length, list, text: `ab: ${list.length} difference(s) (JSON):\n${lines.join('\n')}` };
   }
   if (baseOut === nowOut) return { kind: 'text', count: 0, list: [], text: 'ab: identical (text)' };
-  const dir = mkdtempSync(join(tmpdir(), 'ab-diff-'));
+  const dir = makeTemp('ab-diff-');
   try {
     writeFileSync(join(dir, 'base'), baseOut);
     writeFileSync(join(dir, 'now'), nowOut);

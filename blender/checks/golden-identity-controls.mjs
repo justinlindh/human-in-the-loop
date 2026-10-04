@@ -3,14 +3,14 @@
 //   node blender/checks/golden-identity-controls.mjs
 // Takes the software render lock through golden itself; run under timeout and nice.
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, existsSync, readdirSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { rmSync, existsSync, readdirSync } from 'node:fs';
+import { makeTemp } from '../../scripts/tools/tmp.mjs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const cache = mkdtempSync(join(tmpdir(), 'golden-identity-'));
+const cache = makeTemp('golden-identity-');
 const identityRecord = join(cache, 'golden-identity-scenes', 'char-lineup.json');
 // Failure renders go to a scratch directory, so running this never touches the checkout's own shots.
 const shots = join(cache, 'shots');

@@ -2,10 +2,10 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { join } from 'node:path';
 
-const cache = mkdtempSync(join(tmpdir(), 'prewarm-'));
+const cache = mkdtempSync(join(toolTmp(), 'prewarm-'));
 process.env.HITL_EVENTS_DIR = cache;
 const { splitArgs, readQueries } = await import('../../scripts/events/prewarm.js');
 const { simHash, indexDir } = await import('../../scripts/events/lib.js');

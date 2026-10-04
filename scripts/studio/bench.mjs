@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util';
-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { makeTemp } from '../tools/tmp.mjs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const { values } = parseArgs({ options: { out: { type: 'string' }, runs: { type: 'string', default: '3' }, frames: { type: 'string', default: '15' } } });
 const runs = Number(values.runs), count = Number(values.frames);
 if (![runs, count].every(n => Number.isInteger(n) && n > 0)) throw new Error('runs and frames must be positive integers');
-const dir = mkdtempSync(join(tmpdir(), 'codex-scene-bench-'));
+const dir = makeTemp('codex-scene-bench-');
 const cases = [[], ['occupancy', 'projections'], ['visibility'], ['intersections'], ['intersections', 'clearances', 'visibility', 'projections', 'occupancy']];
 const percentile = (values, fraction) => [...values].sort((a, b) => a - b)[Math.min(values.length - 1, Math.floor(values.length * fraction))];
 const summary = numbers => ({ p50: percentile(numbers, 0.5), p95: percentile(numbers, 0.95), min: Math.min(...numbers), max: Math.max(...numbers) });

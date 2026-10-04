@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { resolve, join } from 'node:path';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { tableEntries, touchedSpecs } from '../../blender/checks/stage-touched.js';
 
 const file = (specs, scenarios) => `const helper = 1;\n\nconst SPECS = {\n${specs}\n};\n\nconst SCENARIOS = {\n${scenarios}\n};\n`;
@@ -34,7 +34,7 @@ describe('stage --touched', () => {
 
   it('stage.mjs says so when nothing is touched, and refuses an unknown base and an unknown --only', () => {
     const script = resolve(__dirname, '../../blender/checks/stage.mjs');
-    const cwd = mkdtempSync(join(tmpdir(), 'hitl-stage-touched-'));
+    const cwd = mkdtempSync(join(toolTmp(), 'hitl-stage-touched-'));
     try {
       // The no-change case compares identical specs even while the real checkout has edits.
       mkdirSync(join(cwd, 'blender/checks'), { recursive: true });
