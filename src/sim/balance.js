@@ -201,6 +201,8 @@ export const B = {
   incentiveEveryWeeks: 8, musicNightDancers: [3, 5], waffleLaunches: 20, waffleLevel: 20, waffleCooldownWeeks: 156, incentiveWinnerMeaning: 6, incentiveEnvy: 1, incentiveOutput: 0.06, incentiveFatigue: 0.01,
   awardAiScore: 8.5, awardWorkplaceStaff: 10, awardWorkplaceMeaning: 78, awardWorkplaceStreak: 2, awardTrustedIncidents: 0, awardAiHype: 15, awardWorkplacePride: 1, awardTrustedBrand: 2,
   recordEngPointsPerFeature: 8, recordDesignPointsPerFeature: 120, recordPointsPerPr: 30, recordTicketHours: 2, recordCustomersPerDeal: 25,
+  // Deal events: weeks of sales grouped into one report per product, and what makes a report notable (else a quiet line).
+  dealGroupWeeks: 1, dealNotableMrr: 1000, dealNotableBoxRevenue: 5000,
   // Squads: how many, how big, and the headcount that unlocks them without the Office Floor.
   squadMax: 6, squadMaxMembers: 8, squadUnlockStaff: 8,
   // After a launch the benched part of a squad waits this long for a new posting; cohesion fills over
