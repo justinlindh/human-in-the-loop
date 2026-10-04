@@ -8,7 +8,8 @@
 //   node scripts/studio/parity.mjs --old '<command>' --new '<command>' [--grep '^CLIP'] [--tolerance 0.005]
 //                                  [--new-covers-only] [--timeout 900] [--json out.json]
 //
-//   --preset clip     the clip check: blender/checks/clip.mjs (no check cache) against scripts/studio/clip.mjs
+//   --preset clip     the clip check: blender/checks/clip.mjs --browser against its engine run (no check
+//                     cache); clip-rig the same with --rig
 //   --tolerance       numbers within this of each other match (default 0.005; 0 for exact)
 //   --new-covers-only rows only the old tool prints are listed as not covered, not counted as differences
 //                     (the new tool runs a subset today); rows only the new tool prints always differ
@@ -19,13 +20,25 @@ import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
 const PRESETS = {
+  // The clip check in harness pages against the engine (where only `sky` opens a page), with and
+  // without the rig.
   clip: {
-    old: 'HITL_NO_CHECK_CACHE=1 node blender/checks/clip.mjs', new: 'node scripts/studio/clip.mjs --jobs 4',
-    grep: '^CLIP', tolerance: 0.005, newCoversOnly: true,
+    old: 'HITL_NO_CHECK_CACHE=1 node blender/checks/clip.mjs --browser', new: 'HITL_NO_CHECK_CACHE=1 node blender/checks/clip.mjs',
+    grep: '^CLIP', tolerance: 0.005,
+  },
+  'clip-rig': {
+    old: 'HITL_NO_CHECK_CACHE=1 node blender/checks/clip.mjs --rig --browser', new: 'HITL_NO_CHECK_CACHE=1 node blender/checks/clip.mjs --rig',
+    grep: '^CLIP', tolerance: 0.005,
   },
   stage: {
     old: 'node blender/checks/stage.mjs --browser --rows', new: 'node blender/checks/stage.mjs --rows',
     grep: '^STAGEROW', tolerance: 0.005,
+  },
+  // The standup cases (speech included) in harness pages against the engine; the live conversations
+  // run in a browser either way, so both leave them out.
+  standup: {
+    old: 'HITL_NO_CHECK_CACHE=1 node blender/checks/standup.mjs --browser --no-live', new: 'HITL_NO_CHECK_CACHE=1 node blender/checks/standup.mjs --no-live',
+    grep: '^STANDUP', tolerance: 0.005,
   },
   // The pose matrices in a harness page against the engine, every cell's verdicts and measure ranges,
   // judged by each gesture's own pass rule (pose-matrix.js PRESETS).

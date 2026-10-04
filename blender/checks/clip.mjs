@@ -4,215 +4,120 @@
 //   node blender/checks/clip.mjs --rig    the same with authored clips on (?rig=1)
 //   node blender/checks/clip.mjs --only=printer,desk:f3   only the cases whose names contain one of
 //                                         these; exits 1 if none does. A narrowed pass is not recorded
-//                                         in the cache, and groups it skips can change the state later
-//                                         groups start from, so a full run stays the gate.
+//                                         in the cache, so a full run stays the gate.
+//   node blender/checks/clip.mjs --browser   every group in harness pages instead of on the engine
+//   node blender/checks/clip.mjs --jobs=4    engine groups at once (default an eighth of the cores)
 //
 // Seated desk poses in every mood, head bounds, and resting perk poses (couch, beanbag, nap pod,
 // arcade stool, library armchair), and pair games (foosball) ready to start and playable on the floor
-// and in the garage. Runs through harness.mjs, so the result depends only on the code.
-import { startHarness } from './harness.mjs';
+// and in the garage. The page functions live in clip-pages.js. By default each group plays in its own
+// Node process on the studio engine (scripts/studio/clip.mjs), and only `sky`, which reads 2D canvas
+// pixels, opens a harness page; `--browser` plays every group in harness pages, the reference the engine
+// is held to (`node scripts/studio/parity.mjs --preset clip` compares the two).
+import { createHash } from 'node:crypto';
+import { spawn } from 'node:child_process';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { inputHash, passedAt, recordPass } from './cache.mjs';
 import { fmtTrace, fmtActor } from './diag.mjs';
-import { mainGroups, emptyGroups } from './clip-groups.mjs';
+import { GROUPS, OWN_PAGE, mainGroups, emptyGroups, groupsFor } from './clip-groups.mjs';
+import * as P from './clip-pages.js';
 
-const rig = process.argv.includes('--rig') ? '&rig=1' : '';
-const ONLY = process.argv.find((a) => a.startsWith('--only='))?.slice(7).split(',').map((x) => x.trim()).filter(Boolean) ?? null;
-// Each group of checks and the names of its cases (the fixed part; desk, head and use cases add ids).
-const GROUPS = {
-  pets: ['moment:pet:'],
-  robot: ['moment:robot:'],
-  seats: ['desks:all-seated', 'desk:', 'head:'],
-  perks: ['couch:sit', 'couch:nap', 'beanbag:sprawl', 'napPod:lie', 'arcade:stool', 'library:armchair'],
-  dance: ['dance:motivational_polka', 'dance:corporate_synthwave', 'dance:aggressive_bossa_nova', 'dance:sad_lofi', 'dance:trackLength'],
-  walk: ['walk:dropOnWalk', 'walk:dropOnStand', 'walk:walkers'],
-  props: ['prop:dropOnWalk', 'prop:dropOnStand', 'moment:pizza', 'prop:groupOnMovedTable', 'moment:hammer', 'moment:letter', 'moment:printer', 'moment:visitor:flinch', 'moment:visitor:explain', 'moment:behind-card', 'moment:prompt-stage', 'prop:stageStaff', 'prop:pivotBoard', 'moment:letter-claim', 'moment:letter-lifecycle'],
-  y2k: ['moment:y2k', 'prop:y2k-printer-isolation'],
-  pairs: ['pairs:floor'],
-  use: ['use:espresso', 'use:coffee_corner', 'use:plant_wall', 'use:bookshelf'],
-  party: ['waffle:crowd'],
-  sky: ['sky:trailing'],
-  garage: ['pairs:garage'],
-  celebrations: ['moment:growth', 'moment:company_party'],
-  respond: ['moment:respond:rack', 'moment:respond:desk'],
-  control: ['control:head-through-slab'],
-};
-// scripts/studio/clip.mjs runs installExact and the main page function (the evaluate call over the floor
-// office) on the studio engine, cutting each out of this file by its opening and closing lines. Keep the
-// shape of those lines, or update the host with them.
-// Installed in each page: measures also count triangles crossing furniture (blender/checks/clip-exact.js),
-// which a vertex count misses on a thin slab. The module and its trees are made on the tool stream so
-// the game's random stream is untouched.
-const installExact = async () => {
-  const C = await import('/src/render/checks.js');
-  const tool = window.__tool(() => Math.random), game = Math.random;
-  Math.random = tool;
-  let X;
-  try { X = await import('/blender/checks/clip-exact.js'); } finally { Math.random = game; }
-  C.useExactCross((...a) => window.__tool(() => X.crossFraction(...a)));
-};
+const argv = process.argv.slice(2);
+const RIG = argv.includes('--rig');
+const rig = RIG ? '&rig=1' : '';
+const BROWSER = argv.includes('--browser');
+// --jobs N or --jobs=N, as stage.mjs takes it.
+const jobsArg = argv.find((a) => a.startsWith('--jobs='))?.slice(7) ?? (argv.includes('--jobs') ? argv[argv.indexOf('--jobs') + 1] ?? '' : undefined);
+const JOBS = jobsArg === undefined ? undefined : Number(jobsArg);
+if (jobsArg !== undefined && !(Number.isInteger(JOBS) && JOBS >= 1)) { console.error(`clip: --jobs wants a whole number of at least 1 (got ${jobsArg})`); process.exit(2); }
+const ONLY = argv.find((a) => a.startsWith('--only='))?.slice(7).split(',').map((x) => x.trim()).filter(Boolean) ?? null;
 const noMatch = () => { console.log(`clip: no case matches --only=${ONLY.join(',')}`); process.exit(1); };
 const wanted = (name) => !ONLY || ONLY.some((p) => name.includes(p));
-const runs = Object.fromEntries(Object.entries(GROUPS).map(([g, names]) => [g, !ONLY || ONLY.some((p) => names.some((n) => n.includes(p) || p.startsWith(n)))]));
-// A full pass is recorded against a hash of every input (cache.mjs); unchanged inputs skip the run.
-const hash = inputHash('clip', rig);
+const runs = groupsFor(ONLY);
+// A full pass is recorded against a hash of every input (cache.mjs); unchanged inputs skip the run. An
+// engine pass and a browser pass are kept apart, and an engine pass also hashes scripts/studio/.
+const studioHash = () => { const h = createHash('sha256'); const dir = new URL('../../scripts/studio/', import.meta.url).pathname; for (const f of readdirSync(dir).filter((n) => n.endsWith('.mjs')).sort()) h.update(f).update(readFileSync(join(dir, f))); return h.digest('hex').slice(0, 16); };
+// The browser step of an engine run (internal, below) never reads or records the cache.
+const STEP = argv.find((a) => a.startsWith('--browser-step='))?.slice(15);
+const hash = STEP ? null : inputHash('clip', `${rig}${BROWSER ? '' : `\nengine:${studioHash()}`}`);
 const before = passedAt('clip', hash);
 if (ONLY && !Object.values(runs).some(Boolean)) noMatch();
 if (before && !ONLY) {
-  console.log(`clip${rig ? ' --rig' : ''}: inputs unchanged since ${before}, skipped`);
+  console.log(`clip${RIG ? ' --rig' : ''}${BROWSER ? ' --browser' : ''}: inputs unchanged since ${before}, skipped`);
   process.exit(0);
 }
-const H = await startHarness();
 const errors = [];
-const out = [];
-// Each group of the floor office runs on a fresh page, so who a case picks and where they start
-// never depend on which groups ran before it (a narrowed --only gives the same subject and result).
-// Every registered group either runs here or on its own page below; one that yields no case is a failure.
-const MAIN = mainGroups(GROUPS);
 const resultsBy = {};
-for (const group of MAIN.filter((g) => runs[g])) {
-const { page, errors: pageErrors } = await H.openScene(`quality=low&mock=floor${rig}`, { width: 800, height: 500 });
-await page.evaluate(installExact);
-const got = await page.evaluate(async (runs) => {
-  const R = window.__hitlRender, S = window.__HITL.state;
-  // The ownership trace, for the failure detail (the worst actor's last trace lines).
-  if (R.trace) R.trace.on = true;
-  const C = await import('/src/render/checks.js');
-  const moods = ['ok', 'coasting', 'burnout', 'tired'];
-  S.staff.forEach((p, i) => { const m = moods[i % 4]; if (m === 'tired') { p.mood = 'ok'; p.stamina = 10; } else { p.mood = m; p.stamina = 80; } p.assignment = { type: 'project', targetId: null }; });
-  S.office.placed.push(
-    { id: 'k_couch', itemId: 'couch', level: 1, x: 1, y: 9, rot: 0 }, { id: 'k_bean', itemId: 'nap_pod', level: 1, x: 3, y: 9, rot: 0 },
-    { id: 'k_pod', itemId: 'nap_pod', level: 2, x: 4, y: 9, rot: 0 }, { id: 'k_arc', itemId: 'arcade', level: 2, x: 11, y: 10, rot: 0 },
-    { id: 'k_lib', itemId: 'library', level: 2, x: 12, y: 8, rot: 3 });
-  // Everyone walks to their seat and settles, with no perk visits starting, so every desk is
-  // checked; the clock only moves with these steps.
-  R.perks.hold = true;
-  for (let i = 0; i < 120; i++) { window.__tick(1000 / 30); R.sync(S); R.advance(1 / 30); }
-  // Then until every person with a desk sits at it (someone may be on a water break), so the
-  // desk checks always cover every desk.
-  const away = () => R.office.current.desks.filter((d) => {
-    const who = S.staff.find((p) => R.perks.peek(p.id)?.seat === d.id);
-    if (!who) return false;
-    let root = null; R.scene.traverse((o) => { if (o.userData.staffId === who.id) root = o.parent; });
-    return !root || Math.hypot(root.position.x - d.seat.x, root.position.z - d.seat.z) > 0.2;
-  });
-  for (let i = 0; i < 900 && away().length; i++) { window.__tick(1000 / 30); R.sync(S); R.advance(1 / 30); }
-  const unseated = away().map((d) => d.id);
-  const a = runs.seats ? await C.runClipChecks(R, S) : { results: [] };
-  const b = !runs.perks ? { results: [] } : await C.runPerkChecks(R, S, [
-    { id: 'k_couch', label: 'couch:sit' }, { id: 'k_couch', nap: true, label: 'couch:nap' }, { id: 'k_bean', soft: true, label: 'beanbag:sprawl' }, { id: 'k_pod', label: 'napPod:lie' },
-    { id: 'k_arc', label: 'arcade:stool' }, { id: 'k_lib', slot: 1, label: 'library:armchair' }]);
-  const seatCheck = { name: 'desks:all-seated', pass: unseated.length === 0, unseated };
-  await (await import('/src/render/rig.js')).loadRig();
-  const dance = [];
-  if (runs.dance) for (const g of ['motivational_polka', 'corporate_synthwave', 'aggressive_bossa_nova', 'sad_lofi']) dance.push(await C.runDanceCheck(R, S, g));
-  const pet = runs.pets ? await C.runPetChecks(R, S) : [];
-  const robot = runs.robot ? await C.runRobotChecks(R, S) : [];
-  const w = runs.walk ? await C.runWalkChecks(R, S) : [];
-  w.push(...pet, ...robot);
-  if (runs.props) w.push(...await C.runPropChecks(R, S));
-  if (runs.y2k) w.push(...await C.runY2kChecks(R, S));
-  // Counters and wall items, each on free tiles with a clear row in front (the perk items above go first).
-  S.office.placed = S.office.placed.filter((p) => !p.id.startsWith('k_'));
-  for (let i = 0; i < 60; i++) { R.sync(S); R.advance(1 / 30); }
-  const pairs = runs.pairs ? await C.runPairCheck(R, S, 'floor') : null;
-  R.perks.hold = true;
-  const { footprint } = await import('/src/render/layout.js');
-  const L = R.office.current.L;
-  const used = new Set();
-  const mark = (p) => { const f = footprint(p.itemId, p.rot); for (let x = 0; x < f.w; x++) for (let y = 0; y < f.h; y++) used.add(`${p.x + x},${p.y + y}`); };
-  S.office.placed.forEach(mark);
-  for (const [x, y] of L.blocked) used.add(`${x},${y}`);
-  const free = (x, y, fw, fh) => { for (let i = -1; i <= fw; i++) for (let j = 0; j <= fh; j++) if (used.has(`${x + i},${y + j}`)) return false; return x > 0 && y + fh < L.grid.h - 1 && x + fw < L.grid.w; };
-  const USE = [['espresso', 1], ['espresso', 2], ['espresso', 3], ['coffee_corner', 1], ['plant_wall', 1], ['plant_wall', 3], ['bookshelf', 1]];
-  const useIds = [];
-  USE.forEach(([itemId, level], n) => {
-    const f = footprint(itemId, 0);
-    for (let y = 0; y < L.grid.h - 2; y++) for (let x = 1; x < L.grid.w - f.w; x++) {
-      if (useIds.length > n || !free(x, y, f.w, f.h)) continue;
-      const p = { id: `use${n}`, itemId, level, x, y, rot: 0 };
-      S.office.placed.push(p); mark(p); for (let i = 0; i < f.w; i++) used.add(`${x + i},${y + f.h}`);
-      useIds.push(p.id);
-    }
-  });
-  for (let i = 0; i < 10; i++) { R.sync(S); R.advance(1 / 30); }
-  const u = runs.use ? await C.runUseChecks(R, S, useIds) : [];
-  if (runs.dance) dance.push(await C.runDanceLengthCheck(R, S));
-  const party = runs.party ? await C.runPartyCheck(R, S) : null;
-  const sky = runs.sky ? await C.runSkyCheck() : null;
-  return [runs.seats ? seatCheck : null, ...a.results, ...b.results, ...dance, ...w, ...u, party, sky, pairs].filter(Boolean);
-}, Object.fromEntries(MAIN.map((g) => [g, g === group])));
-out.push(...got);
-resultsBy[group] = got;
-errors.push(...pageErrors);
-await page.close();
+const MAIN = mainGroups(GROUPS);
+// Plays groups in harness pages, in this process. Each group gets a fresh page, so who a case picks
+// and where they start never depend on which groups ran before it (a narrowed --only gives the same
+// subject and result).
+async function playInBrowser(groups) {
+  // Imported only when a page is needed: the harness makes playwright own the process's signals, and
+  // takes the render slot by running this process again under the lock.
+  const { startHarness } = await import('./harness.mjs');
+  const H = await startHarness();
+  for (const group of groups) {
+    const own = P.OWN_PAGES[group];
+    const { page, errors: pageErrors } = await H.openScene(`quality=low&mock=${own?.mock ?? 'floor'}${!own || own.rig ? rig : ''}`, { width: 800, height: 500 });
+    await page.evaluate(P.installExact);
+    resultsBy[group] = own ? await page.evaluate(own.fn) : await page.evaluate(P.mainPage, Object.fromEntries(MAIN.map((g) => [g, g === group])));
+    errors.push(...pageErrors);
+    await page.close();
+  }
+  await H.close();
 }
-// The garage: two founders still get a game of foosball in now and then.
-let ownFrom = out.length;
-const ownDone = (g) => { resultsBy[g] = out.slice(ownFrom); ownFrom = out.length; };
-if (runs.garage) {
-  const g = await H.openScene(`quality=low&mock=garage${rig}`, { width: 800, height: 500 });
-  await g.page.evaluate(installExact);
-  out.push(await g.page.evaluate(async () => {
-    const R = window.__hitlRender, S = window.__HITL.state;
-    const C = await import('/src/render/checks.js');
-    for (let i = 0; i < 120; i++) { window.__tick(1000 / 30); R.sync(S); R.advance(1 / 30); }
-    return C.runPairCheck(R, S, 'garage');
-  }));
-  errors.push(...g.errors);
-  await g.page.close();
-  ownDone('garage');
+// The browser step of an engine run: plays exactly these groups in pages and writes
+// { resultsBy, errors } to a file for the run that started it.
+if (STEP) {
+  const [file, list] = STEP.split('::');
+  await playInBrowser(list.split(','));
+  writeFileSync(file, JSON.stringify({ resultsBy, errors }));
+  process.exit(0);
 }
-if (runs.celebrations) {
-  const g = await H.openScene('quality=low&mock=floor', { width: 800, height: 500 });
-  await g.page.evaluate(installExact);
-  out.push(...await g.page.evaluate(async () => {
-    const C = await import('/src/render/checks.js');
-    return C.runCelebrationChecks(window.__hitlRender, window.__HITL.state);
-  }));
-  errors.push(...g.errors);
-  await g.page.close();
-  ownDone('celebrations');
+if (BROWSER) await playInBrowser(Object.keys(GROUPS).filter((g) => runs[g]));
+else {
+  const studio = await import('../../scripts/studio/clip.mjs');
+  const inBrowser = studio.BROWSER_ONLY.filter((g) => runs[g]);
+  const onEngine = studio.ENGINE_GROUPS.filter((g) => runs[g]);
+  // The browser-only groups play in a child process of their own (its own process group, so ending it
+  // ends the browser and the render-lock wrapper it starts), while the engine groups run here.
+  const dir = mkdtempSync(join(tmpdir(), 'clip-step-'));
+  let step = null;
+  const stopStep = () => { if (step?.exitCode === null) try { process.kill(-step.pid, 'SIGTERM'); } catch { /* already gone */ } };
+  // While the engine groups run, their own handler (runGroups, registered after this one) stops them and exits.
+  let engineRunning = false;
+  const onSignal = (sig) => () => { stopStep(); rmSync(dir, { recursive: true, force: true }); if (!engineRunning) process.exit(128 + (sig === 'SIGINT' ? 2 : sig === 'SIGHUP' ? 1 : 15)); };
+  const handlers = ['SIGINT', 'SIGTERM', 'SIGHUP'].map((s) => [s, onSignal(s)]);
+  for (const [s, h] of handlers) process.on(s, h);
+  try {
+    const browserRun = !inBrowser.length ? Promise.resolve() : new Promise((done) => {
+      step = spawn(process.execPath, [fileURLToPath(import.meta.url), `--browser-step=${join(dir, 'step.json')}::${inBrowser.join(',')}`, ...(RIG ? ['--rig'] : [])], { stdio: ['ignore', 'ignore', 'pipe'], detached: true });
+      let err = '';
+      step.stderr.on('data', (d) => { err += d; });
+      step.on('close', (code) => {
+        try { const r = JSON.parse(readFileSync(join(dir, 'step.json'), 'utf8')); Object.assign(resultsBy, r.resultsBy); errors.push(...r.errors); } catch { errors.push(`browser step (${inBrowser.join(', ')}) exited ${code}: ${err.trim().split('\n').slice(-2).join(' | ')}`); }
+        done();
+      });
+    });
+    engineRunning = onEngine.length > 0;
+    const engine = onEngine.length ? await studio.runGroups({ groups: onEngine, rig: RIG, ...(JOBS ? { jobs: JOBS } : {}) }) : { results: {}, errors: [] };
+    engineRunning = false;
+    Object.assign(resultsBy, engine.results);
+    errors.push(...engine.errors);
+    await browserRun;
+  } finally {
+    stopStep();
+    for (const [s, h] of handlers) process.off(s, h);
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
-if (runs.respond) {
-  const g = await H.openScene('quality=low&mock=floor', { width: 800, height: 500 });
-  await g.page.evaluate(installExact);
-  out.push(...await g.page.evaluate(async () => {
-    const C = await import('/src/render/checks.js');
-    return C.runRespondChecks(window.__hitlRender, window.__HITL.state);
-  }));
-  errors.push(...g.errors);
-  await g.page.close();
-  ownDone('respond');
-}
-// Planted control: a slab far thinner than the vertex spacing through a head. The vertex count of
-// the old measure reads nothing; the exact measure must flag it.
-if (runs.control) {
-  const g = await H.openScene('quality=low&mock=floor', { width: 800, height: 500 });
-  await g.page.evaluate(installExact);
-  out.push(await g.page.evaluate(async () => {
-    const R = window.__hitlRender, S = window.__HITL.state;
-    const C = await import('/src/render/checks.js');
-    const T = R.THREE;
-    for (let i = 0; i < 30; i++) { window.__tick(1000 / 30); R.sync(S); R.advance(1 / 30); }
-    let root = null, head = null;
-    R.scene.traverse((o) => { if (!root && o.userData.staffId === S.staff[0].id) root = o.parent; });
-    root.updateMatrixWorld(true);
-    root.traverse((o) => { if (!head && o.isMesh && o.userData.part === 'head') head = o; });
-    const c = new T.Box3().setFromObject(head).getCenter(new T.Vector3());
-    const slab = window.__tool(() => new T.Mesh(new T.BoxGeometry(2, 0.004, 2), new T.MeshBasicMaterial()));
-    slab.position.copy(c);
-    R.scene.add(slab); slab.updateMatrixWorld(true);
-    const pts = C.probe.vertices(root, 8);
-    const old = C.probe.insideCount(pts, [slab]) / pts.length;
-    const now = C.probe.bodyInside(root, [slab]);
-    R.scene.remove(slab);
-    return { name: 'control:head-through-slab', pass: old === 0 && now > 0.01, vertexShare: +old.toFixed(4), exactShare: +now.toFixed(4) };
-  }));
-  errors.push(...g.errors);
-  await g.page.close();
-  ownDone('control');
-}
-await H.close();
+// Every registered group, in one order whichever side played it: the floor-office groups, then the
+// groups with their own page.
+const out = [...MAIN, ...OWN_PAGE].flatMap((g) => resultsBy[g] ?? []);
 const shown = out.filter((r) => wanted(r.name));
 if (ONLY && !shown.length) noMatch();
 let failed = 0;
@@ -230,6 +135,6 @@ for (const r of shown) {
   }
 }
 if (errors.length) { failed++; console.log(`page errors: ${errors.join('; ')}`); }
-console.log(`clip: ${shown.length - failed} of ${shown.length} passed${ONLY ? ` (--only=${ONLY.join(',')})` : ''}`);
+console.log(`clip: ${shown.length - failed} of ${shown.length} passed${ONLY ? ` (--only=${ONLY.join(',')})` : ''}${BROWSER ? ' (browser)' : ''}`);
 if (!failed && !ONLY) recordPass('clip', hash);
 process.exit(failed ? 1 : 0);
