@@ -4,6 +4,7 @@ import { raiseDecision } from './events.js';
 import { eraAtLeast } from './eras.js';
 import { nextExpansion } from './office.js';
 import { officeGateReason } from './products.js';
+import { earlyWeeks } from './util.js';
 
 // Mid-era beats: one-time decisions that fill the long stretches between eras. Each fires once, at a set
 // number of weeks into its era, when its conditions hold.
@@ -15,7 +16,7 @@ const BEATS = [
     && nextExpansion(s)?.step === 1 && !officeGateReason(s, nextExpansion(s)) && s.cash >= nextExpansion(s).upgradeCost },
   { id: 'deals_open', ready: (s) => eraAtLeast(s, 'consolidation') && (s.market.forSale ?? []).length > 0 },
   { id: 'moonshot_pitch', ready: (s, since) => eraAtLeast(s, 'consolidation') && s.week >= since.consolidation + B.moonshotAfterConsolidation && s.officeStage >= 2 },
-  { id: 'last_bet', ready: (s) => s.week >= B.lastBetWeek },
+  { id: 'last_bet', ready: (s) => s.week >= B.lastBetWeek + earlyWeeks(s) },
 ];
 
 export function beatsSystem(ctx) {

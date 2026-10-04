@@ -136,11 +136,16 @@ function building(w, h, d, wallHex, haze = 0, roof = true) {
 function house(w, d, wallHex, roofHex) {
   const g = new THREE.Group();
   g.add(mesh(roundedBox(w, 2.4, d, 0.06, 2), m(wallHex), 0, 1.2, 0));
-  const roof = new THREE.Mesh(new THREE.CylinderGeometry(0.01, w * 0.62, 1.5, 4, 1), m(roofHex));
-  roof.rotation.y = Math.PI / 4;
-  roof.scale.set(1, 1, (d / w) * 1.02);
-  roof.position.y = 2.4 + 0.75;
-  g.add(roof);
+  // A hip roof: a four-sided cone turned so its base edges run along the walls, then stretched to
+  // the footprint plus an eave overhang. Turning before the stretch keeps the base a rectangle, and
+  // flat normals give each face one shade.
+  let roofGeo = new THREE.CylinderGeometry(0.01, 1, 1.5, 4, 1);
+  roofGeo.rotateY(Math.PI / 4);
+  const EAVE = 0.18;
+  roofGeo.scale((w / 2 + EAVE) / Math.SQRT1_2, 1, (d / 2 + EAVE) / Math.SQRT1_2);
+  roofGeo = roofGeo.toNonIndexed();
+  roofGeo.computeVertexNormals();
+  g.add(mesh(roofGeo, m(roofHex), 0, 2.4 + 0.75, 0));
   const door = mesh(roundedBox(0.8, 1.6, 0.06, 0.02, 1), m(P.wood_dark), 0, 0.8, d / 2 + 0.02);
   g.add(door);
   for (const sx of [-1, 1]) g.add(mesh(roundedBox(0.8, 0.8, 0.05, 0.02, 1), m('#9fb3c4'), sx * w * 0.28, 1.5, d / 2 + 0.02));

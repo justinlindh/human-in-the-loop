@@ -1,3 +1,5 @@
+import { B } from './balance.js';
+
 export const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 export const sum = (arr, fn = (x) => x) => arr.reduce((acc, x) => acc + fn(x), 0);
@@ -46,9 +48,10 @@ export const calendarWeek = (state, week = state.week) => {
 export const calendarDate = (state, week = state.week) => dateOf(calendarWeek(state, week));
 export const earlyWeeks = (state) => sum(state.founding?.earlyChapters ?? [], (c) => c.weeks);
 
-// The market clock: weeks since the Classic founding year on the calendar, never negative. Market difficulty
-// (clones, expectations, project size, market size, the talent pool) runs on it; company costs run on state.week.
-export const marketWeek = (state, week = state.week) => Math.max(0, calendarWeek(state, week));
+// The market clock: weeks since the Classic founding year on the calendar, from zero up to B.marketWeekCap, where
+// the world stops getting harder. Market difficulty (clones, expectations, project size, market size, the talent
+// pool) runs on it; company costs run on state.week.
+export const marketWeek = (state, week = state.week) => clamp(calendarWeek(state, week), 0, B.marketWeekCap);
 export const marketYear = (state, week = state.week) => Math.floor(marketWeek(state, week) / WEEKS_PER_YEAR);
 
 // The company week an early chapter begins, or null when this timeline has no such chapter.
