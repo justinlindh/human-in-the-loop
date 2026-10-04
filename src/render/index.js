@@ -159,14 +159,14 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   function size() {
     return { w: canvas.clientWidth || innerWidth, h: canvas.clientHeight || innerHeight };
   }
-  // Software GL draws every pixel on the CPU, so Low renders it at three quarters scale.
+  // Software GL draws every pixel on the CPU, so Low renders it at half scale.
   const softwareGL = (() => {
     const gl = renderer.getContext();
     const ext = gl.getExtension('WEBGL_debug_renderer_info');
     return isSoftwareRenderer(String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER)));
   })();
   function pixelRatio() {
-    return q === 'low' ? (softwareGL ? 0.75 : 1) : Math.min(devicePixelRatio || 1, 2);
+    return q === 'low' ? (softwareGL ? 0.5 : 1) : Math.min(devicePixelRatio || 1, 2);
   }
 
   renderer.setPixelRatio(pixelRatio());
