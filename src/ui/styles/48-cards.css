@@ -9,7 +9,8 @@
 .hitl .hitl-card .card-inner { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1.4em; padding: 0 8em; }
 .hitl .hitl-card .card-kicker { font-weight: 600; font-size: 2.6em; letter-spacing: 0.04em; color: var(--ink-soft); text-transform: uppercase; }
 .hitl .hitl-card .card-title { margin: 0; display: flex; align-items: baseline; justify-content: center; gap: 0.3em; flex-wrap: wrap; font-weight: 700; font-size: 9.4em; line-height: 0.95; color: var(--ink); white-space: nowrap; }
-.hitl .hitl-card .card-title .cw2 { color: var(--yellow); -webkit-text-stroke: 0.04em var(--ink); }
+/* Stroke under the fill, doubled to keep the outline's weight, so touching letters don't draw outlines across each other. */
+.hitl .hitl-card .card-title .cw2, .hitl .hitl-card .card-logo .w3 { color: var(--yellow); -webkit-text-stroke: 0.08em var(--ink); paint-order: stroke fill; }
 .hitl .hitl-card .card-sub { font-weight: 600; font-size: 2.8em; color: var(--ink-soft); }
 .hitl .hitl-card .card-logo { font-size: 11em; flex-direction: row; align-items: baseline; justify-content: center; gap: 0.2em; margin: 0; }
 .hitl .hitl-card .card-logo .w2 { font-size: 0.45em; margin: 0; }
