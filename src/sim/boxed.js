@@ -14,7 +14,20 @@ export const newInventory = () => ({
   returnUnits: 0, salesHistory: [], grossSales: 0, retailerFees: 0, refunds: 0, manufacturingCost: 0,
   patchCost: 0, patches: 0, patchedVersion: 1, weeklyNet: 0, salesWeek: null,
   delivered: 0, buybackCost: 0, withdrawn: 0, buybackWeek: null, returnsSettled: false, master: null,
+  upgradeCarry: 0,
 });
+
+// The upgrade cycle: each week one installed copy in B.preinternet.upgradeWeeks ages out, and its owner is
+// back in the market for the new version (retail demand is the market's target less the installed base).
+// Fractions carry over, so the count stays whole and a small base still turns over.
+export function ageInstalls(p) {
+  const inv = p.boxed;
+  const carry = (inv.upgradeCarry ?? 0) + inv.installed / B.preinternet.upgradeWeeks;
+  const aged = Math.min(inv.installed, Math.floor(carry));
+  inv.installed -= aged;
+  inv.upgradeCarry = carry - aged;
+  return aged;
+}
 
 export const installedCustomers = (p) => p.customers + (p.boxed?.installed ?? 0);
 export const boxRevenue = (state) => state.products.reduce((n, p) => n + (p.boxed && !p.killed
