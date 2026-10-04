@@ -422,6 +422,8 @@ try {
     index.items[it.id] = {
       title: it.title, file: it.still ? null : `${it.id}.mp4`, webm: it.still || NO_WEBM ? null : `${it.id}.webm`, gif: gifFile ? `${it.id}.gif` : null, screenshots: pngs.map((p) => p.slice(OUT.length + 1)),
       seconds, fps: FPS, size: `${W}x${H}`, quality: QUALITY, query: it.query, moment, build: BUILD, renderer, audio, marks, errors: errors.length, capturedAt: new Date().toISOString(),
+      // The repo files the page loaded, for callers that decide whether a render is still current.
+      requested: requestedFiles(requests),
     };
     writeFileSync(indexFile, `${JSON.stringify(index, null, 2)}\n`);
     if (args.changed) {
