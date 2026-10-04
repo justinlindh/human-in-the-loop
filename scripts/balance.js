@@ -132,7 +132,8 @@ async function main() {
     try { base = JSON.parse(readFileSync(baseline, 'utf8')); } catch { fail('cannot read baseline JSON'); }
     if (!base?.runs || typeof base.runs !== 'object') fail('baseline must contain runs');
   }
-  trackRun('balance', { seeds, bots: bots.join(','), startEra, startMode });
+  // games: the bot games this process played (a --baseline main run logs its own record).
+  trackRun('balance', { seeds, bots: bots.join(','), startEra, startMode, games: seeds * bots.length });
 
   const median = (xs) => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : 0; };
   const fmt = (n) => Math.round(n).toLocaleString('en-US');
