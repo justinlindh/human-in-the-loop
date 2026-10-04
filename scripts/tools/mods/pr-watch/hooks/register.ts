@@ -138,6 +138,7 @@ export const register: Register = on => {
     if (view.code !== 0) return { deny: `watch_pr: cannot read #${number}: ${(view.err || view.out).trim().split('\n').pop()}` }
     const pr = JSON.parse(view.out) as { state: string; headRefName: string; headRefOid: string }
     if (pr.state !== 'OPEN') return { result: `#${number} is already ${pr.state.toLowerCase()}; nothing to watch.` }
+    if ((await run($, ['test', '-f', 'scripts/wait-for.sh'], cwd)).code !== 0) return { deny: `watch_pr: ${cwd} has no scripts/wait-for.sh; merge origin/main into it, or pass the cwd of a current worktree.` }
     const branch = (await run($, ['git', 'branch', '--show-current'], cwd)).out.trim()
     const onBranch = branch === pr.headRefName
     const update = e.update !== false && onBranch

@@ -35,12 +35,12 @@ function engine(answer) {
 
 const WATCH = 'mcp__pr-watch__watch_pr', UNWATCH = 'mcp__pr-watch__unwatch_pr';
 const say = (s) => `[wait-for 00:00:00] ${s}`;
-const waitFor = (args) => args.includes('scripts/wait-for.sh');
+const waitFor = (args) => args[0] === 'timeout' && args.includes('scripts/wait-for.sh');
 const waiting = (head, review = 'none') => ({ code: 124, out: `${say(`#9 at ${head}: waiting on: test, review ${review}, running: test`)}\n${say('timed out waiting on #9')}` });
 
 function prView(extra = {}) {
   const pr = { state: 'OPEN', headRefName: 'tools/x', headRefOid: 'aaaa1111bbbb', ...extra };
-  return (argv) => (argv[0] === 'gh' && argv[1] === 'pr' && argv[2] === 'view' ? { code: 0, out: JSON.stringify(pr) } : argv[0] === 'git' ? { code: 0, out: 'tools/x\n' } : undefined);
+  return (argv) => (argv[0] === 'gh' && argv[1] === 'pr' && argv[2] === 'view' ? { code: 0, out: JSON.stringify(pr) } : argv[0] === 'git' ? { code: 0, out: 'tools/x\n' } : argv[0] === 'test' ? { code: 0, out: '' } : undefined);
 }
 
 describe('pr-watch session start', () => {
@@ -72,6 +72,12 @@ describe('watch_pr input', () => {
     const t = engine(prView({ state: 'MERGED' }));
     const r = await t.run('tool.call', { tool: WATCH, number: 9 }, WATCH);
     expect(r.result).toMatch(/already merged/);
+    expect(t.state.get('watches')).toBeUndefined();
+  });
+  it('refuses a worktree without scripts/wait-for.sh', async () => {
+    const t = engine((argv, cwd) => (argv[0] === 'test' ? { code: 1, out: '' } : prView()(argv, cwd)));
+    const r = await t.run('tool.call', { tool: WATCH, number: 9, cwd: '/old' }, WATCH);
+    expect(r.deny).toMatch(/\/old has no scripts\/wait-for\.sh; merge origin\/main/);
     expect(t.state.get('watches')).toBeUndefined();
   });
   it('watches without branch updates from a worktree on another branch, and says so', async () => {
