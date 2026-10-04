@@ -8,6 +8,7 @@ import { createMixer } from './mixer.js';
 import { createLoader } from './loader.js';
 import { createLoops } from './loops.js';
 import { createDucked } from './ducked.js';
+import { createFrameClock } from './frameclock.js';
 
 const KEEP_COMMANDS = 60;
 
@@ -70,7 +71,10 @@ export function createAudio({ quality = 'high' } = {}) {
     });
   }
 
-  const now = () => (ctx ? ctx.currentTime : 0);
+  // The director runs on frame time; context time only places sounds.
+  const clock = createFrameClock();
+  const now = () => clock.now;
+  const runD = (cmds) => run(clock.mapCommands(cmds));
   // Pause and title state from the page when the host does not pass them (the menu pause flag and title screen).
   function hostCtx() {
     const h = typeof window !== 'undefined' ? window.__HITL : null;
@@ -137,7 +141,7 @@ export function createAudio({ quality = 'high' } = {}) {
             let dur;
             if (loader.ready(c.file) && takes?.length) {
               // A cheer passes a take index so voices sharing an emotion say different lines.
-              const [off, d] = takes[Number.isInteger(c.take) ? c.take % takes.length : Math.floor(Math.random() * takes.length)];
+              const [off, d] = takes[Number.isInteger(c.take) ? c.take % takes.length : 0];
               playBuffer(loader.get(c.file), 'voice', c.gain, c.at, { offset: off, duration: d });
               dur = d;
             } else {
@@ -181,10 +185,10 @@ export function createAudio({ quality = 'high' } = {}) {
 
   // UI cues and character clicks arrive as window events, so the UI needs no reference to audio.
   if (typeof window !== 'undefined') {
-    addEventListener('hitl:sfx', (e) => run(director.cue(e.detail, now())));
-    addEventListener('hitl:propUse', (e) => run(director.prop(e.detail?.itemId, now())));
-    addEventListener('hitl:moment', (e) => run(director.moment(e.detail, now())));
-    addEventListener('hitl:characterClick', (e) => run(director.poke(e.detail?.staffId, stateNow(), now())));
+    addEventListener('hitl:sfx', (e) => runD(director.cue(e.detail, now())));
+    addEventListener('hitl:propUse', (e) => runD(director.prop(e.detail?.itemId, now())));
+    addEventListener('hitl:moment', (e) => runD(director.moment(e.detail, now())));
+    addEventListener('hitl:characterClick', (e) => runD(director.poke(e.detail?.staffId, stateNow(), now())));
     addEventListener('hitl:audioSettings', (e) => {
       const d = e.detail ?? {};
       if (Number.isFinite(d.master)) api.setVolume(d.master);
@@ -197,15 +201,22 @@ export function createAudio({ quality = 'high' } = {}) {
     lastState = state;
     lastCtx = c;
     lastUpdateAt = performance.now();
-    if (ready()) run(director.update(state, now(), c));
+    clock.advance(dt, ctx?.currentTime);
+    if (ready()) runD(director.update(state, now(), { ...c, audioT: ctx.currentTime }));
   }
 
   // Until the host calls update() every frame, keep music and ambient barks going from the last state seen.
   if (typeof window !== 'undefined' && typeof requestAnimationFrame === 'function') {
+    let lastTickAt = performance.now();
     const tick = () => {
       const s = stateNow();
+      const t = performance.now();
+      const idle = t - lastUpdateAt > 500;
+      // With no host updates, frame time follows the animation frames.
+      if (idle) clock.advance((t - lastTickAt) / 1000, ctx?.currentTime);
+      lastTickAt = t;
       if (ready()) ducked?.pump();
-      if (ready() && s && performance.now() - lastUpdateAt > 500) run(director.update(s, now(), { ...lastCtx, ...hostCtx() }));
+      if (ready() && s && idle) runD(director.update(s, now(), { ...lastCtx, ...hostCtx(), audioT: ctx.currentTime }));
       requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
@@ -216,11 +227,11 @@ export function createAudio({ quality = 'high' } = {}) {
     onEvents(events, state) {
       if (state) lastState = state;
       if (!events?.length) return;
-      run(director.events(events, state ?? stateNow(), now(), { speed: lastCtx.speed ?? 1 }));
+      runD(director.events(events, state ?? stateNow(), now(), { speed: lastCtx.speed ?? 1 }));
     },
     update,
-    cue(name) { run(director.cue(name, now())); },
-    play(name) { run(director.cue(name, now())); },
+    cue(name) { runD(director.cue(name, now())); },
+    play(name) { runD(director.cue(name, now())); },
     setVolume(v) { user.master = Math.max(0, Math.min(1, Number(v) || 0)); mix?.setUser('master', user.master); },
     setBus(bus, v) {
       if (bus === 'master') { api.setVolume(v); return; }

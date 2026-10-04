@@ -69,6 +69,18 @@ export function resolveParams(specs, root) {
   });
 }
 
+// What a resolved param's target holds in its file now, as source text: the whole value, or the one
+// element or key it names. Null when that element isn't a plain number (listConsts can't read it).
+export function currentText(p) {
+  const code = readFileSync(p.file, 'utf8');
+  const span = valueSpan(code, p.name);
+  if (!span) return null;
+  if (p.index === null && p.key === undefined) return code.slice(span.start, span.end).trim().replace(/\s+/g, ' ');
+  const c = listConsts(code).find((x) => x.name === p.name);
+  const v = c && (p.key === undefined ? (Array.isArray(c.value) ? c.value[p.index] : undefined) : c.value[p.key]);
+  return v === undefined ? null : String(v);
+}
+
 // The specs a command line carries (each --param takes one).
 export function paramSpecs(argv) {
   return argv.flatMap((a, i) => (a === '--param' ? [argv[i + 1]] : []));
