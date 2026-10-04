@@ -59,6 +59,10 @@
   "file": "objects/item.arcade.png",
   "size": 30
  },
+ "item.disk_duplicator": {
+  "file": "objects/item.disk_duplicator.png",
+  "size": 30
+ },
  "item.espresso": {
   "file": "objects/item.espresso.png",
   "size": 30
@@ -85,6 +89,10 @@
  },
  "item.plant_wall": {
   "file": "objects/item.plant_wall.png",
+  "size": 30
+ },
+ "item.retail_shelf": {
+  "file": "objects/item.retail_shelf.png",
   "size": 30
  },
  "item.server_rack": {
