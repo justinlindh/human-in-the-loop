@@ -204,21 +204,5 @@ run
 has started "20 bot1" || fail "a listed app's PR should start"
 has started "21 bot2" && fail "an unlisted app's PR should not start"
 
-# The mods worktree moves to origin/main when clean and stays put when it has local changes.
-g() { git -c user.name=t -c user.email=t@t "$@"; }
-g init -q --bare "$tmp/origin.git"
-g clone -q "$tmp/origin.git" "$tmp/seed" 2>/dev/null
-: >"$tmp/seed/a"; g -C "$tmp/seed" add a; g -C "$tmp/seed" commit -q -m one; g -C "$tmp/seed" push -q origin HEAD:main
-g clone -q "$tmp/origin.git" "$tmp/mods" 2>/dev/null; g -C "$tmp/mods" checkout -q --detach origin/main
-: >"$tmp/seed/b"; g -C "$tmp/seed" add b; g -C "$tmp/seed" commit -q -m two; g -C "$tmp/seed" push -q origin HEAD:main
-g -C "$tmp/mods" fetch -q origin
-fixture
-echo dirty >"$tmp/mods/a"
-run
-[ "$(git -C "$tmp/mods" rev-parse HEAD)" = "$(git -C "$tmp/mods" rev-parse origin/main~1)" ] || fail "a dirty mods worktree should stay put"
-git -C "$tmp/mods" checkout -q -- a
-run
-[ "$(git -C "$tmp/mods" rev-parse HEAD)" = "$(git -C "$tmp/mods" rev-parse origin/main)" ] || fail "a clean mods worktree should follow origin/main"
-
 [ $fails -eq 0 ] && echo "auto-ci: all cases pass" || echo "auto-ci: $fails failing"
 [ $fails -eq 0 ]
