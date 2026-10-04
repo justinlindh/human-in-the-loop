@@ -40,7 +40,8 @@ export const B = {
   momentSpeechGap: 1,
   momentSpeechStartDelay: 1,
   momentTalkMemory: 24, partyTalkGapWeeks: 6,
-  runWeeks: 1040, anniversaryWeek: 1040, retireFromWeek: 520, startBrand: 5, runwayLoseWeeks: 8, maxHistory: 800,
+  // marketWeekCap: the calendar week (from 2019) after which market difficulty stops growing: the end of a Classic career.
+  runWeeks: 1040, anniversaryWeek: 1040, marketWeekCap: 1040, retireFromWeek: 520, startBrand: 5, runwayLoseWeeks: 8, maxHistory: 800,
   salary: { junior: 900, mid: 1600, senior: 2600 }, hireFeeWeeks: 2,
   candidateRefreshWeeks: 4, candidateCount: 5,
   // Level-ups in one week that earn a team growth line in #wins.
@@ -175,13 +176,15 @@ export const B = {
     web2: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 0.56, scoreShare: 0.75, exitMrrMult: 1.2 },
     dotcom: { cash: 140000, officeStage: 0, desks: 4, scoreMult: 0.61, scoreShare: 0.9, exitMrrMult: 1.35 },
     classic: { cash: 0, officeStage: 0, desks: 2, scoreMult: 1, scoreShare: 1, exitMrrMult: 1 },
-    chatgbt: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 1, scoreShare: 0.67, exitMrrMult: 0.8 },
-    agents: { cash: 240000, officeStage: 0, desks: 4, scoreMult: 0.81, scoreShare: 0.4, exitMrrMult: 0.7, incidentGraceWeeks: 260, incidentSeverityCap: 2 },
+    chatgbt: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 1, scoreShare: 0.74, exitMrrMult: 0.8 },
+    agents: { cash: 240000, officeStage: 0, desks: 4, scoreMult: 0.6, scoreShare: 0.4, exitMrrMult: 0.75, incidentGraceWeeks: 260, incidentSeverityCap: 2 },
+    consolidation: { cash: 390000, officeStage: 0, desks: 4, scoreMult: 1, scoreShare: 0.28, exitMrrMult: 0.65 },
+    plateau: { cash: 540000, officeStage: 0, desks: 4, scoreMult: 1, scoreShare: 0.19, exitMrrMult: 0.45 },
   },
   // Takeover scoreShare targets use the same pooled median ratio, including the inherited career.
   // Derive scoreMult from the target and raw median. Re-measure after factor, balance or bot changes,
   // including any change to the bot that builds the inherited company.
-  takeover: { bot: 'sensible', scoreMult: { chatgbt: 0.45, agents: 0.27 }, scoreShare: { chatgbt: 0.5, agents: 0.3 } },
+  takeover: { bot: 'sensible', scoreMult: { chatgbt: 0.49, agents: 0.27 }, scoreShare: { chatgbt: 0.55, agents: 0.3 } },
   founderStrengthBonus: 3, founderIkWeight: 0.4, founderGeneralistWeights: { features: 0.3, polish: 0.15, reliability: 0.2, novelty: 0.1 },
   botBuildersPerProject: 6, botTimeOffStrain: 70, botCancelUnstaffedWeeks: 2, botExpandCushion: 2, botDialCash: 3000000, botAcquireCushion: 4, botAcquireDesks: 3, botMoonshotCushion: 3, botFameBelow: 30, botFameCushion: 6,
   eraAutoEngMult: { classic: 1, chatgbt: 1, agents: 3, consolidation: 3, plateau: 2 },

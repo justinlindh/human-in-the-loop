@@ -16,10 +16,15 @@ function ready(startEra, mrr) {
 describe('score shares for the founding screen', () => {
   it('keeps every era start below the Classic path', () => {
     expect(B.eraStarts.classic.scoreShare).toBe(1);
-    for (const era of ['preinternet', 'dotcom', 'web2', 'chatgbt', 'agents']) {
+    for (const era of ['preinternet', 'dotcom', 'web2', 'chatgbt', 'agents', 'consolidation', 'plateau']) {
       expect(B.eraStarts[era].scoreShare).toBeGreaterThan(0);
       expect(B.eraStarts[era].scoreShare).toBeLessThan(1);
     }
+  });
+
+  it('scores later starts lower the later they found', () => {
+    expect(B.eraStarts.consolidation.scoreShare).toBeLessThan(B.eraStarts.agents.scoreShare);
+    expect(B.eraStarts.plateau.scoreShare).toBeLessThan(B.eraStarts.consolidation.scoreShare);
   });
 
   it('places pre-internet between dot-com and Classic', () => {
