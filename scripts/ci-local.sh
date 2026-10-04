@@ -139,19 +139,19 @@ if [ "${CI_FULL:-}" != 1 ]; then
     tool_changes=0
   fi
 fi
-# Under ci-pr (CI_PR_SELFTESTS=1) a self-test the PR changes runs as the PR wrote it, from a copy
-# beside main's scripts, so a PR that fixes a broken test is judged by the fix. The run says so.
-pr_selftest() { # <name> <command...>: sets PR_TEST_TMP when the step's test file was swapped
-  PR_TEST_TMP=""
+# Under ci-pr (CI_PR_SELFTESTS=1) a self-test the PR changes runs as the PR wrote it, in place in the
+# PR's tree, so it exercises the PR's own copies of the scripts it tests (a PR that adds behaviour and
+# its test together passes, and one that fixes a broken test is judged by the fix). The run says so.
+pr_selftest() { # <name> <command...>: sets PR_TEST_TMP to the PR's test file when the step's test was swapped
+  PR_TEST_TMP=""; PR_TEST_ORIG=""
   [ "${CI_PR_SELFTESTS:-}" = 1 ] && [ -n "${tool_mb:-}" ] || return 0
   local arg rel
   for arg in "${@:2}"; do
     case "$arg" in "$SELF"/*.test.sh|"$SELF"/*.test.mjs|"$SELF"/*/*.test.sh|"$SELF"/*/*.test.mjs) rel="${arg#"$SELF"/}" ;; *) continue ;; esac
     [ -f "scripts/$rel" ] && ! cmp -s "scripts/$rel" "$arg" || return 0
     git diff --quiet --no-renames "$tool_mb" -- "scripts/$rel" 2>/dev/null && return 0
-    PR_TEST_TMP="$(dirname "$arg")/.pr-$(basename "$arg")"
-    cp "scripts/$rel" "$PR_TEST_TMP"
-    note "$1 ran this PR's version of \`scripts/$rel\`, not main's; check the test was not weakened"
+    PR_TEST_ORIG="$arg"; PR_TEST_TMP="$PWD/scripts/$rel"
+    note "$1 ran this PR's version of \`scripts/$rel\` against the PR's scripts, not main's; check the test was not weakened"
     return 0
   done
 }
@@ -160,8 +160,8 @@ tool_step() { # <name> <command...>
     pr_selftest "$@"
     if [ -n "$PR_TEST_TMP" ]; then
       local args=() a
-      for a in "$@"; do [ "$a" = "${PR_TEST_TMP/\/.pr-/\/}" ] && a="$PR_TEST_TMP"; args+=("$a"); done
-      step "${args[@]}"; rm -f "$PR_TEST_TMP"
+      for a in "$@"; do [ "$a" = "$PR_TEST_ORIG" ] && a="$PR_TEST_TMP"; args+=("$a"); done
+      step "${args[@]}"
     else step "$@"; fi
   else record "$1" "skipped: no tooling changes" 0; timing_log kind=step tool=ci-local step="$1" skipped=1 wall_s=0 exit=0; fi
 }

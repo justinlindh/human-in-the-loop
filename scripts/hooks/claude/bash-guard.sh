@@ -94,8 +94,8 @@ done < <(grep -oE 'git([[:space:]]+-C[[:space:]]+[^[:space:];&|]+)?[[:space:]]+p
 # becomes Q, and only words that name a file tracked in the working directory's repository are refused.
 if grep -qE 'sed|perl|tee|>' <<<"$cmd"; then
   wtext="$(awk '/<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ && !inside { match($0, /<<-?[[:space:]]*'"'"'?[A-Za-z_]+/); tag=substr($0, RSTART, RLENGTH); gsub(/<<-?[[:space:]]*'"'"'?/, "", tag); print; inside=1; next } inside && $0 == tag { inside=0; next } !inside { print }' <<<"$cmd" \
-    | sed -E "s/'([A-Za-z0-9_.\/@+-]+)'/\1/g; s/\"([A-Za-z0-9_.\/@+-]+)\"/\1/g" \
-    | sed -E "s/'[^']*'/Q/g; s/\"([^\"\\\\]|\\\\.)*\"/Q/g" | sed -E 's/[0-9]*>&[0-9-]+/R/g; s/&>>?/>/g')"
+    | sed -zE "s/'([A-Za-z0-9_.\/@+-]+)'/\1/g; s/\"([A-Za-z0-9_.\/@+-]+)\"/\1/g" \
+    | sed -zE "s/'[^']*'/Q/g; s/\"([^\"\\\\]|\\\\.)*\"/Q/g" | sed -E 's/[0-9]*>&[0-9-]+/R/g; s/&>>?/>/g')"
   wtargets="$({
     # Redirect targets: > file, >> file, 2> file, >| file (not >&N, not process substitution).
     grep -oE '[0-9]*>>?\|?[[:space:]]*[^[:space:];&|)<>(]+' <<<"$wtext" | sed -E 's/^[0-9]*>>?\|?[[:space:]]*//'
@@ -113,7 +113,7 @@ if grep -qE 'sed|perl|tee|>' <<<"$cmd"; then
     [ -n "$t" ] || continue
     case "$t" in '$'*|'~'*|/dev/*) continue ;; esac
     if git -C "${cwd:-.}" ls-files --error-unmatch -- "$t" >/dev/null 2>&1; then
-      deny "$t is a tracked file, and sed -i, perl -i, > and tee would change it without lane-guard seeing it. Change tracked files with the Edit or Write tool (lane-guard checks those); write scratch output outside the repo or to an untracked file."
+      deny "$t is a tracked file, and sed -i, perl -i, > and tee would change it without lane-guard seeing it. Change tracked files with the Edit or Write tool (lane-guard checks those). To take a file from another ref or a merge side, use git checkout <ref> -- <file> (or git checkout --ours/--theirs -- <file> in a conflict). Write scratch output outside the repo or to an untracked file."
     fi
   done <<<"$wtargets"
 fi

@@ -52,6 +52,14 @@ flock -n 9 || exit 0
 log() { printf '%s %s\n' "$(date -Is)" "$*" >>"$STATE/log"; }
 alive() { kill -0 -- "-$1" 2>/dev/null; }
 
+# The mods worktree follows origin/main (the pass has just fetched), so mods loaded from it reload
+# on each merge. A worktree with local changes is left alone.
+MODS="${AUTO_CI_MODS:-$HOME/src/gamedev-mods}"
+if [ -e "$MODS/.git" ]; then
+  if [ -n "$(git -C "$MODS" status --porcelain 2>/dev/null)" ]; then log "mods worktree has local changes; left as is"
+  else git -C "$MODS" checkout -q --detach origin/main 2>/dev/null || log "mods worktree: checkout of origin/main failed"; fi
+fi
+
 # Open PRs: number, draft or untrusted, head, local-ci state on the head, rerun label, review state,
 # and whether auto-merge is still to be turned on (not a draft, no awaiting-user label, not on yet).
 # Trusted app authors (scripts/ci-trusted-bots) show up in gh as app/<login without [bot]>.
