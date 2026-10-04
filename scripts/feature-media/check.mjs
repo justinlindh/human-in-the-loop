@@ -31,7 +31,7 @@ export const parseEntries = () => {
       const ids = [...line.matchAll(/`id: ([A-Za-z0-9_-]+)`/g)].map((m) => m[1]);
       if (!ids.length) return;
       const names = [...line.matchAll(MEDIA_URL)].map((m) => m[1]);
-      out.push({ file: f, line: i + 1, ids: [...new Set(ids)], names, none: /\bmedia: none \([^)]+\)/.test(line) });
+      out.push({ file: f, line: i + 1, ids: [...new Set(ids)], names, none: /\bmedia: none \([^)]+\)/.test(line), pending: /\bmedia: pending \(#\d+\)/.test(line) });
     });
   }
   return out;
@@ -47,7 +47,8 @@ export async function check({ writeBaseline = false } = {}) {
   const entries = parseEntries();
   const uncovered = new Set();
   for (const e of entries) {
-    const covered = e.names.length > 0 || e.none;
+    // `media: pending (#<issue>)`: the thing does not read on video yet; the issue is the owner's fix.
+    const covered = e.names.length > 0 || e.none || e.pending;
     for (const id of e.ids) if (!covered) uncovered.add(`${e.file}:${id}`);
     for (const n of e.names) {
       if (!itemIds.has(n) && !itemIds.has(ALIASES[n])) problems.push(`${e.file}:${e.line}: media "${n}" names no manifest item (add the item, or an alias in check.mjs)`);
@@ -78,7 +79,8 @@ export async function check({ writeBaseline = false } = {}) {
 
   for (const n of notes) console.log(`feature-media check: ${n}`);
   for (const p of problems) console.error(`feature-media check: ${p}`);
-  const covered = entries.reduce((n, e) => n + (e.names.length || e.none ? e.ids.length : 0), 0);
-  console.log(`feature-media check: ${entries.length} entries, ${covered} id slots covered, ${uncovered.size} uncovered (${baseline.size} in the baseline), ${problems.length} problems`);
+  const covered = entries.reduce((n, e) => n + (e.names.length || e.none || e.pending ? e.ids.length : 0), 0);
+  const pending = entries.filter((e) => e.pending).reduce((n, e) => n + e.ids.length, 0);
+  console.log(`feature-media check: ${entries.length} entries, ${covered} id slots covered (${pending} pending), ${uncovered.size} uncovered (${baseline.size} in the baseline), ${problems.length} problems`);
   return problems.length ? 1 : 0;
 }
