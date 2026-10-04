@@ -241,6 +241,10 @@ describe('audio director', () => {
     expect(again.expect).toBe(ASSETS.musicNight.motivational_polka.tracks[i].duration);
     expect(dance.duck).toBe('dance');
     expect(dance.at).toBeCloseTo(10.4);
+    // The announced length and lead come from the command, so a later frame time changes neither.
+    expect(dance.startsIn).toBeCloseTo(0.4);
+    expect(dance.expect).toBe(ASSETS.musicNight.motivational_polka.tracks[Number(dance.file.split('/')[2])].duration);
+    expect(again.startsIn).toBeCloseTo(0.4);
     // The cheer is timed from the end of whatever buffer plays, so its offsets are small and positive.
     const barks = dance.after.filter((c) => c.cue === 'voice.bark');
     expect(barks.length).toBeGreaterThan(0);
