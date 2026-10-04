@@ -28,10 +28,12 @@ it.each([false, true])('shows saved-era labels only in preview: %s', (enabled) =
   }
 });
 
+// Building a takeover company plays its predecessor, so both preview settings share one.
+let takeoverState = null;
 it.each([false, true])('gates takeover score labels behind the preview: %s', (enabled) => {
   vi.useFakeTimers();
   preview.erasPreview = enabled;
-  const state = createGame({ seed: 1, startEra: 'agents', startMode: 'takeover' });
+  const state = takeoverState ??= createGame({ seed: 1, startEra: 'agents', startMode: 'takeover' });
   const reports = reportsPanel({ getState: () => state });
   expect(reports.el.textContent.includes(`Agents takeover at company week ${state.founding.takeoverWeek}`)).toBe(enabled);
   expect(reports.el.textContent.includes(`score x${state.founding.eraScoreMult}`)).toBe(enabled);

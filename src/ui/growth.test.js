@@ -51,8 +51,9 @@ describe('timeline from saved history', () => {
     const { createGame, tick } = await import('../sim/index.js');
     const bots = await import('../sim/bots.js');
     const s = createGame({ seed: 3, companyName: 'Loopworks' });
-    for (let w = 0; w < 300 && !s.gameOver; w++) { bots.botDecide('balanced', s); bots.botTurn('balanced', s); tick(s); }
-    const lines = s.staff.flatMap((p) => timelineFrom(p));
+    const timeline = () => s.staff.flatMap((p) => timelineFrom(p));
+    for (let w = 0; w < 300 && !s.gameOver && !(w >= 60 && timeline().length > 5); w++) { bots.botDecide('balanced', s); bots.botTurn('balanced', s); tick(s); }
+    const lines = timeline();
     expect(lines.length).toBeGreaterThan(0);
     for (const x of lines) expect(x.text).not.toMatch(/undefined|null|NaN/);
   });

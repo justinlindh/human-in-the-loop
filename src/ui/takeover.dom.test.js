@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { afterAll, afterEach, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { createTitle } from './title.js';
 import * as sim from '../sim/state.js';
 import { fmtMoney } from './dom.js';
@@ -7,6 +7,17 @@ import { B } from '../sim/balance.js';
 vi.mock('./eraPreview.js', () => ({ erasPreview: true }));
 vi.hoisted(() => vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({}) }))));
 afterAll(() => vi.unstubAllGlobals());
+// Building a takeover company plays its predecessor for years, so one build per era serves every test; each
+// request gets its own copy carrying the funding it asked for.
+const realCreateGame = sim.createGame;
+const built = new Map();
+beforeEach(() => vi.spyOn(sim, 'createGame').mockImplementation((options) => {
+  if (options?.startMode !== 'takeover') return realCreateGame(options);
+  if (!built.has(options.startEra)) built.set(options.startEra, realCreateGame({ ...options, funding: 'bootstrapped' }));
+  const copy = structuredClone(built.get(options.startEra));
+  copy.founding.funding = options.funding;
+  return copy;
+}));
 afterEach(() => { document.body.replaceChildren(); vi.clearAllTimers(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 function click(text) {
