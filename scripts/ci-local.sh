@@ -194,6 +194,9 @@ gh_step syntax test syntax
 # docs/features/ against the data: every staged event, item, perk, moment kind, quick post, prompt,
 # music night genre and era has an entry, and every id the file names exists (scripts/features-ids.mjs).
 step features-ids node "$SELF/features-ids.mjs" --root "$PWD"
+# Every docs/features/ entry with an id has media, a spec or an explicit none; no rendering (about 0.2 s).
+feature_media_check() { [ -f scripts/feature-media/render.mjs ] || { echo "no scripts/feature-media in this tree"; return 0; }; npm run -s feature-media -- --check; }
+step feature-media-check feature_media_check
 # Every script and check has a docs/toolkit/ entry, and every entry is well formed (scripts/toolkit.mjs).
 toolkit_check() { [ -f scripts/toolkit.mjs ] || { echo "no scripts/toolkit.mjs in this tree"; return 0; }; node scripts/toolkit.mjs --check; }
 step toolkit toolkit_check
