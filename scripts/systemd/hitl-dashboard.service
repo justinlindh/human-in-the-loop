@@ -8,6 +8,7 @@ Description=Human in the Loop: owner dashboard (read-only, private network)
 Type=simple
 Nice=10
 Environment=HITL_DASH_TREE=%h/.cache/hitl-ci/auto/worktree
+Environment=TMPDIR=%h/.cache/hitl-ci/tmp
 ExecStart=/bin/bash -c 'cd "$HITL_DASH_TREE" && exec node scripts/dashboard/server.mjs'
 Restart=always
 RestartSec=10

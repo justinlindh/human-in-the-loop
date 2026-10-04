@@ -6,6 +6,7 @@ import { PREINTERNET_EVENTS, PREINTERNET_CHAT } from '../data/preinternet.js';
 import { emitChat } from './chat.js';
 import { bumpDebt } from './debt.js';
 import { chapterStart } from './util.js';
+import { addBoxDeal } from './deals.js';
 
 // Physical installations are never subscription customers. Inventory survives every era transition.
 export const newInventory = () => ({
@@ -94,6 +95,7 @@ export function sellBoxes(ctx, p, demand) {
   const refund = returned * B.preinternet.price * (1 - B.preinternet.retailerShare);
   inv.grossSales += gross; inv.retailerFees += fees; inv.refunds += refund;
   inv.weeklyNet = gross - fees - refund; inv.salesWeek = state.week;
+  addBoxDeal(ctx, p, sold, inv.weeklyNet);
   inv.salesHistory = (inv.salesHistory ?? []).filter((sale) => sale.week > state.week - B.preinternet.valuationWeeks);
   const sale = inv.salesHistory.at(-1);
   if (sale?.week === state.week) sale.net += inv.weeklyNet;

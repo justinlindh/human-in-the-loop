@@ -1,7 +1,7 @@
 // Exercise char-lineup identity with Fredoka arriving before or after the text emote is painted.
 //   node blender/checks/golden-font-controls.mjs [--runs=N] [--without-repaint]
 // --without-repaint disables the emote's repaint in the served module as a negative control.
-// Run under timeout and nice; startHarness takes the software render lock.
+// Run under timeout and nice; startHarness takes the render lock for its GL (the GPU by default).
 import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -12,7 +12,7 @@ assert.ok(Number.isInteger(runs) && runs > 0, '--runs must be a positive integer
 const withoutRepaint = process.argv.includes('--without-repaint');
 const out = resolve(process.env.HITL_GOLDEN_OUT || 'shots/golden-font-controls');
 mkdirSync(out, { recursive: true });
-const H = await startHarness({ gpu: false });
+const H = await startHarness();
 const newPage = H.browser.newPage.bind(H.browser);
 let schedule;
 H.browser.newPage = async (...args) => {

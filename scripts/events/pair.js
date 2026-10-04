@@ -18,19 +18,62 @@
 // PR), and with --json the per-run records and per-bot summary. Exit 0; 2 when an argument is bad (a root without src/sim/bots.js, a --fields
 // part that is not `name: expr`) or a side failed or timed out. A mismatch between the two sides' run
 // sets is printed.
+//
+// Side a is cached under ~/.cache/hitl-ci/pair (HITL_PAIR_CACHE_DIR moves it, HITL_NO_CHECK_CACHE=1
+// turns it off), keyed by the content of its src/sim and src/data files, the bots, seeds, era and
+// --fields, this script and Node: a repeat against an unchanged base reads the records and plays only
+// side b, without making the base worktree.
+import { createHash } from 'node:crypto';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { spawn, execFileSync } from 'node:child_process';
-import { rmSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { cpus } from 'node:os';
+import { mkdirSync, readdirSync, renameSync, rmSync, readFileSync, statSync, writeFileSync, existsSync } from 'node:fs';
+import { cpus, homedir } from 'node:os';
 import { makeTemp } from '../tools/tmp.mjs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createWorktree } from '../tools/worktree.mjs';
-import { compare, markdown, parseFields } from './pair-report.js';
+import { logTiming } from '../lib/timing.js';
+import { compare, markdown, parseFields, sideKey } from './pair-report.js';
 
 const fail = (msg) => { console.error(`pair: ${msg}`); process.exit(2); };
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SELF = fileURLToPath(import.meta.url);
+
+// What a side's runs depend on: the sim and its data (nothing in src/sim imports from elsewhere).
+const SIM_FILE = /^src\/(sim|data)\/.*\.(js|mjs|json)$/;
+const createHashOf = (file) => createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 16);
+const git = (cwd, args, input) => execFileSync('git', args, { cwd, encoding: 'utf8', input, stdio: ['pipe', 'pipe', 'ignore'], maxBuffer: 1 << 26 });
+// [path, blob id] for each sim and data file of a checkout (as it stands on disk) or of a revision;
+// null when git cannot say, which means no caching.
+function simFiles(repo, rev) {
+  try {
+    if (rev) {
+      return git(repo, ['ls-tree', '-r', rev, '--', 'src/sim', 'src/data']).split('\n').filter(Boolean)
+        .map((l) => { const [meta, path] = l.split('\t'); return [path, meta.split(' ')[2]]; }).filter(([p]) => SIM_FILE.test(p) && !p.endsWith('.test.js'));
+    }
+    const paths = git(repo, ['ls-files', '--cached', '--others', '--exclude-standard', '--', 'src/sim', 'src/data']).split('\n')
+      .filter((p) => p && SIM_FILE.test(p) && !p.endsWith('.test.js') && existsSync(join(repo, p)));
+    const ids = git(repo, ['hash-object', '--stdin-paths'], `${paths.join('\n')}\n`).split('\n').filter(Boolean);
+    return paths.map((p, i) => [p, ids[i]]);
+  } catch { return null; }
+}
+const cacheDir = () => process.env.HITL_PAIR_CACHE_DIR || join(homedir(), '.cache', 'hitl-ci', 'pair');
+function readSide(key) {
+  try { return JSON.parse(readFileSync(join(cacheDir(), `${key}.json`), 'utf8')); } catch { return null; }
+}
+function writeSide(key, records) {
+  try {
+    mkdirSync(cacheDir(), { recursive: true });
+    const tmpFile = join(cacheDir(), `${key}.${process.pid}.tmp`);
+    writeFileSync(tmpFile, JSON.stringify(records));
+    renameSync(tmpFile, join(cacheDir(), `${key}.json`));
+    // Entries for bases that no longer exist are never matched again.
+    for (const n of readdirSync(cacheDir())) {
+      const f = join(cacheDir(), n);
+      if (Date.now() - statSync(f).mtimeMs > 14 * 864e5) rmSync(f, { force: true });
+    }
+  } catch { /* a cache that cannot be written only costs a run next time */ }
+}
 
 async function runOne({ root, bot, seed, fields, startEra }) {
   const { runBot } = await import(pathToFileURL(join(root, 'src/sim/bots.js')).href);
@@ -111,8 +154,13 @@ if (!isMainThread) {
   // The temporary directory goes here too: a signal handler exits without running the finally below.
   process.on('exit', () => { for (const c of sides) { try { c.kill('SIGKILL'); } catch { /* gone */ } } rmSync(tmp, { recursive: true, force: true }); });
   try {
-    if (!a) {
-      execFileSync('git', ['fetch', '-q', 'origin', 'main'], { cwd: b, stdio: 'ignore' });
+    if (!a) execFileSync('git', ['fetch', '-q', 'origin', 'main'], { cwd: b, stdio: 'ignore' });
+    // Side a's records are cached by the content of what they were played on.
+    const aFiles = process.env.HITL_NO_CHECK_CACHE === '1' ? null : a ? simFiles(a) : simFiles(b, 'origin/main');
+    const keyA = aFiles && sideKey({ files: aFiles, bots, seeds, startEra, fields: parsed, script: createHashOf(SELF), node: process.version });
+    let cachedA = keyA ? readSide(keyA) : null;
+    logTiming({ kind: 'cache', tool: 'pair', cache: !keyA ? 'off' : cachedA ? 'hit' : 'miss', input: keyA ?? undefined });
+    if (!a && !cachedA) {
       // Removed on every way out of this process (error, timeout, signal), not only the normal one.
       baseWorktree = await createWorktree({ repo: b, rev: 'origin/main', label: 'pair' });
       a = baseWorktree.path;
@@ -126,22 +174,24 @@ if (!isMainThread) {
       child.on('exit', (c) => { clearTimeout(timer); sides.delete(child); res({ name, code: c, out }); });
     });
     // Wait on both processes, never on a sleep.
-    const [sa, sb] = await Promise.all([side(a, 'a'), side(b, 'b')]);
+    if (cachedA) console.log(`pair: side a read from the cache (${keyA.slice(0, 8)}), not played`);
+    const [sa, sb] = await Promise.all([cachedA ? { name: 'a', code: 0 } : side(a, 'a'), side(b, 'b')]);
     if (sa.code !== 0 || sb.code !== 0) { console.error(`pair: side ${sa.code !== 0 ? 'a' : 'b'} failed (exit ${sa.code !== 0 ? sa.code : sb.code}) or timed out`); code = 2; }
     else {
-      const A = JSON.parse(readFileSync(sa.out, 'utf8')), B = JSON.parse(readFileSync(sb.out, 'utf8'));
+      const A = cachedA ?? JSON.parse(readFileSync(sa.out, 'utf8')), B = JSON.parse(readFileSync(sb.out, 'utf8'));
       if (startEra) {
         for (const [name, recs] of [['a', A], ['b', B]]) {
           const off = Object.values(recs).filter((r) => (r.era ?? 'classic') !== startEra).length;
           if (off) fail(`side ${name} did not start ${off} run(s) in ${startEra} (its sim predates --start-era?)`);
         }
       }
+      if (keyA && !cachedA) writeSide(keyA, A);
       const result = compare(A, B);
       console.log(markdown(result, { a: 'a', b: 'b' }));
       if (result.onlyA.length || result.onlyB.length) console.log(`\nrun sets differ: ${result.onlyA.length} run(s) only on a (${result.onlyA.slice(0, 5).join(', ')}), ${result.onlyB.length} only on b (${result.onlyB.slice(0, 5).join(', ')}); only the ${result.runs} runs on both are compared.`);
       console.log(`\n${result.runs} paired runs (${bots.join(', ')}; seeds 1-${seeds}${startEra ? `; start era ${startEra}` : ''}) in ${Math.round((Date.now() - t0) / 1000)} s.`);
       const jf = opt('json');
-      if (jf) writeFileSync(jf, JSON.stringify({ a, b, bots, seeds, startEra: startEra ?? 'classic', summary: result.rows.map((r) => ({ ...r, lost: r.lost, gained: r.gained })), runs: { a: A, b: B } }, null, 1));
+      if (jf) writeFileSync(jf, JSON.stringify({ a: a ?? 'origin/main', b, bots, seeds, startEra: startEra ?? 'classic', summary: result.rows.map((r) => ({ ...r, lost: r.lost, gained: r.gained })), runs: { a: A, b: B } }, null, 1));
     }
   } finally {
     baseWorktree?.disposeSync();

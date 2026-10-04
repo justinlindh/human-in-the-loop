@@ -20,6 +20,7 @@
 #   --no-post   no status, no issues: print the verdict only
 #   --loop      check, sleep, and check again forever (for running it by hand)
 set -uo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/lib/tmpdir.sh"
 usage="usage: scripts/main-guard.sh [--sha <commit>] [--no-post] [--loop <seconds>]"
 sha_arg=""; post=1; loop=""
 while [ $# -gt 0 ]; do
@@ -175,7 +176,7 @@ gate() {
   run "${MAIN_GUARD_STRICT:-}" "$STATE/$cs.strict.log" timeout 1800 nice -n 10 node blender/checks/sweep.mjs --gpu --strict --out "$out"
   # Golden with no cache: local CI's golden skips scenes whose inputs it has seen pass, so a cache bug
   # would quietly stop it catching regressions. Here every scene renders, on every commit checked.
-  run "${MAIN_GUARD_GOLDEN:-}" "$STATE/$cs.golden.log" env HITL_NO_CHECK_CACHE=1 bash scripts/with-render-lock.sh --software timeout 900 nice -n 10 node blender/checks/golden.mjs --jobs=4
+  run "${MAIN_GUARD_GOLDEN:-}" "$STATE/$cs.golden.log" env HITL_NO_CHECK_CACHE=1 bash scripts/with-render-lock.sh --gpu timeout 900 nice -n 10 node blender/checks/golden.mjs
   golden_rc=$?
   # A failing golden's images (actual, diff, and the identity check's two renders) live in this gate's
   # worktree, which goes when the gate ends: keep them beside the commit's logs, for two weeks.

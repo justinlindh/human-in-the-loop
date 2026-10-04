@@ -6,7 +6,9 @@
 // instead of quietly taking minutes of CPU.
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { basename } from 'node:path';
+import { basename, join } from 'node:path';
+import { homedir } from 'node:os';
+import { mkdirSync } from 'node:fs';
 import { isSoftwareRenderer } from '../../src/quality.js';
 import { logTiming } from './timing.js';
 import { trackRun } from './timing.js';
@@ -50,13 +52,30 @@ export function rendererMatches(mode, renderer) {
   return typeof renderer === 'string' && renderer !== '' && !isSoftwareRenderer(renderer);
 }
 
+// A browser's profile and the caches its GPU process writes go under TMPDIR. The shared /tmp is a
+// size-limited, per-user-quota tmpfs, and when it runs near its limit those writes fail
+// ("Disk quota exceeded"): pages then lose resources (net::ERR_INSUFFICIENT_RESOURCES) and shader
+// programs fail to compile, with no GPU fault involved. Browsers start with TMPDIR on disk instead
+// (HITL_BROWSER_TMP, default ~/.cache/hitl-ci/browser-tmp); concurrent launches share one switch.
+let tmpHolders = 0, tmpBefore;
+async function withBrowserTmp(launch) {
+  const dir = process.env.HITL_BROWSER_TMP || join(homedir(), '.cache/hitl-ci/browser-tmp');
+  mkdirSync(dir, { recursive: true });
+  if (tmpHolders++ === 0) { tmpBefore = process.env.TMPDIR; process.env.TMPDIR = dir; }
+  try {
+    return await launch();
+  } finally {
+    if (--tmpHolders === 0) { if (tmpBefore === undefined) delete process.env.TMPDIR; else process.env.TMPDIR = tmpBefore; }
+  }
+}
+
 // Launches Chromium in `mode`, prints "<label>: GL <mode> (<renderer>)", and throws when the GPU was
 // asked for but the browser fell back to software GL (a missing Vulkan driver, a blocked GPU).
 // Every tool that launches here also logs its run (wall and CPU time, GL mode, exit code) to the
 // team's timing log (scripts/lib/timing.js).
 export async function launchChromium(chromium, { mode = glMode(), label = 'browser', args = [], ...opts } = {}) {
   trackRun(basename(process.argv[1] ?? label).replace(/\.m?js$/, ''), { gl: mode, args: process.argv.slice(2).join(' ').slice(0, 120) });
-  const browser = await chromium.launch({ ...opts, args: [...glArgs(mode), ...args] });
+  const browser = await withBrowserTmp(() => chromium.launch({ ...opts, args: [...glArgs(mode), ...args] }));
   const renderer = await rendererOf(browser);
   console.log(`${label}: GL ${mode} (${renderer ?? 'no WebGL2'})`);
   watchWebglLoss(browser, { label, mode });

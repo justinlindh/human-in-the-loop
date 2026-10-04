@@ -149,7 +149,7 @@ async function endControl(c) {
 
 const kill = setTimeout(() => { console.error(`sweep: timed out after ${timeout} s`); process.exit(124); }, timeout * 1000);
 const t0 = wall();
-// Geometry, not pixels: the GPU is fine here when asked for (--gpu or HITL_GPU=1).
+// Geometry, not pixels: the GPU by default, SwiftShader with --software or HITL_GL=software.
 const H = engine ? null : await startHarness({ gpu: wantGpu() });
 const host = engine ? await import('../../scripts/studio/sweep-host.mjs') : null;
 // Started only once this process holds its render lock: the harness re-runs the whole command under

@@ -93,9 +93,12 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
   const launched = await Promise.all(Array.from({ length: Math.max(1, browsers) }, () => launch(gpu)));
   timer.mark('launchChromium');
   const { browser, renderer } = launched[0];
+  // Every path any page of this harness requested (cache.mjs's requestedFiles turns them into files).
+  const allRequests = new Set();
   return {
     browser,
     renderer,
+    requested: () => [...allRequests],
     // Cold-start cost outside any one scene: the render lock, the Vite server and the browser
     // launch. Fixed per startHarness() call, before any page opens.
     phases: timer.phases,
@@ -107,7 +110,7 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
       const errors = [];
       // Every path the page requests, so a check can key a cache on exactly what the scene loaded.
       const requests = new Set();
-      page.on('request', (r) => requests.add(r.url()));
+      page.on('request', (r) => { requests.add(r.url()); allRequests.add(r.url()); });
       page.on('pageerror', (e) => errors.push(e.message));
       page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
       // Pages never touch the network: a request off the harness's own server is aborted, recorded as
