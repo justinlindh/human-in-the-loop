@@ -283,7 +283,10 @@ function printSceneResult(req, rows, profile, errors) {
 // needs a browser page (browserReason).
 async function sceneMode() {
   const t0 = performance.now();
-  const req = normalizeSceneRequest(cliSource());
+  let req;
+  try { req = normalizeSceneRequest(cliSource()); } catch (e) { console.error(e.message); return 2; }
+  const { MOCK_SCENARIOS } = await import('../../src/dev/mockSim.js');
+  if (req.mock != null && !MOCK_SCENARIOS.includes(req.mock)) { console.error(`pose: no mock scenario "${req.mock}" (want one of ${MOCK_SCENARIOS.join(', ')})`); return 2; }
   const why = browserReason(req);
   if (!why) {
     const { rows, profile } = await engineSample(req);
