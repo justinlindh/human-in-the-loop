@@ -4,12 +4,15 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 fails=0
 fail() { echo "FAIL $*"; fails=$((fails + 1)); }
-base="$(nice)"
-want=$(( base >= 10 ? base : 10 ))
-[ "$(bash "$HERE/nice10.sh" nice)" -eq "$want" ] || fail "an unniced command should run at nice $want"
+# Each case reads the process's own nice right before it runs, so a renice from outside (a load guard,
+# a scheduler) between cases cannot fail one.
+expect() { local b; b="$(nice)"; echo $(( b >= 10 ? b : 10 )); }
+got="$(bash "$HERE/nice10.sh" nice)"
+[ "$got" -eq "$(expect)" ] || fail "an unniced command should run at nice $(expect) (got $got)"
 outer="$(nice -n 15 nice)"
 [ "$outer" -ge 10 ] && [ "$(nice -n 15 bash "$HERE/nice10.sh" nice)" -eq "$outer" ] || fail "a process already niced to 10 or more should keep its level"
-[ "$(bash "$HERE/nice10.sh" bash "$HERE/nice10.sh" nice)" -eq "$want" ] || fail "wrapping twice should not stack"
+once="$(bash "$HERE/nice10.sh" nice)"; twice="$(bash "$HERE/nice10.sh" bash "$HERE/nice10.sh" nice)"
+[ "$twice" -eq "$once" ] || fail "wrapping twice should not stack (once $once, twice $twice)"
 bash "$HERE/nice10.sh" true || fail "exit 0 should pass through"
 bash "$HERE/nice10.sh" false && fail "a failing command should fail"
 bash "$HERE/nice10.sh" 2>/dev/null; [ $? -eq 2 ] || fail "no command should exit 2"
