@@ -154,10 +154,18 @@ export const ITEMS = [
   {
     // The week before an era turns, from the index: the office redresses itself live. The era card is
     // hidden so the redress shows.
-    id: 'site-loop-era', title: 'Landing page loop: an era arrives', query: 'seed=1&speed=1', moment: 'era --era agents --stage floor --snapshot', seconds: 16, warmup: 0.5,
+    id: 'site-loop-era', title: 'Landing page loop: an era arrives', query: 'seed=1&speed=1', moment: 'era --era agents --stage hq --snapshot', seconds: 16, warmup: 0.5,
     setup: `(() => { ${CLEAN}; document.getElementById('clean-shot').textContent += ' #ui .announce-back.docked { display: none !important; }'; })()`,
     actions: [...DISMISS_AT([2, 3, 4, 5, 6, 8, 10], { escape: false }), ...CAMLOG(16)], screenshots: [4, 8, 12],
     out: [LOOP('era', 5, 6.1)],
+  },
+  {
+    // The feature inventory's era arrival: the same moment with the era card kept, so the card, the cheer
+    // and the redress all show; the card is closed at 9 s.
+    id: 'era-arrival', title: 'Era arrival: the card, then the office redresses', query: 'seed=1&speed=1', moment: 'era --era chatgbt --stage floor --snapshot', seconds: 16, warmup: 0.5,
+    setup: `(() => { ${CLEAN}; })()`,
+    actions: [...DISMISS_AT([9, 10, 11], { escape: false }), ...CAMLOG(16)], screenshots: [3, 7, 12],
+    out: [{ path: 'era-arrival.mp4', size: '1280x720', from: 1, seconds: 13, loop: 'none' }],
   },
   {
     // A real incident on the Office Floor: the alarm, and the nearest people run to the servers. A
