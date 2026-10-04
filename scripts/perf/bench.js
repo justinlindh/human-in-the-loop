@@ -125,6 +125,21 @@ const MUSIC_NIGHT = `(() => {
   window.__HITL.emit([{ type: 'incentive', staffId: here[0].id, reward: 'music_night', genre: 'corporate_synthwave', dancers: here.slice(1, 5).map((p) => p.id) }]);
 })()`;
 
+// Puts a disk duplicator and a retail display on the first free tiles, so the pre-internet scenes draw
+// both models. The page keeps the placed ids on window.__perfProps for the report.
+const PREINTERNET_PROPS = `(() => {
+  const H = window.__HITL;
+  H.state.cash = Math.max(H.state.cash, 1e9);
+  const got = {};
+  for (const itemId of ['disk_duplicator', 'retail_shelf']) {
+    outer: for (let y = 0; y < 16; y++) for (let x = 0; x < 21; x++) for (const rot of [0, 1]) {
+      const r = H.dispatch({ type: 'placeItem', itemId, x, y, rot });
+      if (r?.ok) { got[itemId] = [x, y, rot]; break outer; }
+    }
+  }
+  window.__perfProps = got;
+})()`;
+
 const SCENE_DEFS = {
   garage: { query: 'mock=garage' },
   floor: { query: 'mock=floor' },
@@ -138,6 +153,8 @@ const SCENE_DEFS = {
   'hq-eras': { query: 'mock=hq&eras&eraArt=classic' },
   'hq-dotcom': { query: 'mock=hq&eras&eraArt=dotcom' },
   'hq-web2': { query: 'mock=hq&eras&eraArt=web2' },
+  'floor-preinternet': { query: 'mock=floor&eras&eraArt=preinternet', setup: PREINTERNET_PROPS },
+  'hq-preinternet': { query: 'mock=hq&eras&eraArt=preinternet', setup: PREINTERNET_PROPS },
 };
 
 // Installed before page scripts: sums every rAF callback's work per frame, keyed by the frame's
@@ -231,6 +248,10 @@ async function measure(browser, b, scene, quality) {
   }
   await page.evaluate(() => window.__perf.wrapRender());
   if (def.setup) await page.evaluate(def.setup);
+  if (def.setup === PREINTERNET_PROPS) {
+    const got = await page.evaluate(() => window.__perfProps);
+    if (!got?.disk_duplicator || !got?.retail_shelf) throw new Error(`could not place the pre-internet props: ${JSON.stringify(got)}`);
+  }
   const keep = setInterval(() => { page.evaluate(KEEP_PLAYING).catch(() => {}); }, 1000);
   const cdp = await ctx.newCDPSession(page);
   let profile = null;
