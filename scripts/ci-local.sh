@@ -344,6 +344,8 @@ render_step() { # <name> <gpu|software> <command>
   [ $rc -eq 0 ] && return 0
   # A lock wait that runs out (30 minutes by default) exits 75: nothing rendered, so nothing to retry.
   if [ $rc -eq 75 ]; then note "$name: timed out waiting for the $mode render lock"; return 75; fi
+  # A pass that hit its 600 s limit would only hit it again: a retry doubles the loss.
+  if [ $rc -eq 124 ]; then note "$name: timed out after 600 s while running; not retried"; return 124; fi
   echo "$name: first pass failed; retrying once"
   local why; why="$(grep -m1 -E 'Error|FAIL|failed' "$first" | cut -c1-200)"
   # A machine that ran out of something gets a moment to recover first.
