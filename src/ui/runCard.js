@@ -8,6 +8,8 @@ import { erasPreview } from './eraPreview.js';
 export const CARD_W = 1200;
 export const CARD_H = 630;
 const WEEKS_PER_YEAR = 52;
+// The ending headline stops short of the stat tiles on the right (tile column 270 wide, 64 margins, 24 of air).
+const HEAD_MAX = CARD_W - 64 - 270 - 64 - 24;
 const SITE = 'humanintheloopgame.com';
 const C = { ink: '#2a2630', inkSoft: '#5b5361', cream: '#fbf5ea', cream3: '#e9dbc2', yellow: '#ffb020', blue: '#4f8cff', lost: '#cfc6d6' };
 
@@ -34,7 +36,7 @@ export function runCardData(s, { title, score }) {
   return {
     company: s.companyName || 'Your company',
     initial: (s.companyName || '?').slice(0, 1).toUpperCase(),
-    logoColor: s.logoColor ?? s.founding?.logoColor ?? C.yellow,
+    logoColor: s.logoColor ?? s.founding?.logoColor ?? C.blue,
     route,
     years,
     ending: title,
@@ -95,7 +97,7 @@ export async function drawRunCard(data, canvas = document.createElement('canvas'
   ctx.fillText(`${data.route} · ${data.years} ${data.years === 1 ? 'year' : 'years'} survived`, 186, 138);
   // Ending headline.
   ctx.fillStyle = C.ink;
-  fit(ctx, data.ending, 700, 76, CARD_W - 140);
+  fit(ctx, data.ending, 700, 76, HEAD_MAX);
   ctx.fillText(data.ending, 64, 262);
   // Score block.
   ctx.fillStyle = C.inkSoft; ctx.font = '600 28px Fredoka, system-ui, sans-serif';
