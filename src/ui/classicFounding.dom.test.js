@@ -37,6 +37,7 @@ it.each(['bootstrapped', 'family', 'preseed'])('keeps the default founding flow 
   click('Next: funding');
   expect(document.querySelector('.era-starts')).toBeNull();
   expect(document.querySelector('.era-start-summary')).toBeNull();
+  expect(document.querySelector('.takeover-choices')).toBeNull();
   document.querySelectorAll('.fund')[['bootstrapped', 'family', 'preseed'].indexOf(funding)].click();
   record();
   click('Back');
@@ -45,6 +46,7 @@ it.each(['bootstrapped', 'family', 'preseed'])('keeps the default founding flow 
   click('Start the company');
   const options = newGame.mock.calls[0][0];
   expect(options).not.toHaveProperty('startEra');
+  expect(options).not.toHaveProperty('startMode');
   expect({ flow, options }).toMatchSnapshot();
   // Hash every serialized field, including RNG, candidates, goals and furniture.
   expect(createHash('sha256').update(JSON.stringify(createGame(options))).digest('hex')).toMatchSnapshot('state');

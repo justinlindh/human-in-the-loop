@@ -1,6 +1,7 @@
 // The pure audio director: sim events, UI cues, clicks and state in; a list of commands out.
 // No DOM, no WebAudio, no Math.random: variation comes from its own seeded rng, so a fixed input
-// gives the same commands (and it runs headless in Node).
+// gives the same commands (and it runs headless in Node). Every `t` and `at` is host frame time,
+// never AudioContext time: the host maps `at` to context time only when it schedules playback.
 //
 // Commands:
 //   { op: 'play', cue, file, bus, gain, at, priority, voiceKey?, duck? }  duck: hold it while the buffer plays
@@ -167,7 +168,9 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
     if (key === 'voice' && playing.filter((v) => v.bus === 'voice' && v.single && v.until > t).length >= VOICE.maxSingle) return [];
     if (!admit('voice', priority, t, 1.5)) return [];
     if (key === 'voice') playing[playing.length - 1].single = true;
-    return [{ op: 'play', cue: 'voice.bark', file: `voice/${voiceBank(person)}`, emotion, bus: 'voice', gain, at: t, priority, voiceKey: person.id, duckKey: key, ...(take === null ? {} : { take }) }];
+    // Every bark carries its take, so the host never draws its own; refused barks draw nothing.
+    if (take === null) take = Math.floor(rng() * 8);
+    return [{ op: 'play', cue: 'voice.bark', file: `voice/${voiceBank(person)}`, emotion, bus: 'voice', gain, at: t, priority, voiceKey: person.id, duckKey: key, take }];
   }
 
   // A group cheer: several present people, staggered, quieter each, over a crowd bed.
@@ -286,6 +289,9 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
     // Every frame: music state machine, pause filter, burnout barks, ambient barks.
     update(state, t, ctx = {}) {
       const out = [];
+      // Music plays on the audio clock, so its start times and loop boundaries are kept on it
+      // (ctx.audioT); everything else decides on frame time t.
+      const ta = Number.isFinite(ctx.audioT) ? ctx.audioT : t;
       spotlight = ctx.spotlight ? (typeof ctx.spotlight === 'object' ? ctx.spotlight : { kind: typeof ctx.spotlight === 'string' ? ctx.spotlight : null }) : null;
       // A new or loaded game brings a new state object: no moment from the old one can still be playing.
       if (state && state !== lastStateRef) { if (lastStateRef) momentsOn.clear(); lastStateRef = state; }
@@ -304,8 +310,8 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
         const fromTitle = music.era === 'title';
         // The market turning is marked once, when it happens in play (not when a save loads into it).
         if (want === 'dotcom_bust' && music.era === 'dotcom') out.push(...playCue('stinger.dotcom_bust', t, { speed: speedNow }));
-        music.era = want; music.bed = bed; music.lastBed[want] = bed; music.bedAt = t; music.heard = 0;
-        out.push({ op: 'music', era: want, bed, at: t, fade: first ? 1.5 : CROSSFADE_BARS * barLen });
+        music.era = want; music.bed = bed; music.lastBed[want] = bed; music.bedAt = ta; music.heard = 0;
+        out.push({ op: 'music', era: want, bed, at: ta, fade: first ? 1.5 : CROSSFADE_BARS * barLen });
         out.push(...pickNext(list));
         // Only a real era arrival cheers: not the first bed, and not starting or loading from the title.
         if (want !== 'title' && want !== 'dotcom_bust' && !first && !fromTitle && voiceMomentOk(t)) out.push(...cheer('era', state, t + CROSSFADE_BARS * barLen));
@@ -324,20 +330,20 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
       // the next (never the same one twice running) starts on the current bed's loop boundary, which
       // is a bar line, and crossfades over CROSSFADE_BARS. Paused time does not count.
       const beds = music.era ? erasBeds(music.era, bedOverride) : [];
-      const dt = Number.isFinite(music.lastT) ? Math.max(0, Math.min(1, t - music.lastT)) : 0;
-      music.lastT = t;
+      const dt = Number.isFinite(music.lastT) ? Math.max(0, Math.min(1, ta - music.lastT)) : 0;
+      music.lastT = ta;
       if (beds.length > 1 && !hold && !stopped) {
         music.heard += dt;
         const len = bedSeconds(music.era, music.bed);
         // The switch lands on the first loop boundary after PLAYLIST_MIN_S of listening.
         if (len > 0 && music.nextBed && !music.nextLoading) {
-          const reach = t + Math.max(0, PLAYLIST_MIN_S - music.heard);
+          const reach = ta + Math.max(0, PLAYLIST_MIN_S - music.heard);
           const switchAt = music.bedAt + Math.ceil((reach - music.bedAt) / len) * len;
-          if (switchAt - t <= PLAYLIST_PRELOAD_S) { music.nextLoading = true; out.push({ op: 'preload', ids: [`music/${music.nextBed}`] }); }
+          if (switchAt - ta <= PLAYLIST_PRELOAD_S) { music.nextLoading = true; out.push({ op: 'preload', ids: [`music/${music.nextBed}`] }); }
         }
         if (music.heard >= PLAYLIST_MIN_S && len > 0) {
-          const boundary = music.bedAt + Math.ceil((t - music.bedAt) / len) * len;
-          if (boundary - t <= PLAYLIST_LOOKAHEAD_S) {
+          const boundary = music.bedAt + Math.ceil((ta - music.bedAt) / len) * len;
+          if (boundary - ta <= PLAYLIST_LOOKAHEAD_S) {
             const next = music.nextBed && music.nextBed !== music.bed ? music.nextBed : beds.find((b) => b !== music.bed);
             const barLen = (60 / (MUSIC[music.era]?.bpm ?? 100)) * 4;
             music.bed = next; music.lastBed[music.era] = next; music.bedAt = boundary; music.heard = 0;
