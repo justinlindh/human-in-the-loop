@@ -21,6 +21,7 @@ import * as THREE from 'three';
 //                           // stapler', 'column', 'wall'), or null when nothing does
 //   fadeOver,               // columns drawn faded over the character's screen box
 //   hands: [[x, y, z], [x, y, z]], handsRel: hands relative to the eyes, in the face's heading
+//   handsCam: [a, b],       // metres each hand sits nearer the camera than the eyes
 //   held: { dist, ahead } | null,   // held prop: distance from the eyes; angle off the face's direction
 //   lean,                   // metres the head sits ahead of the feet toward the target (negative: away)
 //   between,                // sprites of the moment's source (smoke) near the line from eyes to target
@@ -173,6 +174,8 @@ export function createProbe({ scene, camera, office, charOf, stagingOf = () => n
     // turning drop out of the motion measures.
     const yaw = Math.atan2(p.forward.x, p.forward.z);
     const handsRel = p.hands.map((h) => h.clone().sub(p.eyes).applyAxisAngle(new THREE.Vector3(0, 1, 0), -yaw));
+    // Metres each hand sits nearer the camera than the eyes (negative: behind the head).
+    const handsCam = p.hands.map((h) => +h.clone().sub(p.eyes).dot(toCam).toFixed(3));
 
     let held = null;
     if (st.held) {
@@ -203,7 +206,7 @@ export function createProbe({ scene, camera, office, charOf, stagingOf = () => n
       anim: p.anim, moment: st.moment ?? null, beat: st.beat ?? null,
       eyes: r3(p.eyes), forward: r3(p.forward), headY: +p.head.y.toFixed(3),
       gaze, targetAngle, faceCam: +deg(p.forward, toCam).toFixed(1), visible: +visible.toFixed(3), occluder: vc.occluder, fadeOver,
-      hands: p.hands.map(r3), handsRel: handsRel.map(r3), held, lean, between,
+      hands: p.hands.map(r3), handsRel: handsRel.map(r3), handsCam, held, lean, between,
     };
   }
 

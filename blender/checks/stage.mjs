@@ -94,6 +94,7 @@ const SPECS = {
   'deal.seller': { moment: 'deal', beat: 'ring', role: 'seller', rules: [
     share('handUp', 'seller plays the fist pump throughout the beat', (x) => x.anim === 'dealsit', 0.9),
     share('fistUp', 'a hand within 0.15 m below the eyes (typing hands sit 0.34 m below)', (x) => Math.max(x.handsRel[0][1], x.handsRel[1][1]) >= -0.15, 0.7),
+    share('fistNear', 'the raised hand sits nearer the camera than the eyes, clear of the head', (x) => x.handsCam[x.handsRel[0][1] >= x.handsRel[1][1] ? 0 : 1] >= 0.05, 0.7),
     share('facingCamera', 'seller faces within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
     // No noFade: the seller stays at the desk the sim names, so a column faded over it is the
     // office's own cutaway, not something this moment stages.

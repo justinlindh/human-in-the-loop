@@ -797,7 +797,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     r.temp = { anim: 'celebrate', t: seconds, keepPos: true };
   }
 
-  // A notable deal: the seller, seated at their desk, throws a hand up and rings it like a sales bell,
+  // A notable deal: the seller, seated at their desk, pumps a fist on the camera side,
   // turned toward the camera as far as the chair allows, and the nearest seated coworkers turn to
   // clap. Low plays the seller alone. Nobody stands or walks, and the clock never holds for it.
   function dealBell(e) {
@@ -808,14 +808,17 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       const d = Math.atan2(Math.sin(yaw - r.goal.yaw), Math.cos(yaw - r.goal.yaw));
       return r.goal.yaw + Math.max(-DEAL.turnLimit, Math.min(DEAL.turnLimit, d));
     };
-    // The arm on the side the turn leaves facing the camera pumps; the other one stays behind the head.
-    const camYaw = rig?.yaw ?? Math.PI / 4, turnTo = turn(seller, camYaw);
+    // The turn stops a three-quarter short of the camera so one shoulder comes forward, and that
+    // arm pumps; square to the camera, either fist would sit level with the head and hide behind it.
+    const camYaw = Math.PI / 4 + (rig?.yawStep ?? 0) * Math.PI / 2;
+    const toCam = Math.atan2(Math.sin(camYaw - seller.goal.yaw), Math.cos(camYaw - seller.goal.yaw));
+    const turnTo = turn(seller, camYaw - Math.sign(toCam || 1) * DEAL.threeQuarter);
     emote(seller, 'sparkle', DEAL.seconds);
     seller.temp = {
       anim: 'typing', t: DEAL.seconds, keepPos: true, moment: 'deal', stage: { beat: 'ring', role: 'seller' },
       tick: (r, dt) => { r.yaw = angleLerp(r.yaw, turnTo, 1 - Math.exp(-dt * 8)); return false; },
     };
-    seller.char.gesture('deal', DEAL.seconds, Math.sin(turnTo - camYaw) >= 0 ? -1 : 1);
+    seller.char.gesture('deal', DEAL.seconds, Math.sin(turnTo - camYaw) >= 0 ? 1 : -1);
     if (low()) return;
     const crowd = [...recs.values()]
       .filter((r) => r !== seller && !r.hidden && !r.temp && !r.path.length && r.char.seated && r.goal && r.staff.mood !== 'away' && r.pos.distanceTo(seller.pos) < DEAL.nearby)
