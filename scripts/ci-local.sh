@@ -365,7 +365,7 @@ render_parts="'clip=node blender/checks/clip.mjs' 'clip-rig=node blender/checks/
 # on any machine, so they can gate; timing is never checked here. A production build per run, on a GPU slot.
 perf_budget() {
   [ -f scripts/perf/bench.js ] || { echo "no scripts/perf in this tree"; return 0; }
-  timeout 600 node scripts/perf/bench.js --scenes garage,floor,hq,music --quality low,high --runs 1 --warmup 2 --seconds 1 --json "$LOGS/perf-counts.json" \
+  timeout 600 node scripts/perf/bench.js --scenes garage,floor,hq,music,floor-eras,floor-dotcom,floor-web2,hq-eras,hq-dotcom,hq-web2 --quality low,high --runs 1 --warmup 2 --seconds 1 --json "$LOGS/perf-counts.json" \
     && node scripts/perf/budget.js "$LOGS/perf-counts.json" --counts-only
 }
 # Phone and tablet playability (scripts/phone-check.js, on a GPU slot), for changes that can affect

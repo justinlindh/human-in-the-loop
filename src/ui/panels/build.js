@@ -13,6 +13,7 @@ import { compatibilityMult } from '../../sim/web2.js';
 import { WEB2_COPY } from '../../data/early-eras.js';
 import { y2kProjectOpen, y2kSeason } from '../../sim/y2k.js';
 import { Y2K_PROJECT } from '../../data/y2k.js';
+import { hasInventory } from './inventory.js';
 import { projectLabel, KIND_LABEL, isAvailable, assignmentText, suggestName, automatedProject, NAME_MAX } from './common.js';
 
 // Product stats as the player sees them (Freshness is stored as novelty).
@@ -40,6 +41,7 @@ export function buildPanel(ctx, arg) {
   if (u0 && !u0.research) { t.setHidden('research', true); if (tab === 'research') { tab = 'new'; t.set(tab); } }
   let focusProject = arg?.projectId ?? null;
   const host = h('div');
+  const inventoryLink = h('button.btn.inventory-link', { onclick: () => ctx.open('reports', { tab: 'inventory' }) }, 'Inventory and box sales: open Reports');
 
   const newView = liveView(
     (s) => [form.category, form.angle, form.model, form.size, s.market.unlockedCategories.join(), s.market.unlockedAngles.join(),
@@ -57,7 +59,8 @@ export function buildPanel(ctx, arg) {
   const viewFor = () => (tab === 'new' ? newView : tab === 'research' ? resView : projView);
 
   function render() {
-    host.replaceChildren(viewFor().el);
+    inventoryLink.hidden = !hasInventory(ctx.getState());
+    host.replaceChildren(inventoryLink, viewFor().el);
     viewFor().update(ctx.getState(), true);
     if (tab === 'projects' && focusProject) {
       const card = host.querySelector(`[data-project="${focusProject}"]`);
@@ -90,12 +93,12 @@ export function buildPanel(ctx, arg) {
       const unlocked = s.market.unlockedCategories.includes(c.id);
       const tile = h('button.tile', {
         disabled: !unlocked,
-        title: unlocked ? `${c.name}: $${c.price}/customer/month, ${fmtNum(marketSize(s, c.id))} potential customers today${c.compliance ? '. Compliance-heavy.' : ''}` : `Unlocks in ${c.unlockYear}`,
+        title: unlocked ? `${c.name}: ${form.angle === 'boxed' ? `${fmtMoney(B.preinternet.price)}/box` : `$${c.price}/customer/month`}, ${fmtNum(marketSize(s, c.id))} potential customers today${c.compliance ? '. Compliance-heavy.' : ''}` : `Unlocks in ${c.unlockYear}`,
         onclick: () => { form.category = c.id; refreshNew(); },
       },
       h('span.ti', null, icon(unlocked ? `cat.${c.id}` : 'lock')),
       h('span.tn', { text: c.name }),
-      h('span.ts.num', { text: unlocked ? `$${c.price}/mo` : `${c.unlockYear}` }),
+      h('span.ts.num', { text: unlocked ? form.angle === 'boxed' ? `${fmtMoney(B.preinternet.price)}/box` : `$${c.price}/mo${s.era.id === 'preinternet' ? ' service' : ''}` : `${c.unlockYear}` }),
       c.compliance && unlocked ? h('span.tag', { title: 'Compliance-heavy' }, icon('compliance')) : null,
       unlocked ? trendBadge(trendMult(s, 'category', c.id)) : null);
       toggleClass(tile, 'on', form.category === c.id);
@@ -369,6 +372,7 @@ export function buildPanel(ctx, arg) {
     el: host,
     tabs: t.el,
     update(s) {
+      inventoryLink.hidden = !hasInventory(s);
       t.setLabel('projects', `Projects (${s.projects.length})`);
       viewFor().update(s);
     },

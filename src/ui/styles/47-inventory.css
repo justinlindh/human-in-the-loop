@@ -1,0 +1,9 @@
+.hitl .inventory-help p { margin: 0.6em 0 0; line-height: 1.5; }
+.hitl .inventory-help summary { cursor: pointer; min-height: 44px; align-content: center; font-weight: bold; }
+.hitl .inventory-card { margin-top: 0.8em; }
+.hitl .inventory-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.7em; margin-top: 0.8em; }
+.hitl .inventory-stats > div, .hitl .inventory-action { display: flex; flex-direction: column; gap: 0.3em; }
+.hitl .inventory-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.75em; }
+.hitl .inventory-action .btn, .hitl .inventory-link { min-height: 44px; white-space: normal; }
+.hitl .inventory-warning { color: var(--ink-soft); }
+.hitl .inventory-link { margin: 0.5em 0; width: 100%; }

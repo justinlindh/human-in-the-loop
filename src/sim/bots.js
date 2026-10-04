@@ -25,6 +25,7 @@ import { EVENTS } from '../data/events.js';
 import { ITEMS } from '../data/items.js';
 import { ROLES } from '../data/roles.js';
 import { SQUAD_NAMES } from '../data/squads.js';
+import { batchQuote, patchQuote } from './boxed.js';
 
 // Where the events of the bots' own dispatches go while botTurn or botDecide runs (null: dropped).
 let sink = null;
@@ -583,6 +584,13 @@ export function botTurn(name, s, { onEvents = null } = {}) {
     if (ROBOT_BOTS.has(name)) runRobot(s);
     answerPrompts(name, s);
     for (const a of BOTS[name](s)) dispatch(s, a);
+    for (const p of liveProducts(s).filter((p) => p.boxed)) {
+      if (!p.boxed.deliveries.length && p.boxed.stock <= B.preinternet.batches[0]) {
+        const units = [...B.preinternet.batches].reverse().find((units) => !batchQuote(s, p, units).reason);
+        if (units) dispatch(s, { type: 'orderBatch', productId: p.id, units });
+      }
+      if (p.health < B.preinternet.botPatchHealth && !patchQuote(s, p).reason) dispatch(s, { type: 'mailPatch', productId: p.id });
+    }
   } finally {
     sink = prev;
   }

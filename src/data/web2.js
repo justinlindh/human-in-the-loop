@@ -24,7 +24,7 @@ export const WEB2_EVENTS = [
 ];
 
 export const WEB2_GOALS = [
-  { id: 'web2_compatible_launch', startEras: ['web2', 'dotcom'], requiredChapter: 'web2', group: 'Web 2.0', name: 'Works on the client machine', trophy: true,
+  { id: 'web2_compatible_launch', startEras: ['web2', 'dotcom', 'preinternet'], requiredChapter: 'web2', group: 'Web 2.0', name: 'Works on the client machine', trophy: true,
     desc: 'Ship a web product with Internet Exploder 6 compatibility. The client can finally click the second button.',
     reward: B.web2.launchReward, done: (s) => s.products.some((p) => p.legacyCompatible) },
 ];

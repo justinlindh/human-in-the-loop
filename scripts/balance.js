@@ -61,6 +61,7 @@ for (const name of bots) {
     weeks: median(results.map((r) => r.weeks)),
     playedWeeks: median(results.map((r) => r.weeks - (r.state.founding.takeoverWeek ?? 0))),
     firstLaunch: median(results.map((r) => r.firstLaunch ?? 999)),
+    pastOpening: `${Math.round(100 * results.filter((r) => r.weeks > B.preinternet.weeks).length / seeds)}%`,
     peakMrr: fmt(median(results.map((r) => r.peakMrr))),
     score: fmt(median(results.map((r) => r.score))),
     hq: `${Math.round((100 * results.filter((r) => r.maxStage === 2).length) / seeds)}%`,

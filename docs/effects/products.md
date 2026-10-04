@@ -25,6 +25,7 @@
 
 | Approach | Era | AI | Agentic |
 |---|---|---|---|
+| Boxed Software | preinternet | no | no |
 | Web App | classic | no | no |
 | Mobile-first | classic | no | no |
 | API-first | classic | no | no |

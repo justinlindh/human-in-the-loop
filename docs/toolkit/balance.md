@@ -1,5 +1,5 @@
 ---
-tool: `npm run balance -- --seeds N [--bots a,b] [--start-era dotcom|classic|chatgbt|agents] [--start-mode garage|takeover] [--json out.json] [--baseline classic.json]`
+tool: `npm run balance -- --seeds N [--bots a,b] [--start-era preinternet|dotcom|web2|classic|chatgbt|agents] [--start-mode garage|takeover] [--json out.json] [--baseline classic.json]`
 section: sim
 who: sim, reviewer
 covers: scripts/balance.js
@@ -17,3 +17,5 @@ The sensible predecessor is player-facing game content. Changes to its bot strat
 Run Classic with `--seeds 200 --json classic.json`, then each other era with `--seeds 200 --start-era agents --json agents.json --baseline classic.json`. All differences in these comparisons include the kit and era choice; they are not estimates of one mechanic's effect.
 
 Historical careers include their saved early chapters before the twenty-year modern checkpoint. Bots keep their strategies. Read first-launch and ending-reason columns alongside exit percentages.
+
+`pastOpening` counts runs that passed the pre-internet chapter's 156 playable weeks (three company years). The arrival table includes pre-internet, dot-com, Web 2.0 and Classic as well as the AI eras. Boxed-product bots order paid batches through the same actions as players and mail patches for damaged releases; installed copies are separate from their service MRR.

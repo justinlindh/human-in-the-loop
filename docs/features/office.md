@@ -1,5 +1,7 @@
 # The office (stages, items, perks)
 
+- **Retail equipment**: Disk Duplicator costs $3K/$6K/$12K and reduces batch duplication costs by 10/20/30%. Retail Display costs $2K/$4K/$8K and increases physical demand by 10/15/20%. Both are available before Classic, have two-by-one footprints and use ordinary item stacking. Both use crate stand-ins; their icons reuse Server Racks and Bookshelf. `id: disk_duplicator` `id: retail_shelf`
+
 - **Banner Rotation Server**: found a dot-com company with `?eras` to see this unique shop item, $3K/$6K/$12K across three levels, with +5/+10/+15% customer acquisition during dot-com. Its effect stops at recovery and its crate stand-in remains in the office. `id: dotcom_banner`
 
 - ★ **The office move**: the next office drops from above onto the old one, presses it flat, squashes on landing and puffs dust; a stinger plays. Whatever panel or dialog was open closes as the move starts, so it plays in view. When a move becomes possible and stays possible for two game weeks, a Needs you row names it with its price and the Office button shows New; both go once you open Office or tap Later, once per new office. `capture 2-2-office-move`

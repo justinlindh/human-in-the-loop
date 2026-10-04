@@ -47,10 +47,10 @@ it('keeps both modes discoverable and requires garage mode before picking an ear
   }
   choices.querySelector('[data-start-mode="takeover"]').click();
   expect(document.querySelector('.era-start-summary').textContent).toContain('No era kit');
-  for (const era of ['dotcom', 'web2', 'classic']) {
+  for (const era of ['preinternet', 'dotcom', 'web2', 'classic']) {
     const card = document.querySelector(`[data-era="${era}"]`);
     expect(card.disabled).toBe(true);
-    expect(card.textContent).toContain('Choose Found a company');
+    expect(card.children[1].textContent).toBe('Choose Found a company to start in this era.');
     card.click();
     expect(choices.querySelector('[data-start-mode="takeover"]').getAttribute('aria-pressed')).toBe('true');
   }

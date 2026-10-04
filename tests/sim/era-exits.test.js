@@ -16,10 +16,15 @@ function ready(startEra, mrr) {
 describe('score shares for the founding screen', () => {
   it('keeps every era start below the Classic path', () => {
     expect(B.eraStarts.classic.scoreShare).toBe(1);
-    for (const era of ['dotcom', 'web2', 'chatgbt', 'agents']) {
+    for (const era of ['preinternet', 'dotcom', 'web2', 'chatgbt', 'agents']) {
       expect(B.eraStarts[era].scoreShare).toBeGreaterThan(0);
       expect(B.eraStarts[era].scoreShare).toBeLessThan(1);
     }
+  });
+
+  it('places pre-internet between dot-com and Classic', () => {
+    expect(B.eraStarts.preinternet.scoreShare).toBeGreaterThan(B.eraStarts.dotcom.scoreShare);
+    expect(B.eraStarts.preinternet.scoreShare).toBeLessThan(B.eraStarts.classic.scoreShare);
   });
 });
 
@@ -33,7 +38,7 @@ describe('exit bars follow the start', () => {
     expect(ipoBlocker(ready(null, B.ipoMrr))).toBe(null);
   });
 
-  it.each(['dotcom', 'web2', 'chatgbt', 'agents'])('scales the IPO and offer bars for a %s start', (era) => {
+  it.each(['preinternet', 'dotcom', 'web2', 'chatgbt', 'agents'])('scales the IPO and offer bars for a %s start', (era) => {
     const mult = B.eraStarts[era].exitMrrMult;
     const ipo = Math.round(B.ipoMrr * mult);
     expect(exitMrr(ready(era, 0), B.ipoMrr)).toBe(ipo);

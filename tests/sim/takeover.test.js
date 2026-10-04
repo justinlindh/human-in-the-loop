@@ -81,7 +81,7 @@ describe('era takeover', () => {
     expect(s.founding.startEra).toBeUndefined();
   });
 
-  it.each(['classic', 'dotcom', 'web2', 'unknown', 'toString'])('refuses an unsupported %s takeover', (startEra) => {
+  it.each(['classic', 'preinternet', 'dotcom', 'web2', 'unknown', 'toString'])('refuses an unsupported %s takeover', (startEra) => {
     expect(() => createGame({ seed: 1, startEra, startMode: 'takeover' })).toThrow(/Takeover/);
   });
 

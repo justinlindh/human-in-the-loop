@@ -2,7 +2,7 @@ import { h, setText, setWidth, fmtMoney, fmtNum, setClass, calendarDate } from '
 import { calendarWeek } from '../../sim/util.js';
 import { ERA_STARTS } from '../../data/era-modes.js';
 import { erasPreview } from '../eraPreview.js';
-import { categoryName, angleName, modelName, CATEGORY, ANGLE } from '../content.js';
+import { categoryName, angleName, modelName, productSubtitle, CATEGORY, ANGLE } from '../content.js';
 import { liveView, tabs, stars, confirmButton } from '../widgets.js';
 import { icon } from '../icons.js';
 import { pressOutlet } from '../press.js';
@@ -13,6 +13,7 @@ import { PURPOSE_INFO } from '../v2content.js';
 import { picker, personOption } from '../picker.js';
 import { call } from '../simapi.js';
 import { debtReadout, fmtRate } from '../debtFlow.js';
+import { inventoryView, hasInventory } from './inventory.js';
 
 const money = (v) => fmtMoney(v);
 const num = (v) => fmtNum(v);
@@ -38,16 +39,18 @@ function scoreClass(v) {
 
 export function reportsPanel(ctx, arg) {
   // A productId opens the Products tab (an advisor option pointing at one product).
-  let tab = arg?.productId ? 'products' : 'overview';
+  let tab = arg?.tab === 'inventory' ? 'inventory' : arg?.productId ? 'products' : 'overview';
   const t = tabs([
     { id: 'overview', icon: 'chart', label: 'Money' },
     { id: 'people', icon: 'team', label: 'People' },
     { id: 'products', icon: 'product', label: 'Products' },
+    { id: 'inventory', icon: 'research.agent_sandbox', label: 'Inventory' },
     { id: 'combos', icon: 'star', label: 'Combos' },
     { id: 'acquire', icon: 'money', label: 'Acquisitions' },
   ], tab, (id) => { tab = id; t.set(id); render(); });
   // Acquisitions appear once the sim offers companies for sale.
   t.setHidden('acquire', !Array.isArray(ctx.getState().market?.forSale));
+  t.setHidden('inventory', !hasInventory(ctx.getState()));
   const host = h('div');
   const bannerHost = h('div');
   const root = h('div', null, bannerHost, host);
@@ -150,7 +153,7 @@ export function reportsPanel(ctx, arg) {
         bind((st) => {
           const cur = st.products.find((x) => x.id === p.id);
           if (!cur) return;
-          setText(cust, num(cur.customers)); setText(mrr, money(cur.mrr));
+          setText(cust, num(cur.boxed?.installed ?? cur.customers)); setText(mrr, money(cur.mrr));
           setWidth(healthF, cur.health / 100); setText(healthV, Math.round(cur.health));
           const hc = cur.health < 40 ? '#e5484d' : cur.health < 70 ? '#e8930c' : '#34c38f';
           if (healthF.style.background !== hc) healthF.style.background = hc;
@@ -175,18 +178,19 @@ export function reportsPanel(ctx, arg) {
           h('div.row', null,
             h(`div.score.${scoreClass(p.score)}`, { title: 'Review average' }, p.score.toFixed(1)),
             h('div', { style: { minWidth: 0 } }, h('b.pname', { text: `${p.name} v${p.version}` }),
-              h('div.small.muted', { text: `${categoryName(p.category)} × ${angleName(p.angle)} · ${modelName(p.model)}` }))),
+              h('div.small.muted', { text: productSubtitle(p) }))),
           h('div.reviews', null, ...(p.reviews ?? []).slice(0, 4).map((r) => h('div.review', { title: r.quote },
             pressOutlet(r.outlet, { compact: true }), h(`b.num.${scoreClass(r.score)}`, { text: String(r.score) }), h('span.quote', { text: `"${r.quote}"` })))),
           h('div.pnums', null,
-            h('div', null, h('span.small.muted', { text: 'Customers' }), cust),
-            h('div', null, h('span.small.muted', { text: 'MRR' }), mrr),
+            h('div', null, h('span.small.muted', { text: p.boxed ? 'Installed copies' : 'Customers' }), cust),
+            h('div', null, h('span.small.muted', { text: p.boxed ? 'Service MRR' : 'MRR' }), mrr),
             h('div', null, h('span.small.muted', { text: 'Uptime' }), up)),
           h('div.pbars', null,
             h('div.pstat', null, h('span', { text: 'Health' }), h('div.bar', null, healthF), healthV),
             h('div.pstat', null, h('span.skname', null, icon('stat.novelty', { size: 13 }), ' Freshness'), h('div.bar', null, novF), novV),
             h('div.pstat', null, h('span', { text: 'Hype' }), h('div.bar', null, hypeF), hypeV)),
           tags,
+          p.boxed ? h('button.btn.inventory-link', { onclick: () => { tab = 'inventory'; t.set(tab); render(); } }, 'Inventory: order batches and mail patches') : null,
           h('div.row.pacts', null,
             h('span.small.muted', { text: 'Owner' }), ownerSel, h('span.spacer'),
             updating.has(p.id) ? h('span.pill.good', { text: 'Updating...' })
@@ -220,7 +224,8 @@ export function reportsPanel(ctx, arg) {
     (s) => `${(s.market?.forSale ?? []).map((c) => c.id).join()}|${Math.floor(s.cash / 50000)}|${s.staff.length}|${s.week}`,
     (s, bind) => acquisitionsView(ctx, s, bind));
 
-  const views = { overview, people, products, combos, acquire };
+  const inventory = inventoryView(ctx);
+  const views = { overview, people, products, combos, acquire, inventory };
   function render() {
     host.replaceChildren(views[tab].el);
     views[tab].update(ctx.getState(), true);
@@ -236,6 +241,7 @@ export function reportsPanel(ctx, arg) {
     tabs: t.el,
     destroy() { removeEventListener('resize', onResize); clearTimeout(resizeTimer); },
     update(s) {
+      t.setHidden('inventory', !hasInventory(s));
       t.setLabel('products', `Products (${s.products.filter((p) => !p.killed).length})`);
       const sale = s.market?.forSale;
       t.setHidden('acquire', !Array.isArray(sale));

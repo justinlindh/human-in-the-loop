@@ -16,7 +16,7 @@ afterEach(() => {
   localStorage.clear(); document.body.replaceChildren();
 });
 
-it.each([['dotcom', 'awayim', 'AwayIM'], ['web2', 'hipcheck', 'HipCheck'], ['classic', 'yak', 'Yak'], ['chatgbt', 'yak', 'Yak'], ['agents', 'yak', 'Yak']])(
+it.each([['preinternet', 'desknet', 'DeskNet'], ['dotcom', 'awayim', 'AwayIM'], ['web2', 'hipcheck', 'HipCheck'], ['classic', 'yak', 'Yak'], ['chatgbt', 'yak', 'Yak'], ['agents', 'yak', 'Yak']])(
   'skins %s without changing saved messages, reply actions or browser keys', (startEra, app, name) => {
     const s = createGame({ seed: 11, startEra });
     s.flags.saveSlot = 'slot1';
@@ -86,3 +86,16 @@ it('shows the AwayIM away line once, in the status bar', () => {
   expect(root.querySelector('.period-away').textContent).toBe('Away: building the future. Back after lunch.');
   expect([...root.querySelectorAll('.msg')].map((n) => n.dataset.id)).toEqual(['other']);
 });
+
+it.each([['dotcom', 'Office Chat'], ['web2', 'Lobby'], ['classic', '#general']])(
+  'the quiet banner names the first tab in %s', (startEra, label) => {
+    const s = createGame({ seed: 11, startEra });
+    s.flags.saveSlot = 'slot1';
+    const root = document.createElement('div'); root.className = 'hitl'; document.body.append(root);
+    s.chatLog = [{ id: 'm1', type: 'chat', channel: 'general', from: 'Sam', text: 'Lunch?', week: 0 }];
+    const chat = createChat(root, { getState: () => s, onAnswer: vi.fn() });
+    chat.reset(s);
+    s.week = 10;
+    chat.update(s);
+    expect(root.querySelector('.chat-quiet.banner').textContent).toBe(`It's been quiet in ${label} for 10 weeks.`);
+  });
