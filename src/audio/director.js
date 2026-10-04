@@ -1,6 +1,7 @@
 // The pure audio director: sim events, UI cues, clicks and state in; a list of commands out.
 // No DOM, no WebAudio, no Math.random: variation comes from its own seeded rng, so a fixed input
-// gives the same commands (and it runs headless in Node).
+// gives the same commands (and it runs headless in Node). Every `t` and `at` is host frame time,
+// never AudioContext time: the host maps `at` to context time only when it schedules playback.
 //
 // Commands:
 //   { op: 'play', cue, file, bus, gain, at, priority, voiceKey?, duck? }  duck: hold it while the buffer plays
@@ -161,13 +162,15 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
 
   function bark(person, emotion, t, { gain = 1, priority = 7, key = 'voice', take = null } = {}) {
     if (!person) return [];
+    // Every bark carries its take, so the host never draws its own.
+    if (take === null) take = Math.floor(rng() * 8);
     // In a focus only a spotlight's own crowd may cheer; moments and single barks stay quiet.
     if (focused() && (momentsOn.size || key !== 'cheer' || !keepOf()?.cheers)) return [];
     // Single barks (not a cheer) never stack beyond VOICE.maxSingle at once.
     if (key === 'voice' && playing.filter((v) => v.bus === 'voice' && v.single && v.until > t).length >= VOICE.maxSingle) return [];
     if (!admit('voice', priority, t, 1.5)) return [];
     if (key === 'voice') playing[playing.length - 1].single = true;
-    return [{ op: 'play', cue: 'voice.bark', file: `voice/${voiceBank(person)}`, emotion, bus: 'voice', gain, at: t, priority, voiceKey: person.id, duckKey: key, ...(take === null ? {} : { take }) }];
+    return [{ op: 'play', cue: 'voice.bark', file: `voice/${voiceBank(person)}`, emotion, bus: 'voice', gain, at: t, priority, voiceKey: person.id, duckKey: key, take }];
   }
 
   // A group cheer: several present people, staggered, quieter each, over a crowd bed.
