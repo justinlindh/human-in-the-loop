@@ -76,7 +76,9 @@ out="$(check)"; [ $? -eq 1 ] && grep -q 'src/render/late.js' <<<"$out" || fail "
 [ "$(bash "$HERE/lib/watched-media.sh" --names b.png 'https://x/pr-media/pr-9/a.mp4?raw=true' b.png)" = "a.mp4, b.png" ] || fail "--names"
 
 # review-verdict.sh: refuses before posting, and prints what was watched or why not into the verdict.
-verdict() { rm -f "$tmp/posted"; printf 'Looks right.\n' >"$tmp/body"; PATH="$tmp/bin:$PATH" bash "$HERE/review-verdict.sh" 9 "$@" 2>&1; }
+# A stand-in gh-as.sh, so the verdict has an app token without a real key or a call to GitHub.
+printf '#!/usr/bin/env bash\necho "export GH_TOKEN=test-token"\n' >"$tmp/gh-as"
+verdict() { rm -f "$tmp/posted"; printf 'Looks right.\n' >"$tmp/body"; PATH="$tmp/bin:$PATH" HITL_GH_AS="$tmp/gh-as" bash "$HERE/review-verdict.sh" 9 "$@" 2>&1; }
 pr '["src/ui/a.js"]' "$(url after.png)"
 out="$(verdict pass "$tmp/body")"; [ $? -eq 1 ] && [ ! -f "$tmp/posted" ] || fail "review-verdict posts a pass that watched nothing: $out"
 out="$(verdict pass "$tmp/body" --watched after.png)"
