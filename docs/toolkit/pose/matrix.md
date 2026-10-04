@@ -1,9 +1,9 @@
 **Fix a broken gesture, from scratch.** Every command is `node blender/checks/pose.mjs --gesture facepalm ...` from the checkout whose code you are tuning (or add `--root <checkout>`):
 1. `--matrix postures=sit` judges one posture (here the seated variant) against the gesture's pass rule. The first lines print the rule and `pose: tuned by ...`, the constants that move it with their values in source. A bare `--matrix` runs every cell; tune one posture at a time so another posture's failures don't hide yours.
 2. Look up which constant moves the failing measure, and the order to tune them, in the [constants map](constants-map.md).
-3. `--matrix postures=sit --sweep 'PALM_SIT[0]=<a>,<b>,<c>,...'`, values either side of the one `tuned by` printed, plays the matrix once per value. Each line gives the cells passing and a continuous closeness (`hand-eye` for the facepalm, `contact` for the slap) that moves even while every cell fails; follow it.
-4. Fix the best value with `--param 'PALM_SIT[0]=<best>'` and sweep the next constant the same way, until the last line reads `SWEEP passing every judged cell: <values>`.
-5. Confirm with `--matrix postures=sit --param ... --param ...` (exit 0 when every judged cell passes), then write the values into the source.
+3. `--matrix postures=sit --sweep 'PALM_SIT[0]=<a>,<b>,...' --sweep 'PALM_SIT[2]=<c>,<d>,...'` plays the matrix once per combination (the constants map says which to grid together and how wide). Each line gives the cells passing and a continuous closeness (`hand-eye` for the facepalm, `contact` for the slap) that moves even while every cell fails; follow it until cells pass.
+4. Fix the best values with `--param 'PALM_SIT[0]=<best>'` and narrow the rest the same way, until the last line reads `SWEEP passing every judged cell: <values>`.
+5. Confirm with `--matrix postures=sit --param ... --param ...` (exit 0 when every judged cell passes; a pipe into `tail` reports tail's exit, so read it unpiped or from `$pipestatus` in fish), then write the values into the source.
 
 Axes are one comma-joined word (`--matrix postures=sit,builds=0,views=1`); axes split by spaces are refused. View 2 is the back of the head, so the facepalm's rule judges no frame there and reads `n/a`, never a pass or a failure.
 
