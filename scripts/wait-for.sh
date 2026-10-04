@@ -98,9 +98,20 @@ update_branch() {
   say "pushed $(git rev-parse --short HEAD)"
 }
 
+# The PR's state from the shared snapshot (one gh pr list per interval for every watcher); a PR that is
+# no longer open, another repository, or an unreadable snapshot falls back to gh pr view.
+pr_json() {
+  local j=""
+  if [ -z "$repo" ] && [ "${HITL_WAIT_SNAPSHOT:-1}" != 0 ]; then
+    j="$(node "$(dirname "$0")/tools/pr-snapshot.mjs" --pr "$pr" 2>/dev/null | jq -ce .pr)" || j=""
+  fi
+  if [ -n "$j" ]; then printf '%s' "$j"; return 0; fi
+  gh pr view "${R[@]}" "$pr" --json state,headRefOid,headRefName,baseRefName,mergeStateStatus,mergeable,statusCheckRollup,labels
+}
+
 last="" seen_head="" head_since=0 warned=0 required=""
 while :; do
-  json="$(gh pr view "${R[@]}" "$pr" --json state,headRefOid,headRefName,baseRefName,mergeStateStatus,mergeable,statusCheckRollup,labels)" || { sleep "$poll"; continue; }
+  json="$(pr_json)" || { sleep "$poll"; continue; }
   if [ -z "$required" ]; then
     required="$(gh api "$api/branches/$(jq -r .baseRefName <<<"$json")/protection" 2>/dev/null \
       | jq -r '[.required_status_checks.contexts[]? | select(type == "string" and . != "review")] | join(" ")' 2>/dev/null)" || required=""

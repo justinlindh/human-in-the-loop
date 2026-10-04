@@ -307,6 +307,15 @@ const SCENARIOS = {
     arrive: { role: 'interviewee', beat: 'interview' },
     steps: [{ at: 0, js: "const d = R.office.current.L.door; S.pendingDecision = { eventId: 'efficiency_consultants', subjectId: null, stage: { prop: 'visitor_chair', anchor: 'door', x: d.x, y: d.y } };" }] },
 };
+// The celebrations again in each founded era's office (its desks, clothes and street): the same rules,
+// each scenario played with that era's art on.
+for (const era of ['preinternet', 'dotcom', 'web2', 'agents']) {
+  for (const base of ['growth', 'company_party']) SCENARIOS[`${base}_${era}`] = { ...SCENARIOS[base], era };
+  for (const key of ['growth.honoree', 'growth.coworker', 'company_party.cheer']) {
+    const [base, role] = key.split('.');
+    SPECS[`${base}_${era}.${role}`] = { ...SPECS[key], scenario: `${base}_${era}` };
+  }
+}
 
 const views = [{ name: 'default', turns: 0 }, { name: 'turned', turns: 1 }];
 // The issues known rules point at, and which of them are fixed: closed by a merged PR (or a commit)
@@ -382,7 +391,7 @@ const onEngine = (task) => new Promise((resolve) => {
     if (got?.ok) resolve({ res: got.res, errors: got.errors });
     else resolve({ res: { actors: [], samples: [], spots: {} }, errors: [got?.error ?? `stage host exited ${code ?? signal}: ${err.trim().split('\n').slice(-3).join(' | ')}`] });
   });
-  p.send({ query: SCENARIOS[task.scenario].query, args: stageArgs(task) });
+  p.send({ query: SCENARIOS[task.scenario].query, era: SCENARIOS[task.scenario].era ?? null, args: stageArgs(task) });
 });
 let next = 0;
 await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_, slot) => {
@@ -390,7 +399,7 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
     const task = tasks[next++];
     if (!BROWSER) { results.set(task, await onEngine(task)); continue; }
     const sc = SCENARIOS[task.scenario];
-    const { page, errors } = await H.openScene(`quality=medium&${sc.query}`, { width: 960, height: 600, slot });
+    const { page, errors } = await H.openScene(`quality=medium&${sc.query}${sc.era ? `&eras&eraArt=${sc.era}` : ''}`, { width: 960, height: 600, slot });
     const res = await page.evaluate(async (o) => (await import('/blender/checks/stage-page.js')).playStage(o), stageArgs(task));
     await page.close();
     results.set(task, { res, errors });

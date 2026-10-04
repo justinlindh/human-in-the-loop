@@ -100,6 +100,29 @@ const HERO_AT = (dx, dz) => ({ js: `(() => { const c = window.__heroC ??= (() =>
 // it and the page's corner controls don't cover it.
 const CARD_IN = `(() => { const st = document.createElement('style'); st.textContent = '#ui .modal.decision { translate: -180px -120px; }'; document.head.append(st); })();`;
 
+// [name, event id and index filters, prop to follow, choice index to make, follow zoom (none: the game's
+// wide view, for scenes on every screen)]. The big offices need a closer zoom than the garage.
+const MOMENTS = [
+  ['pizza', 'hackathon_week --stage floor --choice 0', 'pizza_boxes', 0, 2.8],
+  ['hammer', 'open_plan_office --stage floor --choice 0', 'sledgehammer', 0, 2.8],
+  ['carrier', 'cat_request --choice 0', 'pet_carrier', 0, 2.8],
+  ['consultants', 'efficiency_consultants --choice 1', 'visitor_chair', 1, 3.2],
+  ['letter', 'hearing_summons --choice 0', 'envelope_thick', 0, 3.4],
+  ['fumes', 'coffee_machine_broke --stage floor --choice 0', 'smoke_puff', 0, 2.8],
+  ['bridge-loan', 'bridge_loan --choice 0', 'screens_red', 0],
+  ['ransomware', 'ransomware --stage garage --choice 0', 'screens_skull', 0],
+  ['printer', 'printer_jam --stage floor --choice 0', 'printer_jammed', 0, 2.6, 27],
+  ['user-test', 'first_user_test --choice 1', 'visitor_chair', 1, 2.6],
+];
+
+// [item id, camera zoom, era the item needs] of the shop items shown in docs/features/office.md.
+const ITEM_STILLS = [
+  ['disk_duplicator', 3.2, 'preinternet'], ['retail_shelf', 3.2, 'preinternet'], ['dotcom_banner', 3.2, 'dotcom'],
+  ['desk'], ['meeting_table'], ['whiteboard'], ['coffee_corner'], ['plant'], ['bookshelf'], ['couch'], ['foosball'], ['ping_pong_table'],
+  ['espresso'], ['plant_wall'], ['nap_pod'], ['arcade'], ['standing_desk'], ['whiteboard_wall'], ['library'], ['monitoring_wall'], ['noc'],
+  ['office_robot'], ['server_rack'], ['trophy_case'],
+];
+
 export const ITEMS = [
   // The office, by stage and time.
   {
@@ -138,7 +161,7 @@ export const ITEMS = [
     id: 'site-lockdown', title: 'Landing page: lockdown, the call over the empty office', query: 'seed=1&speed=1', warmup: 1, still: true,
     setup: `(async () => { await ${PLAY({ weeks: 200, until: 's.lockdown', after: CHAT_HISTORY })}; ${BARE}; })()`,
     actions: [...DISMISS_AT([0.1, 1, 2, 3, 4, 5, 6, 7, 8, 9]), ...CHOOSE_WHEN(null, 0, 1, 10, 2)], screenshots: [10],
-    out: [{ path: 'img/lockdown.webp', size: '1920x1080' }],
+    out: [{ path: 'img/lockdown.webp', size: '1920x1080', publishAs: 'lockdown' }], publish: true,
   },
   {
     // The live week launches the first product; a decision raised the same week is answered first.
@@ -165,7 +188,7 @@ export const ITEMS = [
     id: 'era-arrival', title: 'Era arrival: the card, then the office redresses', query: 'seed=1&speed=1', moment: 'era --era chatgbt --stage floor --snapshot', seconds: 16, warmup: 0.5,
     setup: `(() => { ${CLEAN}; })()`,
     actions: [...DISMISS_AT([9, 10, 11], { escape: false }), ...CAMLOG(16)], screenshots: [3, 7, 12],
-    out: [{ path: 'era-arrival.mp4', size: '1280x720', from: 1, seconds: 13, loop: 'none' }],
+    out: [{ path: 'era-arrival.mp4', size: '1280x720', from: 1, seconds: 13, loop: 'none' }], publish: true,
   },
   {
     // A real incident on the Office Floor: the alarm, and the nearest people run to the servers. A
@@ -357,5 +380,44 @@ export const ITEMS = [
       { at: 0.5, js: `(() => { const s = window.__HITL.state; (window.__captureMarks ??= []).push({ t: 0, label: 'headcount ' + s.staff.filter((p) => p.mood !== 'away').length + ' era ${era}' }); })()` }],
     ...(GROWTH_CAMERA[name] ? { camera: GROWTH_CAMERA[name] } : {}),
     screenshots: [2, 5.5],
+  })),
+
+  // Feature inventory: one clip per staged moment in docs/features/moments.md. The week before the
+  // decision comes from the event index, the game's own tick raises it, the camera follows the prop,
+  // and the card is held about 5 s before its choice is made by key.
+  ...MOMENTS.map(([name, query, prop, choice, zoom, length = 18]) => ({
+    id: `moment-${name}`, title: `Staged moment: ${name}`, query: 'seed=1&speed=1', moment: query, pre: true, seconds: length, warmup: 6.5,
+    setup: CLEAN,
+    // No zoom: the game's wide view.
+    actions: [{ at: 0, js: NO_SAY }, ...OPEN(), ...(zoom ? FOLLOW([prop], zoom, 0, length) : []), { at: 6.5, js: KEY(String(choice + 1), `Digit${choice + 1}`) }, ...DISMISS_AT([7, 7.5, 9, 12], { escape: false }), ...CAMLOG(length)],
+    screenshots: [5],
+    out: [{ path: `moments/${name}.mp4`, size: '1280x720', from: 1.5, seconds: length - 4, loop: 'none' }],
+  })),
+
+  // Feature inventory: each shop item placed in the HQ mock the way a player would and upgraded to its top
+  // level, the camera held close on it.
+  ...ITEM_STILLS.map(([itemId, zoom = 3.2, era]) => ({
+    id: `office-${itemId}`, title: `Office item: ${itemId}`, query: `mock=hq&time=day${era ? `&eras&eraArt=${era}` : ''}`, still: true, warmup: 1.5, record: '3840x2160',
+    setup: `(async () => {
+      const H = window.__HITL, s = H.state; s.cash = 1e9;
+      ${era ? `s.era = { id: '${era}', since: s.week };` : ''}
+      // An empty office, so the one item is the subject.
+      s.office.placed = []; s.staff = [];
+      const { suggestPlacement } = await import('/src/sim/office.js');
+      const spot = suggestPlacement(s, ${JSON.stringify(itemId)});
+      if (!spot) throw new Error('no free spot for ${itemId}');
+      const r = H.dispatch({ type: 'placeItem', itemId: ${JSON.stringify(itemId)}, x: spot.x, y: spot.y, rot: spot.rot });
+      if (!r.ok) throw new Error('placeItem refused: ' + (r.reason ?? ''));
+      const p = s.office.placed.filter((q) => q.itemId === ${JSON.stringify(itemId)}).pop();
+      for (let i = 0; i < 4; i++) if (!H.dispatch({ type: 'upgradeItem', id: p.id }).ok) break;
+      ${CLEAN};
+      // The "new things to place" card that a stage or era change raises would cover the item.
+      document.getElementById('clean-shot').textContent += ' #ui .announce-back, #ui .modal-back, #ui .modal-dock { display: none !important; }';
+    })()`,
+    actions: [0.2, 0.6, 1, 1.4, 1.8].map((at) => ({ at, js: CLEAR_CARDS })),
+    camera: [{ at: 0, target: { js: `(() => { let o = null; window.__hitlRender.scene.traverse((x) => { if (!o && x.userData.itemId === ${JSON.stringify(itemId)}) o = x; }); if (!o) return null; const v = o.getWorldPosition(new o.position.constructor()); return { x: v.x, z: v.z }; })()` }, zoom }],
+    screenshots: [2],
+    // The item sits at the middle of the frame; the 4K recording is cropped tight round it.
+    out: [{ path: `items/${itemId}.webp`, size: '1280x720', from: 2, crop: { x: 0.31, y: 0.285, w: 0.38, h: 0.43 } }],
   })),
 ];
