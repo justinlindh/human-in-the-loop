@@ -114,7 +114,12 @@ export function createPost(renderer, scene, camera, quality) {
       gtao.updateGtaoMaterial?.({});
     },
     setSize,
-    render(dt) { composer.render(dt); },
+    // Low draws straight to the canvas, tone mapped in the materials: no AA pass and no full-screen copies.
+    render(dt) {
+      if (q !== 'low') { composer.render(dt); return; }
+      renderer.setRenderTarget(null);
+      renderer.render(scene, renderPass.camera);
+    },
     dispose() { composer.dispose(); gtao.dispose?.(); bloom.dispose(); smaa.dispose?.(); },
   };
 }
