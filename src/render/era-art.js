@@ -15,7 +15,18 @@ export const ERA_ART_MODELS = ERAS_ON ? [
   'era_web2_badge', 'era_y2k_clock', 'era_y2k_sticker', 'era_payphone', 'era_video_sign',
   'era_pager_billboard', 'era_lease_billboard', 'era_beta_billboard', 'era_led_billboard',
   'era_desk_phone', 'era_dot_matrix', 'era_fax', 'era_rolodex', 'era_corkboard',
+  'era_delivery_bike', 'era_hire_scooter', 'era_drone', 'era_datacentre', 'era_datacentre_build', 'era_datacentre_overgrown',
 ] : [];
+
+// Modern-era street life (surroundings.js): the neighbour that becomes a data centre, who rides the
+// street, whether hire scooters stand on the pavement, and how many parcel drones fly past.
+export const ERA_STREET = {
+  classic: { bikes: [5, 10], scooters: true },
+  chatgbt: { datacentre: 'era_datacentre_build', bikes: [5, 10], scooters: true },
+  agents: { datacentre: 'era_datacentre', bikes: [8, 16], scooters: true, drones: 3 },
+  consolidation: { datacentre: 'era_datacentre', bikes: [10, 18], drones: 1 },
+  plateau: { datacentre: 'era_datacentre_overgrown', bikes: [6, 12], cyclists: true, quiet: true },
+};
 
 const eraArtOn = (state) => ERA_ART_PREVIEW || (ERAS_ON && !!state.founding?.startEra);
 // Whether the company the renderer last synced wears era art; builds read it.

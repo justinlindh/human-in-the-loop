@@ -19,7 +19,9 @@ import { paramPlugin } from './param.js';
 // window.__tool(fn), which gives fn a stream of its own. fn must be synchronous.
 const INIT = `(() => {
   const SEED = 1234567;
-  let s = SEED;
+  // Until __reseedGame the page draws from a load stream with its own seed, so the UUIDs three.js
+  // gives loaded materials and geometries never repeat in the game stream that starts after it.
+  let s = 2468013;
   const game = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
   let ts = 7654321;
   const tool = () => { ts = (ts * 16807) % 2147483647; return (ts - 1) / 2147483646; };
@@ -31,8 +33,9 @@ const INIT = `(() => {
   };
   // Loading a model draws from the game stream too (three.js takes a UUID from Math.random for
   // every geometry, material and texture it makes), so an asset's own contents shift every draw
-  // after it loads. openScene resets the stream once the page is ready, before a check's own setup
-  // runs, so what a scene stages depends only on the check's code, never on what happened to load.
+  // after it loads. openScene switches to the game stream once the page is ready, before a check's
+  // own setup runs, so what a scene stages depends only on the check's code, never on what happened
+  // to load.
   window.__reseedGame = () => { s = SEED; };
   let t = 0;
   performance.now = () => t;

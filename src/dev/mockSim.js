@@ -408,6 +408,12 @@ export function createMockSim({ scenario = 'floor', seed = 7 } = {}) {
     if (ticks % 31 === 0) events.push({ type: 'era', eraId: 'agents' });
     if (ticks % 23 === 0) events.push({ type: 'award', text: 'Product of the Year: Deskbot' });
     if (ticks % 29 === 0) events.push({ type: 'officeUpgrade', stage: state.officeStage });
+    // Both deal forms, from fixed values so the mock's random stream is untouched.
+    if (state.products.length && state.staff.length) {
+      const pr = state.products[ticks % state.products.length];
+      if (ticks % 13 === 0) events.push({ type: 'deal', productId: pr.id, customer: ['Initech Labs', 'Globex Rooms', 'Hooli Works'][ticks % 3], customers: 1 + (ticks % 4), mrr: 400 * (1 + (ticks % 5)), week: state.week, sellerId: state.staff[ticks % state.staff.length].id, first: ticks === 13, notable: ticks % 2 === 1 });
+      if (ticks % 17 === 0) events.push({ type: 'deal', productId: pr.id, units: 120 + ticks, revenue: 900 * (1 + (ticks % 4)), week: state.week, boxed: true, first: ticks === 17, notable: ticks % 2 === 1 });
+    }
     state.history.push({ ...state.history[state.history.length - 1] ?? {}, week: state.week });
     if (state.history.length > 800) state.history.shift();
     return events;
