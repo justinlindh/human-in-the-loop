@@ -471,9 +471,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     isSeated(id) { return staff?.isSeated(id) ?? false; },
     walkOf(id) { return staff?.walkOf(id) ?? null; },
-    // Test hooks for faces: show an expression on staff member `id` (character.js express), and
-    // read their face's expression and morph weights.
+    // Test hook for faces: show an expression on staff member `id` (character.js express).
     express(id, name, o) { const c = charOf(id); if (!c) return false; c.express(name, o); return true; },
+    // Public (ui portraits read .name): staff member `id`'s expression and morph weights.
     face(id) { return charOf(id)?.face ?? null; },
     walkDebug(id) { return staff?.walkDebug(id) ?? null; },
     // Test hook: the scenery's standing footprints and moving cars (surroundings.exterior).
