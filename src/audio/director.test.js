@@ -443,6 +443,42 @@ describe('audio director', () => {
       expect(cmds.filter((c) => c.op === 'play' && /cheer/.test(c.cue))).toEqual([]);
     });
 
+    const cheered = (cmds) => cmds.some((c) => c.op === 'duck' && c.key === 'cheer' && c.on);
+    const bedsEra = { ...beds, chatgbt: ['chatgbt/a'] };
+
+    it('still cheers a new era while a station plays, and keeps the station', () => {
+      const d = createDirector({ seed: 3, beds: bedsEra });
+      run(d, state(), 0);
+      run(d, radio('lofi'), 5);
+      const era = { ...radio('lofi'), era: { id: 'chatgbt' } };
+      d.events([{ type: 'era', eraId: 'chatgbt' }], era, 100);
+      const cmds = run(d, era, 101);
+      expect(cheered(cmds)).toBe(true);
+      expect(music(cmds)).toEqual([]);
+      expect(cheered(run(d, era, 102))).toBe(false);
+    });
+
+    it('does not replay the era cheer, or cheer at all, when the radio is turned off later', () => {
+      const d = createDirector({ seed: 3, beds: bedsEra });
+      run(d, state(), 0);
+      run(d, radio('lofi'), 5);
+      const era = { ...radio('lofi'), era: { id: 'chatgbt' } };
+      d.events([{ type: 'era', eraId: 'chatgbt' }], era, 100);
+      run(d, era, 101);
+      const off = run(d, { ...era, radio: { on: false, station: 'lofi' } }, 400);
+      expect(music(off)).toMatchObject([{ era: 'chatgbt' }]);
+      expect(cheered(off)).toBe(false);
+    });
+
+    it('waits for the era card with a station on, then cheers once', () => {
+      const d = createDirector({ seed: 3, beds: bedsEra });
+      run(d, radio('lofi'), 0);
+      const era = { ...radio('lofi'), era: { id: 'chatgbt' } };
+      d.events([{ type: 'era', eraId: 'chatgbt' }], era, 100);
+      expect(cheered(d.update(era, 101, { speed: 1, running: true, menuPause: true }))).toBe(false);
+      expect(cheered(run(d, era, 110))).toBe(true);
+    });
+
     it('plays the tuning and click cues when they exist: a click on and off, tuning between stations', () => {
       const had = { ...CUES };
       CUES['sfx.radio_tune'] = { bus: 'sfx', files: ['sfx/radio_tune'], cooldown: 0, priority: 2 };
