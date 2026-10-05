@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import { toolTmp } from '../../scripts/tools/tmp.mjs';
-import { join } from 'node:path';
+import { makeTemp, toolTmp } from '../../scripts/tools/tmp.mjs';
+import { join, resolve } from 'node:path';
+import { spawn, spawnSync } from 'node:child_process';
+import { spawnAsync } from './spawn-async.js';
 import { parseAst } from 'vite';
 import { readdirSync, readFileSync } from 'node:fs';
 import { applyParams, currentText, resolveParams, paramSpecs, paramPlugin } from '../../blender/checks/param.js';
@@ -138,4 +140,40 @@ describe('param-sweep', () => {
     expect(flatRows(gesture)[1].hand0Eye).toBe(0.1);
     expect(cellValue(gesture, { measure: 'hand0Eye', pick: 'mean' })).toBeCloseTo(0.15);
   });
+});
+
+describe('param-sweep runs', () => {
+  const POSE = resolve(__dirname, '../../blender/checks/pose.mjs');
+  const sweep = (values) => ['--gesture', 'facepalm', '--measure', 'hand0Face', '--sweep', `PALM_STAND[2]=${values}`];
+  // The cells' command lines name their --json file, which sits in the sweep's dir under `tmp`.
+  const cellsLeft = (tmp) => spawnSync('ps', ['-eo', 'args='], { encoding: 'utf8' }).stdout.split('\n').filter((l) => l.includes(tmp));
+
+  it('prints one value per column and removes its temp dir', async () => {
+    const tmp = makeTemp('psweep-test-');
+    try {
+      const r = await spawnAsync(process.execPath, [POSE, ...sweep('0.2,0.3')], { env: { ...process.env, HITL_TMP: tmp } });
+      expect(r.status).toBe(0);
+      const last = r.stdout.trim().split('\n').at(-1).split(/\s+/).slice(1);
+      expect(last.map(Number).every(Number.isFinite)).toBe(true);
+      expect(last).toHaveLength(2);
+      expect(readdirSync(tmp)).toEqual([]);
+    } finally { rmSync(tmp, { recursive: true, force: true }); }
+  }, 60000);
+
+  it('a sweep killed mid-run removes its temp dir and stops its cell', async () => {
+    const tmp = makeTemp('psweep-test-');
+    try {
+      const values = Array.from({ length: 24 }, (_, i) => (0.2 + i * 0.01).toFixed(2)).join(',');
+      const child = spawn(process.execPath, [POSE, ...sweep(values)], { stdio: 'ignore', env: { ...process.env, HITL_TMP: tmp } });
+      const closed = new Promise((res) => child.on('close', (code, signal) => res({ code, signal })));
+      for (let i = 0; i < 300 && !cellsLeft(tmp).length; i++) await new Promise((r) => setTimeout(r, 50));
+      expect(cellsLeft(tmp).length).toBeGreaterThan(0);
+      child.kill('SIGTERM');
+      const { code } = await closed;
+      expect(code).toBe(143);
+      expect(readdirSync(tmp)).toEqual([]);
+      for (let i = 0; i < 40 && cellsLeft(tmp).length; i++) await new Promise((r) => setTimeout(r, 50));
+      expect(cellsLeft(tmp)).toEqual([]);
+    } finally { rmSync(tmp, { recursive: true, force: true }); }
+  }, 60000);
 });
