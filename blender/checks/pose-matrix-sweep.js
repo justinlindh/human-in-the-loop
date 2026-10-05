@@ -77,15 +77,17 @@ export async function runMatrixSweep(argv, script) {
   }
   const base = [];
   for (let i = 0; i < argv.length; i++) { if (OWN.has(argv[i])) { i++; continue; } base.push(argv[i]); }
-  const dir = makeTemp('pose-msweep-');
-  // A signal skips the finally below, so stop the running values and remove the dir here.
+  // A signal skips the finally below, so stop the running values and remove the dir here. The
+  // handlers go in before the dir exists: a signal with no handler yet ends the process outright.
+  let dir = null;
   const onSignal = (sig) => () => {
     for (const p of running) p.kill('SIGTERM');
-    rmSync(dir, { recursive: true, force: true });
+    if (dir) rmSync(dir, { recursive: true, force: true, maxRetries: 3 });
     process.exit(128 + (sig === 'SIGINT' ? 2 : sig === 'SIGHUP' ? 1 : 15));
   };
   const handlers = ['SIGINT', 'SIGTERM', 'SIGHUP'].map((s) => [s, onSignal(s)]);
   for (const [s, h] of handlers) process.on(s, h);
+  dir = makeTemp('pose-msweep-');
   let rows;
   try {
     rows = await pool(cols, jobs, async (c, i) => {
@@ -102,8 +104,8 @@ export async function runMatrixSweep(argv, script) {
       return { c, pass: t.pass, fail: t.fail, na: t.na, total: t.total, judged, worst, axes: m.axes, margin: margin(worst), guide: guide ? guideOf(m.cells, guide) : null };
     });
   } finally {
+    rmSync(dir, { recursive: true, force: true, maxRetries: 3 });
     for (const [s, h] of handlers) process.off(s, h);
-    rmSync(dir, { recursive: true, force: true });
   }
   const { lines, code } = formatSweep(rows, axes, guide);
   for (const l of lines) console.log(l);
