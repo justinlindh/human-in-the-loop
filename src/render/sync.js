@@ -576,11 +576,15 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     for (const e of events ?? []) {
       switch (e.type) {
         case 'hire': if (e.staffId) hired.add(e.staffId); break;
-        case 'decisionResolved': momentSpeech.clear(e.eventId); moments.decided(e); break;
+        case 'decisionResolved': momentSpeech.clear(e.eventId); moments.decided(e); getProps()?.decided?.(e); break;
         case 'chatPromptResolved': {
           // A prompt that delivered an event resolves it as its card would have.
           const c = state?.chatPrompts?.find((x) => x.id === e.promptId);
-          if (c?.stage) moments.decided({ eventId: c.kind, choice: e.choice, subjectId: c.subjectId ?? null });
+          if (c?.stage) {
+            const d = { eventId: c.kind, choice: e.choice, subjectId: c.subjectId ?? null };
+            moments.decided(d);
+            getProps()?.decided?.(d);
+          }
           break;
         }
         case 'resign': leaving.set(e.staffId, { fired: !!e.fired }); break;

@@ -184,9 +184,10 @@ export function createProbe({ scene, camera, office, charOf, stagingOf = () => n
     }
 
     const root = c.root.position;
-    let lean = null, targetAngle = null, between = null;
+    let lean = null, targetAngle = null, targetDist = null, between = null;
     if (target) {
       targetAngle = +deg(p.forward, target.clone().sub(p.eyes)).toFixed(1);
+      targetDist = +Math.hypot(target.x - root.x, target.z - root.z).toFixed(3);
       const flat = tmp.set(target.x - root.x, 0, target.z - root.z).normalize();
       lean = +((p.head.x - root.x) * flat.x + (p.head.z - root.z) * flat.z).toFixed(3);
       if (st.source) {
@@ -205,7 +206,7 @@ export function createProbe({ scene, camera, office, charOf, stagingOf = () => n
     return {
       anim: p.anim, moment: st.moment ?? null, beat: st.beat ?? null, face: c.face?.name ?? null, talk: c.face?.weights?.talk ?? 0, emote: c.emote ?? null,
       eyes: r3(p.eyes), forward: r3(p.forward), headY: +p.head.y.toFixed(3),
-      gaze, targetAngle, faceCam: +deg(p.forward, toCam).toFixed(1), visible: +visible.toFixed(3), occluder: vc.occluder, fadeOver,
+      gaze, targetAngle, targetDist, faceCam: +deg(p.forward, toCam).toFixed(1), visible: +visible.toFixed(3), occluder: vc.occluder, fadeOver,
       hands: p.hands.map(r3), handsRel: handsRel.map(r3), handsCam, held, lean, between,
     };
   }
