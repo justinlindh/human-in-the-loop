@@ -158,6 +158,19 @@ describe('audio director', () => {
     expect(start.filter((c) => c.cue === 'voice.bark')).toHaveLength(0);
   });
 
+  it('does not cheer an era it first sees after a trip back to the title, for a new game or a load', () => {
+    const cheered = (cmds) => cmds.some((c) => c.op === 'duck' && c.key === 'cheer' && c.on);
+    for (const next of ['classic', 'agents']) {
+      const d = createDirector();
+      d.update(state({ era: { id: 'chatgbt' } }), 0, { speed: 1, running: true });
+      d.update(state({ era: { id: 'chatgbt' } }), 30, { speed: 1, running: true });
+      d.update(state({ era: { id: 'chatgbt' } }), 40, { title: true });
+      const s = state({ era: { id: next } });
+      expect(cheered(d.update(s, 41, { speed: 1, running: true }))).toBe(false);
+      expect(cheered(d.update(s, 50, { speed: 1, running: true }))).toBe(false);
+    }
+  });
+
   it('keeps single barks to VOICE.maxSingle at once', () => {
     const d = createDirector();
     const s = state();

@@ -349,6 +349,7 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
       // The era itself, whatever bed plays (a radio station keeps playing through it): a real arrival cheers, and the
       // market turning is marked once when it happens in play. Neither fires for the first era seen, a load from the
       // title, or an era card still waiting to be dismissed; turning the radio off replays nothing.
+      if (ctx.title) music.eraSeen = null;
       const eraNow = ctx.title ? null : music.pendingEra && hold ? music.eraSeen : musicKey(state);
       if (eraNow) {
         if (music.eraSeen && eraNow !== music.eraSeen) {
