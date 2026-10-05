@@ -162,6 +162,7 @@ All are CC0 1.0 (public domain), from Kenney's packs (kenney.nl) and from freeso
 | `sfx/cd_tray.ogg` | own synthesis (motor whir and clicks), CC0 1.0: a CD tray sliding out |
 | `sfx/retail_box.ogg` | own synthesis (filtered noise), CC0 1.0: a cardboard box set down |
 | `sfx/dotcom_bell.ogg` | own synthesis (inharmonic partials), CC0 1.0: a desk bell |
+| `sfx/sales_register.ogg` | freesound.org 'Cash Register Fake.wav' by CapsLok, CC0 1.0 (https://freesound.org/people/CapsLok/sounds/184438/), trimmed to the strike with a short fade |
 | `ambience/typing.ogg` | freesound.org 'Keyboard typing.WAV' by beansqueso31, CC0 1.0 (https://freesound.org/people/beansqueso31/sounds/223101/) |
 
 ## Voices (candidates)

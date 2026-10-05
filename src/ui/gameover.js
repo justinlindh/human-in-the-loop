@@ -5,6 +5,7 @@ import { icon } from './icons.js';
 import { B } from '../sim/balance.js';
 import { ERA_STARTS, CAREER_MODES, careerMode } from '../data/era-modes.js';
 import { erasPreview } from './eraPreview.js';
+import { runCardData, drawRunCard, saveRunCard, copyRunCard, canCopyImage, cardFileName } from './runCard.js';
 
 const HEADLINE = {
   ipo: ['IPO day!', 'The bell rang. Your company is public.'],
@@ -66,6 +67,21 @@ export function createGameOver({ layer, controls, sfx, act }) {
       rows.push(h('div.kv.sum', null, h('span', { text: 'Score' }), h('b.num', { text: fmtNum(g.score ?? run.score) })));
     }
     const anniversary = g.reason === 'anniversary';
+    // The share card: drawn once on a canvas that doubles as the preview, saved or copied from the same pixels.
+    const cardData = runCardData(s, { title, score: g.score ?? run?.score ?? 0 });
+    const cardCanvas = h('canvas.go-card-img', { 'aria-label': `${cardData.company}: ${title}, score ${fmtNum(cardData.score)}` });
+    const shareNote = h('span.small.muted.go-share-note', { role: 'status' });
+    const shareBtn = (label, ic, run_, done, failed) => h('button.btn', { onclick: async () => {
+      shareNote.textContent = '';
+      try { await run_(); sfx('confirm'); shareNote.textContent = done; } catch { shareNote.textContent = failed; }
+    } }, icon(ic), ` ${label}`);
+    const share = h('div.go-share', null,
+      cardCanvas,
+      h('div.row.wrap', null,
+        shareBtn('Save as image', 'save.export', () => saveRunCard(cardCanvas, cardFileName(cardData)), 'Saved to your downloads.', 'The picture could not be saved.'),
+        canCopyImage() ? shareBtn('Copy image', 'save.export', () => copyRunCard(cardCanvas), 'Copied. Paste it anywhere.', 'This browser would not copy the picture. Save as image works instead.') : null,
+        shareNote));
+    drawRunCard(cardData, cardCanvas).catch((err) => { shareNote.textContent = err?.message ?? 'The card could not be drawn'; });
     const keep = anniversary && act ? h('button.btn.big', { onclick: () => { if (act({ type: 'keepPlaying' }).ok) sfx('confirm'); } }, icon('speed.play'), ' Keep playing') : null;
     root.replaceChildren(h(`div.go-card${g.won ? '.won' : '.lost'}${anniversary ? '.anniv' : ''}`, null,
       h('div.go-head', null,
@@ -83,6 +99,7 @@ export function createGameOver({ layer, controls, sfx, act }) {
             h('div.kv', null, h('span', { text: 'People hired' }), h('b.num', { text: String(s.stats?.hires ?? 0) }))),
           rows.length ? h('div.go-break', null, h('b', { text: 'Score breakdown' }), ...rows) : null),
         h('div.go-epi', null, h('b', { text: 'What happened next' }), ...lines)),
+      share,
       h('div.go-foot', null,
         anniversary ? h('span.small.muted', { text: 'Keep playing to carry on with this company. Your anniversary score is kept.' }) : null,
         h('span.spacer'), keep,

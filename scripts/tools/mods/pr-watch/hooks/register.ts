@@ -10,6 +10,9 @@ const POLL_MS = 60_000
 // One look is wait-for.sh with no waiting. It may merge main into the branch and run the tests first,
 // so the cap leaves room for a test run.
 const LOOK_SECONDS = 590
+// While the PR's entry in the shared snapshot (scripts/tools/pr-snapshot.mjs) is unchanged, a full look
+// would read the same GitHub state again; it still runs this often, to catch main moving.
+const QUIET_LOOK_MS = 10 * 60_000
 
 let sessionCwd = '.'
 let isPolling = false
@@ -32,6 +35,19 @@ const saveWatches = ($: EngineInterface, watches: PrWatch[]) => $.state.set(WATC
 function showStatus($: EngineInterface, watches: readonly PrWatch[]): void {
   const parts = watches.map(w => line.get(w.number) ?? `#${w.number}`)
   $.ui.status(parts.length ? `pr-watch: ${parts.join(' | ')}` : undefined)
+}
+
+// The PR's signature in the shared snapshot, or undefined when it cannot be read (no script in this
+// worktree, GitHub down, PR not open): then every pass does the full look.
+async function signatureOf($: EngineInterface, w: PrWatch): Promise<string | undefined> {
+  const r = await run($, ['node', 'scripts/tools/pr-snapshot.mjs', '--pr', String(w.number)], w.cwd, 90_000)
+  if (r.code !== 0) return undefined
+  try {
+    const sig = (JSON.parse(r.out) as { signature?: unknown }).signature
+    return typeof sig === 'string' ? sig : undefined
+  } catch {
+    return undefined
+  }
 }
 
 // The existing waiter, once: it reads GitHub, merges main into the branch when due and leaves.
@@ -84,8 +100,14 @@ async function poll($: EngineInterface): Promise<void> {
     const results = new Map<number, { watch: PrWatch; done: boolean }>()
     const wake: string[] = []
     for (const w of watches) {
+      const sig = await signatureOf($, w)
+      if (sig !== undefined && sig === w.sig && w.lookedAt !== undefined && Date.now() - w.lookedAt < QUIET_LOOK_MS) {
+        results.set(w.number, { watch: w, done: false })
+        continue
+      }
       const l = await look($, w)
       const d = decide(w, l)
+      if (l.kind !== 'error') { d.watch.sig = sig; d.watch.lookedAt = Date.now() }
       wake.push(...d.messages)
       if (d.enrich) {
         const detail = await failureDetail($, d.watch, d.enrich.head, d.enrich.failing)

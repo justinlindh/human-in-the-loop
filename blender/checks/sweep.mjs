@@ -72,9 +72,12 @@ const engine = !argv.includes('--browser') && !screenOnly;
 if (engine) for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.removeAllListeners(sig);
 // Milliseconds on the process's own clock: the engine replaces Date.now with a game clock.
 const wall = () => Number(process.hrtime.bigint() / 1000000n);
+// A mock played with an era's art on, named `<mock>@<era>` (the page's `?mock=<mock>&eras&eraArt=<era>`):
+// the pre-internet, dot-com and Web 2.0 offices, and a modern era with its street and data centre.
+const ERA_MOCKS = ['garage@preinternet', 'floor@dotcom', 'floor@web2', 'floor@agents'];
 const MODES = {
-  fast: { mocks: ['garage', 'floor', 'hq', 'night'], propMocks: ['floor', 'hq'], propDesks: 3, gridMocks: ['floor'], momentMocks: ['floor'], moments: { open: 10, after: 5, choices: 1 }, mockSeconds: 6, seeds: [1], seedLimit: 300, weeks: 1040, every: 104, seconds: 2, stagedSeconds: 16, maxStaged: 3, step: 1 },
-  full: { mocks: ['garage', 'floor', 'hq', 'incident', 'night', 'ending'], propMocks: ['garage', 'floor', 'hq'], propDesks: 8, gridMocks: ['floor'], momentMocks: ['floor', 'hq'], moments: { open: 20, after: 10, choices: 2 }, mockSeconds: 30, seeds: [1, 2, 3, 4], seedLimit: 1200, weeks: 1040, every: 13, seconds: 8, stagedSeconds: 24, maxStaged: 40, step: 0.5 },
+  fast: { mocks: ['garage', 'floor', 'hq', 'night', ...ERA_MOCKS], propMocks: ['floor', 'hq'], propDesks: 3, gridMocks: ['floor'], momentMocks: ['floor'], moments: { open: 10, after: 5, choices: 1 }, mockSeconds: 6, seeds: [1], seedLimit: 300, weeks: 1040, every: 104, seconds: 2, stagedSeconds: 16, maxStaged: 3, step: 1 },
+  full: { mocks: ['garage', 'floor', 'hq', 'incident', 'night', 'ending', ...ERA_MOCKS], propMocks: ['garage', 'floor', 'hq'], propDesks: 8, gridMocks: ['floor'], momentMocks: ['floor', 'hq'], moments: { open: 20, after: 10, choices: 2 }, mockSeconds: 30, seeds: [1, 2, 3, 4], seedLimit: 1200, weeks: 1040, every: 13, seconds: 8, stagedSeconds: 24, maxStaged: 40, step: 0.5 },
 };
 const replayFile = opt('replay');
 const replayed = replayFile ? (() => {
@@ -121,7 +124,7 @@ async function startControl(spec) {
   // A checkout given by path counts with its uncommitted edits to tracked files (a control patch).
   const patch = asRoot ? execFileSync('git', ['-C', spec, 'diff', 'HEAD', '--binary'], { maxBuffer: 1 << 28 }) : null;
   const overlay = Object.fromEntries(['sweep.mjs', 'sample.js', 'sweep-plan.js'].map((f) => [`blender/checks/${f}`, join(HERE, f)]));
-  overlay['scripts/tools/worktree.mjs'] = join(repoRoot, 'scripts/tools/worktree.mjs');
+  for (const f of ['worktree.mjs', 'tmp.mjs']) overlay[`scripts/tools/${f}`] = join(repoRoot, 'scripts/tools', f);
   // An engine run on the other checkout is this checkout's engine on that checkout's game code.
   if (engine) {
     overlay['blender/checks/intersect.js'] = join(HERE, 'intersect.js');
@@ -199,9 +202,11 @@ const target_ = (spec) => {
 };
 try {
   for (const name of M.mocks) {
+    const [mock, era] = name.split('@');
     const o = { name, seconds: M.mockSeconds, every: M.step, known, worst: acceptedWorst, item, propDesks: M.propMocks.includes(name) ? M.propDesks : 0, moments: M.momentMocks.includes(name) ? M.moments : null, grid: M.gridMocks.includes(name), screenOnly };
-    const { page, errors: e } = engine ? { page: null, errors: [] } : await H.openScene(`quality=low&mock=${name}`, { width: 1600, height: 1000 });
-    const r = engine ? await host.hostMock(o) : await page.evaluate(async (o2) => (await import('/blender/checks/sample.js')).sampleMock(o2), o);
+    const { page, errors: e } = engine ? { page: null, errors: [] } : await H.openScene(`quality=${era ? 'medium' : 'low'}&mock=${mock}${era ? `&eras&eraArt=${era}` : ''}`, { width: 1600, height: 1000 });
+    // An era scene runs at Medium, where the street's cars and bikes are built (Low leaves them out).
+    const r = engine ? await host.hostMock({ ...o, mock, era, ...(era ? { quality: 'medium' } : {}) }) : await page.evaluate(async (o2) => (await import('/blender/checks/sample.js')).sampleMock(o2), o);
     const vs = r.violations;
     found.push(...vs);
     windows.push(...r.windows);

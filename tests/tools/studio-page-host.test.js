@@ -1,20 +1,22 @@
 import { describe, it, expect } from 'vitest';
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { toolTmp } from '../../scripts/tools/tmp.mjs';
+import { spawnAsync } from './spawn-async.js';
 import { join, resolve } from 'node:path';
 
 const HOST = resolve(__dirname, '../../scripts/studio/page-host.mjs');
 const PLATFORM = resolve(__dirname, '../../scripts/studio/platform.mjs');
 // Runs an ES module body in a fresh Node process and returns its last stdout line as JSON.
-const node = (body) => {
-  const r = spawnSync(process.execPath, ['--input-type=module', '-e', body], { encoding: 'utf8', timeout: 200000 });
+const node = async (body) => {
+  const r = await spawnAsync(process.execPath, ['--input-type=module', '-e', body], { timeout: 200000 });
   return { status: r.status, out: JSON.parse(r.stdout.trim().split('\n').pop() || 'null'), err: r.stderr };
 };
 
-describe('studio page host', () => {
-  it('keeps a small working DOM: classes, text, connection and selector queries', () => {
-    const { out } = node(`const { installPlatform, Element } = await import(${JSON.stringify(PLATFORM)});
+// Each case starts its own processes, so the cases overlap.
+describe.concurrent('studio page host', () => {
+  it('keeps a small working DOM: classes, text, connection and selector queries', async () => {
+    const { out } = await node(`const { installPlatform, Element } = await import(${JSON.stringify(PLATFORM)});
       installPlatform(process.cwd());
       const layer = document.body.appendChild(new Element());
       const el = document.createElement('div'); el.className = 'hitl-lbl hitl-say';
@@ -29,8 +31,8 @@ describe('studio page host', () => {
     expect(out).toEqual({ before: null, found: true, desc: 1, text: 'hello', connected: true, looseConnected: false, contains: true, afterMove: '', closest: true, removed: null });
   });
 
-  it('finds a speech bubble the game makes, under the label layer', () => {
-    const { out, err } = node(`const { openPage } = await import(${JSON.stringify(HOST)});
+  it('finds a speech bubble the game makes, under the label layer', async () => {
+    const { out, err } = await node(`const { openPage } = await import(${JSON.stringify(HOST)});
       const rt = await openPage({ mock: 'floor', quality: 'low' });
       const { R, S } = rt;
       window.__step(5);
@@ -42,7 +44,7 @@ describe('studio page host', () => {
   }, 210000);
 
   it('runs each case in its own process with imports by site path, and reports an error per case', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'page-host-test-'));
+    const dir = mkdtempSync(join(toolTmp(), 'page-host-test-'));
     try {
       const mod = join(dir, 'pages.mjs');
       writeFileSync(mod, `export const staff = async (n) => { const L = await import('/src/render/layout.js'); window.__tick(1000 / 30 * n); return { staff: window.__HITL.state.staff.length, hasLayout: typeof L.footprint === 'function' }; };

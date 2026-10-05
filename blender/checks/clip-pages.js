@@ -15,6 +15,9 @@ export const installExact = async () => {
   C.useExactCross((...a) => window.__tool(() => X.crossFraction(...a)));
 };
 
+// The eras whose offices the seated checks also run in, and the mock each is played in.
+export const ERA_SEATS = [['preinternet', 'floor'], ['dotcom', 'floor'], ['web2', 'floor'], ['agents', 'floor']];
+
 // The floor office: `runs` names the one group this page plays (each group gets a fresh page).
 export const mainPage = async (runs) => {
   const R = window.__hitlRender, S = window.__HITL.state;
@@ -126,6 +129,9 @@ export const controlPage = async () => {
   return [{ name: 'control:head-through-slab', pass: old === 0 && now > 0.01, vertexShare: +old.toFixed(4), exactShare: +now.toFixed(4) }];
 };
 
+// A group's cases under its page's name prefix (`era:dotcom:` ...), so two scenes' cases never share a name.
+export const prefixed = (own, results) => (own.prefix ? results.map((r) => ({ ...r, name: `${own.prefix}${r.name}` })) : results);
+
 // The groups that open their own scene: the mock, whether --rig applies (the garage plays with the rig
 // asked for; the floor pages here always play without it), and the page function. Every other group
 // runs mainPage on a fresh floor-office page.
@@ -134,4 +140,7 @@ export const OWN_PAGES = {
   celebrations: { mock: 'floor', rig: false, fn: celebrationsPage },
   respond: { mock: 'floor', rig: false, fn: respondPage },
   control: { mock: 'floor', rig: false, fn: controlPage },
+  // The seated poses and head bounds in a founded era's office (its desks, chairs and clothes), as
+  // `era:<id>:desk:...`. The scene is a mock played with that era's art on.
+  ...Object.fromEntries(ERA_SEATS.map(([era, mock]) => [`era-${era}`, { mock, rig: false, era, fn: mainPage, arg: { seats: true }, prefix: `era:${era}:` }])),
 };

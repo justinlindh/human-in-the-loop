@@ -20,7 +20,7 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 async function playGroup(group, rig) {
   const own = PAGES.OWN_PAGES[group];
   const { createRuntime } = await import('./runtime.mjs');
-  const rt = await createRuntime({ mock: own?.mock ?? 'floor', quality: 'low', rig: (own ? own.rig : true) && rig ? true : null, initialSync: false });
+  const rt = await createRuntime({ mock: own?.mock ?? 'floor', quality: 'low', era: own?.era ?? null, rig: (own ? own.rig : true) && rig ? true : null, initialSync: false });
   globalThis.__hitlRender = rt.R;
   globalThis.__HITL = { state: rt.S };
   globalThis.__tick = () => rt.clock.tick();
@@ -40,7 +40,8 @@ async function playGroup(group, rig) {
   // Evaluated from source, as a page receives it, so it can only reach what a page could.
   const asPage = (fn) => (0, eval)(`(${String(fn).replace(/\bimport\(/g, '__imp(')})`);
   await asPage(PAGES.installExact)();
-  return own ? asPage(own.fn)() : asPage(PAGES.mainPage)(Object.fromEntries(Object.keys(GROUPS).filter((g) => !OWN_PAGE.includes(g)).map((g) => [g, g === group])));
+  if (own) return PAGES.prefixed(own, await asPage(own.fn)(own.arg));
+  return asPage(PAGES.mainPage)(Object.fromEntries(Object.keys(GROUPS).filter((g) => !OWN_PAGE.includes(g)).map((g) => [g, g === group])));
 }
 
 // Plays each group in its own process, `jobs` at a time. Returns { results: { group: cases[] }, errors },

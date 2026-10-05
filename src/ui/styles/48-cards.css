@@ -1,0 +1,20 @@
+/* Title and end cards for captured clips (?card=<id>): opaque, over everything, sized from the viewport so one
+   card suits 1920x1080, 1280x720 and a vertical cut. */
+.hitl .hitl-card { position: fixed; inset: 0; z-index: 20000; display: flex; align-items: center; justify-content: center; text-align: center;
+  background: var(--cream); color: var(--ink); opacity: 0; transition: opacity var(--card-fade, 0.5s) ease; pointer-events: none;
+  font-size: calc(min(100vw / 1920, 100vh / 1080) * 16); }
+.hitl .hitl-card.on { opacity: 1; }
+@media (max-aspect-ratio: 1/1) { .hitl .hitl-card { font-size: calc(100vw / 1080 * 16); } }
+.hitl .hitl-card::before { content: ''; position: absolute; inset: 3em; border: 0.5em solid var(--ink); border-radius: 2.5em; box-shadow: 0 0.9em 0 var(--cream-3); }
+.hitl .hitl-card .card-inner { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1.4em; padding: 0 8em; }
+.hitl .hitl-card .card-kicker { font-weight: 600; font-size: 2.6em; letter-spacing: 0.04em; color: var(--ink-soft); text-transform: uppercase; }
+.hitl .hitl-card .card-title { margin: 0; display: flex; align-items: baseline; justify-content: center; gap: 0.3em; flex-wrap: wrap; font-weight: 700; font-size: 9.4em; line-height: 0.95; color: var(--ink); white-space: nowrap; }
+/* Stroke under the fill, doubled to keep the outline's weight, so touching letters don't draw outlines across each other. */
+.hitl .hitl-card .card-title .cw2, .hitl .hitl-card .card-logo .w3 { color: var(--yellow); -webkit-text-stroke: 0.08em var(--ink); paint-order: stroke fill; }
+.hitl .hitl-card .card-sub { font-weight: 600; font-size: 2.8em; color: var(--ink-soft); }
+.hitl .hitl-card .card-logo { font-size: 11em; flex-direction: row; align-items: baseline; justify-content: center; gap: 0.2em; margin: 0; }
+.hitl .hitl-card .card-logo .w2 { font-size: 0.45em; margin: 0; }
+.hitl .hitl-card .card-url { display: flex; flex-direction: column; align-items: center; gap: 0.5em; margin-top: 0.6em; font-weight: 600; font-size: 2.6em; color: var(--ink-soft); }
+.hitl .hitl-card .card-url b { color: var(--ink); background: #fff; border: 0.12em solid var(--ink); border-radius: 0.6em; padding: 0.2em 0.8em; box-shadow: 0 0.16em 0 var(--ink); font-size: 1.25em; }
+@media (max-aspect-ratio: 1/1) { .hitl .hitl-card .card-title { font-size: 12em; white-space: normal; flex-direction: column; align-items: center; gap: 0.1em; } .hitl .hitl-card .card-inner { padding: 0 4em; }
+  .hitl .hitl-card .card-logo { font-size: 12em; flex-direction: column; align-items: center; gap: 0.05em; } }

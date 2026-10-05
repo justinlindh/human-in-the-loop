@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { spawn, spawnSync } from 'node:child_process';
-import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { chmodSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { join, resolve } from 'node:path';
 import { queue, line } from '../../scripts/tools/review-queue.mjs';
 
@@ -48,11 +48,13 @@ describe('who is waiting, and in which group', () => {
 describe('review-queue command', () => {
   // A fake gh on PATH that prints whatever is in queue.json, or fails when it holds the word fail.
   const setup = (prs) => {
-    const dir = mkdtempSync(join(tmpdir(), 'rq-test-'));
+    const dir = mkdtempSync(join(toolTmp(), 'rq-test-'));
     writeFileSync(join(dir, 'queue.json'), JSON.stringify(prs));
     writeFileSync(join(dir, 'gh'), `#!/bin/sh\nf="${dir}/queue.json"\nif grep -q fail "$f"; then echo "boom" >&2; exit 1; fi\ncat "$f"\n`);
     chmodSync(join(dir, 'gh'), 0o755);
-    return { dir, set: (v) => writeFileSync(join(dir, 'queue.json'), typeof v === 'string' ? v : JSON.stringify(v)), env: { ...process.env, PATH: `${dir}:${process.env.PATH}` } };
+    // A rename, so a poll never reads a half-written queue.
+    const set = (v) => { writeFileSync(join(dir, 'queue.next'), typeof v === 'string' ? v : JSON.stringify(v)); renameSync(join(dir, 'queue.next'), join(dir, 'queue.json')); };
+    return { dir, set, env: { ...process.env, PATH: `${dir}:${process.env.PATH}` } };
   };
   const run = (env, ...args) => spawnSync(process.execPath, [QUEUE, ...args], { encoding: 'utf8', env, timeout: 30000 });
   // Polls until `ready()` holds or the deadline passes: a loaded machine can take seconds to start node.
@@ -96,7 +98,8 @@ describe('review-queue command', () => {
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
   });
 
-  it('--wait blocks until something wakes it and then prints all of it, pending CI included', async () => {
+  // The cases that wait out real polling run side by side; each has a scratch queue of its own.
+  it.concurrent('--wait blocks until something wakes it and then prints all of it, pending CI included', async () => {
     const t = setup([pr(3, {}, 'PENDING')]);
     try {
       const child = spawn(process.execPath, [QUEUE, '--wait', '--interval', '0.2'], { env: t.env });
@@ -111,7 +114,7 @@ describe('review-queue command', () => {
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
   }, 20000);
 
-  it('--drain prints each PR once and exits only when none is left that needs a look', async () => {
+  it.concurrent('--drain prints each PR once and exits only when none is left that needs a look', async () => {
     const t = setup([pr(7)]);
     try {
       const child = spawn(process.execPath, [QUEUE, '--drain', '--interval', '0.2'], { env: t.env });
@@ -134,7 +137,7 @@ describe('review-queue command', () => {
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
   }, 30000);
 
-  it('--drain on a queue that holds only pending CI keeps waiting until that PR is ready and then reviewed', async () => {
+  it.concurrent('--drain on a queue that holds only pending CI keeps waiting until that PR is ready and then reviewed', async () => {
     const t = setup([pr(3, {}, 'PENDING')]);
     try {
       const child = spawn(process.execPath, [QUEUE, '--drain', '--interval', '0.2'], { env: t.env });
@@ -156,7 +159,7 @@ describe('review-queue command', () => {
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
   }, 30000);
 
-  it('--drain prints a PR again when it moves from pending CI to ready on the same head', async () => {
+  it.concurrent('--drain prints a PR again when it moves from pending CI to ready on the same head', async () => {
     const t = setup([pr(3, {}, 'PENDING'), pr(5)]);
     try {
       const child = spawn(process.execPath, [QUEUE, '--drain', '--interval', '0.2'], { env: t.env });
@@ -185,7 +188,7 @@ describe('review-queue command', () => {
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
   });
 
-  it('exits 143 when interrupted while waiting', async () => {
+  it.concurrent('exits 143 when interrupted while waiting', async () => {
     const t = setup([]);
     try {
       const child = spawn(process.execPath, [QUEUE, '--wait', '--interval', '5'], { env: t.env, stdio: 'ignore' });

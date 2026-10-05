@@ -3,8 +3,12 @@
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { runBot, BOTS } from '../src/sim/bots.js';
 import { B } from '../src/sim/balance.js';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { homedir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { ERA_STARTS } from '../src/data/era-modes.js';
 import { EARLY_ORDER } from '../src/data/early-eras.js';
 import { ERA_IDS } from '../src/data/eras.js';
@@ -49,6 +53,53 @@ if (!isMainThread) {
   await main();
 }
 
+// --baseline main: origin/main's own balance.js played on the same bots, seeds, era and mode (never with
+// --set), in a temporary worktree. The result is cached under ~/.cache/hitl-ci/balance
+// (HITL_BALANCE_CACHE_DIR moves it, HITL_NO_CHECK_CACHE=1 turns it off), keyed by the content of main's
+// src/sim and src/data, main's balance.js, the arguments and Node, so it is played once per main.
+async function mainBaseline({ seeds, bots, startEra, startMode, jobs }) {
+  const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const git = (args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 1 << 26 });
+  try { git(['fetch', '-q', 'origin', 'main']); } catch { /* offline: use the origin/main we have */ }
+  const files = git(['ls-tree', '-r', 'origin/main', '--', 'src/sim', 'src/data', 'scripts/balance.js']).split('\n')
+    .filter((l) => l && !l.endsWith('.test.js')).map((l) => l.split('\t').reverse().join(' '));
+  const key = createHash('sha256').update(JSON.stringify({ files, seeds, bots, startEra, startMode, node: process.version })).digest('hex').slice(0, 24);
+  const dir = process.env.HITL_BALANCE_CACHE_DIR || join(homedir(), '.cache', 'hitl-ci', 'balance');
+  const file = join(dir, `${key}.json`);
+  const useCache = process.env.HITL_NO_CHECK_CACHE !== '1';
+  if (useCache && existsSync(file)) {
+    try {
+      const cached = JSON.parse(readFileSync(file, 'utf8'));
+      console.log(`baseline: origin/main read from the cache (${key.slice(0, 8)}), not played`);
+      return cached;
+    } catch { /* damaged entry: play it again */ }
+  }
+  const { createWorktree } = await import('./tools/worktree.mjs');
+  const wt = await createWorktree({ repo: root, rev: 'origin/main', label: 'balance' });
+  try {
+    const out = join(wt.tmp, 'base.json');
+    const { done } = wt.spawn(process.execPath, ['scripts/balance.js', '--seeds', String(seeds), '--bots', bots.join(','),
+      '--start-era', startEra, '--start-mode', startMode, '--jobs', String(jobs), '--json', out], { stdio: ['ignore', 'ignore', 'inherit'] });
+    const code = await done;
+    if (code !== 0) throw new Error(`origin/main's balance.js exited ${code}`);
+    const result = JSON.parse(readFileSync(out, 'utf8'));
+    if (useCache) {
+      mkdirSync(dir, { recursive: true });
+      const tmpFile = `${file}.${process.pid}.tmp`;
+      writeFileSync(tmpFile, JSON.stringify(result));
+      renameSync(tmpFile, file);
+      for (const n of readdirSync(dir)) {
+        const f = join(dir, n);
+        if (Date.now() - statSync(f).mtimeMs > 14 * 864e5) rmSync(f, { force: true });
+      }
+    }
+    console.log(`baseline: played origin/main (${key.slice(0, 8)})`);
+    return result;
+  } finally {
+    wt.disposeSync();
+  }
+}
+
 async function main() {
   const { trackRun } = await import('./lib/timing.js');
   const { compare, markdown } = await import('./events/pair-report.js');
@@ -75,11 +126,14 @@ async function main() {
   if (bots.some((bot) => !Object.hasOwn(BOTS, bot))) fail('unknown bot');
   try { applySets(sets); } catch (e) { fail(e.message); }
   let base;
-  if (baseline) {
+  if (baseline === 'main') {
+    try { base = await mainBaseline({ seeds, bots, startEra, startMode, jobs }); } catch (e) { fail(`baseline main: ${e.message}`); }
+  } else if (baseline) {
     try { base = JSON.parse(readFileSync(baseline, 'utf8')); } catch { fail('cannot read baseline JSON'); }
     if (!base?.runs || typeof base.runs !== 'object') fail('baseline must contain runs');
   }
-  trackRun('balance', { seeds, bots: bots.join(','), startEra, startMode });
+  // games: the bot games this process played (a --baseline main run logs its own record).
+  trackRun('balance', { seeds, bots: bots.join(','), startEra, startMode, games: seeds * bots.length });
 
   const median = (xs) => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : 0; };
   const fmt = (n) => Math.round(n).toLocaleString('en-US');

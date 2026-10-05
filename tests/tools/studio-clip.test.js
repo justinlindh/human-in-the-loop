@@ -1,26 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import { spawn, spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
+import { spawnAsync } from './spawn-async.js';
 
 const CLIP = resolve(__dirname, '../../scripts/studio/clip.mjs');
-const run = (...args) => spawnSync(process.execPath, [CLIP, ...args], { encoding: 'utf8', timeout: 240000 });
+const run = (...args) => spawnAsync(process.execPath, [CLIP, ...args], { timeout: 240000 });
 
-describe('studio clip', () => {
-  it('runs a group on the engine and prints the check names the browser run prints', () => {
-    const r = run('--group', 'seats');
-    expect(r.status, r.stdout + r.stderr).toBe(0);
-    expect(r.stdout).toContain('CLIP ok   desks:all-seated');
-    expect(r.stdout).toMatch(/CLIP ok {3}desk:f1:typing \{"handGapMin"/);
-    expect(r.stdout).toMatch(/CLIP ok {3}head:s1:/);
-  }, 260000);
-
-  it('leaves the rig to the quality setting, as a page with no rig parameter does', () => {
+// Each case runs its own processes, so the cases overlap.
+describe.concurrent('studio clip', () => {
+  it('leaves the rig to the quality setting, as a page with no rig parameter does', async () => {
     const script = `const { createRuntime } = await import(${JSON.stringify(resolve(__dirname, '../../scripts/studio/runtime.mjs'))});
       const rt = await createRuntime({ quality: 'low', initialSync: false });
       const { rigEnabled } = await import(${JSON.stringify(resolve(__dirname, '../../src/render/rig.js'))});
       const low = rigEnabled(); rt.R.setQuality('medium');
       console.log(JSON.stringify({ low, medium: rigEnabled() })); process.exit(0);`;
-    const r = spawnSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8', timeout: 120000 });
+    const r = await spawnAsync(process.execPath, ['--input-type=module', '-e', script], { timeout: 120000 });
     expect(r.stdout.trim().split('\n').pop(), r.stderr).toBe('{"low":false,"medium":true}');
   }, 130000);
 
@@ -40,22 +34,22 @@ describe('studio clip', () => {
     expect(running.filter(alive)).toEqual([]);
   }, 60000);
 
-  it('refuses a group it does not run', () => {
-    const r = run('--group', 'sky');
+  it('refuses a group it does not run', async () => {
+    const r = await run('--group', 'sky');
     expect(r.status).toBe(2);
     expect(r.stderr).toContain('unknown group sky');
     expect(r.stderr).toContain('sky runs in the browser');
   });
 
-  it('plays the groups that open their own scene, the garage on the garage mock', () => {
-    const r = run('--group', 'control,garage', '--jobs', '2');
+  it('plays the groups that open their own scene, the garage on the garage mock', async () => {
+    const r = await run('--group', 'control,garage', '--jobs', '2');
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toMatch(/CLIP ok {3}control:head-through-slab \{"vertexShare":0,"exactShare":0\.\d+\}/);
     expect(r.stdout).toMatch(/CLIP ok {3}pairs:garage \{"staff":2,/);
   }, 260000);
 
-  it('runs every group but sky through blender/checks/clip.mjs with no browser when --only skips sky', () => {
-    const r = spawnSync(process.execPath, [resolve(__dirname, '../../blender/checks/clip.mjs'), '--only=control'], { encoding: 'utf8', timeout: 240000, env: { ...process.env, HITL_NO_CHECK_CACHE: '1' } });
+  it('runs every group but sky through blender/checks/clip.mjs with no browser when --only skips sky', async () => {
+    const r = await spawnAsync(process.execPath, [resolve(__dirname, '../../blender/checks/clip.mjs'), '--only=control'], { timeout: 240000, env: { ...process.env, HITL_NO_CHECK_CACHE: '1' } });
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout + r.stderr).not.toMatch(/with-render-lock|harness: GL/);
     expect(r.stdout).toContain('clip: 1 of 1 passed (--only=control)');

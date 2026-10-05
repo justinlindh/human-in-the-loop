@@ -91,6 +91,19 @@ const SPECS = {
   'growth.coworker': { moment: 'growth', beat: 'cheer', role: 'coworker', rules: [
     share('celebrating', 'nearby coworkers celebrate throughout the beat', (x) => x.anim === 'celebrate', 0.9),
   ] },
+  'deal.seller': { moment: 'deal', beat: 'ring', role: 'seller', rules: [
+    share('handUp', 'seller plays the fist pump throughout the beat', (x) => x.anim === 'dealsit', 0.9),
+    share('fistUp', 'a hand within 0.15 m below the eyes (typing hands sit 0.34 m below)', (x) => Math.max(x.handsRel[0][1], x.handsRel[1][1]) >= -0.15, 0.7),
+    share('fistNear', 'the raised hand sits nearer the camera than the eyes, clear of the head', (x) => x.handsCam[x.handsRel[0][1] >= x.handsRel[1][1] ? 0 : 1] >= 0.05, 0.7),
+    share('facingCamera', 'seller faces within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    // No noFade: the seller stays at the desk the sim names, so a column faded over it is the
+    // office's own cutaway, not something this moment stages.
+    share('visible', 'body >= 50% unblocked (seated behind a desk)', (x) => x.visible >= 0.5, 0.9),
+  ] },
+  'deal.coworker': { moment: 'deal', beat: 'cheer', role: 'coworker', rules: [
+    share('clapping', 'neighbours clap once their delay is over', (x) => x.anim === 'growthclapsit', 0.7),
+    share('turned', 'neighbours face within 75 deg of the seller', (x) => x.targetAngle <= 75, 0.7),
+  ] },
   'company_party.cheer': { moment: 'company_party', beat: 'cheer', rules: [
     share('celebrating', 'company celebrates throughout the beat', (x) => x.anim === 'celebrate', 0.9),
   ] },
@@ -269,6 +282,9 @@ const SPECS = {
 const OUTAGE = "S.outage = { productId: S.products[0].id, kind: 'db_wipe', severity: 3, weeks: 0, unrecoverable: false, responderIds: ['s1', 's2', 's3'], etaWeeks: 2, cost: { cash: 0, brand: 0, customers: 0 }, cause: '' }; R.sync(S); R.handleEvents([{ type: 'incident', kind: 'db_wipe', productId: S.products[0].id, caught: false, severity: 3 }], S);";
 const SCENARIOS = {
   growth: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "S.staff.find((p) => p.id === 's6').legend = true; R.sync(S);" }], seconds: 12 },
+  // A notable deal for a seated seller with seated neighbours.
+  deal: { query: 'mock=floor', patch: {}, seconds: 4,
+    setup: "(await import('/src/render/checks.js')).setupDeal(R, S)" },
   company_party: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "R.handleEvents([{ type: 'celebrate', staffId: null }], S);" }], seconds: 6 },
   pet: { query: 'mock=floor', patch: {}, seconds: 6,
     setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'dog', 2.104, 1.0)" },
@@ -307,6 +323,15 @@ const SCENARIOS = {
     arrive: { role: 'interviewee', beat: 'interview' },
     steps: [{ at: 0, js: "const d = R.office.current.L.door; S.pendingDecision = { eventId: 'efficiency_consultants', subjectId: null, stage: { prop: 'visitor_chair', anchor: 'door', x: d.x, y: d.y } };" }] },
 };
+// The celebrations again in each founded era's office (its desks, clothes and street): the same rules,
+// each scenario played with that era's art on.
+for (const era of ['preinternet', 'dotcom', 'web2', 'agents']) {
+  for (const base of ['growth', 'company_party']) SCENARIOS[`${base}_${era}`] = { ...SCENARIOS[base], era };
+  for (const key of ['growth.honoree', 'growth.coworker', 'company_party.cheer']) {
+    const [base, role] = key.split('.');
+    SPECS[`${base}_${era}.${role}`] = { ...SPECS[key], scenario: `${base}_${era}` };
+  }
+}
 
 const views = [{ name: 'default', turns: 0 }, { name: 'turned', turns: 1 }];
 // The issues known rules point at, and which of them are fixed: closed by a merged PR (or a commit)
@@ -382,7 +407,7 @@ const onEngine = (task) => new Promise((resolve) => {
     if (got?.ok) resolve({ res: got.res, errors: got.errors });
     else resolve({ res: { actors: [], samples: [], spots: {} }, errors: [got?.error ?? `stage host exited ${code ?? signal}: ${err.trim().split('\n').slice(-3).join(' | ')}`] });
   });
-  p.send({ query: SCENARIOS[task.scenario].query, args: stageArgs(task) });
+  p.send({ query: SCENARIOS[task.scenario].query, era: SCENARIOS[task.scenario].era ?? null, args: stageArgs(task) });
 });
 let next = 0;
 await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_, slot) => {
@@ -390,7 +415,7 @@ await Promise.all(Array.from({ length: Math.min(JOBS, tasks.length) }, async (_,
     const task = tasks[next++];
     if (!BROWSER) { results.set(task, await onEngine(task)); continue; }
     const sc = SCENARIOS[task.scenario];
-    const { page, errors } = await H.openScene(`quality=medium&${sc.query}`, { width: 960, height: 600, slot });
+    const { page, errors } = await H.openScene(`quality=medium&${sc.query}${sc.era ? `&eras&eraArt=${sc.era}` : ''}`, { width: 960, height: 600, slot });
     const res = await page.evaluate(async (o) => (await import('/blender/checks/stage-page.js')).playStage(o), stageArgs(task));
     await page.close();
     results.set(task, { res, errors });

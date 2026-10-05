@@ -76,7 +76,8 @@ describe('event index build failures', () => {
     expect(readdirSync(cache)).toEqual([]);
   });
 
-  it.each([[false, 'SIGINT'], [true, 'SIGTERM']])('interrupts without publishing partial files, existing index: %s, signal: %s', async (force, stop) => {
+  // Each case works in a cache directory of its own, so the waits on a running build overlap.
+  it.concurrent.each([[false, 'SIGINT'], [true, 'SIGTERM']])('interrupts without publishing partial files, existing index: %s, signal: %s', async (force, stop) => {
     const cache = directory(force ? 'interrupt-force' : 'interrupt-cold');
     if (force) cpSync(fixture, cache, { recursive: true });
     const index = join(cache, hash, 'events.jsonl.gz');
@@ -97,7 +98,7 @@ describe('event index build failures', () => {
     expect(retry.stdout.includes('already exists')).toBe(force);
   }, 60000);
 
-  it('reaps an aged SIGKILLed build on cache reuse and cold builds, preserving live or recent staging', async () => {
+  it.concurrent('reaps an aged SIGKILLed build on cache reuse and cold builds, preserving live or recent staging', async () => {
     const cache = directory('reap');
     cpSync(fixture, cache, { recursive: true });
     const { staging, pid } = await interruptBuild(cache, 'SIGKILL', true);

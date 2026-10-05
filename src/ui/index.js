@@ -38,6 +38,8 @@ import { createSceneTips } from './sceneTips.js';
 import { createMomentCaptions } from './moments.js';
 import { retireOptions } from './retire.js';
 import { orderGoals } from './goalOrder.js';
+import { dealBeats } from './deals.js';
+import { cardOptions, showCard } from './cards.js';
 import { GOALS, GOAL, goalReward, SIM_HAS_MEANING_UNLOCK, unlockInfo } from './v2content.js';
 
 // UI sound cues go out as window events so the audio lane needs no reference to the UI.
@@ -50,6 +52,8 @@ const PANEL_REFRESH_MS = 150;
 export function createUI({ root, getState, dispatch, controls }) {
   const layer = h('div.hitl');
   root.append(layer);
+  const cardOpts = cardOptions(globalThis.location?.search);
+  if (cardOpts) showCard(layer, cardOpts);
   setPortraitSource(() => controls.renderer ?? controls.getRenderer?.() ?? null);
   const tooltips = createTooltips(layer);
   const captions = createMomentCaptions(layer, {
@@ -435,11 +439,20 @@ export function createUI({ root, getState, dispatch, controls }) {
     if (menu.current !== 'staff') { newMenus.add('staff'); menu.setNew('staff', true); }
   }
 
+  // Sales: a toast for a week worth a beat, else one quiet line in #wins.
+  function onDeals(events, state) {
+    if (!events.some((e) => e.type === 'deal')) return;
+    const beats = dealBeats(events, state);
+    for (const t of beats.toasts) toasts.push(t.text, 'good', { person: t.person ?? undefined, glyph: t.person ? undefined : 'launch', action: () => menu.open('reports', { productId: t.productId }) });
+    beats.quiet.forEach((text, i) => chat.add({ channel: 'wins', from: '@sales', text, id: `deal${state.week}-${i}` }, state.week));
+  }
+
   function handleEvents(events, state) {
     const unlockKeys = events.filter((e) => e.type === 'unlock').map((e) => e.key);
     const era = events.find((e) => e.type === 'era') ?? null;
     if (unlockKeys.length || era) onUnlocksAndEra(unlockKeys, era, state);
     onGrowth(events, state);
+    onDeals(events, state);
     // The sim records the squads unlock without an event; the week it lands gets one toast.
     if (state.unlocks?.squads === state.week && squadsToldWeek !== state.week && state.week > 0) {
       squadsToldWeek = state.week;

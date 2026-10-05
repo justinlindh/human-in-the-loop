@@ -86,6 +86,8 @@ export const CUES = {
   'sfx.cd_tray': { bus: 'sfx', files: ['sfx/cd_tray'], cooldown: 30, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
   'sfx.retail_box': { bus: 'sfx', files: ['sfx/retail_box'], cooldown: 30, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
   'sfx.dotcom_bell': { bus: 'sfx', files: ['sfx/dotcom_bell'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
+  // A notable closed sales deal, in every era.
+  'sfx.sales_register': { bus: 'sfx', files: ['sfx/sales_register'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
 };
 // A period cue that follows an event's main sound, after `delay` seconds so a stinger is not masked.
 // Boxed (on-prem) software in the early eras sounds like a retail box; otherwise a launch is a
@@ -130,8 +132,8 @@ export const ON_EVENT = {
   chatPromptResolved: null,
   // Silent here: the Quiet advice setting lives in ui's settings store, so any sound belongs with ui's tray card.
   advice: null,
-  // A closed sales deal: silent until a bell is chosen (it will play on e.notable, with a boxed variant).
-  deal: () => null,
+  // Only a notable deal rings the register (the same sound boxed or not).
+  deal: (e) => (e.notable ? 'sfx.sales_register' : null),
   // The founder's quick post: a small cheer when it lands, a wince when it backfires, nothing when flat.
   posted: (e) => ({ landed: 'sfx.reward', backfired: 'sfx.bad' })[e.outcome] ?? null,
   // Growth (#549). A promotion's level-up in the same batch plays only the promotion (see director).

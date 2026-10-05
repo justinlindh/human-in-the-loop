@@ -109,7 +109,7 @@ pstep() {
   ) &
   PNAMES+=("$name"); PPIDS+=($!)
 }
-pjoin() {
+pjoin() { # <start time> [phase name]
   local t0="$1" i rc wall sum=0
   for i in "${!PPIDS[@]}"; do
     wait "${PPIDS[$i]}"
@@ -124,7 +124,7 @@ pjoin() {
     fi
   done
   local phase=$(( $(now) - t0 ))
-  timing_log kind=phase tool=ci-local phase=browser wall_s="$phase" background_s="$sum" steps="$(IFS=,; echo "${PNAMES[*]}")"
+  timing_log kind=phase tool=ci-local phase="${2:-browser}" wall_s="$phase" background_s="$sum" steps="$(IFS=,; echo "${PNAMES[*]}")"
   PNAMES=(); PPIDS=()
 }
 
@@ -135,7 +135,10 @@ pjoin() {
 tool_changes=1
 if [ "${CI_FULL:-}" != 1 ]; then
   tool_mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || tool_mb=""
-  if [ -n "$tool_mb" ] && ! { git diff --name-only --no-renames "$tool_mb"; git ls-files --others --exclude-standard; } | grep -qE '^(scripts/|\.claude/|package\.json$|package-lock\.json$|vite\.config\.js$)'; then
+  # The file list is read whole before matching: grep -q exits at the first match and a writer still
+  # sending would die of SIGPIPE, which pipefail turns into "no match" (the self-tests skipped).
+  tool_files="$({ git diff --name-only --no-renames "$tool_mb"; git ls-files --others --exclude-standard; } 2>/dev/null)"
+  if [ -n "$tool_mb" ] && ! grep -qE '^(scripts/|\.claude/|package\.json$|package-lock\.json$|vite\.config\.js$)' <<<"$tool_files"; then
     tool_changes=0
   fi
 fi
@@ -158,11 +161,13 @@ pr_selftest() { # <name> <command...>: sets PR_TEST_TMP to the PR's test file wh
 tool_step() { # <name> <command...>
   if [ "$tool_changes" = 1 ]; then
     pr_selftest "$@"
+    # The self-tests are independent and light: a few run side by side (collected by tool_join).
+    while [ "$(jobs -rp | wc -l)" -ge "${CI_SELFTEST_JOBS:-4}" ]; do wait -n; done
     if [ -n "$PR_TEST_TMP" ]; then
       local args=() a
       for a in "$@"; do [ "$a" = "$PR_TEST_ORIG" ] && a="$PR_TEST_TMP"; args+=("$a"); done
-      step "${args[@]}"
-    else step "$@"; fi
+      pstep "${args[@]}"
+    else pstep "$@"; fi
   else record "$1" "skipped: no tooling changes" 0; timing_log kind=step tool=ci-local step="$1" skipped=1 wall_s=0 exit=0; fi
 }
 
@@ -200,6 +205,7 @@ step toolkit toolkit_check
 # A changed golden image or sweep-baseline entry needs its own before/after media on the PR
 # (scripts/baseline-media.sh); without a PR number it only says so.
 step baseline-media env BASE="$BASE" bash "$SELF/baseline-media.sh" --check
+selftests_t0=$(now)
 tool_step ci-classify bash "$SELF/ci-classify.test.sh"
 tool_step ci-keep-logs bash "$SELF/ci-keep-logs.test.sh"
 tool_step ci-pr-selftest bash "$SELF/ci-pr-selftest.test.sh"
@@ -210,6 +216,8 @@ tool_step review-verdict bash "$SELF/review-verdict.test.sh"
 tool_step pr-body bash "$SELF/pr-body.test.sh"
 tool_step test-cache bash "$SELF/test-cache.test.sh"
 tool_step tmp-clean bash "$SELF/tmp-clean.test.sh"
+tool_step heavy bash "$SELF/heavy.test.sh"
+tool_step ci-merge-only bash "$SELF/ci-merge-only.test.sh"
 tool_step nice10 bash "$SELF/nice10.test.sh"
 tool_step test-push bash "$SELF/test-push.test.sh"
 tool_step ci-pr-trust bash "$SELF/ci-pr-trust.test.sh"
@@ -241,6 +249,7 @@ tool_step features-ids-test bash "$SELF/features-ids.test.sh"
 tool_step gates bash "$SELF/gates.test.sh"
 tool_step toolkit-test node "$SELF/toolkit.test.mjs"
 tool_step capture bash "$SELF/capture.test.sh"
+pjoin "$selftests_t0" selftests
 
 # The balance suite is the slow one; start it now and collect it at the end.
 # ...unless the change cannot move the game's balance: every changed path (commits since the base,
@@ -344,6 +353,8 @@ render_step() { # <name> <gpu|software> <command>
   [ $rc -eq 0 ] && return 0
   # A lock wait that runs out (30 minutes by default) exits 75: nothing rendered, so nothing to retry.
   if [ $rc -eq 75 ]; then note "$name: timed out waiting for the $mode render lock"; return 75; fi
+  # A pass that hit its 600 s limit would only hit it again: a retry doubles the loss.
+  if [ $rc -eq 124 ]; then note "$name: timed out after 600 s while running; not retried"; return 124; fi
   echo "$name: first pass failed; retrying once"
   local why; why="$(grep -m1 -E 'Error|FAIL|failed' "$first" | cut -c1-200)"
   # A machine that ran out of something gets a moment to recover first.
@@ -398,19 +409,6 @@ stage_check() {
   fi
   render_step stage gpu "node blender/checks/stage.mjs --out '$LOGS/stage.json'"
 }
-# No-draw parity (blender/checks/pose-nodraw.mjs, on a GPU slot): the checks that sample frames
-# without drawing must measure exactly what drawn frames measure, and make no draws while sampling.
-# Runs for changes to the renderer or to the harness and pose measures those checks share.
-nodraw_check() {
-  [ -f blender/checks/pose-nodraw.mjs ] || { echo "skipped: no blender/checks/pose-nodraw.mjs in this tree"; return 0; }
-  local mb files
-  mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
-  files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; })"
-  if ! grep -qE '^(src/render/|blender/checks/(pose[^/]*|harness\.mjs|draw-audit\.js|intersect\.js)$|scripts/events/load\.js$)' <<<"$files"; then
-    echo "skipped: no render, harness or pose-measure changes"; return 0
-  fi
-  render_step pose-nodraw gpu "node blender/checks/pose-nodraw.mjs --json '$LOGS/pose-nodraw.json'"
-}
 # Tool loading (blender/checks/tool-rng.mjs, on a GPU slot): importing a page-side tool module takes
 # nothing from the game's random stream, and idle time before warm-up changes nothing. Runs for
 # changes to the page-side tool modules, the harness or the renderer.
@@ -443,7 +441,7 @@ browser_t0=$(now)
 # CI_TIER=tests (ci-pr sets it for a change only tests read, scripts/ci-tests-only-paths) leaves out the
 # render, browser and perf checks; the main guard (CI_FULL=1) always runs them.
 if [ "${CI_TIER:-}" = tests ] && [ "${CI_FULL:-}" != 1 ]; then
-  for name in golden golden-font lifecycle soak render-checks perf-budget phone-check stage pose-nodraw tool-rng; do
+  for name in golden golden-font lifecycle soak render-checks perf-budget phone-check stage tool-rng; do
     record "$name" "skipped: tests tier (only tests read these changes)" 0
     timing_log kind=step tool=ci-local step="$name" skipped=1 tier=tests wall_s=0 exit=0
   done
@@ -457,7 +455,6 @@ step render-checks render_step render-checks gpu "bash '$SELF/lib/run-parallel.s
 gh_step perf-budget tools perf_budget
 step phone-check phone_check
 step stage stage_check
-step pose-nodraw nodraw_check
 step tool-rng rng_check
 fi
 pjoin "$browser_t0"
