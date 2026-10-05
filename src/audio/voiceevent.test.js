@@ -5,10 +5,11 @@ import env from './voice-env.json';
 
 describe('hitl:voice detail', () => {
   it('has a loudness track for every shipped take, one value per 1/30 s', () => {
+    const regen = 'run `node src/audio/voice-env.mjs` after changing a voice bank';
     for (const [bank, v] of Object.entries(ASSETS.voice)) {
       for (const [emo, takes] of Object.entries(v.emotions)) {
-        expect(env.banks[bank][emo]).toHaveLength(takes.length);
-        takes.forEach(([, d], i) => expect(env.banks[bank][emo][i]).toHaveLength(Math.max(1, Math.round(d * env.rate))));
+        expect(env.banks[bank]?.[emo], `${bank} ${emo} has no loudness tracks: ${regen}`).toHaveLength(takes.length);
+        takes.forEach(([, d], i) => expect(env.banks[bank][emo][i], `${bank} ${emo} take ${i} is the wrong length: ${regen}`).toHaveLength(Math.max(1, Math.round(d * env.rate))));
       }
     }
   });

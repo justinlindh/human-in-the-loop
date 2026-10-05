@@ -152,10 +152,10 @@ export function createAudio({ quality = 'high' } = {}) {
               playBuffer(buf, 'voice', c.gain, c.at);
               dur = buf.duration;
             }
-            // Faces follow the voice: one event per bark that plays, with its loudness envelope.
-            dispatchEvent(new CustomEvent('hitl:voice', { detail: voiceDetail(c, { ...played, seconds: dur, startsIn: c.at - ctx.currentTime }) }));
             // A single bark ducks the music while it sounds.
             if (c.duckKey === 'voice') mix.hold('voice', Math.max(ctx.currentTime, c.at), Math.max(ctx.currentTime, c.at) + dur);
+            // Faces follow the voice: one event per bark that plays, with its loudness envelope.
+            dispatchEvent(new CustomEvent('hitl:voice', { detail: voiceDetail(c, { ...played, seconds: dur, startsIn: c.at - ctx.currentTime }) }));
           } else if (c.duck) {
             ducked.play(c);
           } else {
