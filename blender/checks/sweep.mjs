@@ -154,9 +154,10 @@ async function endControl(c) {
 // A plain engine run is skipped while every file its last clean pass loaded is unchanged (cache.mjs):
 // the engine's module loads and asset reads, the screen step's page requests, and the baseline.
 // Runs that read other inputs or answer another question (--against, --replay, --item, --moments,
-// --snapshots, a baseline update) always run. The flags are part of the key.
-const cacheable = engine && !['against', 'replay', 'item', 'moments', 'snapshots', 'states'].some((k) => opt(k) !== undefined)
-  && !argv.includes('--update-baseline') && !argv.includes('--prune');
+// --snapshots, a baseline update) always run, and so do --strict and --full, the main guard's net,
+// which must not depend on the cache being right. The flags are part of the key.
+const cacheable = engine && !full && !['against', 'replay', 'item', 'moments', 'snapshots', 'states'].some((k) => opt(k) !== undefined)
+  && !['--update-baseline', '--prune', '--strict'].some((f) => argv.includes(f));
 const cacheKey = cacheable ? graphBase('sweep', argv.filter((a, i) => a !== '--out' && argv[i - 1] !== '--out').join(' ')) : null;
 const passedAt = graphPassedAt('sweep', cacheKey);
 if (passedAt) { console.log(`sweep: inputs unchanged since ${passedAt}, skipped`); process.exit(0); }
