@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { spawn, spawnSync, execFileSync } from 'node:child_process';
-import { rmSync, writeFileSync, readdirSync } from 'node:fs';
+import { spawn, execFileSync } from 'node:child_process';
+import { rmSync, writeFileSync, readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { makeTemp } from '../../scripts/tools/tmp.mjs';
 
@@ -14,7 +14,10 @@ const worktrees = () => git('worktree', 'list', '--porcelain').split('\n').filte
 let tmp, sys;
 const leftovers = (dir = tmp) => readdirSync(dir).filter((n) => n.startsWith('hitl-wt-'));
 const sleepFor = (k) => 100000 + (process.pid % 50000) * 10 + k;
-const sleeping = (n) => Number(spawnSync('bash', ['-c', `for p in /proc/[0-9]*; do tr '\\0' ' ' < $p/cmdline 2>/dev/null; echo; done | grep -c '^sleep ${n} $'`], { encoding: 'utf8' }).stdout.trim() || 0);
+// Counts the processes whose command line is `sleep <n>`, read straight from /proc.
+const sleeping = (n) => readdirSync('/proc').filter((p) => /^\d+$/.test(p)).filter((p) => {
+  try { return readFileSync(`/proc/${p}/cmdline`, 'utf8') === `sleep\0${n}\0`; } catch { return false; }
+}).length;
 
 // Runs a script that imports the helper, in its own process.
 const script = (body) => `import { createWorktree, withWorktree } from ${JSON.stringify(MOD)};\nconst repo = ${JSON.stringify('REPO')};\n${body}`;
