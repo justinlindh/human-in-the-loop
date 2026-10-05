@@ -131,5 +131,45 @@ rm -f "$tmp/views"
 [ $rc -eq 0 ] && grep -q "GitHub still shows ${old:0:8}; waiting for the pushed ${new:0:8}" "$tmp/out" && ! grep -q failing "$tmp/out" \
   || fail "the head before a push is waited out, not judged: $rc $(cat "$tmp/out")"
 
+# Cancelled checks: a run superseded by a newer run for the head is waited past; the newest run is
+# rerun once when nothing for the head is running, and cancelled again after that, it fails.
+cat >"$tmp/bin/gh" <<F
+#!/usr/bin/env bash
+echo "\$*" >>"$tmp/calls"
+case "\$*" in
+  "pr view"*) cat "$tmp/pr.json" ;;
+  "run list"*) cat "$tmp/runs.json" ;;
+  "run rerun"*) exit 0 ;;
+  api*/comments*) echo '[]' ;;
+  *) exit 1 ;;
+esac
+F
+cpr() { # <check runs as name=CONCLUSION@run,...>: local-ci passed
+  jq -n --arg c "$1" '{state: "OPEN", headRefOid: "abc1234def", headRefName: "x/y", baseRefName: "main", mergeStateStatus: "CLEAN", mergeable: "MERGEABLE", labels: [],
+    statusCheckRollup: ([{__typename: "StatusContext", context: "local-ci", state: "SUCCESS"}] + [$c | split(",")[] | split("@") as [$nc, $run] | ($nc | split("=")) as [$n, $s]
+      | {__typename: "CheckRun", name: $n, status: "COMPLETED", conclusion: $s, detailsUrl: "https://github.com/o/r/actions/runs/\($run)/job/1"}])}' >"$tmp/pr.json"
+}
+runs() { jq -n --arg r "$1" '[$r | split(",")[] | split("=") as [$id, $st] | {databaseId: ($id | tonumber), status: $st, workflowName: "ci"}]' >"$tmp/runs.json"; }
+cw() { rm -f "$tmp/calls"; HITL_WAIT_SNAPSHOT=0 HITL_WAIT_RERUNS="$tmp/reruns" PATH="$tmp/bin:$PATH" bash "$HERE/wait-for.sh" 9 --no-update --poll 0 --timeout 0 >"$tmp/out" 2>&1; rc=$?; }
+rm -rf "$tmp/reruns"
+cpr 'test=SUCCESS@100,balance=CANCELLED@100'; runs '101=in_progress,100=completed'
+cw; [ $rc -eq 124 ] && grep -q 'balance (run 100, superseded by run 101); waiting on the newer run' "$tmp/out" && ! grep -q '^run rerun' "$tmp/calls" \
+  || fail "a cancelled job in a superseded run is waited past: $rc $(cat "$tmp/out")"
+cpr 'test=CANCELLED@101'; runs '101=in_progress,100=completed'
+cw; [ $rc -eq 124 ] && grep -q 'still going' "$tmp/out" && ! grep -q '^run rerun' "$tmp/calls" \
+  || fail "the newest run is not rerun while a run for the head is going: $rc $(cat "$tmp/out")"
+cpr 'test=CANCELLED@101,balance=SUCCESS@101'; runs '101=completed,100=completed'
+cw; [ $rc -eq 124 ] && grep -q '^run rerun 101 --failed' "$tmp/calls" && grep -q "rerunning run 101's cancelled jobs (once for this head)" "$tmp/out" \
+  || fail "the newest run's cancelled jobs are rerun once: $rc $(cat "$tmp/out") $(cat "$tmp/calls")"
+cw; [ $rc -eq 124 ] && ! grep -q '^run rerun' "$tmp/calls" || fail "a second watcher does not rerun the same head again: $rc $(cat "$tmp/calls")"
+touch -d '10 minutes ago' "$tmp/reruns/9-abc1234def"
+cw; [ $rc -eq 2 ] && grep -q 'run 101 was cancelled again after its one rerun' "$tmp/out" && grep -q 'test=cancelled' "$tmp/out" \
+  || fail "cancelled again after its rerun, it fails: $rc $(cat "$tmp/out")"
+rm -rf "$tmp/reruns"
+cpr 'test=FAILURE@101,balance=CANCELLED@100'; runs '101=completed,100=completed'
+cw; [ $rc -eq 2 ] && grep -q 'test=failure' "$tmp/out" && ! grep -q '^run rerun' "$tmp/calls" || fail "a real failure beside a cancellation fails at once: $rc $(cat "$tmp/out")"
+cpr 'test=CANCELLED@'; runs '101=completed'
+cw; [ $rc -eq 2 ] || fail "a cancelled check whose run can't be placed fails: $rc $(cat "$tmp/out")"
+
 [ $fails -eq 0 ] && echo "wait-for: all cases pass"
 exit $fails

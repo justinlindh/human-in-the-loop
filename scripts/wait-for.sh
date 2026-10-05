@@ -117,6 +117,48 @@ read_pr() {
   src=live
   json="$(gh pr view "${R[@]}" "$pr" --json state,headRefOid,headRefName,baseRefName,mergeStateStatus,mergeable,statusCheckRollup,labels)"
 }
+# Cancelled check runs that are not a failure. GitHub can start two runs of a workflow for one head,
+# and the workflow's concurrency cancels one of them: a cancelled job in a run that a newer run of the
+# same workflow for this head replaced is waited past. A cancelled job in the newest run, once nothing
+# for the head is running, gets one `gh run rerun --failed` per head (a marker file holds it across
+# restarted watchers); cancelled again after that, it fails. Returns 0 to keep waiting, 1 to fail.
+RERUNS="${HITL_WAIT_RERUNS:-$HOME/.cache/hitl-ci/wait-for-reruns}"
+cancel_said=""
+handle_cancelled() {
+  local runs verdict marker="$RERUNS/$pr-$head"
+  runs="$(gh run list "${R[@]}" --commit "$head" --json databaseId,status,workflowName --limit 50 2>/dev/null)" || return 1
+  # One line per cancelled check: its name, its run, and the newest run of that workflow for the head.
+  verdict="$(jq -r --argjson runs "$runs" '
+    [.statusCheckRollup[]? | select(.__typename == "CheckRun" and .conclusion == "CANCELLED")
+      | {n: .name, id: ((.detailsUrl // "") | (try (capture("/runs/(?<id>[0-9]+)").id | tonumber) catch null))}]
+    | map(. as $c | ($runs | map(select(.databaseId == $c.id)) | first) as $r
+      | ($runs | map(select($r != null and .workflowName == $r.workflowName)) | max_by(.databaseId) | .databaseId) as $newest
+      | "\($c.n) \($c.id // "?") \($newest // "?")") | .[]' <<<"$json")" || return 1
+  [ -n "$verdict" ] || return 1
+  # A check whose run can't be placed is not explained away.
+  grep -q '?' <<<"$verdict" && return 1
+  local stale latest
+  stale="$(awk '$2 != $3 { printf "%s%s (run %s, superseded by run %s)", s, $1, $2, $3; s = ", " }' <<<"$verdict")"
+  latest="$(awk '$2 == $3 { print $2 }' <<<"$verdict" | sort -u | tr '\n' ' ')"
+  if [ -z "$latest" ]; then
+    [ "$cancel_said" = "$stale" ] || { say "#$pr at ${head:0:8}: cancelled: $stale; waiting on the newer run"; cancel_said="$stale"; }
+    return 0
+  fi
+  if jq -e 'any(.[]; .status != "completed")' <<<"$runs" >/dev/null; then
+    [ "$cancel_said" = "busy $latest" ] || { say "#$pr at ${head:0:8}: run ${latest% } has cancelled jobs; waiting while a run for this head is still going"; cancel_said="busy $latest"; }
+    return 0
+  fi
+  if [ ! -e "$marker" ]; then
+    mkdir -p "$RERUNS" && : >"$marker"
+    for id in $latest; do gh run rerun "${R[@]}" "$id" --failed >/dev/null 2>&1 && say "#$pr at ${head:0:8}: rerunning run $id's cancelled jobs (once for this head)"; done
+    return 0
+  fi
+  # GitHub takes a moment to restart the jobs, so a rerun gets a few minutes before it counts as failed.
+  [ $(( $(date +%s) - $(stat -c %Y "$marker") )) -lt 180 ] && return 0
+  say "#$pr at ${head:0:8}: run ${latest% } was cancelled again after its one rerun"
+  return 1
+}
+
 # True when json is a live read; otherwise asks for one on the next pass, for the caller to `continue`.
 confirm() { [ "$src" = live ] && return 0; live=1; return 1; }
 
@@ -181,6 +223,11 @@ while :; do
 
   if [ -n "$failing" ]; then
     confirm || continue
+    # Only cancellations: a superseded run is waited past, and the newest run is rerun once.
+    if ! tr ' ' '\n' <<<"$failing" | grep -qv '=cancelled$' && handle_cancelled; then
+      timed_out && { say "timed out waiting on #$pr"; exit 124; }
+      sleep "$poll"; live=1; continue
+    fi
     say "#$pr at ${head:0:8}: failing: $failing"
     link="$(local_ci_link)"; [ -n "$link" ] && say "Local CI: $link"
     exit 2
