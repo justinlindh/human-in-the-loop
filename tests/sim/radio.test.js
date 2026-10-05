@@ -63,8 +63,15 @@ describe('issue #139: the boombox', () => {
     const s = office();
     place(s);
     expectFail(expect, dispatch, s, { type: 'setRadio', station: 'dubstep' }, 'Unknown station');
+    expectFail(expect, dispatch, s, { type: 'setRadio' }, 'Nothing to change');
     expect(dispatch(s, { type: 'setRadio', on: false }).ok).toBe(true);
     expect(s.radio).toEqual({ on: false, station: 'lofi' });
+    expect(dispatch(s, { type: 'setRadio', station: 'bossa' }).ok).toBe(true);
+    expect(s.radio).toEqual({ on: false, station: 'bossa' });
+    const id = s.office.placed.find((p) => p.itemId === 'boombox').id;
+    const spot = suggestPlacement(s, 'plant');
+    expect(dispatch(s, { type: 'moveItem', id, x: spot.x, y: spot.y, rot: 0 }).ok).toBe(true);
+    expect(s.radio).toEqual({ on: false, station: 'bossa' });
     expect(dispatch(s, { type: 'setRadio', on: true, station: 'funk' }).ok).toBe(true);
     expect(s.radio).toEqual({ on: true, station: 'funk' });
   });

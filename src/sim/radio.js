@@ -85,6 +85,7 @@ registerSystem('radio', radioSystem, 93);
 registerAction('setRadio', (ctx, { on, station } = {}) => {
   const { state } = ctx;
   if (!hasBoombox(state)) return { ok: false, reason: 'No boombox' };
+  if (on === undefined && station === undefined) return { ok: false, reason: 'Nothing to change' };
   if (station !== undefined && !STATION_IDS.includes(station)) return { ok: false, reason: 'Unknown station' };
   setRadio(ctx, on ?? state.radio?.on ?? false, station ?? state.radio?.station ?? 'lofi');
   return { ok: true };
