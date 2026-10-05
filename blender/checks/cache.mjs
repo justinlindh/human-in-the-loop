@@ -264,6 +264,9 @@ function listHash(rel) {
 }
 
 const graphFile = (check, base) => join(dir(check), `graph-${base}.json`);
+// Where a check keeps an output of the pass recorded under `base` (graph-<base>.<name>), for a
+// skipped run to hand back; old ones are cleared with the records.
+export const graphOutput = (check, base, name) => join(dir(check), `graph-${base}.${name}`);
 
 // The files a run loaded, as repo-relative paths: absolute paths under the repo are made relative;
 // node_modules (covered by the installed versions) and anything outside the repo are dropped; a

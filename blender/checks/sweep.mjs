@@ -48,13 +48,13 @@
 // exactly what this run found. The run is deterministic: it depends only on the code.
 import { startHarness, wantGpu } from './harness.mjs';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
-import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync } from 'node:fs';
 import { dirname, resolve, join, basename } from 'node:path';
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { planReplay, mentions, isWorse } from './sweep-plan.js';
 import { createWorktree } from '../../scripts/tools/worktree.mjs';
-import { graphBase, graphPassedAt, recordGraphPass, requestedFiles } from './cache.mjs';
+import { graphBase, graphOutput, graphPassedAt, recordGraphPass, requestedFiles } from './cache.mjs';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -124,7 +124,7 @@ async function startControl(spec) {
   const rev = asRoot ? execFileSync('git', ['-C', spec, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim() : execFileSync('git', ['-C', repoRoot, 'rev-parse', spec], { encoding: 'utf8' }).trim();
   // A checkout given by path counts with its uncommitted edits to tracked files (a control patch).
   const patch = asRoot ? execFileSync('git', ['-C', spec, 'diff', 'HEAD', '--binary'], { maxBuffer: 1 << 28 }) : null;
-  const overlay = Object.fromEntries(['sweep.mjs', 'sample.js', 'sweep-plan.js'].map((f) => [`blender/checks/${f}`, join(HERE, f)]));
+  const overlay = Object.fromEntries(['sweep.mjs', 'sample.js', 'sweep-plan.js', 'cache.mjs'].map((f) => [`blender/checks/${f}`, join(HERE, f)]));
   for (const f of ['worktree.mjs', 'tmp.mjs']) overlay[`scripts/tools/${f}`] = join(repoRoot, 'scripts/tools', f);
   // An engine run on the other checkout is this checkout's engine on that checkout's game code.
   if (engine) {
@@ -160,7 +160,15 @@ const cacheable = engine && !full && !['against', 'replay', 'item', 'moments', '
   && !['--update-baseline', '--prune', '--strict'].some((f) => argv.includes(f));
 const cacheKey = cacheable ? graphBase('sweep', argv.filter((a, i) => a !== '--out' && argv[i - 1] !== '--out').join(' ')) : null;
 const passedAt = graphPassedAt('sweep', cacheKey);
-if (passedAt) { console.log(`sweep: inputs unchanged since ${passedAt}, skipped`); process.exit(0); }
+// A skipped run hands back the pass's report.json and report.md in --out, so a reader gets the same
+// files a real run writes; a pass recorded without them runs.
+const REPORTS = ['report.json', 'report.md'];
+if (passedAt && REPORTS.every((f) => existsSync(graphOutput('sweep', cacheKey, f)))) {
+  mkdirSync(outDir, { recursive: true });
+  for (const f of REPORTS) copyFileSync(graphOutput('sweep', cacheKey, f), join(outDir, f));
+  console.log(`sweep: inputs unchanged since ${passedAt}, skipped (its report is in ${outDir})`);
+  process.exit(0);
+}
 // The screen step reports the files its pages requested when the run will record them.
 const screenLoads = screenOnly && process.env.HITL_SWEEP_LOADS === '1';
 const requested = [];
@@ -401,5 +409,9 @@ if (errors.length) console.log(`sweep: page errors: ${errors.slice(0, 5).join(';
 console.log(`sweep: ${all.length} distinct violation(s), ${fresh.length} new, ${advisory.length} new in seeds only (advisory), ${gone.length} not seen; ${Math.round((wall() - t0) / 1000)} s (${full ? 'full' : 'fast'}${strict ? ', strict' : ''})`);
 const code = fresh.length && !argv.includes('--update-baseline') || errors.length ? 1 : 0;
 // A clean pass is recorded only with the screen step's files too, unless the run had no screen step.
-if (!code && cacheKey && (screenLoaded || !screen)) recordGraphPass('sweep', cacheKey, [...(globalThis.__hitlLoaded ?? []), ...(screenLoaded ?? []), BASELINE]);
+if (!code && cacheKey && (screenLoaded || !screen)) {
+  // The reports go first: a record is only trusted with its reports beside it.
+  try { mkdirSync(dirname(graphOutput('sweep', cacheKey, 'x')), { recursive: true }); for (const f of REPORTS) copyFileSync(join(outDir, f), graphOutput('sweep', cacheKey, f)); recordGraphPass('sweep', cacheKey, [...(globalThis.__hitlLoaded ?? []), ...(screenLoaded ?? []), BASELINE]); }
+  catch (e) { console.error(`sweep: cache: skipped (could not keep the report: ${e.message})`); }
+}
 process.exit(code);
