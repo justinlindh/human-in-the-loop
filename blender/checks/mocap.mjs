@@ -5,13 +5,13 @@
 // person is on screen and how big, for a camera.
 //
 //   node blender/checks/mocap.mjs --clip a.json[,b.json,...] [--mock floor | --seed N [--week W]]
-//        [--anchor x,z,yaw] [--spread k] [--camera cx,cy,cz,tx,ty,tz[,fov]] [--frames all | 0-90 | 0,30,60] [--who s1,s2]
+//        [--anchor x,z,yaw] [--spread k] [--shot '<json>'] [--camera cx,cy,cz,tx,ty,tz[,fov]] [--frames all | 0-90 | 0,30,60] [--who s1,s2]
 //        [--expect '<measure><op><value>@<share>'] [--no-ik] [--rows] [--json out.json]
 //
 // One clip per person, played on the first staff members (or --who) through R.playShot: the group's centre
 // stands at the anchor (default where the first person stands, facing +z), each clip is placed from its
 // `origin` and the gaps between people are widened by --spread (default the game's, so pairDepth measures the
-// staged spacing); a clip without an origin is put 1.2 m from the previous. Frames are shot frames (30 a
+// staged spacing), --shot '<json>' adds any other R.playShot option (apart, gain, ...); a clip without an origin is put 1.2 m from the previous. Frames are shot frames (30 a
 // second from the earliest clip's first source frame).
 //
 // Rules: --expect 'selfDepth<=0.03@1' passes when at least that share of the frames that have the measure
@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 
 export const MEASURES = ['contactMiss', 'selfDepth', 'pairDepth', 'onScreen', 'heightPx'];
 export const DEFAULT_RULES = ['contactMiss<=0.06@0.9', 'selfDepth<=0.03@1', 'pairDepth<=0.03@1', 'onScreen>=0.9@0.9'];
-const USAGE = "usage: node blender/checks/mocap.mjs --clip a.json[,b.json] [--mock floor | --seed N [--week W]] [--anchor x,z,yaw] [--spread k] [--camera cx,cy,cz,tx,ty,tz[,fov]] [--frames all|a-b|n,n] [--who s1,s2] [--expect '<measure><op><value>@<share>'] [--no-ik] [--rows] [--json out.json]";
+const USAGE = "usage: node blender/checks/mocap.mjs --clip a.json[,b.json] [--mock floor | --seed N [--week W]] [--anchor x,z,yaw] [--spread k] [--shot '<json>'] [--camera cx,cy,cz,tx,ty,tz[,fov]] [--frames all|a-b|n,n] [--who s1,s2] [--expect '<measure><op><value>@<share>'] [--no-ik] [--rows] [--json out.json]";
 const fail = (msg) => { console.error(`mocap: ${msg}\n${USAGE}`); process.exit(2); };
 
 export function parseRule(text) {
@@ -70,7 +70,7 @@ async function main() {
     if (!a.startsWith('--')) fail(`unexpected argument ${a}`);
     const k = a.slice(2);
     if (flags.has(k)) opt[k] = true;
-    else if (['clip', 'mock', 'seed', 'week', 'anchor', 'spread', 'camera', 'frames', 'who', 'expect', 'json'].includes(k)) {
+    else if (['clip', 'mock', 'seed', 'week', 'anchor', 'spread', 'shot', 'camera', 'frames', 'who', 'expect', 'json'].includes(k)) {
       if (argv[i + 1] === undefined) fail(`--${k} needs a value`);
       if (multi.has(k)) (opt[k] ??= []).push(argv[++i]); else opt[k] = argv[++i];
     } else fail(`unknown option ${a}`);
@@ -90,6 +90,11 @@ async function main() {
   camera = nums('camera', 6);
   const spread = opt.spread == null ? undefined : Number(opt.spread);
   if (spread !== undefined && !(spread > 0)) fail('--spread wants a number above 0');
+  let shotOpts;
+  if (opt.shot != null) {
+    try { shotOpts = JSON.parse(opt.shot); } catch { fail('--shot wants a JSON object, e.g. \'{"apart":0.8}\''); }
+    if (!shotOpts || typeof shotOpts !== 'object' || Array.isArray(shotOpts)) fail('--shot wants a JSON object, e.g. \'{"apart":0.8}\'');
+  }
   try {
     frames = parseFrames(opt.frames);
     rules = (opt.expect ?? DEFAULT_RULES).map(parseRule);
@@ -101,7 +106,7 @@ async function main() {
   const t0 = performance.now();
   const { runCases } = await import('../../scripts/studio/page-host.mjs');
   const source = opt.seed != null ? { seed: Number(opt.seed), weeks: opt.week ? Number(opt.week) : 0 } : { mock: opt.mock ?? 'floor' };
-  const arg = { clips, anchor, spread, camera, frames, who, ik: !opt['no-ik'], width: 1280, height: 800 };
+  const arg = { clips, anchor, spread, shot: shotOpts, camera, frames, who, ik: !opt['no-ik'], width: 1280, height: 800 };
   const [r] = await runCases([{ page: { ...source, quality: 'medium', rig: 1, width: 1280, height: 800 }, module: fileURLToPath(new URL('./mocap-page.js', import.meta.url)), fn: 'mocapPage', arg }], { jobs: 1 });
   if (r.error) { console.error(`mocap: engine: ${r.error}`); process.exit(2); }
   if (r.value.error) fail(r.value.error);

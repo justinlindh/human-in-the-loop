@@ -92,6 +92,9 @@ describe('mocap.mjs', () => {
     expect(wide.stdout).toMatch(/MOCAP ok\s+s\d+ pairDepth/);
     const bad = await run(['--clip', a, '--spread', '0']);
     expect(bad.status).toBe(2);
+    for (const shot of ['nope', '[1]']) expect((await run(['--clip', a, '--shot', shot])).status).toBe(2);
+    const passed = await run(['--clip', a, '--frames', '0,3', '--shot', '{"apart":0.8}']);
+    expect(passed.status, passed.stdout + passed.stderr).toBe(0);
   }, 240000);
 
   it('refuses bad input with a usage line', async () => {

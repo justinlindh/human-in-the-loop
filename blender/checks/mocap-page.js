@@ -51,7 +51,7 @@ export const mocapPage = async (o) => {
   const starts = o.clips.map((c) => c.source?.start ?? 0);
   const first = Math.min(...starts);
   let shotT = first / VFPS;
-  const shotOpts = { at: anchor, clock: () => shotT, videoFps: VFPS, ik: o.ik !== false, ...(o.spread != null ? { spread: o.spread } : {}) };
+  const shotOpts = { ...(o.shot ?? {}), at: anchor, clock: () => shotT, videoFps: VFPS, ik: o.ik !== false, ...(o.spread != null ? { spread: o.spread } : {}) };
   const entries = (clips) => clips.map((clip, i) => ({ id: ids[i], clip: clip.origin ? clip : { ...clip, origin: { pos: [i * 1.2, 0, 0], yaw: 0 } } }));
   const playAll = (clips) => R.playShot(entries(clips), shotOpts).players;
   const settle = () => { for (let k = 0; k < 20; k++) window.__sample(1); R.scene.updateMatrixWorld(true); };
