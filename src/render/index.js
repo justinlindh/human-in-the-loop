@@ -471,6 +471,10 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     isSeated(id) { return staff?.isSeated(id) ?? false; },
     walkOf(id) { return staff?.walkOf(id) ?? null; },
+    // A baked motion clip (mocap.js) on staff member `id`: opts { at: { x, z, yaw }, clock: () => s,
+    // minConf, ik, ramp }. Returns the player (setTime, contactsAt, duration) or null.
+    playMocap(id, clip, opts) { return staff?.playMocap(id, clip, opts) ?? null; },
+    stopMocap(id) { staff?.stopMocap(id); },
     // Test hooks for faces: show an expression on staff member `id` (character.js express), and
     // read their face's expression and morph weights.
     express(id, name, o) { const c = charOf(id); if (!c) return false; c.express(name, o); return true; },
