@@ -35,9 +35,10 @@ export function placeInShot(clip, at = { x: 0, z: 0, yaw: 0 }, { spread = 1, cen
 }
 
 // A clip's own time on a shot's clock: the shot clock runs in seconds of the source video, and a
-// clip starts at its source frame (videoFps frames a second).
+// clip starts at its source frame, at the source's own frame rate (clip.source.fps), else videoFps.
+export const sourceStart = (clip, videoFps = 30) => (clip.source?.start ?? 0) / (clip.source?.fps || videoFps);
 export function clipTime(clip, shotT, videoFps = 30) {
-  return shotT - (clip.source?.start ?? 0) / videoFps;
+  return shotT - sourceStart(clip, videoFps);
 }
 
 export function isMocapClip(c) { return c?.format === 'hitl-mocap-clip' || (c?.tracks && c?.fps && Array.isArray(c?.bones)); }
