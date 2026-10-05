@@ -61,9 +61,10 @@ const PALM_STAND = [-2.75, 0.14, 0.27, -0.6, 0.08];
 const PALM_SHOULDER_REF = 0.18;   // metres from the spine to the shoulder of the middle build
 const PALM_BUILD_K = 3;
 const PALM_SIT = [-2.75, 0.14, 0.27, -0.6, 0.08];
-// The deal fist pump: raised arm's shoulder roll and forward pitch, the pump's swing, the chin lift,
+// The deal fist pump: raised arm's shoulder roll and pitch (back, so the fist rises beside the head
+// rather than over the chest, where it reads as typing from above), the pump's swing, the chin lift,
 // the bounce in the chair (metres).
-const DEAL_POSE = [2.75, 0.6, 0.25, 0.2, 0.03];
+const DEAL_POSE = [2.75, -0.3, 0.25, 0.2, 0.03];
 const SEATED = new Set(['growthpumpsit', 'growthclapsit', 'dealsit', 'typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit']);
 
 const roleMats = new Map();
