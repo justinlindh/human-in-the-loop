@@ -40,9 +40,9 @@ const BLEND_S = 0.3;
 const WALK_CLIP_SPEED = 0.875;
 const LYING = new Set(['lie', 'nap', 'sprawl']);
 // The face (face.js): one geometry shared by every character, its morph targets blended per person.
-// Shared geometry bakes its colours in, so face parts use fixed palette colours only. With morphs
-// off (Low quality), each expression's settled face is baked once into a static geometry instead,
-// keyed by expression and whether the eyes are shut, and swapped whole.
+// Shared geometry bakes its colours in, so face parts use fixed palette colours only. A settled
+// face, and every face with morphs off (Low quality), shows its expression baked once into a static
+// geometry instead, keyed by expression and whether the eyes are shut, and swapped whole.
 let FACE_GEO = null;
 const FACE_BAKED = new Map();
 let faceMorphs = true;
@@ -473,10 +473,19 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       faceWant[LOOK_DOWN] = Math.max(0, Math.min(1, -pitch / 0.5));
     }
     faceWant[TALK] = Math.max(faceWant[TALK], faceTalk);
+    // Morphs only while the face moves (blending, following a target, talking); a settled face
+    // shows its baked copy, which draws without the morph cost.
+    let moving = false;
     if (faceMorphs) {
-      if (faceMesh.geometry !== FACE_GEO) { faceMesh.geometry = FACE_GEO; faceMesh.updateMorphTargets(); faceShown = null; }
       const k = 1 - Math.exp(-dt / Math.max(0.02, faceExpr?.blend ?? FACE_BLEND_S) * 3);
-      for (let i = 0; i < faceW.length; i++) faceW[i] += (faceWant[i] - faceW[i]) * (i === BLINK ? 1 : k);
+      for (let i = 0; i < faceW.length; i++) {
+        faceW[i] += (faceWant[i] - faceW[i]) * (i === BLINK ? 1 : k);
+        if (Math.abs(faceWant[i] - faceW[i]) > 0.01) moving = true;
+      }
+      moving ||= !!faceLook || faceTalk > 0;
+    }
+    if (moving) {
+      if (faceMesh.geometry !== FACE_GEO) { faceMesh.geometry = FACE_GEO; faceMesh.updateMorphTargets(); faceShown = null; }
       const inf = faceMesh.morphTargetInfluences;
       for (let i = 0; i < faceW.length; i++) inf[i] = faceW[i];
     } else {
