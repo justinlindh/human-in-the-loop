@@ -127,6 +127,12 @@ const SPECS = {
     share('facingCamera', 'face within 60 deg of the camera', (x) => x.faceCam <= 60, 0.75),
     share('visible', 'body >= 50% unblocked', (x) => x.visible >= 0.5, 0.8),
   ] },
+  // Clicked people bark (hitl:voice, one emotion each): the bark's face replaces the click face
+  // (tired and questioning come only from a bark) and the mouth follows the loudness envelope.
+  'click_voice.clicked': { moment: 'click', scenario: 'click_voice', beat: 'look', role: 'clicked', rules: [
+    share('barkFace', 'a bark-only face (tired, questioning) on two of the four', (x) => ['tired', 'questioning'].includes(x.face), 0.35),
+    share('mouthMoves', 'the mouth open past 0.2 with the voice', (x) => x.talk >= 0.2, 0.3),
+  ] },
   'company_party.cheer': { moment: 'company_party', beat: 'cheer', rules: [
     share('celebrating', 'company celebrates throughout the beat', (x) => x.anim === 'celebrate', 0.9),
   ] },
@@ -315,6 +321,8 @@ const SCENARIOS = {
     setup: "(await import('/src/render/checks.js')).setupFired(R, S)" },
   click: { query: 'mock=floor', patch: {}, seconds: 2,
     setup: "(await import('/src/render/checks.js')).setupClick(R, S)" },
+  click_voice: { moment: 'click', query: 'mock=floor', patch: {}, seconds: 2,
+    setup: "(await import('/src/render/checks.js')).setupClick(R, S, { voice: true })" },
   company_party: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "R.handleEvents([{ type: 'celebrate', staffId: null }], S);" }], seconds: 6 },
   pet: { query: 'mock=floor', patch: {}, seconds: 6,
     setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'dog', 2.104, 1.0)" },

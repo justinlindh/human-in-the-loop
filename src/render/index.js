@@ -475,9 +475,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     // minConf, ik, ramp }. Returns the player (setTime, contactsAt, duration) or null.
     playMocap(id, clip, opts) { return staff?.playMocap(id, clip, opts) ?? null; },
     stopMocap(id) { staff?.stopMocap(id); },
-    // Test hooks for faces: show an expression on staff member `id` (character.js express), and
-    // read their face's expression and morph weights.
+    // Test hook for faces: show an expression on staff member `id` (character.js express).
     express(id, name, o) { const c = charOf(id); if (!c) return false; c.express(name, o); return true; },
+    // Public (ui portraits read .name): staff member `id`'s expression and morph weights.
     face(id) { return charOf(id)?.face ?? null; },
     walkDebug(id) { return staff?.walkDebug(id) ?? null; },
     // Test hook: the scenery's standing footprints and moving cars (surroundings.exterior).
