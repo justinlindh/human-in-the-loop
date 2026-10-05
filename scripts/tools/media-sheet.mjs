@@ -7,7 +7,7 @@
 // A directory is searched for .webp .png .jpg .mp4 .webm .mov (hidden folders such as .publish are skipped). The
 // cells come from scripts/sheet.sh; rows of different widths are padded with white, so a clip row and a short row
 // of stills stack without a size mismatch. Exit 0 on success, 2 on bad input, 1 when a row cannot be made.
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { existsSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -47,32 +47,46 @@ if (!found.length) fail('no stills or clips among the inputs', 1);
 // Titles are paths from --base, else the first input's directory, so two clips named alike in different folders stay apart.
 const base = opt.base ? resolve(opt.base) : statSync(inputs[0]).isDirectory() ? resolve(inputs[0]) : dirname(resolve(inputs[0]));
 const tmp = mkdtempSync(join(toolTmp(), 'media-sheet-'));
-const run = (cmd, argv) => {
-  const r = spawnSync('nice', ['-n', '10', 'timeout', '300', cmd, ...argv], { encoding: 'utf8' });
-  if (r.status !== 0) fail(`${basename(cmd)} ${argv.slice(0, 2).join(' ')} failed: ${(r.stderr || r.stdout).trim().split('\n').pop()}`, 1);
-};
+// Each step runs async so a signal is handled at once: the whole process group is signalled, so the running step
+// ends too, and the temp folder goes before the exit.
+const run = (cmd, argv) => new Promise((done, reject) => {
+  const p = spawn('nice', ['-n', '10', 'timeout', '300', cmd, ...argv], { stdio: ['ignore', 'pipe', 'pipe'] });
+  let err = '';
+  p.stderr.on('data', (d) => { err += d; });
+  p.on('close', (status) => (status === 0 ? done() : reject(new Error(`${basename(cmd)} ${argv.slice(0, 2).join(' ')} failed: ${err.trim().split('\n').pop()}`))));
+});
+let code = 0;
+const stop = (c) => () => { rmSync(tmp, { recursive: true, force: true }); process.exit(c); };
+process.on('SIGINT', stop(130));
+process.on('SIGTERM', stop(143));
+process.on('SIGHUP', stop(129));
 try {
   const crop = opt.crop ? ['--crop', opt.crop] : [];
   const rows = [];
   const stills = found.filter((f) => STILL.test(f)), clips = found.filter((f) => CLIP.test(f));
   if (stills.length) {
     const file = join(tmp, `row-${rows.length}.png`);
-    run(SHEET, ['grid', file, '--cols', String(opt['per-row']), ...crop, ...stills]);
+    await run(SHEET, ['grid', file, '--cols', String(opt['per-row']), ...crop, ...stills]);
     rows.push({ file, title: `${stills.length} still${stills.length === 1 ? '' : 's'}` });
   }
   for (const clip of clips) {
     const file = join(tmp, `row-${rows.length}.png`);
-    run(SHEET, ['frames', file, clip, '--count', String(opt.count), '--cols', String(opt.count), ...crop]);
+    await run(SHEET, ['frames', file, clip, '--count', String(opt.count), '--cols', String(opt.count), ...crop]);
     rows.push({ file, title: relative(base, clip) });
   }
   // A title band over each row; rows of different widths are padded on the right with white.
-  const titled = rows.map((r, i) => {
+  const titled = [];
+  for (const [i, r] of rows.entries()) {
     const file = join(tmp, `titled-${i}.png`);
-    run('magick', ['(', '-background', 'white', '-fill', 'black', '-font', 'DejaVu-Sans', '-pointsize', '22', `label:${r.title}`, ')', r.file, '-background', 'white', '-gravity', 'west', '-append', file]);
-    return file;
-  });
-  run('magick', [...titled, '-background', 'white', '-gravity', 'west', '-append', resolve(out)]);
+    await run('magick', ['(', '-background', 'white', '-fill', 'black', '-font', 'DejaVu-Sans', '-pointsize', '22', `label:${r.title}`, ')', r.file, '-background', 'white', '-gravity', 'west', '-append', file]);
+    titled.push(file);
+  }
+  await run('magick', [...titled, '-background', 'white', '-gravity', 'west', '-append', resolve(out)]);
   console.log(resolve(out));
+} catch (e) {
+  code = 1;
+  console.error(`media-sheet: ${e.message}`);
 } finally {
   rmSync(tmp, { recursive: true, force: true });
 }
+process.exit(code);
