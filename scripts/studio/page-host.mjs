@@ -6,7 +6,7 @@
 //   const results = await runCases([{ page: { mock: 'floor', quality: 'low' }, module: '/abs/standup-pages.js', fn: 'geometry', arg }], { jobs: 4 })
 //
 // A case is { page, module, fn, arg }: `page` the scene a harness URL would open (mock or seed, with
-// `weeks` played as the page plays them or `week` played by the bots, quality, rig, the viewport's
+// `weeks` played as the page plays them or `week` played by the bots, or a `snapshot` file, quality, rig, the viewport's
 // width and height, and --param overrides as param.js resolves them), `module` an
 // absolute path to a module exporting `fn(arg)`. Each result is { value } or { error }.
 import { fork } from 'node:child_process';
@@ -32,7 +32,7 @@ async function pageWeeks(seed, weeks) {
 // Opens one scene and installs what a harness page has: the renderer and state, the clock and steppers,
 // the game-stream reseed, the tool-side helpers (__wallNow, __drawAudit, __fastRaycast), and imports by
 // site path (`/src/...`, `/blender/...`) from this checkout.
-export async function openPage({ mock = 'floor', seed, week, weeks, quality = 'low', rig = null, width, height, params = [] } = {}) {
+export async function openPage({ mock = 'floor', seed, week, weeks, snapshot, quality = 'low', rig = null, width, height, params = [] } = {}) {
   registerHooks({
     resolve(specifier, context, next) {
       if (/^\/(src|blender|scripts|public)\//.test(specifier)) return next(new URL(specifier.slice(1), ROOT).href, context);
@@ -47,7 +47,7 @@ export async function openPage({ mock = 'floor', seed, week, weeks, quality = 'l
     const byFile = Map.groupBy(params, (p) => p.file);
     transform = (file, source) => (byFile.has(file) ? applyParams(source, byFile.get(file)) : source);
   }
-  const state = seed == null ? undefined : weeks ? await pageWeeks(seed, weeks) : await resolveState({ seed, week });
+  const state = snapshot ? await resolveState({ snapshot }) : seed == null ? undefined : weeks ? await pageWeeks(seed, weeks) : await resolveState({ seed, week });
   const rt = await createRuntime({ state, mock, quality, rig, width, height, transform, initialSync: false });
   const { R, S } = rt;
   const g = globalThis;
