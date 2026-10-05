@@ -52,9 +52,9 @@ beforeEach(() => { enabled = B.mail.enabled; B.mail.enabled = true; });
 afterEach(() => { B.mail.enabled = enabled; });
 
 describe('issue #17: the inbox', () => {
-  it('is off by default, and while off nothing arrives and the moved events behave as before', () => {
-    B.mail.enabled = enabled;
-    expect(B.mail.enabled).toBe(false);
+  it('is on by default, and while off nothing arrives and the moved events behave as before', () => {
+    expect(enabled).toBe(true);
+    B.mail.enabled = false;
     const s = company();
     expect(runWeeks(s, 60).filter((e) => e.type === 'mail')).toEqual([]);
     expect(s.mail).toEqual([]);

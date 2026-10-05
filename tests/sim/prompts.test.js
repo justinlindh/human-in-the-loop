@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { dispatch } from '../../src/sim/index.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { promptsSystem } from '../../src/sim/prompts.js';
@@ -304,7 +304,11 @@ describe('issue #929: a full office asks for a desk, and a promised desk is reme
 });
 
 describe('interruption cut 2: low-stakes events arrive as Yak prompts', () => {
-  const YAK = ['coffee_wanted', 'coffee_wanted_corner', 'pet_request', 'vendor_new_version', 'senior_side_project', 'app_store_rejection'];
+  // vendor_new_version and app_store_rejection go to the inbox while it is on; these tests cover the Yak path.
+  let mail;
+  beforeEach(() => { mail = B.mail.enabled; B.mail.enabled = false; });
+  afterEach(() => { B.mail.enabled = mail; });
+  const YAK =['coffee_wanted', 'coffee_wanted_corner', 'pet_request', 'vendor_new_version', 'senior_side_project', 'app_store_rejection'];
 
   it('the six are marked, with an ignore choice that exists', () => {
     const marked = Object.values(EVENTS).filter((e) => e.yak).map((e) => e.id).sort();
