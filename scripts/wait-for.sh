@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Waits on a pull request after a push, from GitHub state only: it never starts local CI (the auto-CI
 # timer does). When the PR falls behind main or conflicts, it merges origin/main into the PR's branch in
-# this worktree (merge, never rebase), runs the tests, pushes, and waits on the new head.
+# this worktree (merge, never rebase), runs the tests, pushes, and waits on the new head. Only a ready PR
+# (review and local-ci passed) that is first in line by ready time does that; the others wait their turn
+# (see the update queue below), so a landing PR doesn't make every other PR rerun its checks for nothing.
 #
 # Usage: scripts/wait-for.sh <pr> [--merged] [--no-update] [--test "<cmd>"] [--poll <s>]
 #                                  [--pickup <min>] [--timeout <min>]
@@ -55,6 +57,35 @@ still_on_branch() { # <what>: exits 7 naming both branches when the worktree has
   exit 7
 }
 timed_out() { [ $(( $(date +%s) - start )) -ge $(( timeout * 60 )) ]; }
+
+# The update queue. With main strict, every merge makes every other PR behind, and each one that merges
+# main in reruns its checks for nothing when another PR lands first. So a PR merges main in only when it
+# is ready (review passed and local-ci passed on its head) and first in line by when it became ready;
+# the others wait. An entry is a file per PR in the queue directory, kept alive by the watcher's heartbeat
+# (a timed-out watcher re-armed within the grace keeps its place). It is removed when the PR fails, gets
+# changes requested, closes or merges.
+qdir="${HITL_MERGE_QUEUE:-$HOME/.cache/hitl-ci/merge-queue}"
+[ -n "$repo" ] && qdir="$qdir/${repo//\//_}"
+qgrace="${HITL_QUEUE_GRACE:-600}"
+qfile="$qdir/${pr:-0}"
+q_fresh() { [ $(( $(date +%s) - $(stat -c %Y "$1" 2>/dev/null || echo 0) )) -lt "$qgrace" ]; }
+q_since() { sed -n 's/^ready_since=\([0-9][0-9]*\).*/\1/p' "$1" 2>/dev/null; }
+q_join() { [ -f "$qfile" ] && return 0; mkdir -p "$qdir" && printf 'ready_since=%s pr=%s\n' "$(date +%s)" "$pr" >"$qfile" && say "#$pr is ready: in the update queue"; }
+q_leave() { rm -f "$qfile"; }
+q_beat() { [ -f "$qfile" ] && touch "$qfile"; return 0; }
+q_ahead() { # prints the PR number of a fresh entry ahead of this one; fails when this PR is first (or not queued)
+  [ -f "$qfile" ] || return 1
+  local mine f p t; mine="$(q_since "$qfile")"; [ -n "$mine" ] || return 1
+  for f in "$qdir"/*; do
+    [ -f "$f" ] || continue; p="${f##*/}"
+    case "$p" in ''|*[!0-9]*) continue ;; esac
+    [ "$p" = "$pr" ] && continue
+    q_fresh "$f" || continue
+    t="$(q_since "$f")"; [ -n "$t" ] || continue
+    if [ "$t" -lt "$mine" ] || { [ "$t" -eq "$mine" ] && [ "$p" -lt "$pr" ]; }; then echo "$p"; return 0; fi
+  done
+  return 1
+}
 
 if [ -n "$issue" ]; then
   while :; do
@@ -190,8 +221,8 @@ while :; do
   branch="$(jq -r .headRefName <<<"$json")"
   merge_state="$(jq -r .mergeStateStatus <<<"$json")"
   mergeable="$(jq -r .mergeable <<<"$json")"
-  [ "$state" = MERGED ] && { say "#$pr merged"; exit 0; }
-  [ "$state" = CLOSED ] && { say "#$pr was closed without merging"; exit 6; }
+  [ "$state" = MERGED ] && { q_leave; say "#$pr merged"; exit 0; }
+  [ "$state" = CLOSED ] && { q_leave; say "#$pr was closed without merging"; exit 6; }
   if pushed_ahead "$branch" "$head" >/dev/null; then
     confirm || continue
     # The ref is refetched, since a force push can leave it ahead of what the remote really holds.
@@ -204,13 +235,6 @@ while :; do
   fi
   if [ "$head" != "$seen_head" ]; then seen_head="$head"; head_since=$(date +%s); warned=0; fi
 
-  if [ "$merge_state" = BEHIND ] || [ "$mergeable" = CONFLICTING ]; then
-    confirm || continue
-    if [ "$update" = 0 ]; then say "#$pr is ${merge_state,,} (mergeable: ${mergeable,,})"; exit 3; fi
-    update_branch "$branch" "$head"
-    sleep "$poll"; continue
-  fi
-
   local_ci="$(jq -r '[.statusCheckRollup[]? | select(.__typename == "StatusContext" and .context == "local-ci") | .state] | first // "NONE"' <<<"$json")"
   # A ci-rerun label means auto-CI will replace the head's local-ci result, so an old failure there
   # counts as still waiting. Auto-CI sets local-ci pending when it picks the rerun up.
@@ -221,6 +245,33 @@ while :; do
   pending="$(jq -r '[.statusCheckRollup[]? | select(.__typename == "CheckRun" and (.status != "COMPLETED")) | .name] | join(" ")' <<<"$json")"
   review="$(jq -r '[.statusCheckRollup[]? | select(.__typename == "StatusContext" and .context == "review") | .state] | first // "NONE"' <<<"$json")"
 
+  # The update queue (see q_join): ready means review and local-ci passed on this head with nothing failing.
+  # A PR that is only pending after its own merge of main keeps its place.
+  if [ "$update" = 1 ]; then
+    [ "$review" = SUCCESS ] && [ "$local_ci" = SUCCESS ] && [ -z "$failing" ] && q_join
+    case "$review" in FAILURE|ERROR) q_leave ;; esac
+    if [ -n "$failing" ] && tr ' ' '\n' <<<"$failing" | grep -qv '=cancelled$'; then q_leave; fi
+    q_beat
+  fi
+
+  # Behind main or conflicting. A conflict is tried at once (it fails fast and names the PR for a person);
+  # a PR that is only behind merges main in when it is ready and first in line, else it waits (held).
+  held=""
+  if [ "$merge_state" = BEHIND ] || [ "$mergeable" = CONFLICTING ]; then
+    confirm || continue
+    if [ "$update" = 0 ]; then say "#$pr is ${merge_state,,} (mergeable: ${mergeable,,})"; exit 3; fi
+    ahead=""
+    if [ "$mergeable" != CONFLICTING ]; then
+      if [ ! -f "$qfile" ]; then held="behind main, not ready yet; main goes in when it is ready and first in line"
+      elif ahead="$(q_ahead)"; then held="behind main, queued behind #$ahead"
+      fi
+    fi
+    if [ -z "$held" ]; then
+      q_beat; update_branch "$branch" "$head"; q_beat
+      sleep "$poll"; continue
+    fi
+  fi
+
   if [ -n "$failing" ]; then
     confirm || continue
     # Only cancellations: a superseded run is waited past, and the newest run is rerun once.
@@ -230,19 +281,20 @@ while :; do
     fi
     say "#$pr at ${head:0:8}: failing: $failing"
     link="$(local_ci_link)"; [ -n "$link" ] && say "Local CI: $link"
+    q_leave
     exit 2
   fi
   # Required statuses not yet passing, by name (a status or a check run). A skipped or neutral check
   # run satisfies a required check, as GitHub counts it.
   waiting="$(jq -r --arg req "$required" '($req | split(" ")) as $r | [.statusCheckRollup[]? | {n: (.context // .name), s: ((.state // .conclusion // "") | ascii_upcase)}] as $all
     | [$r[] | . as $name | select([$all[] | select(.n == $name and (.s == "SUCCESS" or .s == "SKIPPED" or .s == "NEUTRAL"))] | length == 0)] | join(" ")' <<<"$json")"
-  now="waiting on: ${waiting:-nothing}, review ${review,,}, running: ${pending:-none}$([ "$rerun" = true ] && echo ", local-ci rerun asked")"
+  now="waiting on: ${waiting:-nothing}, review ${review,,}, running: ${pending:-none}$([ "$rerun" = true ] && echo ", local-ci rerun asked")${held:+, $held}"
   [ "$now" != "$last" ] && { say "#$pr at ${head:0:8}: $now"; last="$now"; }
   if [[ " $required " == *" local-ci "* ]] && [ "$local_ci" = NONE ] && [ "$warned" = 0 ] && [ $(( $(date +%s) - head_since )) -ge $(( pickup * 60 )) ]; then
     say "auto-CI hasn't reported on ${head:0:8} after ${pickup} min; check the timer"
     warned=1
   fi
-  if [ -z "$waiting" ] && [ -z "$pending" ] && [ "$merged" = 0 ]; then
+  if [ -z "$waiting" ] && [ -z "$pending" ] && [ -z "$held" ] && [ "$merged" = 0 ]; then
     confirm || continue
     say "#$pr at ${head:0:8}: $required and every GitHub check passed"
     exit 0
