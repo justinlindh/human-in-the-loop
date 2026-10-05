@@ -58,7 +58,7 @@ if [ "$mode" = check ]; then
   if [ -n "$missing" ]; then
     echo "baseline-media: FAIL: PR #$pr changes render baselines without before/after media for their current contents:"
     echo "$missing" | sed 's/^/  /'
-    echo "Post it from the PR's checkout: scripts/baseline-media.sh $pr (for the sweep baseline, run the sweep on this head first)."
+    echo "Post it from the PR's checkout: scripts/baseline-media.sh $pr (for the sweep baseline, run a --browser sweep on this head first)."
     exit 1
   fi
   echo "baseline-media: PASS: media on PR #$pr covers every changed baseline ($(echo "$list" | wc -l) file(s))"
@@ -87,7 +87,7 @@ while read -r f b; do
       notes+="- $kind \`$key\` ($worst)"$'\n'
       [ "$kind" = removed ] && continue
       crop="$sweep_dir/$(sed -E 's/[^A-Za-z0-9_-]+/_/g' <<<"$key").png"
-      [ -f "$crop" ] || { echo "baseline-media: no crop for $key at $crop; run node blender/checks/sweep.mjs --out $sweep_dir on this head first" >&2; exit 1; }
+      [ -f "$crop" ] || { echo "baseline-media: no crop for $key at $crop; run node blender/checks/sweep.mjs --browser --out $sweep_dir on this head first" >&2; exit 1; }
       label "$crop" "sweep: $kind $key" "$out/sweep-$(basename "$crop")"
       files+=("$out/sweep-$(basename "$crop")")
     done <<<"$diff"
