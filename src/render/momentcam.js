@@ -14,10 +14,8 @@
 const HANDS_OFF_MS = 4000;   // the player steered this recently: leave the camera alone
 const GLIDE_S = 0.7;         // the spring's smoothing time: about how long a glide takes to settle
 const RIG_RATE = 12;         // how closely the rig tracks the gliding point (rig.focus rate)
-// Metres of view height the Office Floor is fitted into on a desktop window. A moment's zoom is set
-// for that office; a bigger one is fitted wider, so the zoom scales up to frame the same metres.
-const FLOOR_FIT_M = 17;
-const ZOOM_CAP = 3.2;        // the camera's own zoom limit (camera.js)
+// A moment's zoom is set for the Office Floor; a bigger office is fitted wider, so the zoom scales by
+// its officeScale (camera.js) to frame the same metres, whatever the window's shape.
 
 let enabled = true;
 if (typeof window !== 'undefined') {
@@ -49,8 +47,7 @@ export function createMomentCamera(rig) {
     if (!rig || !enabled || now() - rig.lastInput < HANDS_OFF_MS) return false;
     // A new moment takes over from one already held, but the way back stays the player's view.
     const from = held?.from ?? back ?? { goal: rig.goal, zoom: rig.zoomGoal };
-    const wide = Math.max(1, (rig.fitHeight ?? FLOOR_FIT_M) / FLOOR_FIT_M);
-    held = { key, target, zoom: Math.max(Math.min(zoom * wide, ZOOM_CAP), from.zoom), from, at: now() };
+    held = { key, target, zoom: Math.max(Math.min(zoom * (rig.officeScale ?? 1), rig.zoomMax ?? zoom), from.zoom), from, at: now() };
     back = null;
     glide ??= start();
     return true;

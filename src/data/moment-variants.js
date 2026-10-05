@@ -3,7 +3,7 @@
 
 // open_plan_office: a parody leader drones on the all-hands screen until the hammer shatters it.
 export const ALLHANDS_SCREEN = {
-  live: false,
+  live: true,
   caption: 'The all-hands screen drones on about alignment. Someone has a hammer.',
   text: '{name} wants an open-plan office. "Collaboration!" On the all-hands screen, a face is droning about synergy. The walls are not structural. Neither, it turns out, is the plan.',
   open: [

@@ -133,12 +133,20 @@ it('a launch gets a line or two of its own, at most once per party gap, and neve
 
 // The all-hands screen text waits behind its flag until the renderer draws the screen.
 describe('all-hands screen variant', () => {
-  it('leaves the open-plan moment on its default text while the flag is off', async () => {
+  it('is live: the open-plan moment shows the screen the renderer draws', async () => {
     const { MOMENT_CAPTIONS } = await import('../../src/data/moments.js');
-    expect(ALLHANDS_SCREEN.live).toBe(false);
-    expect(MOMENT_CAPTIONS.open_plan_office).not.toMatch(/screen/i);
-    expect(EVENTS.open_plan_office.text).not.toMatch(/screen/);
-    expect([...MOMENT_TALK.open_plan_office.open, ...MOMENT_TALK.open_plan_office.choices.flat()].some((l) => /screen|all-hands/i.test(l))).toBe(false);
+    expect(ALLHANDS_SCREEN.live).toBe(true);
+    expect(MOMENT_CAPTIONS.open_plan_office).toBe(ALLHANDS_SCREEN.caption);
+    expect(EVENTS.open_plan_office.text).toBe(ALLHANDS_SCREEN.text);
+    expect(MOMENT_TALK.open_plan_office.open.slice(0, ALLHANDS_SCREEN.open.length)).toEqual(ALLHANDS_SCREEN.open);
+    MOMENT_TALK.open_plan_office.choices.forEach((lines, i) => expect(lines.slice(0, ALLHANDS_SCREEN.choices[i].length)).toEqual(ALLHANDS_SCREEN.choices[i]));
+  });
+
+  it('keeps the default text when the flag is off', () => {
+    const off = { ...ALLHANDS_SCREEN, live: false };
+    expect(variantText(off, off.caption, 'old')).toBe('old');
+    const base = { open: ['a', 'b'], choices: [['c', 'd'], ['e', 'f']] };
+    expect(variantPool(off, base)).toBe(base);
   });
 
   it('sets up the screen and reacts to it breaking once live, within the moment text limits', () => {
