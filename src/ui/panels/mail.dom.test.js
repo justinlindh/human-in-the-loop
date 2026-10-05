@@ -87,4 +87,12 @@ describe('mail panel', () => {
     const { inst } = setup([mail({ id: 'a', read: 11, resolved: { choice: null, week: 12 } })], { mailId: 'a' });
     expect(inst.el.querySelector('.mailreply').textContent).toContain('No reply.');
   });
+
+  it('drops the open letter when the tab changes to a folder that does not hold it', () => {
+    const { inst } = setup([mail({ id: 'a', read: 11 }), mail({ id: 'c', category: 'spam', read: 11 })], { mailId: 'a' });
+    expect(inst.el.querySelector('.mailbody')).toBeTruthy();
+    [...inst.tabs.querySelectorAll('button')].find((b) => b.textContent.includes('Spam')).click();
+    expect(inst.el.querySelector('.mailbody')).toBeNull();
+    expect(inst.el.classList.contains('reading')).toBe(false);
+  });
 });

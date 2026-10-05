@@ -4,6 +4,7 @@
 import { h, toggleClass, setText } from './dom.js';
 import { icon } from './icons.js';
 import { B } from '../sim/balance.js';
+import { EVENTS } from '../data/events.js';
 
 // Category chips: a short name and an accent, so a sender reads at a glance.
 export const MAIL_CATEGORY = {
@@ -60,6 +61,9 @@ export function threadOf(s, m) {
 // Weeks left to answer, or null.
 export const weeksLeft = (m, now) => (m.expiresWeek != null && hasOpenChoice(m) ? Math.max(0, m.expiresWeek - Math.floor(now)) : null);
 
+// Mail's `kind` is a mail template id, or the id of an event delivered as mail.
+export const isEventMail = (m) => !!EVENTS[m.kind];
+
 // What a tick's new mail asks of the player. Mail that waits on an answer, and important mail, flashes one
 // toast that opens it; an event delivered as plain mail raises none, and spam and ambient mail only bump the
 // badge. `ping` is true when anything worth a soft sound arrived.
@@ -70,7 +74,7 @@ export function mailBeats(events, s) {
     const m = inboxOf(s).find((x) => x.id === e.mailId);
     if (!m || m.category === 'spam') continue;
     out.ping = true;
-    const asks = hasOpenChoice(m) || (m.important && !(m.eventId && !m.options?.length));
+    const asks = hasOpenChoice(m) || (m.important && !isEventMail(m));
     if (asks) out.toasts.push({ text: `Mail from ${m.from?.name ?? 'someone'}: ${m.subject}`, mailId: m.id });
   }
   return out;

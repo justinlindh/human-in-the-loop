@@ -65,7 +65,7 @@ describe('mailBeats', () => {
   });
 
   it('raises no toast for an event delivered as plain mail, and no ping for spam alone', () => {
-    const moved = mail({ id: 'a', eventId: 'vendor_price_hike', important: true });
+    const moved = mail({ id: 'a', kind: 'vendor_price_hike', important: true });
     expect(mailBeats([ev('a')], state(moved)).toasts).toEqual([]);
     const spam = mail({ id: 'd', category: 'spam' });
     expect(mailBeats([ev('d')], state(spam))).toEqual({ toasts: [], ping: false });

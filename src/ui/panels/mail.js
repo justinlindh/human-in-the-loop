@@ -16,7 +16,13 @@ export function mailPanel(ctx, arg) {
   const byId = (s, id) => inboxOf(s).find((m) => m.id === id) ?? null;
 
   const root = h('div.mail');
-  const folderTabs = tabs(FOLDERS.map(([id, label]) => ({ id, label })), folder, (id) => { folder = id; folderTabs.set(id); list.invalidate(); list.update(ctx.getState(), true); });
+  const folderTabs = tabs(FOLDERS.map(([id, label]) => ({ id, label })), folder, (id) => {
+    folder = id; folderTabs.set(id);
+    // A letter from another folder no longer shows beside this tab's list.
+    const open = selected ? byId(ctx.getState(), selected) : null;
+    if (open && folderOf(open) !== folder) { selected = null; toggleClass(root, 'reading', false); pane.invalidate(); pane.update(ctx.getState(), true); }
+    list.invalidate(); list.update(ctx.getState(), true);
+  });
 
   // Opening a letter reads it, once.
   const markRead = (s) => {
