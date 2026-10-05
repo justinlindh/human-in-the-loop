@@ -184,6 +184,22 @@ export function musicKey(state) {
   const id = state?.era?.id ?? 'classic';
   return id === 'dotcom' && state.flags?.dotcom?.phase === 'bust' ? 'dotcom_bust' : id;
 }
+// Office boombox stations: each is a music key `radio_<id>` with its own beds (assets.json music.radio_<id>).
+// The picked station is state.radio = { on, station }; a station with no delivered beds is never chosen.
+export const RADIO_STATIONS = {
+  lofi: { bpm: 78, key: 'Eb', mode: 'major' },
+  synth: { bpm: 116, key: 'A', mode: 'minor' },
+  polka: { bpm: 126, key: 'F', mode: 'major' },
+  bossa: { bpm: 124, key: 'D', mode: 'minor' },
+  elevator: { bpm: 92, key: 'C', mode: 'major' },
+  funk: { bpm: 104, key: 'E', mode: 'minor' },
+};
+for (const [id, m] of Object.entries(RADIO_STATIONS)) MUSIC[`radio_${id}`] = { ...m, beds: [`radio_${id}/a`] };
+export const isRadioKey = (k) => typeof k === 'string' && k.startsWith('radio_');
+export function radioKey(state) {
+  const r = state?.radio;
+  return r?.on && RADIO_STATIONS[r.station] ? `radio_${r.station}` : null;
+}
 // Music night: each genre's dance track (assets.json musicNight.<genre>); the placeholder is a
 // short piece in the genre's tempo and key. The era bed ducks under it; a small cheer ends it.
 export const MUSIC_NIGHT = {

@@ -16,7 +16,7 @@
 //   { op: 'stopAll', bus }
 
 import { ASSETS, entryFor } from './loader.js';
-import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, ROTATE_BEDS, ERA_EXTRAS, musicKey, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
+import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, ROTATE_BEDS, ERA_EXTRAS, musicKey, radioKey, isRadioKey, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
   VOICE_VARIANTS, VOICE, GROUP_CUES, isFirstLaunch, resignReason, isWarmExit, WORLD, PROP_CUES,
   MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision, MUSIC_BARS, PLAYLIST_MIN_S, PLAYLIST_LOOKAHEAD_S, PLAYLIST_PRELOAD_S, MOMENT_CUES, MOMENT_HITS, MOMENT_SCENES, FOCUS_KEEP, SPOTLIGHT_KEEP, SPOTLIGHT_DEFAULT, OFFICE_PROP_CUES, OFFICE_PROP_LOOPS } from './manifest.js';
 
@@ -323,7 +323,10 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
       if (Number.isFinite(ctx.speed)) speedNow = Math.max(1, ctx.speed);
       const hold = !!(ctx.menuPause || ctx.decision);
       // Music: title bed on the title screen, else the era's bed. An era change waits for its card.
-      const want = ctx.title ? 'title' : (music.pendingEra && hold ? music.era : musicKey(state));
+      // A picked radio station replaces the era bed, but only once its beds are delivered.
+      const radio = radioKey(state);
+      const radioOn = radio && (bedOverride?.[radio]?.length || ASSETS.music?.[radio]?.beds?.length) ? radio : null;
+      const want = ctx.title ? 'title' : (music.pendingEra && hold ? music.era : radioOn ?? musicKey(state));
       if (!hold && music.pendingEra && !ctx.title) music.pendingEra = null;
       if (want && want !== music.era && MUSIC[want]) {
         const m = MUSIC[want];
@@ -333,13 +336,19 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
         const bed = ROTATE_BEDS.has(want) ? list[(at + 1) % list.length] : list[Math.floor(rng() * list.length) % list.length];
         const first = music.era === null;
         const fromTitle = music.era === 'title';
+        const radioMove = isRadioKey(want) || isRadioKey(music.era);
+        // Tuning between stations, a click on or off the radio (cues are added with the station files).
+        if (!first && !fromTitle && radioMove) {
+          const tune = isRadioKey(want) && isRadioKey(music.era) ? 'sfx.radio_tune' : 'sfx.radio_click';
+          if (CUES[tune]) out.push(...playCue(tune, t));
+        }
         // The market turning is marked once, when it happens in play (not when a save loads into it).
         if (want === 'dotcom_bust' && music.era === 'dotcom') out.push(...playCue('stinger.dotcom_bust', t, { speed: speedNow }));
         music.era = want; music.bed = bed; music.lastBed[want] = bed; music.bedAt = ta; music.heard = 0;
         out.push({ op: 'music', era: want, bed, at: ta, fade: first ? 1.5 : CROSSFADE_BARS * barLen });
         out.push(...pickNext(list));
         // Only a real era arrival cheers: not the first bed, and not starting or loading from the title.
-        if (want !== 'title' && want !== 'dotcom_bust' && !first && !fromTitle && voiceMomentOk(t)) out.push(...cheer('era', state, t + CROSSFADE_BARS * barLen));
+        if (want !== 'title' && want !== 'dotcom_bust' && !first && !fromTitle && !radioMove && voiceMomentOk(t)) out.push(...cheer('era', state, t + CROSSFADE_BARS * barLen));
       }
       // Level and filter: paused holds get a lowpass and -6 dB; otherwise the state's mood rule.
       const rule = MOOD.find((r) => r.when(state ?? {}))?.music ?? { level: 1, lowpass: null };
