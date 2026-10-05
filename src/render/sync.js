@@ -22,6 +22,7 @@ import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { holdSeconds } from './reading.js';
 import { pickSpot, spotDebug, spotRing } from './spots.js';
 import { between, draw, fixed } from './rand.js';
+import { createMocapPlayer } from './mocap.js';
 
 // Keeps one character per staff member in step with state, and plays event effects.
 // Characters are keyed by staff id; removed staff walk out and are disposed.
@@ -1509,8 +1510,31 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     }
   }
 
+  // Plays a baked motion clip (mocap.js) on staff member `id` where they stand, or at { x, z, yaw }:
+  // timed by clock() seconds when given (a video's currentTime; it runs until stopMocap), else by
+  // frame time from now, for the clip's length. Returns the player, or null.
+  function playMocap(id, clip, { at = null, clock = null, ...opts } = {}) {
+    const r = recs.get(id);
+    if (!r || r.hidden) return null;
+    const p = createMocapPlayer(r.char, clip, opts);
+    if (at) { r.pos.set(at.x, 0, at.z); r.yaw = at.yaw ?? r.yaw; }
+    r.path = [];
+    let el = 0;
+    r.temp = { anim: 'idle', t: clock ? Infinity : p.duration, keepPos: true, moment: 'mocap', mocap: p,
+      tick: (rr, dt) => { el += dt; p.setTime(clock ? clock() : el); return true; } };
+    r.mocap = p;
+    p.setTime(clock ? clock() : 0);
+    return p;
+  }
+  function stopMocap(id) {
+    const r = recs.get(id);
+    if (r?.temp?.mocap) r.temp = null;
+  }
+
   function updateRec(r, dt) {
     const c = r.char;
+    // A clip whose temp ended or was replaced hands the pivots back.
+    if (r.mocap && r.temp?.mocap !== r.mocap) { r.mocap.stop(); r.mocap = null; }
     if (r.face) { r.face.t -= dt; if (r.face.t <= 0) r.face = null; }
     if (r.emoteT > 0) { r.emoteT -= dt; if (r.emoteT <= 0) c.setEmote(null); }
 
@@ -2125,6 +2149,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   return {
     // A staff member's character (character.js), for the staging probe.
     charOf(id) { return recs.get(id)?.char ?? null; },
+    playMocap, stopMocap,
     // For checks and the scene dump: where someone is headed and why (read only).
     // The moment ownership trace: trace.on = true starts it; lines(n) are the last n entries.
     trace: {
