@@ -47,7 +47,8 @@ export const mocapPage = async (o) => {
   // each clip from its origin and widens the gaps by `spread`. A clip without an origin stands at the anchor,
   // so those are spread out here.
   const anchor = o.anchor ?? (() => { const p = found.get(ids[0]).position; return { x: p.x, z: p.z, yaw: 0 }; })();
-  const VFPS = 30;
+  // The source video's frame rate, which `source.start` counts in (30 for a clip that does not say).
+  const VFPS = o.clips[0].source?.fps ?? 30;
   const starts = o.clips.map((c) => c.source?.start ?? 0);
   const first = Math.min(...starts);
   let shotT = first / VFPS;

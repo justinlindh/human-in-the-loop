@@ -120,7 +120,7 @@ export function bakeShot(shot, personId, opts = {}) {
     bones: RIG_BONES,
     scale: r5(scale),
     ...(placement ? { origin: placement } : {}),
-    source: { shot: opts.shotIndex ?? 0, trackId: personId, start: shot.shot.start_frame + from, end: shot.shot.start_frame + to },
+    source: { shot: opts.shotIndex ?? 0, trackId: personId, start: shot.shot.start_frame + from, end: shot.shot.start_frame + to, fps: srcFps },
     tracks,
     bend: bendOut,
     look: resampleVec(look, outN, at).map((v) => v.map(r4)),

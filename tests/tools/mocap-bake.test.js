@@ -41,7 +41,7 @@ const angle = (q) => 2 * Math.acos(Math.min(1, Math.abs(q[3])));
 describe('bakeShot', () => {
   it('bakes a still standing person to identity rotations and no motion', () => {
     const c = bakeShot(shotOf(30, 30), 3, { pivots: PIVOTS, name: 'still', shotIndex: 2 });
-    expect(c).toMatchObject({ format: 'hitl-mocap-clip', version: 1, name: 'still', fps: 30, frames: 30, source: { shot: 2, trackId: 3, start: 100, end: 130 } });
+    expect(c).toMatchObject({ format: 'hitl-mocap-clip', version: 1, name: 'still', fps: 30, frames: 30, source: { shot: 2, trackId: 3, start: 100, end: 130, fps: 30 } });
     for (const b of c.bones) for (const q of c.tracks[b].quat) expect(angle(q)).toBeLessThan(1e-3);
     expect(Math.max(...c.tracks.body.pos.flat().map(Math.abs))).toBeLessThan(1e-4);
     expect(c.scale).toBeCloseTo(0.31 / (0.84 + 0.08), 2);
@@ -66,7 +66,7 @@ describe('bakeShot', () => {
   it('measures a bent knee and resamples to 30 fps with a stated frame range', () => {
     const c = bakeShot(shotOf(60, 60, (t, p) => { p.LeftFoot = new Vector3(0.09, 0.5, 0.42); }), 3, { pivots: PIVOTS, from: 10, to: 50 });
     expect(c.frames).toBe(Math.round((39 / 60) * 30) + 1);
-    expect(c.source).toMatchObject({ start: 110, end: 150 });
+    expect(c.source).toMatchObject({ start: 110, end: 150, fps: 60 });
     expect(c.bend.legR[3]).toBeGreaterThan(0.5);
     expect(c.bend.legL[3]).toBeLessThan(0.01);
   });
