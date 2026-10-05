@@ -676,28 +676,29 @@ Mail = {
 
 A placeable radio. The station is flavour: the effect is the same whatever plays. The whole feature sits behind `B.boombox.enabled`.
 
-- Item `boombox`: furniture, 1x1, unique. Effect: adjacency `{ radius: B.boombox.radius, key: 'meaningRecovery', value: B.boombox.meaning }`, applied only while `state.radio.on`. Render may show an HQ variant by office stage; the sim item is the same.
-- Stations live in `src/data/stations.js` as `STATIONS`: ids `lofi`, `synth88`, `polka`, `bossa`, `elevator`, `funk`, each with a display name. Audio keys its station beds to these ids.
+- Item `boombox`: furniture, 1x1, unique. Effect: adjacency `{ radius: B.boombox.radius, key: 'meaningRecovery', value: B.boombox.meaning }`. itemBonus skips it while `state.radio.on` is false, and it counts toward `B.itemBonusCap` like any item. Render may show an HQ variant by office stage; the sim item is the same.
+- Stations live in `src/data/stations.js` as `STATIONS`: ids `lofi`, `synth88`, `polka`, `bossa`, `elevator`, `funk`, each with a display name. Audio keys its station beds to these ids (audio #1550 renames its `synth` key to `synth88`).
 
 ```js
 state.radio = { on, station }   // on: bool; station: a STATIONS id or null
 person.taste                    // a STATIONS id
 ```
 
-- Placing the boombox sets `radio = { on: true, station: 'lofi' }`; selling it sets `on: false` and keeps `station`.
+- Placing the boombox sets `radio = { on: true, station: station ?? 'lofi' }`; selling it sets `on: false` and keeps `station`; moving it leaves `radio` alone.
 - `person.taste` is derived from the game seed and the person's id, with no draw from the main stream. It is set at hire; old saves derive it on load.
 - Old saves load with `radio = { on: false, station: null }`.
 
 ### Actions: Boombox
 
 ```js
-{ type: 'setRadio', on?, station? }   // works while paused; refusals: 'No boombox' | 'Unknown station'
+{ type: 'setRadio', on?, station? }   // works while paused; refusals: 'No boombox' | 'Unknown station' | 'Nothing to change' (neither field)
+// a station given while off is stored and the radio stays off unless on: true is also given
 ```
 
 ### Events: Boombox
 
 ```js
-{ type: 'radio', on, station, by }               // the radio changed; by: null for the player, or the staffId who changed the station while you were out
+{ type: 'radio', on, station, by }               // the radio changed; by: null for the player, or a staffId when the sim's rare station-swap event changes it
 { type: 'radioTaste', staffId, station, verdict } // verdict: 'like' | 'dislike'; at most one per B.boombox.tasteGapWeeks; comes with a Yak line or speech bubble
 ```
 
