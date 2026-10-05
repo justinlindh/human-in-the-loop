@@ -7,21 +7,9 @@
    "issue": 1138
   },
   {
-   "key": "person|coffee_corner/pal_glass_frame|person(still)/head",
-   "worst": 0.067,
-   "state": "seed:1:w208",
-   "issue": 1138
-  },
-  {
    "key": "person|coffee_corner/pal_metal_soft|person(walking)/torso",
    "worst": 0.045,
    "state": "seed:1:w791",
-   "issue": 1138
-  },
-  {
-   "key": "person|coffee_corner/pal_plastic_charcoal|person(still)/head",
-   "worst": 0.025,
-   "state": "seed:1:w208",
    "issue": 1138
   },
   {
@@ -52,12 +40,6 @@
    "key": "person|coffee_corner/pal_role_marketer|person(still)/head",
    "worst": 0.038,
    "state": "seed:1:w535",
-   "issue": 1138
-  },
-  {
-   "key": "person|coffee_corner/pal_wood_dark|person(still)/torso",
-   "worst": 0.072,
-   "state": "seed:1:w208",
    "issue": 1138
   },
   {
@@ -103,45 +85,9 @@
    "issue": 1138
   },
   {
-   "key": "person|desk/pal_leaf_dark|person(still)/torso",
-   "worst": 0.05,
-   "state": "seed:1:w791",
-   "issue": 1138
-  },
-  {
-   "key": "person|desk/pal_leaf|person(still)/torso",
-   "worst": 0.049,
-   "state": "seed:1:w791",
-   "issue": 1138
-  },
-  {
-   "key": "person|desk/pal_metal_dark|person(still)/torso",
-   "worst": 0.038,
-   "state": "seed:1:w535",
-   "issue": 1138
-  },
-  {
-   "key": "person|desk/pal_metal_soft|person(still)/torso",
-   "worst": 0.052,
-   "state": "seed:1:w535",
-   "issue": 1138
-  },
-  {
    "key": "person|desk/pal_metal_soft|person(walking)/legR",
    "worst": 0.027,
    "state": "seed:1:w535",
-   "issue": 1138
-  },
-  {
-   "key": "person|desk/pal_paper_sheet|person(still)/torso",
-   "worst": 0.029,
-   "state": "seed:1:w535",
-   "issue": 1138
-  },
-  {
-   "key": "person|desk/pal_plastic_charcoal|person(still)/torso",
-   "worst": 0.053,
-   "state": "seed:1:w791",
    "issue": 1138
   },
   {
@@ -160,60 +106,6 @@
    "key": "person|desk/pal_plastic_charcoal|person(walking)/torso",
    "worst": 0.073,
    "state": "seed:1:w198",
-   "issue": 1138
-  },
-  {
-   "key": "person|desk/pal_pot_cream|person(still)/torso",
-   "worst": 0.06,
-   "state": "seed:1:w791",
-   "issue": 1138
-  },
-  {
-   "key": "person|desk/pal_soil|person(still)/torso",
-   "worst": 0.055,
-   "state": "seed:1:w791",
-   "issue": 1138
-  },
-  {
-   "key": "person|desk/pal_wood_honey|person(still)/torso",
-   "worst": 0.027,
-   "state": "seed:1:w791",
-   "issue": 1138
-  },
-  {
-   "key": "person|espresso/pal_fabric_terracotta|person(walking)/torso",
-   "worst": 0.044,
-   "state": "seed:1:w936",
-   "issue": 1138
-  },
-  {
-   "key": "person|espresso/pal_metal_soft|person(walking)/legR",
-   "worst": 0.051,
-   "state": "seed:1:w936",
-   "issue": 1138
-  },
-  {
-   "key": "person|monitoring_wall/pal_wood_honey|person(walking)/torso",
-   "worst": 0.023,
-   "state": "moment:first_user_test",
-   "issue": 1138
-  },
-  {
-   "key": "person|person(still)/torso|whiteboard/pal_fabric_sage",
-   "worst": 0.022,
-   "state": "seed:1:w832",
-   "issue": 1138
-  },
-  {
-   "key": "person|person(still)/torso|whiteboard/pal_metal_soft",
-   "worst": 0.053,
-   "state": "seed:1:w832",
-   "issue": 1138
-  },
-  {
-   "key": "person|person(still)/torso|whiteboard/pal_role_designer",
-   "worst": 0.043,
-   "state": "seed:1:w832",
    "issue": 1138
   },
   {
