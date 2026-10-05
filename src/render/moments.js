@@ -551,6 +551,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       }
       // The caption belongs to the fetch; the throw (or the swing) is the spotlight.
       hammer.mid = dispatch('start', 'open_plan_office');
+      if (hammer.screen && hammer.mid) dispatch('beat', 'open_plan_office', hammer.mid, { beat: 'screen' });
       r.temp = { anim: 'peer', t: 1.2, goal: pick, moment: 'hammer', stage: { role: 'thrower', beat: 'fetch', target: p.obj } };
       walkTo(r, pick);
       return;
@@ -1723,7 +1724,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   let momentSeq = 0;
   // hitl:moment { phase: 'start' | 'end' | 'hit' | 'beat', id, key, ...extra }; 'hit' marks a beat
   // inside a moment as it lands (the printer's blows: { hit: 0.. }, the hammer into the all-hands
-  // screen: { hit: 'screen' }); 'beat' names a stretch as it begins ({ beat: 'run' }).
+  // screen: { hit: 'screen' }); 'beat' names a stretch as it begins ({ beat: 'screen' } when the
+  // all-hands screen appears, { beat: 'run' }).
   function dispatch(phase, key, id = null, extra = null) {
     if (phase === 'start') id = `${key}-${++momentSeq}`;
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('hitl:moment', { detail: { phase, id, key, ...extra } }));
