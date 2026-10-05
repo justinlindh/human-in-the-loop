@@ -49,14 +49,27 @@ function vertices(root, step = 3, filter = () => true) {
 function insideCount(points, targets) {
   const saved = targets.map((m) => m.material.side);
   for (const m of targets) m.material.side = THREE.DoubleSide;
+  // Each ray is vertical, so it can only hit a target whose world box spans the point's x and z:
+  // the others are left out before raycasting. The box is the geometry's bounding box through the
+  // same matrixWorld the raycast reads, padded a hair against rounding. Instanced, skinned and
+  // morphing meshes, whose geometry box doesn't bound what is drawn, are always tested.
+  const boxes = targets.map((m) => {
+    if (m.isInstancedMesh || m.isSkinnedMesh || m.morphTargetInfluences || !m.geometry?.attributes?.position) return null;
+    if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+    return m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld).expandByScalar(1e-6);
+  });
+  const near = (p, up) => targets.filter((m, i) => {
+    const b = boxes[i];
+    return !b || (p.x >= b.min.x && p.x <= b.max.x && p.z >= b.min.z && p.z <= b.max.z && (up ? b.max.y >= p.y : b.min.y <= p.y));
+  });
   // Inside only if both an upward and a downward ray cross an odd number of surfaces, so open
   // shells (a nap pod canopy, a lamp shade) do not count as solid.
   let n = 0;
   for (const p of points) {
     ray.set(p, UP);
-    if (ray.intersectObjects(targets, false).length % 2 === 0) continue;
+    if (ray.intersectObjects(near(p, true), false).length % 2 === 0) continue;
     ray.set(p, DOWN);
-    if (ray.intersectObjects(targets, false).length % 2 === 1) n++;
+    if (ray.intersectObjects(near(p, false), false).length % 2 === 1) n++;
   }
   targets.forEach((m, i) => { m.material.side = saved[i]; });
   return n;
