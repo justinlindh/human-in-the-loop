@@ -1,0 +1,8 @@
+# GitHub's tools job runs the main guard's own cases (scripts/main-guard.test.sh) only for a change to the
+# tooling they exercise: every changed path must match a line here and no ! line to skip them. Same format
+# and rules as scripts/ci-skip-paths, read with scripts/ci-classify.sh from main, never from the PR.
+*
+!scripts/*
+!.claude/*
+!*package*.json
+!vite.config.js
