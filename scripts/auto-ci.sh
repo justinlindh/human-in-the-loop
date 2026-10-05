@@ -122,7 +122,7 @@ done
 # This tree's install is what runs link to when the lockfiles match (ci-pr checks it with npm ls).
 # Refresh it only while none of our runs is going, since a running one may be linked to it.
 if [ "$running" -eq 0 ] && ! (cd "$TREE" && ${AUTO_CI_NPM:-npm} ls --depth=0 >/dev/null 2>&1); then
-  if (cd "$TREE" && timeout 900 nice -n 10 ${AUTO_CI_NPM:-npm} ci --no-audit --no-fund >/dev/null 2>&1); then log "reinstalled node_modules from the lockfile"
+  if (cd "$TREE" && timeout 900 bash "$HERE/nice10.sh" ${AUTO_CI_NPM:-npm} ci --no-audit --no-fund >/dev/null 2>&1); then log "reinstalled node_modules from the lockfile"
   else log "npm ci failed in $TREE"; fi
 fi
 
@@ -167,7 +167,7 @@ for pr in $(order); do
   esac
   # setsid makes the run its own process group, so a stale run stops as a whole. The run must not
   # keep the pass lock (fd 9) open, or no later pass could start.
-  (cd "$TREE" && exec setsid timeout 3600 nice -n 10 bash "$CIPR" "$pr" --head "$h" >"$STATE/pr-$pr.log" 2>&1 </dev/null 9>&-) &
+  (cd "$TREE" && exec setsid timeout 3600 bash "$HERE/nice10.sh" bash "$CIPR" "$pr" --head "$h" >"$STATE/pr-$pr.log" 2>&1 </dev/null 9>&-) &
   echo "$! $h" >"$JOBS/$pr"
   [ $light = 1 ] || running=$((running + 1))
   log "start #$pr ${h:0:7} ($why$([ $light = 1 ] && echo ", docs only"))"
