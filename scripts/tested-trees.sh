@@ -5,6 +5,7 @@
 # code, whatever commits led to it. Records older than 14 days are dropped when one is written.
 # Usage: scripts/tested-trees.sh record <worktree> <pr> <head sha> <base>
 #        scripts/tested-trees.sh check <tree sha | commit sha> [--repo <checkout>]   prints the record, exit 1 when none
+#        scripts/tested-trees.sh last <pr> [--repo <checkout>]   prints the newest recorded tree of that PR, exit 1 when none
 # Env: HITL_TESTED_TREES (default ~/.cache/hitl-ci/tested-trees).
 set -uo pipefail
 dir="${HITL_TESTED_TREES:-$HOME/.cache/hitl-ci/tested-trees}"
@@ -18,5 +19,13 @@ case "${1:-}" in
     ref="${2:?}"; repo="."; [ "${3:-}" = --repo ] && repo="${4:?}"
     tree="$(git -C "$repo" rev-parse "$ref^{tree}" 2>/dev/null)" || exit 1
     [ -f "$dir/$tree" ] && cat "$dir/$tree" || exit 1 ;;
-  *) echo "usage: scripts/tested-trees.sh record <worktree> <pr> <head> <base> | check <sha> [--repo <checkout>]" >&2; exit 2 ;;
+  last)
+    pr="${2:?}"; repo="."; [ "${3:-}" = --repo ] && repo="${4:?}"
+    # The newest recorded tree of this PR that the repository still has.
+    for f in $(ls -t "$dir" 2>/dev/null); do
+      grep -q "^pr=$pr " "$dir/$f" 2>/dev/null || continue
+      git -C "$repo" cat-file -e "$f^{tree}" 2>/dev/null && { echo "$f"; exit 0; }
+    done
+    exit 1 ;;
+  *) echo "usage: scripts/tested-trees.sh record <worktree> <pr> <head> <base> | check <sha> [--repo <checkout>] | last <pr> [--repo <checkout>]" >&2; exit 2 ;;
 esac

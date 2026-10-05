@@ -20,6 +20,8 @@ out="$(bash "$HERE/tested-trees.sh" check "$c2" --repo "$tmp/r")"; [[ "$out" == 
 bash "$HERE/tested-trees.sh" check "$c3" --repo "$tmp/r" >/dev/null || fail "a different commit with the same tree counts"
 bash "$HERE/tested-trees.sh" check "$c1" --repo "$tmp/r" >/dev/null && fail "a different tree does not count"
 bash "$HERE/tested-trees.sh" check nonsense --repo "$tmp/r" >/dev/null 2>&1 && fail "an unknown ref does not count"
+[ "$(bash "$HERE/tested-trees.sh" last 7 --repo "$tmp/r")" = "$(git rev-parse "$c2^{tree}")" ] || fail "last prints the PR's recorded tree"
+bash "$HERE/tested-trees.sh" last 9 --repo "$tmp/r" >/dev/null && fail "last for a PR with no record fails"
 touch -d '20 days ago' "$tmp/trees/$(git rev-parse "$c2^{tree}")"
 g checkout -q "$c1"
 bash "$HERE/tested-trees.sh" record "$tmp/r" 8 "$c1" main

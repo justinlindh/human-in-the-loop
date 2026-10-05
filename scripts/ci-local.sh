@@ -32,6 +32,18 @@ declare -a NAMES RESULTS TIMES
 now() { date +%s; }
 # Notes for the summary, kept in a file so steps running in the background can add them.
 note() { echo "$*" >>"$LOGS/notes"; }
+# CI_DELTA_FILE (ci-pr.sh, from scripts/ci-delta.sh) lists the files that differ from the tree this PR last
+# passed in full. A check's result depends only on its inputs, so one whose inputs are none of those files
+# passed before and is skipped. reaches <regex> <files>: the check's gate matches the PR's files and, when a
+# delta is known, also the delta. The main guard (CI_FULL=1) never uses a delta.
+have_delta=0; delta=""
+if [ "${CI_FULL:-}" != 1 ] && [ -n "${CI_DELTA_FILE:-}" ] && [ -f "$CI_DELTA_FILE" ]; then have_delta=1; delta="$(cat "$CI_DELTA_FILE")"; fi
+reaches() {
+  grep -qE "$1" <<<"$2" || return 1
+  [ "$have_delta" = 1 ] || return 0
+  grep -qE "$1" <<<"$delta"
+}
+[ "$have_delta" = 1 ] && note "Checks whose inputs match the tree this PR last passed were skipped: $(grep -c . <<<"$delta" || true) file(s) differ (scripts/ci-delta.sh)."
 load1() { cut -d' ' -f1 /proc/loadavg 2>/dev/null || echo 0; }
 
 # At most HITL_CI_SLOTS runs at once on the machine (scripts/lib/ci-capacity.sh); a run past the cap
@@ -138,7 +150,7 @@ if [ "${CI_FULL:-}" != 1 ]; then
   # The file list is read whole before matching: grep -q exits at the first match and a writer still
   # sending would die of SIGPIPE, which pipefail turns into "no match" (the self-tests skipped).
   tool_files="$({ git diff --name-only --no-renames "$tool_mb"; git ls-files --others --exclude-standard; } 2>/dev/null)"
-  if [ -n "$tool_mb" ] && ! grep -qE '^(scripts/|\.claude/|package\.json$|package-lock\.json$|vite\.config\.js$)' <<<"$tool_files"; then
+  if [ -n "$tool_mb" ] && ! reaches '^(scripts/|\.claude/|package\.json$|package-lock\.json$|vite\.config\.js$)' "$tool_files"; then
     tool_changes=0
   fi
 fi
@@ -221,6 +233,7 @@ tool_step test-cache bash "$SELF/test-cache.test.sh"
 tool_step tmp-clean bash "$SELF/tmp-clean.test.sh"
 tool_step feature-media-auto bash "$SELF/feature-media-auto.test.sh"
 tool_step tested-trees bash "$SELF/tested-trees.test.sh"
+tool_step ci-delta bash "$SELF/ci-delta.test.sh"
 tool_step heavy bash "$SELF/heavy.test.sh"
 tool_step ci-merge-only bash "$SELF/ci-merge-only.test.sh"
 tool_step nice10 bash "$SELF/nice10.test.sh"
@@ -323,6 +336,15 @@ full_check() {
     sel="$(node scripts/tools/full-select.mjs --base "$mb")" || return 1
     # harness-uuid has its own GPU step.
     sel="$(grep -v '^tests/tools/harness-uuid\.full\.test\.js$' <<<"$sel")" || true
+    # With a delta, only the tests that also reach a file that differs from the last passed tree.
+    if [ "$have_delta" = 1 ] && [ -n "$sel" ]; then
+      local dsel=""
+      if [ -n "$delta" ]; then
+        local dfiles; mapfile -t dfiles <<<"$delta"
+        dsel="$(node scripts/tools/full-select.mjs --files "${dfiles[@]}")" || return 1
+      fi
+      sel="$(comm -12 <(sort <<<"$sel") <(sort <<<"$dsel"))"
+    fi
     [ -n "$sel" ] || { echo "skipped: no whole-game test reaches this change"; return 0; }
     echo "selected:"; echo "$sel"
     # Not `npm run test:full -- files`: its pattern would still match every .full file.
@@ -342,7 +364,7 @@ beats_check() {
   local mb files
   mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
   files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; })"
-  if ! grep -qE '^(src/sim/|src/data/|src/save/|scripts/trailer/|scripts/capture-manifest\.js$|scripts/feature-media/manifest\.js$|tests/sim/trailer-beats/)' <<<"$files"; then
+  if ! reaches '^(src/sim/|src/data/|src/save/|scripts/trailer/|scripts/capture-manifest\.js$|scripts/feature-media/manifest\.js$|tests/sim/trailer-beats/)' "$files"; then
     echo "skipped: no sim, data, save or beat-setup changes"; return 0
   fi
   local json="$LOGS/beats.json" broken
@@ -414,7 +436,7 @@ phone_check() {
   local mb files
   mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
   files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; })"
-  if ! grep -qE '^(src/ui/|src/audio/|index\.html$|src/main\.js$|src/quality\.js$|src/render/(build|camera|index)\.js$)' <<<"$files"; then
+  if ! reaches '^(src/ui/|src/audio/|index\.html$|src/main\.js$|src/quality\.js$|src/render/(build|camera|index)\.js$)' "$files"; then
     echo "skipped: no UI, audio, page, camera or input changes"; return 0
   fi
   timeout 900 node scripts/phone-check.js --out "$LOGS/phone"
@@ -428,7 +450,7 @@ stage_check() {
   local mb files
   mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
   files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; })"
-  if ! grep -qE '^(src/render/|public/models/|blender/checks/(stage|harness|report|cache)\.mjs$)' <<<"$files"; then
+  if ! reaches '^(src/render/|public/models/|blender/checks/(stage|harness|report|cache)\.mjs$)' "$files"; then
     echo "skipped: no render, model or staging-check changes"; return 0
   fi
   render_step stage gpu "node blender/checks/stage.mjs --out '$LOGS/stage.json'"
@@ -441,7 +463,7 @@ rng_check() {
   local mb files
   mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
   files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; })"
-  if ! grep -qE '^(src/render/|blender/checks/([^/]*\.js|harness\.mjs|tool-rng\.mjs)$|package-lock\.json$)' <<<"$files"; then
+  if ! reaches '^(src/render/|blender/checks/([^/]*\.js|harness\.mjs|tool-rng\.mjs)$|package-lock\.json$)' "$files"; then
     echo "skipped: no render, harness or page-side tool changes"; return 0
   fi
   render_step tool-rng gpu "node blender/checks/tool-rng.mjs"
@@ -454,7 +476,7 @@ uuid_check() {
   local mb files
   mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
   files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; })"
-  if [ "${CI_FULL:-}" != 1 ] && ! grep -qE '^(src/render/|blender/checks/harness\.mjs$|tests/tools/harness-uuid|package-lock\.json$)' <<<"$files"; then
+  if [ "${CI_FULL:-}" != 1 ] && ! reaches '^(src/render/|blender/checks/harness\.mjs$|tests/tools/harness-uuid|package-lock\.json$)' "$files"; then
     echo "skipped: no render, harness or probe changes"; return 0
   fi
   render_step harness-uuid gpu "npx vitest run tests/tools/harness-uuid.full.test.js"
@@ -466,7 +488,7 @@ golden_font_check() {
   local mb files
   mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
   files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; })"
-  if ! grep -qE '^(src/render/(emotes|debug|index)\.js$|public/fonts/|index\.html$|blender/checks/(harness|golden|golden-font-controls)\.mjs$)' <<<"$files"; then
+  if ! reaches '^(src/render/(emotes|debug|index)\.js$|public/fonts/|index\.html$|blender/checks/(harness|golden|golden-font-controls)\.mjs$)' "$files"; then
     echo "skipped: no text-emote, font, lineup or golden harness changes"; return 0
   fi
   render_step golden-font gpu "node blender/checks/golden-font-controls.mjs"
@@ -484,11 +506,20 @@ if [ "${CI_TIER:-}" = tests ] && [ "${CI_FULL:-}" != 1 ]; then
   done
   note "Tests tier: every changed file is on scripts/ci-skip-paths or scripts/ci-tests-only-paths, so the tests and the light checks ran, and the render, browser and balance checks did not."
 else
-pstep golden render_step golden gpu "node blender/checks/golden.mjs"
+# What the golden images and the render checks read: the game, the assets, the harness and the page. With a
+# delta, they run only when one of those differs from the tree that last passed.
+render_inputs='^(src/|public/|blender/|index\.html$|package(-lock)?\.json$|vite\.config\.js$|scripts/(lib/|capture|studio/|perf/))'
+render_gate() { # <command...>
+  if [ "$have_delta" = 1 ] && ! grep -qE "$render_inputs" <<<"$delta"; then
+    echo "skipped: no render input differs from the tree this PR last passed"; return 0
+  fi
+  "$@"
+}
+pstep golden render_gate render_step golden gpu "node blender/checks/golden.mjs"
 pstep golden-font golden_font_check
 gh_step lifecycle browser bash "$SELF/with-render-lock.sh" --gpu npm run lifecycle -- --quality low --no-shots
 gh_step soak browser bash "$SELF/with-render-lock.sh" --gpu npm run soak
-step render-checks render_step render-checks gpu "bash '$SELF/lib/run-parallel.sh' $render_parts"
+step render-checks render_gate render_step render-checks gpu "bash '$SELF/lib/run-parallel.sh' $render_parts"
 gh_step perf-budget tools perf_budget
 step phone-check phone_check
 step stage stage_check
