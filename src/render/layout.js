@@ -347,9 +347,19 @@ export function createNav(L, obstacles, cell = 0.35) {
   }
 
   // Distance from a point to the nearest furniture rect or wall.
+  // Only room up to ROOMY matters, so each cell keeps the obstacles that come within ROOMY of it.
+  let nearby = null;
   function room(x, z) {
-    let d = Math.min(x + L.W / 2, L.W / 2 - x, z + L.D / 2, L.D / 2 - z);
-    for (const r of obstacles) d = Math.min(d, Math.hypot(Math.max(r.x0 - x, 0, x - r.x1), Math.max(r.z0 - z, 0, z - r.z1)));
+    if (!nearby) {
+      nearby = Array.from({ length: nx * nz }, () => []);
+      const m = ROOMY + cell;
+      for (const r of obstacles) {
+        for (let i = Math.max(0, ix(r.x0 - m)); i <= Math.min(nx - 1, ix(r.x1 + m)); i++) for (let k = Math.max(0, iz(r.z0 - m)); k <= Math.min(nz - 1, iz(r.z1 + m)); k++) nearby[i + k * nx].push(r);
+      }
+    }
+    let d = Math.min(ROOMY, x + L.W / 2, L.W / 2 - x, z + L.D / 2, L.D / 2 - z);
+    const i = Math.max(0, Math.min(nx - 1, ix(x))), k = Math.max(0, Math.min(nz - 1, iz(z)));
+    for (const r of nearby[i + k * nx]) d = Math.min(d, Math.hypot(Math.max(r.x0 - x, 0, x - r.x1), Math.max(r.z0 - z, 0, z - r.z1)));
     return d;
   }
   // The least room along a straight walk from a to b, leaving out the first `skipA` and last
