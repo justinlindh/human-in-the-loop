@@ -9,8 +9,8 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 UNITS="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 CLONE="$HOME/.cache/hitl-ci/main-guard/clone"
 if [ "${1:-}" = --remove ]; then
-  systemctl --user disable --now hitl-main-guard.timer hitl-auto-ci.timer hitl-tmp-clean.timer hitl-dashboard.service 2>/dev/null || true
-  rm -f "$UNITS/hitl-main-guard.service" "$UNITS/hitl-main-guard.timer" "$UNITS/hitl-auto-ci.service" "$UNITS/hitl-auto-ci.timer" "$UNITS/hitl-tmp-clean.service" "$UNITS/hitl-tmp-clean.timer" "$UNITS/hitl-dashboard.service"
+  systemctl --user disable --now hitl-main-guard.timer hitl-auto-ci.timer hitl-tmp-clean.timer hitl-feature-media.timer hitl-dashboard.service 2>/dev/null || true
+  rm -f "$UNITS/hitl-feature-media.service" "$UNITS/hitl-feature-media.timer" "$UNITS/hitl-main-guard.service" "$UNITS/hitl-main-guard.timer" "$UNITS/hitl-auto-ci.service" "$UNITS/hitl-auto-ci.timer" "$UNITS/hitl-tmp-clean.service" "$UNITS/hitl-tmp-clean.timer" "$UNITS/hitl-dashboard.service"
   rm -rf "$UNITS/hitl-dashboard.service.d"
   rm -rf "$UNITS/hitl-main-guard.service.d"
   systemctl --user daemon-reload
@@ -38,7 +38,7 @@ if [ ! -d "$AUTO" ]; then
   git -C "$shared" worktree add -q --detach "$AUTO" origin/main
 fi
 (cd "$AUTO" && { npm ls --depth=0 >/dev/null 2>&1 || npm ci --no-audit --no-fund; })
-install -m 644 "$HERE/hitl-auto-ci.service" "$HERE/hitl-auto-ci.timer" "$HERE/hitl-tmp-clean.service" "$HERE/hitl-tmp-clean.timer" "$UNITS/"
+install -m 644 "$HERE/hitl-auto-ci.service" "$HERE/hitl-auto-ci.timer" "$HERE/hitl-tmp-clean.service" "$HERE/hitl-tmp-clean.timer" "$HERE/hitl-feature-media.service" "$HERE/hitl-feature-media.timer" "$UNITS/"
 gh label create ci-rerun --color 0E8A16 --description "Asks auto CI for a fresh local CI run of the PR's current head" >/dev/null 2>&1 || true
 # The owner dashboard binds this machine's private address on its default route (HITL_DASH_HOST
 # overrides it), checked by the dashboard's own rule: one private address, never a wildcard.
@@ -51,7 +51,7 @@ fi
 mkdir -p "$UNITS/hitl-dashboard.service.d"
 printf '[Service]\nEnvironment=HITL_DASH_HOST=%s\n' "$dash_host" >"$UNITS/hitl-dashboard.service.d/host.conf"
 systemctl --user daemon-reload
-systemctl --user enable --now hitl-main-guard.timer hitl-auto-ci.timer hitl-tmp-clean.timer hitl-dashboard.service
+systemctl --user enable --now hitl-main-guard.timer hitl-auto-ci.timer hitl-tmp-clean.timer hitl-feature-media.timer hitl-dashboard.service
 systemctl --user restart hitl-dashboard.service
 echo "owner dashboard: http://$dash_host:${HITL_DASH_PORT:-8790}/"
 systemctl --user list-timers 'hitl-*' --no-pager

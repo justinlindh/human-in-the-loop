@@ -1,0 +1,12 @@
+# Re-renders and publishes the feature media whose inputs changed on the newest main (scripts/feature-media-auto.sh).
+[Unit]
+Description=Human in the Loop: refresh the published feature media after a merge
+
+[Service]
+Type=oneshot
+Nice=15
+IOSchedulingClass=idle
+TimeoutStartSec=70min
+Environment=HITL_REPO=%h/.cache/hitl-ci/auto/worktree
+Environment=TMPDIR=%h/.cache/hitl-ci/tmp
+ExecStart=/bin/bash -c 'exec bash "$HITL_REPO/scripts/feature-media-auto.sh"'
