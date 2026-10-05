@@ -27,7 +27,7 @@ case "$args" in
         if [ "$sha" = "$head" ] && [ -f "$FIX/late" ] && [ "$n" -ge 1 ]; then cat "$FIX/late"
         else awk -v s="$sha" '$1 == s && $2 != "-" { print $2 }' "$FIX/heads"; fi ;;
     esac ;;
-  *"/statuses/"*) echo "POST $args" >>"$FIX/posted" ;;
+  *"/statuses/"*) echo "POST $args token=${GH_TOKEN:-none}" >>"$FIX/posted" ;;
   *) echo "unexpected gh $args" >&2; exit 9 ;;
 esac
 GH
@@ -53,11 +53,16 @@ check() { # <name> <want: carried|kept|restored> <heads: "sha state patch" lines
 echo "merge-union-check: rule 2: stand-in"; exit 1
 U
   chmod +x "$fix/union"
-  FIX="$fix" MERGE_UNION_CHECK="$fix/union" PATH="$tmp/bin:$PATH" bash "$HERE/review-carry.sh" 7 >/dev/null 2>&1
+  FIX="$fix" MERGE_UNION_CHECK="$fix/union" HITL_GH_AS="${GH_AS:-$tmp/gh-as}" PATH="$tmp/bin:$PATH" bash "$HERE/review-carry.sh" 7 >/dev/null 2>&1
   local got=kept last; last="$(tail -1 "$fix/posted")"
   case "$last" in *state=success*) got=carried ;; *state=*) got=restored ;; esac
   [ "$got" = "$2" ] || { echo "FAIL $1: want $2, got $got"; fails=$((fails + 1)); }
+  # Every post carries the reviewer app's token, never the caller's identity.
+  ! grep -v 'token=reviewer-app-token' "$fix/posted" | grep -q . || { echo "FAIL $1: a post without the reviewer app token: $(cat "$fix/posted")"; fails=$((fails + 1)); }
 }
+# gh-as.sh stand-ins: a reviewer key, and none.
+printf '#!/usr/bin/env bash\n[ "$1 $2" = "env reviewer" ] && echo "export GH_TOKEN=reviewer-app-token"\n' >"$tmp/gh-as"
+printf '#!/usr/bin/env bash\necho "gh-as: no key for $2" >&2\n' >"$tmp/gh-as-none"
 check 'a pass carries to a head that only merges main' carried 'a success p1|b - p1'
 check 'changed code does not carry' kept 'a success p1|b - p2'
 check 'a failure on the head is never overwritten' kept 'a success p1|b failure p1'
@@ -71,5 +76,6 @@ check 'a head that moved while carrying is not carried' kept 'a success p1|b - p
 check 'a hand merge that only kept both sides carries once local-ci passed' carried 'a success p1|b - p2' union_ok=1
 check 'a hand merge that kept both sides waits for local-ci' kept 'a success p1|b - p2' union_ok=1 localci=pending
 check 'a hand merge that failed a union rule does not carry' kept 'a success p1|b - p2'
+GH_AS="$tmp/gh-as-none" check 'without a reviewer app key nothing is posted' kept 'a success p1|b - p1'
 [ $fails -eq 0 ] && echo "review-carry: all cases pass" || echo "review-carry: $fails failing"
 [ $fails -eq 0 ]

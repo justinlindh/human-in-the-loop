@@ -14,6 +14,16 @@ set -uo pipefail
 pr="${1:-}"
 case "$pr" in ''|*[!0-9]*) echo "usage: scripts/review-carry.sh <pr>" >&2; exit 2 ;; esac
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
+# The review status counts for branch protection only from the reviewer GitHub App, so the posts (and
+# only they) carry its token; without a key nothing is posted. HITL_GH_AS names another gh-as.sh (tests).
+gh_as="${HITL_GH_AS:-$(dirname "$0")/tools/gh-as.sh}"
+post_status() { # <gh api args...>
+  local t; t="$(bash "$gh_as" env reviewer 2>/dev/null)"
+  case "$t" in
+    *GH_TOKEN=?*) ( eval "$t"; gh api "$@" ) ;;
+    *) echo "review-carry: no reviewer app token (scripts/tools/gh-as.sh); nothing posted" >&2; return 1 ;;
+  esac
+}
 
 read -r head base < <(gh pr view "$pr" --json headRefOid,baseRefName --jq '"\(.headRefOid) \(.baseRefName)"') || exit 2
 review_state() { gh api "repos/{owner}/{repo}/commits/$1/statuses" --jq '[.[] | select(.context=="review")] | first | .state // ""'; }
@@ -61,14 +71,14 @@ if [ -n "$why" ]; then
   late="$(review_state "$head")"
   [ -z "$late" ] || { echo "review-carry: #$pr head ${head:0:7} got a review verdict ($late) meanwhile; not carrying"; exit 1; }
   [ "$(gh pr view "$pr" --json headRefOid --jq .headRefOid)" = "$head" ] || { echo "review-carry: #$pr moved past ${head:0:7}; not carrying"; exit 1; }
-  gh api "repos/{owner}/{repo}/statuses/$head" -f state=success -f context=review \
+  post_status "repos/{owner}/{repo}/statuses/$head" -f state=success -f context=review \
     -f description="carried from ${prev:0:7}: $why" >/dev/null || exit 2
   # A verdict posted in the instant before the carry would now be older than it: post the verdict
   # again so it is the newest status and wins.
   v="$(verdict_on_head)"
   if [ -n "$v" ]; then
     IFS=$'\037' read -r vstate vdesc <<<"$v"
-    gh api "repos/{owner}/{repo}/statuses/$head" -f state="$vstate" -f context=review -f description="$vdesc" >/dev/null || exit 2
+    post_status "repos/{owner}/{repo}/statuses/$head" -f state="$vstate" -f context=review -f description="$vdesc" >/dev/null || exit 2
     echo "review-carry: #$pr head ${head:0:7} got a review verdict ($vstate) during the carry; restored it"
     exit 1
   fi

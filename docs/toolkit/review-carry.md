@@ -3,7 +3,7 @@ tool: `scripts/review-carry.sh <pr>`
 section: pr
 covers: scripts/review-carry.sh scripts/merge-union-check.mjs scripts/merge-union-check.test.sh
 ---
-Carries a review pass to a new head that only merges `main` in (ci-pr runs it after posting local CI). It also carries across a merge you resolved by hand, once `local-ci` has passed on the new head, when `scripts/merge-union-check.mjs` finds that each conflict only kept both sides:
+Carries a review pass to a new head that only merges `main` in (ci-pr runs it after posting local CI). The carried `review` status is posted as the reviewer GitHub App (`scripts/tools/gh-as.sh env reviewer`, the token scoped to the two posts), because branch protection counts only that identity; with no reviewer key it posts nothing and says so. It also carries across a merge you resolved by hand, once `local-ci` has passed on the new head, when `scripts/merge-union-check.mjs` finds that each conflict only kept both sides:
 1. The head is a merge whose first parent is the head that passed and whose second parent is on `main`.
 2. The head differs from git's own merge only in conflicted regions, each resolved as ours then theirs, or theirs then ours, verbatim.
    - In `src/data/*.js`, no key may appear twice in a region.
