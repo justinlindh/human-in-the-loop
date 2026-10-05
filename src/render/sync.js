@@ -30,6 +30,9 @@ import { between, draw, fixed } from './rand.js';
 const WALK = 1.25;
 const CHAIR_BACK_M = 0.55;
 const BODY_R = 0.2;            // a standing person's footprint radius     // where a sitter stops behind their chair before sliding onto it
+// Walks keep a cell off furniture where the room allows (a chibi head is wider than the body and
+// reaches chair backs and desk edges at head height); a tight aisle is still taken.
+const WALK_CLEAR = { clear: 0.35, soft: true };
 const CELEBRATE_ROOM = 0.25;   // clear floor around someone who stops to celebrate
 const CELEBRATE_APART = 0.5;   // and nobody else nearer than this
 const GLIDE_M = 0.8;           // further than this from their spot (beyond a seat's last step), people walk to it
@@ -324,6 +327,20 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     return { x: w.x + fixed('nodesk-x', s.id) - 0.5, z: w.z + fixed('nodesk-z', s.id) - 0.5, yaw: fixed('nodesk-yaw', s.id) * 6.28, anim: 'idle', key: 'nodesk' };
   }
 
+  // A walk's route: a cell off furniture where the room allows, and round the office robot when it
+  // is out (the walk grid doesn't know it), unless there is no way round or the walk ends at it.
+  let robotOut = () => null;
+  function walkPath(nav, from, to) {
+    const b = robotOut();
+    // A walk to the robot itself (the slap) keeps off it up to just short of the goal.
+    const r = b && Math.min(b.r + BODY_R, Math.hypot(to.x - b.x, to.z - b.z) - 0.1);
+    if (r > 0.25) {
+      const way = nav.path(from, to, WALK_CLEAR.clear, { ...WALK_CLEAR, avoid: [{ x: b.x, z: b.z, r }] });
+      if (way) return way;
+    }
+    return nav.path(from, to, WALK_CLEAR.clear, WALK_CLEAR);
+  }
+
   function walkTo(r, goal, run = false, from = r.goal) {
     const nav = office.nav();
     // A standing goal that falls inside furniture moves to the nearest walkable point.
@@ -331,13 +348,13 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     // A seat is reached from behind its chair; the last step onto it happens once they arrive.
     let to = goal;
     if (goal.seated) to = { x: goal.x - Math.sin(goal.yaw) * CHAIR_BACK_M, z: goal.z - Math.cos(goal.yaw) * CHAIR_BACK_M };
-    r.path = nav.path({ x: r.pos.x, z: r.pos.z }, { x: to.x, z: to.z });
+    r.path = walkPath(nav, { x: r.pos.x, z: r.pos.z }, { x: to.x, z: to.z });
     r.path.shift();
     // Leaving a seat at an item (the NOC) the way they came: back out behind the chair first, the item
     // still theirs until they're clear of it, as at a desk.
     if (from && from !== goal && from.seated && from.uses && Math.hypot(r.pos.x - from.x, r.pos.z - from.z) < 0.3) {
       const back = { x: from.x - Math.sin(from.yaw) * CHAIR_BACK_M, z: from.z - Math.cos(from.yaw) * CHAIR_BACK_M };
-      r.path = [back, ...nav.path(back, { x: to.x, z: to.z }).slice(1)];
+      r.path = [back, ...walkPath(nav, back, { x: to.x, z: to.z }).slice(1)];
       r.exitFrom = from.uses;
       r.exitSide = back;
     }
@@ -345,7 +362,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     // clear point first, then on from there.
     if (!r.path.length && nav.isBlocked(r.pos.x, r.pos.z, BODY_R)) {
       const p = clearOf(r, nav);
-      r.path = [p, ...nav.path(p, { x: to.x, z: to.z }).slice(1)];
+      r.path = [p, ...walkPath(nav, p, { x: to.x, z: to.z }).slice(1)];
     }
     r.speed = run ? RUN : isTired(r.staff) ? WALK * 0.7 : WALK;
     r.walkAnim = run ? 'run' : 'walk';
@@ -1259,6 +1276,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup, low });
   const pets = createPets({ office, recs, emote, parent: group, getProps, resumeWalk: walkTo, low });
   const robot = createRobot({ office, recs, emote, parent: group, walkTo, inView: (q) => moments.inView(q, { body: true, walls: true }), camYaw: () => rig?.yaw ?? Math.PI / 4 });
+  robotOut = () => robot.blocker();
   const momentCam = createMomentCamera(rig);
   const spotlights = createSpotlights({ camera: momentCam });
   const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx, spotlights, robot });
