@@ -22,7 +22,7 @@ import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { holdSeconds } from './reading.js';
 import { pickSpot, spotDebug, spotRing } from './spots.js';
 import { between, draw, fixed } from './rand.js';
-import { createMocapPlayer, placeInShot, clipTime, MOCAP_GAIN } from './mocap.js';
+import { createMocapPlayer, placeInShot, clipTime, sourceStart, MOCAP_GAIN } from './mocap.js';
 
 // Keeps one character per staff member in step with state, and plays event effects.
 // Characters are keyed by staff id; removed staff walk out and are disposed.
@@ -1545,12 +1545,13 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   // A shot: one baked clip per person (entries [{ id, clip }]) on one clock. The group's centre
   // stands at `at` { x, z, yaw }, yaw turning the shot's +z (its camera's forward); `spread` widens
   // the gaps between people (mocap.js placeInShot). clock() gives seconds of the source video
-  // (videoFps); without one, the shot runs on frame time from its earliest clip's first frame.
+  // (each clip's source.fps, else videoFps); without one, the shot runs on frame time from its
+  // earliest clip's first frame.
   // People whose heads come closer than `apart` metres (on the floor plan) are eased apart, each by
   // half the overlap, so big chibi heads never meet where real people stood close or leaned in.
   // Heads, not roots: a lean or a bow carries the head well off the root.
   function playShot(entries, { at = { x: 0, z: 0, yaw: 0 }, spread = SHOT_SPREAD, apart = SHOT_APART, gain = MOCAP_GAIN, clock = null, videoFps = 30, ...opts } = {}) {
-    const first = Math.min(...entries.map((e) => e.clip.source?.start ?? 0));
+    const first = Math.min(...entries.map((e) => sourceStart(e.clip, videoFps)));
     const placed = entries.filter((e) => e.clip.origin);
     const center = placed.length ? [0, 2].map((k) => placed.reduce((a, e) => a + e.clip.origin.pos[k], 0) / placed.length) : [0, 0];
     // Each person's wanted head spot this frame (before pushing) and their current push.
@@ -1584,7 +1585,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       want[i] = [where.x, where.z];
       return playMocap(id, clip, {
         ...opts, gain, at: where, place: apart > 0 ? keepApart(i) : null,
-        ...(clock ? { clock: () => clipTime(clip, clock(), videoFps) } : { t0: clipTime(clip, first / videoFps, videoFps) }),
+        ...(clock ? { clock: () => clipTime(clip, clock(), videoFps) } : { t0: clipTime(clip, first, videoFps) }),
       });
     });
     return { players, stop() { for (const { id } of entries) stopMocap(id); } };
