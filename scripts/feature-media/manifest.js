@@ -610,6 +610,7 @@ export const ITEMS = [
       { at: 17, js: `(() => { const s = window.__HITL.state; if (s.flags.incentiveCount !== window.__rung + 1 || !window.__winner) console.error('capture: the ${reward} award did not happen on camera'); })()` },
       ...CAMLOG(20)], screenshots: [6, 10, 14],
     out: [{ path: `moments/incentive-${reward}.mp4`, size: '1280x720', from: 6, seconds: 11, loop: 'none', crop: { x: 0.25, y: 0.2, w: 0.5, h: 0.56 } }],
+    publish: true,
   })),
 
   // docs/features/sound.md: the four music night genres. The live week raises the genre decision, the item

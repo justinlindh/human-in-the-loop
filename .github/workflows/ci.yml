@@ -195,20 +195,39 @@ jobs:
           echo "mode=$mode" >>"$GITHUB_OUTPUT"
           if [ "$mode" = light ]; then echo "skipped: docs-only change" | tee -a "$GITHUB_STEP_SUMMARY"; fi
           if [ "$mode" = tests ]; then echo "tests tier: only tests read this change (scripts/ci-tests-only-paths)" | tee -a "$GITHUB_STEP_SUMMARY"; fi
-      - uses: actions/setup-node@v7
+      - name: Which of these checks does the change need? (scripts/ci-guard-skip-paths and scripts/ci-perf-skip-paths, read from the base branch)
+        id: need
         if: steps.cls.outputs.mode == 'full'
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          guard=true; perf=true
+          if [ "$EVENT" = pull_request ] && git show "origin/$BASE_REF:scripts/ci-classify.sh" >"$RUNNER_TEMP/classify.sh" 2>/dev/null; then
+            git diff --name-only --no-renames "$(git merge-base "origin/$BASE_REF" "$HEAD_SHA")" "$HEAD_SHA" >"$RUNNER_TEMP/changed"
+            if git show "origin/$BASE_REF:scripts/ci-guard-skip-paths" >"$RUNNER_TEMP/guard-skip" 2>/dev/null \
+              && [ "$(bash "$RUNNER_TEMP/classify.sh" "$RUNNER_TEMP/guard-skip" <"$RUNNER_TEMP/changed")" = light ]; then guard=false; fi
+            if git show "origin/$BASE_REF:scripts/ci-perf-skip-paths" >"$RUNNER_TEMP/perf-skip" 2>/dev/null \
+              && [ "$(bash "$RUNNER_TEMP/classify.sh" "$RUNNER_TEMP/perf-skip" <"$RUNNER_TEMP/changed")" = light ]; then perf=false; fi
+          fi
+          echo "guard=$guard" >>"$GITHUB_OUTPUT"; echo "perf=$perf" >>"$GITHUB_OUTPUT"
+          [ "$guard" = true ] || echo "skipped: the main guard's cases (no tooling change)" | tee -a "$GITHUB_STEP_SUMMARY"
+          [ "$perf" = true ] || echo "skipped: the renderer counts (nothing that can move them changed)" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-node@v7
+        if: steps.cls.outputs.mode == 'full' && (steps.need.outputs.guard == 'true' || steps.need.outputs.perf == 'true')
         with:
           node-version: 25
           cache: npm
       - run: npm ci
-        if: steps.cls.outputs.mode == 'full'
+        if: steps.cls.outputs.mode == 'full' && (steps.need.outputs.guard == 'true' || steps.need.outputs.perf == 'true')
       - name: The main guard's cases
-        if: steps.cls.outputs.mode == 'full'
+        if: steps.cls.outputs.mode == 'full' && steps.need.outputs.guard == 'true'
         run: bash scripts/main-guard.test.sh
       - run: npx playwright install --with-deps chromium
-        if: steps.cls.outputs.mode == 'full'
+        if: steps.cls.outputs.mode == 'full' && steps.need.outputs.perf == 'true'
       - name: Renderer counts against the budget
-        if: steps.cls.outputs.mode == 'full'
+        if: steps.cls.outputs.mode == 'full' && steps.need.outputs.perf == 'true'
         run: |
           node scripts/perf/bench.js --scenes garage,floor,hq,music,floor-eras,floor-dotcom,floor-web2,hq-eras,hq-dotcom,hq-web2 --quality low,high --runs 1 --warmup 2 --seconds 1 --json "$RUNNER_TEMP/perf-counts.json"
           node scripts/perf/budget.js "$RUNNER_TEMP/perf-counts.json" --counts-only
