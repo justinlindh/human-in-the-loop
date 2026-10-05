@@ -74,6 +74,15 @@ JS" "$repo"
 run bash-guard.sh "$(bashjson "python3 -c \"open('$T','w')\"" "$repo")"
 [[ "$err" == *"Edit or Write"* ]] || fail "the script-write refusal should point at Edit and Write (got: $err)"
 # Reads, scratch targets, run-time paths, script files and quoted mentions get through.
+allowed "python3 -c \"import os; p = os.path.join('scripts', 'new-untracked.md'); open(p,'w').write('x')\"" "$repo"
+allowed "node -e \"const out = path.join('scripts', 'gen.txt'); require('fs').writeFileSync(out,'x')\"" "$repo"
+allowed "python3 -c \"open('scripts','w')\"" "$repo"
+allowed "python3 - <<'PY'
+f = open('$T')
+d = f.read()
+f = '/tmp/o.json'
+open(f,'w').write(d)
+PY" "$repo"
 allowed "python3 -c \"print(open('$T').read())\"" "$repo"
 allowed "python3 -c \"open('/tmp/out.txt','w').write('x')\"" "$repo"
 allowed "python3 -c \"open('\$HOME/.cache/hitl-ci/tmp/x.txt','w').write('x')\"" "$repo"

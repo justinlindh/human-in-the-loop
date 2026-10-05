@@ -121,6 +121,8 @@ done < <(grep -oE 'git([[:space:]]+-C[[:space:]]+[^[:space:];&|]+)?[[:space:]]+p
 # A python or node script (python -c, node -e, or a heredoc fed to either) that writes a tracked file by a
 # string-literal path, directly or through a variable assigned from one. A script file run by name, and a
 # path built at run time, are not looked into.
+# A tracked file, not a directory that holds tracked files.
+tracked_file() { git -C "${cwd:-.}" ls-files --error-unmatch -- "$1" >/dev/null 2>&1 && [ ! -d "${cwd:-.}/$1" ] && [ ! -d "$1" ]; }
 trigger="$(awk '/<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ && !inside { match($0, /<<-?[[:space:]]*'"'"'?[A-Za-z_]+/); tag=substr($0, RSTART, RLENGTH); gsub(/<<-?[[:space:]]*'"'"'?/, "", tag); print; inside=1; next } inside && $0 == tag { inside=0; next } !inside { print }' <<<"$cmd" \
   | sed -zE "s/'[^']*'/Q/g; s/\"([^\"\\\\]|\\\\.)*\"/Q/g" \
   | grep -E '(^|[[:space:];&|(])(python3?|node)([[:space:]]+-[A-Za-z-]+)*[[:space:]]+(-[ce]|--eval|-)([[:space:]]|$)|(^|[[:space:];&|(])(python3?|node)[^;&|]*<<' || true)"
@@ -137,14 +139,25 @@ if [ -n "$trigger" ]; then
       *) var="$(sed -E 's/[^A-Za-z0-9_].*$//' <<<"$arg")" ;;
     esac
     if [ -z "$lit" ] && [ -n "$var" ]; then
-      lit="$(grep -oE "(^|[^A-Za-z0-9_.])$var[[:space:]]*=[[:space:]]*([A-Za-z_.]+\()?['\"][^'\"]+['\"]" <<<"$cmd" | head -1 | grep -oE "['\"][^'\"]+['\"]" | head -1 | tr -d "'\"")"
+      # Every assignment of the variable from a string literal (or Path(literal)); any other kind of
+      # assignment (a call, another variable) means the path is built at run time.
+      assigns="$(grep -E "(^|[^A-Za-z0-9_.])$var[[:space:]]*=[^=]" <<<"$cmd" | grep -oE "(^|[^A-Za-z0-9_.])$var[[:space:]]*=[[:space:]]*((pathlib\.)?Path\()?['\"][^'\"]+['\"]" | grep -oE "['\"][^'\"]+['\"]" | tr -d "'\"")"
+      n_all="$(grep -cE "(^|[^A-Za-z0-9_.])$var[[:space:]]*=[^=]" <<<"$cmd")"
+      # Only when every assignment is a literal naming a tracked file.
+      if [ -n "$assigns" ] && [ "$(wc -l <<<"$assigns")" -ge "$n_all" ]; then
+        lit=""
+        while IFS= read -r a; do
+          tracked_file "$a" || { lit=""; break; }
+          lit="$a"
+        done <<<"$assigns"
+      fi
     fi
     wpaths+="$lit"$'\n'
   done <<<"$scripts_w"
   while IFS= read -r t; do
     [ -n "$t" ] || continue
     case "$t" in '$'*|'~'*|/dev/*) continue ;; esac
-    if git -C "${cwd:-.}" ls-files --error-unmatch -- "$t" >/dev/null 2>&1; then
+    if tracked_file "$t"; then
       deny "this script writes $t, a tracked file, and lane-guard only sees the Edit and Write tools. Change tracked files with Edit or Write. A script may write to a scratchpad, /tmp or ~/.cache, or build a file that is not tracked."
     fi
   done <<<"$wpaths"
