@@ -1,10 +1,17 @@
 ---
-tool: `node scripts/events/pair.js [--a <root>] [--b <root>] [--bots x,y] [--seeds 300] [--start-era <era>] [--fields '<js>'] [--json out.json]`
+tool: `node scripts/events/pair.js [--a <root>] [--b <root>] [--bots x,y] [--seeds 300] [--screen N [--expect same|change]] [--start-era <era>] [--fields '<js>'] [--json out.json]`
 section: sim
 who: sim, reviewer
 covers: scripts/events/pair.js scripts/events/pair-report.js scripts/events/side-cache.js
 ---
 A paired bot-run comparison between two checkouts, for any change that can move balance. Every bot plays seeds 1 to N on each side's own sim code, in parallel under nice, and the runs are compared seed by seed. `--a` is the base (default: origin/main, in a temporary worktree removed afterwards) and `--b` the change (default: this checkout). The comparison waits on both sides' processes, never on a sleep.
+
+**Screen first.** Run it under the heavy queue with a screen: `scripts/tools/job.sh run pair -- scripts/heavy.sh -- node scripts/events/pair.js --screen 30 --seeds 200` (with `run_in_background`). `--screen N` plays seeds 1 to N and prints that table first.
+- Every screened run identical, and the change claims no movement (`--expect same`, the default): it prints `screen: X/X runs identical on seeds 1-N; the 200-seed run is skipped` and stops. Paste the screen table.
+- Any run that differs: it says so and plays the full `--seeds` run. Paste that table; with 30 seeds a few points of exit % are noise, so read the 200-seed lost and gained.
+- A change meant to move balance passes `--expect change`, and the full run is played whatever the screen shows.
+- `--screen` must be below `--seeds`, and `--expect` is `same` or `change`; anything else exits 2 before playing. The exit code is the last run's.
+- A balance bound in a test still rests on 200 or more seeds; the screen does not replace that.
 
 Side a is cached in `~/.cache/hitl-ci/pair/` (`HITL_PAIR_CACHE_DIR` moves it, `HITL_NO_CHECK_CACHE=1` turns it off), keyed by the content of that side's `src/sim` and `src/data` files (test files aside), the bots, seeds, `--start-era`, `--fields`, this script and Node. A repeat against an unchanged base prints `pair: side a read from the cache`, makes no base worktree and plays only side b; any change to the base's sim or data, or to those arguments, plays side a again. The key follows content, not the path, so `--a <root>` and the default origin/main share an entry when they hold the same sim. Entries older than 14 days are removed when a new one is written; a damaged entry is played over. When side a cannot be keyed or stored (git cannot list the files, the cache directory is not writable) the run still plays and prints `pair: cache: skipped (<why>)` on stderr.
 

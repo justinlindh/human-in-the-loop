@@ -1,7 +1,7 @@
 import { describe, it, expect, afterAll } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { resolve, join } from 'node:path';
-import { readdirSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { makeTemp } from '../../scripts/tools/tmp.mjs';
 import { compare, markdown, parseFields, sideKey } from '../../scripts/events/pair-report.js';
 
@@ -168,5 +168,43 @@ describe('pair.js run records', () => {
       expect(run.games).toBe(4);
     } finally { rmSync(dir, { recursive: true, force: true }); }
   }, 120000);
+});
+
+describe('pair.js --screen', () => {
+  const run = (...args) => spawnSync(process.execPath, [PAIR, ...args], { encoding: 'utf8', timeout: 300000, env: { ...process.env, HITL_NO_CHECK_CACHE: '1' } });
+  const tables = (out) => out.split('\n').filter((l) => l.startsWith('| bot |')).length;
+
+  it('stops after the screen when every screened run is identical', () => {
+    const r = run('--a', '.', '--b', '.', '--bots', 'automateAll', '--seeds', '3', '--screen', '1', '--jobs', '1');
+    expect(r.status).toBe(0);
+    expect(r.stdout).toMatch(/screen: 1\/1 runs identical on seeds 1-1; the 3-seed run is skipped/);
+    expect(tables(r.stdout)).toBe(1);
+  }, 300000);
+
+  it('goes on to the full run with --expect change, even when the screen is identical', () => {
+    const r = run('--a', '.', '--b', '.', '--bots', 'automateAll', '--seeds', '2', '--screen', '1', '--expect', 'change', '--jobs', '1');
+    expect(r.status).toBe(0);
+    expect(r.stdout).toMatch(/screen: .*--expect change: playing the 2-seed run/);
+    expect(tables(r.stdout)).toBe(2);
+    expect(r.stdout).toMatch(/2 paired runs/);
+  }, 300000);
+
+  it('goes on to the full run when the screen finds a difference', () => {
+    const base = makeTemp('pair-screen-base-');
+    try {
+      cpSync('src', join(base, 'src'), { recursive: true });
+      const f = join(base, 'src/sim/balance.js');
+      writeFileSync(f, readFileSync(f, 'utf8').replace('hqDeskCap: 30,', 'hqDeskCap: 12,'));
+      const r = run('--a', base, '--b', '.', '--bots', 'balanced', '--seeds', '2', '--screen', '1', '--jobs', '1');
+      expect(r.status).toBe(0);
+      expect(r.stdout).toMatch(/screen: 0\/1 runs identical on seeds 1-1; playing the 2-seed run/);
+      expect(tables(r.stdout)).toBe(2);
+    } finally { rmSync(base, { recursive: true, force: true }); }
+  }, 300000);
+
+  it('refuses a screen that is not smaller than --seeds, and a bad --expect, before playing', () => {
+    expect(run('--a', '.', '--bots', 'automateAll', '--seeds', '2', '--screen', '2').status).toBe(2);
+    expect(run('--a', '.', '--bots', 'automateAll', '--seeds', '2', '--screen', '1', '--expect', 'maybe').status).toBe(2);
+  });
 });
 
