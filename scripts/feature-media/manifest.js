@@ -612,6 +612,20 @@ export const ITEMS = [
     out: [{ path: `moments/incentive-${reward}.mp4`, size: '1280x720', from: 6, seconds: 11, loop: 'none', crop: { x: 0.25, y: 0.2, w: 0.5, h: 0.56 } }],
   })),
 
+  // docs/features/sound.md: the four music night genres. The live week raises the genre decision, the item
+  // answers it, and the game's own spotlight camera follows the dance break.
+  ...['corporate_synthwave', 'motivational_polka', 'aggressive_bossa_nova', 'sad_lofi'].map((genre, i) => ({
+    id: `moment-music-${genre}`, title: `Staged moment: music night, ${genre}`, query: 'seed=1&speed=1', seconds: 40, warmup: 0.5, record: '3840x2160',
+    setup: `(async () => { await ${PLAY({ weeks: 176, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE} sim.stageIncentive(s, 'music_night');` })}; await ${PRE_DECISION('music_night_genre', 16)}; ${CLEAN}; })()`,
+    actions: [{ at: 0, js: NO_SAY }, ...CLEAR_EARLY, ...CHOOSE_WHEN('music_night_genre', i, 1, 20, 3), ...Array.from({ length: 36 }, (_, k) => ({ at: k + 4.5, js: CLICK('Onward') })),
+      // The genre card answered and the dance break raised: the winner is cleared and the ladder has moved.
+      { at: 30, js: `(() => { const s = window.__HITL.state; if (s.pendingDecision?.eventId === 'music_night_genre' || s.flags.musicNightWinner) console.error('capture: the ${genre} genre was never picked'); })()` },
+      ...CAMLOG(40)],
+    screenshots: [14, 18, 22, 26],
+    out: [{ path: `moments/music-${genre}.mp4`, size: '1280x720', from: 13, seconds: 14, loop: 'none', crop: { x: 0.2, y: 0.3, w: 0.5, h: 0.5 } }],
+    publish: true,
+  })),
+
   // docs/features/decisions.md: what each decision stages in the office while its card is up. The pre-tick
   // snapshot is opened, the game's tick raises the card, the card is hidden and the camera holds on the prop.
   ...DECISION_PROPS.map(([id, query, prop, zoom = 5.5, center = false]) => ({
