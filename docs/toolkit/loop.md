@@ -7,4 +7,4 @@ Decision moments through the real game loop: loads the state just before the tic
 
 The real-spotlight cases also exercise a letter (`hearing_summons`) and fumes (`coffee_machine_broke`). Each must finish naturally, keep its week, and allow weeks to resume after its card is answered.
 
-Each case plays in a page of its own, `--jobs` (default 4) at a time, each job in its own Chromium, since pages in one browser share its GPU process and their frames would queue. The output lists the cases in the same order whatever finishes first.
+Each case plays in a page of its own, `--jobs` (default 4) at a time, each job in its own Chromium, since pages in one browser share its GPU process and their frames would queue. The output lists the cases in the same order whatever finishes first; the spotlight cases, the slowest, start first. A real-spotlight case stops 15 frames after the weeks resume following its spotlight (at most 90 s of play), rather than always playing out the full window; the Skip and 4x cases (`first_user_test`, `efficiency_consultants`) watch 30 s past the resume, since they count staged visitors and a duplicate can arrive late.
