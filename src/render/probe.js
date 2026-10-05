@@ -22,7 +22,9 @@ import * as THREE from 'three';
 //   fadeOver,               // columns drawn faded over the character's screen box
 //   hands: [[x, y, z], [x, y, z]], handsRel: hands relative to the eyes, in the face's heading
 //   handsCam: [a, b],       // metres each hand sits nearer the camera than the eyes
-//   held: { dist, ahead } | null,   // held prop: distance from the eyes; angle off the face's direction
+//   handsSide: [a, b],      // metres each hand sits from the eyes across the view
+//   held: { dist, ahead, up, cam } | null,   // held prop: distance from the eyes; angle off the face's
+//                           // direction; metres above the eyes; metres nearer the camera than the eyes
 //   lean,                   // metres the head sits ahead of the feet toward the target (negative: away)
 //   between,                // sprites of the moment's source (smoke) near the line from eyes to target
 // }
@@ -193,11 +195,13 @@ export function createProbe({ scene, camera, office, charOf, stagingOf = () => n
     const handsRel = p.hands.map((h) => h.clone().sub(p.eyes).applyAxisAngle(new THREE.Vector3(0, 1, 0), -yaw));
     // Metres each hand sits nearer the camera than the eyes (negative: behind the head).
     const handsCam = p.hands.map((h) => +h.clone().sub(p.eyes).dot(toCam).toFixed(3));
+    // Metres each hand sits from the eyes across the view (the part of the offset the camera sees).
+    const handsSide = p.hands.map((h) => { const d = h.clone().sub(p.eyes); return +d.sub(toCam.clone().multiplyScalar(d.dot(toCam))).length().toFixed(3); });
 
     let held = null;
     if (st.held) {
       const hc = targetPoint(st.held);
-      held = { dist: +hc.distanceTo(p.eyes).toFixed(3), ahead: +deg(p.forward, hc.clone().sub(p.eyes)).toFixed(1) };
+      held = { dist: +hc.distanceTo(p.eyes).toFixed(3), ahead: +deg(p.forward, hc.clone().sub(p.eyes)).toFixed(1), up: +(hc.y - p.eyes.y).toFixed(3), cam: +hc.clone().sub(p.eyes).dot(toCam).toFixed(3) };
     }
 
     const root = c.root.position;
@@ -224,7 +228,7 @@ export function createProbe({ scene, camera, office, charOf, stagingOf = () => n
       anim: p.anim, moment: st.moment ?? null, beat: st.beat ?? null, face: c.face?.name ?? null, talk: c.face?.weights?.talk ?? 0, emote: c.emote ?? null,
       eyes: r3(p.eyes), forward: r3(p.forward), headY: +p.head.y.toFixed(3),
       gaze, targetAngle, targetDist, targetVisible, targetScale, faceCam: +deg(p.forward, toCam).toFixed(1), visible: +visible.toFixed(3), occluder: vc.occluder, fadeOver,
-      hands: p.hands.map(r3), handsRel: handsRel.map(r3), handsCam, held, lean, between,
+      hands: p.hands.map(r3), handsRel: handsRel.map(r3), handsCam, handsSide, held, lean, between,
     };
   }
 
