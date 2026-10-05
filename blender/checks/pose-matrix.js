@@ -62,7 +62,9 @@ export function parseMatrix(spec, gesture = null) {
   for (const k of Object.keys(raw)) if (!known.includes(k)) throw new Error(`pose: --matrix axis "${k}" is not one of ${known.join(', ')}`);
   const pick = (k, all, d) => list((raw[k] ?? [].concat(d)).flatMap((v) => (v === 'all' ? all : [v])), all);
   const views = pick('views', ['0', '1', '2', '3'], gesture === 'slap' ? ['0', '2'] : 'all').map(Number);
-  const postures = gesture === 'slap' ? ['stand'] : pick('postures', Object.keys(POSTURES), 'all');
+  // The game never casts a lying facepalmer (sync.js postReaction), so its matrix leaves `lie` out
+  // unless asked for by name.
+  const postures = gesture === 'slap' ? ['stand'] : pick('postures', Object.keys(POSTURES), gesture === 'facepalm' ? ['stand', 'sit'] : 'all');
   const builds = pick('builds', ['0', '1', '2'], 'all').map(Number);
   const rig = (raw.rig ?? ['on', 'off']).flatMap((v) => (v === 'all' ? ['on', 'off'] : [v]));
   const accessory = pick('accessory', ACCESSORIES, 'none');
