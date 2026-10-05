@@ -447,6 +447,9 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
       return [];
     },
 
+    // hitl:dealBell from the renderer: the seller's handbell beat is playing on screen.
+    dealBell(detail, t) { return playCue('sfx.deal_handbell', t); },
+
     get musicState() { return { ...music }; },
     // The host reports when a bed really started (a delivered file may wait to decode), so the
     // playlist's loop boundaries follow the audio that is playing.
