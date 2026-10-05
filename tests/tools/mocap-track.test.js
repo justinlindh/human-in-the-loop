@@ -9,15 +9,19 @@ import { cacheKey, detectCuts, probe, shotsFromCuts } from '../../scripts/tools/
 const TRACK = resolve(__dirname, '../../scripts/tools/mocap/track.mjs');
 const STUB = resolve(__dirname, 'mocap-stub-worker.mjs');
 let dir, clip;
+// The runner shells out to ffmpeg and ffprobe; a machine without them (the GitHub runner) skips the file,
+// and local CI, which has them, runs it.
+const HAVE_FFMPEG = ['ffmpeg', 'ffprobe'].every((c) => spawnSync(c, ['-version']).status === 0);
 
 // A synthetic two-scene clip: 1 s of a test pattern, then 1 s of a different one, so there is one cut at frame 30.
 beforeAll(() => {
+  if (!HAVE_FFMPEG) return;
   dir = mkdtempSync(join(toolTmp(), 'mocap-test-'));
   clip = join(dir, 'synthetic.mp4');
   const r = spawnSync('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=160x120:rate=30:duration=1', '-f', 'lavfi', '-i', 'mandelbrot=size=160x120:rate=30', '-filter_complex', '[1:v]trim=duration=1,setpts=PTS-STARTPTS[b];[0:v][b]concat=n=2:v=1[o]', '-map', '[o]', '-pix_fmt', 'yuv420p', clip], { encoding: 'utf8' });
   if (r.status !== 0) throw new Error(`could not make the synthetic clip: ${r.stderr}`);
 });
-afterAll(() => rmSync(dir, { recursive: true, force: true }));
+afterAll(() => { if (dir) rmSync(dir, { recursive: true, force: true }); });
 
 let n = 0;
 // One isolated run: its own output, cache and scratch directories, the stub as the worker.
@@ -30,7 +34,7 @@ function run(args, env = {}) {
 const go = async (r) => ({ ...(await spawnAsync('node', [TRACK, ...r.args], { timeout: 60000, env: r.e })), d: r.d });
 const runs = (d) => (existsSync(join(d, 'stub.log')) ? readFileSync(join(d, 'stub.log'), 'utf8').trim().split('\n').length : 0);
 
-describe('shots', () => {
+describe.skipIf(!HAVE_FFMPEG)('shots', () => {
   it('finds the cut in a clip with two scenes', () => {
     const info = probe(clip);
     expect(info.frames).toBe(60);
@@ -51,7 +55,7 @@ describe('shots', () => {
   });
 });
 
-describe('track.mjs', () => {
+describe.skipIf(!HAVE_FFMPEG)('track.mjs', () => {
   it('tracks each shot, writes an index with no local paths, and serves the second run from the cache', async () => {
     const r = run([]);
     const a = await go(r);
