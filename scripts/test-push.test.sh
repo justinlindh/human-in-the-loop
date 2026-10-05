@@ -23,5 +23,17 @@ FAKE_COUNT=41 runit
 [ $rc -eq 0 ] && grep -q 'reach 41 test files' <<<"$out" && [ "$(runs)" -eq 1 ] || fail "more than 40 test files skips the run: rc $rc: $out"
 HITL_PUSH_TEST_MAX=100 FAKE_COUNT=41 runit
 [ "$(runs)" -eq 2 ] || fail "HITL_PUSH_TEST_MAX raises the cutoff: runs $(runs): $out"
+# A shell script a test runs by its path goes to test-related (which adds that test); one no test
+# runs, and a shell test, run nothing here.
+rm -f "$r/src/a.js" "$tmp/runs"
+printf 'if (process.argv[2] === "scripts/run.sh") console.log("tests/run.test.js");\n' >"$r/scripts/tools/spawned-tests.mjs"
+g add scripts/tools/spawned-tests.mjs; g commit -q -m stub; g update-ref refs/remotes/origin/main HEAD
+echo 'x' >"$r/scripts/run.sh"; echo 'x' >"$r/scripts/other.sh"; echo 'x' >"$r/scripts/run.test.sh"
+runit
+[ $rc -eq 0 ] && [ "$(runs)" -eq 1 ] && grep -q 'related --files scripts/run.sh$' "$tmp/runs" || fail "a script a test runs goes to test-related, alone: rc $rc: $(cat "$tmp/runs" 2>/dev/null): $out"
+rm -f "$r/scripts/run.sh" "$tmp/runs"
+runit
+[ $rc -eq 0 ] && grep -q 'nothing to run' <<<"$out" && [ "$(runs)" -eq 0 ] || fail "scripts no test runs, and shell tests, run nothing: rc $rc: $out"
+
 [ $fails -eq 0 ] && echo "test-push: all cases pass" || echo "test-push: $fails failing"
 [ $fails -eq 0 ]

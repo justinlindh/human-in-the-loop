@@ -9,9 +9,15 @@
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel)"
 base="$(git merge-base origin/main HEAD 2>/dev/null || echo HEAD)"
-files="$( { git diff --name-only "$base"; git ls-files --others --exclude-standard; } | sort -u \
-  | while read -r f; do [ -e "$f" ] && echo "$f"; done \
-  | grep -E '^((src|tests)/([^/]+/){0,2}[^/]+\.js|scripts/([^/]+/)?[^/]+\.(js|mjs))$' || true)"
+changed="$( { git diff --name-only "$base"; git ls-files --others --exclude-standard; } | sort -u \
+  | while read -r f; do [ -e "$f" ] && echo "$f"; done)"
+files="$(grep -E '^((src|tests)/([^/]+/){0,2}[^/]+\.js|scripts/([^/]+/)?[^/]+\.(js|mjs))$' <<<"$changed" || true)"
+# A shell script a test runs by its path (scripts/tools/spawned-tests.mjs names that test) goes along
+# too, so test-related adds the test; one no test runs is left to GitHub.
+for f in $(grep -E '^scripts/([^/]+/)?[^/]+\.sh$' <<<"$changed" | grep -v '\.test\.sh$'); do
+  [ -f scripts/tools/spawned-tests.mjs ] && [ -n "$(node scripts/tools/spawned-tests.mjs "$f" 2>/dev/null)" ] && files+=$'\n'"$f"
+done
+files="$(sed '/^$/d' <<<"$files")"
 if [ -z "$files" ]; then
   echo "test-push: no changed JS under src, tests or scripts: nothing to run here (GitHub runs the full suite)"
   exit 0
