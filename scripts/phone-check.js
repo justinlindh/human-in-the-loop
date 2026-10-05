@@ -2,7 +2,9 @@
 // anything that makes it unplayable by finger. Exits 1 on a failed check or a console error.
 //
 // node scripts/phone-check.js [--devices iphone14,iphone14-land,android,ipad] [--checks a,b]
-//   [--query "seed=7"] [--out shots/phone] [--software|--gpu]
+//   [--query "seed=7"] [--out shots/phone] [--jobs 4] [--software|--gpu]
+// --jobs runs that many device and check pairs at once, each job in a Chromium of its own (pages in
+// one browser share its GPU process) against one dev server; output stays in device then check order.
 // Fix loop: --only <check[,check]> is --checks; --failed reruns just the device and check pairs that
 // failed in the last run (recorded in <out>/last-run.json, updated by every run, so a pair that
 // passes on a rerun drops off); --list prints the check and device names. Run the whole thing once
@@ -118,6 +120,8 @@ if (args.failed) {
 const deviceNames = pairs ? [...new Set(pairs.map((p) => p.d))] : String(args.devices ?? 'iphone14,iphone14-land,android,ipad').split(',');
 const checks = pairs ? [...new Set(pairs.map((p) => p.c))] : String(args.only ?? args.checks ?? ALL_CHECKS.join(',')).split(',');
 const query = typeof args.query === 'string' ? args.query : 'seed=7';
+const jobs = args.jobs === undefined ? 4 : Number(args.jobs);
+if (!Number.isInteger(jobs) || jobs < 1) { console.error(`phone-check: --jobs wants a whole number of at least 1, not ${args.jobs}`); process.exit(2); }
 for (const d of deviceNames) if (!DEVICES[d]) { console.error(`phone-check: unknown device ${d}`); process.exit(2); }
 for (const c of checks) if (!ALL_CHECKS.includes(c)) { console.error(`phone-check: unknown check ${c}`); process.exit(2); }
 mkdirSync(outDir, { recursive: true });
@@ -141,25 +145,30 @@ const INIT = () => {
 const server = await createServer({ server: { port: 0, strictPort: false }, logLevel: 'error' });
 await server.listen();
 const base = server.resolvedUrls.local[0];
-const { browser } = await launchChromium(chromium, { mode: GL, label: 'phone-check', args: ['--autoplay-policy=user-gesture-required'] });
+const browsers = [];
+const launch = async (w) => {
+  const { browser } = await launchChromium(chromium, { mode: GL, label: w ? `phone-check ${w + 1}` : 'phone-check', args: ['--autoplay-policy=user-gesture-required'] });
+  browsers.push(browser);
+  return browser;
+};
 
 const results = [];
 const wait = (page, ms) => page.waitForTimeout(ms);
 
 // A game that doesn't come up (a loaded CI machine) gets one more try; after that the check
 // reports it instead of crashing on a missing window.__HITL.
-async function openGame(deviceName, extraQuery = '') {
+async function openGame(browser, deviceName, log, extraQuery = '') {
   for (let attempt = 1; ; attempt++) {
     try {
-      return await openGameOnce(deviceName, extraQuery);
+      return await openGameOnce(browser, deviceName, extraQuery);
     } catch (e) {
       if (!e.gameDidNotLoad || attempt >= 2) throw e;
-      console.log(`retry  ${deviceName.padEnd(15)} the game did not come up; trying once more`);
+      log(`retry  ${deviceName.padEnd(15)} the game did not come up; trying once more`);
     }
   }
 }
 
-async function openGameOnce(deviceName, extraQuery = '') {
+async function openGameOnce(browser, deviceName, extraQuery = '') {
   const ctx = await browser.newContext({ ...DEVICES[deviceName] });
   await ctx.addInitScript(INIT);
   const page = await ctx.newPage();
@@ -535,31 +544,47 @@ const CHECKS = {
   },
 };
 
-try {
-  for (const d of deviceNames) {
-    for (const c of checks) {
-      if (d === 'desktop' && TOUCH_ONLY.has(c)) continue;
-      if (pairs && !pairs.some((p) => p.d === d && p.c === c)) continue;
-      let g;
-      try { g = await openGame(d); } catch (e) {
-        const r = { fails: [e.gameDidNotLoad ? `game didn't load, twice: ${e.message}` : `could not open the game: ${String(e.message ?? e).split('\n')[0]}`] };
-        results.push({ d, c, ...r });
-        console.log(`FAIL  ${d.padEnd(15)} ${c.padEnd(10)} ${r.fails[0]}`);
-        continue;
-      }
-      const shot = (name) => g.page.screenshot({ path: `${outDir}/${d}-${name}.png` }).catch(() => {});
-      let r;
-      try { r = await CHECKS[c]({ ...g, shot }); } catch (e) { r = { fails: [`crashed: ${String(e.message ?? e).split('\n')[0]}`] }; }
-      for (const e of g.errors) r.fails.push(`console: ${e.slice(0, 160)}`);
-      results.push({ d, c, ...r });
-      console.log(`${r.fails.length ? 'FAIL' : 'pass'}  ${d.padEnd(15)} ${c.padEnd(10)} ${r.fails.join('; ') || r.note || ''}`);
-      await g.ctx.close();
-    }
+// One fresh context per pair. Jobs take pairs in order; each pair's lines are printed once every
+// pair before it has printed, so the output reads as a one-job run.
+async function runPair(browser, { d, c }, log) {
+  let g;
+  try { g = await openGame(browser, d, log); } catch (e) {
+    const r = { fails: [e.gameDidNotLoad ? `game didn't load, twice: ${e.message}` : `could not open the game: ${String(e.message ?? e).split('\n')[0]}`] };
+    log(`FAIL  ${d.padEnd(15)} ${c.padEnd(10)} ${r.fails[0]}`);
+    return { d, c, ...r };
   }
+  const shot = (name) => g.page.screenshot({ path: `${outDir}/${d}-${name}.png` }).catch(() => {});
+  let r;
+  try { r = await CHECKS[c]({ ...g, shot }); } catch (e) { r = { fails: [`crashed: ${String(e.message ?? e).split('\n')[0]}`] }; }
+  for (const e of g.errors) r.fails.push(`console: ${e.slice(0, 160)}`);
+  log(`${r.fails.length ? 'FAIL' : 'pass'}  ${d.padEnd(15)} ${c.padEnd(10)} ${r.fails.join('; ') || r.note || ''}`);
+  await g.ctx.close();
+  return { d, c, ...r };
+}
+
+const work = [];
+for (const d of deviceNames) for (const c of checks) {
+  if (d === 'desktop' && TOUCH_ONLY.has(c)) continue;
+  if (pairs && !pairs.some((p) => p.d === d && p.c === c)) continue;
+  work.push({ d, c });
+}
+const done = new Array(work.length), lines = work.map(() => []);
+let next = 0, printed = 0;
+const flush = () => { while (printed < work.length && done[printed]) { for (const l of lines[printed]) console.log(l); printed++; } };
+try {
+  await Promise.all(Array.from({ length: Math.min(jobs, work.length) }, async (_, w) => {
+    const browser = await launch(w);
+    while (next < work.length) {
+      const i = next++;
+      done[i] = await runPair(browser, work[i], (l) => lines[i].push(l));
+      flush();
+    }
+  }));
 } finally {
-  await browser.close();
+  await Promise.all(browsers.map((b) => b.close().catch(() => {})));
   await server.close();
 }
+results.push(...done.filter(Boolean));
 const failed = results.filter((r) => r.fails.length);
 const ran = (p) => results.some((r) => r.d === p.d && r.c === p.c);
 writeFileSync(recordPath, JSON.stringify({ failed: [...previouslyFailed.filter((p) => !ran(p)), ...failed.map((r) => ({ d: r.d, c: r.c }))] }));
