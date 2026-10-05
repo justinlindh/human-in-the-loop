@@ -110,12 +110,15 @@ async function startServer() {
     const child = spawn(process.execPath, [SERVER, '--host', '127.0.0.1', '--port', String(port)], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, HITL_DASH_EVERY: '3600' } });
     let err = '';
     child.stderr.on('data', (d) => { err += d; });
+    let giveUp;
     try {
-      await new Promise((res, rej) => { child.stdout.on('data', (d) => /dashboard: http/.test(d) && res()); child.on('exit', (c) => rej(new Error(`exited ${c}: ${err.split('\n')[0]}`))); setTimeout(() => rej(new Error('no start')), 20000); });
+      await new Promise((res, rej) => { child.stdout.on('data', (d) => /dashboard: http/.test(d) && res()); child.on('exit', (c) => rej(new Error(`exited ${c}: ${err.split('\n')[0]}`))); giveUp = setTimeout(() => rej(new Error('no start')), 20000); });
       return { child, port };
     } catch (e) {
       child.kill();
       if (attempt >= 4 || !/EADDRINUSE|exited 1/.test(e.message)) throw e;
+    } finally {
+      clearTimeout(giveUp);
     }
   }
 }
