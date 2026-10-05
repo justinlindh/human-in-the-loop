@@ -272,7 +272,7 @@ fi
 # loosen the checks it is judged by. A PR that changes local CI itself (ci-local.sh, the scripts it
 # runs, its path lists) is also run through its own version, and both must pass.
 run_ci() { # <ci-local.sh> <summary file> <kept-log suffix>
-  CI_KEEP_DIR="$ROOT/failed/pr$pr-${head:0:7}$3" CI_PR_SELFTESTS=1 CI_DIR="$WT" setsid bash "$1" --base "origin/$base" --title "$title" --summary "$2" 9>&- &
+  CI_DELTA_FILE="${4:-}" CI_KEEP_DIR="$ROOT/failed/pr$pr-${head:0:7}$3" CI_PR_SELFTESTS=1 CI_DIR="$WT" setsid bash "$1" --base "origin/$base" --title "$title" --summary "$2" 9>&- &
   ci_pid=$!
   wait "$ci_pid"; local r=$?
   ci_pid=""
@@ -282,7 +282,11 @@ summary="$(mktemp)"; own_summary=""
 # Failed steps' full logs (CI_KEEP_DIR) are kept for a few days, then pruned.
 find "$ROOT/failed" -mindepth 1 -maxdepth 1 -mtime +"${CI_KEEP_DAYS:-4}" -exec rm -rf {} + 2>/dev/null || true
 t0=$(date +%s)
-run_ci "$TOOLS/scripts/ci-local.sh" "$summary" ""
+# Checks whose inputs match the tree this PR last passed in full are skipped (scripts/ci-delta.sh); the run
+# of the PR's own ci-local.sh below always runs everything.
+delta_file="$(mktemp)"; rm -f "$delta_file"
+if [ -f "$TOOLS/scripts/ci-delta.sh" ] && bash "$TOOLS/scripts/ci-delta.sh" "$pr" "$WT" "$delta_file" --repo "$REPO"; then :; else delta_file=""; fi
+run_ci "$TOOLS/scripts/ci-local.sh" "$summary" "" "$delta_file"
 rc=$?
 ci_changes="$(printf '%s\n' "$changed" | grep -E '^scripts/([^/]+\.sh|lib/.+|ci-[a-z-]+-paths)$' || true)"
 if [ -n "$ci_changes" ]; then
@@ -298,7 +302,7 @@ secs=$(( $(date +%s) - t0 ))
 case $rc in 0) verdict=PASS; state=success ;; 3) verdict="ERROR (the machine, not the code)"; state=error ;; *) verdict=FAIL; state=failure ;; esac
 # A full pass of a tree the main guard would otherwise run again (not the tests tier, which skips the render checks).
 if [ $rc -eq 0 ] && [ "$comment" = 1 ] && [ "${CI_TIER:-}" != tests ]; then
-  bash "$TOOLS/scripts/tested-trees.sh" record "$WT" "$pr" "$head" "$base" 2>/dev/null || true
+  bash "$TOOLS/scripts/tested-trees.sh" record "$WT" "$pr" "$head" "$base" ${delta_file:+delta} 2>/dev/null || true
 fi
 # setup_s: everything before local CI (fetching, the worktree, waiting for this PR's lock, installing).
 # merge_only: 1 when this head only merged the base into the PR's earlier tested head, 0 for new work, na unknown.
