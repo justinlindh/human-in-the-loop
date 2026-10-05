@@ -413,6 +413,52 @@ describe('audio director', () => {
     expect(CUES['sfx.sales_register']).toBeUndefined();
   });
 
+  describe('office boombox radio', () => {
+    const beds = { classic: ['classic/a'], radio_lofi: ['radio_lofi/a', 'radio_lofi/b'], radio_funk: ['radio_funk/a'] };
+    const radio = (station, on = true) => state({ radio: { on, station } });
+    const music = (cmds) => cmds.filter((c) => c.op === 'music');
+    const run = (d, s, t) => d.update(s, t, { speed: 1, running: true });
+
+    it('takes over from the era bed with a crossfade, and radio off returns to it', () => {
+      const d = createDirector({ seed: 3, beds });
+      expect(music(run(d, state(), 0))).toMatchObject([{ era: 'classic' }]);
+      expect(music(run(d, radio('lofi'), 5))).toMatchObject([{ era: 'radio_lofi' }]);
+      expect(music(run(d, radio('lofi'), 6))).toEqual([]);
+      expect(music(run(d, radio('funk'), 10))).toMatchObject([{ era: 'radio_funk', bed: 'radio_funk/a' }]);
+      expect(music(run(d, radio('funk', false), 15))).toMatchObject([{ era: 'classic' }]);
+    });
+
+    it('stays on the era bed with no radio state, an unknown station, or a station with no delivered beds', () => {
+      const d = createDirector({ seed: 3, beds });
+      run(d, state(), 0);
+      for (const [i, s] of [state(), radio('nope'), radio('polka'), radio('lofi', false)].entries()) expect(music(run(d, s, 5 + i))).toEqual([]);
+    });
+
+    it('rotates a station beds as a playlist and does not cheer for a station change', () => {
+      const d = createDirector({ seed: 3, beds });
+      run(d, state(), 0);
+      const cmds = [];
+      for (let t = 5; t < 400; t += 0.5) cmds.push(...run(d, radio('lofi'), t));
+      expect(music(cmds).map((c) => c.bed).filter((b) => b.startsWith('radio_lofi'))).toEqual(expect.arrayContaining(['radio_lofi/a', 'radio_lofi/b']));
+      expect(cmds.filter((c) => c.op === 'play' && /cheer/.test(c.cue))).toEqual([]);
+    });
+
+    it('plays the tuning and click cues when they exist: a click on and off, tuning between stations', () => {
+      const had = { ...CUES };
+      CUES['sfx.radio_tune'] = { bus: 'sfx', files: ['sfx/radio_tune'], cooldown: 0, priority: 2 };
+      CUES['sfx.radio_click'] = { bus: 'sfx', files: ['sfx/radio_click'], cooldown: 0, priority: 2 };
+      try {
+        const d = createDirector({ seed: 3, beds });
+        const cues = (cmds) => cmds.filter((c) => c.op === 'play').map((c) => c.cue);
+        run(d, state(), 0);
+        expect(cues(run(d, radio('lofi'), 5))).toEqual(['sfx.radio_click']);
+        expect(cues(run(d, radio('funk'), 10))).toEqual(['sfx.radio_tune']);
+        expect(cues(run(d, radio('funk', false), 15))).toEqual(['sfx.radio_click']);
+      } finally { delete CUES['sfx.radio_tune']; delete CUES['sfx.radio_click']; Object.assign(CUES, had); }
+    });
+
+  });
+
   it('does not count paused time toward the next bed, and keeps a single bed forever', () => {
     const d = createDirector({ seed: 5, beds: { classic: ['classic/a', 'classic/b'] } });
     const s = state();
