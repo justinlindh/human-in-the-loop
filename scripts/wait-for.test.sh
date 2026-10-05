@@ -183,12 +183,13 @@ behind_gh() { # <review state, empty for none>: the PR is BEHIND; once $tmp/merg
 #!/usr/bin/env bash
 case "\$*" in
   "pr view"*) if [ -f "$tmp/merged-after" ] && [ -f "$tmp/looked" ]; then s=MERGED; m=CLEAN; else s=OPEN; m=BEHIND; : >"$tmp/looked"; fi
-    jq -n --arg s "\$s" --arg m "\$m" --arg h "\$(git -C "$tmp/work" rev-parse topic)" --slurpfile r "$tmp/rollup.json" '{state: \$s, headRefOid: \$h, headRefName: "topic", baseRefName: "main", mergeStateStatus: \$m, mergeable: "MERGEABLE", labels: [], statusCheckRollup: \$r[0]}' ;;
+    jq -n --arg s "\$s" --arg m "\$m" --arg h "\$(git -C "$tmp/work" rev-parse topic)" --slurpfile r "$tmp/rollup.json" '{state: \$s, headRefOid: \$h, headRefName: "topic", baseRefName: "main", mergeStateStatus: \$m, mergeable: "MERGEABLE", labels: [], statusCheckRollup: \$r[0]} + input' "$tmp/extra.json" ;;
   *) exit 1 ;;
 esac
 F
 }
-qrun() { rm -f "$tmp/looked"; ( cd "$tmp/work" && HITL_WAIT_SNAPSHOT=0 PATH="$tmp/bin:$PATH" bash "$HERE/wait-for.sh" 9 --poll 0 "$@" --test true >"$tmp/out" 2>&1 ); rc=$?; }
+qrun() { rm -f "$tmp/looked"; ( cd "$tmp/work" && HITL_WAIT_SNAPSHOT=0 PATH="$tmp/bin:$PATH" bash "$HERE/wait-for.sh" 9 --poll 0 "$@" --test "${QTEST:-true}" >"$tmp/out" 2>&1 ); rc=$?; }
+echo '{}' >"$tmp/extra.json"
 rm -f "$tmp/merged-after"
 behind_gh ''; qrun --timeout 0
 [ $rc -eq 124 ] && grep -q 'behind main, not ready yet' "$tmp/out" && ! grep -q 'merged origin/main' "$tmp/out" && [ ! -e "$tmp/queue/9" ] \
@@ -208,6 +209,23 @@ behind_gh SUCCESS; : >"$tmp/merged-after"; qrun --timeout 1
 rm -f "$tmp/queue/"* "$tmp/merged-after"; echo 'ready_since=1 pr=9' >"$tmp/queue/9"
 behind_gh FAILURE; qrun --timeout 0
 [ $rc -eq 2 ] && [ ! -e "$tmp/queue/9" ] || fail "changes requested drops the place: $rc $(cat "$tmp/out")"
+# An entry whose PR is not ready holds the line only for HITL_QUEUE_PENDING seconds.
+rm -f "$tmp/queue/"* "$tmp/merged-after"; echo "ready_since=1 pr=8 state=pending since=$(( $(date +%s) - 60 ))" >"$tmp/queue/8"
+behind_gh SUCCESS; qrun --timeout 0
+[ $rc -eq 124 ] && grep -q 'queued behind #8' "$tmp/out" || fail "an entry pending for a minute still holds the line: $rc $(cat "$tmp/out")"
+echo "ready_since=1 pr=8 state=pending since=$(( $(date +%s) - 3000 ))" >"$tmp/queue/8"; rm -f "$tmp/queue/9"; : >"$tmp/merged-after"
+behind_gh SUCCESS; qrun --timeout 1
+[ $rc -eq 0 ] && grep -q 'merged origin/main' "$tmp/out" || fail "an entry pending past the bound does not hold the line: $rc $(cat "$tmp/out")"
+# A PR held on purpose (draft, awaiting-user, auto-merge off) leaves the queue; one that ends in an error does too.
+rm -f "$tmp/queue/"* "$tmp/merged-after"
+for extra in '{"isDraft": true}' '{"labels": [{"name": "awaiting-user"}]}' '{"autoMergeRequest": null}'; do
+  echo 'ready_since=1 pr=9 state=ready since=1' >"$tmp/queue/9"; echo "$extra" >"$tmp/extra.json"
+  behind_gh SUCCESS; qrun --timeout 0
+  [ $rc -eq 124 ] && [ ! -e "$tmp/queue/9" ] && grep -q 'not ready yet' "$tmp/out" || fail "a PR with $extra leaves the queue and waits: $rc $(cat "$tmp/out")"
+done
+echo '{}' >"$tmp/extra.json"
+rm -f "$tmp/queue/"*; behind_gh SUCCESS; QTEST=false qrun --timeout 1
+[ $rc -eq 5 ] && [ ! -e "$tmp/queue/9" ] || fail "failing tests after merging main free the place: $rc $(cat "$tmp/out")"
 rm -f "$tmp/queue/"*; echo 'ready_since=1 pr=8' >"$tmp/queue/8"
 behind_gh SUCCESS; ( cd "$tmp/work" && HITL_WAIT_SNAPSHOT=0 PATH="$tmp/bin:$PATH" bash "$HERE/wait-for.sh" 9 --no-update --poll 0 --timeout 0 >"$tmp/out" 2>&1 ); rc=$?
 [ $rc -eq 3 ] && [ ! -e "$tmp/queue/9" ] || fail "--no-update reports a behind PR and never queues: $rc $(cat "$tmp/out")"

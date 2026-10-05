@@ -63,24 +63,43 @@ timed_out() { [ $(( $(date +%s) - start )) -ge $(( timeout * 60 )) ]; }
 # is ready (review passed and local-ci passed on its head) and first in line by when it became ready;
 # the others wait. An entry is a file per PR in the queue directory, kept alive by the watcher's heartbeat
 # (a timed-out watcher re-armed within the grace keeps its place). It is removed when the PR fails, gets
-# changes requested, closes or merges.
+# changes requested, goes draft or awaiting-user, loses its auto-merge request, closes or merges, and when
+# the watcher exits for any reason but a timeout, a signal or a green exit without --merged.
 qdir="${HITL_MERGE_QUEUE:-$HOME/.cache/hitl-ci/merge-queue}"
 [ -n "$repo" ] && qdir="$qdir/${repo//\//_}"
 qgrace="${HITL_QUEUE_GRACE:-600}"
 qfile="$qdir/${pr:-0}"
 q_fresh() { [ $(( $(date +%s) - $(stat -c %Y "$1" 2>/dev/null || echo 0) )) -lt "$qgrace" ]; }
 q_since() { sed -n 's/^ready_since=\([0-9][0-9]*\).*/\1/p' "$1" 2>/dev/null; }
-q_join() { [ -f "$qfile" ] && return 0; mkdir -p "$qdir" && printf 'ready_since=%s pr=%s\n' "$(date +%s)" "$pr" >"$qfile" && say "#$pr is ready: in the update queue"; }
+q_get() { sed -n "s/^.*$2=\([a-z0-9]*\).*/\1/p" "$1" 2>/dev/null | head -n 1; } # <file> <key>
+q_write() { # <ready_since> <state> <since>: replaces the entry whole, so a reader never sees it half written
+  local t; mkdir -p "$qdir" && t="$(mktemp "$qdir/.tmp.XXXXXX")" \
+    && printf 'ready_since=%s pr=%s state=%s since=%s\n' "$1" "$pr" "$2" "$3" >"$t" && mv -f "$t" "$qfile"
+}
+# q_state <ready|pending>: joins the queue when ready and not in it; records a change of state with its time.
+# An entry that has been pending (its PR not ready) longer than HITL_QUEUE_PENDING seconds (default 2700,
+# a CI cycle and a half) no longer holds the line, and gets its place back when the PR is ready again.
+q_state() {
+  local now cur; now="$(date +%s)"
+  if [ ! -f "$qfile" ]; then
+    [ "$1" = ready ] && q_write "$now" ready "$now" && say "#$pr is ready: in the update queue"
+    return 0
+  fi
+  cur="$(q_get "$qfile" state)"
+  [ "$cur" = "$1" ] || q_write "$(q_since "$qfile")" "$1" "$now"
+}
 q_leave() { rm -f "$qfile"; }
 q_beat() { [ -f "$qfile" ] && touch "$qfile"; return 0; }
 q_ahead() { # prints the PR number of a fresh entry ahead of this one; fails when this PR is first (or not queued)
   [ -f "$qfile" ] || return 1
-  local mine f p t; mine="$(q_since "$qfile")"; [ -n "$mine" ] || return 1
+  local mine f p t st sn; mine="$(q_since "$qfile")"; [ -n "$mine" ] || return 1
   for f in "$qdir"/*; do
     [ -f "$f" ] || continue; p="${f##*/}"
     case "$p" in ''|*[!0-9]*) continue ;; esac
     [ "$p" = "$pr" ] && continue
     q_fresh "$f" || continue
+    st="$(q_get "$f" state)"; sn="$(q_get "$f" since)"
+    [ "$st" = pending ] && [ -n "$sn" ] && [ $(( $(date +%s) - sn )) -ge "${HITL_QUEUE_PENDING:-2700}" ] && continue
     t="$(q_since "$f")"; [ -n "$t" ] || continue
     if [ "$t" -lt "$mine" ] || { [ "$t" -eq "$mine" ] && [ "$p" -lt "$pr" ]; }; then echo "$p"; return 0; fi
   done
@@ -146,7 +165,7 @@ read_pr() {
   fi
   [ -n "$json" ] && return 0
   src=live
-  json="$(gh pr view "${R[@]}" "$pr" --json state,headRefOid,headRefName,baseRefName,mergeStateStatus,mergeable,statusCheckRollup,labels)"
+  json="$(gh pr view "${R[@]}" "$pr" --json state,headRefOid,headRefName,baseRefName,mergeStateStatus,mergeable,statusCheckRollup,labels,isDraft,autoMergeRequest)"
 }
 # Cancelled check runs that are not a failure. GitHub can start two runs of a workflow for one head,
 # and the workflow's concurrency cancels one of them: a cancelled job in a run that a newer run of the
@@ -202,6 +221,10 @@ pushed_ahead() { # <branch> <head>: prints the pushed sha and returns 0 while Gi
 }
 
 last="" seen_head="" head_since=0 warned=0 required="" lag_said="" snap_head=""
+# Whatever ends the watcher (a conflict, failing tests, a moved worktree, a failed check) frees its place in
+# the queue, except a timeout, a signal and a green exit without --merged, which keep it for a re-arm.
+q_exit() { local rc=$?; if [ "$rc" != 124 ] && [ "$rc" -le 128 ] && { [ "$rc" != 0 ] || [ "$merged" = 1 ]; }; then q_leave; fi; }
+[ "$update" = 1 ] && trap q_exit EXIT
 while :; do
   read_pr || { live=0; sleep "$poll"; continue; }
   live=0
@@ -247,8 +270,12 @@ while :; do
 
   # The update queue (see q_join): ready means review and local-ci passed on this head with nothing failing.
   # A PR that is only pending after its own merge of main keeps its place.
+  # A PR held on purpose (draft, awaiting-user, auto-merge off) is never ready and leaves the queue.
   if [ "$update" = 1 ]; then
-    [ "$review" = SUCCESS ] && [ "$local_ci" = SUCCESS ] && [ -z "$failing" ] && q_join
+    on_hold="$(jq -r '(.isDraft == true) or ([.labels[]?.name] | index("awaiting-user") != null) or (has("autoMergeRequest") and .autoMergeRequest == null)' <<<"$json")"
+    if [ "$on_hold" = true ]; then q_leave
+    elif [ "$review" = SUCCESS ] && [ "$local_ci" = SUCCESS ] && [ -z "$failing" ]; then q_state ready
+    else q_state pending; fi
     case "$review" in FAILURE|ERROR) q_leave ;; esac
     if [ -n "$failing" ] && tr ' ' '\n' <<<"$failing" | grep -qv '=cancelled$'; then q_leave; fi
     q_beat
