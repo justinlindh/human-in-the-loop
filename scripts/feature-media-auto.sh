@@ -24,7 +24,10 @@ clone="$STATE/clone"
 [ -d "$clone/.git" ] || git clone -q "$origin" "$clone" || { echo "feature-media-auto: clone failed" >&2; exit 1; }
 git -C "$clone" fetch -q origin main || { echo "feature-media-auto: fetch failed" >&2; exit 1; }
 sha="$(git -C "$clone" rev-parse origin/main)"; short="${sha:0:7}"
-if [ "$force" = 0 ] && [ "$(cat "$STATE/last" 2>/dev/null)" = "$sha" ]; then exit 0; fi
+if [ "$force" = 0 ] && [ "$(cat "$STATE/last" 2>/dev/null)" = "$sha" ]; then echo "feature-media-auto: $short already handled"; exit 0; fi
+# Publishing resets its worktree, which must belong to the repository it runs from: this clone's own,
+# not the shared default one made from another checkout.
+export FEATURE_MEDIA_WORKTREE="$STATE/publish"
 git -C "$clone" checkout -q --detach "$sha" || exit 1
 log="$STATE/$short.log"
 say() { echo "[feature-media-auto $(date +%H:%M:%S)] $*" | tee -a "$log"; }
