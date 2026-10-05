@@ -33,6 +33,7 @@ const CROWD_REACTIONS = ['point', 'whisper', 'wave', 'shake'];
 // The back of the arc stays free for the speaker cart and the robot's DJ post.
 const ONLOOKER_ARC = [-80, 80, -125, 125];
 const ONLOOKER_R = 2.2;
+const ONLOOKER_CHEAT_M = 1.5;   // onlookers face this far in front of the winner, toward the camera
 const ONLOOKER_CLEAR_M = 0.55;  // an onlooker's spot keeps this far from furniture
 const ROBOT_CLEAR_M = 0.65;    // an onlooker's spot keeps this far off the robot's way to its post
 // Distance from p to the segment ab, on the floor.
@@ -450,6 +451,7 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     });
     const taken = new Set(dancers);
     const lead = at(...SPOTS[0]);
+    const cheat = at(SPOTS[0][0], SPOTS[0][1] + ONLOOKER_CHEAT_M);
     const focus = new THREE.Vector3(lead.x, 0.9, lead.z);
     dancers.forEach((r, i) => { r.temp.stage = { moment: 'music', beat: 'dance', role: i === 0 ? 'dancer' : 'backup', target: focus }; });
     // Onlookers stand on an arc round the floor that is open toward the camera: the sides first, then
@@ -497,7 +499,8 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
       return [o, p];
     }).filter(Boolean);
     dance.crowd = near.map(([o, p]) => {
-      const spot = { x: p.x, z: p.z, yaw: Math.atan2(lead.x - p.x, lead.z - p.z), anim: 'idle' };
+      // Turned a little out toward the camera, as on a stage: faces read while they still watch.
+      const spot = { x: p.x, z: p.z, yaw: Math.atan2(cheat.x - p.x, cheat.z - p.z), anim: 'idle' };
       o.temp = { anim: 'idle', t: DANCE_S - 1, goal: spot, back: true, party: true, stage: { moment: 'music', beat: 'watch', role: 'onlooker', target: focus } };
       walkTo(o, spot);
       hurry(o, 3.5);

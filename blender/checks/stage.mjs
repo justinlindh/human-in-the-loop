@@ -158,7 +158,7 @@ const SPECS = {
     ] }],
     [`${scenario}.onlooker`, { moment: 'music', scenario, beat: 'watch', role: 'onlooker', rules: [
       share('watching', 'face within 45 deg of the dancer', (x) => x.targetAngle <= 45, 0.8),
-      share('notTurnedAway', 'face within 120 deg of the camera (no back to it)', (x) => x.faceCam <= 120, 0.9),
+      share('faceShows', 'face within 90 deg of the camera (turned out toward it)', (x) => x.faceCam <= 90, 0.9),
     ] }],
   ])),
   'company_party.cheer': { moment: 'company_party', beat: 'cheer', rules: [
