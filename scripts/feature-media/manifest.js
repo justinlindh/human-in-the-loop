@@ -140,15 +140,20 @@ const DECISION_PROPS = [
   ['conference_expo', 'conference_expo --choice 1', 'printout', 5.5, true],
   ['ping_pong', 'ping_pong --choice 1', 'picture_pingpong', 5.5, true],
   // Props a choice leaves behind, opened at the week before the decision.
-  ['rival_jab', 'rival_jab --choice 0', 'sign_rival_copied', 5.5, true],
-  ['alumni_reunion', 'alumni_reunion --choice 0', 'old_sign', 5.5, true],
+  ['rival_jab', 'rival_jab', 'sign_rival_copied', 5.5, true],
+  ['alumni_reunion', 'alumni_reunion', 'old_sign', 5.5, true],
+  ['mission_statement', 'mission_statement', 'mug_typo', 5.5, true],
+  ['ai_summit_hackathon', 'ai_summit_hackathon', 'giant_cheque', 5.5, true],
+  ['last_bet', 'last_bet', 'whiteboard_scrawl', 5.5, true],
 ];
 
 // The Yak reply prompt kinds of docs/features/yak.md (src/data/prompts.js).
 const YAK_PROMPTS = ['strain_vent', 'incident_blame', 'launch_hype', 'rival_itch', 'project_late', 'agent_prs', 'newhire_lost', 'coasting_check', 'support_swamped', 'lowcash_lunch', 'desk_squeeze', 'office_full', 'junior_pr'];
 
 // Decisions whose prop appears when a choice is made, not while the card is open.
-const LEFT_BEHIND = new Set(['rival_jab', 'alumni_reunion']);
+// Each maps to the choice that leaves the prop; the moment is opened without a choice, since the save is
+// from before the decision and the clip answers it.
+const LEFT_BEHIND = new Map([['rival_jab', 0], ['alumni_reunion', 0], ['mission_statement', 0], ['ai_summit_hackathon', 1], ['last_bet', 0]]);
 
 // Decisions whose prop is still too small to read at the closest zoom; they render but do not publish.
 const UNREADABLE_DECISIONS = new Set(['no_show', 'junior_overwhelmed', 'founder_burnout', 'enterprise_rfp', 'phishing_ceo', 'alumni_reunion']);
@@ -580,7 +585,7 @@ export const ITEMS = [
     id: `decision-${id}`, title: `Decision prop: ${id}`, query: 'seed=1&speed=1', moment: query, pre: true, still: true, warmup: 8,
     setup: `(() => { ${CLEAN}; ${NO_CARD}; ${NO_SAY}; })()`,
     // A prop a choice leaves behind exists only after the card is answered (by key, as a player would).
-    actions: [...OPEN(), ...(LEFT_BEHIND.has(id) ? CHOOSE_WHEN(id, +query.match(/--choice (\d)/)[1], 1, 8, 1.5) : []), ...FOLLOW([prop], zoom, 0, LEFT_BEHIND.has(id) ? 20 : 14, 0, center)],
+    actions: [...OPEN(), ...(LEFT_BEHIND.has(id) ? CHOOSE_WHEN(id, LEFT_BEHIND.get(id), 1, 8, 1.5) : []), ...FOLLOW([prop], zoom, 0, LEFT_BEHIND.has(id) ? 20 : 14, 0, center)],
     screenshots: [LEFT_BEHIND.has(id) ? 14 : 5],
     out: [{ path: `decisions/${id}.webp`, size: '1280x720', from: LEFT_BEHIND.has(id) ? 14 : 5 }],
     publish: !UNREADABLE_DECISIONS.has(id),
