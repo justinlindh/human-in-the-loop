@@ -38,6 +38,7 @@ note() { echo "$*" >>"$LOGS/notes"; }
 # delta is known, also the delta. The main guard (CI_FULL=1) never uses a delta.
 have_delta=0; delta=""
 if [ "${CI_FULL:-}" != 1 ] && [ -n "${CI_DELTA_FILE:-}" ] && [ -f "$CI_DELTA_FILE" ]; then have_delta=1; delta="$(cat "$CI_DELTA_FILE")"; fi
+# An empty delta (the tree equals the passed one) matches nothing, so every gated check is skipped.
 reaches() {
   grep -qE "$1" <<<"$2" || return 1
   [ "$have_delta" = 1 ] || return 0
@@ -508,7 +509,7 @@ if [ "${CI_TIER:-}" = tests ] && [ "${CI_FULL:-}" != 1 ]; then
 else
 # What the golden images and the render checks read: the game, the assets, the harness and the page. With a
 # delta, they run only when one of those differs from the tree that last passed.
-render_inputs='^(src/|public/|blender/|index\.html$|package(-lock)?\.json$|vite\.config\.js$|scripts/(lib/|capture|studio/|perf/))'
+render_inputs='^(src/|public/|blender/|index\.html$|package(-lock)?\.json$|vite\.config\.js$|scripts/(lib/|capture|studio/|perf/|events/|tools/|ci-local\.sh$))'
 render_gate() { # <command...>
   if [ "$have_delta" = 1 ] && ! grep -qE "$render_inputs" <<<"$delta"; then
     echo "skipped: no render input differs from the tree this PR last passed"; return 0
