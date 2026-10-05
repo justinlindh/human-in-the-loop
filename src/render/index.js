@@ -475,6 +475,10 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     // minConf, ik, ramp }. Returns the player (setTime, contactsAt, duration) or null.
     playMocap(id, clip, opts) { return staff?.playMocap(id, clip, opts) ?? null; },
     stopMocap(id) { staff?.stopMocap(id); },
+    // A tracked shot: entries [{ id, clip }] on one clock, the group's centre at opts.at { x, z, yaw }
+    // (yaw turns the shot camera's forward), opts.spread, opts.clock: () => seconds of the source
+    // video. Returns { players, stop() } or null.
+    playShot(entries, opts) { return staff?.playShot(entries, opts) ?? null; },
     // Test hook for faces: show an expression on staff member `id` (character.js express).
     express(id, name, o) { const c = charOf(id); if (!c) return false; c.express(name, o); return true; },
     // Public (ui portraits read .name): staff member `id`'s expression and morph weights.
