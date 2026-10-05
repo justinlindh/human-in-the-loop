@@ -98,20 +98,41 @@ update_branch() {
   say "pushed $(git rev-parse --short HEAD)"
 }
 
-# The PR's state from the shared snapshot (one gh pr list per interval for every watcher); a PR that is
-# no longer open, another repository, or an unreadable snapshot falls back to gh pr view.
-pr_json() {
-  local j=""
-  if [ -z "$repo" ] && [ "${HITL_WAIT_SNAPSHOT:-1}" != 0 ]; then
-    j="$(node "$(dirname "$0")/tools/pr-snapshot.mjs" --pr "$pr" 2>/dev/null | jq -ce .pr)" || j=""
+# Sets json to the PR's state and src to where it came from: the shared snapshot (one gh pr list per
+# interval for every watcher), or gh pr view when live=1, for a PR that is no longer open, another
+# repository, or an unreadable snapshot. The snapshot can be minutes old, so every decision that ends
+# the wait or updates the branch is taken again on a live read (see confirm).
+live=0
+read_pr() {
+  json="" src=snapshot
+  if [ "$live" = 0 ] && [ -z "$repo" ] && [ "${HITL_WAIT_SNAPSHOT:-1}" != 0 ]; then
+    json="$(node "$(dirname "$0")/tools/pr-snapshot.mjs" --pr "$pr" 2>/dev/null | jq -ce .pr)" || json=""
   fi
-  if [ -n "$j" ]; then printf '%s' "$j"; return 0; fi
-  gh pr view "${R[@]}" "$pr" --json state,headRefOid,headRefName,baseRefName,mergeStateStatus,mergeable,statusCheckRollup,labels
+  [ -n "$json" ] && return 0
+  src=live
+  json="$(gh pr view "${R[@]}" "$pr" --json state,headRefOid,headRefName,baseRefName,mergeStateStatus,mergeable,statusCheckRollup,labels)"
+}
+# True when json is a live read; otherwise asks for one on the next pass, for the caller to `continue`.
+confirm() { [ "$src" = live ] && return 0; live=1; return 1; }
+
+# The head this repository last pushed to the PR's branch (its origin/<branch> ref), when GitHub's
+# head is an ancestor of it: GitHub's API trails a push by a few seconds, and judging that older head
+# would report its old results.
+pushed_ahead() { # <branch> <head>: prints the pushed sha and returns 0 while GitHub still shows an older head
+  local p; p="$(git rev-parse -q --verify "refs/remotes/origin/$1" 2>/dev/null)" || return 1
+  [ -n "$p" ] && [ "$p" != "$2" ] && git merge-base --is-ancestor "$2" "$p" 2>/dev/null && echo "$p"
 }
 
-last="" seen_head="" head_since=0 warned=0 required=""
+last="" seen_head="" head_since=0 warned=0 required="" lag_said="" snap_head=""
 while :; do
-  json="$(pr_json)" || { sleep "$poll"; continue; }
+  read_pr || { live=0; sleep "$poll"; continue; }
+  live=0
+  # A live head the snapshot hasn't caught up with refreshes it, for every other reader too.
+  h="$(jq -r .headRefOid <<<"$json")"
+  if [ "$src" = snapshot ]; then snap_head="$h"
+  elif [ -n "$snap_head" ] && [ "$h" != "$snap_head" ]; then
+    node "$(dirname "$0")/tools/pr-snapshot.mjs" --refresh >/dev/null 2>&1; snap_head="$h"
+  fi
   if [ -z "$required" ]; then
     required="$(gh api "$api/branches/$(jq -r .baseRefName <<<"$json")/protection" 2>/dev/null \
       | jq -r '[.required_status_checks.contexts[]? | select(type == "string" and . != "review")] | join(" ")' 2>/dev/null)" || required=""
@@ -124,9 +145,20 @@ while :; do
   mergeable="$(jq -r .mergeable <<<"$json")"
   [ "$state" = MERGED ] && { say "#$pr merged"; exit 0; }
   [ "$state" = CLOSED ] && { say "#$pr was closed without merging"; exit 6; }
+  if pushed_ahead "$branch" "$head" >/dev/null; then
+    confirm || continue
+    # The ref is refetched, since a force push can leave it ahead of what the remote really holds.
+    git fetch -q origin "$branch" 2>/dev/null
+    if p="$(pushed_ahead "$branch" "$head")"; then
+      [ "$lag_said" = "$p" ] || { say "#$pr: GitHub still shows ${head:0:8}; waiting for the pushed ${p:0:8}"; lag_said="$p"; }
+      timed_out && { say "timed out waiting on #$pr"; exit 124; }
+      sleep "$(( poll < 5 ? poll : 5 ))"; live=1; continue
+    fi
+  fi
   if [ "$head" != "$seen_head" ]; then seen_head="$head"; head_since=$(date +%s); warned=0; fi
 
   if [ "$merge_state" = BEHIND ] || [ "$mergeable" = CONFLICTING ]; then
+    confirm || continue
     if [ "$update" = 0 ]; then say "#$pr is ${merge_state,,} (mergeable: ${mergeable,,})"; exit 3; fi
     update_branch "$branch" "$head"
     sleep "$poll"; continue
@@ -143,6 +175,7 @@ while :; do
   review="$(jq -r '[.statusCheckRollup[]? | select(.__typename == "StatusContext" and .context == "review") | .state] | first // "NONE"' <<<"$json")"
 
   if [ -n "$failing" ]; then
+    confirm || continue
     say "#$pr at ${head:0:8}: failing: $failing"
     link="$(local_ci_link)"; [ -n "$link" ] && say "Local CI: $link"
     exit 2
@@ -158,6 +191,7 @@ while :; do
     warned=1
   fi
   if [ -z "$waiting" ] && [ -z "$pending" ] && [ "$merged" = 0 ]; then
+    confirm || continue
     say "#$pr at ${head:0:8}: $required and every GitHub check passed"
     exit 0
   fi

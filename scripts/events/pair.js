@@ -42,6 +42,48 @@ const SELF = fileURLToPath(import.meta.url);
 
 const createHashOf = (file) => createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 16);
 
+// --screen N: play seeds 1..N first. When every screened run is identical the full --seeds run is skipped;
+// a difference, or --expect change (a change meant to move balance), goes on to the full run. Both runs
+// are this script without --screen, so they validate, cache and log as any other run. Exits with the code
+// of the last run it played.
+async function screenThenRun(argv, opt) {
+  const without = (args, ...flags) => args.filter((_, i) => !flags.includes(args[i]) && !flags.includes(args[i - 1]));
+  const n = Number(opt('screen')), total = Number(opt('seeds', 300)), expect = opt('expect', 'same');
+  if (!Number.isSafeInteger(n) || n < 1 || n >= total) fail(`--screen must be a whole number below --seeds (${total})`);
+  if (!['same', 'change'].includes(expect)) fail('--expect must be same or change');
+  const full = without(argv, '--screen', '--expect');
+  let current = null;
+  const play = (args) => new Promise((res) => {
+    const child = spawn(process.execPath, [SELF, ...args], { stdio: 'inherit' });
+    current = { child, done: new Promise((r) => child.on('exit', r)) };
+    child.on('exit', (code, sig) => res(code ?? (sig ? 1 : 0)));
+  });
+  const dir = makeTemp('pair-screen-');
+  // A signal sent to this process alone (by PID) is passed on to the running pair.js, which ends its sides;
+  // this process waits for it, removes the screen's directory, and exits 128+n.
+  for (const [sig, code] of [['SIGINT', 130], ['SIGTERM', 143], ['SIGHUP', 129]]) {
+    process.on(sig, async () => {
+      if (current) { try { current.child.kill(sig); } catch { /* gone */ } await current.done; }
+      rmSync(dir, { recursive: true, force: true });
+      process.exit(code);
+    });
+  }
+  const out = join(dir, 'screen.json');
+  const code = await play([...without(full, '--seeds', '--json'), '--seeds', String(n), '--json', out]);
+  let rows = null;
+  try { rows = JSON.parse(readFileSync(out, 'utf8')).summary; } catch { /* the screen failed; its code says why */ }
+  rmSync(dir, { recursive: true, force: true });
+  if (code !== 0 || !rows) process.exit(code || 2);
+  const same = rows.reduce((t, r) => t + r.same, 0), runs = rows.reduce((t, r) => t + r.runs, 0);
+  const head = `screen: ${same}/${runs} runs identical on seeds 1-${n}`;
+  if (same === runs && expect === 'same') {
+    console.log(`\n${head}; the ${total}-seed run is skipped (--expect change plays it anyway).`);
+    process.exit(0);
+  }
+  console.log(`\n${head}; ${same === runs ? '--expect change: ' : ''}playing the ${total}-seed run.\n`);
+  process.exit(await play(full));
+}
+
 async function runOne({ root, bot, seed, fields, startEra }) {
   const { runBot } = await import(pathToFileURL(join(root, 'src/sim/bots.js')).href);
   const r = startEra ? runBot(bot, seed, undefined, { founding: { startEra } }) : runBot(bot, seed);
@@ -83,9 +125,9 @@ if (!isMainThread) {
   process.exit(0);
 } else {
   const argv = process.argv.slice(2);
-  const USAGE = 'usage: node scripts/events/pair.js [--a <root>] [--b <root>] [--bots x,y] [--seeds 300] [--start-era <era>] [--fields \'<js>\'] [--jobs N] [--json out.json] [--timeout 3600]';
+  const USAGE = 'usage: node scripts/events/pair.js [--a <root>] [--b <root>] [--bots x,y] [--seeds 300] [--screen N [--expect same|change]] [--start-era <era>] [--fields \'<js>\'] [--jobs N] [--json out.json] [--timeout 3600]';
   if (argv.includes('--help') || argv.includes('-h')) { console.log(USAGE); process.exit(0); }
-  const KNOWN = new Set(['a', 'b', 'bots', 'seeds', 'start-era', 'fields', 'jobs', 'json', 'timeout']);
+  const KNOWN = new Set(['a', 'b', 'bots', 'seeds', 'start-era', 'fields', 'jobs', 'json', 'timeout', 'screen', 'expect']);
   for (let i = 0; i < argv.length; i++) {
     const m = /^--([^=]+)$/.exec(argv[i]);
     if (!m || !KNOWN.has(m[1])) { console.error(`pair: unrecognised argument ${argv[i]}\n${USAGE}`); process.exit(2); }
@@ -94,6 +136,7 @@ if (!isMainThread) {
     i++;
   }
   const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
+  if (argv.includes('--screen')) await screenThenRun(argv, opt);
   const seeds = Number(opt('seeds', 300));
   const fields = opt('fields', '');
   const jobs = Number(opt('jobs', Math.max(1, Math.floor(cpus().length / 8))));
@@ -125,6 +168,8 @@ if (!isMainThread) {
   const sides = new Set();
   // The temporary directory goes here too: a signal handler exits without running the finally below.
   process.on('exit', () => { for (const c of sides) { try { c.kill('SIGKILL'); } catch { /* gone */ } } rmSync(tmp, { recursive: true, force: true }); });
+  // A signal by PID would otherwise end this process without the exit hook above, leaving both sides running.
+  for (const [sig, n] of [['SIGINT', 130], ['SIGTERM', 143], ['SIGHUP', 129]]) process.on(sig, () => process.exit(n));
   try {
     if (!a) execFileSync('git', ['fetch', '-q', 'origin', 'main'], { cwd: b, stdio: 'ignore' });
     // Side a's records are cached by the content of what they were played on.

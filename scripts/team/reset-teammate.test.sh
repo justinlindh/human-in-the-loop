@@ -33,7 +33,7 @@ run() { out="$(bash "$HERE/reset-teammate.sh" "$@" 2>&1)"; rc=$?; }
 grep -q "sim	compact	pre=90010	transcript=sim1.jsonl" "$tmp/log" || fail "--log appends a row: $(cat "$tmp/log" 2>/dev/null)"
 
 : >"$SENT"; run sim clear 5
-[ $rc -eq 0 ] && grep -q '/clear Enter' "$SENT" || fail "a clear is sent: rc $rc: $out"
+[ $rc -eq 2 ] && grep -q 'reports stop reaching team-lead' <<<"$out" && [ ! -s "$SENT" ] || fail "a clear is refused and nothing is sent: rc $rc: $out"
 
 STICK=1 run sim compact 1
 [ $rc -eq 1 ] && grep -q 'not confirmed' <<<"$out" || fail "a compact the transcript never shows is not confirmed: rc $rc: $out"

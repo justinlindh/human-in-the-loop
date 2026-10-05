@@ -60,24 +60,9 @@ export async function openPage({ mock = 'floor', seed, week, weeks, quality = 'l
   {
     const game = Math.random;
     Math.random = g.__tool(() => Math.random);
-    try { await import('three-mesh-bvh'); } finally { Math.random = game; }
+    try { await import('../../blender/checks/bvh.js'); } finally { Math.random = game; }
   }
-  g.__fastRaycast = async ({ install = true } = {}) => {
-    if (g.__fastRaycastOn || !install) return;
-    const bvh = await import('three-mesh-bvh');
-    const THREE = R.THREE;
-    const slow = THREE.Mesh.prototype.raycast;
-    THREE.Mesh.prototype.raycast = function (raycaster, hits) {
-      const geo = this.geometry;
-      if (this.isSkinnedMesh || this.isInstancedMesh || this.morphTargetInfluences || !geo?.attributes?.position || geo.morphAttributes?.position) return slow.call(this, raycaster, hits);
-      if (!geo.boundsTree) {
-        if ((geo.index ? geo.index.count : geo.attributes.position.count) / 3 < 64) return slow.call(this, raycaster, hits);
-        g.__tool(() => { geo.boundsTree = new bvh.MeshBVH(geo, { indirect: true }); });
-      }
-      return bvh.acceleratedRaycast.call(this, raycaster, hits);
-    };
-    g.__fastRaycastOn = true;
-  };
+  g.__fastRaycast = fastRaycast(R);
   g.__hitlRender = R;
   g.__HITL = { state: S };
   // The page's clock moves in milliseconds; the engine's in frames of 1/30 s.
@@ -94,6 +79,18 @@ export async function openPage({ mock = 'floor', seed, week, weeks, quality = 'l
   // The browser harness resets the game's random stream once the page's own bootstrap is done.
   rt.clock.reseed();
   return rt;
+}
+
+// The harness page's __fastRaycast for renderer R (blender/checks/bvh.js patchRaycast). The module
+// is already loaded on the tool stream by then (openPage, or the clip page's installExact).
+export function fastRaycast(R) {
+  const g = globalThis;
+  return async ({ install = true } = {}) => {
+    if (g.__fastRaycastOn || !install) return;
+    const bvh = await import('../../blender/checks/bvh.js');
+    bvh.patchRaycast(R.THREE, g.__tool);
+    g.__fastRaycastOn = true;
+  };
 }
 
 // Runs the cases `jobs` at a time, each in its own process; results in case order.

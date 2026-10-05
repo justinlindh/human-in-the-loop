@@ -10,6 +10,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { cpus } from 'node:os';
 import { GROUPS, OWN_PAGE } from '../../blender/checks/clip-groups.mjs';
 import * as PAGES from '../../blender/checks/clip-pages.js';
+import { fastRaycast } from './page-host.mjs';
 
 export const BROWSER_ONLY = ['sky'];
 export const ENGINE_GROUPS = Object.keys(GROUPS).filter((g) => !BROWSER_ONLY.includes(g));
@@ -21,6 +22,7 @@ async function playGroup(group, rig) {
   const own = PAGES.OWN_PAGES[group];
   const { createRuntime } = await import('./runtime.mjs');
   const rt = await createRuntime({ mock: own?.mock ?? 'floor', quality: 'low', era: own?.era ?? null, rig: (own ? own.rig : true) && rig ? true : null, initialSync: false });
+  globalThis.__fastRaycast = fastRaycast(rt.R);
   globalThis.__hitlRender = rt.R;
   globalThis.__HITL = { state: rt.S };
   globalThis.__tick = () => rt.clock.tick();
