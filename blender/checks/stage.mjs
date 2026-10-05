@@ -149,8 +149,17 @@ const SPECS = {
     share('barkFace', 'a bark-only face (tired, questioning) on two of the four', (x) => ['tired', 'questioning'].includes(x.face), 0.35),
     share('mouthMoves', 'the mouth open past 0.2 with the voice', (x) => x.talk >= 0.2, 0.3),
   ] },
-  'company_party.cheer': { moment: 'company_party', beat: 'cheer', rules: [
-    share('celebrating', 'company celebrates throughout the beat', (x) => x.anim === 'celebrate', 0.9),
+  // A company party: everyone cheers with both arms up. Whoever sat at a desk stands up behind the
+  // chair to do it, facing the camera, so the cheer isn't hidden behind the chair back.
+  'company_party.seated': { moment: 'company_party', beat: 'cheer', role: 'seated', rules: [
+    share('celebrating', 'cheers throughout the beat', (x) => x.anim === 'celebrate', 0.9),
+    share('armsUp', 'both hands up level with the eyes, within 0.12 m (typing hands sit 0.34 m below)', (x) => Math.min(x.handsRel[0][1], x.handsRel[1][1]) > -0.12, 0.8),
+    share('facingCamera', 'face within 60 deg of the camera', (x) => x.faceCam <= 60, 0.8),
+    share('visible', 'body >= 60% unblocked', (x) => x.visible >= 0.6, 0.8),
+  ] },
+  'company_party.standing': { moment: 'company_party', beat: 'cheer', role: 'standing', rules: [
+    share('celebrating', 'cheers throughout the beat', (x) => x.anim === 'celebrate', 0.9),
+    share('armsUp', 'both hands up level with the eyes, within 0.12 m (typing hands sit 0.34 m below)', (x) => Math.min(x.handsRel[0][1], x.handsRel[1][1]) > -0.12, 0.8),
   ] },
   'pet.turn': { moment: 'pet', beat: 'turn', role: 'dog', rules: [
     share('upright', 'stand upright before reaching', x => x.anim === 'idle', 1),
@@ -374,7 +383,7 @@ const SCENARIOS = {
     setup: "(await import('/src/render/checks.js')).setupClick(R, S)" },
   click_voice: { moment: 'click', query: 'mock=floor', patch: {}, seconds: 2,
     setup: "(await import('/src/render/checks.js')).setupClick(R, S, { voice: true })" },
-  company_party: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "R.handleEvents([{ type: 'celebrate', staffId: null }], S);" }], seconds: 6 },
+  company_party: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "R.handleEvents([{ type: 'celebrate', staffId: null, cause: 'Product 5 launched' }], S);" }], seconds: 9 },
   pet: { query: 'mock=floor', patch: {}, seconds: 6,
     setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'dog', 2.104, 1.0)" },
   robot: { query: 'mock=floor', patch: {}, seconds: 14,
@@ -423,7 +432,7 @@ const SCENARIOS = {
 // each scenario played with that era's art on.
 for (const era of ['preinternet', 'dotcom', 'web2', 'agents']) {
   for (const base of ['growth', 'company_party']) SCENARIOS[`${base}_${era}`] = { ...SCENARIOS[base], era };
-  for (const key of ['growth.honoree', 'growth.coworker', 'company_party.cheer']) {
+  for (const key of ['growth.honoree', 'growth.coworker', 'company_party.seated', 'company_party.standing']) {
     const [base, role] = key.split('.');
     SPECS[`${base}_${era}.${role}`] = { ...SPECS[key], scenario: `${base}_${era}` };
   }
