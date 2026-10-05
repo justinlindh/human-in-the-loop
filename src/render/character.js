@@ -28,7 +28,7 @@ export const SLAP_AT = 0.5;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'hide', 'flinch', 'pointscreen', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake', 'facepalm', 'facepalmsit', 'pet', 'fidget', 'dilemma',
-  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff', 'growthpump', 'growthpumpsit', 'growthclap', 'growthclapsit', 'rackfix', 'slap', 'deal', 'dealsit'];
+  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff', 'growthpump', 'growthpumpsit', 'growthclap', 'growthclapsit', 'rackfix', 'slap', 'deal', 'dealsit', 'hurlspin', 'hurlthrow'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
 // for the moment before the rig model has loaded.
 const ALWAYS_CLIP = /^dance_/;
@@ -569,17 +569,6 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const tmpQ = new THREE.Quaternion();
   // Variants the clips do not cover stay procedural: the drooping idle and the tired walk.
   const RIG_PROCEDURAL = { idle: () => tired || mood === 'coasting', walk: () => tired };
-  // An outside pose (mocap.js): { q: { bone: Quaternion }, pos: Vector3, after?(pivots) }, applied
-  // as is in place of clips and the procedural pose; after() runs once it is on the pivots (contact
-  // IK). Starting or stopping blends over BLEND_S like a clip switch.
-  let driven = null;
-  function drive(p) {
-    if (!!p === !!driven) { driven = p; return; }
-    pivotList.forEach((o, i) => { snap[i].q.copy(o.quaternion); snap[i].p.copy(o.position); });
-    blendT = 0;
-    driven = p;
-    if (!p) rigClip = undefined;
-  }
   function rigPose(dt) {
     const clip = (rigEnabled() || ALWAYS_CLIP.test(anim)) && !RIG_PROCEDURAL[anim]?.() ? rigClips()?.get(anim) ?? null : null;
     if (clip !== rigClip) {
@@ -809,6 +798,22 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.armRZ = -0.1; tgt.armLZ = 0.1;
         tgt.lean = -0.12 + e * 0.4;
         tgt.bodyY = -e * 0.03;
+        break;
+      }
+      case 'hurlspin':
+        // Turning on the spot with something heavy held out in front: feet braced wide, leaning
+        // back against its pull.
+        tgt.legL = 0.32; tgt.legR = -0.28;
+        tgt.lean = -0.22; tgt.bodyY = -0.025;
+        tgt.headX = -0.08;
+        break;
+      case 'hurlthrow': {
+        // Just let go: arms flung forward and up after it, chest following through, then easing back.
+        const k = Math.min(1, animT / 0.18), back = Math.min(1, Math.max(0, (animT - 0.6) / 0.6));
+        tgt.armLX = tgt.armRX = -1.2 - k * 1.2 + back * 1.2;
+        tgt.armLZ = 0.25; tgt.armRZ = -0.25;
+        tgt.lean = 0.3 * k - back * 0.2;
+        tgt.legL = 0.4 - back * 0.3; tgt.legR = -0.2 + back * 0.1;
         break;
       }
       case 'slap': {
@@ -1152,10 +1157,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     // Shoulder lifts settle back on either path, so a rig clip never keeps a gesture's raised shoulder.
     arms[0].shoulder.position.y = TORSO_H - 0.06 + cur.armLY;
     arms[1].shoulder.position.y = TORSO_H - 0.06 + cur.armRY;
-    if (driven) {
-      for (const k in driven.q) pivots[k]?.quaternion.copy(driven.q[k]);
-      body.position.copy(driven.pos);
-    } else if (!rigPose(dt)) {
+    if (!rigPose(dt)) {
       body.position.set(0, cur.bodyY, cur.bodyZ);
       body.rotation.set(cur.pitch, 0, 0);
       torso.rotation.set(cur.lean, cur.twist, 0);
@@ -1166,7 +1168,6 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       arms[1].shoulder.rotation.set(cur.armRX, 0, cur.armRZ);
     }
     blendIn(dt);
-    driven?.after?.(pivots);
     if (held?.userData.handSpan) {
       // Keep both palms on the shaft while the legs retain their walking animation.
       const stroke = anim === 'swing' ? Math.sin(animT * Math.PI * 2 / HAMMER_GRIP.swingS) : 0;
@@ -1374,10 +1375,6 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     gesture: playGesture,
     root, head: headGroup, setShadows, setAnim, setHeld, setMoveSpeed, setAnimRate, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
     express, lookAt,
-    // An outside pose for the rig pivots (mocap.js), or null to hand back to clips and code.
-    drive,
-    // The rig pivots by bone name (read only: for contact IK and checks).
-    get pivots() { return pivots; },
     // Mouth opening for speech, 0..1 (a voice take's loudness envelope).
     setTalk(v) { faceTalk = Math.max(0, Math.min(1, v)); },
     // Blends the face alone (talk, expression) with every timer held: speech while the game is paused.

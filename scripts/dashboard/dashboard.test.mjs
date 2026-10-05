@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { request } from 'node:http';
+import { createServer } from 'node:net';
 import { bindAllowed, isPrivateAddress, scrub, lastActivity, modelName } from './lib.mjs';
 
 const SERVER = join(import.meta.dirname, 'server.mjs');
@@ -100,11 +101,31 @@ test('the server refuses a wildcard or public bind', () => {
   }
 });
 
+// A port the kernel just handed out, and the server on it. Another self-test or a live process can take the
+// port between the two, so a start that exits at once (the address in use) is retried on a fresh port.
+const freePort = () => new Promise((res, rej) => { const s = createServer(); s.on('error', rej); s.listen(0, '127.0.0.1', () => { const { port } = s.address(); s.close(() => res(port)); }); });
+async function startServer() {
+  for (let attempt = 1; ; attempt++) {
+    const port = await freePort();
+    const child = spawn(process.execPath, [SERVER, '--host', '127.0.0.1', '--port', String(port)], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, HITL_DASH_EVERY: '3600' } });
+    let err = '';
+    child.stderr.on('data', (d) => { err += d; });
+    let giveUp;
+    try {
+      await new Promise((res, rej) => { child.stdout.on('data', (d) => /dashboard: http/.test(d) && res()); child.on('exit', (c) => rej(new Error(`exited ${c}: ${err.split('\n')[0]}`))); giveUp = setTimeout(() => rej(new Error('no start')), 20000); });
+      return { child, port };
+    } catch (e) {
+      child.kill();
+      if (attempt >= 4 || !/EADDRINUSE|exited 1/.test(e.message)) throw e;
+    } finally {
+      clearTimeout(giveUp);
+    }
+  }
+}
+
 test('the server answers GETs on loopback and refuses writes', async () => {
-  const port = 20000 + Math.floor(Math.random() * 20000);
-  const child = spawn(process.execPath, [SERVER, '--host', '127.0.0.1', '--port', String(port)], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, HITL_DASH_EVERY: '3600' } });
+  const { child, port } = await startServer();
   try {
-    await new Promise((res, rej) => { child.stdout.on('data', (d) => /dashboard: http/.test(d) && res()); child.on('exit', (c) => rej(new Error(`exited ${c}`))); setTimeout(() => rej(new Error('no start')), 20000); });
     const base = `http://127.0.0.1:${port}`;
     assert.equal((await fetch(`${base}/`)).status, 200);
     assert.equal((await fetch(`${base}/state.json`)).headers.get('content-type'), 'application/json');
