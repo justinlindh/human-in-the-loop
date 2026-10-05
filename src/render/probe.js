@@ -157,10 +157,27 @@ export function createProbe({ scene, camera, office, charOf, stagingOf = () => n
       if (pts.length) { const [v0] = seen(c.root, [0], pts); vc.v = v0.visible; vc.occluder = v0.occluder; }
     }
     const visible = vc.v;
+    // A staged object target (an envelope, a prop): how much of it the camera reaches, refreshed with
+    // the body's visibility, and its larger screen side against the person's screen height, which
+    // does not depend on the zoom.
+    let targetVisible = null, targetScale = null;
+    if (st.target?.isObject3D && st.target.visible) {
+      if (vc.n % 3 === 1 || vc.target !== st.target) {
+        const tp = samplePoints(st.target);
+        vc.target = st.target;
+        vc.tv = tp.length ? seen(st.target, [0], tp)[0].visible : 0;
+      }
+      targetVisible = vc.tv;
+    }
 
     // Columns drawn faded over the character's screen box.
     const box = new THREE.Box3().setFromObject(c.root);
     const sb = screenBox(box, camera);
+    if (targetVisible !== null) {
+      const tb = screenBox(new THREE.Box3().setFromObject(st.target), camera);
+      const aspect = camera.isOrthographicCamera ? (camera.right - camera.left) / (camera.top - camera.bottom) : camera.aspect;
+      targetScale = +(Math.max((tb.x1 - tb.x0) * aspect, tb.y1 - tb.y0) / Math.max(1e-6, sb.y1 - sb.y0)).toFixed(3);
+    }
     // Faded columns in front of the character (nearer the camera) whose screen box meets theirs.
     let fadeOver = 0;
     const own = camera.position.distanceTo(tmp.set(c.root.position.x, 0.5, c.root.position.z));
@@ -206,7 +223,7 @@ export function createProbe({ scene, camera, office, charOf, stagingOf = () => n
     return {
       anim: p.anim, moment: st.moment ?? null, beat: st.beat ?? null, face: c.face?.name ?? null, talk: c.face?.weights?.talk ?? 0, emote: c.emote ?? null,
       eyes: r3(p.eyes), forward: r3(p.forward), headY: +p.head.y.toFixed(3),
-      gaze, targetAngle, targetDist, faceCam: +deg(p.forward, toCam).toFixed(1), visible: +visible.toFixed(3), occluder: vc.occluder, fadeOver,
+      gaze, targetAngle, targetDist, targetVisible, targetScale, faceCam: +deg(p.forward, toCam).toFixed(1), visible: +visible.toFixed(3), occluder: vc.occluder, fadeOver,
       hands: p.hands.map(r3), handsRel: handsRel.map(r3), handsCam, held, lean, between,
     };
   }
