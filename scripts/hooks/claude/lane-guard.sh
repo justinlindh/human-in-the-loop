@@ -26,23 +26,15 @@ line="$(awk -v l="$lane" '$1 == l { $1 = ""; print }' "$lanes")"
 [ -n "$line" ] || exit 0
 rel="$(realpath -m --relative-to="$top" "$file" 2>/dev/null)" || exit 0
 case "$rel" in ../*) exit 0 ;; esac
-# Shared paths (the * line) and the worktree's agreed exceptions allow the edit outright.
-allowed="$(awk '$1 == "*" { $1 = ""; print }' "$lanes") $(cat "$(git -C "$top" rev-parse --absolute-git-dir 2>/dev/null)/hitl-lane-allow" 2>/dev/null | tr '\n' ' ')"
+allowed="$line $(awk '$1 == "*" { $1 = ""; print }' "$lanes") $(cat "$(git -C "$top" rev-parse --absolute-git-dir 2>/dev/null)/hitl-lane-allow" 2>/dev/null | tr '\n' ' ')"
 for p in $allowed; do
   case "$p" in
     */) case "$rel" in "$p"*) exit 0 ;; esac ;;
     *) [ "$rel" = "$p" ] && exit 0 ;;
   esac
 done
-# Otherwise only the lanes owning the longest matching prefix may edit (tests/tools/ beats tests/).
-# matches: "<lane> <prefix length>" per lane that matches, longest first.
-matches="$(awk -v r="$rel" '$1 != "*" && $1 !~ /^#/ { for (i = 2; i <= NF; i++) { p = $i; if (((substr(p, length(p)) == "/" && index(r, p) == 1) || r == p) && !($1 in best && best[$1] >= length(p))) { if (!($1 in best)) names[++n] = $1; best[$1] = length(p) } } }
-  END { for (k = 1; k <= n; k++) { m = ""; for (j = 1; j <= n; j++) if (!(names[j] in done) && (m == "" || best[names[j]] > best[m])) m = names[j]; done[m] = 1; print m, best[m] } }' "$lanes")"
-top_len="$(awk 'NR == 1 { print $2 }' <<<"$matches")"
-while read -r l n; do
-  [ -n "$l" ] && [ "$n" = "$top_len" ] && [ "$l" = "$lane" ] && exit 0
-done <<<"$matches"
-# Every matching owner, the longest prefix first (main's docs/ is not named).
-owner="$(awk '$1 != "main" { printf "%s%s", (c++ ? ", " : ""), $1 }' <<<"$matches")"
+# Every lane whose paths match, the longest matching prefix first (tests/tools/ before tests/), comma separated.
+owner="$(awk -v r="$rel" '$1 != "*" && $1 != "main" && $1 !~ /^#/ { for (i = 2; i <= NF; i++) { p = $i; if (((substr(p, length(p)) == "/" && index(r, p) == 1) || r == p) && !($1 in best && best[$1] >= length(p))) { if (!($1 in best)) names[++n] = $1; best[$1] = length(p) } } }
+  END { for (k = 1; k <= n; k++) { m = ""; for (j = 1; j <= n; j++) if (!(names[j] in done) && (m == "" || best[names[j]] > best[m])) m = names[j]; done[m] = 1; printf "%s%s", (k > 1 ? ", " : ""), m } }' "$lanes")"
 echo "Blocked by the team's hook (scripts/hooks/claude/lane-guard.sh): $rel is outside the $lane lane (branch $branch)${owner:+; it belongs to $owner}. Message its owner instead. If the owner agreed to this edit, record it: echo '$rel' >> \"\$(git rev-parse --git-dir)/hitl-lane-allow\"" >&2
 exit 2
