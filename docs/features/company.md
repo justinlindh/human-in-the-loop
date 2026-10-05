@@ -39,7 +39,7 @@
   - **Culture policies**: AI as Pair, Craft Fridays, Blameless Postmortems, Code Comprehension Reviews, Apprenticeships and Sabbaticals. `id: pair` `id: craft_fridays` `id: blameless` `id: comprehension_reviews` `id: apprenticeship` `id: sabbatical` media: none (policy switches in the Policies panel)
   - **Crunch or not**: Crunch Mode trades later exhaustion for output now; No Crunch halves how fast exhaustion builds. `id: crunch` `id: no_crunch` media: none (policy switches)
   - **HQ perks**: Top-of-Market Pay and Office Upkeep ("chairs that do not squeak"). `id: top_pay` `id: office_upkeep` media: none (policy switches)
-  - **Incentives Program**: the reward ladder under Staged moments. `id: incentives`
+  - **Incentives Program**: the reward ladder under Staged moments. `id: incentives` media: none (the ladder is a rule; its rewards are under Staged moments)
 - **Unlocks**: Marketing, Ops, Research, Models, Automation, Meaning, Career Paths and Standups each arrive with a one-time explainer card. `capture 4-6-unlock-card`
 - **Goals and trophies**: milestones from "Make room for a hire" to "Ten years", each with a small reward; trophy goals fill a shelf. The goals card and list say "3 of 5 done", and a count goal shows a thin bar with how far along it is.
 - **Skipped starting goals**: with `?eras`, ChatGBT and Agents mark Make room for a hire, Start a product and Launch it as skipped. Moving to the Office Floor remains an earned milestone. Skipped goals give no reward or trophy and are left out of completion counts. Without the switch, skipped rows are hidden. Company-age goals still start at zero. `id: place_desks` `id: start_product` `id: first_launch` `id: office_floor` media: none (goal rows in the goals list)
