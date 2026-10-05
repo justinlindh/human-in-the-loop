@@ -55,6 +55,9 @@ import { existsSync } from 'node:fs';
 import { planReplay, mentions, isWorse } from './sweep-plan.js';
 import { createWorktree } from '../../scripts/tools/worktree.mjs';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
+import { copyFileSync } from 'node:fs';
+import { cachePath, inputHash, passedAt, recordPass } from './cache.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BASELINE = resolve(HERE, 'sweep-baseline.json');
@@ -148,6 +151,35 @@ async function endControl(c) {
   try { report = JSON.parse(readFileSync(join(c.out, 'report.json'), 'utf8')); } catch { /* the control run failed */ }
   c.wt.disposeSync();
   return report;
+}
+
+// A clean pass of a whole run is recorded against a hash of everything the sweep reads (cache.mjs, plus the
+// studio engine, the event index code and the geometry library) and its arguments; an unchanged run skips
+// at once and hands back the report the pass saved. Scoped and repeated runs (a replay, --against, a baseline
+// update, the screen step) neither read nor record it.
+const cacheable = !replayed && !against && !screenOnly && !argv.includes('--update-baseline');
+const cacheKey = cacheable ? inputHash('sweep', sweepKey()) : null;
+function sweepKey() {
+  const h = createHash('sha256');
+  for (const d of ['scripts/studio', 'scripts/events', 'scripts/lib']) {
+    const dir = join(repoRoot, d);
+    for (const f of readdirSync(dir).filter((n) => /\.(mjs|js)$/.test(n)).sort()) h.update(`${d}/${f}`).update(readFileSync(join(dir, f)));
+  }
+  const skipArg = new Set(['--gpu', '--software']);
+  const args = [];
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === '--out' || argv[i] === '--timeout') { i++; continue; }
+    if (!skipArg.has(argv[i])) args.push(argv[i]);
+  }
+  const bvh = JSON.parse(readFileSync(join(repoRoot, 'node_modules/three-mesh-bvh/package.json'), 'utf8')).version;
+  return `${args.join(' ')}\nbvh@${bvh}\n${h.digest('hex').slice(0, 16)}`;
+}
+const savedAt = passedAt('sweep', cacheKey);
+if (savedAt && existsSync(cachePath('sweep', `${cacheKey}.report.json`))) {
+  mkdirSync(outDir, { recursive: true });
+  for (const f of ['report.json', 'report.md']) copyFileSync(cachePath('sweep', `${cacheKey}.${f}`), join(outDir, f));
+  console.log(`sweep: inputs unchanged since ${savedAt}, skipped (the saved report is in ${outDir})`);
+  process.exit(0);
 }
 
 const kill = setTimeout(() => { console.error(`sweep: timed out after ${timeout} s`); process.exit(124); }, timeout * 1000);
@@ -375,6 +407,10 @@ if (replayed) {
   const before = new Set(replayed.violations.map((v) => v.key));
   const again = [...before].filter((k) => byKey.has(k)), fixed = [...before].filter((k) => !byKey.has(k));
   console.log(`sweep: replay: ${again.length} of ${before.size} reported violation(s) still present, ${fixed.length} gone${fixed.length ? `: ${fixed.slice(0, 12).join('; ')}${fixed.length > 12 ? '; ...' : ''}` : ''}`);
+}
+if (cacheKey && !fresh.length && !errors.length) {
+  recordPass('sweep', cacheKey);
+  try { for (const f of ['report.json', 'report.md']) copyFileSync(join(outDir, f), cachePath('sweep', `${cacheKey}.${f}`)); } catch { /* a missing copy only means a miss next time */ }
 }
 if (errors.length) console.log(`sweep: page errors: ${errors.slice(0, 5).join('; ')}`);
 console.log(`sweep: ${all.length} distinct violation(s), ${fresh.length} new, ${advisory.length} new in seeds only (advisory), ${gone.length} not seen; ${Math.round((wall() - t0) / 1000)} s (${full ? 'full' : 'fast'}${strict ? ', strict' : ''})`);

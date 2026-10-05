@@ -60,6 +60,9 @@ function installed() {
 // HITL_CHECK_CACHE_DIR moves the whole cache (tests use a scratch one).
 const dir = (check) => join(process.env.HITL_CHECK_CACHE_DIR || join(homedir(), '.cache', 'hitl-ci'), check);
 
+// A file kept beside a check's pass records (a saved report a later hit hands back).
+export const cachePath = (check, name) => join(dir(check), name);
+
 // A pass that cannot be recorded says so on stderr, so a cache that never hits is not silent.
 const skipped = (check, why) => console.error(`${check}: cache: skipped (${why})`);
 
