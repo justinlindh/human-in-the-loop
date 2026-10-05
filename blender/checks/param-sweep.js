@@ -12,7 +12,7 @@
 // --rows '<js>'            keep the rows where the expression over r is true (default: all)
 // --pick min|median|max|mean   how the kept values collapse to one cell (default min)
 // Each cell is one full pose.mjs run, one after another, so a big grid takes a while.
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { readFileSync, rmSync } from 'node:fs';
 import { makeTemp } from '../../scripts/tools/tmp.mjs';
 import { join } from 'node:path';
@@ -57,7 +57,19 @@ export function cellValue(json, { measure, rows, pick }) {
   return vals.length ? collapse[pick](vals) : null;
 }
 
-export function runSweep(argv, script) {
+// One pose.mjs run; `running` holds it until it closes, so a signal can stop it.
+const running = new Set();
+const runOne = (args) => new Promise((resolve) => {
+  const p = spawn(process.execPath, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+  running.add(p);
+  let stdout = '', stderr = '';
+  p.stdout.on('data', (d) => { stdout += d; });
+  p.stderr.on('data', (d) => { stderr += d; });
+  p.on('error', (e) => { running.delete(p); resolve({ status: -1, stdout, stderr: String(e) }); });
+  p.on('close', (status) => { running.delete(p); resolve({ status, stdout, stderr }); });
+});
+
+export async function runSweep(argv, script) {
   const get = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
   const all = (k) => argv.flatMap((a, i) => (a === `--${k}` ? [argv[i + 1]] : []));
   const measure = get('measure');
@@ -78,7 +90,17 @@ export function runSweep(argv, script) {
     base.push(a);
   }
   if (COVER_MEASURE.test(measure) && !base.includes('--cover') && base.includes('--scene')) base.push('--cover', measure);
-  const dir = makeTemp('pose-sweep-');
+  // A signal skips the finally below, so stop the running cell and remove the dir here. The handlers
+  // go in before the dir exists: a signal with no handler yet ends the process outright.
+  let dir = null;
+  const onSignal = (sig) => () => {
+    for (const p of running) p.kill('SIGTERM');
+    if (dir) rmSync(dir, { recursive: true, force: true, maxRetries: 3 });
+    process.exit(128 + (sig === 'SIGINT' ? 2 : sig === 'SIGHUP' ? 1 : 15));
+  };
+  const handlers = ['SIGINT', 'SIGTERM', 'SIGHUP'].map((s) => [s, onSignal(s)]);
+  for (const [s, h] of handlers) process.on(s, h);
+  dir = makeTemp('pose-sweep-');
   const label = (c) => c.map(([n, v]) => `${n}=${v}`).join(' ');
   const cells = [];
   let bad = 0;
@@ -88,7 +110,7 @@ export function runSweep(argv, script) {
       for (const c of cols) {
         const out = join(dir, 'cell.json');
         const args = [script, ...base, ...r.flatMap(([n, v]) => [`--${n}`, v]), ...c.flatMap(([n, v]) => ['--param', `${n}=${v}`]), '--json', out];
-        const res = spawnSync(process.execPath, args, { encoding: 'utf8', maxBuffer: 1 << 26 });
+        const res = await runOne(args);
         let v = null;
         if (res.status === 0 || res.status === 1) {
           try { v = cellValue(JSON.parse(readFileSync(out, 'utf8')), { measure, rows: get('rows'), pick }); } catch { /* no rows */ }
@@ -98,7 +120,10 @@ export function runSweep(argv, script) {
       }
       cells.push({ r, line });
     }
-  } finally { rmSync(dir, { recursive: true, force: true }); }
+  } finally {
+    rmSync(dir, { recursive: true, force: true, maxRetries: 3 });
+    for (const [s, h] of handlers) process.off(s, h);
+  }
   const fmt = (v) => (v === null ? '-' : Number(v.toFixed(4)).toString());
   const head = cols.map((c) => label(c) || measure);
   const lw = Math.max(0, ...cells.map(({ r }) => label(r).length));
