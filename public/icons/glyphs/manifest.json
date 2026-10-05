@@ -336,6 +336,9 @@
  "save.export": {
   "file": "glyphs/save.export.svg"
  },
+ "mail": {
+  "file": "glyphs/mail.svg"
+ },
  "save.import": {
   "file": "glyphs/save.import.svg"
  },
