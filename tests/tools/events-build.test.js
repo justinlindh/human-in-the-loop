@@ -5,6 +5,7 @@ import { gunzipSync } from 'node:zlib';
 import { join, resolve } from 'node:path';
 import { once } from 'node:events';
 import { simHash } from '../../scripts/events/lib.js';
+import { play } from '../../scripts/events/play.js';
 import { referencePlay } from './event-index-reference.js';
 import { build, compareSnapshots, run, shortArgs, shortRun, workspace } from './event-index-fixture.js';
 
@@ -56,6 +57,16 @@ describe('event index snapshots', () => {
     // A chat prompt can be opened like a decision.
     expect(rows.some((r) => r.type === 'chatPrompt' && r.preTick && r.snapshot)).toBe(true);
     expect(compareSnapshots(a, b).length).toBeGreaterThan(0);
+  });
+
+  it('returns at the next week, writing nothing, once the stop flag is up', () => {
+    const dir = directory('stopped');
+    mkdirSync(join(dir, 'snapshots'));
+    let weeks = 0;
+    const r = play({ ...shortRun, dir }, () => ++weeks > 3);
+    expect(r.stopped).toBe(true);
+    expect(weeks).toBe(4);
+    expect(readdirSync(join(dir, 'snapshots'))).toEqual([]);
   });
 
   it('reuses the completed fixture', () => {
