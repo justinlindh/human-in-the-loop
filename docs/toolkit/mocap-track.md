@@ -1,6 +1,6 @@
 ---
 tool: `node scripts/tools/mocap/track.mjs --video <file> --out <dir> [--start <s>] [--end <s>] [--min-shot <frames>] [--cut-threshold <0-1>] [--timeout <s>] [--no-camera] [--no-cache] [--no-lock] [--keep-work]`, setup with `scripts/tools/mocap/setup.sh [--force] [--no-weights]`
-section: capture
+section: models
 who: tools, tools2, art (reads the shot JSON), anyone baking motion
 covers: scripts/tools/mocap/track.mjs scripts/tools/mocap/lib.mjs scripts/tools/mocap/models.json scripts/tools/mocap/setup.sh scripts/tools/mocap/worker/track_worker.py scripts/tools/mocap/patches/soma-sparse-validate.patch tests/tools/mocap-track.test.js tests/tools/mocap-stub-worker.mjs
 ---
