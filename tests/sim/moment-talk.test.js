@@ -5,6 +5,7 @@ import { raiseDecision } from '../../src/sim/events.js';
 import { openEventPrompt } from '../../src/sim/prompts.js';
 import { EVENTS } from '../../src/data/events.js';
 import { MOMENT_TALK, CELEBRATION_TALK } from '../../src/data/moment-talk.js';
+import { ALLHANDS_SCREEN, variantText, variantPool } from '../../src/data/moment-variants.js';
 import { emitMomentTalk, momentCast, momentTalkSystem } from '../../src/sim/moment-talk.js';
 import { game, addStaff } from './helpers.js';
 import { B } from '../../src/sim/balance.js';
@@ -128,4 +129,29 @@ it('a launch gets a line or two of its own, at most once per party gap, and neve
   expect(week().length).toBeGreaterThan(0);
   expect(s.rng).toEqual(rng);
   expect(s.nextId).toBe(nextId);
+});
+
+// The all-hands screen text waits behind its flag until the renderer draws the screen.
+describe('all-hands screen variant', () => {
+  it('leaves the open-plan moment on its default text while the flag is off', async () => {
+    const { MOMENT_CAPTIONS } = await import('../../src/data/moments.js');
+    expect(ALLHANDS_SCREEN.live).toBe(false);
+    expect(MOMENT_CAPTIONS.open_plan_office).not.toMatch(/screen/i);
+    expect(EVENTS.open_plan_office.text).not.toMatch(/screen/);
+    expect([...MOMENT_TALK.open_plan_office.open, ...MOMENT_TALK.open_plan_office.choices.flat()].some((l) => /screen|all-hands/i.test(l))).toBe(false);
+  });
+
+  it('sets up the screen and reacts to it breaking once live, within the moment text limits', () => {
+    const v = { ...ALLHANDS_SCREEN, live: true };
+    expect(variantText(v, v.caption, 'old')).toMatch(/screen/i);
+    expect(v.caption.length).toBeLessThanOrEqual(72);
+    expect(v.text).toMatch(/all-hands screen/);
+    const base = MOMENT_TALK.open_plan_office;
+    const pool = variantPool(v, base);
+    expect(pool.choices).toHaveLength(EVENTS.open_plan_office.choices.length);
+    expect(pool.open.slice(base.open.length * -1)).toEqual(base.open);
+    expect(pool.open.filter((l) => /screen|all-hands|synergy/i.test(l)).length).toBeGreaterThanOrEqual(2);
+    for (const lines of pool.choices) expect(lines.some((l) => /screen|all-hands|org chart/i.test(l)), lines.join(' / ')).toBe(true);
+    for (const line of [...v.open, ...v.choices.flat()]) expect(line.length, line).toBeLessThanOrEqual(70);
+  });
 });
