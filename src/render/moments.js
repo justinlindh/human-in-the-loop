@@ -67,7 +67,8 @@ const FAR_TURN = 0.44;       // radians a ring spot's facing may turn off its ce
 const SWING_AT = 0.9;        // and swings from this far off it
 const JAM_SCALE = 1.2;       // the jammed printer's scale as staged (props.js)
 const BAT_SHOULDER = [Math.PI, 0, -0.4];   // the bat's turn in the hand, resting back over the shoulder
-const HAMMER_SHOULDER = [2.6, 0, 0.5];   // the sledgehammer's, carried the same way, its head clear of the back
+const HAMMER_SHOULDER = [2.6, 0, 0.2];   // the sledgehammer's, carried the same way, its head clear of the back and close in to the side
+const SHOULDER_UP_S = 0.3;  // seconds of walking before the hammer goes up on the shoulder, once the arm is there
 const CHAIR_CLEAR = 0.65;   // metres from a desk seat a carrier keeps: the chair reaches about 0.36 from it, plus a body
 const TWIST_STEP = 0.1, END_ON_HOLD = 0.8, TWIST_EASE = 0.3;   // metres: turn samples, how far an end-on stretch reaches, and its easing
 const SETTLE_S = 0.5;        // the visitor's cast waits this long before setting off
@@ -590,13 +591,18 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     // Walking with it, the hammer rests back over the shoulder, clear of the desks either side of an
     // aisle; it comes down across both palms whenever they stop, and for the run in.
     if (h.held) {
-      const walking = !!r.path.length && r.temp?.moment === 'hammer' && ['carry', 'return', 'toWall'].includes(h.phase);
+      const moving = !!r.path.length && r.temp?.moment === 'hammer' && ['carry', 'return', 'toWall'].includes(h.phase);
+      // The arm eases up to the shoulder under 'shoulderwalk' while both palms still hold the shaft, so
+      // the hammer never swings over the shoulder of an arm that is still down.
+      h.walkT = moving ? (h.walkT ?? 0) + dt : 0;
+      const walking = moving && h.walkT >= SHOULDER_UP_S;
+      if (moving) r.walkAnim = 'shoulderwalk';
       if (walking !== !h.held.userData.handSpan) {
         h.held.userData.handSpan = !walking;
-        if (walking) h.held.rotation.set(...HAMMER_SHOULDER);
+        // The two-hand grip moves the hammer to the palms; on the shoulder it sits at the hand again.
+        if (walking) { h.held.position.set(0, 0, 0); h.held.rotation.set(...HAMMER_SHOULDER); }
         else h.held.rotation.set(0, 0, 0);
       }
-      if (walking) r.walkAnim = 'shoulderwalk';
     }
     if ((h.phase === 'hold' || h.phase === 'carry') && h.choice !== undefined && h.plan) {
       // The run in, from wherever they have got to with it.

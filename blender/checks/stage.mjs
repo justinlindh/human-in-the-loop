@@ -324,11 +324,12 @@ const SPECS = {
   'hammer.fetch': { moment: 'hammer', beat: 'fetch', role: 'thrower', rules: [visibleRule] },
   'hammer_keep.throw': { moment: 'hammer', scenario: 'hammer_keep', beat: 'throw', role: 'thrower', rules: [visibleRule] },
   // Carried across the room it rests one-handed on the shoulder, out of the desks' way: clear of the
-  // head and the body, its head in view.
+  // head and the body. Behind the back, its head is out of sight while they walk toward the camera,
+  // so it only has to show for most of the walk; hold and swing keep the strict visibility rules.
   'hammer.carry': { moment: 'hammer', beat: 'carry', role: 'thrower', rules: [
     ...[['heldHeadDepth', 1e-6], ['heldTorsoDepth', 1e-6]].map(([metric, limit]) =>
       share(metric, `${metric} <= ${limit} m`, (x) => Number.isFinite(x[metric]) && x[metric] <= limit, 1)),
-    share('headVisible', 'at least half the head visible', (x) => x.heldHeadVisible >= 0.5, 0.85),
+    share('headVisible', 'at least half the head visible', (x) => x.heldHeadVisible >= 0.5, 0.55),
   ] },
   ...Object.fromEntries([['hammer', 'hold'], ['hammer', 'swing']].map(([scenario, beat]) => [`${scenario}.${beat}`, { moment: 'hammer', scenario, beat, role: 'thrower', rules: [
     ...[['heldHeadDepth', 1e-6], ['heldTorsoDepth', 1e-6], ['heldPalmGap', 0.02], ['heldSupportGap', 0.02], ['heldHeadDistance', 0.6], ['heldHeadJoint', 0.08], ['heldScreenDistance', 0.6]].map(([metric, limit]) =>
