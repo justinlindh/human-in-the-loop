@@ -16,6 +16,11 @@ const POP_S = 0.22, GONE_S = 0.18;
 
 const SCREEN_OVERLAYS = { screens_red: 'red', screens_skull: 'skull' };
 
+// Seconds a decision's stage prop stays up after the card closes, by event and choice index, so the
+// staged moment plays where the card no longer covers it. The broken coffee machine smokes on
+// while someone fans it: briefly until the repair, longer when the office lives with it.
+const AFTER_CHOICE = { coffee_machine_broke: { 1: 6, 2: 12 } };
+
 export function createProps(office, screens = null) {
   const live = new Map();   // key -> { obj, t, gone }
   const dropped = new Set(); // keys whose desk was sold: not rebuilt while the sim still lists them
@@ -28,6 +33,26 @@ export function createProps(office, screens = null) {
   // as a prompt stages its prop exactly as behind a card).
   const stages = (state) => [state.pendingDecision?.stage, ...(state.chatPrompts ?? []).filter((c) => !c.resolved).map((c) => c.stage)].filter((st) => st?.prop);
 
+  // A staged prop that outlives its card for some answers (AFTER_CHOICE): the stage each open
+  // decision or prompt showed, by event id, and the stages kept on after their answer, by key.
+  const lastStage = new Map(), after = new Map();
+  let lastState = null;
+  const stageKey = (st) => `stage|${st.prop}|${st.x},${st.y}`;
+  function noteStages(state) {
+    const d = state.pendingDecision;
+    if (d?.stage?.prop) lastStage.set(d.eventId, d.stage);
+    for (const c of state.chatPrompts ?? []) if (!c.resolved && c.stage?.prop) lastStage.set(c.kind, c.stage);
+  }
+  // decisionResolved (or a prompt's): keep its stage up for the answer's seconds.
+  function decided(e) {
+    const s = AFTER_CHOICE[e.eventId]?.[e.choice];
+    const st = lastStage.get(e.eventId);
+    lastStage.delete(e.eventId);
+    if (!s || !st) return;
+    after.set(stageKey(st), { st, t: s });
+    if (lastState) sync(lastState);
+  }
+
   // The office printer (byKitchen): where it stands, kept so every printer prop takes the same place
   // while the kitchen stays put; and a count that moves it when furniture lands on it.
   let printerSpot = null, printerMoves = 0;
@@ -38,7 +63,8 @@ export function createProps(office, screens = null) {
 
   function wanted(state) {
     const out = [];
-    for (const st of stages(state)) if (BUILDERS[st.prop] && st.anchor !== 'screens') out.push({ key: `stage|${st.prop}|${st.x},${st.y}`, ...st });
+    for (const st of stages(state)) if (BUILDERS[st.prop] && st.anchor !== 'screens') out.push({ key: stageKey(st), ...st });
+    for (const [key, a] of after) if (BUILDERS[a.st.prop] && !out.some((w) => w.key === key)) out.push({ key, ...a.st });
     for (const p of state.office?.props ?? []) if (BUILDERS[p.prop]) {
       // The saved rollover printer has its own placement and lifetime, outside kitchen handovers.
       const prop = p.prop === 'printer' && p.id === state.flags?.y2k?.printerId ? 'y2k_printer' : p.prop;
@@ -56,6 +82,8 @@ export function createProps(office, screens = null) {
   function sync(state) {
     const cur = office.current;
     if (!cur || !state) return;
+    lastState = state;
+    noteStages(state);
     if (cur.root !== root) {
       // A new office shell: the old props went with the old one.
       for (const e of live.values()) dispose(e.obj);
@@ -122,6 +150,9 @@ export function createProps(office, screens = null) {
   function update(dt) {
     clock += dt;
     while (gone.length && clock - gone[0].at > 8) gone.shift();
+    let ended = false;
+    for (const [k, a] of after) if ((a.t -= dt) <= 0) { after.delete(k); ended = true; }
+    if (ended && lastState) sync(lastState);
     let moved = false;
     for (const [k, e] of live) {
       e.t += dt;
@@ -168,7 +199,7 @@ export function createProps(office, screens = null) {
 
   // For checks: a counter's free grids for a prop this tall, one per level, as rows of '.' and '#'.
   const counterMap = (e, tall) => counterGrid(e, tall).map((g) => { const rows = []; for (let k = 0; k < g.nz; k++) { let r = ''; for (let i = 0; i < g.nx; i++) r += g.free[i + k * g.nx] ? '.' : '#'; rows.push(r); } return { y: g.y, rows }; });
-  return { sync, update, objectOf, current, deskMap, counterMap, goneAt, pin, unpin, get overlay() { return overlay; }, get ids() { return [...Object.keys(BUILDERS), ...Object.keys(SCREEN_OVERLAYS)]; } };
+  return { sync, update, decided, objectOf, current, deskMap, counterMap, goneAt, pin, unpin, get overlay() { return overlay; }, get ids() { return [...Object.keys(BUILDERS), ...Object.keys(SCREEN_OVERLAYS)]; } };
 }
 
 // Frees what a prop made for itself: geometry and materials marked own. Palette materials (mat()),
@@ -991,9 +1022,12 @@ function puffs(box, { n = 8, color = P.metal_soft, rise = 1.2, life = 2.4, size 
   return g;
 }
 // Something is burning (the toaster, the demo): grey smoke from the item on the anchor tile.
+const COFFEE_KINDS = ['espresso', 'coffee'];
 function smokePuff(L, anchor, env) {
-  // Dark enough to read against the cream walls behind most counters.
-  return puffs(itemAt(L, anchor, env.office).box, { color: P.metal_dark, size: 0.5, opacity: 0.75, rise: 1.4 });
+  // Dark enough to read against the cream walls behind most counters. It comes off the coffee
+  // machine nearest the anchor (the espresso item or a coffee corner), not whatever tile the anchor
+  // names, which is often bare floor.
+  return puffs(itemAt(L, anchor, env.office, COFFEE_KINDS).box, { color: P.metal_dark, size: 0.5, opacity: 0.75, rise: 1.4 });
 }
 // The server rack is running hot: a pulsing orange glow over its front and heat rising off the top.
 const OWN_RACK_YAW = Math.PI / 4;   // a staged rack of its own faces the default camera

@@ -80,6 +80,16 @@ const Y2K_RULES = [
   visibleRule, noFade,
 ];
 
+const FUMES_RULES = [
+  { metric: 'handHz', want: '>= 3 Hz', test: (xs) => motion(xs).hz, pass: (v) => v >= 3 },
+  { metric: 'handAmp', want: '<= 0.15 m', test: (xs) => motion(xs).amp, pass: (v) => v > 0.005 && v <= 0.15 },
+  mean('leanAway', 'head behind the feet, away from the fumes (m)', (x) => x.lean ?? 0, (v) => v < -0.01),
+  share('headAway', 'face >= 50 deg off the fumes', (x) => x.targetAngle >= 50, 0.8),
+  share('smokeBetween', 'smoke on the line from eyes to the fumes', (x) => (x.between ?? 0) > 0, 0.5),
+  mean('besideSource', 'feet within 2 m of the centre of the item the fumes come from', (x) => x.targetDist ?? 99, (v) => v <= 2),
+  visibleRule, noFade,
+];
+
 const SPECS = {
   'y2k.countdown': { moment: 'y2k', beat: 'countdown', role: 'watcher', rules: Y2K_RULES },
   'y2k.nothing': { moment: 'y2k', beat: 'nothing', role: 'watcher', rules: Y2K_RULES },
@@ -202,14 +212,8 @@ const SPECS = {
     }, pass: (v) => v >= 0.03 },
     visibleRule, noFade,
   ] },
-  'fumes.fan': { moment: 'fumes', beat: 'fan', rules: [
-    { metric: 'handHz', want: '>= 3 Hz', test: (xs) => motion(xs).hz, pass: (v) => v >= 3 },
-    { metric: 'handAmp', want: '<= 0.15 m', test: (xs) => motion(xs).amp, pass: (v) => v > 0.005 && v <= 0.15 },
-    mean('leanAway', 'head behind the feet, away from the fumes (m)', (x) => x.lean ?? 0, (v) => v < -0.01),
-    share('headAway', 'face >= 50 deg off the fumes', (x) => x.targetAngle >= 50, 0.8),
-    share('smokeBetween', 'smoke on the line from eyes to the fumes', (x) => (x.between ?? 0) > 0, 0.5),
-    visibleRule, noFade,
-  ] },
+  'fumes.fan': { moment: 'fumes', beat: 'fan', rules: FUMES_RULES },
+  'fumes_coffee.fan': { moment: 'fumes', scenario: 'fumes_coffee', beat: 'fan', rules: FUMES_RULES },
   // The printer carried out back: both carriers hold it low in both hands, its middle well under
   // their heads, and stay in view; the one with the bat faces it while swinging, bat in hand.
   // The carry crosses the office, so it passes behind a pillar or a desk now and then: its
@@ -339,6 +343,9 @@ const SCENARIOS = {
     steps: [{ at: 0, js: "S.flags.y2k = { stage: 'rollover', rolloverWeek: S.week, printerId: 'y2k-printer' }; S.office.props = [{ id: 'y2k-printer', prop: 'printer', x: 4, y: 0, since: S.week }];" }] },
   letter: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'resignation_letter', subjectId: 's6', stage: { prop: 'envelope', anchor: 'subjectDesk', x: 12, y: 2 } } }, seconds: 16 },
   fumes: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'agent_runaway_spend', subjectId: null, stage: { prop: 'rack_hot', anchor: 'wall', x: 7, y: 0 } } }, seconds: 16 },
+  // The sim anchors the dead coffee machine's smoke to a kitchen tile that is often bare floor;
+  // the smoke and the fanner belong at the espresso machine itself.
+  fumes_coffee: { moment: 'fumes', query: 'mock=floor', patch: { pendingDecision: { eventId: 'coffee_machine_broke', subjectId: null, stage: { prop: 'smoke_puff', anchor: 'kitchen', x: 1, y: 0 } } }, seconds: 16 },
   // Staged by the kitchen, then taken out back 1 s in, the wreck staged where it will lie.
   printer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'printer_jam', subjectId: 's1', stage: { prop: 'printer_jammed', anchor: 'kitchen', x: 1, y: 1 } } }, seconds: 32,
     steps: [{ at: 30, js: "S.pendingDecision = null; S.office.props = [...(S.office.props ?? []), { id: 'stage_wreck', prop: 'printer_wrecked', x: 1, y: 1, since: S.week, until: { weeks: 4 } }]; R.handleEvents([{ type: 'decisionResolved', eventId: 'printer_jam', choice: 0, subjectId: 's1' }], S);" }] },
