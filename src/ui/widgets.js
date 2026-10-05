@@ -118,10 +118,10 @@ export function portraitLive(person, size = 88) {
 
 // A live portrait shows the face it was built with, so a changed face gets a fresh canvas in its place.
 function refreshLive(l) {
-  const el = portraitLive(l.person, l.size);
-  l.el.replaceWith(el);
+  // The old canvas is released first: Low quality allows one live portrait, and a second would come back static.
   l.handle.dispose?.();
   live.delete(l);
+  l.el.replaceWith(portraitLive(l.person, l.size));
 }
 
 // Chibi head-and-shoulders portrait drawn from a staff member's appearance.

@@ -8,7 +8,15 @@ function stub(faces) {
   return {
     asked,
     face: (id) => (faces[id] ? { name: faces[id] } : null),
-    portraitLive: (p) => { asked.push(p); const el = document.createElement('canvas'); el.dataset.expr = p.expression ?? 'none'; return { el, dispose() {} }; },
+    // Like Low quality: one live canvas at a time; a second is a still that never animates.
+    active: 0,
+    portraitLive(p) {
+      asked.push(p);
+      const el = document.createElement('canvas');
+      el.dataset.expr = p.expression ?? 'none';
+      if (this.active >= 1) el.dataset.still = '1'; else this.active++;
+      return { el, dispose: () => { if (!el.dataset.still) this.active--; } };
+    },
     portrait: (p) => { asked.push(p); return `blob:${p.id}-${p.expression ?? 'none'}`; },
   };
 }
@@ -68,6 +76,9 @@ describe('portraits follow the scene face', () => {
     faces[7] = 'sad';
     dispatchEvent(new CustomEvent('hitl:faceChange', { detail: { staffId: 7, name: 'sad' } }));
     expect(el.isConnected).toBe(false);
-    expect(document.body.querySelector('canvas').dataset.expr).toBe('sad');
+    const fresh = document.body.querySelector('canvas');
+    expect(fresh.dataset.expr).toBe('sad');
+    expect(fresh.dataset.still).toBeUndefined();
+    expect(r.active).toBe(1);
   });
 });
