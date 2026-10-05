@@ -103,10 +103,16 @@ const SPECS = {
     share('celebrating', 'nearby coworkers celebrate throughout the beat', (x) => x.anim === 'celebrate', 0.9),
   ] },
   'deal.seller': { moment: 'deal', beat: 'ring', role: 'seller', rules: [
-    share('handUp', 'seller plays the fist pump throughout the beat', (x) => x.anim === 'dealsit', 0.9),
+    share('handUp', 'seller rings the deal bell throughout the beat', (x) => x.anim === 'dealsit', 0.9),
     share('fistUp', 'a hand within 0.15 m below the eyes (typing hands sit 0.34 m below)', (x) => Math.max(x.handsRel[0][1], x.handsRel[1][1]) >= -0.15, 0.7),
-    share('fistNear', 'the raised hand sits nearer the camera than the eyes, clear of the head', (x) => x.handsCam[x.handsRel[0][1] >= x.handsRel[1][1] ? 0 : 1] >= 0.05, 0.7),
-    share('facingCamera', 'seller faces within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    // Seen from above, a fist over the chest reads as typing: the raised fist has to stand out beside
+    // the head (0.33 m across the view from the eyes) and not drop behind it.
+    // A chibi fist can't rise above the head, so the bell does: above the eyes and in front of the
+    // head, where it breaks the head's outline from above.
+    share('bellUp', 'the bell sits at least 0.08 m above the eyes', (x) => (x.held?.up ?? -1) >= 0.08, 0.7),
+    share('bellFront', 'the bell is not behind the head', (x) => (x.held?.cam ?? -1) >= 0, 0.7),
+    share('fistClear', 'the raised fist sits beside the head on screen, not over the chest or behind the head', (x) => { const h = x.handsRel[0][1] >= x.handsRel[1][1] ? 0 : 1; return x.handsSide[h] >= 0.33 && x.handsCam[h] >= -0.08; }, 0.7),
+    share('facingCamera', 'seller faces within 55 deg of the camera', (x) => x.faceCam <= 55, 0.8),
     share('smug', 'a notable deal: the seller looks pleased with themselves', (x) => x.face === 'smug', 0.7),
     // No noFade: the seller stays at the desk the sim names, so a column faded over it is the
     // office's own cutaway, not something this moment stages.
@@ -119,7 +125,7 @@ const SPECS = {
   // The company's first deal: the same beat, and the seller's face lights up (face.js 'delighted').
   'dealFirst.seller': { moment: 'deal', scenario: 'dealFirst', beat: 'ring', role: 'seller', rules: [
     share('delighted', 'the seller looks delighted for most of the beat', (x) => x.face === 'delighted', 0.7),
-    share('facingCamera', 'seller faces within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('facingCamera', 'seller faces within 55 deg of the camera', (x) => x.faceCam <= 55, 0.8),
   ] },
   'dealFirst.coworker': { moment: 'deal', scenario: 'dealFirst', beat: 'cheer', role: 'coworker', rules: [
     share('clapping', 'neighbours clap once their delay is over', (x) => x.anim === 'growthclapsit', 0.7),

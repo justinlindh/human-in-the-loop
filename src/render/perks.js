@@ -34,6 +34,7 @@ const PERKS = {
 const SEAT_HIP_Y = 0.47;
 const GATHER_SLACK = 4;          // seconds a pair game waits past the longer walk before giving up
 const STAND_M = 0.4;            // a person stands this far in front of the item they use
+const COVER_M = 0.1;            // a point this near other furniture counts as inside it
 const MODEL_SPOTS = {
   arcade_l1: [{ x: 0, z: 0.62, anim: 'play', look: [0, -0.2] }],
   arcade_l2: [{ x: 0.55, z: 0.35, anim: 'playsit', seat: 0.5, look: [0, -0.2] }],
@@ -224,9 +225,18 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     const spot = spotFor(e, def, i);
     for (const d of [def.stepIn, def.stepIn * 0.7, def.stepIn * 0.5]) {
       const q = { x: spot.x + Math.sin(e.target.rotY) * d, z: spot.z + Math.cos(e.target.rotY) * d };
-      if (!office.nav().isBlocked(q.x, q.z)) return q;
+      // The step itself runs straight, so nothing may stand between the point and the spot.
+      const way = [0.25, 0.5, 0.75].map((t) => ({ x: spot.x + (q.x - spot.x) * t, z: spot.z + (q.z - spot.z) * t }));
+      if (!office.nav().isBlocked(q.x, q.z) && !way.some((p) => covered(e, p))) return q;
     }
     return null;
+  }
+
+  let obsCache = null;
+  function covered(e, spot) {
+    if (obsCache?.v !== office.navVersion) obsCache = { v: office.navVersion, obs: office.obstacles() };
+    const m = COVER_M;
+    return obsCache.obs.some((o) => o.by !== e.id && spot.x > o.x0 - m && spot.x < o.x1 + m && spot.z > o.z0 - m && spot.z < o.z1 + m);
   }
 
   function freeSlots() {
@@ -241,6 +251,11 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
       }
       const n = modelSpots(e)?.length ?? def.spots(footprint(e.itemId, 0)).length;
       let order = [...Array(Math.min(def.cap, n)).keys()];
+      // A standing spot inside other furniture (a bookshelf put in front of the coffee) is never used.
+      if (!def.rest) {
+        order = order.filter((i) => !covered(e, spotFor(e, def, i)));
+        if (!order.length) continue;
+      }
       // A spot walked into from its front: where one has no clear front (something beside the item),
       // getting to or from it runs along the front past the other, so one person uses the item at a
       // time, at a spot with a clear front when there is one.

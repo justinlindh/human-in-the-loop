@@ -10,4 +10,4 @@ export const GROWTH = {
 // A notable deal (sync.js dealBell): the seller pumps a fist at the desk, and the nearest seated
 // coworkers turn to clap. The pose itself is DEAL_POSE in character.js. threeQuarter is how far
 // short of square to the camera the seller stops, so the pumping shoulder comes forward.
-export const DEAL = { seconds: 2.6, clapSeconds: 1.8, clapDelay: 0.35, nearby: 3, coworkerMax: 2, turnLimit: 1.3, threeQuarter: 0.7, pumpRate: 7 };
+export const DEAL = { seconds: 2.6, clapSeconds: 1.8, clapDelay: 0.35, nearby: 3, coworkerMax: 2, turnLimit: 1.75, threeQuarter: 0.7, pumpRate: 7 };

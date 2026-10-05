@@ -366,8 +366,10 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     for (const a of APPROACH_TURNS) {
       const x = seat.x + Math.sin(back + a) * CHAIR_BACK_M, z = seat.z + Math.cos(back + a) * CHAIR_BACK_M;
       const inside = Math.abs(x) < L.W / 2 - BODY_R && Math.abs(z) < L.D / 2 - BODY_R;
-      // Off the walk grid, the route would end at the nearest free cell and cut across to it.
-      if (inside && (a === 0 || !nav.isBlocked(x, z)) && !obs.some((o) => !own.has(o.by) && near(o, x, z, BODY_R))) return { x, z };
+      // Off the walk grid, the route would end at the nearest free cell and cut across to it. Away
+      // from straight behind, the slide between the seat and the point must clear other furniture too.
+      const slideClear = a === 0 || [0.25, 0.5, 0.75].every((t) => !obs.some((o) => !own.has(o.by) && near(o, seat.x + (x - seat.x) * t, seat.z + (z - seat.z) * t, BODY_R)));
+      if (inside && slideClear && (a === 0 || !nav.isBlocked(x, z)) && !obs.some((o) => !own.has(o.by) && near(o, x, z, BODY_R))) return { x, z };
     }
     return { x: seat.x + Math.sin(back) * CHAIR_BACK_M, z: seat.z + Math.cos(back) * CHAIR_BACK_M };
   }
@@ -998,7 +1000,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     r.temp = { anim: 'celebrate', t: seconds, keepPos: true };
   }
 
-  // A notable deal: the seller, seated at their desk, pumps a fist on the camera side,
+  // A notable deal: the seller, seated at their desk, rings a bell held up on the camera side,
   // turned toward the camera as far as the chair allows, and the nearest seated coworkers turn to
   // clap. Low plays the seller alone. Nobody stands or walks, and the clock never holds for it.
   function dealBell(e) {
@@ -1016,10 +1018,13 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const turnTo = turn(seller, camYaw - Math.sign(toCam || 1) * DEAL.threeQuarter);
     emote(seller, 'sparkle', DEAL.seconds);
     seller.temp = {
-      anim: 'typing', t: DEAL.seconds, keepPos: true, moment: 'deal', stage: { beat: 'ring', role: 'seller' },
+      anim: 'typing', t: DEAL.seconds, keepPos: true, moment: 'deal', stage: { beat: 'ring', role: 'seller', get held() { return seller.char.dealBell(); } },
       tick: (r, dt) => { r.yaw = angleLerp(r.yaw, turnTo, 1 - Math.exp(-dt * 8)); return false; },
     };
     seller.char.gesture('deal', DEAL.seconds, Math.sin(turnTo - camYaw) >= 0 ? 1 : -1);
+    // 'hitl:dealBell' { staffId, seconds } when the bell is rung on screen, so its sound plays only
+    // with the picture (a skipped beat stays silent).
+    if (typeof dispatchEvent === 'function') dispatchEvent(new CustomEvent('hitl:dealBell', { detail: { staffId: seller.id, seconds: DEAL.seconds } }));
     if (low()) return;
     const crowd = [...recs.values()]
       .filter((r) => r !== seller && !r.hidden && !r.temp && !r.path.length && r.char.seated && r.goal && r.staff.mood !== 'away' && r.pos.distanceTo(seller.pos) < DEAL.nearby)
