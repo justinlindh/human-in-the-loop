@@ -4,7 +4,12 @@ import * as THREE from 'three';
 const PITCH = Math.atan(1 / Math.SQRT2);
 const DISTANCE = 60;
 const ZOOM_MIN = 0.7;
-const ZOOM_MAX = 3.2;
+const ZOOM_MAX = 3.2;         // the closest zoom on the Office Floor; a bigger office allows more (officeScale)
+// The Office Floor's span: its fitted height in metres for a reference 16:10 view with no HUD. An
+// office's span against it is its officeScale, which depends on the office alone, not the window.
+// Set a little above the Floor's own span, so every Office Floor layout keeps a scale of exactly 1.
+const FLOOR_SPAN_M = 14.5;
+const REF_ASPECT = 1.6;
 // Screen space the HUD covers, in CSS px; the office is fitted into what is left.
 const INSET = { top: 90, bottom: 100, left: 120, right: 150 };
 const PAN_KEYS = new Set(['arrowup', 'arrowdown', 'arrowleft', 'arrowright']);
@@ -21,6 +26,9 @@ export function createCameraRig(canvas) {
   let zoomGoal = 1;
   let fitHeight = 12;
   let fitShown = 12;       // fitHeight as drawn: eases toward it after an eased setBounds
+  let officeScale = 1;
+  // The closest zoom frames the same metres in every office.
+  const zoomMax = () => ZOOM_MAX * officeScale;
   let aspect = 1;
   let viewW = 1, viewH = 1;
   let shakeTime = 0;
@@ -64,6 +72,7 @@ export function createCameraRig(canvas) {
     const needH = (maxY - minY) * 1.04;
     const needW = (maxX - minX) * 1.04;
     fitHeight = Math.max(needH * viewH / innerH, needW * viewH / innerW);
+    officeScale = Math.max(1, Math.max(needH, needW / REF_ASPECT) / FLOOR_SPAN_M);
   }
 
   // ease: glide the view to the new framing (an office move) instead of cutting to it.
@@ -143,7 +152,7 @@ export function createCameraRig(canvas) {
       // Pinch: the zoom follows the fingers at once, and the midpoint pans.
       const dist = Math.hypot(p[1].x - p[0].x, p[1].y - p[0].y) || 1;
       const mx = (p[0].x + p[1].x) / 2, my = (p[0].y + p[1].y) / 2;
-      zoomGoal = THREE.MathUtils.clamp(zoomGoal * dist / pinchDist, ZOOM_MIN, ZOOM_MAX);
+      zoomGoal = THREE.MathUtils.clamp(zoomGoal * dist / pinchDist, ZOOM_MIN, zoomMax());
       zoom = zoomGoal;
       pinchDist = dist;
       panScreen(mx - lastX, my - lastY);
@@ -163,7 +172,7 @@ export function createCameraRig(canvas) {
   const onWheel = (e) => {
     e.preventDefault();
     touched();
-    zoomGoal = THREE.MathUtils.clamp(zoomGoal * Math.exp(-e.deltaY * 0.0015), ZOOM_MIN, ZOOM_MAX);
+    zoomGoal = THREE.MathUtils.clamp(zoomGoal * Math.exp(-e.deltaY * 0.0015), ZOOM_MIN, zoomMax());
   };
   const ignore = (e) => {
     const t = e.target;
@@ -204,7 +213,7 @@ export function createCameraRig(canvas) {
     followRate = rate;
     goal.set(point.x, point.y ?? center.y, point.z);
     clampGoal();
-    if (zoomTo) zoomGoal = THREE.MathUtils.clamp(zoomTo, ZOOM_MIN, ZOOM_MAX);
+    if (zoomTo) zoomGoal = THREE.MathUtils.clamp(zoomTo, ZOOM_MIN, zoomMax());
   }
 
   function update(dt) {
@@ -266,9 +275,10 @@ export function createCameraRig(canvas) {
     // Which of the four views the camera is turning to, 0 to 3 (0 is the starting view).
     get yawStep() { return ((Math.round((yawGoal - Math.PI / 4) / (Math.PI / 2)) % 4) + 4) % 4; },
     get zoom() { return zoom; },
-    // World height the whole office is fitted into at zoom 1.
-    get fitHeight() { return fitHeight; },
-    setZoom(z, ease = false) { zoomGoal = THREE.MathUtils.clamp(z, ZOOM_MIN, ZOOM_MAX); if (!ease) zoom = zoomGoal; },
+    // The office's span against the Office Floor's (1 there and smaller), and the closest zoom it allows.
+    get officeScale() { return officeScale; },
+    get zoomMax() { return zoomMax(); },
+    setZoom(z, ease = false) { zoomGoal = THREE.MathUtils.clamp(z, ZOOM_MIN, zoomMax()); if (!ease) zoom = zoomGoal; },
     get dragging() { return dragging; },
     get lastInput() { return lastInput; },
     get goal() { return goal.clone(); },
