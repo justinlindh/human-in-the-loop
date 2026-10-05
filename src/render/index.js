@@ -9,13 +9,13 @@ import { createFly } from './fly.js';
 import { setRingsShown, setFaceMorphs } from './character.js';
 import { buildKitBoard, buildPropLineup, buildItemLineup, buildCharLineup, buildCharTurnaround, buildWardrobeLineup, buildIconBoard, buildFaceBoard } from './debug.js';
 import { setGlowScale, mat } from './materials.js';
-import { loadModels } from './models.js';
+import { loadModels, hasModel, ERA_MODELS } from './models.js';
 import { setRigEnabled } from './rig.js';
 import { createScreens } from './screens.js';
 import { createOffice } from './office.js';
 import { createProps } from './props.js';
 import { createSurroundings } from './surroundings.js';
-import { eraArtActive, syncEraArt } from './era-art.js';
+import { eraArtActive, eraArtWanted, syncEraArt } from './era-art.js';
 import { wardrobeEra } from './wardrobe.js';
 import { isSoftwareRenderer } from '../quality.js';
 import { createProbe } from './probe.js';
@@ -220,8 +220,19 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let firstSync = true;
 
   let decisionOpen = false;
+  // Era art and clothes load the first time a company wears them; until then the office waits
+  // as it does for the other models.
+  let eraModels = null;
+  function eraModelsReady(state) {
+    if (eraModels === 'ready' || !eraArtWanted(state)) return true;
+    if (ERA_MODELS.every(hasModel)) { eraModels = 'ready'; return true; }
+    // A model that fails to load is warned about and left out, as at the start.
+    eraModels ??= loadModels(ERA_MODELS).then(() => { eraModels = 'ready'; });
+    return false;
+  }
   function sync(state) {
     decisionOpen = !!state?.pendingDecision;
+    if (state && !eraModelsReady(state)) return;
     currentWardrobe = state ? wardrobeEra(state) : null;
     if (!office || !ready || !state) return;
     // Before any build: it also decides whether era art is on for this company.

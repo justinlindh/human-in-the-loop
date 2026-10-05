@@ -1,15 +1,17 @@
 import { calendarDate } from '../sim/util.js';
 
-// Era art is on for a fixed preview (`?eras&eraArt=<era>`, the mock scenes) and, with `?eras`, for any
-// company founded in an era mode, which follows its saved calendar and era. A Classic founding keeps
-// the ordinary office.
+// Era art is on for any company founded in an era mode, which follows its saved calendar and era, and
+// for a fixed preview (`?eras&eraArt=<era>`, the mock scenes). A Classic founding keeps the ordinary
+// office, and `?eras=0` (or `off`, `false`) keeps it for every company, as it turns off era starts.
 const query = new URLSearchParams(globalThis.location?.search ?? '');
 const ERAS = ['preinternet', 'dotcom', 'dotcom-bust', 'web2', 'classic', 'chatgbt', 'agents', 'consolidation', 'plateau', 'calendar'];
-const ERAS_ON = query.has('eras');
+export const ERAS_OFF = ['0', 'off', 'false'].includes((query.get('eras') ?? '').toLowerCase());
 const selected = query.get('eraArt');
-export const ERA_ART_PREVIEW = ERAS_ON && ERAS.includes(selected);
-// Loaded with `?eras` alone too: a founded era career is chosen after the models load.
-export const ERA_ART_MODELS = ERAS_ON ? [
+export const ERA_ART_PREVIEW = !ERAS_OFF && query.has('eras') && ERAS.includes(selected);
+// `?eras` loads the era models with the rest at the start (previews, checks and tools that step the
+// game without waiting); otherwise they load once a company needs them (eraArtWanted).
+export const ERA_MODELS_AT_START = !ERAS_OFF && query.has('eras');
+export const ERA_ART_MODELS = [
   'era_crt_desk', 'era_cubicle', 'era_sock_billboard',
   'era_retail_boxes', 'era_floppy_stack', 'era_cd_spindle', 'era_dotcom_board',
   'era_web2_badge', 'era_y2k_clock', 'era_y2k_sticker', 'era_payphone', 'era_video_sign',
@@ -17,7 +19,7 @@ export const ERA_ART_MODELS = ERAS_ON ? [
   'era_desk_phone', 'era_dot_matrix', 'era_fax', 'era_rolodex', 'era_corkboard',
   'era_delivery_bike', 'era_hire_scooter', 'era_drone', 'era_datacentre', 'era_datacentre_build', 'era_datacentre_overgrown',
   'era_datacentre_plot',
-] : [];
+];
 
 // Modern-era street life (surroundings.js): the neighbour that becomes a data centre, who rides the
 // street, whether hire scooters stand on the pavement, and how many parcel drones fly past.
@@ -29,7 +31,9 @@ export const ERA_STREET = {
   plateau: { datacentre: 'era_datacentre_overgrown', bikes: [6, 12], cyclists: true, quiet: true },
 };
 
-const eraArtOn = (state) => ERA_ART_PREVIEW || (ERAS_ON && !!state.founding?.startEra);
+const eraArtOn = (state) => ERA_ART_PREVIEW || (!ERAS_OFF && !!state.founding?.startEra);
+// Whether this company wears era art (or era clothes), so the era models must be loaded first.
+export const eraArtWanted = (state) => !!state && eraArtOn(state);
 // Whether the company the renderer last synced wears era art; builds read it.
 let active = ERA_ART_PREVIEW;
 export const eraArtActive = () => active;
