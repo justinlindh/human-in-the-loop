@@ -122,11 +122,11 @@ Every turn an agent takes re-reads its whole context, so a session that has been
 
 - **A handoff file.** Each teammate keeps one: its state, what is open, the tools it relies on, and the exact next command to run. It is the only thing that has to survive a reset, so it is written to be read cold.
 - **A nudge.** A hook ([`context-nudge.sh`](scripts/hooks/claude/context-nudge.sh)) watches each session's size, and past about 400k tokens it asks the teammate to write its handoff. The teammate finishes its current step, writes it, and ends its turn with `handoff ready`.
-- **The lead does the reset.** team-lead runs [`scripts/team/reset-teammate.sh`](scripts/team/reset-teammate.sh) `<name> <clear|compact>`. It finds the teammate's tmux pane, waits until it is idle at the prompt, sends `/clear` or `/compact`, and prints the context size it started from. A teammate never resets itself or types into its own pane.
-- **Afterwards.** After a `/compact`, tell the teammate to re-read its handoff and continue. After a `/clear`, resend the spawn brief first, because a clear drops it, then the handoff.
+- **The lead does the reset.** team-lead runs [`scripts/team/reset-teammate.sh`](scripts/team/reset-teammate.sh) `<name> compact`. It finds the teammate's tmux pane, waits until it is idle at the prompt, sends `/compact`, and prints the context size it started from. A teammate never resets itself or types into its own pane.
+- **Never `/clear` a teammate.** A cleared teammate keeps working, but its end-of-turn reports stop reaching the lead, so it drops out of the team without any error. The script refuses `clear`.
+- **Afterwards.** After a `/compact`, tell the teammate to re-read its handoff and continue.
 - **Check the transcript, not the screen.** A compact is confirmed by the `compact_boundary` line in the session's transcript, which is what the script waits for. What the pane shows is not proof.
-- **Clear or compact is a measurement.** A compact keeps a summary and a clear keeps nothing, and which one works better depends on the teammate, so the script's `--log` writes a row per reset and the choice gets made from those numbers.
-- **Respawning is the fallback.** Shutting a teammate down and starting it again is for when the model has to change. Spawn it from the repository, so the project's hooks load, and give it the brief and its handoff.
+- **Respawning is the fallback.** Shutting a teammate down and starting it again is for when a compact isn't enough or the model has to change. Spawn it from the repository, so the project's hooks load, and give it the brief and its handoff.
 
 ### The human in this loop
 
