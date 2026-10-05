@@ -56,6 +56,10 @@ function onFaceChange(ev) {
     if (url) e.el.src = url;
     else track({ el: e.el, person: e.person, size: e.size, kind: 'src' });
   }
+  for (const l of [...live]) {
+    if (!l.el.isConnected) continue;
+    if (l.person.id === id) refreshLive(l);
+  }
 }
 
 function imgFor(url, person, size) {
@@ -100,16 +104,24 @@ export function portraitLive(person, size = 88) {
   const r = source?.();
   if (!r?.portraitLive) return portrait(person, size);
   try {
-    const handle = r.portraitLive(person, { size });
+    const handle = r.portraitLive(faced(person, r), { size });
     const el = handle.el;
     el.classList.add('portrait');
     el.style.width = el.style.height = `${size / 16}em`;
     el.style.background = tint(roleColor(person.role), 0.72);
-    live.add({ el, handle });
+    live.add({ el, handle, person, size });
     return el;
   } catch {
     return portrait(person, size);
   }
+}
+
+// A live portrait shows the face it was built with, so a changed face gets a fresh canvas in its place.
+function refreshLive(l) {
+  const el = portraitLive(l.person, l.size);
+  l.el.replaceWith(el);
+  l.handle.dispose?.();
+  live.delete(l);
 }
 
 // Chibi head-and-shoulders portrait drawn from a staff member's appearance.

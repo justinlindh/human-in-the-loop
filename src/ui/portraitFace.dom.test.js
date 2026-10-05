@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from 'vitest';
-import { portrait, portraitImg, setPortraitSource } from './widgets.js';
+import { portrait, portraitImg, portraitLive, setPortraitSource } from './widgets.js';
 
 // A renderer stub: portrait() returns a URL naming the expression it was asked for.
 function stub(faces) {
@@ -8,6 +8,7 @@ function stub(faces) {
   return {
     asked,
     face: (id) => (faces[id] ? { name: faces[id] } : null),
+    portraitLive: (p) => { asked.push(p); const el = document.createElement('canvas'); el.dataset.expr = p.expression ?? 'none'; return { el, dispose() {} }; },
     portrait: (p) => { asked.push(p); return `blob:${p.id}-${p.expression ?? 'none'}`; },
   };
 }
@@ -55,5 +56,18 @@ describe('portraits follow the scene face', () => {
     dispatchEvent(new CustomEvent('hitl:faceChange', { detail: { staffId: 7, name: 'sad' } }));
     expect(r.asked.length).toBe(n);
     expect(gone.isConnected).toBe(false);
+  });
+
+  it('gives a live portrait a fresh canvas in place when the face changes', () => {
+    const faces = { 7: 'ok' };
+    const r = stub(faces);
+    setPortraitSource(() => r);
+    const el = portraitLive(staff, 88);
+    document.body.append(el);
+    expect(el.dataset.expr).toBe('ok');
+    faces[7] = 'sad';
+    dispatchEvent(new CustomEvent('hitl:faceChange', { detail: { staffId: 7, name: 'sad' } }));
+    expect(el.isConnected).toBe(false);
+    expect(document.body.querySelector('canvas').dataset.expr).toBe('sad');
   });
 });
