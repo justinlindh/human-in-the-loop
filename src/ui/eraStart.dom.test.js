@@ -38,6 +38,7 @@ it('shows the kit and combined score, preserves the choice on Back, and passes i
   expect(layer.textContent).toContain('Skipped without rewards');
   click('Back');
   click('Next: funding');
+  expect(document.querySelector('.era-pick').open).toBe(true);
   expect(document.querySelector('[data-era="agents"]').getAttribute('aria-pressed')).toBe('true');
   expect(document.querySelectorAll('.fund')[1].getAttribute('aria-pressed')).toBe('true');
   click('Start the company');
@@ -45,6 +46,33 @@ it('shows the kit and combined score, preserves the choice on Back, and passes i
   expect(started.cash).toBe(390000);
   expect(started.founding.funding).toBe('family');
   expect(started.week).toBe(0);
+});
+
+it('starts Classic by default with the picker on, the same game as a start with no era', () => {
+  vi.useFakeTimers();
+  const layer = document.createElement('div');
+  document.body.append(layer);
+  let options;
+  const title = createTitle({ layer, controls: { newGame: (opts) => { options = opts; } }, sfx: () => {}, toast: () => {}, onStart: () => {}, openSettings: () => {} });
+  title.show();
+  click('New Game');
+  click('Next: founders');
+  document.querySelectorAll('.fcard')[0].click();
+  document.querySelectorAll('.fcard')[1].click();
+  click('Next: funding');
+  expect(document.querySelector('[data-era="classic"]').getAttribute('aria-pressed')).toBe('true');
+  // The eight starts stay folded behind one line that names the choice.
+  expect(document.querySelector('.era-pick').open).toBe(false);
+  expect(document.querySelector('.era-pick summary').textContent).toContain('Classic SaaS');
+  click('Start the company');
+  expect(options.startEra).toBe('classic');
+  const withEra = createGame(options);
+  const { startEra, ...plain } = options;
+  const without = createGame(plain);
+  expect(withEra.era.id).toBe('classic');
+  expect(withEra.cash).toBe(without.cash);
+  expect(withEra.week).toBe(without.week);
+  expect(withEra.staff.length).toBe(without.staff.length);
 });
 
 it('keeps the funding dialog, buttons, focus and scroll while refreshing each era in place', () => {
