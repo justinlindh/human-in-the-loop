@@ -342,7 +342,72 @@ export function createNav(L, obstacles, cell = 0.35) {
     const last = pts.at(-1), gcx = center(gc % nx, Math.floor(gc / nx));
     if (cells.length > 1 && (gc % nx !== Math.max(0, Math.min(nx - 1, ix(end.x))) || Math.floor(gc / nx) !== Math.max(0, Math.min(nz - 1, iz(end.z)))) && (last.x !== gcx.x || last.z !== gcx.z)) pts.push(gcx);
     pts.push({ x: end.x, z: end.z });
+    roomier(pts);
     return pts;
+  }
+
+  // Distance from a point to the nearest furniture rect or wall.
+  // Only room up to ROOMY matters, so each cell keeps the obstacles that come within ROOMY of it.
+  let nearby = null;
+  function room(x, z) {
+    if (!nearby) {
+      nearby = Array.from({ length: nx * nz }, () => []);
+      const m = ROOMY + cell;
+      for (const r of obstacles) {
+        for (let i = Math.max(0, ix(r.x0 - m)); i <= Math.min(nx - 1, ix(r.x1 + m)); i++) for (let k = Math.max(0, iz(r.z0 - m)); k <= Math.min(nz - 1, iz(r.z1 + m)); k++) nearby[i + k * nx].push(r);
+      }
+    }
+    let d = Math.min(ROOMY, x + L.W / 2, L.W / 2 - x, z + L.D / 2, L.D / 2 - z);
+    const i = Math.max(0, Math.min(nx - 1, ix(x))), k = Math.max(0, Math.min(nz - 1, iz(z)));
+    for (const r of nearby[i + k * nx]) d = Math.min(d, Math.hypot(Math.max(r.x0 - x, 0, x - r.x1), Math.max(r.z0 - z, 0, z - r.z1)));
+    return d;
+  }
+  // The least room along a straight walk from a to b, leaving out the first `skipA` and last
+  // `skipB` metres.
+  function roomAlong(a, b, skipA = 0, skipB = 0) {
+    const len = Math.hypot(b.x - a.x, b.z - a.z);
+    const n = Math.max(1, Math.ceil(len / 0.1));
+    let d = Infinity;
+    for (let s = 0; s <= n; s++) {
+      const t = s / n;
+      if (t * len < skipA || (1 - t) * len < skipB) continue;
+      d = Math.min(d, room(a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t));
+    }
+    return d;
+  }
+  // Turning points moved within their cells toward more room, so a corridor that isn't centred on
+  // the grid is walked down its middle rather than against the furniture on one side. Each leg
+  // between two turns shifts as a whole (both ends by the same offset), then each turn on its own.
+  // A shift is kept when no leg it touches loses room and their room (up to ROOMY each) grows most.
+  // The stretch next to the walk's own start and end (a chair being left, a seat's approach)
+  // doesn't count toward the gain, but no point along it may lose room either.
+  const ROOMY = 0.45, NUDGE = [0, 0.06, -0.06, 0.12, -0.12], STEP_OFF = 0.35;
+  // Room at fixed distances from `a` toward `b`, over the first STEP_OFF metres.
+  const roomNear = (a, b) => {
+    const len = Math.hypot(b.x - a.x, b.z - a.z) || 1, out = [];
+    for (let s = 0.05; s <= STEP_OFF + 1e-9; s += 0.05) { const t = Math.min(1, s / len); out.push(Math.min(ROOMY, room(a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t))); }
+    return out;
+  };
+  function roomier(pts) {
+    const base = pts.slice(), last = pts.length - 1;
+    const leg = (j) => [Math.min(ROOMY, roomAlong(pts[j], pts[j + 1], j === 0 ? STEP_OFF : 0, j === last - 1 ? STEP_OFF : 0)),
+      ...(j === 0 ? roomNear(pts[0], pts[1]) : []), ...(j === last - 1 ? roomNear(pts[last], pts[last - 1]) : [])];
+    const shift = (a, b) => {
+      const legs = () => { const out = []; for (let j = a - 1; j <= b; j++) out.push(...leg(j)); return out; };
+      const keep = pts.slice(a, b + 1), was = legs();
+      const sum = (v) => v.reduce((s, x) => s + x, 0);
+      let bd = sum(was), best = null;
+      if (was.every((d) => d >= ROOMY)) return;
+      for (const dx of NUDGE) for (const dz of NUDGE) {
+        for (let j = a; j <= b; j++) pts[j] = { x: base[j].x + dx, z: base[j].z + dz };
+        const now = legs();
+        if (now.every((d, i) => d >= was[i] - 0.001) && sum(now) > bd + 0.01) { bd = sum(now); best = pts.slice(a, b + 1); }
+      }
+      const out = best ?? keep;
+      for (let j = a; j <= b; j++) pts[j] = out[j - a];
+    };
+    for (let j = 1; j < last - 1; j++) shift(j, j + 1);
+    for (let j = 1; j < last; j++) shift(j, j);
   }
 
   // The point itself when it is walkable, else the center of the nearest walkable cell.

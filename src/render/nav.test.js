@@ -44,4 +44,14 @@ describe('nav.path', () => {
     expect(pts[0]).toEqual({ x: -3, z: 0 });
     expect(pts.at(-1)).toEqual({ x: 3, z: 0 });
   });
+
+  it('walks a corridor off the grid centre down its middle', () => {
+    // A row of furniture leaving a 0.8 m corridor along the back wall (z -5 to -4.2); the only free
+    // cells there are centred 0.275 m from the furniture.
+    const nav = createNav(L, [{ x0: -3, x1: 3, z0: -4.2, z1: 0 }]);
+    const pts = nav.path({ x: -4, z: -2 }, { x: 4, z: -2 });
+    const along = pts.filter((p) => p.z < -4.2);
+    expect(along.length).toBeGreaterThanOrEqual(2);
+    for (const p of along) expect(p.z).toBeLessThan(-4.5);
+  });
 });

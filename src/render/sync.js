@@ -366,8 +366,10 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     for (const a of APPROACH_TURNS) {
       const x = seat.x + Math.sin(back + a) * CHAIR_BACK_M, z = seat.z + Math.cos(back + a) * CHAIR_BACK_M;
       const inside = Math.abs(x) < L.W / 2 - BODY_R && Math.abs(z) < L.D / 2 - BODY_R;
-      // Off the walk grid, the route would end at the nearest free cell and cut across to it.
-      if (inside && (a === 0 || !nav.isBlocked(x, z)) && !obs.some((o) => !own.has(o.by) && near(o, x, z, BODY_R))) return { x, z };
+      // Off the walk grid, the route would end at the nearest free cell and cut across to it. Away
+      // from straight behind, the slide between the seat and the point must clear other furniture too.
+      const slideClear = a === 0 || [0.25, 0.5, 0.75].every((t) => !obs.some((o) => !own.has(o.by) && near(o, seat.x + (x - seat.x) * t, seat.z + (z - seat.z) * t, BODY_R)));
+      if (inside && slideClear && (a === 0 || !nav.isBlocked(x, z)) && !obs.some((o) => !own.has(o.by) && near(o, x, z, BODY_R))) return { x, z };
     }
     return { x: seat.x + Math.sin(back) * CHAIR_BACK_M, z: seat.z + Math.cos(back) * CHAIR_BACK_M };
   }
