@@ -12,7 +12,9 @@ out="$(h -- bash -c 'exit 3')"; rc=$?
 out="$(h --timeout 1 -- sleep 5)"; rc=$?
 [ $rc -eq 124 ] || fail "a command past its limit exits 124: $rc"
 h 2>/dev/null; [ $? -eq 2 ] || fail "no command exits 2"
-out="$(h -- bash -c 'nice' 2>&1)"; n="$(grep -E '^-?[0-9]+$' <<<"$out" | head -n 1)"
+# The command is `nice` itself, not a shell: a process manager that renices shells by name can move a
+# bash child after it starts.
+out="$(h -- nice 2>&1)"; n="$(grep -E '^-?[0-9]+$' <<<"$out" | head -n 1)"
 [ "${n:-0}" -ge 10 ] 2>/dev/null || fail "the command runs at nice 10 or more: got [${n:-}] from: $out"
 
 # One slot: a second job waits for the first, and a third gives up at --wait-max.
