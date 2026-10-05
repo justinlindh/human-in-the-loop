@@ -491,6 +491,7 @@ export function buildPlacedModel(p, stageIdx, screens = null, seed = 0, era = 'c
   else if (kind === 'rack') inner = getModel('server_rack');
   else if (kind === 'pingpong') inner = getModel('ping_pong_table');
   else if (kind === 'foosball') inner = getModel('foosball');
+  else if (p.itemId === 'boombox' && hasModel(itemModelName('boombox', stageIdx + 1))) inner = getModel(itemModelName('boombox', stageIdx + 1));
   else if (hasModel(itemModelName(p.itemId, p.level))) inner = getModel(itemModelName(p.itemId, p.level));
   else inner = crate(f.w, f.h);
   // Era shop items stay off the shadow pass, which the early-era offices have no draw calls to spare for.
