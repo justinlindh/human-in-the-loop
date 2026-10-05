@@ -1179,9 +1179,10 @@ export async function runCelebrationChecks(R, S, { dt = 1 / 30 } = {}) {
   const step = () => { window.__tick(dt * 1000); R.sync(S); R.render(dt, { draw: false }); };
   for (let i = 0; i < 180; i++) step();
   // 'fired' goes last: it takes the fired person out of the state.
-  for (const kind of ['growth', 'company_party', 'deal', 'fired']) {
+  for (const kind of ['growth', 'company_party', 'deal', 'click', 'fired']) {
     if (kind === 'growth') S.staff.find((p) => p.id === 's6').legend = true;
     else if (kind === 'deal') setupDeal(R, S);
+    else if (kind === 'click') setupClick(R, S);
     else if (kind === 'fired') setupFired(R, S);
     else R.handleEvents([{ type: 'celebrate', staffId: null }], S);
     let worst = 0, worstWho = null, samples = 0, seen = false, ended = false;
@@ -1194,7 +1195,7 @@ export async function runCelebrationChecks(R, S, { dt = 1 / 30 } = {}) {
       for (const [id] of actors) {
         const root = charOf(R.scene, id), st = R.moments.staging(id), rec = R.perks.peek(id);
         // Seated cheers and the first steps away from a seat may occupy their own chair.
-        const own = kind === 'company_party' || kind === 'deal' || kind === 'fired' || st.role === 'coworker' || st.beat === 'walk' ? new Set([rec.seat]) : new Set();
+        const own = kind === 'company_party' || kind === 'deal' || kind === 'click' || kind === 'fired' || st.role === 'coworker' || st.beat === 'walk' ? new Set([rec.seat]) : new Set();
         // A seated bystander stays in the chair they were in while desks are reassigned round them.
         if (kind === 'fired' && R.isSeated(id)) own.add(nearestDesk(R, root.position.x, root.position.z));
         const overlap = bodyInside(root, furnitureOf(R, own), false);
@@ -1337,6 +1338,31 @@ export function setupDeal(R, S, { near = 3, maxFrames = 600, first = false } = {
   R.handleEvents([{ type: 'deal', productId: S.products[0]?.id ?? null, customer: 'Initech Labs', customers: 3, mrr: 2400, week: S.week, sellerId: pick, first, notable: true }], S);
   return pick;
 }
+
+// Clicks the first `count` people settled at their spots (staff order), as ui does with
+// hitl:characterClick, once that many have settled (at most `maxFrames`). Returns their ids.
+export function setupClick(R, S, { count = 4, maxFrames = 600, voice = false } = {}) {
+  R.perks.hold = true;
+  S.pendingDecision = null;
+  const settled = (id) => { const w = R.walkOf(id); return w && !w.hidden && !w.path.length && !w.temp && w.goal; };
+  let ids = [];
+  for (let f = 0; f < maxFrames; f++) {
+    ids = S.staff.filter((p) => p.mood !== 'away' && settled(p.id)).map((p) => p.id).slice(0, count);
+    if (ids.length >= count) break;
+    window.__advance(1);
+  }
+  for (const id of ids) dispatchEvent(new CustomEvent('hitl:characterClick', { detail: { staffId: id } }));
+  // With voice, each clicked person barks (audio's hitl:voice), one emotion each, on a 1.5 s
+  // envelope that opens and closes about four times a second.
+  if (voice) {
+    ids.forEach((id, i) => {
+      const loudness = Array.from({ length: 45 }, (_, k) => +(0.5 + 0.5 * Math.sin(k / 30 * Math.PI * 8)).toFixed(3));
+      dispatchEvent(new CustomEvent('hitl:voice', { detail: { staffId: id, emotion: VOICE_EMOTIONS[i % VOICE_EMOTIONS.length], take: 0, startsIn: 0.2, seconds: 1.5, rate: 30, loudness } }));
+    });
+  }
+  return ids;
+}
+const VOICE_EMOTIONS = ['annoyed', 'happy', 'tired', 'questioning', 'sighing'];
 
 // Fires the settled person with the most settled colleagues within `near` metres, then drops
 // them from the state so they wave and walk out. Returns the fired person's id, or null.

@@ -14,7 +14,7 @@ import * as THREE from 'three';
 // EXPRESSIONS: name -> { morph: weight }. MORPHS: the morph target names.
 // faceWeights(name, out?) -> Float32Array of MORPHS.length weights for an expression.
 // bakeFace(geometry, weights) -> a static copy with those weights applied (Low quality).
-// faceMetrics(geometry, weights) -> { mouthCorner, mouthOpen, browTilt, browLift, lidGap, gazeX, gazeY },
+// faceMetrics(geometry, weights) -> { shine, mouthCorner, mouthOpen, browTilt, browLift, lidGap, gazeX, gazeY },
 //   the measures checks use, in metres (browTilt: inner end above the outer end, positive is sad).
 
 const HEAD_R = 0.21, HEAD_C = 0.22, HEAD_S = [1.06, 1.0, 0.96];   // the head ellipsoid (chibi.py)
@@ -27,13 +27,14 @@ const RINGS = 3, SEGS = 16, MOUTH_N = 13, BROW_N = 5;
 export const MORPHS = [
   'blink', 'lidHalf', 'happyEyes', 'wide', 'lookX', 'lookUp', 'lookDown',
   'browUp', 'browAngry', 'browSad', 'browSkew',
-  'smile', 'frown', 'open', 'grin', 'grit', 'smirk', 'wobble', 'talk',
+  'smile', 'frown', 'open', 'grin', 'grit', 'smirk', 'wobble', 'talk', 'dull',
 ];
 
 export const EXPRESSIONS = {
   ok: { smile: 0.75 },
   coasting: { lidHalf: 0.6, browSkew: 0.15 },
-  burnout: { blink: 1, frown: 0.8 },
+  // A hollow stare: open eyes with no shine, heavy lids, gaze sunk.
+  burnout: { dull: 1, lidHalf: 0.45, lookDown: 0.4, frown: 0.55, browSad: 0.35 },
   flat: { lidHalf: 0.6, browSkew: 0.15 },
   delighted: { grin: 1, happyEyes: 0.85, browUp: 0.6 },
   shocked: { open: 1, wide: 1, browUp: 1 },
@@ -42,6 +43,9 @@ export const EXPRESSIONS = {
   sad: { frown: 1, browSad: 1, lidHalf: 0.3, lookDown: 0.5 },
   smug: { smirk: 1, lidHalf: 0.45, browSkew: 0.7 },
   sideeye: { lookX: 1, lidHalf: 0.4, frown: 0.25, browAngry: 0.35 },
+  // Voice bark faces: a puzzled lift of one brow, and worn-out heavy lids.
+  questioning: { browSkew: 1, browUp: 0.5, wide: 0.3, lookUp: 0.3 },
+  tired: { lidHalf: 0.85, browSad: 0.5, lookDown: 0.35 },
 };
 
 function surfZ(x, dz) {
@@ -86,14 +90,16 @@ function eyeTris(base) {
 }
 function shine(s, m) {
   let cx = s * EX + 0.011, cz = EZ + 0.016, k = 1;
-  if (m === 'blink' || m === 'happyEyes') k = 0;
+  if (m === 'blink' || m === 'happyEyes' || m === 'dull') k = 0;
   if (m === 'lidHalf') { cz -= 0.014; k = 0.7; }
   if (m === 'wide') { cx = s * EX + 0.011 * 1.15; cz = EZ + 0.016 * 1.18; k = 1.15; }
   if (m === 'lookX') cx += 0.011;
   if (m === 'lookUp') cz += 0.01;
   if (m === 'lookDown') cz -= 0.012;
-  const pts = [[cx, cz, 0.0085]];
-  for (let i = 0; i < 8; i++) { const th = (i / 8) * Math.PI * 2; pts.push([cx + 0.011 * k * Math.cos(th), cz + 0.013 * k * Math.sin(th), 0.0075]); }
+  // 'dull' also sinks the shine under the skin, so other morphs' scaling can't bring a sliver back.
+  const sink = m === 'dull' ? -0.013 : 0;
+  const pts = [[cx, cz, 0.0085 + sink]];
+  for (let i = 0; i < 8; i++) { const th = (i / 8) * Math.PI * 2; pts.push([cx + 0.011 * k * Math.cos(th), cz + 0.013 * k * Math.sin(th), 0.0075 + sink]); }
   return pts;
 }
 function shineTris(base) { const t = []; for (let i = 0; i < 8; i++) t.push([base, base + 1 + i, base + 1 + ((i + 1) % 8)]); return t; }
@@ -132,7 +138,7 @@ function mouth(m) {
     if (m === 'grit') { w = MW * 1.2; up = 0.0075 * Math.min(1, 3 * e); lo = -up; }
     if (m === 'smirk') { const c = 0.016 * Math.max(0, -t) ** 2 - 0.004; up += c; lo += c; }
     if (m === 'wobble') { const c = 0.0045 * Math.sin(3 * Math.PI * t); up = c + taper * 0.8; lo = c - taper * 0.8; }
-    if (m === 'talk') { lo -= 0.012 * e; }
+    if (m === 'talk') { w = MW * 0.9; up += 0.006 * Math.sqrt(e); lo -= 0.028 * Math.sqrt(e); }
     pts.push([t * w, MZ + up, 0.003], [t * w, MZ + lo, 0.003]);
   }
   return pts;
@@ -237,7 +243,10 @@ export function faceMetrics(geo, w) {
   const basisBrow = BROW.z + HEAD_C;
   const e = ys(R['eye-1']);
   const eyeYs = e.map((q) => q[1]), eyeXs = e.map((q) => q[0]);
+  const sh = ys(R['shine-1']);
+  const shineR = Math.max(...sh.slice(1).map((q) => Math.hypot(q[0] - sh[0][0], q[1] - sh[0][1])));
   return {
+    shine: +shineR.toFixed(4),
     mouthCorner: +(cornerY - centreY).toFixed(4),
     mouthOpen: +mouthOpen.toFixed(4),
     browTilt: +(inner - outer).toFixed(4),

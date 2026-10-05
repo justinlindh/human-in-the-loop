@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { spawnAsync } from './spawn-async.js';
@@ -77,6 +77,17 @@ describe.skipIf(!HAVE_FFMPEG)('track.mjs', () => {
     const d2 = await go({ ...r, args: [...r.args, '--no-camera'] });
     expect(d2.status, d2.stderr).toBe(0);
     expect(readFileSync(join(r.d, 'stub.log'), 'utf8')).toContain('nocam');
+  });
+
+  it('clears shot files left by an earlier run in the output directory', async () => {
+    const r = run([]);
+    mkdirSync(join(r.d, 'out'), { recursive: true });
+    writeFileSync(join(r.d, 'out', 'shot-7.json'), '{}');
+    writeFileSync(join(r.d, 'out', 'notes.txt'), 'keep');
+    const a = await go(r);
+    expect(a.status, a.stderr).toBe(0);
+    expect(existsSync(join(r.d, 'out', 'shot-7.json'))).toBe(false);
+    expect(existsSync(join(r.d, 'out', 'notes.txt'))).toBe(true);
   });
 
   it('tracks only the range it is given', async () => {

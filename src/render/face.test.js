@@ -17,8 +17,10 @@ const RULES = {
   sad: (x) => x.mouthCorner <= -0.012 && x.browTilt >= 0.012 && x.gazeY < 0,
   smug: (x) => x.mouthCorner >= 0.005 && x.lidGap <= ok.lidGap * 0.9,
   sideeye: (x) => Math.abs(x.gazeX) >= 0.005 && x.lidGap <= ok.lidGap * 0.9,
-  burnout: (x) => x.lidGap <= 0.012 && x.mouthCorner <= -0.008,
+  burnout: (x) => x.shine <= 0.002 && x.lidGap >= 0.04 && x.lidGap <= ok.lidGap * 0.85 && x.gazeY < 0 && x.mouthCorner <= -0.006,
   ok: (x) => x.mouthCorner >= 0.01 && x.lidGap >= 0.08,
+  questioning: (x) => x.browLift >= 0.006 && x.lidGap >= ok.lidGap && Math.abs(x.mouthCorner) <= 0.006,
+  tired: (x) => x.lidGap <= ok.lidGap * 0.75 && x.browTilt >= 0.006 && x.gazeY < 0,
 };
 
 describe('face', () => {

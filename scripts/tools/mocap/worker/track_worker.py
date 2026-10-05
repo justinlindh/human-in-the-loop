@@ -107,10 +107,19 @@ def gate_scores(frames, boxes_by_id):
         if len(kps) == 0:
             continue
         cents = np.array([k[5:13].mean(0) for k in kps])
+        # One detection per person: closest pairs first, so two people standing close never share one.
+        pairs = []
         for pid, b in boxes_by_id.items():
             c = np.array([(b[t, 0] + b[t, 2]) / 2, (b[t, 1] + b[t, 3]) / 2])
-            j = int(np.linalg.norm(cents - c, axis=1).argmin())
-            if np.linalg.norm(cents[j] - c) < 0.6 * max(b[t, 2] - b[t, 0], b[t, 3] - b[t, 1]):
+            lim = 0.6 * max(b[t, 2] - b[t, 0], b[t, 3] - b[t, 1])
+            for j, d in enumerate(np.linalg.norm(cents - c, axis=1)):
+                if d < lim:
+                    pairs.append((d, pid, j))
+        used_p, used_j = set(), set()
+        for _, pid, j in sorted(pairs):
+            if pid not in used_p and j not in used_j:
+                used_p.add(pid)
+                used_j.add(j)
                 out[pid][t] = sc[j]
     return out
 
@@ -187,7 +196,7 @@ def main():
     names = [str(x) for x in np.load("inputs/soma_assets/SOMA_neutral.npz", allow_pickle=False)["joint_names"]][1:]
     parents = [int(p) for p in soma.parents]
     model = None
-    people, boxes = [], {}
+    people, boxes, pending = [], {}, []
     for pid, obs in tracks.items():
         boxes[pid] = filled_boxes(obs, n, a.width, a.height)
     scores = gate_scores(frames, boxes)
@@ -213,10 +222,7 @@ def main():
             model = hydra.utils.instantiate(cfg.model, _recursive_=False)
             model.load_pretrained_model(demo.resolve_ckpt_path(cfg))
             model = model.eval().cuda()
-        with torch.no_grad():
-            pred = detach_to_cpu(model.predict(data, static_cam=a.no_camera, postproc=True))
-        res = {}
-        for space in ("incam", "global"):
+        def skeleton(pred, space):
             p = {k: v.cuda()[None] for k, v in pred[f"body_params_{space}"].items() if k in ("body_pose", "global_orient", "transl", "identity_coeffs", "scale_params")}
             aa = torch.cat([p["global_orient"], p["body_pose"]], dim=-1).reshape(1, -1, 77, 3)
             sk = soma.get_skeleton(p["identity_coeffs"].float(), p["scale_params"].float())
@@ -225,9 +231,12 @@ def main():
             loc = torch.cat([sk[:, :, :1], loc[:, :, 1:]], dim=2)
             loc[..., 0, :] += p["transl"]
             fk = matrix.forward_kinematics(matrix.get_TRS(axis_angle_to_matrix(aa), loc), parents)
-            res[space] = (matrix.get_position(fk)[0].cpu().numpy(), aa[0].cpu().numpy())
-        pos_cam, aa_cam = res["incam"]
-        pos_world, aa_world = res["global"]
+            return matrix.get_position(fk)[0].cpu().numpy(), aa[0].cpu().numpy()
+
+        with torch.no_grad():
+            pred = detach_to_cpu(model.predict(data, static_cam=a.no_camera, postproc=True))
+        pos_cam, aa_cam = skeleton(pred, "incam")
+        pos_world, aa_world = skeleton(pred, "global")
         rot = quats(aa_world)
         rot[:, 1:] = quats(aa_cam)[:, 1:]  # local joint rotations are the same in both spaces
         people.append({
@@ -239,6 +248,7 @@ def main():
             "joint_pos_world": np.round(pos_world, 5).tolist(),
             "trust": trust_matrix(scores[pid], names, parents).astype(int).tolist(),
         })
+        pending.append((data, skeleton, aa_cam))
         log(f"person {pid} done")
     # DA3's units are relative. Scale them to metres by matching GEM's person depth to DA3's depth at the
     # person's root pixel, then place each root in the shared scene through the camera path.
@@ -257,6 +267,22 @@ def main():
                     ratios.append(rc[t, 2] / d)
         if ratios:
             scale = float(np.median(ratios))
+    if depth is not None and scale != 1.0:
+        # GEM saw the camera in DA3's relative units while the body is in metres. Run its world pass again with
+        # the camera translations in metres so world motion and body size share one unit.
+        from gem.utils.geo_transform import compute_cam_tvel
+
+        for p, (data, skeleton, aa_cam) in zip(people, pending):
+            T = data["T_w2c"].clone()
+            T[:, :3, 3] *= scale
+            data["T_w2c"], data["cam_tvel"] = T, compute_cam_tvel(T[:, :3, 3])
+            with torch.no_grad():
+                pred = detach_to_cpu(model.predict(data, static_cam=False, postproc=True))
+            pos_world, aa_world = skeleton(pred, "global")
+            rot = quats(aa_world)
+            rot[:, 1:] = quats(aa_cam)[:, 1:]
+            p["rot_local"] = np.round(rot, 5).tolist()
+            p["joint_pos_world"] = np.round(pos_world, 5).tolist()
     c2w = np.linalg.inv(ext)
     for p in people:
         rc = np.array(p["root_pos_cam"])

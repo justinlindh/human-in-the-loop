@@ -12,15 +12,25 @@ export function sha256File(path) {
 
 const rational = (s) => { const [a, b] = String(s).split('/').map(Number); return b ? a / b : a; };
 
-// Frame rate, size and frame count of the first video stream. Throws a readable error for a file
-// ffprobe cannot read.
-export function probe(video) {
-  const r = spawnSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-count_frames', '-show_entries', 'stream=r_frame_rate,width,height,nb_read_frames', '-of', 'json', video], { encoding: 'utf8' });
+function ffprobeStream(video, extra) {
+  const r = spawnSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0', ...extra, '-show_entries', 'stream=r_frame_rate,width,height,nb_frames,duration,nb_read_frames', '-of', 'json', video], { encoding: 'utf8' });
   if (r.error) throw new Error(`ffprobe could not start: ${r.error.message}`);
   let s;
   try { s = JSON.parse(r.stdout).streams?.[0]; } catch { s = undefined; }
   if (r.status !== 0 || !s) throw new Error(`cannot read a video stream from ${video}: ${(r.stderr || '').trim().split('\n')[0] || 'no stream'}`);
-  return { fps: rational(s.r_frame_rate), width: s.width, height: s.height, frames: Number(s.nb_read_frames) };
+  return s;
+}
+
+// Frame rate, size and frame count of the first video stream. The count comes from the container (frame
+// count, else duration times rate) so a short range of a long video never decodes the whole file; only a
+// stream with neither is counted by decoding. Throws a readable error for a file ffprobe cannot read.
+export function probe(video) {
+  let s = ffprobeStream(video, []);
+  const fps = rational(s.r_frame_rate);
+  let frames = Number(s.nb_frames);
+  if (!(frames > 0)) frames = Math.round(Number(s.duration) * fps);
+  if (!(frames > 0)) { s = ffprobeStream(video, ['-count_frames']); frames = Number(s.nb_read_frames); }
+  return { fps, width: s.width, height: s.height, frames };
 }
 
 // Absolute frame indices where a new shot starts inside [startFrame, endFrame), from ffmpeg's scene score.
