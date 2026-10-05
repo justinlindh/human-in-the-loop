@@ -7,6 +7,12 @@ import { icon } from '../icons.js';
 import { NOC_MODES, modeBlurb, nocPlaced, nocStatus, nocEffect } from '../nocMode.js';
 import { oversightNeeded, oversightHave } from './automation.js';
 
+// The incident log's header counts, singular at exactly one.
+export function incidentLogCounts(st) {
+  const n = (v, one, many) => `${v ?? 0} ${(v ?? 0) === 1 ? one : many}`;
+  return `${n(st.incidents, 'incident', 'incidents')} · ${st.caught ?? 0} caught · ${n(st.breaches, 'breach', 'breaches')}`;
+}
+
 // A breakdown value with its sign; a value that rounds to zero carries none ("0.0", not "-0.0").
 const signed = (v, sign, digits = 1) => { const t = Math.abs(v).toFixed(digits); return Number(t) === 0 ? t : `${sign}${t}`; };
 
@@ -166,7 +172,7 @@ export function opsPanel(ctx) {
         h('div.opsgrid', null, secCard, loadCard),
         h('div.section', null,
           h('h3', null, icon('incident'), ' Incident log',
-            h('span.aside', { text: `${st.incidents ?? 0} incidents · ${st.caught ?? 0} caught · ${st.breaches ?? 0} breaches` })),
+            h('span.aside', { text: incidentLogCounts(st) })),
           logEl),
       ];
     });
