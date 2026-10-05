@@ -76,13 +76,13 @@ q_write() { # <ready_since> <state> <since>: replaces the entry whole, so a read
   local t; mkdir -p "$qdir" && t="$(mktemp "$qdir/.tmp.XXXXXX")" \
     && printf 'ready_since=%s pr=%s state=%s since=%s\n' "$1" "$pr" "$2" "$3" >"$t" && mv -f "$t" "$qfile"
 }
-# q_state <ready|pending>: joins the queue when ready and not in it; records a change of state with its time.
-# An entry that has been pending (its PR not ready) longer than HITL_QUEUE_PENDING seconds (default 2700,
+# q_state <ready|pending> [join]: records a change of state with its time; with `join`, also enters the
+# queue when not in it. An entry that has been pending (its PR not fully green) longer than HITL_QUEUE_PENDING seconds (default 2700,
 # a CI cycle and a half) no longer holds the line, and gets its place back when the PR is ready again.
 q_state() {
   local now cur; now="$(date +%s)"
   if [ ! -f "$qfile" ]; then
-    [ "$1" = ready ] && q_write "$now" ready "$now" && say "#$pr is ready: in the update queue"
+    [ "${2:-}" = join ] && q_write "$now" "$1" "$now" && say "#$pr is in the update queue ($1)"
     return 0
   fi
   cur="$(q_get "$qfile" state)"
@@ -270,11 +270,20 @@ while :; do
 
   # The update queue (see q_join): ready means review and local-ci passed on this head with nothing failing.
   # A PR that is only pending after its own merge of main keeps its place.
-  # A PR held on purpose (draft, awaiting-user, auto-merge off) is never ready and leaves the queue.
+  # Required statuses not yet passing, by name (a status or a check run). A skipped or neutral check
+  # run satisfies a required check, as GitHub counts it.
+  waiting="$(jq -r --arg req "$required" '($req | split(" ")) as $r | [.statusCheckRollup[]? | {n: (.context // .name), s: ((.state // .conclusion // "") | ascii_upcase)}] as $all
+    | [$r[] | . as $name | select([$all[] | select(.n == $name and (.s == "SUCCESS" or .s == "SKIPPED" or .s == "NEUTRAL"))] | length == 0)] | join(" ")' <<<"$json")"
+
+  # A PR held on purpose (draft, awaiting-user, auto-merge off) is never ready and leaves the queue. A PR
+  # joins on review and local-ci passing (that fixes its place), but counts as ready only when every
+  # required status and GitHub check is green; otherwise it is pending, and a PR pending too long stops
+  # holding the line (see q_state).
   if [ "$update" = 1 ]; then
     on_hold="$(jq -r '(.isDraft == true) or ([.labels[]?.name] | index("awaiting-user") != null) or (has("autoMergeRequest") and .autoMergeRequest == null)' <<<"$json")"
     if [ "$on_hold" = true ]; then q_leave
-    elif [ "$review" = SUCCESS ] && [ "$local_ci" = SUCCESS ] && [ -z "$failing" ]; then q_state ready
+    elif [ "$review" = SUCCESS ] && [ "$local_ci" = SUCCESS ] && [ -z "$failing" ]; then
+      if [ -z "$waiting" ] && [ -z "$pending" ]; then q_state ready join; else q_state pending join; fi
     else q_state pending; fi
     case "$review" in FAILURE|ERROR) q_leave ;; esac
     if [ -n "$failing" ] && tr ' ' '\n' <<<"$failing" | grep -qv '=cancelled$'; then q_leave; fi
@@ -311,10 +320,6 @@ while :; do
     q_leave
     exit 2
   fi
-  # Required statuses not yet passing, by name (a status or a check run). A skipped or neutral check
-  # run satisfies a required check, as GitHub counts it.
-  waiting="$(jq -r --arg req "$required" '($req | split(" ")) as $r | [.statusCheckRollup[]? | {n: (.context // .name), s: ((.state // .conclusion // "") | ascii_upcase)}] as $all
-    | [$r[] | . as $name | select([$all[] | select(.n == $name and (.s == "SUCCESS" or .s == "SKIPPED" or .s == "NEUTRAL"))] | length == 0)] | join(" ")' <<<"$json")"
   now="waiting on: ${waiting:-nothing}, review ${review,,}, running: ${pending:-none}$([ "$rerun" = true ] && echo ", local-ci rerun asked")${held:+, $held}"
   [ "$now" != "$last" ] && { say "#$pr at ${head:0:8}: $now"; last="$now"; }
   if [[ " $required " == *" local-ci "* ]] && [ "$local_ci" = NONE ] && [ "$warned" = 0 ] && [ $(( $(date +%s) - head_since )) -ge $(( pickup * 60 )) ]; then

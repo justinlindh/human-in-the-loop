@@ -184,6 +184,7 @@ behind_gh() { # <review state, empty for none>: the PR is BEHIND; once $tmp/merg
 case "\$*" in
   "pr view"*) if [ -f "$tmp/merged-after" ] && [ -f "$tmp/looked" ]; then s=MERGED; m=CLEAN; else s=OPEN; m=BEHIND; : >"$tmp/looked"; fi
     jq -n --arg s "\$s" --arg m "\$m" --arg h "\$(git -C "$tmp/work" rev-parse topic)" --slurpfile r "$tmp/rollup.json" '{state: \$s, headRefOid: \$h, headRefName: "topic", baseRefName: "main", mergeStateStatus: \$m, mergeable: "MERGEABLE", labels: [], statusCheckRollup: \$r[0]} + input' "$tmp/extra.json" ;;
+  api*/protection*) [ -f "$tmp/required" ] && cat "$tmp/required" || exit 1 ;;
   *) exit 1 ;;
 esac
 F
@@ -224,6 +225,14 @@ for extra in '{"isDraft": true}' '{"labels": [{"name": "awaiting-user"}]}' '{"au
   [ $rc -eq 124 ] && [ ! -e "$tmp/queue/9" ] && grep -q 'not ready yet' "$tmp/out" || fail "a PR with $extra leaves the queue and waits: $rc $(cat "$tmp/out")"
 done
 echo '{}' >"$tmp/extra.json"
+# review and local-ci passed but a required GitHub check has not reported: the PR joins as pending, so it
+# cannot hold the line for ever; with that check green it is ready.
+rm -f "$tmp/queue/"*; echo 'ready_since=1 pr=8' >"$tmp/queue/8"; echo '{"required_status_checks": {"contexts": ["local-ci", "test", "review"]}}' >"$tmp/required"
+behind_gh SUCCESS; qrun --timeout 0
+[ $rc -eq 124 ] && grep -q 'state=pending' "$tmp/queue/9" || fail "a PR with a required check not yet reported is pending: $rc $(cat "$tmp/queue/9" 2>/dev/null) $(cat "$tmp/out")"
+rm -f "$tmp/required" "$tmp/queue/9"
+behind_gh SUCCESS; qrun --timeout 0
+grep -q 'state=ready' "$tmp/queue/9" || fail "with nothing waiting or running the PR is ready: $(cat "$tmp/queue/9" 2>/dev/null)"
 rm -f "$tmp/queue/"*; behind_gh SUCCESS; QTEST=false qrun --timeout 1
 [ $rc -eq 5 ] && [ ! -e "$tmp/queue/9" ] || fail "failing tests after merging main free the place: $rc $(cat "$tmp/out")"
 rm -f "$tmp/queue/"*; echo 'ready_since=1 pr=8' >"$tmp/queue/8"
