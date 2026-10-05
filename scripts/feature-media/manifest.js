@@ -541,7 +541,8 @@ export const ITEMS = [
       window.__HITL.setSpeed?.(0);
     })()`,
     actions: [...CLEAR_EARLY, { at: 0.6, js: KEY('r', 'KeyR') }, { at: 1.4, js: CLICK_STARTS('Inventory') },
-      { at: 2.6, js: "(() => { if (!document.body.textContent.includes('Order 100')) console.error('capture: the Inventory tab is not open'); })()" }],
+      // A refused order would leave the order buttons live with no delivery line.
+      { at: 2.6, js: "(() => { const t = document.body.textContent; if (!t.includes('A batch is already on its way') || !t.includes('500 copies due')) console.error('capture: the Inventory tab does not show the 500 copies on order'); })()" }],
     screenshots: [3],
     out: [{ path: 'iface/inventory.webp', size: '1230x562', from: 3, crop: { x: 0.18, y: 0.07, w: 0.64, h: 0.52 } }],
     publish: true,
@@ -557,6 +558,8 @@ export const ITEMS = [
       if (!spot) throw new Error('no free spot for the NOC');
       const r = H.dispatch({ type: 'placeItem', itemId: 'noc', x: spot.x, y: spot.y, rot: spot.rot });
       if (!r.ok) throw new Error('placeItem refused: ' + (r.reason ?? ''));
+      // The mock's incident counters would sit over an empty log; the stage shows a company with no incidents.
+      Object.assign(s.stats ??= {}, { incidents: 0, caught: 0, breaches: 0 });
     })()`,
     actions: [...CLEAR_EARLY, { at: 0.6, js: KEY('o', 'KeyO') },
       { at: 2.2, js: "(() => { if (!document.body.textContent.includes('Humans on the glass')) console.error('capture: the NOC card is not showing'); })()" }],
