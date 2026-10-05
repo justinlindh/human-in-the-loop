@@ -29,14 +29,15 @@ tree() {
       for (p in job) if (!(p in out) && (low == "" || (ni[p] ~ /^-?[0-9]+$/ && ni[p] + 0 < 10))) print p }'
 }
 keep_nice() { # <root pid>
-  local root="$1" pids nap f
+  local root="$1" me="$BASHPID" pids nap f
   # The keeper holds none of the caller's descriptors (a slot or pass lock), so it can never keep one
-  # open, and it ends with its root and takes its sleep with it.
-  for f in /proc/$BASHPID/fd/*; do [ "${f##*/}" -gt 2 ] 2>/dev/null && eval "exec ${f##*/}>&-" 2>/dev/null; done
+  # open. It ends when it is no longer a child of its root (the wrapper died, even if its pid is reused)
+  # and takes its sleep with it. It sits under the root, so it keeps itself and its sleep at nice 10 too.
+  for f in /proc/$me/fd/*; do [ "${f##*/}" -gt 2 ] 2>/dev/null && eval "exec ${f##*/}>&-" 2>/dev/null; done
   trap '[ -z "${nap:-}" ] || kill "$nap" 2>/dev/null; exit 0' TERM
   while sleep "${HITL_NICE_KEEP:-2}" & nap=$!; wait "$nap"; do
-    kill -0 "$root" 2>/dev/null || exit 0
-    pids="$(tree "$root" "$BASHPID" low)"
+    [ "$(ps -o ppid= -p "$me" 2>/dev/null | tr -d ' ')" = "$root" ] || exit 0
+    pids="$(tree "$root" "" low)"
     [ -n "$pids" ] && renice -n 10 -p $pids >/dev/null 2>&1
   done
 }
