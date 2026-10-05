@@ -309,8 +309,19 @@ if [ -z "$VITEST_WORKERS" ]; then
   timing_log kind=vitest tool=ci-local workers="$VITEST_WORKERS" cores="$(nproc)" load1="$(load1)" runs="$(ci_runs_going)"
 fi
 gh_step test:fast test npm run test:fast -- --maxWorkers="$VITEST_WORKERS"
-# The whole-game cases test:fast leaves out (tests/**/*.full.test.js); GitHub runs them in the balance job.
-gh_step test:full balance npm run test:full -- --maxWorkers="$VITEST_WORKERS"
+# The whole-game cases test:fast leaves out (tests/**/*.full.test.js) play many games: they run here, not
+# on GitHub's two-core runner (where one file alone took half an hour), for changes to the sim, its data,
+# the tools they exercise or the tests themselves; the main guard (CI_FULL=1) always runs them.
+full_check() {
+  if [ "${CI_FULL:-}" != 1 ]; then
+    local mb files; mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
+    files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; } 2>/dev/null)"
+    grep -qE '^(src/sim/|src/data/|src/save/|tests/sim/|tests/tools/|scripts/events/|scripts/studio/|scripts/tools/|blender/checks/|vite\.config\.js$|package-lock\.json$)' <<<"$files" \
+      || { echo "skipped: no sim, data, tool or test changes"; return 0; }
+  fi
+  npm run test:full -- --maxWorkers="$VITEST_WORKERS"
+}
+pstep test:full full_check
 gh_step build test npm run build
 # Trailer and landing beats (tests/sim/trailer-beats/replay.mjs, sim only, about 20 s), for changes to
 # what a beat's capture setup runs against or the setups themselves. A beat whose setup throws (its

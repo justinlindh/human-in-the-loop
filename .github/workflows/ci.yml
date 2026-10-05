@@ -121,10 +121,6 @@ jobs:
         if: steps.cls.outputs.mode == 'full' && steps.bal.outputs.run == 'true'
       - run: npm run test:balance
         if: steps.cls.outputs.mode == 'full' && steps.bal.outputs.run == 'true'
-      # The whole-game cases test:fast leaves out (tests/**/*.full.test.js), beside the balance run.
-      # Two workers: the runner has two cores, and these cases play whole games and start child processes.
-      - run: npm run test:full -- --maxWorkers=2
-        if: steps.cls.outputs.mode == 'full' && steps.bal.outputs.run == 'true'
 
   browser:
     runs-on: ubuntu-latest

@@ -7,12 +7,14 @@ The same checks in the current worktree, with a summary table. It runs golden (o
 
 It keeps only what needs this machine: the GPU render checks, golden, phone-check, stage and the tooling self-tests. GitHub's own checks run the rest on the same merged code, so a PR run records those steps as covered there:
 - test:fast, build and syntax (`test`);
-- test:balance and test:full, the `*.full.test.js` whole-game cases that test:fast leaves out, except `harness-uuid.full.test.js`, which needs a browser (`balance`; the main guard runs both itself);
+- test:balance (`balance`; the main guard runs it itself);
 - soak and lifecycle (`browser`);
 - commits (`commits`);
 - the main guard's cases and the renderer counts against `scripts/perf/budget.json` (`tools`).
 
 The main guard (`CI_FULL=1`) still runs all of them here, so a red main gets its issue and bisect.
+
+`test:full` (`npm run test:full`) runs the `*.full.test.js` whole-game cases that test:fast leaves out, except `harness-uuid.full.test.js`, which needs a browser and has its own GPU step. They run here, not on GitHub, because the two-core runner takes half an hour on one of the files; a PR run does them only when it changes `src/sim/`, `src/data/`, `src/save/`, `tests/sim/`, `tests/tools/`, `scripts/events/`, `scripts/studio/`, `scripts/tools/`, `blender/checks/`, `vite.config.js` or the lockfile, and the main guard always does.
 
 A render step that fails is retried once, except when it hit its 600 s limit (exit 124) or timed out waiting for the render lock (75): the summary names the step and it fails without a second try.
 
