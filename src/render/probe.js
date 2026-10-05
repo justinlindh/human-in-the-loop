@@ -203,7 +203,7 @@ export function createProbe({ scene, camera, office, charOf, stagingOf = () => n
 
     const r3 = (v) => v.toArray().map((x) => +x.toFixed(3));
     return {
-      anim: p.anim, moment: st.moment ?? null, beat: st.beat ?? null, face: c.face?.name ?? null, emote: c.emote ?? null,
+      anim: p.anim, moment: st.moment ?? null, beat: st.beat ?? null, face: c.face?.name ?? null, talk: c.face?.weights?.talk ?? 0, emote: c.emote ?? null,
       eyes: r3(p.eyes), forward: r3(p.forward), headY: +p.head.y.toFixed(3),
       gaze, targetAngle, faceCam: +deg(p.forward, toCam).toFixed(1), visible: +visible.toFixed(3), occluder: vc.occluder, fadeOver,
       hands: p.hands.map(r3), handsRel: handsRel.map(r3), handsCam, held, lean, between,

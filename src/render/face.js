@@ -43,6 +43,9 @@ export const EXPRESSIONS = {
   sad: { frown: 1, browSad: 1, lidHalf: 0.3, lookDown: 0.5 },
   smug: { smirk: 1, lidHalf: 0.45, browSkew: 0.7 },
   sideeye: { lookX: 1, lidHalf: 0.4, frown: 0.25, browAngry: 0.35 },
+  // Voice bark faces: a puzzled lift of one brow, and worn-out heavy lids.
+  questioning: { browSkew: 1, browUp: 0.5, wide: 0.3, lookUp: 0.3 },
+  tired: { lidHalf: 0.85, browSad: 0.5, lookDown: 0.35 },
 };
 
 function surfZ(x, dz) {
@@ -135,7 +138,7 @@ function mouth(m) {
     if (m === 'grit') { w = MW * 1.2; up = 0.0075 * Math.min(1, 3 * e); lo = -up; }
     if (m === 'smirk') { const c = 0.016 * Math.max(0, -t) ** 2 - 0.004; up += c; lo += c; }
     if (m === 'wobble') { const c = 0.0045 * Math.sin(3 * Math.PI * t); up = c + taper * 0.8; lo = c - taper * 0.8; }
-    if (m === 'talk') { lo -= 0.012 * e; }
+    if (m === 'talk') { w = MW * 0.9; up += 0.006 * Math.sqrt(e); lo -= 0.028 * Math.sqrt(e); }
     pts.push([t * w, MZ + up, 0.003], [t * w, MZ + lo, 0.003]);
   }
   return pts;

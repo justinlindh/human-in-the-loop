@@ -1341,7 +1341,7 @@ export function setupDeal(R, S, { near = 3, maxFrames = 600, first = false } = {
 
 // Clicks the first `count` people settled at their spots (staff order), as ui does with
 // hitl:characterClick, once that many have settled (at most `maxFrames`). Returns their ids.
-export function setupClick(R, S, { count = 4, maxFrames = 600 } = {}) {
+export function setupClick(R, S, { count = 4, maxFrames = 600, voice = false } = {}) {
   R.perks.hold = true;
   S.pendingDecision = null;
   const settled = (id) => { const w = R.walkOf(id); return w && !w.hidden && !w.path.length && !w.temp && w.goal; };
@@ -1352,8 +1352,17 @@ export function setupClick(R, S, { count = 4, maxFrames = 600 } = {}) {
     window.__advance(1);
   }
   for (const id of ids) dispatchEvent(new CustomEvent('hitl:characterClick', { detail: { staffId: id } }));
+  // With voice, each clicked person barks (audio's hitl:voice), one emotion each, on a 1.5 s
+  // envelope that opens and closes about four times a second.
+  if (voice) {
+    ids.forEach((id, i) => {
+      const loudness = Array.from({ length: 45 }, (_, k) => +(0.5 + 0.5 * Math.sin(k / 30 * Math.PI * 8)).toFixed(3));
+      dispatchEvent(new CustomEvent('hitl:voice', { detail: { staffId: id, emotion: VOICE_EMOTIONS[i % VOICE_EMOTIONS.length], take: 0, startsIn: 0.2, seconds: 1.5, rate: 30, loudness } }));
+    });
+  }
   return ids;
 }
+const VOICE_EMOTIONS = ['annoyed', 'happy', 'tired', 'questioning', 'sighing'];
 
 // Fires the settled person with the most settled colleagues within `near` metres, then drops
 // them from the state so they wave and walk out. Returns the fired person's id, or null.

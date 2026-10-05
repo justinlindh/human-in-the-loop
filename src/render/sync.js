@@ -36,7 +36,11 @@ const REWALK_S = 3;            // seconds between tries for someone left short o
 const DOOR_SPREAD = 0.45;      // how far apart people leaving by the door head for
 // Facial expressions for events (faceEvent): seconds each holds, and who sees a firing.
 const FACE_HOLD = { deal: 2, notable: 2.5, hire: 4, launch: 3, award: 3, fired: 2, click: 2.5 };
-const CLICK_SWIVEL = 1.4;      // radians someone clicked may turn their chair toward the camera (past it the chair back hides them)
+// A voice bark's face by its emotion; it holds VOICE_FACE_TAIL s past the bark. VOICE_TALK scales
+// the bark's 0..1 loudness to mouth opening.
+const VOICE_FACE = { happy: 'delighted', questioning: 'questioning', annoyed: 'sideeye', tired: 'tired', sighing: 'sad' };
+const VOICE_FACE_TAIL = 0.6, VOICE_TALK = 1;
+const CLICK_SWIVEL = 1.4;     // radians someone clicked may turn their chair toward the camera (past it the chair back hides them)
 // FACE_SEE: radians off a bystander's turned heading the person leaving may be and still be watched.
 // FACE_AWAY_COS: a turned heading further than about 80 degrees off the camera hides the face.
 const FACE_NEAR_M = 4, FACE_NEAR_MAX = 3, FACE_SEE = 1.1, FACE_AWAY_COS = 0.17;
@@ -631,7 +635,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const s = r.staff;
     const name = s.mood === 'burnout' || (s.strain ?? 0) >= 60 || (s.stamina ?? 100) < 25 ? 'sad'
       : (s.meaning ?? 100) < 35 || s.mood === 'coasting' ? 'sideeye' : 'delighted';
-    r.char.express(name, { hold: FACE_HOLD.click });
+    // A bark already under way sets the face from its own emotion.
+    if (!voices.has(r)) r.char.express(name, { hold: FACE_HOLD.click });
     r.char.lookAt(rig.camera, { hold: FACE_HOLD.click });
     if (r.temp || r.path.length || r.mode !== 'placed' || !r.goal || Math.hypot(r.pos.x - r.goal.x, r.pos.z - r.goal.z) > 0.05) return;
     const camYaw = Math.PI / 4 + (rig.yawStep ?? 0) * Math.PI / 2;
@@ -646,6 +651,31 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
   const onCharacterClick = (ev) => clickFace(ev.detail?.staffId);
   if (typeof addEventListener === 'function') addEventListener('hitl:characterClick', onCharacterClick);
+
+  // Voice barks (audio's hitl:voice): from the moment the bark sounds, the speaker wears its
+  // emotion's face and the mouth follows the take's loudness envelope. voiceT runs on real frame
+  // time, paused or not, since the audio does.
+  let voiceT = 0;
+  const voices = new Set();
+  function onVoice(ev) {
+    const d = ev.detail, r = d && recs.get(d.staffId);
+    if (!r || r.hidden || !d.loudness?.length) return;
+    r.voice = { at: voiceT + Math.max(0, d.startsIn ?? 0), rate: d.rate || 30, env: d.loudness, face: VOICE_FACE[d.emotion] ?? null, seconds: d.seconds ?? d.loudness.length / (d.rate || 30), started: false };
+    voices.add(r);
+  }
+  if (typeof addEventListener === 'function') addEventListener('hitl:voice', onVoice);
+  function updateVoices(dt) {
+    voiceT += dt;
+    for (const r of voices) {
+      const v = r.voice;
+      if (!v || !recs.has(r.id) || r.hidden) { r.char.setTalk(0); r.voice = null; voices.delete(r); continue; }
+      const i = Math.floor((voiceT - v.at) * v.rate);
+      if (i < 0) continue;
+      if (i >= v.env.length) { r.char.setTalk(0); r.voice = null; voices.delete(r); continue; }
+      if (!v.started) { v.started = true; if (v.face) r.char.express(v.face, { hold: v.seconds + VOICE_FACE_TAIL }); }
+      r.char.setTalk(v.env[i] * VOICE_TALK);
+    }
+  }
 
   // Facial expressions (face.js) for game events, on top of whatever pose or moment is playing.
   function faceEvent(e) {
@@ -1975,6 +2005,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   let frozen = false;
   function update(dt, { paused = false, moments: momentsToo = false } = {}) {
     if (!office.current) return;
+    updateVoices(dt);
     refreshStandupContext();
     moments.releaseLetters();
     spotlights.update();
@@ -2055,6 +2086,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   function dispose() {
     if (typeof removeEventListener === 'function') removeEventListener('hitl:characterClick', onCharacterClick);
+    if (typeof removeEventListener === 'function') removeEventListener('hitl:voice', onVoice);
     spotlights.clear();
     officeGrowth.dispose();
     growthGlow?.geometry.dispose(); growthGlow?.material.dispose();
