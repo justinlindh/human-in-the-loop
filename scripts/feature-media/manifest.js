@@ -111,7 +111,7 @@ const MOMENTS = [
   ['consultants', 'efficiency_consultants --seed 1 --choice 1', 'visitor_chair', 1],
   ['letter', 'hearing_summons --seed 1 --choice 0', 'envelope_thick', 0],
   // "Live with it" (the third answer) keeps the smoke up for 12 s after the card closes, so the fanning plays in it.
-  ['fumes', 'coffee_machine_broke --stage floor --seed 2 --choice 0', '() => ({ x: -2.5, z: -5.5 })', 2, 3, 24],
+  ['fumes', 'coffee_machine_broke --stage floor --seed 2 --choice 0', '() => ({ x: -2.5, z: -5.5 })', 2, 3, 17],
   ['bridge-loan', 'bridge_loan --choice 0', 'screens_red', 0],
   ['ransomware', 'ransomware --stage garage --choice 0', 'screens_skull', 0],
   ['printer', 'printer_jam --stage floor --choice 0', 'printer_jammed', 0, 2.6, 27],
@@ -133,15 +133,30 @@ const DECISION_PROPS = [
   ['onprem_bank', 'onprem_bank --choice 0', 'binder'],
   ['phishing_ceo', 'phishing_ceo --choice 1', 'gift_cards'],
   ['pet_mishap', 'pet_mishap --choice 0', 'cable_chewed'],
-  ['cloud_bill', 'cloud_bill --choice 0', 'invoice'],
+  ['cloud_bill', 'cloud_bill --choice 0', 'invoice', 5.5, true],
   ['floor_next_door', 'floor_next_door --choice 0', 'tape_measure'],
-  ['mission_test_support', 'mission_test_support --choice 0', 'printout'],
-  ['moonshot_pitch', 'moonshot_pitch --choice 1', 'printout'],
-  ['conference_expo', 'conference_expo --choice 1', 'printout'],
-  ['ping_pong', 'ping_pong --choice 1', 'picture_pingpong'],
+  ['mission_test_support', 'mission_test_support --choice 0', 'printout', 5.5, true],
+  ['moonshot_pitch', 'moonshot_pitch --choice 1', 'printout', 5.5, true],
+  ['conference_expo', 'conference_expo --choice 1', 'printout', 5.5, true],
+  ['ping_pong', 'ping_pong --choice 1', 'picture_pingpong', 5.5, true],
+  // Props a choice leaves behind, opened at the week before the decision.
+  ['rival_jab', 'rival_jab', 'sign_rival_copied', 5.5, true],
+  ['alumni_reunion', 'alumni_reunion', 'old_sign', 5.5, true],
+  ['mission_statement', 'mission_statement', 'mug_typo', 5.5, true],
+  ['ai_summit_hackathon', 'ai_summit_hackathon', 'giant_cheque', 5.5, true],
+  ['last_bet', 'last_bet', 'whiteboard_scrawl', 5.5, true],
 ];
 
-const GARAGE_DECISIONS = new Set(['hackathon', 'team_offsite', 'onprem_bank']);
+// The Yak reply prompt kinds of docs/features/yak.md (src/data/prompts.js).
+const YAK_PROMPTS = ['strain_vent', 'incident_blame', 'launch_hype', 'rival_itch', 'project_late', 'agent_prs', 'newhire_lost', 'coasting_check', 'support_swamped', 'lowcash_lunch', 'desk_squeeze', 'office_full', 'junior_pr'];
+
+// Decisions whose prop appears when a choice is made, not while the card is open.
+// Each maps to the choice that leaves the prop; the moment is opened without a choice, since the save is
+// from before the decision and the clip answers it.
+const LEFT_BEHIND = new Map([['rival_jab', 0], ['alumni_reunion', 0], ['mission_statement', 0], ['ai_summit_hackathon', 1], ['last_bet', 0]]);
+
+// Decisions whose prop is still too small to read at the closest zoom; they render but do not publish.
+const UNREADABLE_DECISIONS = new Set(['no_show', 'junior_overwhelmed', 'founder_burnout', 'enterprise_rfp', 'phishing_ceo', 'alumni_reunion']);
 
 // [item id, camera zoom, era the item needs] of the shop items shown in docs/features/office.md.
 const ITEM_STILLS = [
@@ -150,6 +165,25 @@ const ITEM_STILLS = [
   ['espresso'], ['plant_wall'], ['nap_pod'], ['arcade'], ['standing_desk'], ['whiteboard_wall'], ['library'], ['monitoring_wall'], ['noc'],
   ['office_robot'], ['server_rack'], ['trophy_case'],
 ];
+
+// A real game played to week 176 with the Incentives Program on and the ladder set to `reward`'s rung, then
+// advanced to the week before the award (found by ticking a copy ahead): the first live week awards it.
+const RUNG = (reward) => PLAY({ weeks: 176, after: `${IN_OFFICE}${CHAT_HISTORY}${DROP_UNSTAFFED}${STAFF_IDLE}
+  s.policies.incentives = true;
+  const { INCENTIVES } = await import('/src/data/incentives.js');
+  s.flags.incentiveCount = window.__rung = INCENTIVES.filter((r) => r.id !== 'waffle_party').findIndex((r) => r.id === '${reward}');
+  s.flags.incentiveWeek = s.week - (await import('/src/sim/balance.js')).B.incentiveEveryWeeks;
+  const ahead = structuredClone(s); let weeks = 0, found = false;
+  while (weeks < 12 && !found) { weeks++; const ev = sim.tick(ahead) ?? []; const hit = ev.find((e) => e.type === 'incentive' && e.reward === '${reward}'); found = !!hit; if (hit) window.__winner = hit.staffId; else b.botDecide('balanced', ahead); }
+  if (!found) throw new Error('capture: no ${reward} award within 12 weeks');
+  for (let i = 1; i < weeks; i++) { sim.tick(s); b.botDecide('balanced', s); }` });
+
+// The world point of the person an incentive was staged for (window.__winner), for FOLLOW.
+const WINNER = `() => { const R = window.__hitlRender; let o = null; R.scene.traverse((x) => { if (!o && x.userData.staffId === window.__winner) o = x.parent; }); return o ? o.getWorldPosition(new o.position.constructor()) : null; }`;
+
+// The framed caricature the award hangs on the wall (its world point is kept in userData.at), for FOLLOW.
+const CARICATURE = `() => { const R = window.__hitlRender; let g = null; R.scene.traverse((x) => { if (!g && x.userData.at && x.userData.at.y > 1) g = x; }); if (!g) return null;
+  const w = g.getWorldPosition(new g.position.constructor()), a = g.userData.at; return { x: w.x + a.x, y: w.y + a.y - 0.8, z: w.z + a.z - 1.2 }; }`;
 
 export const ITEMS = [
   // The office, by stage and time.
@@ -292,7 +326,7 @@ export const ITEMS = [
     actions: [...CLEAR_EARLY, { at: 3.3, js: KEY('s', 'KeyS') }, { at: 4, js: CLICK_STARTS('Squads') }],
     screenshots: [4.6],
     // Cropped to the Squads tab card, starting at its own top edge, with the office below.
-    out: [{ path: 'img/squads.webp', size: '1280x720', crop: { x: 300 / 1920, y: 85 / 1080, w: 1340 / 1920, h: 710 / 1080 } }],
+    out: [{ path: 'img/squads.webp', size: '1280x720', crop: { x: 300 / 1920, y: 85 / 1080, w: 1340 / 1920, h: 710 / 1080 }, publishAs: 'site-still-squads' }], publish: true,
   },
 
   {
@@ -424,10 +458,11 @@ export const ITEMS = [
     actions: [{ at: 0, js: NO_SAY }, ...OPEN(), ...(zoom ? FOLLOW(prop.startsWith('(') ? prop : [prop], zoom, 0, length) : []),
       // Fumes: the card opens about 8 s in (the tick that raises it), so it is answered when it is up, not at a fixed time.
       // Any other decision that comes first (the pre-tick week can raise one) gets its first answer.
-      ...(name === 'fumes' ? [...Array.from({ length: 2 * length }, (_, i) => ({ at: i / 2, js: `(() => { const H = window.__HITL, d = H.state.pendingDecision; if (d && d.eventId !== 'coffee_machine_broke') H.dispatch({ type: 'resolveDecision', choice: 0 }); })()` })), ...CHOOSE_WHEN('coffee_machine_broke', choice, 1, length, 3)] : [{ at: 6.5, js: KEY(String(choice + 1), `Digit${choice + 1}`) }]),
+      ...(name === 'fumes' ? [...Array.from({ length: 2 * length }, (_, i) => ({ at: i / 2, js: `(() => { const H = window.__HITL, d = H.state.pendingDecision; if (d && d.eventId !== 'coffee_machine_broke') H.dispatch({ type: 'resolveDecision', choice: 0 }); })()` })), ...CHOOSE_WHEN('coffee_machine_broke', choice, 1, length, 1.5)] : [{ at: 6.5, js: KEY(String(choice + 1), `Digit${choice + 1}`) }]),
       ...DISMISS_AT([7, 7.5, 9, 12], { escape: false }), ...CAMLOG(length)],
     screenshots: [5],
-    out: [{ path: `moments/${name}.mp4`, size: '1280x720', from: 1.5, seconds: length - 4, loop: 'none' }],
+    // The fumes clip ends before the next week's incident card raises its red alarm.
+    out: [{ path: `moments/${name}.mp4`, size: '1280x720', from: name === 'fumes' ? 0.5 : 1.5, seconds: name === 'fumes' ? 9.8 : length - 4, loop: 'none' }],
     publish: true,
   })),
 
@@ -488,15 +523,210 @@ export const ITEMS = [
     publish: true,
   })),
 
+  // The period chat apps of docs/features/yak.md and interface.md: a company founded in that era (played in
+  // the page by the sim and the balanced bot, then loaded through the game's own save) with the large Yak panel.
+  ...[['desknet', 'preinternet', 30, null], ['awayim', 'dotcom', 60, null], ['hipcheck', 'dotcom', 240, "s.era.id === 'web2'"]].map(([app, start, weeks, until]) => ({
+    id: `iface-${app}`, title: `Interface: ${app}`, query: 'seed=1&eras&speed=0', still: true, warmup: 1,
+    setup: `(async () => {
+      const { createGame } = await import('/src/sim/state.js');
+      const { tick } = await import('/src/sim/tick.js');
+      const b = await import('/src/sim/bots.js');
+      const { saveGame } = await import('/src/save/save.js');
+      const s = createGame({ seed: 1, startEra: '${start}' });
+      for (let i = 0; i < ${weeks} && !s.gameOver; i++) { if (${until ?? 'false'}) break; b.botDecide('balanced', s); b.botTurn('balanced', s); tick(s); }
+      b.botDecide('balanced', s);
+      if (!saveGame(s, localStorage)) throw new Error('could not save the era game');
+      const r = window.__HITL.controls.continueGame();
+      if (!r.ok) throw new Error('the game refused the era save: ' + (r.reason ?? ''));
+      ${YAK_ONLY};
+      window.__HITL.setSpeed?.(0);
+      window.__HITL.emit((window.__HITL.state.chatLog ?? []).slice(-15));
+    })()`,
+    actions: CLEAR_EARLY,
+    screenshots: [4.6], record: '3840x2160',
+    // The chat panel sits in the bottom left corner; the 4K recording is cropped round it.
+    out: [{ path: `iface/${app}.webp`, size: '500x410', from: 4.6, crop: { x: 0, y: 0.81, w: 0.13, h: 0.19 } }],
+    publish: true,
+  })),
+
+  // docs/features/interface.md: Reports > Inventory of a pre-internet company with a boxed release and a batch on order.
+  {
+    id: 'iface-inventory', title: 'Interface: Reports > Inventory', query: 'seed=1&eras&speed=0', still: true, warmup: 1,
+    setup: `(async () => {
+      const { createGame } = await import('/src/sim/state.js');
+      const { tick } = await import('/src/sim/tick.js');
+      const { dispatch } = await import('/src/sim/index.js');
+      const b = await import('/src/sim/bots.js');
+      const { saveGame } = await import('/src/save/save.js');
+      const s = createGame({ seed: 1, startEra: 'preinternet' });
+      const boxed = () => s.products.find((p) => p.boxed);
+      for (let i = 0; i < 160 && !s.gameOver && !(boxed() && boxed().boxed.installed > 0); i++) { b.botDecide('balanced', s); b.botTurn('balanced', s); tick(s); }
+      b.botDecide('balanced', s);
+      const p = boxed();
+      if (!p) throw new Error('no boxed release in this career');
+      s.cash = Math.max(s.cash, 50000);
+      dispatch(s, { type: 'orderBatch', productId: p.id, units: 500 });
+      if (!saveGame(s, localStorage)) throw new Error('could not save the era game');
+      const r = window.__HITL.controls.continueGame();
+      if (!r.ok) throw new Error('the game refused the era save: ' + (r.reason ?? ''));
+      window.__HITL.setSpeed?.(0);
+    })()`,
+    actions: [...CLEAR_EARLY, { at: 0.6, js: KEY('r', 'KeyR') }, { at: 1.4, js: CLICK_STARTS('Inventory') },
+      // A refused order would leave the order buttons live with no delivery line.
+      { at: 2.6, js: "(() => { const t = document.body.textContent; if (!t.includes('A batch is already on its way') || !t.includes('500 copies due')) console.error('capture: the Inventory tab does not show the 500 copies on order'); })()" }],
+    screenshots: [3],
+    out: [{ path: 'iface/inventory.webp', size: '1230x562', from: 3, crop: { x: 0.18, y: 0.07, w: 0.64, h: 0.52 } }],
+    publish: true,
+  },
+
+  // docs/features/interface.md: the NOC mode card of the Ops panel, with a Network Operations Center placed.
+  {
+    id: 'iface-noc', title: 'Interface: the NOC mode card', query: 'mock=hq&time=day&speed=0', still: true, warmup: 1,
+    setup: `(async () => {
+      const H = window.__HITL, s = H.state; s.cash = 1e9;
+      const { suggestPlacement } = await import('/src/sim/office.js');
+      const spot = suggestPlacement(s, 'noc');
+      if (!spot) throw new Error('no free spot for the NOC');
+      const r = H.dispatch({ type: 'placeItem', itemId: 'noc', x: spot.x, y: spot.y, rot: spot.rot });
+      if (!r.ok) throw new Error('placeItem refused: ' + (r.reason ?? ''));
+      // The mock's incident counters would sit over an empty log; the stage shows a company with no incidents.
+      Object.assign(s.stats ??= {}, { incidents: 0, caught: 0, breaches: 0 });
+    })()`,
+    actions: [...CLEAR_EARLY, { at: 0.6, js: KEY('o', 'KeyO') },
+      { at: 2.2, js: "(() => { if (!document.body.textContent.includes('Humans on the glass')) console.error('capture: the NOC card is not showing'); })()" }],
+    screenshots: [3],
+    out: [{ path: 'iface/noc.webp', size: '1230x648', from: 3, crop: { x: 0.18, y: 0.07, w: 0.64, h: 0.6 } }],
+    publish: true,
+  },
+
+  // docs/features/moments.md: the minor incentive rewards, awarded on camera in a real game.
+  ...['finger_traps', 'balloons', 'caricature', 'melon_bar'].map((reward) => ({
+    id: `moment-incentive-${reward}`, title: `Staged moment: the ${reward} reward`, query: 'seed=1&speed=1', seconds: 20, warmup: 0.5, record: '3840x2160',
+    setup: `(async () => { await ${RUNG(reward)}; ${CLEAN}; })()`,
+    // The caricature goes up on the wall once the award is done, so the camera moves there after the winner.
+    actions: [...CLEAR_EARLY, ...WAFFLE_ACTIONS(20),
+      ...(reward === 'caricature' ? [...FOLLOW(WINNER, 3.4, 0, 8.9, 0, true), ...FOLLOW(CARICATURE, 3.4, 9, 20, 0, true)] : FOLLOW(WINNER, 3.4, 0, 20)),
+      // The award moves the ladder one rung; a run that missed it would publish an ordinary office.
+      { at: 17, js: `(() => { const s = window.__HITL.state; if (s.flags.incentiveCount !== window.__rung + 1 || !window.__winner) console.error('capture: the ${reward} award did not happen on camera'); })()` },
+      ...CAMLOG(20)], screenshots: [6, 10, 14],
+    out: [{ path: `moments/incentive-${reward}.mp4`, size: '1280x720', from: 6, seconds: 11, loop: 'none', crop: { x: 0.25, y: 0.2, w: 0.5, h: 0.56 } }],
+    publish: true,
+  })),
+
+  // docs/features/sound.md: the four music night genres. The live week raises the genre decision, the item
+  // answers it, and the game's own spotlight camera follows the dance break.
+  ...['corporate_synthwave', 'motivational_polka', 'aggressive_bossa_nova', 'sad_lofi'].map((genre, i) => ({
+    id: `moment-music-${genre}`, title: `Staged moment: music night, ${genre}`, query: 'seed=1&speed=1', seconds: 40, warmup: 0.5, record: '3840x2160', audio: true,
+    setup: `(async () => { await ${PLAY({ weeks: 176, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE} sim.stageIncentive(s, 'music_night');` })}; await ${PRE_DECISION('music_night_genre', 16)}; ${CLEAN}; })()`,
+    actions: [{ at: 0, js: NO_SAY }, ...CLEAR_EARLY, ...CHOOSE_WHEN('music_night_genre', i, 1, 20, 3), ...Array.from({ length: 36 }, (_, k) => ({ at: k + 4.5, js: CLICK('Onward') })),
+      // The genre card answered and the dance break raised: the winner is cleared and the ladder has moved.
+      { at: 30, js: `(() => { const s = window.__HITL.state; if (s.pendingDecision?.eventId === 'music_night_genre' || s.flags.musicNightWinner) console.error('capture: the ${genre} genre was never picked'); })()` },
+      ...CAMLOG(40)],
+    screenshots: [14, 18, 22, 26],
+    out: [{ path: `moments/music-${genre}.mp4`, size: '1280x720', from: 13, seconds: 14, loop: 'none', crop: { x: 0.2, y: 0.3, w: 0.5, h: 0.5 } }],
+    // Not published until the onlookers leave an arc open to the camera: from every view the ring hides the dance.
+  })),
+
+  // docs/features/nods.md: the oat milk pallets. No bot reaches the decision, so a real game is played into the
+  // Agents era and the event is scheduled for the next week; the game's tick raises it and stages the pallets.
+  {
+    id: 'decision-oat_milk', title: 'Decision prop: the oat milk pallets', query: 'seed=1&speed=1', seconds: 14, warmup: 1,
+    setup: `(async () => { await ${PLAY({ weeks: 500, until: 's.week >= s.eraSchedule.agents + 2', after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE} s.scheduled.push({ id: 'sch_oat', week: s.week + 1, kind: 'event', payload: { eventId: 'oat_milk', subjectId: null } });` })}; await ${PRE_DECISION('oat_milk', 4)}; ${CLEAN}; ${NO_CARD}; ${NO_SAY}; })()`,
+    actions: [...OPEN(['oat_milk']), ...FOLLOW(['oat_milk'], 6, 0, 14, 0, true),
+      { at: 11, js: `(() => { if (window.__HITL.state.pendingDecision?.eventId !== 'oat_milk') console.error('capture: the oat milk decision is not open'); })()` }],
+    screenshots: [11],
+    out: [{ path: 'decisions/oat_milk.webp', size: '1280x720', from: 11 }],
+    publish: true,
+  },
+
+  // docs/features/decisions.md: the demo day smoothie. The decision is scheduled into a real game in its first
+  // months (the bot never meets it), and the game's tick raises it and stages the smoothie on a desk.
+  {
+    id: 'decision-investor_demo_day', title: 'Decision prop: the demo day smoothie', query: 'seed=1&speed=1', seconds: 14, warmup: 1,
+    setup: `(async () => { await ${PLAY({ weeks: 30, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE} s.scheduled.push({ id: 'sch_demo', week: s.week + 1, kind: 'event', payload: { eventId: 'investor_demo_day', subjectId: null } });` })}; await ${PRE_DECISION('investor_demo_day', 4)}; ${CLEAN}; ${NO_CARD}; ${NO_SAY}; })()`,
+    actions: [...OPEN(['smoothie']), ...FOLLOW(['smoothie'], 6, 0, 14, 0, true),
+      { at: 11, js: `(() => { if (window.__HITL.state.pendingDecision?.eventId !== 'investor_demo_day') console.error('capture: the demo day decision is not open'); })()` }],
+    screenshots: [11],
+    out: [{ path: 'decisions/investor_demo_day.webp', size: '1280x720', from: 11 }],
+    publish: true,
+  },
+
+  // docs/features/moments.md: the growth celebration. The engineer with the most open floor around them takes
+  // the real choosePath action; the game's own celebrate and promotion beat follow.
+  {
+    id: 'moment-growth', title: 'Staged moment: a career path celebration', query: 'seed=1&speed=1', seconds: 20, warmup: 0.5, record: '3840x2160',
+    setup: `(async () => { await ${PLAY({ weeks: 176, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE} (s.unlocks ??= {}).paths ??= s.week;` })}; ${CLEAN}; ${NO_SAY}; })()`,
+    actions: [...CLEAR_EARLY,
+      { at: 0.2, js: `(() => { const R = window.__hitlRender, s = window.__HITL.state; const at = new Map(); R.scene.traverse((o) => { if (o.userData.staffId) at.set(o.userData.staffId, o.parent.getWorldPosition(new o.position.constructor())); });
+        const eng = s.staff.filter((p) => p.role === 'engineer' && !p.path && !p.remote && p.mood !== 'away' && at.has(p.id));
+        const gap = (p) => Math.min(...[...at].filter(([id]) => id !== p.id).map(([, q]) => q.distanceTo(at.get(p.id))));
+        const who = eng.reduce((a, b) => (gap(b) > gap(a) ? b : a), eng[0]); if (!who) { console.error('capture: no engineer to promote'); return; }
+        who.pathPending = true; window.__winner = who.id; })()` },
+      ...FOLLOW(WINNER, 3.4, 0.5, 20),
+      { at: 2, js: `(() => { const r = window.__HITL.dispatch({ type: 'choosePath', staffId: window.__winner, pathId: 'architect' }); if (r && r.ok === false) console.error('capture: choosePath refused: ' + r.reason); })()` },
+      { at: 16, js: `(() => { const p = window.__HITL.state.staff.find((x) => x.id === window.__winner); if (p?.path !== 'architect') console.error('capture: the career path was never chosen'); })()` },
+      ...CAMLOG(20)], screenshots: [3, 5, 7, 9],
+    out: [{ path: 'moments/growth.mp4', size: '1280x720', from: 1, seconds: 12, loop: 'none', crop: { x: 0.25, y: 0.2, w: 0.5, h: 0.56 } }],
+    publish: true,
+  },
+
+  // The company party: a company-wide celebrate with its cause, in a real game. The banner is a DOM label
+  // (.hitl-banner) that lives a few seconds, so the guard looks for it while it is up.
+  {
+    id: 'moment-company-party', title: 'Staged moment: the company party', query: 'seed=1&speed=1', seconds: 14, warmup: 0.5, record: '3840x2160',
+    setup: `(async () => { await ${PLAY({ weeks: 176, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE}` })}; ${CLEAN}; ${NO_SAY}; })()`,
+    actions: [...CLEAR_EARLY,
+      ...FOLLOW(`() => { const R = window.__hitlRender; const ps = []; R.scene.traverse((o) => { if (o.userData.staffId) ps.push(o.parent.getWorldPosition(new o.position.constructor())); }); if (!ps.length) return null; return { x: ps.reduce((a, p) => a + p.x, 0) / ps.length, y: 0, z: ps.reduce((a, p) => a + p.z, 0) / ps.length }; }`, 2.4, 0, 14),
+      { at: 1, js: `window.__HITL.emit([{ type: 'celebrate', cause: 'Notemind launched' }])` },
+      { at: 2.5, js: `(() => { if (!document.querySelector('.hitl-banner')) console.error('capture: the party banner is not showing'); })()` },
+      ...CAMLOG(14)], screenshots: [2, 3, 5, 8],
+    out: [{ path: 'moments/company-party.mp4', size: '1280x720', from: 0.5, seconds: 9, loop: 'none', crop: MIDDLE }],
+    // Not published: the seated staff do not visibly cheer, so only confetti and a small banner read.
+  },
+
   // docs/features/decisions.md: what each decision stages in the office while its card is up. The pre-tick
   // snapshot is opened, the game's tick raises the card, the card is hidden and the camera holds on the prop.
-  ...DECISION_PROPS.map(([id, query, prop, zoom = 5.5]) => ({
+  ...DECISION_PROPS.map(([id, query, prop, zoom = 5.5, center = false]) => ({
     id: `decision-${id}`, title: `Decision prop: ${id}`, query: 'seed=1&speed=1', moment: query, pre: true, still: true, warmup: 8,
     setup: `(() => { ${CLEAN}; ${NO_CARD}; ${NO_SAY}; })()`,
-    actions: [...OPEN(), ...FOLLOW([prop], zoom, 0, 14)],
-    screenshots: [5],
-    out: [{ path: `decisions/${id}.webp`, size: '1280x720', from: 5 }],
-    // Only the garage ones frame the prop big enough to read; the floor and HQ ones render but stay unpublished.
-    publish: GARAGE_DECISIONS.has(id),
+    // A prop a choice leaves behind exists only after the card is answered (by key, as a player would).
+    actions: [...OPEN(), ...(LEFT_BEHIND.has(id) ? CHOOSE_WHEN(id, LEFT_BEHIND.get(id), 1, 8, 1.5) : []), ...FOLLOW([prop], zoom, 0, LEFT_BEHIND.has(id) ? 20 : 14, 0, center)],
+    screenshots: [LEFT_BEHIND.has(id) ? 14 : 5],
+    out: [{ path: `decisions/${id}.webp`, size: '1280x720', from: LEFT_BEHIND.has(id) ? 14 : 5 }],
+    publish: !UNREADABLE_DECISIONS.has(id),
+  })),
+
+  // docs/features/yak.md: the reply prompts. The pre-tick save of the week that raises each one is opened,
+  // the game's tick posts it, and the large Yak (which keeps the game running) is scrolled to the prompt.
+  ...YAK_PROMPTS.map((kind) => ({
+    id: `yak-${kind}`, title: `Yak reply prompt: ${kind}`, query: 'seed=1&speed=1', moment: kind, pre: true, still: true, warmup: 0.5,
+    setup: `(() => { ${YAK_ONLY}; })()`,
+    actions: [
+      ...[0, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18].map((at) => ({ at, js: CLEAR_CARDS })),
+      ...CHOOSE_WHEN(null, 0, 1, 24, 1.5),
+      { at: 0.5, js: CLICK_SEL('.chat.yak .ysz[aria-label="large size"]') },
+      ...Array.from({ length: 40 }, (_, i) => ({ at: 2 + i * 0.5, js: `(() => {
+        const p = window.__HITL.state.chatPrompts.find((q) => q.kind === ${JSON.stringify(kind)});
+        if (!p) return;
+        const find = () => document.querySelector('.chat.yak .yprompt[data-prompt="' + CSS.escape(p.id) + '"]');
+        if (!find()) [...document.querySelectorAll('.chat.yak button')].find((b) => b.getClientRects().length && b.textContent.trim().startsWith('#' + p.channel))?.click();
+        const el = find();
+        if (!el) return;
+        el.scrollIntoView({ block: 'center' });
+        (window.__captureMarks ??= []).push({ t: ${2 + i * 0.5}, label: 'yak-prompt', kind: ${JSON.stringify(kind)}, id: p.id, text: el.textContent.slice(0, 60), inPanel: (() => { const r = el.getBoundingClientRect(), q = document.querySelector('.chat.yak').getBoundingClientRect(); return r.top >= q.top && r.bottom <= q.bottom; })() });
+      })()` })),
+      // The still is only right when the prompt is open and fully in view just before it is taken.
+      { at: 21.8, js: `(() => {
+        const p = window.__HITL.state.chatPrompts.find((q) => q.kind === ${JSON.stringify(kind)});
+        const el = p && document.querySelector('.chat.yak .yprompt[data-prompt="' + CSS.escape(p.id) + '"]');
+        // console.error fails this item only; a throw would end the whole capture run.
+        if (!el) return console.error('capture: the ${kind} prompt is not in the Yak panel');
+        const r = el.getBoundingClientRect(), q = document.querySelector('.chat.yak').getBoundingClientRect();
+        if (!r.width || r.top < q.top || r.bottom > q.bottom) console.error('capture: the ${kind} prompt is outside the Yak panel');
+      })()` },
+    ],
+    screenshots: [22],
+    out: [{ path: `yak/${kind}.webp`, size: '640x747', from: 22, crop: { x: 0, y: 0.43, w: 0.27, h: 0.56 }, publishAs: `yak-${kind}` }],
+    publish: true,
   })),
 ];

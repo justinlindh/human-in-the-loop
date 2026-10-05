@@ -28,6 +28,7 @@ import { resolveTarget, snapshotEntries } from '../../scripts/events/load.js';
 import { simHash, indexDir, readIndex } from '../../scripts/events/lib.js';
 import { join } from 'node:path';
 import { fmtTrace, fmtActor, ACTOR_JS } from './diag.mjs';
+import { graphBase, graphPassedAt, recordGraphPass, requestedFiles } from './cache.mjs';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
@@ -38,6 +39,18 @@ const jobs = Number(opt('jobs', 4));
 if (!Number.isInteger(jobs) || jobs < 1) { console.error(`loop: --jobs wants a whole number of at least 1, not ${opt('jobs')}`); process.exit(2); }
 
 import { SHIM } from './loop-page.mjs';
+
+// A clean pass is recorded with every file its pages requested and its own import graph; a rerun with
+// the same flags and sim (the indexed snapshots come from it) skips while all of those are unchanged.
+// --jobs only spreads the work, so it is left out of the key.
+const keyArgs = argv.filter((a, i) => a !== '--jobs' && argv[i - 1] !== '--jobs').join(' ');
+const cacheKey = graphBase('loop', `${keyArgs}\nsim ${simHash()}`);
+const passedAt = graphPassedAt('loop', cacheKey);
+if (passedAt) {
+  console.log(`loop: inputs unchanged since ${passedAt}, skipped`);
+  process.exit(0);
+}
+const requested = new Set();
 
 const mode = glMode({ argv });
 holdRenderLock(mode);
@@ -325,6 +338,9 @@ try {
   await Promise.all(Array.from({ length: Math.min(jobs, checks.length) }, async (_, w) => {
     const { browser } = await launchChromium(chromium, { mode, label: w ? `loop ${w + 1}` : 'loop' });
     browsers.push(browser);
+    // Every page this browser opens reports what it requests, for the cache record.
+    const newPage = browser.newPage.bind(browser);
+    browser.newPage = async (...a) => { const p = await newPage(...a); p.on('request', (r) => requested.add(r.url())); return p; };
     while (next < checks.length) {
       const i = order[next++], lines = [];
       try { failed += await checks[i]((l) => lines.push(l), browser); } catch (e) { failed++; lines.push(`LOOP FAIL check ${i + 1}: ${e.message}`); }
@@ -338,4 +354,5 @@ try {
 }
 const total = queries.length + (argv.includes('--no-spotlight') ? 0 : 6);
 console.log(`loop: ${total - failed} of ${total} checks passed through the game loop`);
+if (!failed) recordGraphPass('loop', cacheKey, requestedFiles(requested));
 process.exit(failed ? 1 : 0);

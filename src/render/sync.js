@@ -4,7 +4,7 @@ import { createMomentSpeech } from './moment-speech.js';
 import { createSpeechBudget } from './speech-budget.js';
 import { createStandupSpeech, standupContext, standupRevision, standupText } from './standup-speech.js';
 import * as THREE from 'three';
-import { createCharacter } from './character.js';
+import { createCharacter, LYING } from './character.js';
 import { wardrobeEra } from './wardrobe.js';
 import { PALETTE as P, ROLE_COLORS } from './palette.js';
 import { glow } from './materials.js';
@@ -20,6 +20,7 @@ import { createGrowthMoments } from './growth-moments.js';
 import { createOfficeGrowth, promotionWeek } from './growth-office.js';
 import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { holdSeconds } from './reading.js';
+import { lookYaw } from './turn.js';
 import { pickSpot, spotDebug, spotRing } from './spots.js';
 import { between, draw, fixed } from './rand.js';
 
@@ -29,6 +30,9 @@ import { between, draw, fixed } from './rand.js';
 const WALK = 1.25;
 const CHAIR_BACK_M = 0.55;
 const BODY_R = 0.2;            // a standing person's footprint radius     // where a sitter stops behind their chair before sliding onto it
+// Walks keep a cell off furniture where the room allows (a chibi head is wider than the body and
+// reaches chair backs and desk edges at head height); a tight aisle is still taken.
+const WALK_CLEAR = { clear: 0.35, soft: true };
 const CELEBRATE_ROOM = 0.25;   // clear floor around someone who stops to celebrate
 const CELEBRATE_APART = 0.5;   // and nobody else nearer than this
 const GLIDE_M = 0.8;           // further than this from their spot (beyond a seat's last step), people walk to it
@@ -290,7 +294,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     }
     // The NOC crew (security assignment) sits at the NOC while humans watch it: up on their feet during an
     // alert, and in a quiet stretch the first of them dozes off. Anyone past the seats stands behind.
-    const noc = cur.dyn.noc;
+    const noc = cur.dyn.noc && { ...cur.dyn.noc, ...nocRoom(cur.dyn.noc) };
     if (type === 'security' && noc && roleIndex.noc.mode === 'humans') {
       const k = roleIndex.security, { alert, quiet } = roleIndex.noc;
       const seat = !alert && noc.seats[k];
@@ -323,20 +327,77 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     return { x: w.x + fixed('nodesk-x', s.id) - 0.5, z: w.z + fixed('nodesk-z', s.id) - 0.5, yaw: fixed('nodesk-yaw', s.id) * 6.28, anim: 'idle', key: 'nodesk' };
   }
 
+  // A walk's route: a cell off furniture where the room allows, and round the office robot when it
+  // is out (the walk grid doesn't know it), unless there is no way round or the walk ends at it.
+  let robotOut = () => null;
+  function walkPath(nav, from, to) {
+    const b = robotOut();
+    // A walk to the robot itself (the slap) keeps off it up to just short of the goal.
+    const r = b && Math.min(b.r + BODY_R, Math.hypot(to.x - b.x, to.z - b.z) - 0.1);
+    if (r > 0.25) {
+      const way = nav.path(from, to, WALK_CLEAR.clear, { ...WALK_CLEAR, avoid: [{ x: b.x, z: b.z, r }] });
+      if (way) return way;
+    }
+    return nav.path(from, to, WALK_CLEAR.clear, WALK_CLEAR);
+  }
+
+  // Where a seat is walked to before the slide onto it: behind the chair, or round it (diagonally
+  // behind, then beside) when other furniture stands there (a coffee corner backed onto a NOC's
+  // chairs). The seat's own furniture is whatever already covers the seat.
+  const APPROACH_TURNS = [0, 0.8, -0.8, 1.57, -1.57];
+  // The NOC's seats and stands with no other furniture within a body's width (the NOC's chairs reach
+  // past its front row, where the sim may place something); all of them when none are clear.
+  let nocCache = null;
+  function nocRoom(noc) {
+    if (nocCache?.noc === noc && nocCache.v === office.navVersion) return nocCache.room;
+    const obs = office.obstacles().filter((o) => o.by !== noc.id);
+    const clear = (p) => !obs.some((o) => p.x > o.x0 - BODY_R && p.x < o.x1 + BODY_R && p.z > o.z0 - BODY_R && p.z < o.z1 + BODY_R);
+    const pick = (list) => { const ok = list.filter(clear); return ok.length ? ok : list; };
+    const room = { seats: pick(noc.seats), stands: pick(noc.stands) };
+    nocCache = { noc, v: office.navVersion, room };
+    return room;
+  }
+  function seatApproach(seat) {
+    const obs = office.obstacles(), nav = office.nav();
+    const near = (o, x, z, m) => x > o.x0 - m && x < o.x1 + m && z > o.z0 - m && z < o.z1 + m;
+    const own = new Set(obs.filter((o) => near(o, seat.x, seat.z, 0.05)).map((o) => o.by));
+    const L = office.current.L;
+    const back = seat.yaw + Math.PI;
+    for (const a of APPROACH_TURNS) {
+      const x = seat.x + Math.sin(back + a) * CHAIR_BACK_M, z = seat.z + Math.cos(back + a) * CHAIR_BACK_M;
+      const inside = Math.abs(x) < L.W / 2 - BODY_R && Math.abs(z) < L.D / 2 - BODY_R;
+      // Off the walk grid, the route would end at the nearest free cell and cut across to it.
+      if (inside && (a === 0 || !nav.isBlocked(x, z)) && !obs.some((o) => !own.has(o.by) && near(o, x, z, BODY_R))) return { x, z };
+    }
+    return { x: seat.x + Math.sin(back) * CHAIR_BACK_M, z: seat.z + Math.cos(back) * CHAIR_BACK_M };
+  }
+
+  // The nearest point to `q` (within a metre, in steps of a grid cell) with BODY_R clear all round;
+  // the nearest walkable point when none is.
+  function standClear(nav, q) {
+    let best = null, bd = Infinity;
+    for (let i = -3; i <= 3; i++) for (let k = -3; k <= 3; k++) {
+      const x = q.x + i * nav.cell, z = q.z + k * nav.cell, d = Math.hypot(x - q.x, z - q.z);
+      if (d < bd && !nav.isBlocked(x, z, BODY_R)) { best = { x, z }; bd = d; }
+    }
+    return best ?? nav.freePoint(q.x, q.z);
+  }
+
   function walkTo(r, goal, run = false, from = r.goal) {
     const nav = office.nav();
-    // A standing goal that falls inside furniture moves to the nearest walkable point.
-    if (!goal.seated && !goal.onItem && nav.isBlocked(goal.x, goal.z)) Object.assign(goal, nav.freePoint(goal.x, goal.z));
+    // A standing goal inside furniture, or close enough that the head would be, moves to the nearest
+    // point with a body's width clear.
+    if (!goal.seated && !goal.onItem && nav.isBlocked(goal.x, goal.z, BODY_R)) Object.assign(goal, standClear(nav, goal));
     // A seat is reached from behind its chair; the last step onto it happens once they arrive.
     let to = goal;
-    if (goal.seated) to = { x: goal.x - Math.sin(goal.yaw) * CHAIR_BACK_M, z: goal.z - Math.cos(goal.yaw) * CHAIR_BACK_M };
-    r.path = nav.path({ x: r.pos.x, z: r.pos.z }, { x: to.x, z: to.z });
+    if (goal.seated) to = seatApproach(goal);
+    r.path = walkPath(nav, { x: r.pos.x, z: r.pos.z }, { x: to.x, z: to.z });
     r.path.shift();
     // Leaving a seat at an item (the NOC) the way they came: back out behind the chair first, the item
     // still theirs until they're clear of it, as at a desk.
     if (from && from !== goal && from.seated && from.uses && Math.hypot(r.pos.x - from.x, r.pos.z - from.z) < 0.3) {
-      const back = { x: from.x - Math.sin(from.yaw) * CHAIR_BACK_M, z: from.z - Math.cos(from.yaw) * CHAIR_BACK_M };
-      r.path = [back, ...nav.path(back, { x: to.x, z: to.z }).slice(1)];
+      const back = seatApproach(from);
+      r.path = [back, ...walkPath(nav, back, { x: to.x, z: to.z }).slice(1)];
       r.exitFrom = from.uses;
       r.exitSide = back;
     }
@@ -344,7 +405,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     // clear point first, then on from there.
     if (!r.path.length && nav.isBlocked(r.pos.x, r.pos.z, BODY_R)) {
       const p = clearOf(r, nav);
-      r.path = [p, ...nav.path(p, { x: to.x, z: to.z }).slice(1)];
+      r.path = [p, ...walkPath(nav, p, { x: to.x, z: to.z }).slice(1)];
     }
     r.speed = run ? RUN : isTired(r.staff) ? WALK * 0.7 : WALK;
     r.walkAnim = run ? 'run' : 'walk';
@@ -857,7 +918,10 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     // Clear actors win first, then standing actors, then the most camera-facing heading.
     const facing = (r) => Math.cos(r.yaw - yaw) + (clear(r) ? PALM_PICK.clear : 0) + (!r.char.seated ? PALM_PICK.standing : 0) + (!r.temp ? PALM_PICK.idle : 0);
     here.sort((a, b) => facing(b) - facing(a));
-    const palm = here.shift();
+    // Not someone lying down: they nap face up, and the turn to the camera would spin them on the couch.
+    const pi = here.findIndex((r) => !LYING.has(r.char.anim));
+    if (pi < 0) return;
+    const [palm] = here.splice(pi, 1);
     // No emote over the facepalmer: the head bows, and a bubble would sit over the face.
     // Bring the temple hand toward the camera instead of behind the far cheek.
     // Seated, they swing round in the chair further than for a glance, so a desk facing a wall still shows the palm.
@@ -883,16 +947,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   // Turn toward someone for a few seconds; seated people only swivel so they stay in the chair.
   function faceToward(a, b) {
-    if (a.char.anim === 'facepalm' || a.char.anim === 'facepalmsit') return;
-    let yaw = Math.atan2(b.pos.x - a.pos.x, b.pos.z - a.pos.z);
-    // Seated people (at a desk, or in a meeting chair for a standup) only swivel.
-    const seat = a.temp?.seat ? a.temp.goal : a.goal?.seated && !a.path.length && !a.temp ? a.goal : null;
-    if (seat) {
-      let d = ((yaw - seat.yaw + Math.PI) % (Math.PI * 2)) - Math.PI;
-      if (d < -Math.PI) d += Math.PI * 2;
-      yaw = seat.yaw + Math.max(-SWIVEL, Math.min(SWIVEL, d));
-    }
-    a.face = { yaw, t: 3.6 };
+    const yaw = lookYaw(a, b, SWIVEL);
+    if (yaw !== null) a.face = { yaw, t: 3.6 };
   }
 
   function approach(r, other, text, moment = null) {
@@ -1263,6 +1319,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup, low });
   const pets = createPets({ office, recs, emote, parent: group, getProps, resumeWalk: walkTo, low });
   const robot = createRobot({ office, recs, emote, parent: group, walkTo, inView: (q) => moments.inView(q, { body: true, walls: true }), camYaw: () => rig?.yaw ?? Math.PI / 4 });
+  robotOut = () => robot.blocker();
   const momentCam = createMomentCamera(rig);
   const spotlights = createSpotlights({ camera: momentCam });
   const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx, spotlights, robot });
@@ -1834,7 +1891,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         const st = sp.seat;
         const spot = { x: st.x, z: st.z, yaw: st.yaw, anim: 'sit' };
         // Reached from behind the chair, then a slide onto the seat (as onto a couch).
-        const side = { x: st.x - Math.sin(st.yaw) * CHAIR_BACK_M, z: st.z - Math.cos(st.yaw) * CHAIR_BACK_M };
+        const side = seatApproach(st);
         r.temp = { anim: 'sit', t: Infinity, goal: spot, standup: true, seat: true, enter: { t: 0, side } };
         walkTo(r, { ...side, yaw: st.yaw });
       } else {

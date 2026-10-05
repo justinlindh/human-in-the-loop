@@ -74,16 +74,19 @@ const vf = (o, [W0, H0]) => {
 };
 
 // One capture run per recording size, each into its own folder.
-const sizes = [...new Set(items.map((i) => i.record ?? REC))];
+// An item with `audio: true` is recorded with the game's sound, in a run of its own.
+const keyOf = (i) => `${i.record ?? REC}${i.audio ? '-audio' : ''}`;
+const sizes = [...new Set(items.map(keyOf))];
 const recorded = new Map();
-for (const size of sizes) {
-  const dir = join(RAW, size), group = items.filter((i) => (i.record ?? REC) === size);
+for (const key of sizes) {
+  const size = key.replace('-audio', ''), withAudio = key !== size;
+  const dir = join(RAW, key), group = items.filter((i) => keyOf(i) === key);
   // Publishing starts from an empty recording folder, so a capture that dies cannot leave an old render
   // (or its index) to be published and recorded as current.
   if (publishing) rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
   console.log(`feature-media: recording at ${size}: ${group.map((i) => i.id).join(', ')}`);
-  const cap = spawnSync('node', ['scripts/capture.js', '--manifest', MANIFEST, '--only', group.map((i) => i.id).join(','), '--out', dir, '--size', size, '--fps', String(FPS0), '--no-webm'], { stdio: 'inherit' });
+  const cap = spawnSync('node', ['scripts/capture.js', '--manifest', MANIFEST, '--only', group.map((i) => i.id).join(','), '--out', dir, '--size', size, '--fps', String(FPS0), '--no-webm', ...(withAudio ? ['--audio'] : [])], { stdio: 'inherit' });
   // Publishing carries on past a failed item: the others still render, and the failed one is named below.
   if (cap.status !== 0) { console.error(`feature-media: capture.js exited ${cap.status}`); if (!publishing) process.exit(1); }
   const index = existsSync(join(dir, 'index.json')) ? JSON.parse(readFileSync(join(dir, 'index.json'), 'utf8')) : {};
@@ -114,7 +117,14 @@ for (const it of items) {
         const graph = x > 0
           ? `[0:v]trim=${from}:${from + len},setpts=PTS-STARTPTS,fps=${fps},${vf(o, dim)},split[a][b];[a]trim=0:${len - x},setpts=PTS-STARTPTS[body];[b]trim=${len - x}:${len},setpts=PTS-STARTPTS[tail];[body]split[h][m];[h]trim=0:${x},setpts=PTS-STARTPTS[head];[m]trim=${x}:${len - x},setpts=PTS-STARTPTS[mid];[tail][head]xfade=transition=fade:duration=${x}:offset=0[joint];[joint][mid]concat=n=2:v=1[v]`
           : `[0:v]trim=${from}:${from + len},setpts=PTS-STARTPTS,fps=${fps},${vf(o, dim)}[v]`;
-        run('ffmpeg', ['-v', 'error', '-y', '-i', mp4, '-filter_complex', graph, '-map', '[v]', '-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', String(o.crf ?? 24), '-pix_fmt', 'yuv420p', '-movflags', '+faststart', dest], o.path);
+        // With the game's sound: the same window of the audio track, cut only for a clip that does not loop.
+        const sound = it.audio && o.loop === 'none';
+        run('ffmpeg', ['-v', 'error', '-y', '-i', mp4, '-filter_complex', sound ? `${graph};[0:a]atrim=${from}:${from + len},asetpts=PTS-STARTPTS[a]` : graph, '-map', '[v]', ...(sound ? ['-map', '[a]', '-c:a', 'aac', '-b:a', '128k'] : ['-an']), '-c:v', 'libx264', '-preset', 'slow', '-crf', String(o.crf ?? 24), '-pix_fmt', 'yuv420p', '-movflags', '+faststart', dest], o.path);
+        // A clip that should carry the game's sound must carry it audibly.
+        if (sound) {
+          const m = spawnSync('ffmpeg', ['-nostats', '-i', dest, '-vn', '-af', 'ebur128', '-f', 'null', '-'], { encoding: 'utf8' }).stderr.match(/Summary[\s\S]*?\bI:\s+(-?[\d.]+) LUFS/);
+          if (!m || Number(m[1]) < (o.minLufs ?? -40)) throw new Error(`the clip is silent or nearly so (${m ? `${m[1]} LUFS` : 'no audio stream'})`);
+        }
         if (o.webm) run('ffmpeg', ['-v', 'error', '-y', '-i', dest, '-an', '-c:v', 'libvpx-vp9', '-crf', String(o.webmCrf ?? 36), '-b:v', '0', '-row-mt', '1', dest.replace(/\.mp4$/, '.webm')], `${o.path} (webm)`);
         if (o.poster) {
           const p = join(OUT, o.poster); mkdirSync(dirname(p), { recursive: true });

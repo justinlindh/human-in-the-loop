@@ -51,7 +51,7 @@ expect() { # <name> <gh log> <patterns, | separated; !x means absent; out:x look
 # A failing case shows the guard's last lines, so a failure in CI can be read without rerunning it.
 shown() { tail -n 15 "$1.out" 2>/dev/null | sed 's/^/    guard: /'; }
 one() { # <name> <suite> <strict> <open "label n" lines, ; separated> <patterns> [extra env...]
-  case_root="$tmp/root-$RANDOM"; local log="$tmp/$RANDOM.log" open="$tmp/$RANDOM.open"; : >"$log"; printf '%s' "$4" | tr ';' '\n' >"$open"
+  case_root="$(mktemp -d "$tmp/root-XXXXXX")"; local log open; log="$(mktemp "$tmp/log-XXXXXX")"; open="$(mktemp "$tmp/open-XXXXXX")"; : >"$log"; printf '%s' "$4" | tr ';' '\n' >"$open"
   local name="$1" suite="$2" strict="$3" pats="$5"; shift 5
   guard "$log" "$open" MAIN_GUARD_SUITE="$suite" MAIN_GUARD_STRICT="$strict" "$@" -- --sha HEAD
   expect "$name" "$log" "$pats"
@@ -240,9 +240,20 @@ expect 'a commit unjudged twice is filed' "$cl" "--label main-unjudged|!--label 
 # Tip runs (no --sha): a tip whose changes since the last green check are all on the skip list runs
 # nothing, and a tip inside the minimum gap after the last check waits.
 printf '**\n' >"$tmp/skip-all"; printf 'nothing/matches\n' >"$tmp/skip-none"
-tip="$(git -C "$REPO" rev-parse HEAD)"; before="$(git -C "$REPO" rev-parse HEAD~1)"
+# The tip and the commit before it are made here (unreferenced commits, one new file apart), not taken from
+# the checkout's own history: a PR's merge commit can differ from main by nothing, and an empty change counts
+# as a full one.
+base_commit="$(git -C "$REPO" rev-parse HEAD)"
+idx="$tmp/tip-index"; rm -f "$idx"
+GIT_INDEX_FILE="$idx" git -C "$REPO" read-tree "$base_commit^{tree}"
+blob="$(echo tip-case | git -C "$REPO" hash-object -w --stdin)"
+GIT_INDEX_FILE="$idx" git -C "$REPO" update-index --add --cacheinfo "100644,$blob,docs/tip-case.md"
+tip_tree="$(GIT_INDEX_FILE="$idx" git -C "$REPO" write-tree)"
+ct() { git -C "$REPO" -c user.name=t -c user.email=t@t commit-tree "$@"; }
+before="$(ct "$base_commit^{tree}" -p "$base_commit" -m before)"
+tip="$(ct "$tip_tree" -p "$before" -m tip)"
 tipcase() { # <name> <last> <green> <skip list> <min minutes> <expected: ran|skipped> [touch last: old|new]
-  case_root="$tmp/root-tip-$RANDOM"; mkdir -p "$case_root/main-guard"; local l="$tmp/tip.log"; : >"$l"; rm -f "$tmp/tip.ran"
+  case_root="$(mktemp -d "$tmp/root-tip-XXXXXX")"; mkdir -p "$case_root/main-guard"; local l="$tmp/tip.log"; : >"$l"; rm -f "$tmp/tip.ran"
   [ -n "$2" ] && echo "$2" >"$case_root/main-guard/last"; [ -n "$3" ] && echo "$3" >"$case_root/main-guard/last-green"
   [ "${7:-}" = old ] && touch -d '3 hours ago' "$case_root/main-guard/last"
   guard "$l" /dev/null MAIN_GUARD_REF="$tip" MAIN_GUARD_SKIP_LIST="$4" MAIN_GUARD_MIN_MINUTES="$5" MAIN_GUARD_SUITE="touch '$tmp/tip.ran'; $PASS" MAIN_GUARD_STRICT="$CLEAN" -- --no-post

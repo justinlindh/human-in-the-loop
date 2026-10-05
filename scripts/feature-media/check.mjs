@@ -1,7 +1,8 @@
 // `npm run feature-media -- --check`: no rendering. Fails when
 //   - an `id:` in docs/features has no media link and no `media: none (<reason>)` on its entry, unless the
-//     pair `<file>:<id>` is in coverage-baseline.json (the entries not yet covered); a baseline pair that
-//     is covered now is also a failure, so the list only shrinks (`--write-baseline` rewrites it);
+//     pair `<file>:<id>` is in coverage-baseline.json (the entries not yet covered). A baseline pair that is
+//     covered now is only a note, so a batch that adds media never has to edit the file (and parallel batches
+//     do not conflict on it); `--write-baseline` rewrites it without the stale pairs;
 //   - a published media link names nothing a manifest can render (see NAMES below);
 //   - a manifest item opened at an indexed moment no longer resolves to a pre-tick snapshot (skipped with a
 //     note when the event index for this sim code is missing: build it with scripts/events/build.js).
@@ -44,6 +45,10 @@ export async function check({ writeBaseline = false } = {}) {
   for (const m of MANIFESTS) itemsByManifest[m] = (await import(pathToFileURL(join(ROOT, m)).href)).ITEMS;
   const itemIds = new Set(Object.values(itemsByManifest).flat().map((i) => i.id));
 
+  const own = itemsByManifest['scripts/feature-media/manifest.js'];
+  const publishedNames = new Set(own.filter((i) => i.publish).flatMap((i) => [i.id, ...(i.out ?? []).map((o) => o.publishAs).filter(Boolean)]));
+  const unpublished = new Set(own.flatMap((i) => [i.id, ...(i.out ?? []).map((o) => o.publishAs).filter(Boolean)]).filter((n) => !publishedNames.has(n)));
+
   const entries = parseEntries();
   // An id is covered when any entry of its file that carries it is. (A file may repeat an entry.)
   const seen = new Set(), done = new Set();
@@ -56,6 +61,8 @@ export async function check({ writeBaseline = false } = {}) {
       const meme = /^meme-(.+)$/.exec(n);
       if (meme && existsSync(join(ROOT, 'public/memes', `${meme[1]}.webp`))) continue;
       if (!itemIds.has(n) && !itemIds.has(ALIASES[n])) problems.push(`${e.file}:${e.line}: media "${n}" names no manifest item (add the item, or an alias in check.mjs)`);
+      // An item of the feature-media manifest reaches the branch only when it publishes.
+      else if (unpublished.has(n)) problems.push(`${e.file}:${e.line}: media "${n}" is a feature-media item without \`publish: true\`, so the refresh never publishes it`);
     }
   }
   const uncovered = new Set([...seen].filter((k) => !done.has(k)));
@@ -66,7 +73,8 @@ export async function check({ writeBaseline = false } = {}) {
     return 0;
   }
   for (const k of [...uncovered].sort()) if (!baseline.has(k)) problems.push(`${k}: no media link and no "media: none (<reason>)" on its entry`);
-  for (const k of [...baseline].sort()) if (!uncovered.has(k)) problems.push(`${k}: covered now (or gone); remove it from scripts/feature-media/coverage-baseline.json with --write-baseline`);
+  const stale = [...baseline].filter((k) => !uncovered.has(k)).sort();
+  if (stale.length) notes.push(`${stale.length} baseline pair${stale.length === 1 ? ' is' : 's are'} covered now (or gone): ${stale.slice(0, 5).join(', ')}${stale.length > 5 ? ', ...' : ''}; tidy with --write-baseline`);
 
   // Moments: every item opened at an indexed moment still resolves.
   const { simHash, readIndex, match, parseQuery } = await import(pathToFileURL(join(ROOT, 'scripts/events/lib.js')).href);

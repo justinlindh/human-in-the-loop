@@ -15,7 +15,8 @@
 // vite.config.js, package.json and package-lock.json select every test.
 // One no test reaches selects nothing, except a file that is not JavaScript under the paths the
 // whole-game tests read (SCOPE: data a test may read without naming it, the build config, the
-// lockfile), which selects every test. Code a test only loads into a browser page is not followed.
+// lockfile), which selects every test; the render checks' own reference files (RENDER_ONLY) are the
+// exception. Code a test only loads into a browser page is not followed.
 // Exit 0, 2 on bad arguments.
 import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -28,6 +29,10 @@ const CODE = /\.(m?js|ts)$/;
 // Files that read a directory by a path built at run time, which no literal names: the studio
 // engine's fetch serves every public asset, and the game's model loader builds each model's URL.
 const COMPUTED_READS = { 'scripts/studio/platform.mjs': ['public'], 'src/render/models.js': ['public/models'] };
+// Non-JS files in SCOPE that only the render checks read (golden's reference images, the sweep's
+// accepted violations): one no test reaches selects nothing rather than every test. Only types checked
+// against every whole-game test's reach are listed; any other unreached non-JS file selects every test.
+const RENDER_ONLY = /^(blender\/checks\/golden\/[^/]+\.png|blender\/checks\/sweep-baseline\.json)$/;
 // The test runner's config and the installed packages: a change selects every test.
 const EVERY = /^(vite\.config\.js|package\.json|package-lock\.json)$/;
 const LITERAL = /['"`]((?:\.{1,2}\/|\/)?[\w@.\/-]+\.(?:m?js|json))['"`]/g;
@@ -116,7 +121,7 @@ export function select(changed, { root = ROOT, tests = fullTests(root) } = {}) {
   for (const f of inScope) {
     if (EVERY.test(f)) { for (const t of tests) why[t] ??= `${f} (configures every test)`; continue; }
     const by = tests.filter((t) => hits(t, f));
-    if (!by.length && !CODE.test(f) && SCOPE.test(f)) { for (const t of tests) why[t] ??= `${f} (not JavaScript and named by no test: every test)`; continue; }
+    if (!by.length && !CODE.test(f) && SCOPE.test(f) && !RENDER_ONLY.test(f)) { for (const t of tests) why[t] ??= `${f} (not JavaScript and named by no test: every test)`; continue; }
     for (const t of by) why[t] ??= chain(t, f);
   }
   return { picked: tests.filter((t) => why[t]), why };

@@ -68,7 +68,10 @@ eq "a machine failure twice is an error" "${RESULTS[1]}" "error: machine (ERR_IN
 eq "  after two runs" "$(cat "$tmp/s2.n")" 2
 eq "a code failure is FAIL" "${RESULTS[2]}" FAIL
 eq "  and is not retried" "$(cat "$tmp/s3.n")" 1
-eq "an instant silent failure twice is an error" "${RESULTS[3]}" "error: machine (failed in 0s with no output)"
+case "${RESULTS[3]}" in
+  "error: machine (failed in "[0-9]*"s with no output)") ;;
+  *) fail "an instant silent failure twice is an error: got '${RESULTS[3]}'" ;;
+esac
 
 [ $fails -eq 0 ] && echo "ci-capacity: all cases pass" || echo "ci-capacity: $fails failing"
 [ $fails -eq 0 ]

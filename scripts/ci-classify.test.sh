@@ -67,6 +67,27 @@ expect_bal full 'scripts/ci-balance-skip-paths'
 expect_bal full 'src/ui/hud.js|scripts/ci-skip-paths'
 expect_bal full ''
 
+# The tools job's lists: light means the renderer counts (perf) or the main guard's cases (guard) are skipped.
+expect_list() { # <list file> <want> <paths separated by |>
+  local got; got="$(printf '%s\n' "$3" | tr '|' '\n' | bash "$HERE/ci-classify.sh" "$HERE/$1")"
+  [ "$got" = "$2" ] || { echo "FAIL $1 [$3]: want $2, got $got"; fails=$((fails + 1)); }
+}
+expect_list ci-perf-skip-paths light 'tests/tools/x.test.js|scripts/events/play.js|blender/checks/loop.mjs|docs/x.md'
+expect_list ci-perf-skip-paths full 'src/ui/hud.js'
+expect_list ci-perf-skip-paths full 'public/models/desk.glb|docs/x.md'
+expect_list ci-perf-skip-paths full 'scripts/perf/budget.json'
+expect_list ci-perf-skip-paths full 'scripts/lib/gl.js'
+expect_list ci-perf-skip-paths full 'scripts/with-render-lock.sh'
+expect_list ci-perf-skip-paths full 'package-lock.json'
+expect_list ci-perf-skip-paths full '.github/workflows/ci.yml'
+expect_list ci-perf-skip-paths full 'scripts/ci-perf-skip-paths'
+expect_list ci-perf-skip-paths full ''
+expect_list ci-guard-skip-paths light 'src/render/office.js|docs/x.md|tests/sim/a.test.js|blender/checks/loop.mjs'
+expect_list ci-guard-skip-paths full 'scripts/main-guard.sh'
+expect_list ci-guard-skip-paths full '.claude/settings.json'
+expect_list ci-guard-skip-paths full 'package.json|docs/x.md'
+expect_list ci-guard-skip-paths full ''
+
 # Moving game code into docs/ must not come out light: CI lists changes with --no-renames.
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 ( cd "$tmp" && git init -q && mkdir -p src/sim docs && echo 'export function tick() {}' >src/sim/tick.js && echo x >docs/x.md \

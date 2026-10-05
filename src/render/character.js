@@ -38,7 +38,7 @@ const BLEND_S = 0.3;
 // Ground speed of the walk clip at its authored rate (chibi_rig.py): playback scales from it with
 // the walker's speed so feet do not slide.
 const WALK_CLIP_SPEED = 0.875;
-const LYING = new Set(['lie', 'nap', 'sprawl']);
+export const LYING = new Set(['lie', 'nap', 'sprawl']);
 // The face (face.js): one geometry shared by every character, its morph targets blended per person.
 // Shared geometry bakes its colours in, so face parts use fixed palette colours only. A settled
 // face, and every face with morphs off (Low quality), shows its expression baked once into a static
@@ -963,8 +963,8 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         // The palm covers the camera-side eye and brow, in front of the face, with the head bowed into it.
         const sit = anim === 'facepalmsit';
         const [ax, ay, az0, bow, lean] = sit ? PALM_SIT : PALM_STAND;
-        // Standing, wider shoulders start the arm further out, so the spread brings the palm back to the same eye.
-        const az = sit ? az0 : az0 + PALM_BUILD_K * (Math.abs(arms[0].shoulder.position.x) - PALM_SHOULDER_REF);
+        // Wider shoulders start the arm further out, so the spread brings the palm back to the same eye.
+        const az = az0 + PALM_BUILD_K * (Math.abs(arms[0].shoulder.position.x) - PALM_SHOULDER_REF);
         tgt.lean = lean;
         tgt.headX = bow + s(t * 1.2 + phase) * 0.03;
         const hz = 0.15 + s(t * 0.8) * 0.04;
