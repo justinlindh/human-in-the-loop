@@ -149,6 +149,24 @@ const SPECS = {
     share('barkFace', 'a bark-only face (tired, questioning) on two of the four', (x) => ['tired', 'questioning'].includes(x.face), 0.35),
     share('mouthMoves', 'the mouth open past 0.2 with the voice', (x) => x.talk >= 0.2, 0.3),
   ] },
+  // Music night: the winner dances in front, facing the camera, body in view; the backup dancers
+  // face the camera too; the onlookers stand on an arc open toward the camera, watching the winner,
+  // never with their backs to it. `music_standup` starts it over a standup still in its ring.
+  ...Object.fromEntries(['music', 'music_standup'].flatMap((scenario) => [
+    [`${scenario}.dancer`, { moment: 'music', scenario, beat: 'dance', role: 'dancer', rules: [
+      share('visible', 'the dancer\'s body >= 75% unblocked', (x) => x.visible >= 0.75, 0.9),
+      share('facingCamera', 'face within 60 deg of the camera', (x) => x.faceCam <= 60, 0.9),
+      noFade,
+    ] }],
+    [`${scenario}.backup`, { moment: 'music', scenario, beat: 'dance', role: 'backup', rules: [
+      share('facingCamera', 'face within 60 deg of the camera', (x) => x.faceCam <= 60, 0.9),
+      share('visible', 'body >= 50% unblocked', (x) => x.visible >= 0.5, 0.8),
+    ] }],
+    [`${scenario}.onlooker`, { moment: 'music', scenario, beat: 'watch', role: 'onlooker', rules: [
+      share('watching', 'face within 45 deg of the dancer', (x) => x.targetAngle <= 45, 0.8),
+      share('faceShows', 'face within 90 deg of the camera (turned out toward it)', (x) => x.faceCam <= 90, 0.9),
+    ] }],
+  ])),
   'company_party.cheer': { moment: 'company_party', beat: 'cheer', rules: [
     share('celebrating', 'company celebrates throughout the beat', (x) => x.anim === 'celebrate', 0.9),
   ] },
@@ -384,6 +402,10 @@ const SCENARIOS = {
     setup: "(await import('/src/render/checks.js')).setupRobotParty(R, S, 'waffle_party')" },
   robot_dj: { moment: 'robot', robot: true, query: 'mock=floor', patch: {}, seconds: 14,
     setup: "(await import('/src/render/checks.js')).setupRobotParty(R, S, 'music_night')" },
+  music: { query: 'mock=floor', patch: {}, seconds: 14,
+    setup: "(await import('/src/render/checks.js')).setupMusic(R, S)" },
+  music_standup: { moment: 'music', query: 'mock=floor', patch: {}, seconds: 14,
+    setup: "(await import('/src/render/checks.js')).setupMusic(R, S, { standup: true })" },
   petcat: { moment: 'pet', query: 'mock=floor', patch: {}, seconds: 6,
     setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'cat', 2.104, 1.0)" },
   y2k: { query: 'mock=garage', patch: {}, seconds: 20,
