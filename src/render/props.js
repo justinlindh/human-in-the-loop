@@ -943,7 +943,7 @@ function cableChewed() {
   // Lying on the floor: the centre line one radius up.
   const seg = (x0, x1) => { const m = mesh(roundedCylinder(CABLE_R, CABLE_R, x1 - x0, 0.01, 10), mat('fabric_mustard'), x1, CABLE_R, 0); m.rotation.z = Math.PI / 2; return m; };
   g.add(seg(-0.48, -0.08), seg(0.06, 0.55));
-  g.add(mesh(roundedBox(0.12, 0.08, 0.1, 0.015, 2), mat('ink'), -0.54, 0, 0));
+  g.add(mesh(roundedBox(0.12, 0.08, 0.1, 0.015, 2), mat('ink'), -0.54, 0.04, 0));
   for (const z of [-0.022, 0.022]) g.add(mesh(roundedBox(0.05, 0.012, 0.012, 0.003, 1), mat('metal_soft'), -0.62, 0.035, z));
   for (const [x, y, z, s] of [[-0.01, 0.07, 0.02, 0.035], [0.03, 0.1, -0.03, 0.025], [-0.04, 0.12, -0.01, 0.02]]) {
     const spark = mesh(sparkGeo, glow('led_amber', 3), x, y, z, { cast: false });
