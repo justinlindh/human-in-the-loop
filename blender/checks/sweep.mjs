@@ -89,9 +89,13 @@ const item = opt('item') ?? null;
 // With --item, only that item's violations are re-checked.
 if (replayed && item) replayed.violations = replayed.violations.filter((v) => mentions(item, v.a, v.b, v.detail));
 const list = (v) => (v === 'none' ? [] : v.split(',').filter(Boolean));
-if (opt('seeds')) M.seeds = list(opt('seeds')).map(Number);
+const whole = (flag, v) => {
+  if (!/^\d+$/.test(v)) { console.error(`sweep: --${flag} takes whole numbers, got "${v}"`); process.exit(2); }
+  return Number(v);
+};
+if (opt('seeds')) M.seeds = list(opt('seeds')).map((s) => whole('seeds', s));
 if (opt('mocks')) M.mocks = list(opt('mocks'));
-if (opt('seed-limit')) M.seedLimit = Number(opt('seed-limit'));
+if (opt('seed-limit')) M.seedLimit = whole('seed-limit', opt('seed-limit'));
 // A replay checks the states the report names and nothing else; a scoped run keeps to the mock that
 // holds the footprint pass.
 const plan = replayed ? planReplay(replayed, opt('states') ? list(opt('states')) : null) : null;
