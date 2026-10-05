@@ -37,7 +37,9 @@ cat >"$tmp/bin/git" <<'GIT'
 case "$1" in
   fetch) exit 0 ;;
   merge-base) echo base ;;
-  diff) awk -v s="$3" '$1 == s { print $3 }' "$FIX/heads" ;;
+  diff) # a 4th heads column is the patch without context lines (-U0); it defaults to the full patch
+    z=0; [ "$2" = -U0 ] && { z=1; shift; }
+    awk -v s="$3" -v z="$z" '$1 == s { print (z && $4 != "" ? $4 : $3) }' "$FIX/heads" ;;
   patch-id) printf '%s x\n' "$(cat | sha1sum | cut -c1-40)" ;;
   *) exec /usr/bin/git "$@" ;;
 esac
@@ -65,6 +67,8 @@ printf '#!/usr/bin/env bash\n[ "$1 $2" = "env reviewer" ] && echo "export GH_TOK
 printf '#!/usr/bin/env bash\necho "gh-as: no key for $2" >&2\n' >"$tmp/gh-as-none"
 check 'a pass carries to a head that only merges main' carried 'a success p1|b - p1'
 check 'changed code does not carry' kept 'a success p1|b - p2'
+check 'main changing context beside the PR hunks still carries' carried 'a success p1 z|b - p2 z'
+check 'a changed hunk is not carried by the no-context compare' kept 'a success p1 z1|b - p2 z2'
 check 'a failure on the head is never overwritten' kept 'a success p1|b failure p1'
 check 'a pending review on the head is left alone' kept 'a success p1|b pending p1'
 check 'a newer changes-requested verdict is not skipped for an older pass' kept 'a success p1|b failure p1|c - p1'
