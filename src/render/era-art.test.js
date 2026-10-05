@@ -12,6 +12,7 @@ const dotcom = () => ({ founding: { startEra: 'dotcom' }, era: { id: 'dotcom' },
 test('plain eras dresses a founded era career and leaves a Classic company alone', async () => {
   const m = await eraArt('?eras');
   expect(m.ERA_ART_MODELS.length).toBeGreaterThan(0);
+  expect(m.ERA_MODELS_AT_START).toBe(true);
   expect(m.syncEraArt({ era: { id: 'classic' }, founding: {} })).toBe('classic');
   expect(m.eraArtActive()).toBe(false);
   expect(m.eraArtCrt('dotcom')).toBe(false);
@@ -27,9 +28,22 @@ test('eraArtEra reads without changing what the renderer last synced', async () 
   expect(m.eraArtActive()).toBe(true);
 });
 
-test('without eras no era art loads or shows, even for a saved era career', async () => {
+test('without a flag a founded era career wears era art, loaded once it is wanted', async () => {
   const m = await eraArt('');
-  expect(m.ERA_ART_MODELS).toEqual([]);
+  expect(m.ERA_MODELS_AT_START).toBe(false);
+  expect(m.eraArtWanted({ era: { id: 'classic' }, founding: {} })).toBe(false);
+  expect(m.syncEraArt({ era: { id: 'classic' }, founding: {} })).toBe('classic');
+  expect(m.eraArtActive()).toBe(false);
+  expect(m.eraArtWanted(dotcom())).toBe(true);
+  expect(m.syncEraArt(dotcom())).toBe('dotcom');
+  expect(m.eraArtActive()).toBe(true);
+});
+
+test('noeras keeps the ordinary office, even for a saved era career or a preview', async () => {
+  const m = await eraArt('?noeras&eras&eraArt=web2');
+  expect(m.ERA_ART_PREVIEW).toBe(false);
+  expect(m.ERA_MODELS_AT_START).toBe(false);
+  expect(m.eraArtWanted(dotcom())).toBe(false);
   m.syncEraArt(dotcom());
   expect(m.eraArtActive()).toBe(false);
 });

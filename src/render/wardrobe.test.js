@@ -7,10 +7,11 @@ async function wardrobe(query) {
   return import('./wardrobe.js');
 }
 
-test('ordinary play keeps modern clothing even for a saved historical career', async () => {
-  const { wardrobeEra, WARDROBE_MODELS } = await wardrobe('');
-  expect(wardrobeEra({ founding: { startEra: 'dotcom' }, era: { id: 'dotcom' } })).toBeNull();
-  expect(WARDROBE_MODELS).toEqual([]);
+test('ordinary play dresses a historical career; noeras keeps modern clothing', async () => {
+  const state = { founding: { startEra: 'dotcom' }, era: { id: 'dotcom' } };
+  expect((await wardrobe('')).wardrobeEra(state)).toBe('dotcom');
+  vi.resetModules();
+  expect((await wardrobe('?noeras')).wardrobeEra(state)).toBeNull();
 });
 
 test('plain eras keeps modern clothing until a historical career is selected', async () => {
