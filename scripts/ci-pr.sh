@@ -296,6 +296,10 @@ if [ -n "$ci_changes" ]; then
 fi
 secs=$(( $(date +%s) - t0 ))
 case $rc in 0) verdict=PASS; state=success ;; 3) verdict="ERROR (the machine, not the code)"; state=error ;; *) verdict=FAIL; state=failure ;; esac
+# A full pass of a tree the main guard would otherwise run again (not the tests tier, which skips the render checks).
+if [ $rc -eq 0 ] && [ "$comment" = 1 ] && [ "${CI_TIER:-}" != tests ]; then
+  bash "$TOOLS/scripts/tested-trees.sh" record "$WT" "$pr" "$head" "$base" 2>/dev/null || true
+fi
 # setup_s: everything before local CI (fetching, the worktree, waiting for this PR's lock, installing).
 # merge_only: 1 when this head only merged the base into the PR's earlier tested head, 0 for new work, na unknown.
 merge_only="$(bash "$TOOLS/scripts/ci-merge-only.sh" "$pr" "$head" "$base" --repo "$REPO" 2>/dev/null || echo na)"

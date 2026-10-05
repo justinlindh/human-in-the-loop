@@ -128,6 +128,14 @@ if [ -z "$sha_arg" ] && [ -n "$prev" ] && [ "$prev" = "$(cat "$STATE/last-green"
   echo "$sha" >"$STATE/last"; echo "$sha" >"$STATE/last-green"
   exit 0
 fi
+# A tip whose tree local CI already passed in full (scripts/tested-trees.sh: the PR merged into the base,
+# recorded by ci-pr) is the same code that passed every check, so nothing runs.
+if [ -z "$sha_arg" ] && tested="$(bash "$REPO/scripts/tested-trees.sh" check "$sha" --repo "$REPO" 2>/dev/null)"; then
+  echo "main-guard: $short has the tree local CI already passed ($tested); nothing to run"
+  status success "Same tree as a full local CI pass (${tested%% at=*})"
+  echo "$sha" >"$STATE/last"; echo "$sha" >"$STATE/last-green"
+  exit 0
+fi
 
 # Each run can be replaced for tests (scripts/main-guard.test.sh): MAIN_GUARD_SUITE (writes $SUMMARY),
 # MAIN_GUARD_STRICT (writes $OUT/report.json), MAIN_GUARD_GOLDEN (the uncached golden run) and
