@@ -112,6 +112,24 @@ function sheetMat() {
   sheetMatCache = new THREE.MeshStandardMaterial({ map: t, side: THREE.DoubleSide, roughness: 0.9 });
   return sheetMatCache;
 }
+// The hearing summons held up instead of a sheet: the official-red envelope itself, face out, with
+// its white address label and gold seal (the same design as the one on the desk, props.js).
+const SUMMONS_GEO = new THREE.PlaneGeometry(0.44, 0.3);
+let summonsMatCache = null;
+function summonsMat() {
+  if (summonsMatCache) return summonsMatCache;
+  const c = document.createElement('canvas'); c.width = 170; c.height = 115;
+  const x = c.getContext('2d');
+  x.fillStyle = P.summons_red; x.fillRect(0, 0, 170, 115);
+  x.strokeStyle = P.summons_red_dark; x.lineWidth = 4; x.beginPath(); x.moveTo(0, 0); x.lineTo(85, 63); x.lineTo(170, 0); x.stroke();
+  x.fillStyle = P.paper; x.fillRect(20, 67, 78, 34);
+  x.fillStyle = P.ink; for (let i = 0; i < 3; i++) x.fillRect(26, 73 + i * 9, 60 - i * 10, 5);
+  x.fillRect(112, 72, 40, 9);
+  x.fillStyle = P.gold; x.beginPath(); x.arc(85, 63, 13, 0, Math.PI * 2); x.fill();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  summonsMatCache = new THREE.MeshStandardMaterial({ map: t, side: THREE.DoubleSide, roughness: 0.8 });
+  return summonsMatCache;
+}
 
 // A visitor's look varies from visit to visit, from everyday colours (see visitorLook).
 const VISITOR_HAIR = ['#2a2630', '#4a3222', '#6b4a2e', '#b5562b', '#d9b36a', '#8a8a8a'];
@@ -912,7 +930,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       side: Math.sign(Math.sin(spot.yaw - getYaw()) || 1), readYaw: getYaw() + Math.PI / 6 * Math.sign(Math.sin(spot.yaw - getYaw()) || 1), slumpYaw: spot.yaw,
       tick: (rr, d, tp) => {
         tp.el += d;
-        if (!tp.sheet && tp.el < READ_S) { tp.sheet = letterSheet(); rr.char.root.add(tp.sheet); env.visible = false; }
+        if (!tp.sheet && tp.el < READ_S) { tp.sheet = letterSheet(p.prop === 'envelope_thick'); rr.char.root.add(tp.sheet); env.visible = false; }
         if (tp.el >= READ_S && tp.sheet) {
           tp.sheet.removeFromParent(); tp.sheet = null; env.visible = true;
           emote(rr, 'storm', 2.4);
@@ -969,7 +987,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     if (!d?.seat) { note(r.id, 'refuse', { by: 'letter', why: 'no seat to go to' }); return; }
     const goal = { x: d.seat.x, z: d.seat.z, yaw: d.seat.rotY, anim: 'typing', seated: true };
     note(r.id, 'claim', { by: 'letter', from: r.temp?.anim ?? (r.path.length ? 'walking' : 'idle') });
-    r.temp = { anim: 'typing', t: Infinity, goal, moment: 'letter', claim: true, envelope, stage: { beat: 'wait' } };
+    r.temp = { anim: 'typing', t: Infinity, goal, moment: 'letter', claim: true, envelope, stage: { beat: 'wait', target: envelope } };
     walkTo(r, goal);
   }
   function releaseLetter(r) {
@@ -989,8 +1007,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       if (r.staff.mood === 'away' || r.goal?.hidden || (tp.claim && !cur.some((p) => p.obj === tp.envelope))) releaseLetter(r);
     }
   }
-  function letterSheet() {
-    const g = new THREE.Mesh(SHEET_GEO, sheetMat());
+  function letterSheet(summons = false) {
+    const g = summons ? new THREE.Mesh(SUMMONS_GEO, summonsMat()) : new THREE.Mesh(SHEET_GEO, sheetMat());
     g.position.set(0, 0.65, 0.40);
     g.rotation.x = 0.44;
     g.userData.noAO = true;
