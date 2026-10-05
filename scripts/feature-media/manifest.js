@@ -295,7 +295,7 @@ export const ITEMS = [
     actions: [...CLEAR_EARLY, { at: 3.3, js: KEY('s', 'KeyS') }, { at: 4, js: CLICK_STARTS('Squads') }],
     screenshots: [4.6],
     // Cropped to the Squads tab card, starting at its own top edge, with the office below.
-    out: [{ path: 'img/squads.webp', size: '1280x720', crop: { x: 300 / 1920, y: 85 / 1080, w: 1340 / 1920, h: 710 / 1080 } }],
+    out: [{ path: 'img/squads.webp', size: '1280x720', crop: { x: 300 / 1920, y: 85 / 1080, w: 1340 / 1920, h: 710 / 1080 }, publishAs: 'site-still-squads' }], publish: true,
   },
 
   {
@@ -488,6 +488,32 @@ export const ITEMS = [
     // The clicked person is a single seated figure: recorded at 4K and cropped round the middle of the frame.
     ...(name === 'click' ? { record: '3840x2160' } : {}),
     out: [{ path: `moments/${name}.mp4`, size: '1280x720', from: 0, seconds: 5, loop: 'none', ...(name === 'click' ? { crop: { x: 0.32, y: 0.28, w: 0.36, h: 0.4 } } : {}) }],
+    publish: true,
+  })),
+
+  // The period chat apps of docs/features/yak.md and interface.md: a company founded in that era (played in
+  // the page by the sim and the balanced bot, then loaded through the game's own save) with the large Yak panel.
+  ...[['desknet', 'preinternet', 30, null], ['awayim', 'dotcom', 60, null], ['hipcheck', 'dotcom', 240, "s.era.id === 'web2'"]].map(([app, start, weeks, until]) => ({
+    id: `iface-${app}`, title: `Interface: ${app}`, query: 'seed=1&eras&speed=0', still: true, warmup: 1,
+    setup: `(async () => {
+      const { createGame } = await import('/src/sim/state.js');
+      const { tick } = await import('/src/sim/tick.js');
+      const b = await import('/src/sim/bots.js');
+      const { saveGame } = await import('/src/save/save.js');
+      const s = createGame({ seed: 1, startEra: '${start}' });
+      for (let i = 0; i < ${weeks} && !s.gameOver; i++) { if (${until ?? 'false'}) break; b.botDecide('balanced', s); b.botTurn('balanced', s); tick(s); }
+      b.botDecide('balanced', s);
+      if (!saveGame(s, localStorage)) throw new Error('could not save the era game');
+      const r = window.__HITL.controls.continueGame();
+      if (!r.ok) throw new Error('the game refused the era save: ' + (r.reason ?? ''));
+      ${YAK_ONLY};
+      window.__HITL.setSpeed?.(0);
+      window.__HITL.emit((window.__HITL.state.chatLog ?? []).slice(-15));
+    })()`,
+    actions: CLEAR_EARLY,
+    screenshots: [4.6], record: '3840x2160',
+    // The chat panel sits in the bottom left corner; the 4K recording is cropped round it.
+    out: [{ path: `iface/${app}.webp`, size: '500x410', from: 4.6, crop: { x: 0, y: 0.81, w: 0.13, h: 0.19 } }],
     publish: true,
   })),
 
