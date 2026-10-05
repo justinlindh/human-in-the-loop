@@ -133,19 +133,25 @@ const DECISION_PROPS = [
   ['onprem_bank', 'onprem_bank --choice 0', 'binder'],
   ['phishing_ceo', 'phishing_ceo --choice 1', 'gift_cards'],
   ['pet_mishap', 'pet_mishap --choice 0', 'cable_chewed'],
-  ['cloud_bill', 'cloud_bill --choice 0', 'invoice'],
+  ['cloud_bill', 'cloud_bill --choice 0', 'invoice', 5.5, true],
   ['floor_next_door', 'floor_next_door --choice 0', 'tape_measure'],
-  ['mission_test_support', 'mission_test_support --choice 0', 'printout'],
-  ['moonshot_pitch', 'moonshot_pitch --choice 1', 'printout'],
-  ['conference_expo', 'conference_expo --choice 1', 'printout'],
-  ['ping_pong', 'ping_pong --choice 1', 'picture_pingpong'],
+  ['mission_test_support', 'mission_test_support --choice 0', 'printout', 5.5, true],
+  ['moonshot_pitch', 'moonshot_pitch --choice 1', 'printout', 5.5, true],
+  ['conference_expo', 'conference_expo --choice 1', 'printout', 5.5, true],
+  ['ping_pong', 'ping_pong --choice 1', 'picture_pingpong', 5.5, true],
+  // Props a choice leaves behind, opened at the week before the decision.
+  ['rival_jab', 'rival_jab --choice 0', 'sign_rival_copied', 5.5, true],
+  ['alumni_reunion', 'alumni_reunion --choice 0', 'old_sign', 5.5, true],
 ];
 
 // The Yak reply prompt kinds of docs/features/yak.md (src/data/prompts.js).
 const YAK_PROMPTS = ['strain_vent', 'incident_blame', 'launch_hype', 'rival_itch', 'project_late', 'agent_prs', 'newhire_lost', 'coasting_check', 'support_swamped', 'lowcash_lunch', 'desk_squeeze', 'office_full', 'junior_pr'];
 
+// Decisions whose prop appears when a choice is made, not while the card is open.
+const LEFT_BEHIND = new Set(['rival_jab', 'alumni_reunion']);
+
 // Decisions whose prop is still too small to read at the closest zoom; they render but do not publish.
-const UNREADABLE_DECISIONS = new Set(['no_show', 'junior_overwhelmed', 'founder_burnout', 'enterprise_rfp', 'phishing_ceo']);
+const UNREADABLE_DECISIONS = new Set(['no_show', 'junior_overwhelmed', 'founder_burnout', 'enterprise_rfp', 'phishing_ceo', 'alumni_reunion']);
 
 // [item id, camera zoom, era the item needs] of the shop items shown in docs/features/office.md.
 const ITEM_STILLS = [
@@ -570,12 +576,13 @@ export const ITEMS = [
 
   // docs/features/decisions.md: what each decision stages in the office while its card is up. The pre-tick
   // snapshot is opened, the game's tick raises the card, the card is hidden and the camera holds on the prop.
-  ...DECISION_PROPS.map(([id, query, prop, zoom = 5.5]) => ({
+  ...DECISION_PROPS.map(([id, query, prop, zoom = 5.5, center = false]) => ({
     id: `decision-${id}`, title: `Decision prop: ${id}`, query: 'seed=1&speed=1', moment: query, pre: true, still: true, warmup: 8,
     setup: `(() => { ${CLEAN}; ${NO_CARD}; ${NO_SAY}; })()`,
-    actions: [...OPEN(), ...FOLLOW([prop], zoom, 0, 14)],
-    screenshots: [5],
-    out: [{ path: `decisions/${id}.webp`, size: '1280x720', from: 5 }],
+    // A prop a choice leaves behind exists only after the card is answered (by key, as a player would).
+    actions: [...OPEN(), ...(LEFT_BEHIND.has(id) ? CHOOSE_WHEN(id, +query.match(/--choice (\d)/)[1], 1, 8, 1.5) : []), ...FOLLOW([prop], zoom, 0, LEFT_BEHIND.has(id) ? 20 : 14, 0, center)],
+    screenshots: [LEFT_BEHIND.has(id) ? 14 : 5],
+    out: [{ path: `decisions/${id}.webp`, size: '1280x720', from: LEFT_BEHIND.has(id) ? 14 : 5 }],
     publish: !UNREADABLE_DECISIONS.has(id),
   })),
 
