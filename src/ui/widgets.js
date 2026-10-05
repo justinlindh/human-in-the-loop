@@ -10,21 +10,52 @@ import { characterLook } from '../render/look.js';
 let source = null;
 const pending = new Set(); // { el, person, size, kind: 'el' | 'src' }
 const live = new Set(); // { el, handle }
+const faces = new Map(); // rendered still portraits of staff, swapped when the person's face changes
+const MAX_FACES = 300;
 const MAX_PENDING = 400;
 
 export function setPortraitSource(getRenderer) {
   source = getRenderer;
   addEventListener('hitl:portraits', upgradePending);
+  addEventListener('hitl:faceChange', onFaceChange);
   // Live canvases are disposed once their element leaves the page.
   setInterval(() => { for (const l of live) if (!l.el.isConnected) { l.handle.dispose?.(); live.delete(l); } }, 1000);
   // A light poll as well, in case a finished batch arrives without the event.
   setInterval(() => { if (pending.size) upgradePending(); }, 500);
 }
 
+// A person as the scene shows them right now: the renderer's current expression for a staff member rides
+// along, so a portrait never disagrees with the character on screen. Anyone the scene doesn't have
+// (candidates, archetypes) is drawn as given.
+function faced(person, r) {
+  let name = null;
+  try { name = person?.id != null ? r?.face?.(person.id)?.name ?? null : null; } catch { name = null; }
+  return name ? { ...person, expression: name } : person;
+}
+
 function rendered(person, size) {
   const r = source?.();
   if (!r?.portrait) return undefined;
-  try { return r.portrait(person, { size }) ?? null; } catch { return undefined; }
+  try { return r.portrait(faced(person, r), { size }) ?? null; } catch { return undefined; }
+}
+
+function watchFace(el, person, size) {
+  if (person?.id == null) return;
+  if (faces.size >= MAX_FACES) for (const k of faces.keys()) if (!k.isConnected) faces.delete(k);
+  if (faces.size < MAX_FACES) faces.set(el, { el, person, size });
+}
+
+// Re-renders every visible portrait of the person whose face changed; one still queued swaps in on arrival.
+function onFaceChange(ev) {
+  const id = (ev.detail ?? ev).staffId;
+  if (id == null) return;
+  for (const [k, e] of faces) {
+    if (!k.isConnected) { faces.delete(k); continue; }
+    if (e.person.id !== id) continue;
+    const url = rendered(e.person, e.size);
+    if (url) e.el.src = url;
+    else track({ el: e.el, person: e.person, size: e.size, kind: 'src' });
+  }
 }
 
 function imgFor(url, person, size) {
@@ -34,6 +65,7 @@ function imgFor(url, person, size) {
   img.src = url;
   img.style.width = img.style.height = `${size / 16}em`;
   img.style.background = tint(roleColor(person.role), 0.72);
+  watchFace(img, person, size);
   return img;
 }
 
@@ -48,7 +80,7 @@ function upgradePending() {
     const url = rendered(e.person, e.size);
     if (!url) continue;
     pending.delete(e);
-    if (e.kind === 'src') e.el.src = url;
+    if (e.kind === 'src') { e.el.src = url; watchFace(e.el, e.person, e.size); }
     else e.el.replaceWith(imgFor(url, e.person, e.size));
   }
 }
@@ -110,6 +142,7 @@ export function portraitImg(person, size = 44, cls = 'av') {
   img.alt = '';
   const r = rendered(person, size);
   img.src = r || drawnURL(person, size);
+  watchFace(img, person, size);
   if (!r && source) track({ el: img, person, size, kind: 'src' });
   return img;
 }
