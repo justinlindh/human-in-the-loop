@@ -39,7 +39,7 @@ export const EXPRESSIONS = {
   delighted: { grin: 1, happyEyes: 0.85, browUp: 0.6 },
   shocked: { open: 1, wide: 1, browUp: 1 },
   panicked: { open: 0.45, wobble: 0.9, wide: 0.8, browSad: 1 },
-  gritted: { grit: 1, browAngry: 1, lidHalf: 0.3 },
+  gritted: { grit: 1, browAngry: 1.3, lidHalf: 0.45 },
   sad: { frown: 1, browSad: 1, lidHalf: 0.3, lookDown: 0.5 },
   smug: { smirk: 1, lidHalf: 0.45, browSkew: 0.7 },
   sideeye: { lookX: 1, lidHalf: 0.4, frown: 0.25, browAngry: 0.35 },
@@ -135,7 +135,8 @@ function mouth(m) {
     if (m === 'frown') { const c = -0.016 * t * t + 0.006; up += c; lo += c; }
     if (m === 'open') { w = MW * 0.85; up = 0.019 * Math.sqrt(e); lo = -0.027 * Math.sqrt(e); }
     if (m === 'grin') { w = MW * 1.25; up = 0.014 * t * t + 0.008; lo = up - 0.038 * Math.sqrt(e); }
-    if (m === 'grit') { w = MW * 1.2; up = 0.0075 * Math.min(1, 3 * e); lo = -up; }
+    // Clenched: a wide, tall block with square ends and corners pulled down, read as bared teeth.
+    if (m === 'grit') { w = MW * 1.45; const h = 0.012 * Math.min(1, 6 * e), c = -0.006 * t * t; up = h + c; lo = -h + c; }
     if (m === 'smirk') { const c = 0.016 * Math.max(0, -t) ** 2 - 0.004; up += c; lo += c; }
     if (m === 'wobble') { const c = 0.0045 * Math.sin(3 * Math.PI * t); up = c + taper * 0.8; lo = c - taper * 0.8; }
     if (m === 'talk') { w = MW * 0.9; up += 0.006 * Math.sqrt(e); lo -= 0.028 * Math.sqrt(e); }
