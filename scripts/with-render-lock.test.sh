@@ -10,6 +10,7 @@ trap 'stop_holder; rm -rf "$tmp"' EXIT
 export HITL_LOCK_DIR="$tmp"; L="$tmp/render-checks.lock"
 export HITL_TIMINGS=off
 export HITL_SOFT_SLOTS=1   # the pool cases below set their own
+export HITL_GPU_FREE_MB=0  # the free-memory cases below turn it on
 fails=0
 expect() { [ "$2" = "$3" ] || { echo "FAIL $1: want $3, got $2"; fails=$((fails + 1)); }; }
 
@@ -77,5 +78,24 @@ sleep 0.3
 HITL_SOFT_LOAD=0 SOFT_POLL=1 RENDER_LOCK_WAIT=2 bash "$W" --software echo ran >/dev/null 2>&1; expect 'over the load cap only slot 1 is used' "$?" 75
 stop_holder
 out="$(bash "$W" --software bash "$W" --software echo inner)"; expect 'a software run nested in a software run does not take a second slot' "$out" inner
+# A GPU run waits for free GPU memory (a stand-in nvidia-smi reads the used MiB from a file).
+mkdir -p "$tmp/bin"
+printf '#!/usr/bin/env bash\necho "1000, $(cat "%s/used")"\n' "$tmp" >"$tmp/bin/nvidia-smi"; chmod +x "$tmp/bin/nvidia-smi"
+echo 900 >"$tmp/used"
+out="$(PATH="$tmp/bin:$PATH" HITL_GPU_FREE_MB=50 RENDER_LOCK_WAIT=3 bash "$W" --gpu echo ran 2>/dev/null)"
+expect 'a GPU run starts when enough memory is free' "$out" ran
+echo 990 >"$tmp/used"
+PATH="$tmp/bin:$PATH" HITL_GPU_FREE_MB=50 VRAM_POLL=1 RENDER_LOCK_WAIT=2 bash "$W" --gpu echo ran >"$tmp/o" 2>&1; expect 'a GPU run exits 75 when the memory never frees up' "$?" 75
+grep -q 'GPU memory still under 50 MiB free' "$tmp/o" || { echo "FAIL the wait should say what it waited for: $(cat "$tmp/o")"; fails=$((fails + 1)); }
+( sleep 2; echo 900 >"$tmp/used" ) &
+out="$(PATH="$tmp/bin:$PATH" HITL_GPU_FREE_MB=50 VRAM_POLL=1 RENDER_LOCK_WAIT=10 bash "$W" --gpu echo ran 2>/dev/null)"
+expect 'a GPU run waits for the memory, then starts' "$out" ran
+echo 990 >"$tmp/used"
+out="$(PATH="$tmp/bin:$PATH" HITL_GPU_FREE_MB=0 RENDER_LOCK_WAIT=2 bash "$W" --gpu echo ran 2>/dev/null)"
+expect 'a free-memory floor of 0 turns the check off' "$out" ran
+out="$(PATH="$tmp/bin:$PATH" HITL_GPU_FREE_MB=50 RENDER_LOCK_WAIT=2 bash "$W" --software echo ran 2>/dev/null)"
+expect 'a software run does not wait for GPU memory' "$out" ran
+out="$(HITL_GPU_FREE_MB=50 PATH="/usr/bin:/bin" RENDER_LOCK_WAIT=2 bash "$W" --gpu echo ran 2>/dev/null)"
+expect 'without nvidia-smi the check is skipped' "$out" ran
 [ $fails -eq 0 ] && echo "with-render-lock: all cases pass" || echo "with-render-lock: $fails failing"
 [ $fails -eq 0 ]
