@@ -366,8 +366,10 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     for (const a of APPROACH_TURNS) {
       const x = seat.x + Math.sin(back + a) * CHAIR_BACK_M, z = seat.z + Math.cos(back + a) * CHAIR_BACK_M;
       const inside = Math.abs(x) < L.W / 2 - BODY_R && Math.abs(z) < L.D / 2 - BODY_R;
-      // Off the walk grid, the route would end at the nearest free cell and cut across to it.
-      if (inside && (a === 0 || !nav.isBlocked(x, z)) && !obs.some((o) => !own.has(o.by) && near(o, x, z, BODY_R))) return { x, z };
+      // Off the walk grid, the route would end at the nearest free cell and cut across to it. Away
+      // from straight behind, the slide between the seat and the point must clear other furniture too.
+      const slideClear = a === 0 || [0.25, 0.5, 0.75].every((t) => !obs.some((o) => !own.has(o.by) && near(o, seat.x + (x - seat.x) * t, seat.z + (z - seat.z) * t, BODY_R)));
+      if (inside && slideClear && (a === 0 || !nav.isBlocked(x, z)) && !obs.some((o) => !own.has(o.by) && near(o, x, z, BODY_R))) return { x, z };
     }
     return { x: seat.x + Math.sin(back) * CHAIR_BACK_M, z: seat.z + Math.cos(back) * CHAIR_BACK_M };
   }
@@ -393,13 +395,15 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (goal.seated) to = seatApproach(goal);
     r.path = walkPath(nav, { x: r.pos.x, z: r.pos.z }, { x: to.x, z: to.z });
     r.path.shift();
-    // Leaving a seat at an item (the NOC) the way they came: back out behind the chair first, the item
-    // still theirs until they're clear of it, as at a desk.
-    if (from && from !== goal && from.seated && from.uses && Math.hypot(r.pos.x - from.x, r.pos.z - from.z) < 0.3) {
+    // Leaving a seat the way they came: back out behind the chair first (not through the nearest gap
+    // beside it), and at an item (the NOC) the item stays theirs until they're clear of it.
+    if (from && from !== goal && from.seated && Math.hypot(r.pos.x - from.x, r.pos.z - from.z) < 0.3) {
       const back = seatApproach(from);
       r.path = [back, ...walkPath(nav, back, { x: to.x, z: to.z }).slice(1)];
-      r.exitFrom = from.uses;
-      r.exitSide = back;
+      if (from.uses) {
+        r.exitFrom = from.uses;
+        r.exitSide = back;
+      }
     }
     // Starting inside furniture (an item placed where they stood) finds no path: out to the nearest
     // clear point first, then on from there.
