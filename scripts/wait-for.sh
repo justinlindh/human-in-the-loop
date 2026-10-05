@@ -77,8 +77,8 @@ q_write() { # <ready_since> <state> <since>: replaces the entry whole, so a read
     && printf 'ready_since=%s pr=%s state=%s since=%s\n' "$1" "$pr" "$2" "$3" >"$t" && mv -f "$t" "$qfile"
 }
 # q_state <ready|pending> [join]: records a change of state with its time; with `join`, also enters the
-# queue when not in it. An entry that has been pending (its PR not fully green) longer than HITL_QUEUE_PENDING seconds (default 2700,
-# a CI cycle and a half) no longer holds the line, and gets its place back when the PR is ready again.
+# queue when not in it. An entry that has been pending (its PR not fully green) longer than HITL_QUEUE_PENDING seconds (default 1200,
+# a CI cycle plus runner queueing) no longer holds the line, and gets its place back when the PR is ready again.
 q_state() {
   local now cur; now="$(date +%s)"
   if [ ! -f "$qfile" ]; then
@@ -99,7 +99,7 @@ q_ahead() { # prints the PR number of a fresh entry ahead of this one; fails whe
     [ "$p" = "$pr" ] && continue
     q_fresh "$f" || continue
     st="$(q_get "$f" state)"; sn="$(q_get "$f" since)"
-    [ "$st" = pending ] && [ -n "$sn" ] && [ $(( $(date +%s) - sn )) -ge "${HITL_QUEUE_PENDING:-2700}" ] && continue
+    [ "$st" = pending ] && [ -n "$sn" ] && [ $(( $(date +%s) - sn )) -ge "${HITL_QUEUE_PENDING:-1200}" ] && continue
     t="$(q_since "$f")"; [ -n "$t" ] || continue
     if [ "$t" -lt "$mine" ] || { [ "$t" -eq "$mine" ] && [ "$p" -lt "$pr" ]; }; then echo "$p"; return 0; fi
   done
