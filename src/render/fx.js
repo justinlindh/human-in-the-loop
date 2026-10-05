@@ -94,9 +94,14 @@ export function createFx({ scene, overlayEl }) {
     alarmDur = seconds;
   }
 
+  // A held red wash (the bridge loan's takeover) shows through the same edge, under any alarm pulse.
+  let washK = 0, shown = '0';
+  const showVignette = (k) => { const v = k.toFixed(2); if (v !== shown) vignette.style.opacity = shown = v; };
+  function setWash(k) { washK = k; }
+
   let alarmLevel = 0;
   function updateAlarm(dt) {
-    if (alarmT >= alarmDur) { spot.intensity = 0; vignette.style.opacity = '0'; alarmLevel = 0; return; }
+    if (alarmT >= alarmDur) { spot.intensity = 0; showVignette(washK); alarmLevel = 0; return; }
     alarmT += dt;
     const env = Math.min(1, alarmT / 0.2) * Math.min(1, (alarmDur - alarmT) / 0.5);
     const a = alarmT * 4.5;
@@ -104,7 +109,7 @@ export function createFx({ scene, overlayEl }) {
     spot.target.position.set(alarmCenter.x + Math.cos(a) * alarmR, 0, alarmCenter.z + Math.sin(a) * alarmR);
     spot.intensity = 160 * env;
     alarmLevel = env * (0.55 + 0.45 * Math.max(0, Math.sin(alarmT * 9)));
-    vignette.style.opacity = String((0.3 + 0.25 * Math.sin(alarmT * 9)) * env);
+    showVignette(Math.max(washK, (0.3 + 0.25 * Math.sin(alarmT * 9)) * env));
   }
 
   // Item placement: the model drops in from a little above with a small settle bounce, and a soft
@@ -185,7 +190,7 @@ export function createFx({ scene, overlayEl }) {
   }
 
   return {
-    group, confetti, alarm, pop, puff, update,
+    group, confetti, alarm, pop, puff, update, setWash,
     get alarmLevel() { return alarmLevel; },
     get liveConfetti() { return systems.filter((s) => s.active).length; },
   };

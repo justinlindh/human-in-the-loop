@@ -217,7 +217,9 @@ export const ITEMS = [
         window.__HITL.dispatch({ type: 'setPolicy', id: 'async_standups', on: false });
         window.__HITL.dispatch({ type: 'setPolicy', id: 'daily_standups', on: true });`,
     })}; ${CLEAN}; })()`,
-    actions: [...CLEAR_EARLY, ...DISMISS_AT([2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18], { escape: false }), ...CAMLOG(24)],
+    // The week the table is placed can raise a decision (a poaching offer, say) that holds the office still
+    // under its card: answer whichever one it is in the first seconds.
+    actions: [...CLEAR_EARLY, ...CHOOSE_WHEN(null, 0, 0.3, 24, 0.4), ...DISMISS_AT([2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18], { escape: false }), ...CAMLOG(24)],
     screenshots: [8.5, 12, 15, 18],
     // People start walking over around 8.5s and are seated by 10s; the dialogue lands by 14s. Cropped
     // on the table (it sits in a back corner, so the full frame reads as mostly empty).
@@ -226,7 +228,7 @@ export const ITEMS = [
   {
     id: 'site-loop-waffle', title: 'Landing page loop: the Waffle Party', query: 'seed=1&speed=1', seconds: 30,
     setup: `(async () => { await ${WAFFLE_SETUP}; ${CLEAN}; })()`, actions: [{ at: 0, js: NO_SAY }, ...WAFFLE_ACTIONS(30), ...CAMLOG(30)], screenshots: [12, 16, 20, 24],
-    out: [LOOP('waffle', 16, 4.2, MIDDLE, 28)],
+    out: [LOOP('waffle', 16, 4.2, MIDDLE, 28)], publish: true,
   },
   {
     // Music night is made the next reward, and the live week raises its genre decision; the first
@@ -235,7 +237,7 @@ export const ITEMS = [
     setup: `(async () => { await ${PLAY({ weeks: 176, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE} sim.stageIncentive(s, 'music_night');` })}; await ${PRE_DECISION('music_night_genre', 16)}; ${CLEAN}; })()`,
     actions: [{ at: 0, js: NO_SAY }, ...CLEAR_EARLY, ...CHOOSE_WHEN('music_night_genre', 0, 1, 20, 3), ...Array.from({ length: 36 }, (_, i) => ({ at: i + 4.5, js: CLICK('Onward') })), ...CAMLOG(40)],
     screenshots: [16, 20, 24, 28],
-    out: [LOOP('music', 19, 4.2, MIDDLE, 30)],
+    out: [LOOP('music', 19, 4.2, MIDDLE, 30)], publish: true,
   },
   {
     // Every monitor shows the ransom skull while the decision is open; the office holds still under
