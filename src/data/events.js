@@ -5,6 +5,7 @@ import { DOTCOM_EVENTS } from './dotcom.js';
 import { WEB2_EVENTS } from './web2.js';
 import { PREINTERNET_EVENTS } from './preinternet.js';
 import { Y2K_EVENTS } from './y2k.js';
+import { ALLHANDS_SCREEN, variantText } from './moment-variants.js';
 // Random and triggered events. `when(state, h)` receives helpers from the sim:
 // h = { B, mrr, live, bestScore, usesModel(id), offerReady }. Optional eras: [eraIds] limits an event to those eras;
 // without it an event is kept out of the Classic era when its text mentions AI. marks: a flag set to the week it is raised.
@@ -335,7 +336,7 @@ const list = [
     when: (s) => s.officeStage >= 1,
     stage: { prop: 'sledgehammer', anchor: 'wall' },
     title: 'Knock down the walls?',
-    text: '{name} wants an open-plan office. "Collaboration!" The walls are not structural. Neither, it turns out, is the plan.',
+    text: variantText(ALLHANDS_SCREEN, ALLHANDS_SCREEN.text, '{name} wants an open-plan office. "Collaboration!" The walls are not structural. Neither, it turns out, is the plan.'),
     choices: [
       { label: 'Knock them down', hint: 'Cheap; more output but slower recovery for 26 weeks', effects: { cash: -2000, modifier: [{ key: 'output', value: 0.08, weeks: 26, label: 'Open-plan buzz' }, { key: 'meaningRecovery', value: -0.3, weeks: 26, label: 'Open-plan noise' }] }, outcome: 'Everyone can see everyone. Headphone sales in the area spike.' },
       { label: 'Keep the walls', hint: 'Nothing happens', effects: {}, outcome: 'The walls stay. So do the doors, which close.' },
