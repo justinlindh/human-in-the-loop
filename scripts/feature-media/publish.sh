@@ -33,7 +33,7 @@ cd "$WT"
 top="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 [ -n "$top" ] && [ "$top" = "$(realpath -- "$WT")" ] && [ "$top" != "$REPO" ] \
   || { echo "publish: $WT is not a git worktree of its own; refusing to reset it" >&2; exit 1; }
-[ "$(git rev-parse --git-common-dir | xargs realpath)" = "$(git -C "$REPO" rev-parse --git-common-dir | xargs realpath)" ] \
+[ "$(git rev-parse --path-format=absolute --git-common-dir | xargs realpath)" = "$(git -C "$REPO" rev-parse --path-format=absolute --git-common-dir | xargs realpath)" ] \
   || { echo "publish: $WT belongs to another repository; refusing to reset it" >&2; exit 1; }
 branch="$(git symbolic-ref -q --short HEAD || true)"
 if [ -n "$branch" ]; then
