@@ -7,7 +7,7 @@
 // Writes <dir>/index.json and <dir>/shot-<n>.json. Results are cached under HITL_MOCAP_CACHE
 // (default ~/.cache/hitl-ci/mocap-cache) per (video hash, shot, model versions, options).
 import { spawn } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -54,6 +54,8 @@ if (startFrame >= endFrame) fail(`the range starts at frame ${startFrame} but th
 
 const out = resolve(opts.out);
 mkdirSync(out, { recursive: true });
+// Shot files and the index of an earlier run would otherwise sit beside this run's.
+for (const f of readdirSync(out)) if (f === 'index.json' || /^shot-\d+\.json$/.test(f)) rmSync(join(out, f), { force: true });
 const work = makeTemp('mocap-');
 let child = null;
 const cleanup = () => { if (!opts['keep-work']) rmSync(work, { recursive: true, force: true }); };
@@ -100,7 +102,8 @@ for (const [n, shot] of shots.entries()) {
     const code = await runWorker(clip, res, shot);
     json = code === 0 ? validShot(res) : null;
     if (!json) { console.error(`track: the worker ${code === 0 ? 'wrote no valid shot file' : `exited ${code}${code === 124 ? ' (timeout)' : ''}`} for shot ${n} (frames ${shot.start}-${shot.end})`); failed = true; break; }
-    renameSync(res, `${cached}.part`); renameSync(`${cached}.part`, cached);
+    // Copy (the cache can be on another disk than the scratch directory), then rename inside the cache.
+    copyFileSync(res, `${cached}.part`); renameSync(`${cached}.part`, cached);
     copyFileSync(cached, dest);
     console.error(`track: shot ${n} tracked in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
   }

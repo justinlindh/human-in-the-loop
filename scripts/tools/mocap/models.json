@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "worker": 2,
+  "worker": 3,
   "gemX": { "repo": "https://github.com/NVlabs/GEM-X.git", "commit": "32992550dba114c62243fb55e361311972dce8f9" },
   "soma": { "repo": "https://github.com/NVlabs/SOMA-X.git", "commit": "e0f8ff0ecfa3edbbb6058b1e0f08822ee2f84ee5" },
   "sam3dBody": { "repo": "https://github.com/facebookresearch/sam-3d-body.git", "commit": "b5c765a0d89d789985e186d396315e7590887b94" },
