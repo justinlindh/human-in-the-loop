@@ -677,7 +677,7 @@ Mail = {
 A placeable radio. The station is flavour: the effect is the same whatever plays. The whole feature sits behind `B.boombox.enabled`.
 
 - Item `boombox`: furniture, 1x1, unique. Effect: adjacency `{ radius: B.boombox.radius, key: 'meaningRecovery', value: B.boombox.meaning }`. itemBonus skips it while `state.radio.on` is false, and it counts toward `B.itemBonusCap` like any item. Render may show an HQ variant by office stage; the sim item is the same.
-- Stations live in `src/data/stations.js` as `STATIONS`: ids `lofi`, `synth88`, `polka`, `bossa`, `elevator`, `funk`, each with a display name. Audio keys its station beds to these ids (audio #1550 renames its `synth` key to `synth88`).
+- Stations live in `src/data/stations.js` as `STATIONS`: ids `lofi`, `synth88`, `polka`, `bossa`, `elevator`, `funk`, each with a display name. Audio keys its station beds to these ids.
 
 ```js
 state.radio = { on, station }   // on: bool; station: a STATIONS id or null
@@ -698,7 +698,7 @@ person.taste                    // a STATIONS id
 ### Events: Boombox
 
 ```js
-{ type: 'radio', on, station, by }               // the radio changed; by: null for the player, or a staffId when the sim's rare station-swap event changes it
+{ type: 'radio', on, station, by }               // the radio changed; by: null for the player, or a staffId when the sim's rare station-swap event changes it (that event changes only the station, never on or off)
 { type: 'radioTaste', staffId, station, verdict } // verdict: 'like' | 'dislike'; at most one per B.boombox.tasteGapWeeks; comes with a Yak line or speech bubble
 ```
 
