@@ -1012,6 +1012,9 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       tick: (r, dt) => { r.yaw = angleLerp(r.yaw, turnTo, 1 - Math.exp(-dt * 8)); return false; },
     };
     seller.char.gesture('deal', DEAL.seconds, Math.sin(turnTo - camYaw) >= 0 ? 1 : -1);
+    // 'hitl:dealBell' { staffId, seconds } when the bell is rung on screen, so its sound plays only
+    // with the picture (a skipped beat stays silent).
+    if (typeof dispatchEvent === 'function') dispatchEvent(new CustomEvent('hitl:dealBell', { detail: { staffId: seller.id, seconds: DEAL.seconds } }));
     if (low()) return;
     const crowd = [...recs.values()]
       .filter((r) => r !== seller && !r.hidden && !r.temp && !r.path.length && r.char.seated && r.goal && r.staff.mood !== 'away' && r.pos.distanceTo(seller.pos) < DEAL.nearby)
