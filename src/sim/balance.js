@@ -233,9 +233,10 @@ export const B = {
   },
   // The inbox: one ambient roll and one actionable roll a week, at most actionOpen mails with an open choice,
   // each open for expiryWeeks; at most kept mails in all, oldest settled first. A reply-all storm grows for
-  // up to replyAllWeeks. The rest are the actionable templates' effect sizes.
+  // up to replyAllWeeks. botLateWeeks is how long the late-answering bot leaves mail. The rest are the
+  // actionable templates' effect sizes.
   mail: {
-    enabled: false, fromWeek: 4, ambientChance: 0.35, actionChance: 0.12, actionOpen: 2, expiryWeeks: 8, kept: 40, templateCooldown: 12,
+    enabled: false, botLateWeeks: 4, fromWeek: 4, ambientChance: 0.35, actionChance: 0.12, actionOpen: 2, expiryWeeks: 8, kept: 40, templateCooldown: 12,
     replyAllChance: 0.02, replyAllCooldown: 26, replyAllWeeks: 3, replyAllOutput: -0.02,
     pitchKnowledge: 2, pitchStrain: 3, refund: 1500, refundBrand: 1, fixOutput: -0.03, fixHealth: 6, complaintIgnoredBrand: -1,
     poachTellMeaning: 4, poachRaisePct: 8, poachRaiseMeaning: 2, poachIgnoredStrain: 3, partnerHype: 8, partnerOutput: -0.04,
