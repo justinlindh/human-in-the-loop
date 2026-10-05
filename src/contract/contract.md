@@ -671,3 +671,36 @@ Mail = {
 - A chat event may carry `mailId`, and a prompt option may use `opens: { panel: 'mail', arg: mailId }`.
 - Mail randomness comes from its own stream (seed, week, `mailSeq`), so with `B.mail.enabled` false a seeded game matches one without the feature.
 - Old saves load with `mail = []` and `flags.mailSeq = 0`.
+
+## Boombox (#139)
+
+A placeable radio. The station is flavour: the effect is the same whatever plays. The whole feature sits behind `B.boombox.enabled`.
+
+- Item `boombox`: furniture, 1x1, unique. Effect: adjacency `{ radius: B.boombox.radius, key: 'meaningRecovery', value: B.boombox.meaning }`, applied only while `state.radio.on`. Render may show an HQ variant by office stage; the sim item is the same.
+- Stations live in `src/data/stations.js` as `STATIONS`: ids `lofi`, `synth88`, `polka`, `bossa`, `elevator`, `funk`, each with a display name. Audio keys its station beds to these ids.
+
+```js
+state.radio = { on, station }   // on: bool; station: a STATIONS id or null
+person.taste                    // a STATIONS id
+```
+
+- Placing the boombox sets `radio = { on: true, station: 'lofi' }`; selling it sets `on: false` and keeps `station`.
+- `person.taste` is derived from the game seed and the person's id, with no draw from the main stream. It is set at hire; old saves derive it on load.
+- Old saves load with `radio = { on: false, station: null }`.
+
+### Actions: Boombox
+
+```js
+{ type: 'setRadio', on?, station? }   // works while paused; refusals: 'No boombox' | 'Unknown station'
+```
+
+### Events: Boombox
+
+```js
+{ type: 'radio', on, station, by }               // the radio changed; by: null for the player, or the staffId who changed the station while you were out
+{ type: 'radioTaste', staffId, station, verdict } // verdict: 'like' | 'dislike'; at most one per B.boombox.tasteGapWeeks; comes with a Yak line or speech bubble
+```
+
+- Taste reactions and the occasional argument carry no stat penalty either way.
+- A music night overrides the radio in audio while it runs; the sim state is unchanged.
+- Boombox randomness comes from its own stream, so with `B.boombox.enabled` false a seeded game matches one without the feature.
