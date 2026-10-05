@@ -33,8 +33,9 @@ function injectStyle() {
   .hitl-leads i { position: absolute; width: 2.5px; margin-left: -1.25px; background: ${P.ink}; border-radius: 2px; }
   .hitl-leads i::after { content: ''; position: absolute; left: 50%; bottom: -4px; width: 8px; height: 8px;
     margin-left: -4px; border-radius: 50%; background: ${P.ink}; box-shadow: 0 0 0 2px ${P.paper}; }
-  .hitl-banner .in { background: ${P.gold}; color: ${P.ink}; font: 700 24px Fredoka, sans-serif; padding: 7px 20px;
-    border: 3px solid ${P.ink}; border-radius: 12px; box-shadow: 0 4px 0 ${P.ink}; }
+  .hitl-banner .in { background: ${P.gold}; color: ${P.ink}; font: 700 clamp(16px, 5vw, 24px) Fredoka, sans-serif;
+    padding: 7px 20px; border: 3px solid ${P.ink}; border-radius: 12px; box-shadow: 0 4px 0 ${P.ink};
+    display: block; max-width: min(86vw, 560px); white-space: normal; text-align: center; box-sizing: border-box; }
   .hitl-sign .in { padding: 2px 8px; border-radius: 8px; background: ${P.paper}; color: ${P.ink};
     border: 2px solid ${P.ink}; font: 600 12px Fredoka, sans-serif; }
   `;
