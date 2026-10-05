@@ -13,7 +13,12 @@ lst src/contract/contract.md; grep -q 'running the full test:fast' <<<"$out" || 
 lst docs/effects/x.md; grep -q 'running the full test:fast' <<<"$out" || fail "docs/effects forces the full run: $out"
 lst package.json; grep -q 'running the full test:fast' <<<"$out" || fail "package.json forces the full run: $out"
 lst public/models/chibi.glb; grep -q 'running the full test:fast' <<<"$out" || fail "a model forces the full run: $out"
-lst src/ui/advisor.js scripts/ci-local.sh; grep -q 'scripts/ci-local.sh is not plain JS' <<<"$out" || fail "a shell script forces the full run: $out"
+lst src/ui/advisor.js scripts/ci-local.sh; grep -q 'scripts/ci-local.sh is a script no test names' <<<"$out" || fail "a shell script no test runs forces the full run: $out"
+# A shell script a test runs by its path selects that test, which vitest related can't see.
+lst scripts/wait-for.sh; grep -q '^tests/tools/wait-for.test.js$' <<<"$out" && grep -q 'run a changed script by its path' <<<"$out" && ! grep -q 'full test:fast' <<<"$out" \
+  || fail "a spawned shell script selects the test that runs it: $out"
+lst scripts/tools/ab.sh; grep -q '^tests/tools/ab.test.js$' <<<"$out" || fail "a spawned script under scripts/tools selects its test: $out"
+lst scripts/wait-for.test.sh; grep -q 'nothing to run' <<<"$out" || fail "a shell test is left to GitHub's tools job: $out"
 lst; grep -q 'no changes\|nothing to run' <<<"$out" || fail "no files: $out"
 # The real run: one test file's related tests pass and exit 0.
 bash "$HERE/test-related.sh" --files src/ui/advisor.js >/dev/null 2>&1; [ $? -eq 0 ] || fail "a related run exits 0"

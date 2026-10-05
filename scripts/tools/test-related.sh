@@ -19,12 +19,19 @@ else
 fi
 full() { echo "test-related: $1: running the full test:fast"; [ "$list" = 1 ] && exit 0; exec npm run test:fast; }
 [ -n "$files" ] || { echo "test-related: no changes against ${base:0:9}: nothing to run"; exit 0; }
+# Tests that run a changed script by its path (spawned, not imported), which vitest related can't see.
+spawned="$(node scripts/tools/spawned-tests.mjs $files 2>/dev/null)"
+named_by_test() { # <shell script>: true when a spawned test names it
+  [ -n "$spawned" ] && [ -n "$(node scripts/tools/spawned-tests.mjs "$1" 2>/dev/null)" ]
+}
 keep=''
 while read -r f; do
   case "$f" in
     docs/effects/*) full "$f is read by the effects test" ;;
     .claude/* | docs/*) continue ;; # no test reads these
     src/*.js | src/*/*.js | src/*/*/*.js | tests/*.js | tests/*/*.js | tests/*/*/*.js | scripts/*.js | scripts/*.mjs | scripts/*/*.js | scripts/*/*.mjs) ;;
+    # A shell script a test runs adds that test; a shell test (*.test.sh) runs in GitHub's tools job.
+    scripts/*.sh | scripts/*/*.sh) named_by_test "$f" && continue; case "$f" in *.test.sh) continue ;; esac; full "$f is a script no test names" ;;
     */*) full "$f is not plain JS under src, tests or scripts" ;;
     *.md) continue ;; # a top-level markdown file
     *) full "$f is not plain JS under src, tests or scripts" ;;
@@ -32,8 +39,10 @@ while read -r f; do
   keep+="$f"$'\n'
 done <<<"$files"
 files="$(sed '/^$/d' <<<"$keep")"
-[ -n "$files" ] || { echo "test-related: only files no test reads changed (docs, .claude, markdown): nothing to run"; exit 0; }
-echo "test-related: $(wc -l <<<"$files") changed file(s)"
-[ "$list" = 1 ] && { echo "$files"; exit 0; }
+[ -n "$files$spawned" ] || { echo "test-related: only files no test reads changed (docs, .claude, markdown): nothing to run"; exit 0; }
+[ -n "$files" ] && echo "test-related: $(wc -l <<<"$files") changed file(s)"
+[ -n "$spawned" ] && echo "test-related: plus $(wc -l <<<"$spawned") test file(s) that run a changed script by its path: $(tr '\n' ' ' <<<"$spawned")"
+[ "$list" = 1 ] && { printf '%s\n' "$files" "$spawned" | sed '/^$/d' | sort -u; exit 0; }
+# A test file given to vitest related runs itself.
 # shellcheck disable=SC2086
-exec bash scripts/test-cache.sh npx vitest related --run --passWithNoTests --exclude tests/sim/balance.test.js $files
+exec bash scripts/test-cache.sh npx vitest related --run --passWithNoTests --exclude tests/sim/balance.test.js $files $spawned
