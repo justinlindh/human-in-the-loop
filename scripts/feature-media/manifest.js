@@ -616,7 +616,7 @@ export const ITEMS = [
   // docs/features/sound.md: the four music night genres. The live week raises the genre decision, the item
   // answers it, and the game's own spotlight camera follows the dance break.
   ...['corporate_synthwave', 'motivational_polka', 'aggressive_bossa_nova', 'sad_lofi'].map((genre, i) => ({
-    id: `moment-music-${genre}`, title: `Staged moment: music night, ${genre}`, query: 'seed=1&speed=1', seconds: 40, warmup: 0.5, record: '3840x2160',
+    id: `moment-music-${genre}`, title: `Staged moment: music night, ${genre}`, query: 'seed=1&speed=1', seconds: 40, warmup: 0.5, record: '3840x2160', audio: true,
     setup: `(async () => { await ${PLAY({ weeks: 176, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE} sim.stageIncentive(s, 'music_night');` })}; await ${PRE_DECISION('music_night_genre', 16)}; ${CLEAN}; })()`,
     actions: [{ at: 0, js: NO_SAY }, ...CLEAR_EARLY, ...CHOOSE_WHEN('music_night_genre', i, 1, 20, 3), ...Array.from({ length: 36 }, (_, k) => ({ at: k + 4.5, js: CLICK('Onward') })),
       // The genre card answered and the dance break raised: the winner is cleared and the ladder has moved.
