@@ -48,6 +48,20 @@ describe.skipIf(!have).concurrent('media-sheet', () => {
     expect(w).toBeGreaterThan(500);
   }, 250000);
 
+  it('writes an 8-bit PNG with no page offset, and takes a title that starts with @ and holds %', async () => {
+    const odd = join(tmp, '@odd %w');
+    mkdirSync(odd, { recursive: true });
+    ff('-f', 'lavfi', '-i', 'testsrc=size=640x360:rate=30', '-t', '2', join(odd, 'a@b.mp4'));
+    const out = join(tmp, 'odd.png');
+    const r = await run(out, odd);
+    expect(r.status, r.stderr).toBe(0);
+    const info = spawnSync('magick', ['identify', '-format', '%z %W %H %w %h %X %Y', out], { encoding: 'utf8' }).stdout.trim();
+    const [depth, pw, ph, w, h, x, y] = info.split(' ').map(Number);
+    expect(depth).toBe(8);
+    expect([pw, ph]).toEqual([w, h]);
+    expect([x, y]).toEqual([0, 0]);
+  }, 250000);
+
   it('refuses bad input plainly', async () => {
     const none = await run(join(tmp, 'x.png'));
     expect(none.status).toBe(2);

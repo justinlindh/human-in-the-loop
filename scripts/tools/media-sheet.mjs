@@ -8,7 +8,7 @@
 // cells come from scripts/sheet.sh; rows of different widths are padded with white, so a clip row and a short row
 // of stills stack without a size mismatch. Exit 0 on success, 2 on bad input, 1 when a row cannot be made.
 import { spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { toolTmp } from './tmp.mjs';
@@ -78,10 +78,13 @@ try {
   const titled = [];
   for (const [i, r] of rows.entries()) {
     const file = join(tmp, `titled-${i}.png`);
-    await run('magick', ['(', '-background', 'white', '-fill', 'black', '-font', 'DejaVu-Sans', '-pointsize', '22', `label:${r.title}`, ')', r.file, '-background', 'white', '-gravity', 'west', '-append', file]);
+    // The title comes from a file (label:@file), so a path that starts with @ or holds % or \ is plain text.
+    const text = join(tmp, `title-${i}.txt`);
+    writeFileSync(text, r.title);
+    await run('magick', ['(', '-background', 'white', '-fill', 'black', '-font', 'DejaVu-Sans', '-pointsize', '22', `label:@${text}`, '-bordercolor', 'white', '-border', '8x4', ')', r.file, '-background', 'white', '-gravity', 'west', '-append', '-depth', '8', '+repage', file]);
     titled.push(file);
   }
-  await run('magick', [...titled, '-background', 'white', '-gravity', 'west', '-append', resolve(out)]);
+  await run('magick', [...titled, '-background', 'white', '-gravity', 'west', '-append', '-depth', '8', '+repage', resolve(out)]);
   console.log(resolve(out));
 } catch (e) {
   code = 1;
