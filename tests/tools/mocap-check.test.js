@@ -71,9 +71,11 @@ describe('mocap.mjs', () => {
   it('fails two clips standing in one place, a person off screen, and a limb through the body', async () => {
     const same = { pos: [0, 0, 0], yaw: 0, scale: 1 };
     const a = file('a', clipOf('a', null, same)), b = file('b', clipOf('b', null, same));
-    const together = await run(['--clip', `${a},${b}`, '--frames', '0,6,11']);
+    // The game eases people apart when their heads come closer than `apart`; with that off they overlap, with it on they do not.
+    const [together, eased] = await Promise.all([run(['--clip', `${a},${b}`, '--frames', '0,6,11', '--shot', '{"apart":0}']), run(['--clip', `${a},${b}`, '--frames', '0,6,11'])]);
     expect(together.status, together.stdout).toBe(1);
     expect(together.stdout).toMatch(/MOCAP FAIL s\d+ pairDepth/);
+    expect(eased.stdout).toMatch(/MOCAP ok\s+s\d+ pairDepth/);
     const away = await run(['--clip', a, '--frames', '0,6,11', '--camera', '0,60,0,0,60,-10', '--expect', 'onScreen>=0.9@0.9']);
     expect(away.status, away.stdout).toBe(1);
     expect(away.stdout).toMatch(/MOCAP FAIL s\d+ onScreen/);
@@ -85,9 +87,9 @@ describe('mocap.mjs', () => {
     expect(crossed.stdout).toMatch(/selfDepth max 0\.0[4-9]\d* \(armL~torso/);
   }, 240000);
 
-  it('stages the gaps with --spread: close origins overlap at 1, clear at 8', async () => {
+  it('stages the gaps with --spread: close origins overlap at 1, clear at 8 (head spacing off)', async () => {
     const a = file('sa', clipOf('sa', null, { pos: [0, 0, 0], yaw: 0, scale: 1 })), b = file('sb', clipOf('sb', null, { pos: [0.2, 0, 0], yaw: 0, scale: 1 }));
-    const [tight, wide] = await Promise.all([run(['--clip', `${a},${b}`, '--frames', '0,6', '--spread', '1']), run(['--clip', `${a},${b}`, '--frames', '0,6', '--spread', '8'])]);
+    const [tight, wide] = await Promise.all([run(['--clip', `${a},${b}`, '--frames', '0,6', '--spread', '1', '--shot', '{"apart":0}']), run(['--clip', `${a},${b}`, '--frames', '0,6', '--spread', '8', '--shot', '{"apart":0}'])]);
     expect(tight.stdout).toMatch(/MOCAP FAIL s\d+ pairDepth/);
     expect(wide.stdout).toMatch(/MOCAP ok\s+s\d+ pairDepth/);
     const bad = await run(['--clip', a, '--spread', '0']);
