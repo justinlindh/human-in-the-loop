@@ -108,7 +108,8 @@ const MOMENTS = [
   ['carrier', 'cat_request --choice 0', 'pet_carrier', 0, 2.8],
   ['consultants', 'efficiency_consultants --choice 1', 'visitor_chair', 1, 3.2],
   ['letter', 'hearing_summons --choice 0', 'envelope_thick', 0, 3.4],
-  ['fumes', 'coffee_machine_broke --stage floor --choice 0', 'smoke_puff', 0, 2.8],
+  // "Live with it" (the third answer) keeps the smoke up for 12 s after the card closes, so the fanning plays in it.
+  ['fumes', 'coffee_machine_broke --stage floor --seed 2 --choice 0', '() => ({ x: -2.5, z: -5.5 })', 2, 3, 24],
   ['bridge-loan', 'bridge_loan --choice 0', 'screens_red', 0],
   ['ransomware', 'ransomware --stage garage --choice 0', 'screens_skull', 0],
   ['printer', 'printer_jam --stage floor --choice 0', 'printer_jammed', 0, 2.6, 27],
@@ -294,7 +295,9 @@ export const ITEMS = [
     id: 'site-yak-backfire', title: 'Landing page: a meme mid-outage, and the replies', query: 'seed=2&speed=1', warmup: 0.5, still: true,
     setup: `(async () => { await ${PRE_UNTIL({ weeks: 600, bot: 'balanced', turn: 's.office.stage < 1 || s.staff.length < 8', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: '(c) => c.office.stage === 1 && c.outage?.weeks === 0' })}; ${YAK_ONLY}; ${YAK_HELPERS} })()`,
     actions: [
-      ...CLEAR_EARLY, ...DISMISS_AT([4, 5, 6, 12, 18, 24, 28, 30, 31, 32, 32.5, 32.9], { escape: false }), ...CHOOSE_WHEN('outage_unfixable', 2, 1, 64, 1), ...CHOOSE_WHEN(null, 0, 1, 64, 1),
+      ...CLEAR_EARLY, ...DISMISS_AT([4, 5, 6, 12, 18, 24, 28, 30, 31, 32, 32.5, 32.9], { escape: false }),
+      // The launch results card (its button reads "Nice!") can land any time after the first 30 s of play.
+      ...[36, 40, 44, 48, 52, 56, 58, 59, 59.4, 59.8].map((at) => ({ at, js: CLEAR_CARDS })), ...CHOOSE_WHEN('outage_unfixable', 2, 1, 64, 1), ...CHOOSE_WHEN(null, 0, 1, 64, 1),
       { at: 9.5, js: CLICK_SEL('.chat.yak .ysz[aria-label="large size"]') },
       { at: 10, js: CLICK_SEL('.ypost-btn') },
       { at: 11, js: `(() => {
@@ -313,7 +316,7 @@ export const ITEMS = [
       YAK_CHECK(60.1, { crop: [376 / 1920, 190 / 1080, 1168 / 1920, 730 / 1080] }),
     ],
     screenshots: [11.1, 60.1],
-    out: [{ path: 'img/yak-backfire.webp', size: '1280x800', from: 60.1, crop: { x: 376 / 1920, y: 190 / 1080, w: 1168 / 1920, h: 730 / 1080 } }],
+    out: [{ path: 'img/yak-backfire.webp', size: '1280x800', from: 60.1, crop: { x: 376 / 1920, y: 190 / 1080, w: 1168 / 1920, h: 730 / 1080 } }], publish: true,
   },
   {
     id: 'site-printer', title: 'Landing page loop: the printer taken out back', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 25, warmup: 6.5,
@@ -388,10 +391,14 @@ export const ITEMS = [
   // decision comes from the event index, the game's own tick raises it, the camera follows the prop,
   // and the card is held about 5 s before its choice is made by key.
   ...MOMENTS.map(([name, query, prop, choice, zoom, length = 18]) => ({
-    id: `moment-${name}`, title: `Staged moment: ${name}`, query: 'seed=1&speed=1', moment: query, pre: true, seconds: length, warmup: 6.5,
+    id: `moment-${name}`, title: `Staged moment: ${name}`, query: 'seed=1&speed=1', moment: query, pre: name !== 'fumes', seconds: length, warmup: 6.5,
     setup: CLEAN,
     // No zoom: the game's wide view.
-    actions: [{ at: 0, js: NO_SAY }, ...OPEN(), ...(zoom ? FOLLOW([prop], zoom, 0, length) : []), { at: 6.5, js: KEY(String(choice + 1), `Digit${choice + 1}`) }, ...DISMISS_AT([7, 7.5, 9, 12], { escape: false }), ...CAMLOG(length)],
+    actions: [{ at: 0, js: NO_SAY }, ...OPEN(), ...(zoom ? FOLLOW(prop.startsWith('(') ? prop : [prop], zoom, 0, length) : []),
+      // Fumes: the card opens about 8 s in (the tick that raises it), so it is answered when it is up, not at a fixed time.
+      // Any other decision that comes first (the pre-tick week can raise one) gets its first answer.
+      ...(name === 'fumes' ? [...Array.from({ length: 2 * length }, (_, i) => ({ at: i / 2, js: `(() => { const H = window.__HITL, d = H.state.pendingDecision; if (d && d.eventId !== 'coffee_machine_broke') H.dispatch({ type: 'resolveDecision', choice: 0 }); })()` })), ...CHOOSE_WHEN('coffee_machine_broke', choice, 1, length, 3)] : [{ at: 6.5, js: KEY(String(choice + 1), `Digit${choice + 1}`) }]),
+      ...DISMISS_AT([7, 7.5, 9, 12], { escape: false }), ...CAMLOG(length)],
     screenshots: [5],
     out: [{ path: `moments/${name}.mp4`, size: '1280x720', from: 1.5, seconds: length - 4, loop: 'none' }],
   })),
@@ -421,5 +428,34 @@ export const ITEMS = [
     screenshots: [2],
     // The item sits at the middle of the frame; the 4K recording is cropped tight round it.
     out: [{ path: `items/${itemId}.webp`, size: '1280x720', from: 2, crop: { x: 0.31, y: 0.285, w: 0.38, h: 0.43 } }],
+  })),
+
+  // The two bystander reactions of docs/features/moments.md, staged by the render checks' own fixtures on
+  // the floor mock: a clicked person turns to the camera and barks; colleagues watch someone being fired.
+  ...[
+    ['click', "setupClick(R, S, { count: 1, voice: true })"],
+    ['fired', 'setupFired(R, S)'],
+  ].map(([name, call]) => ({
+    id: `moment-${name}`, title: `Staged moment: ${name}`, query: 'mock=floor&time=day&speed=1', seconds: 6, warmup: 0,
+    setup: `(async () => {
+      const R = window.__hitlRender, S = window.__HITL.state;
+      // The fixtures wait for people to settle at their spots, a frame at a time: the capture clock's frames.
+      window.__advance = (n = 1) => { for (let i = 0; i < n; i++) window.__capture.frame(); };
+      const { setupClick, setupFired } = await import('/src/render/checks.js');
+      const ids = ${call};
+      window.__subject = Array.isArray(ids) ? ids[0] : ids;
+      if (window.__subject == null) throw new Error('the fixture found nobody to stage');
+      // Where the subject stands as the reaction starts: the camera holds there while the bystanders turn.
+      let o = null; R.scene.traverse((x) => { if (!o && x.userData.staffId === window.__subject) o = x.parent; });
+      const v = o.getWorldPosition(new o.position.constructor());
+      window.__at = { x: v.x, z: v.z };
+      ${CLEAN};
+    })()`,
+    camera: [{ at: 0, target: { js: '(() => window.__at)()' }, zoom: 3.4 }],
+    screenshots: [3],
+    // The clicked person is a single seated figure: recorded at 4K and cropped round the middle of the frame.
+    ...(name === 'click' ? { record: '3840x2160' } : {}),
+    out: [{ path: `moments/${name}.mp4`, size: '1280x720', from: 0, seconds: 5, loop: 'none', ...(name === 'click' ? { crop: { x: 0.32, y: 0.28, w: 0.36, h: 0.4 } } : {}) }],
+    publish: true,
   })),
 ];
