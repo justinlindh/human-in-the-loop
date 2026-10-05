@@ -10,7 +10,7 @@ put() { mkdir -p "$(dirname "$r/$1")"; printf '%b' "$2" >"$r/$1"; }
 
 # new_case: a base commit with a few files, then branches main and pr from it.
 new_case() {
-  r="$tmp/$RANDOM$RANDOM"; mkdir -p "$r"; git -C "$r" init -q -b main
+  r="$(mktemp -d "$tmp/repo-XXXXXX")"; git -C "$r" init -q -b main
   put docs/a.md 'one\ntwo\n'
   put src/data/captions.js "export const C = {\n  a: 'A',\n};\n"
   put src/sim/balance.js 'export const B = {\n  x: 1, y: 2,\n  z: 3,\n};\n'
