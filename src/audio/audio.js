@@ -9,6 +9,7 @@ import { createLoader } from './loader.js';
 import { createLoops } from './loops.js';
 import { createDucked } from './ducked.js';
 import { createFrameClock } from './frameclock.js';
+import { voiceDetail } from './voiceevent.js';
 
 const KEEP_COMMANDS = 60;
 
@@ -138,17 +139,21 @@ export function createAudio({ quality = 'high' } = {}) {
             const meta = loader.meta(c.file);
             const takes = meta?.emotions?.[c.emotion] ?? meta?.emotions?.happy;
             if (meta?.file && !loader.ready(c.file)) loader.preload([c.file]);
-            let dur;
+            let dur, played = { emotion: c.emotion, takeIndex: null };
             if (loader.ready(c.file) && takes?.length) {
               // A cheer passes a take index so voices sharing an emotion say different lines.
-              const [off, d] = takes[Number.isInteger(c.take) ? c.take % takes.length : 0];
+              const ti = Number.isInteger(c.take) ? c.take % takes.length : 0;
+              const [off, d] = takes[ti];
               playBuffer(loader.get(c.file), 'voice', c.gain, c.at, { offset: off, duration: d });
               dur = d;
+              played = { emotion: meta.emotions[c.emotion] ? c.emotion : 'happy', takeIndex: ti };
             } else {
               const buf = loader.get(`${c.file}#${c.emotion}`);
               playBuffer(buf, 'voice', c.gain, c.at);
               dur = buf.duration;
             }
+            // Faces follow the voice: one event per bark that plays, with its loudness envelope.
+            dispatchEvent(new CustomEvent('hitl:voice', { detail: voiceDetail(c, { ...played, seconds: dur, startsIn: c.at - ctx.currentTime }) }));
             // A single bark ducks the music while it sounds.
             if (c.duckKey === 'voice') mix.hold('voice', Math.max(ctx.currentTime, c.at), Math.max(ctx.currentTime, c.at) + dur);
           } else if (c.duck) {
