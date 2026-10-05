@@ -569,17 +569,6 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const tmpQ = new THREE.Quaternion();
   // Variants the clips do not cover stay procedural: the drooping idle and the tired walk.
   const RIG_PROCEDURAL = { idle: () => tired || mood === 'coasting', walk: () => tired };
-  // An outside pose (mocap.js): { q: { bone: Quaternion }, pos: Vector3, after?(pivots) }, applied
-  // as is in place of clips and the procedural pose; after() runs once it is on the pivots (contact
-  // IK). Starting or stopping blends over BLEND_S like a clip switch.
-  let driven = null;
-  function drive(p) {
-    if (!!p === !!driven) { driven = p; return; }
-    pivotList.forEach((o, i) => { snap[i].q.copy(o.quaternion); snap[i].p.copy(o.position); });
-    blendT = 0;
-    driven = p;
-    if (!p) rigClip = undefined;
-  }
   function rigPose(dt) {
     const clip = (rigEnabled() || ALWAYS_CLIP.test(anim)) && !RIG_PROCEDURAL[anim]?.() ? rigClips()?.get(anim) ?? null : null;
     if (clip !== rigClip) {
@@ -1152,10 +1141,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     // Shoulder lifts settle back on either path, so a rig clip never keeps a gesture's raised shoulder.
     arms[0].shoulder.position.y = TORSO_H - 0.06 + cur.armLY;
     arms[1].shoulder.position.y = TORSO_H - 0.06 + cur.armRY;
-    if (driven) {
-      for (const k in driven.q) pivots[k]?.quaternion.copy(driven.q[k]);
-      body.position.copy(driven.pos);
-    } else if (!rigPose(dt)) {
+    if (!rigPose(dt)) {
       body.position.set(0, cur.bodyY, cur.bodyZ);
       body.rotation.set(cur.pitch, 0, 0);
       torso.rotation.set(cur.lean, cur.twist, 0);
@@ -1166,7 +1152,6 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       arms[1].shoulder.rotation.set(cur.armRX, 0, cur.armRZ);
     }
     blendIn(dt);
-    driven?.after?.(pivots);
     if (held?.userData.handSpan) {
       // Keep both palms on the shaft while the legs retain their walking animation.
       const stroke = anim === 'swing' ? Math.sin(animT * Math.PI * 2 / HAMMER_GRIP.swingS) : 0;
@@ -1374,10 +1359,6 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     gesture: playGesture,
     root, head: headGroup, setShadows, setAnim, setHeld, setMoveSpeed, setAnimRate, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
     express, lookAt,
-    // An outside pose for the rig pivots (mocap.js), or null to hand back to clips and code.
-    drive,
-    // The rig pivots by bone name (read only: for contact IK and checks).
-    get pivots() { return pivots; },
     // Mouth opening for speech, 0..1 (a voice take's loudness envelope).
     setTalk(v) { faceTalk = Math.max(0, Math.min(1, v)); },
     // Blends the face alone (talk, expression) with every timer held: speech while the game is paused.
