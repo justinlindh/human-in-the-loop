@@ -28,6 +28,19 @@ const BOB_BAR = 2.0;            // dance_bob's authored bar (chibi_rig.py)
 const STIFF_BAR = 4.0;          // dance_stiff covers two bars
 const DANCE_POOL = 7;
 const CROWD_REACTIONS = ['point', 'whisper', 'wave', 'shake'];
+// Music night onlookers: degrees round the dance floor from the camera's side (0 faces the camera),
+// in the order they fill, and the arc's radius in metres.
+// The back of the arc stays free for the speaker cart and the robot's DJ post.
+const ONLOOKER_ARC = [-80, 80, -125, 125];
+const ONLOOKER_R = 2.2;
+const ONLOOKER_CLEAR_M = 0.55;  // an onlooker's spot keeps this far from furniture
+const ROBOT_CLEAR_M = 0.65;    // an onlooker's spot keeps this far off the robot's way to its post
+// Distance from p to the segment ab, on the floor.
+function segDist(p, a, b) {
+  const dx = b.x - a.x, dz = b.z - a.z, l2 = dx * dx + dz * dz;
+  const t = l2 ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.z - a.z) * dz) / l2)) : 0;
+  return Math.hypot(p.x - a.x - dx * t, p.z - a.z - dz * t);
+}
 const REACTIONS = ['whisper', 'point', 'wave', 'shake'];
 const ROLL_S = 2.2;
 const DANCER_HOLD_M = 0.3;      // half-width of the square of floor a dancer on their spot blocks
@@ -436,16 +449,21 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
       hurry(r, 3);
     });
     const taken = new Set(dancers);
-    const crowd = shuffled([...recs.values()].filter((o) => !taken.has(o) && !o.hidden && o.mode === 'placed' && !o.temp), 'incentives')
-      .slice(0, 3).map((o, i) => {
-        // Onlookers stand to the sides and back, never between the camera and the dancers.
-        const p = at(...[[-2.2, 0.2], [2.2, 0.2], [1.8, -1.5]][i]);
-        const spot = { x: p.x, z: p.z, yaw: Math.atan2(center.x - p.x, center.z - p.z), anim: 'idle' };
-        o.temp = { anim: 'idle', t: DANCE_S - 1, goal: spot, back: true, party: true };
-        walkTo(o, spot);
-        hurry(o, 3.5);
-        return o;
-      });
+    const lead = at(...SPOTS[0]);
+    const focus = new THREE.Vector3(lead.x, 0.9, lead.z);
+    dancers.forEach((r, i) => { r.temp.stage = { moment: 'music', beat: 'dance', role: i === 0 ? 'dancer' : 'backup', target: focus }; });
+    // Onlookers stand on an arc round the floor that is open toward the camera: the sides first, then
+    // further round behind, never between the camera and the dancers.
+    const nav = office.nav();
+    const arc = ONLOOKER_ARC.map((deg) => {
+      const a = deg * Math.PI / 180;
+      for (const rad of [ONLOOKER_R, ONLOOKER_R + 0.4]) {
+        const p = at(Math.sin(a) * rad, Math.cos(a) * rad);
+        // Clear of furniture by a step, so an onlooker never stands where a coffee or shelf visit ends.
+        if (!nav.isBlocked(p.x, p.z, ONLOOKER_CLEAR_M)) return p;
+      }
+      return null;
+    }).filter(Boolean);
     const props = new THREE.Group();
     parent.add(props);
     const cart = speakerCart(genre.light);
@@ -453,17 +471,38 @@ export function createIncentives({ office, recs, walkTo, emote, parent, caricatu
     cart.group.position.set(door.x, 0, door.z);
     props.add(cart.group);
     const cartAt = at(0, -1.7);
-    dance = { genre, genreId: ev.genre, dancers, crowd, props, cart, cartAt, center, yaw: faceCam, t: 0, dur: DANCE_S };
+    dance = { genre, genreId: ev.genre, dancers, crowd: [], props, cart, cartAt, center, yaw: faceCam, t: 0, dur: DANCE_S };
     // A dance fitted to its track (fitToTrack) plays as long as the music.
     const d0 = dance;
     // The office robot, when there is one, plays DJ: behind the speaker cart, facing the floor,
-    // nodding on the beat. Off to one side reads worse than a step further back.
+    // nodding on the beat. Off to one side reads worse than a step further back. It picks its post
+    // before the onlookers do, and they keep off its way there.
     const dj = at(0, -2.5);
     dance.robot = robot?.join({
       role: 'dj', near: dj, face: at(0, 2), settle: 3.6, hurry: 3, beat: genre.bar / 4, clock: () => d0.t, color: genre.light,
       score: (q) => 2 * Math.abs((q.x - dj.x) * right.x + (q.z - dj.z) * right.z) + Math.abs((q.x - dj.x) * cam.x + (q.z - dj.z) * cam.z),
-      avoid: [around(cartAt, 0.42)], crowd: [...dancers, ...crowd].map((o) => o.temp.goal),
+      avoid: [around(cartAt, 0.42)], crowd: dancers.map((o) => o.temp.goal),
     }) ?? false;
+    const way = dance.robot ? robot.partyWay() : [];
+    const offWay = (p) => way.every((a, i) => i === 0 || segDist(p, way[i - 1], a) >= ROBOT_CLEAR_M);
+    const slots = arc.filter(offWay);
+    // Each spot goes to the nearest one free, so nobody walks across the floor the dancers are taking.
+    const free = shuffled([...recs.values()].filter((o) => !taken.has(o) && !o.hidden && o.mode === 'placed' && !o.temp), 'incentives');
+    const near = slots.map((p) => {
+      let best = -1;
+      free.forEach((o, k) => { if (o && (best < 0 || Math.hypot(o.pos.x - p.x, o.pos.z - p.z) < Math.hypot(free[best].pos.x - p.x, free[best].pos.z - p.z))) best = k; });
+      if (best < 0) return null;
+      const o = free[best];
+      free[best] = null;
+      return [o, p];
+    }).filter(Boolean);
+    dance.crowd = near.map(([o, p]) => {
+      const spot = { x: p.x, z: p.z, yaw: Math.atan2(lead.x - p.x, lead.z - p.z), anim: 'idle' };
+      o.temp = { anim: 'idle', t: DANCE_S - 1, goal: spot, back: true, party: true, stage: { moment: 'music', beat: 'watch', role: 'onlooker', target: focus } };
+      walkTo(o, spot);
+      hurry(o, 3.5);
+      return o;
+    });
     dance.spot = spotlights?.begin('music_night', () => { endDance(); sendBack(); }, () => d0.dur, () => d0.center);
     if (track && track.age < 5) fitToTrack(dance);
   }
