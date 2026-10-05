@@ -44,7 +44,8 @@
 // the two things, and the value. New ones (not in sweep-baseline.json, or clearly worse than its
 // entry) fail the run, except that in fast mode those seen only in seeded games are advisory. An
 // accepted entry may name the issue tracking it ("issue": n); fix it, then drop the entry. --out
-// (default shots/sweep/) gets report.json, report.md (a table for a PR) and a crop of each. --update-baseline rewrites the baseline to
+// (default shots/sweep/) gets report.json, report.md (a table for a PR) and a crop of each
+// (--crop-all: of accepted ones too). --update-baseline rewrites the baseline to
 // exactly what this run found. The run is deterministic: it depends only on the code.
 import { startHarness, wantGpu } from './harness.mjs';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
@@ -113,8 +114,11 @@ const outDir = resolve(opt('out', 'shots/sweep'));
 const timeout = Number(opt('timeout', full ? 3600 : 600));
 
 const baseline = (() => { try { return JSON.parse(readFileSync(BASELINE, 'utf8')); } catch { return { accepted: [] }; } })();
-const known = baseline.accepted.map((b) => b.key);
-const acceptedWorst = Object.fromEntries(baseline.accepted.map((b) => [b.key, b.worst]));
+// The samplers skip crops of these (unless deeper than accepted). --crop-all empties both, so an
+// accepted row gets its crop too; the report still judges status against the baseline below.
+const cropAll = argv.includes('--crop-all');
+const known = cropAll ? [] : baseline.accepted.map((b) => b.key);
+const acceptedWorst = cropAll ? {} : Object.fromEntries(baseline.accepted.map((b) => [b.key, b.worst]));
 // The issue tracking each accepted violation, printed beside it, so it comes out when that is fixed.
 const issueOf = new Map(baseline.accepted.filter((b) => b.issue).map((b) => [b.key, b.issue]));
 
@@ -161,7 +165,7 @@ async function endControl(c) {
 // --snapshots, a baseline update) always run, and so do --strict and --full, the main guard's net,
 // which must not depend on the cache being right. The flags are part of the key.
 const cacheable = engine && !full && !['against', 'replay', 'item', 'moments', 'snapshots', 'states'].some((k) => opt(k) !== undefined)
-  && !['--update-baseline', '--prune', '--strict'].some((f) => argv.includes(f));
+  && !['--update-baseline', '--prune', '--strict', '--crop-all'].some((f) => argv.includes(f));
 const cacheKey = cacheable ? graphBase('sweep', argv.filter((a, i) => a !== '--out' && argv[i - 1] !== '--out').join(' ')) : null;
 const passedAt = graphPassedAt('sweep', cacheKey);
 // A skipped run hands back the pass's report.json and report.md in --out, so a reader gets the same
