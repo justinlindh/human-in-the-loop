@@ -129,3 +129,13 @@ it('a launch gets a line or two of its own, at most once per party gap, and neve
   expect(s.rng).toEqual(rng);
   expect(s.nextId).toBe(nextId);
 });
+
+// The open-plan moment stages a droning all-hands screen that the hammer shatters on either answer.
+it('the open-plan moment sets up the all-hands screen and reacts to it breaking', async () => {
+  const { MOMENT_CAPTIONS } = await import('../../src/data/moments.js');
+  expect(MOMENT_CAPTIONS.open_plan_office).toMatch(/screen/i);
+  expect(EVENTS.open_plan_office.text).toMatch(/all-hands screen/);
+  const pool = MOMENT_TALK.open_plan_office;
+  expect(pool.open.filter((l) => /screen|all-hands|drone|alignment|synergy/i.test(l)).length).toBeGreaterThanOrEqual(2);
+  for (const lines of pool.choices) expect(lines.some((l) => /screen|all-hands/i.test(l)), lines.join(' / ')).toBe(true);
+});

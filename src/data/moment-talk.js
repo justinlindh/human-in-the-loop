@@ -25,10 +25,15 @@ export const MOMENT_TALK = {
     ],
   },
   open_plan_office: {
-    open: ["That's a very physical collaboration tool.", "The hammer didn't attend the planning meeting."],
+    open: [
+      "He's said 'synergy' eleven times. I'm counting.",
+      'Is the all-hands mandatory or just inescapable?',
+      "Don't blink. The screen counts blinks as disengagement.",
+      "The hammer didn't attend the planning meeting.",
+    ],
     choices: [
-      ['We can hear the roadmap from here.', 'Privacy is now a headphone setting.'],
-      ['The walls passed their performance review.', 'Keeping the rooms. Radical stuff.'],
+      ["Well, that's one way to flatten the org chart.", 'The all-hands is now an all-pieces.', 'We can hear the roadmap from here.', 'Privacy is now a headphone setting.'],
+      ['The walls survived. The screen did not.', "I'll file a ticket for the screen. Low priority.", 'Keeping the rooms. Radical stuff.'],
     ],
   },
   resignation_letter: {

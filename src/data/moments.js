@@ -9,7 +9,7 @@ export const MOMENT_CAPTIONS = {
   hackathon: 'Pizza boxes are piling up. So is the questionable architecture.',
   team_offsite: 'A cabin brochure is on the wall. Someone wants a lake.',
   junior_overwhelmed: 'The sticky notes are multiplying. Someone is panicking, neatly.',
-  open_plan_office: 'Someone brought a sledgehammer. The walls look nervous.',
+  open_plan_office: 'The all-hands screen drones on about alignment. Someone has a hammer.',
   hackathon_week: 'The pizza boxes are back, and so is the talk of a whole week off.',
   enterprise_rfp: 'A binder has arrived. It has 340 questions and no mercy.',
   bridge_loan: 'Every screen is red. The accountant has stopped blinking.',

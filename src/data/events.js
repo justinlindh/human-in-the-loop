@@ -335,7 +335,7 @@ const list = [
     when: (s) => s.officeStage >= 1,
     stage: { prop: 'sledgehammer', anchor: 'wall' },
     title: 'Knock down the walls?',
-    text: '{name} wants an open-plan office. "Collaboration!" The walls are not structural. Neither, it turns out, is the plan.',
+    text: '{name} wants an open-plan office. "Collaboration!" On the all-hands screen, a face is droning about synergy. The walls are not structural. Neither, it turns out, is the plan.',
     choices: [
       { label: 'Knock them down', hint: 'Cheap; more output but slower recovery for 26 weeks', effects: { cash: -2000, modifier: [{ key: 'output', value: 0.08, weeks: 26, label: 'Open-plan buzz' }, { key: 'meaningRecovery', value: -0.3, weeks: 26, label: 'Open-plan noise' }] }, outcome: 'Everyone can see everyone. Headphone sales in the area spike.' },
       { label: 'Keep the walls', hint: 'Nothing happens', effects: {}, outcome: 'The walls stay. So do the doors, which close.' },
