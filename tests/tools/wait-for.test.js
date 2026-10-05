@@ -33,9 +33,11 @@ const green = { state: 'OPEN', headRefOid: 'HEAD_SHA', headRefName: 'feature', m
   { __typename: 'StatusContext', context: 'local-ci', state: 'SUCCESS' },
   { __typename: 'CheckRun', name: 'test', status: 'COMPLETED', conclusion: 'SUCCESS' },
 ] };
+// A PR the update queue lets merge main in: review and local-ci passed on its head.
+const ready = { ...green, statusCheckRollup: [...green.statusCheckRollup, { __typename: 'StatusContext', context: 'review', state: 'SUCCESS' }] };
 const replies = (...list) => list.forEach((r, i) => writeFileSync(join(ghDir, `pr-${i}.json`), JSON.stringify(r)));
 const run = (...args) => spawnSync('bash', [SCRIPT, ...args], { cwd: work, encoding: 'utf8', timeout: 60000,
-  env: cleanEnv({ PATH: `${bin}:${process.env.PATH}`, FAKE_GH_DIR: ghDir, WORK: work }) });
+  env: cleanEnv({ PATH: `${bin}:${process.env.PATH}`, FAKE_GH_DIR: ghDir, WORK: work, HITL_MERGE_QUEUE: join(root, 'queue') }) });
 
 // The origin and the work clone are built once and copied per case; only the clone's remote URL
 // has to follow the copy.
@@ -88,7 +90,7 @@ describe('scripts/wait-for.sh', { timeout: 60000 }, () => {
 
   it('merges main into a PR that fell behind, tests, pushes, then waits on the new head', () => {
     advanceMain('c.txt', 'main\n');
-    replies({ ...green, mergeStateStatus: 'BEHIND' }, green);
+    replies({ ...ready, mergeStateStatus: 'BEHIND' }, green);
     const r = run('7', '--poll', '0', '--test', 'true');
     expect(r.status).toBe(0);
     expect(git(work, 'log', '-1', '--format=%s')).toMatch(/^Merge/);
@@ -98,7 +100,7 @@ describe('scripts/wait-for.sh', { timeout: 60000 }, () => {
   it('does not push when the tests fail after merging main', () => {
     advanceMain('c.txt', 'main\n');
     const before = git(work, 'rev-parse', 'origin/feature');
-    replies({ ...green, mergeStateStatus: 'BEHIND' });
+    replies({ ...ready, mergeStateStatus: 'BEHIND' });
     const r = run('7', '--poll', '0', '--test', 'false');
     expect(r.status).toBe(5);
     git(work, 'fetch', '-q');
@@ -121,7 +123,7 @@ describe('scripts/wait-for.sh', { timeout: 60000 }, () => {
 
   it('refuses to update from a worktree that is not on the PR branch', () => {
     git(work, 'switch', '-q', 'main');
-    replies({ ...green, headRefName: 'feature', headRefOid: 'deadbeef', mergeStateStatus: 'BEHIND' });
+    replies({ ...ready, headRefName: 'feature', headRefOid: 'deadbeef', mergeStateStatus: 'BEHIND' });
     const r = run('7', '--poll', '0', '--test', 'true');
     expect(r.status).toBe(7);
   });
@@ -175,7 +177,7 @@ describe('scripts/wait-for.sh', { timeout: 60000 }, () => {
     process.env.GIT_WORK_TREE = root;
     try {
       advanceMain('c.txt', 'main\n');
-      replies({ ...green, mergeStateStatus: 'BEHIND' }, green);
+      replies({ ...ready, mergeStateStatus: 'BEHIND' }, green);
       const r = run('7', '--poll', '0', '--test', 'true');
       expect(r.status).toBe(0);
       expect(git(work, 'rev-parse', 'origin/feature')).toBe(git(work, 'rev-parse', 'HEAD'));
