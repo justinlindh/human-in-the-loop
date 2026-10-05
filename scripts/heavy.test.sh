@@ -17,16 +17,6 @@ h 2>/dev/null; [ $? -eq 2 ] || fail "no command exits 2"
 out="$(h -- nice 2>&1)"; n="$(grep -E '^-?[0-9]+$' <<<"$out" | head -n 1)"
 [ "${n:-0}" -ge 10 ] 2>/dev/null || fail "the command runs at nice 10 or more: got [${n:-}] from: $out"
 
-# keep_nice raises the nice value of a process under the root that sits below 10 (a process manager that
-# renices by name can put a job's shells there), and leaves its own sleep alone.
-eval "$(sed -n '/^keep_nice() {/,/^}/p' "$HERE/heavy.sh")"
-sleep 30 & victim=$!
-HITL_HEAVY_RENICE=1 keep_nice $$ & keeper=$!
-sleep 3
-n="$(ps -o ni= -p "$victim" | tr -d ' ')"
-kill "$keeper" "$victim" 2>/dev/null
-[ "${n:-0}" -ge 10 ] 2>/dev/null || fail "keep_nice puts a process under the root at nice 10 or more: got [$n]"
-
 # One slot: a second job waits for the first, and a third gives up at --wait-max.
 h -- sleep 4 >"$tmp/first" 2>&1 & first=$!
 sleep 1

@@ -48,23 +48,6 @@ while [ "$(load1)" -ge "$ceiling" ] && [ $(( $(date +%s) - q0 )) -lt "$quiet_max
 held=$(( $(date +%s) - q0 ))
 [ "$held" -ge 1 ] && echo "heavy: waited ${held}s for the load to drop under $ceiling (now $(load1))"
 r0=$(date +%s)
-# A process manager that renices by process name (ananicy-cpp types bash and chrome at -4) moves a job's
-# shells and browsers back above normal after they start, whatever nice10.sh gave them. While the job
-# runs, this loop puts every process under this script that is below nice 10 back at 10. It only ever
-# raises a nice value, which needs no privilege. HITL_HEAVY_RENICE=<s> sets the pass interval (0 turns it off).
-keep_nice() { # <root pid>
-  local root="$1" me="$BASHPID" pids
-  while sleep "${HITL_HEAVY_RENICE:-3}"; do
-    pids="$(ps -eo pid=,ppid=,ni= 2>/dev/null | awk -v root="$root" -v me="$me" '
-      { ppid[$1] = $2; ni[$1] = $3; kids[$2] = kids[$2] " " $1 }
-      function mark(p, set,   n, a, i) { set[p] = 1; n = split(kids[p], a, " "); for (i = 1; i <= n; i++) if (!(a[i] in set)) mark(a[i], set) }
-      END { mark(root, job); mark(me, self); for (p in job) if (!(p in self) && ni[p] ~ /^-?[0-9]+$/ && ni[p] + 0 < 10) print p }')"
-    [ -n "$pids" ] && renice -n 10 -p $pids >/dev/null 2>&1
-  done
-}
-keeper=""
-if [ "${HITL_HEAVY_RENICE:-3}" != 0 ]; then keep_nice $$ >/dev/null 2>&1 8>&- & keeper=$!; fi
 bash "$(dirname "$0")/nice10.sh" timeout "$timeout_s" "$@"; rc=$?
-[ -n "$keeper" ] && kill "$keeper" 2>/dev/null
 echo "heavy: exit $rc after $(( $(date +%s) - r0 ))s"
 exit $rc
