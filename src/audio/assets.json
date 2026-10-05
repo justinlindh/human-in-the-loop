@@ -590,6 +590,18 @@
   "sales_register": {
    "file": "sfx/sales_register.ogg",
    "duration": 1.053
+  },
+  "sledge_leader": {
+   "file": "sfx/sledge_leader.ogg",
+   "duration": 8.115
+  },
+  "sledge_run": {
+   "file": "sfx/sledge_run.ogg",
+   "duration": 2.8
+  },
+  "sledge_shatter": {
+   "file": "sfx/sledge_shatter.ogg",
+   "duration": 2.0
   }
  },
  "voice": {
