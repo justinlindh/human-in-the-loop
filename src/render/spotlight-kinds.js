@@ -27,6 +27,8 @@ export const MOMENT_KINDS = {
   deal: { spotlight: false, seconds: 3 },
   // Someone fired: the nearest colleagues turn to watch them go, shocked.
   fired: { spotlight: false, seconds: 2 },
+  // Someone the player clicks turns to the camera with a face for their mood.
+  click: { spotlight: false, seconds: 2.5 },
   coffee: { spotlight: false },
   pair: { spotlight: false },
   // The office robot slapped back to life: a breakdown never holds the clock.

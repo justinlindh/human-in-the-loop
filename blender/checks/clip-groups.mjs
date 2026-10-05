@@ -17,7 +17,7 @@ export const GROUPS = {
   party: ['waffle:crowd'],
   sky: ['sky:trailing'],
   garage: ['pairs:garage'],
-  celebrations: ['moment:growth', 'moment:company_party', 'moment:deal', 'moment:fired'],
+  celebrations: ['moment:growth', 'moment:company_party', 'moment:deal', 'moment:click', 'moment:fired'],
   respond: ['moment:respond:rack', 'moment:respond:desk'],
   control: ['control:head-through-slab'],
   // The seated checks in each founded era's office.
