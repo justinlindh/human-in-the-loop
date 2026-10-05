@@ -4,7 +4,7 @@ import { capacity } from '../../src/sim/staff.js';
 import { B } from '../../src/sim/balance.js';
 
 describe('invariants', () => {
-  // The full-run invariants for every bot are in full-runs.test.js.
+  // The full-run invariants for every bot are in full-runs.full.test.js.
   it('assertFinite names the bad path', () => {
     expect(() => assertFinite({ a: { b: [1, NaN] } })).toThrow('state.a.b.1');
     expect(() => assertFinite({ a: Infinity })).toThrow('state.a');

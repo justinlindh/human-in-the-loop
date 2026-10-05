@@ -1,5 +1,5 @@
 // One full bot run per (bot, seed), shared by every test in a file that reads it. Vitest gives each test
-// file its own modules, so the tests that share runs live together in full-runs.test.js.
+// file its own modules, so the tests that share runs live together in full-runs.full.test.js.
 import { runBot, assertFinite } from '../../src/sim/bots.js';
 import { capacity } from '../../src/sim/staff.js';
 import { B } from '../../src/sim/balance.js';
