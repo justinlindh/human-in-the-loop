@@ -651,6 +651,39 @@ export const ITEMS = [
     publish: true,
   },
 
+  // docs/features/moments.md: the growth celebration. The engineer with the most open floor around them takes
+  // the real choosePath action; the game's own celebrate and promotion beat follow.
+  {
+    id: 'moment-growth', title: 'Staged moment: a career path celebration', query: 'seed=1&speed=1', seconds: 20, warmup: 0.5, record: '3840x2160',
+    setup: `(async () => { await ${PLAY({ weeks: 176, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE} (s.unlocks ??= {}).paths ??= s.week;` })}; ${CLEAN}; ${NO_SAY}; })()`,
+    actions: [...CLEAR_EARLY,
+      { at: 0.2, js: `(() => { const R = window.__hitlRender, s = window.__HITL.state; const at = new Map(); R.scene.traverse((o) => { if (o.userData.staffId) at.set(o.userData.staffId, o.parent.getWorldPosition(new o.position.constructor())); });
+        const eng = s.staff.filter((p) => p.role === 'engineer' && !p.path && !p.remote && p.mood !== 'away' && at.has(p.id));
+        const gap = (p) => Math.min(...[...at].filter(([id]) => id !== p.id).map(([, q]) => q.distanceTo(at.get(p.id))));
+        const who = eng.reduce((a, b) => (gap(b) > gap(a) ? b : a), eng[0]); if (!who) { console.error('capture: no engineer to promote'); return; }
+        who.pathPending = true; window.__winner = who.id; })()` },
+      ...FOLLOW(WINNER, 3.4, 0.5, 20),
+      { at: 2, js: `(() => { const r = window.__HITL.dispatch({ type: 'choosePath', staffId: window.__winner, pathId: 'architect' }); if (r && r.ok === false) console.error('capture: choosePath refused: ' + r.reason); })()` },
+      { at: 16, js: `(() => { const p = window.__HITL.state.staff.find((x) => x.id === window.__winner); if (p?.path !== 'architect') console.error('capture: the career path was never chosen'); })()` },
+      ...CAMLOG(20)], screenshots: [3, 5, 7, 9],
+    out: [{ path: 'moments/growth.mp4', size: '1280x720', from: 1, seconds: 12, loop: 'none', crop: { x: 0.25, y: 0.2, w: 0.5, h: 0.56 } }],
+    publish: true,
+  },
+
+  // The company party: a company-wide celebrate with its cause, in a real game. The banner is a DOM label
+  // (.hitl-banner) that lives a few seconds, so the guard looks for it while it is up.
+  {
+    id: 'moment-company-party', title: 'Staged moment: the company party', query: 'seed=1&speed=1', seconds: 14, warmup: 0.5, record: '3840x2160',
+    setup: `(async () => { await ${PLAY({ weeks: 176, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE}` })}; ${CLEAN}; ${NO_SAY}; })()`,
+    actions: [...CLEAR_EARLY,
+      ...FOLLOW(`() => { const R = window.__hitlRender; const ps = []; R.scene.traverse((o) => { if (o.userData.staffId) ps.push(o.parent.getWorldPosition(new o.position.constructor())); }); if (!ps.length) return null; return { x: ps.reduce((a, p) => a + p.x, 0) / ps.length, y: 0, z: ps.reduce((a, p) => a + p.z, 0) / ps.length }; }`, 2.4, 0, 14),
+      { at: 1, js: `window.__HITL.emit([{ type: 'celebrate', cause: 'Notemind launched' }])` },
+      { at: 2.5, js: `(() => { if (!document.querySelector('.hitl-banner')) console.error('capture: the party banner is not showing'); })()` },
+      ...CAMLOG(14)], screenshots: [2, 3, 5, 8],
+    out: [{ path: 'moments/company-party.mp4', size: '1280x720', from: 0.5, seconds: 9, loop: 'none', crop: MIDDLE }],
+    // Not published: the seated staff do not visibly cheer, so only confetti and a small banner read.
+  },
+
   // docs/features/decisions.md: what each decision stages in the office while its card is up. The pre-tick
   // snapshot is opened, the game's tick raises the card, the card is hidden and the camera holds on the prop.
   ...DECISION_PROPS.map(([id, query, prop, zoom = 5.5, center = false]) => ({
