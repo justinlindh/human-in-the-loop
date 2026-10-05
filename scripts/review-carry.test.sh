@@ -47,7 +47,7 @@ GIT
 chmod +x "$tmp/bin/gh" "$tmp/bin/git"
 fails=0
 check() { # <name> <want: carried|kept|restored> <heads: "sha state patch" lines separated by |> [file=content...]
-  local fix="$tmp/$RANDOM"; mkdir -p "$fix"; printf '%s' "$3" | tr '|' '\n' >"$fix/heads"; : >"$fix/posted"
+  local fix; fix="$(mktemp -d "$tmp/case-XXXXXX")"; printf '%s' "$3" | tr '|' '\n' >"$fix/heads"; : >"$fix/posted"
   local kv; for kv in "${@:4}"; do printf '%s\n' "${kv#*=}" >"$fix/${kv%%=*}"; done
   cat >"$fix/union" <<U
 #!/usr/bin/env bash
