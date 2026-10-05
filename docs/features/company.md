@@ -36,7 +36,7 @@
 - **Research**: internal tools (Eval Harness, Agent Sandbox, Observability, CI/CD, Design System, Docs Culture, Onboarding Kit, Red Team Suite) built as projects.
 - **Policies**: switched on in the Policies panel, some in pairs that exclude each other.
   - **Standups**: daily in person (see Standups under People) or async in #standup, where the quiet ones stop posting. `id: daily_standups` `id: async_standups` media: none (the in-person standup is under People; async is a chat channel)
-  - **Culture policies**: AI as Pair, Craft Fridays, Blameless Postmortems, Code Comprehension Reviews, Apprenticeships and Sabbaticals. `id: pair` `id: craft_fridays` `id: blameless` `id: comprehension_reviews` `id: apprenticeship` `id: sabbatical` media: none (policy switches in the Policies panel)
+  - **Culture policies**: AI as Pair, Craft Fridays, Blameless Postmortems, Code Comprehension Reviews, Apprenticeships and Sabbaticals. `id: pair` `id: craft_fridays` `id: blameless` `id: comprehension_reviews` `id: apprenticeship` media: none (policy switch in the Policies panel). A sabbatical puts an "On sabbatical" sign on the person's desk. `id: sabbatical` media: pending (#550)
   - **Crunch or not**: Crunch Mode trades later exhaustion for output now; No Crunch halves how fast exhaustion builds. `id: crunch` `id: no_crunch` media: none (policy switches)
   - **HQ perks**: Top-of-Market Pay and Office Upkeep ("chairs that do not squeak"). `id: top_pay` `id: office_upkeep` media: none (policy switches)
   - **Incentives Program**: the reward ladder under Staged moments. `id: incentives` media: none (the ladder is a rule; its rewards are under Staged moments)
@@ -47,7 +47,7 @@
 - **Buying small companies**: from Agents, @dealbot lists small companies for sale (Tidybox, Clerkwise, Brisket...) and you can make an offer. `id: deals_open` media: none (a chat post and an offer card)
 - **The moonshot**: at HQ in Consolidation, a secret project behind a curtain with check-ins and an unveiling. `id: moonshot_checkin` `id: moonshot_result` media: pending (#550)
 - **Annual calendar**: yearly beats.
-  - **The Saasies**: awards (Product of the Year, later Best AI Feature, Best Place to Work and Most Trusted) announced by @saasies; Product of the Year also throws an office party. `id: awards_show` media: none (an announcement post and an office party; no single staged scene)
+  - **The Saasies**: awards (Product of the Year, later Best AI Feature, Best Place to Work and Most Trusted) announced by @saasies; Product of the Year also throws an office party. `id: awards_show` media: none (an announcement post; the office party is documented under People)
   - **SaaSCon**: skip it, or book a small or big booth. `id: conference_expo`
   - **The AI Summit**: a side-room talk or a live main-stage demo, a big panel, or a hackathon prize. `id: ai_summit` `id: ai_summit_panel` `id: ai_summit_hackathon` media: pending (#550)
   - **The hearing**: a summons to testify, then the committee report. `id: hearing_summons` `id: hearing_report` Media: [clip](https://github.com/justinlindh/human-in-the-loop/blob/feature-media/moment-letter.mp4?raw=true) (the summons staged as a letter; the report is text)
