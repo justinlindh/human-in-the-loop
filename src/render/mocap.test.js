@@ -104,6 +104,9 @@ describe('mocap player', () => {
   it('times each clip from its own source frame on the shot clock', () => {
     expect(clipTime({ source: { start: 600 } }, 21, 30)).toBeCloseTo(1, 6);
     expect(clipTime({ source: { start: 0 } }, 2.5)).toBeCloseTo(2.5, 6);
+    // The source's own frame rate wins over the fallback.
+    expect(clipTime({ source: { start: 480, fps: 24 } }, 21, 30)).toBeCloseTo(1, 6);
+    expect(clipTime({ source: { start: 600, fps: 0 } }, 21)).toBeCloseTo(1, 6);
   });
 
   it('moves the floor travel to the root and keeps planted feet pinned there', () => {
