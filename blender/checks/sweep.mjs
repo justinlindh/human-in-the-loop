@@ -114,11 +114,11 @@ const outDir = resolve(opt('out', 'shots/sweep'));
 const timeout = Number(opt('timeout', full ? 3600 : 600));
 
 const baseline = (() => { try { return JSON.parse(readFileSync(BASELINE, 'utf8')); } catch { return { accepted: [] }; } })();
-// The samplers skip crops of these (unless deeper than accepted). --crop-all empties both, so an
-// accepted row gets its crop too; the report still judges status against the baseline below.
+const known = baseline.accepted.map((b) => b.key);
+const acceptedWorst = Object.fromEntries(baseline.accepted.map((b) => [b.key, b.worst]));
+// --crop-all: the samplers crop accepted rows too, with what new rows leave of each budget (sample.js).
 const cropAll = argv.includes('--crop-all');
-const known = cropAll ? [] : baseline.accepted.map((b) => b.key);
-const acceptedWorst = cropAll ? {} : Object.fromEntries(baseline.accepted.map((b) => [b.key, b.worst]));
+if (cropAll && engine) console.log('sweep: --crop-all: the engine takes no crops, so only the screen step\'s rows get them; use --browser for collision rows');
 // The issue tracking each accepted violation, printed beside it, so it comes out when that is fixed.
 const issueOf = new Map(baseline.accepted.filter((b) => b.issue).map((b) => [b.key, b.issue]));
 
@@ -252,7 +252,7 @@ async function browserSeeds() {
     let limit;
     const r = await Promise.race([
       page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleSeed(o),
-        { seed, weeks: M.weeks, every: M.every, seconds: M.seconds, stagedSeconds: M.stagedSeconds, maxStaged: M.maxStaged, step: M.step, known, worst: acceptedWorst, item, only: plan?.seeds[seed] ?? null, screenOnly }),
+        { seed, weeks: M.weeks, every: M.every, seconds: M.seconds, stagedSeconds: M.stagedSeconds, maxStaged: M.maxStaged, step: M.step, known, worst: acceptedWorst, cropAll, item, only: plan?.seeds[seed] ?? null, screenOnly }),
       new Promise((res) => { limit = setTimeout(() => res(null), M.seedLimit * 1000); }),
     ]);
     clearTimeout(limit);
@@ -282,7 +282,7 @@ const seedsDone = engine ? null : browserSeeds().then((out) => ({ out }), (err) 
 try {
   for (const name of M.mocks) {
     const [mock, era] = name.split('@');
-    const o = { name, seconds: M.mockSeconds, every: M.step, known, worst: acceptedWorst, item, propDesks: M.propMocks.includes(name) ? M.propDesks : 0, moments: M.momentMocks.includes(name) ? M.moments : null, grid: M.gridMocks.includes(name), screenOnly };
+    const o = { name, seconds: M.mockSeconds, every: M.step, known, worst: acceptedWorst, cropAll, item, propDesks: M.propMocks.includes(name) ? M.propDesks : 0, moments: M.momentMocks.includes(name) ? M.moments : null, grid: M.gridMocks.includes(name), screenOnly };
     const { page, errors: e } = engine ? { page: null, errors: [] } : await H.openScene(`quality=${era ? 'medium' : 'low'}&mock=${mock}${era ? `&eras&eraArt=${era}` : ''}`, { width: 1600, height: 1000 });
     // An era scene runs at Medium, where the street's cars and bikes are built (Low leaves them out).
     const r = engine ? await host.hostMock({ ...o, mock, era, ...(era ? { quality: 'medium' } : {}) }) : await page.evaluate(async (o2) => (await import('/blender/checks/sample.js')).sampleMock(o2), o);
@@ -300,7 +300,7 @@ try {
     const target = target_({ event: query });
     const row = target.row;
     const label = `event:${row.id}:s${row.seed}${row.bot}w${row.week}`;
-    const o = { label, open: M.stagedSeconds, after: 8, every: M.step, choice: row.choice, known, worst: acceptedWorst, item, screenOnly };
+    const o = { label, open: M.stagedSeconds, after: 8, every: M.step, choice: row.choice, known, worst: acceptedWorst, cropAll, item, screenOnly };
     const { page, errors: e } = engine ? { page: null, errors: [] } : await openAt(H, target, { width: 1600, height: 1000, quality: 'low' });
     const r = engine ? await host.hostLoaded({ file: target.file, ...o }) : await page.evaluate(async (o2) => (await import('/blender/checks/sample.js')).sampleLoaded(o2), o);
     found.push(...r.violations);
@@ -314,7 +314,7 @@ try {
   for (const file of (opt('snapshots') ?? '').split(',').map((x) => x.trim()).filter(Boolean)) {
     const target = target_({ snapshot: file });
     const label = `snap:${basename(file).replace(/\.json(\.gz)?$/, '')}`;
-    const o = { label, open: M.stagedSeconds, after: 8, every: M.step, choice: null, known, item, screenOnly };
+    const o = { label, open: M.stagedSeconds, after: 8, every: M.step, choice: null, known, cropAll, item, screenOnly };
     const { page, errors: e } = engine ? { page: null, errors: [] } : await openAt(H, target, { width: 1600, height: 1000, quality: 'low' });
     const r = engine ? await host.hostLoaded({ file: target.file, ...o }) : await page.evaluate(async (o2) => (await import('/blender/checks/sample.js')).sampleLoaded(o2), o);
     found.push(...r.violations);
@@ -327,7 +327,7 @@ try {
     // In this process, so no time limit can cut a seed short; the seed limit applies to browser runs.
     for (const seed of M.seeds) {
       const s0 = wall();
-      const r = await host.hostSeed({ seed, weeks: M.weeks, every: M.every, seconds: M.seconds, stagedSeconds: M.stagedSeconds, maxStaged: M.maxStaged, step: M.step, known, worst: acceptedWorst, item, only: plan?.seeds[seed] ?? null });
+      const r = await host.hostSeed({ seed, weeks: M.weeks, every: M.every, seconds: M.seconds, stagedSeconds: M.stagedSeconds, maxStaged: M.maxStaged, step: M.step, known, worst: acceptedWorst, cropAll, item, only: plan?.seeds[seed] ?? null });
       found.push(...r.violations);
       windows.push(...r.windows);
       console.log(`sweep: seed:${seed} played to week ${r.end.week}${r.end.over ? ` (${r.end.over})` : ''}; windows: ${r.windows.map((w) => `w${w.state.split(':w')[1]} ${w.why}`).join(', ')}`);
