@@ -56,5 +56,5 @@ describe('natural attrition', () => {
     expect(s.candidates.at(-1)).toMatchObject({ role: 'designer', seniority: 'senior' });
   });
 
-  // The balanced-run rate check is in full-runs.test.js.
+  // The balanced-run rate check is in full-runs.full.test.js.
 });
