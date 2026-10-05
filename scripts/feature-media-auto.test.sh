@@ -14,6 +14,7 @@ EOF
 cat >fm.js <<'EOF'
 const fs = require('fs'), a = process.argv.slice(2);
 fs.appendFileSync(process.env.FM_CALLS, a.join(' ') + '\n');
+fs.appendFileSync(process.env.FM_ENVLOG, (process.env.FEATURE_MEDIA_WORKTREE || 'unset') + '\n');
 if (a.includes('--stale')) { process.stdout.write(fs.readFileSync(process.env.FM_STALE, 'utf8')); process.exit(Number(process.env.FM_STALE_RC || 0)); }
 process.exit(Number(process.env.FM_RENDER_RC || 0));
 EOF
@@ -31,17 +32,18 @@ esac
 exit 0
 EOF
 chmod +x "$tmp/gh"
-export GH="$tmp/gh" FM_AUTO_ORIGIN="$tmp/origin.git" FM_AUTO_STATE="$tmp/state" FM_CALLS="$tmp/calls" FM_GH_CALLS="$tmp/ghcalls" FM_STALE="$tmp/stale" FM_OPEN="$tmp/open"
-run() { rm -f "$FM_CALLS" "$FM_GH_CALLS"; bash "$HERE/feature-media-auto.sh" "$@" >"$tmp/out" 2>&1; rc=$?; }
+export GH="$tmp/gh" FM_AUTO_ORIGIN="$tmp/origin.git" FM_AUTO_STATE="$tmp/state" FM_CALLS="$tmp/calls" FM_GH_CALLS="$tmp/ghcalls" FM_STALE="$tmp/stale" FM_OPEN="$tmp/open" FM_ENVLOG="$tmp/envlog"
+run() { rm -f "$FM_CALLS" "$FM_GH_CALLS" "$FM_ENVLOG"; bash "$HERE/feature-media-auto.sh" "$@" >"$tmp/out" 2>&1; rc=$?; }
 
 printf '' >"$FM_STALE"
 run; [ $rc -eq 0 ] && grep -q 'is not on .* yet; skipping' "$tmp/out" && [ ! -e "$FM_CALLS" ] && [ ! -e "$tmp/state/last" ] \
   || fail "a main without --stale is skipped and not recorded: $rc $(cat "$tmp/out")"
 ( cd "$tmp/seed" && mkdir -p scripts/feature-media && echo "// --stale" >scripts/feature-media/render.mjs && g add -A && g commit -q -m "add --stale" && g push -q "$tmp/origin.git" main )
 run; [ $rc -eq 0 ] && grep -q 'nothing stale' "$tmp/out" && ! grep -q -- '--publish' "$FM_CALLS" || fail "nothing stale renders nothing: $rc $(cat "$tmp/out")"
-run; [ $rc -eq 0 ] && [ ! -e "$FM_CALLS" ] || fail "an already handled main does nothing"
+run; [ $rc -eq 0 ] && [ ! -e "$FM_CALLS" ] && grep -q 'already handled' "$tmp/out" || fail "an already handled main does nothing and says so"
 printf 'moment-a\nmoment-b\n' >"$FM_STALE"
 run --force; [ $rc -eq 0 ] && grep -qx -- '--only moment-a,moment-b --publish' "$FM_CALLS" && ! grep -q 'issue create' "$FM_GH_CALLS" || fail "stale ids are re-rendered together: $rc $(cat "$tmp/out") $(cat "$FM_CALLS")"
+[ "$(sort -u "$FM_ENVLOG")" = "$tmp/state/publish" ] || fail "the publish worktree is the run's own: $(cat "$FM_ENVLOG")"
 FM_RENDER_RC=3 run --force; [ $rc -eq 1 ] && grep -q 'issue create' "$FM_GH_CALLS" && grep -q 'label create feature-media-red' "$FM_GH_CALLS" || fail "a failed render opens a feature-media-red issue: $rc $(cat "$tmp/out")"
 FM_RENDER_RC=3 run --force; [ $rc -eq 1 ] && grep -q 'issue comment 7' "$FM_GH_CALLS" && ! grep -q 'issue create' "$FM_GH_CALLS" || fail "a repeat failure comments on the open issue: $(cat "$FM_GH_CALLS")"
 run --force; [ $rc -eq 0 ] && grep -q 'issue close 7' "$FM_GH_CALLS" || fail "a passing run closes the issue: $(cat "$FM_GH_CALLS")"
