@@ -292,7 +292,9 @@ export const ITEMS = [
     id: 'site-yak-backfire', title: 'Landing page: a meme mid-outage, and the replies', query: 'seed=2&speed=1', warmup: 0.5, still: true,
     setup: `(async () => { await ${PRE_UNTIL({ weeks: 600, bot: 'balanced', turn: 's.office.stage < 1 || s.staff.length < 8', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: '(c) => c.office.stage === 1 && c.outage?.weeks === 0' })}; ${YAK_ONLY}; ${YAK_HELPERS} })()`,
     actions: [
-      ...CLEAR_EARLY, ...DISMISS_AT([4, 5, 6, 12, 18, 24, 28, 30, 31, 32, 32.5, 32.9], { escape: false }), ...CHOOSE_WHEN('outage_unfixable', 2, 1, 64, 1), ...CHOOSE_WHEN(null, 0, 1, 64, 1),
+      ...CLEAR_EARLY, ...DISMISS_AT([4, 5, 6, 12, 18, 24, 28, 30, 31, 32, 32.5, 32.9], { escape: false }),
+      // The launch results card (its button reads "Nice!") can land any time after the first 30 s of play.
+      ...[36, 40, 44, 48, 52, 56, 58, 59, 59.4, 59.8].map((at) => ({ at, js: CLEAR_CARDS })), ...CHOOSE_WHEN('outage_unfixable', 2, 1, 64, 1), ...CHOOSE_WHEN(null, 0, 1, 64, 1),
       { at: 9.5, js: CLICK_SEL('.chat.yak .ysz[aria-label="large size"]') },
       { at: 10, js: CLICK_SEL('.ypost-btn') },
       { at: 11, js: `(() => {
@@ -311,7 +313,7 @@ export const ITEMS = [
       YAK_CHECK(60.1, { crop: [376 / 1920, 190 / 1080, 1168 / 1920, 730 / 1080] }),
     ],
     screenshots: [11.1, 60.1],
-    out: [{ path: 'img/yak-backfire.webp', size: '1280x800', from: 60.1, crop: { x: 376 / 1920, y: 190 / 1080, w: 1168 / 1920, h: 730 / 1080 } }],
+    out: [{ path: 'img/yak-backfire.webp', size: '1280x800', from: 60.1, crop: { x: 376 / 1920, y: 190 / 1080, w: 1168 / 1920, h: 730 / 1080 } }], publish: true,
   },
   {
     id: 'site-printer', title: 'Landing page loop: the printer taken out back', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 25, warmup: 6.5,
