@@ -101,6 +101,8 @@ export const PALETTE = {
   led_amber: '#ffb238',
   led_red: '#ff4d4d',
   alarm_red: '#ff3b3b',
+  summons_red: '#d9302c',
+  summons_red_dark: '#8f1d1a',
   lamp_warm: '#ffcf96',
   city_lit: '#ffd27a',
   flame_base: '#e2561f',
