@@ -141,7 +141,10 @@ const DECISION_PROPS = [
   ['ping_pong', 'ping_pong --choice 1', 'picture_pingpong'],
 ];
 
-const GARAGE_DECISIONS = new Set(['hackathon', 'team_offsite', 'onprem_bank']);
+// The Yak reply prompt kinds of docs/features/yak.md (src/data/prompts.js).
+const YAK_PROMPTS = ['strain_vent', 'incident_blame', 'launch_hype', 'rival_itch', 'project_late', 'agent_prs', 'newhire_lost', 'coasting_check', 'support_swamped', 'lowcash_lunch', 'desk_squeeze', 'office_full', 'junior_pr'];
+
+const GARAGE_DECISIONS =new Set(['hackathon', 'team_offsite', 'onprem_bank']);
 
 // [item id, camera zoom, era the item needs] of the shop items shown in docs/features/office.md.
 const ITEM_STILLS = [
@@ -499,5 +502,30 @@ export const ITEMS = [
     out: [{ path: `decisions/${id}.webp`, size: '1280x720', from: 5 }],
     // Only the garage ones frame the prop big enough to read; the floor and HQ ones render but stay unpublished.
     publish: GARAGE_DECISIONS.has(id),
+  })),
+
+  // docs/features/yak.md: the reply prompts. The pre-tick save of the week that raises each one is opened,
+  // the game's tick posts it, and the large Yak (which keeps the game running) is scrolled to the prompt.
+  ...YAK_PROMPTS.map((kind) => ({
+    id: `yak-${kind}`, title: `Yak reply prompt: ${kind}`, query: 'seed=1&speed=1', moment: kind, pre: true, still: true, warmup: 0.5,
+    setup: `(() => { ${YAK_ONLY}; })()`,
+    actions: [
+      ...[0, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18].map((at) => ({ at, js: CLEAR_CARDS })),
+      ...CHOOSE_WHEN(null, 0, 1, 24, 1.5),
+      { at: 0.5, js: CLICK_SEL('.chat.yak .ysz[aria-label="large size"]') },
+      ...Array.from({ length: 40 }, (_, i) => ({ at: 2 + i * 0.5, js: `(() => {
+        const p = window.__HITL.state.chatPrompts.find((q) => q.kind === ${JSON.stringify(kind)});
+        if (!p) return;
+        const find = () => document.querySelector('.chat.yak .yprompt[data-prompt="' + CSS.escape(p.id) + '"]');
+        if (!find()) [...document.querySelectorAll('.chat.yak button')].find((b) => b.getClientRects().length && b.textContent.trim().startsWith('#' + p.channel))?.click();
+        const el = find();
+        if (!el) return;
+        el.scrollIntoView({ block: 'center' });
+        (window.__captureMarks ??= []).push({ t: ${2 + i * 0.5}, label: 'yak-prompt', kind: ${JSON.stringify(kind)}, id: p.id, text: el.textContent.slice(0, 60), inPanel: (() => { const r = el.getBoundingClientRect(), q = document.querySelector('.chat.yak').getBoundingClientRect(); return r.top >= q.top && r.bottom <= q.bottom; })() });
+      })()` })),
+    ],
+    screenshots: [22],
+    out: [{ path: `yak/${kind}.webp`, size: '640x747', from: 22, crop: { x: 0, y: 0.43, w: 0.27, h: 0.56 }, publishAs: `yak-${kind}` }],
+    publish: true,
   })),
 ];
