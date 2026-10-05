@@ -54,6 +54,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { planReplay, mentions, isWorse } from './sweep-plan.js';
 import { createWorktree } from '../../scripts/tools/worktree.mjs';
+import { graphBase, graphPassedAt, recordGraphPass, requestedFiles } from './cache.mjs';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -150,6 +151,21 @@ async function endControl(c) {
   return report;
 }
 
+// A plain engine run is skipped while every file its last clean pass loaded is unchanged (cache.mjs):
+// the engine's module loads and asset reads, the screen step's page requests, and the baseline.
+// Runs that read other inputs or answer another question (--against, --replay, --item, --moments,
+// --snapshots, a baseline update) always run, and so do --strict and --full, the main guard's net,
+// which must not depend on the cache being right. The flags are part of the key.
+const cacheable = engine && !full && !['against', 'replay', 'item', 'moments', 'snapshots', 'states'].some((k) => opt(k) !== undefined)
+  && !['--update-baseline', '--prune', '--strict'].some((f) => argv.includes(f));
+const cacheKey = cacheable ? graphBase('sweep', argv.filter((a, i) => a !== '--out' && argv[i - 1] !== '--out').join(' ')) : null;
+const passedAt = graphPassedAt('sweep', cacheKey);
+if (passedAt) { console.log(`sweep: inputs unchanged since ${passedAt}, skipped`); process.exit(0); }
+// The screen step reports the files its pages requested when the run will record them.
+const screenLoads = screenOnly && process.env.HITL_SWEEP_LOADS === '1';
+const requested = [];
+if (cacheKey) { process.env.HITL_LOAD_TRACK = '1'; await import('../../scripts/studio/load-log.mjs'); }
+
 const kill = setTimeout(() => { console.error(`sweep: timed out after ${timeout} s`); process.exit(124); }, timeout * 1000);
 const t0 = wall();
 // Geometry, not pixels: the GPU by default, SwiftShader with --software or HITL_GL=software.
@@ -171,7 +187,7 @@ const screen = (() => {
     if (!skip.has(argv[i])) rest.push(argv[i]);
   }
   // Its own process group, so ending it ends what it started (the render-lock wrapper, the browser).
-  const child = spawn(process.execPath, [fileURLToPath(import.meta.url), ...rest, '--screen-only', '--out', sub], { stdio: ['ignore', 'ignore', 'inherit'], detached: true, env: { ...process.env, HITL_SWEEP_PARENT: String(process.pid) } });
+  const child = spawn(process.execPath, [fileURLToPath(import.meta.url), ...rest, '--screen-only', '--out', sub], { stdio: ['ignore', 'ignore', 'inherit'], detached: true, env: { ...process.env, HITL_SWEEP_PARENT: String(process.pid), HITL_SWEEP_LOADS: cacheKey ? '1' : '' } });
   // The step ends with this process however it ends: SIGTERM to the group (the browser closes on it),
   // SIGKILL if anything is still there after a grace period. A parent that is busy or SIGKILLed cannot
   // do this, so the step also watches for its parent (below).
@@ -195,6 +211,8 @@ if (screenOnly && process.env.HITL_SWEEP_PARENT) {
 }
 const found = [];
 const errors = [];
+// The files the screen step's pages loaded, once it has passed.
+let screenLoaded = null;
 const windows = [];
 // A moment query or snapshot that does not resolve ends the run with its own message, not a stack trace.
 const target_ = (spec) => {
@@ -283,6 +301,7 @@ try {
     console.log(`sweep: seed:${seed} played to week ${r.end.week}${r.end.over ? ` (${r.end.over})` : ''}; windows: ${r.windows.map((w) => `w${w.state.split(':w')[1]} ${w.why}`).join(', ')}`);
     errors.push(...e.map((x) => `seed:${seed}: ${x}`));
     console.log(`sweep: seed:${seed} ${vs.length} violation(s) in ${Math.round((wall() - s0) / 1000)} s (${Math.round((wall() - t0) / 1000)} s)`);
+    if (screenLoads) requested.push(...HS.requested());
     await HS.close();
   }
   // The page checks (screen, tooltip) need a browser: the same run's states (mocks and their moments,
@@ -296,9 +315,11 @@ try {
     if (!sr) { errors.push(`screen and tooltip step failed (exit ${child.status})`); console.log('sweep: the screen and tooltip step produced no report'); } else {
       found.push(...sr.violations.filter((v) => v.check === 'screen' || v.check === 'tooltip').map(({ status, owner, states, count, ...v }) => ({ ...v, seen: count ?? 1, crop: null })));
       console.log(`sweep: screen and tooltip (browser) ${sr.violations.length} violation(s) (${Math.round((wall() - s0) / 1000)} s)`);
+      if (child.status === 0) screenLoaded = sr.loaded ?? null;
     }
   }
 } finally {
+  if (screenLoads && H) requested.push(...H.requested());
   await H?.close();
   clearTimeout(kill);
 }
@@ -349,7 +370,7 @@ for (const v of all) {
 // status: baseline, new (fails), or advisory (new, seen only in seeded games, fast mode). Every
 // check measures render output, so art owns what it finds.
 const status = (v) => (fresh.includes(v) ? 'new' : advisory.includes(v) ? 'advisory' : 'baseline');
-writeFileSync(`${outDir}/report.json`, JSON.stringify({ mode: full ? 'full' : (replayed?.mode ?? 'fast'), windows, violations: all.map(({ crop, ...v }) => ({ ...v, status: status(v), owner: 'art' })) }, null, 1));
+writeFileSync(`${outDir}/report.json`, JSON.stringify({ mode: full ? 'full' : (replayed?.mode ?? 'fast'), windows, violations: all.map(({ crop, ...v }) => ({ ...v, status: status(v), owner: 'art' })), ...(screenLoads ? { loaded: requestedFiles(requested) } : {}) }, null, 1));
 // The same as a markdown table, for a PR comment (crops are named by file, not path).
 const md = ['| check | what | value (m, or share on screen) | state | t (s) | status | crop |', '|---|---|---|---|---|---|---|'];
 for (const v of all) md.push(`| ${v.check} | ${v.detail ?? `${v.a} ~ ${v.b}`} | ${v.value} | ${v.state} | ${v.t} | ${refKeys.includes(v.key) && !worse(v) ? (controlReport ? 'control' : 'baseline') : 'NEW'} | ${v.crop ? `${v.key.replace(/[^a-z0-9_-]+/gi, '_')}.png` : ''} |`);
@@ -378,4 +399,7 @@ if (replayed) {
 }
 if (errors.length) console.log(`sweep: page errors: ${errors.slice(0, 5).join('; ')}`);
 console.log(`sweep: ${all.length} distinct violation(s), ${fresh.length} new, ${advisory.length} new in seeds only (advisory), ${gone.length} not seen; ${Math.round((wall() - t0) / 1000)} s (${full ? 'full' : 'fast'}${strict ? ', strict' : ''})`);
-process.exit(fresh.length && !argv.includes('--update-baseline') || errors.length ? 1 : 0);
+const code = fresh.length && !argv.includes('--update-baseline') || errors.length ? 1 : 0;
+// A clean pass is recorded only with the screen step's files too, unless the run had no screen step.
+if (!code && cacheKey && (screenLoaded || !screen)) recordGraphPass('sweep', cacheKey, [...(globalThis.__hitlLoaded ?? []), ...(screenLoaded ?? []), BASELINE]);
+process.exit(code);

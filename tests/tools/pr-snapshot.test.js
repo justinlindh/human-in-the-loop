@@ -159,6 +159,8 @@ describe('pr-snapshot.mjs', () => {
     const victim = spawn(process.execPath, [SCRIPT], { env: { ...env, GH_SLEEP: '30' }, stdio: 'ignore' });
     for (let i = 0; i < 100 && !existsSync(`${file}.lock`); i++) await new Promise((r) => setTimeout(r, 50));
     expect(existsSync(`${file}.lock`)).toBe(true);
+    // The lock appears with its pid already in it, so a kill at any moment leaves one a reader can clear.
+    expect(existsSync(`${file}.lock/pid`)).toBe(true);
     victim.kill('SIGKILL');
     await new Promise((r) => victim.on('close', r));
     const r = run();
