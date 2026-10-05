@@ -19,7 +19,7 @@ const SCREEN_OVERLAYS = { screens_red: 'red', screens_skull: 'skull' };
 // Seconds a decision's stage prop stays up after the card closes, by event and choice index, so the
 // staged moment plays where the card no longer covers it. The broken coffee machine smokes on
 // while someone fans it: briefly until the repair, longer when the office lives with it.
-const AFTER_CHOICE = { coffee_machine_broke: { 1: 6, 2: 12 } };
+const AFTER_CHOICE = { coffee_machine_broke: { 1: 6, 2: 12 }, open_plan_office: { 0: 20, 1: 18 } };
 
 export function createProps(office, screens = null) {
   const live = new Map();   // key -> { obj, t, gone }

@@ -23,7 +23,6 @@ export const DURATIONS = {
   'tests/tools/sweep-against.test.js': 2.8,
   'tests/tools/review-queue.test.js': 2.6,
   'tests/sim/takeover.test.js': 2.1,
-  'tests/tools/mocap-track.test.js': 2,
   'tests/sim/printer-window.test.js': 1.8,
   'tests/tools/interrupt-test.test.js': 1.8,
   'tests/tools/pose-matrix.test.js': 1.7,

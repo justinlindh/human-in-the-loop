@@ -88,6 +88,9 @@ export const CUES = {
   'sfx.dotcom_bell': { bus: 'sfx', files: ['sfx/dotcom_bell'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
   // A notable closed sales deal, in every era.
   'sfx.sales_register': { bus: 'sfx', files: ['sfx/sales_register'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
+  // The sledgehammer moment's 1984 parody: a rising sting under the run-in and the screen's smash.
+  'moment.sledge_run': { bus: 'sfx', files: ['sfx/sledge_run'], cooldown: 1, priority: 6, gain: 0.8, delivered: true },
+  'moment.sledge_shatter': { bus: 'sfx', files: ['sfx/sledge_shatter'], cooldown: 1, priority: 9, gain: 0.9, delivered: true },
 };
 // A period cue that follows an event's main sound, after `delay` seconds so a stinger is not masked.
 // Boxed (on-prem) software in the early eras sounds like a retail box; otherwise a launch is a
@@ -214,6 +217,17 @@ export const SPOTLIGHT_KEEP = {
 export const SPOTLIGHT_DEFAULT = { cues: [], cheers: true, stingers: true };
 export const MOMENT_CUES = {
   printer_jam: { eventId: 'printer_jam', file: 'moments/printer_smash', gain: 0.9 },
+};
+// A moment staged as a scene with named beats (hitl:moment phases 'beat' and 'hit'): a looping bed from the beat
+// named by loop.startBeat (a beat only the scene's own staging emits) until a hit in stopLoopOn or the end, a cue
+// per beat, and a cue per hit. A moment that never emits the start beat plays nothing.
+export const MOMENT_SCENES = {
+  open_plan_office: {
+    loop: { id: 'sfx/sledge_leader', bus: 'sfx', gain: 0.6, fade: 0.3, startBeat: 'screen' },
+    beats: { run: 'moment.sledge_run' },
+    hits: { screen: 'moment.sledge_shatter' },
+    stopLoopOn: ['screen'],
+  },
 };
 // Office Space nods, from the props the sim stages (state.office.props): a prop arriving or leaving
 // plays its cue. The jammed printer also beeps on a loop while it sits in the kitchen (it leaves props
