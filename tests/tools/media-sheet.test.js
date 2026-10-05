@@ -10,9 +10,12 @@ const tmp = mkdtempSync(join(toolTmp(), 'media-sheet-test-'));
 const dir = join(tmp, 'out');
 const run = (...args) => spawnAsync(process.execPath, [SHEET, ...args], { timeout: 240000 });
 const size = (f) => spawnSync('magick', ['identify', '-format', '%w %h', f], { encoding: 'utf8' }).stdout.trim().split(' ').map(Number);
+// GitHub's runner has no ffmpeg or ImageMagick; local CI does and runs these.
+const have = ['ffmpeg', 'ffprobe', 'magick'].every((b) => spawnSync('sh', ['-c', `command -v ${b}`]).status === 0);
 const ff = (...a) => spawnSync('ffmpeg', ['-nostdin', '-loglevel', 'error', '-y', ...a], { encoding: 'utf8' });
 
 beforeAll(() => {
+  if (!have) return;
   mkdirSync(join(dir, 'sub'), { recursive: true });
   mkdirSync(join(dir, '.publish'));
   ff('-f', 'lavfi', '-i', 'testsrc=size=640x360:rate=30', '-t', '2', join(dir, 'a.mp4'));
@@ -23,7 +26,7 @@ beforeAll(() => {
 }, 120000);
 afterAll(() => rmSync(tmp, { recursive: true, force: true }));
 
-describe.concurrent('media-sheet', () => {
+describe.skipIf(!have).concurrent('media-sheet', () => {
   it('makes one sheet of a folder: a stills row and a row per clip, hidden folders left out, clips of different sizes stacked', async () => {
     const out = join(tmp, 'sheet.png');
     const r = await run(out, dir);
