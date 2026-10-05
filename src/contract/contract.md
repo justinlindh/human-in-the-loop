@@ -93,7 +93,7 @@ Product = {
 ```js
 { type: 'bubble', staffId, text, tone }   // tone: features|polish|reliability|novelty|good|bad
 { type: 'toast', text, tone, trendId }    // tone: info|good|warn|bad; trendId: set when the toast announces a market trend, else absent
-{ type: 'chat', id, week, channel, from, fromId, text, replyTo, reactions }
+{ type: 'chat', id, week, channel, from, fromId, text, replyTo, reactions, mailId? }   // mailId: a mail this post points at (#17)
                                           // channel: general|incidents|wins|random|standup; from: staff name or a bot handle like '@pagerbot'
                                           // fromId: staff id or null for bots; replyTo: chat id or null; reactions: { [emoji]: count }
                                           // priority: optional, set by main.js's Yak pacer (not the sim) on a reply it shows early because it answers an earlier post; ui counts it as new at the Important level
@@ -444,7 +444,7 @@ Advice = {
   tier,          // how bad, within its key (runway: 1 under 12 weeks, 2 under 8, 3 under 4); a dismissed key returns when its tier rises
   text,          // the advisor's line, in the game's voice
   why,           // the visible fact behind it, short: 'Runway: 11 weeks at this burn'
-  target,        // { panel, arg } | null: the menu that shows the fact ('build'|'staff'|'office'|'reports'|'marketing'|'policies'|'ops'|'models'|'automation', ui's menu ids); arg e.g. a staffId
+  target,        // { panel, arg } | null: the menu that shows the fact ('build'|'staff'|'office'|'reports'|'marketing'|'policies'|'ops'|'models'|'automation'|'mail', ui's menu ids); arg e.g. a staffId
   cooldownWeeks  // how long an unprompted push of this key rests
   since          // the game week this topic's current episode began: when its key started applying. A key that stops applying and later returns starts a new episode; a tier change within an episode keeps since
   options        // [{ text, target }]: two or three things the player could do about it, each a real action available now
@@ -463,7 +463,7 @@ Advice = {
 - Options are offered, never taken: nothing in the sim acts on one. Choosing an option only opens its panel (ui); a preselected `assign` is a suggestion that takes effect only when the player confirms it.
 - An option lands on a control that does what its text says. When no control can (nobody free, nothing to assign), the option is left out or offers the Hire tab instead.
 - `'fine'` offers one or two light options (start a project, look at hiring); every other key offers two or three.
-- `target.arg` by panel: a staffId for `staff`, a policyId for `policies`, a productId for `reports`, `marketing` and `build`, an itemId for `office` (enters placement of that item), a squadId for `squads` (the Squads tab in Staff, scrolled to that squad); other panels take no arg.
+- `target.arg` by panel: a staffId for `staff`, a policyId for `policies`, a productId for `reports`, `marketing` and `build`, an itemId for `office` (enters placement of that item), a squadId for `squads` (the Squads tab in Staff, scrolled to that squad), a mailId for `mail` (that mail open in the reading pane); other panels take no arg.
 - Line choice uses its own stream seeded from (seed, week, key), so advice never moves the game's course.
 
 ### State: Advisors
@@ -621,3 +621,53 @@ Events:
 
 - Props: `robot_note` while grumbling, `googly_eyes` for good once chosen, `traffic_cone` during a cone breakdown.
 - No new actions: buying, upgrading and moving use the existing item actions.
+
+## Inbox (#17)
+
+Letters from outside the company: popups stay for big or staged moments, Yak for the team talking, mail for the outside world. Mail never pauses the clock and never opens a popup. The whole feature sits behind `B.mail.enabled`.
+
+```js
+state.mail = [Mail]   // newest first; at most B.mail.kept in all, oldest dropped first; mail with an open choice is never dropped
+Mail = {
+  id,            // 'm12', from its own sequence (state.flags.mailSeq)
+  kind,          // template id in src/data/mail.js, or the event id for an event delivered as mail
+  week,          // arrived
+  from: { name, org, staffId },   // org null for a person; staffId set when the sender is one of ours
+  to,            // display string, e.g. 'everyone@{company}' for the reply-all thread
+  category,      // 'applicant'|'partner'|'customer'|'vendor'|'recruiter'|'investor'|'invite'|'legal'|'rival'|'staff'|'spam'; an event delivered as mail takes the category its sender fits
+  subject, body, // plain text, paragraphs split on a blank line; era-gated copy
+  important,     // legal, investor, anything with a deadline
+  threadId, inReplyTo,
+  read: null | week,
+  expiresWeek: null | week,   // mail with options resolves as ignored when state.week reaches it
+  options: [{ label, hint, available, reason, opens? }],   // 0 to 3; [] for plain mail; hint states effects, as decision choices do
+  resolved: null | { choice, week, replyText },   // choice null when ignored (expired or archived)
+  archived,      // bool
+  subjectId: null | staffId,
+}
+```
+
+### Events: Inbox
+
+```js
+{ type: 'mail', mailId, week }            // arrived
+{ type: 'mailResolved', mailId, choice }  // choice: index, or null when ignored
+```
+
+### Actions: Inbox
+
+```js
+{ type: 'readMail', mailId }              // idempotent; the only thing that sets `read`; refusal: 'No such mail'
+{ type: 'answerMail', mailId, choice }    // refusals: 'No such mail' | 'Already answered' | 'That has gone quiet' | 'Invalid choice' | the option's own reason
+{ type: 'archiveMail', mailId }           // refusal: 'No such mail'; archiving archived mail is a no-op; archiving mail with an open choice resolves it as ignored
+```
+
+- All three work while paused, like `answerPrompt`. An option's `opens` is acted on by ui after a successful answer, as for prompts.
+- Ignored mail: template mail takes its stated small consequence, never a departure. An event delivered as mail takes its mildest choice, under the same rule as an event delivered as a prompt (no penalty, no grant).
+- Events delivered as mail: `alumni_referral`, `blockchain_pitch`, `vendor_new_version`, `app_store_rejection` (choices); `vendor_price_hike`, `analyst_report`, `vendor_outage`, `bootcamp_grads` (no choices). They keep their place in the decision cadence. Nothing staged is delivered as mail.
+- A no-choice event delivered as mail applies its effects on arrival, read or not, and raises no toast. A choice event's `grant` and `leaves` apply when it is answered, or with its default choice when ignored, as for prompts.
+- Spam is inert: no options. Folders (Inbox, Spam, Done) and the unread badge are derived by ui; spam never counts toward the badge.
+- At most one ambient mail arrives a week, and at most `B.mail.actionOpen` mails with an open choice exist at once; the reply-all thread's open mail counts toward that. The thread's own follow-ups (a reply or two a week, for at most a few weeks) are outside the one-a-week limit.
+- A chat event may carry `mailId`, and a prompt option may use `opens: { panel: 'mail', arg: mailId }`.
+- Mail randomness comes from its own stream (seed, week, `mailSeq`), so with `B.mail.enabled` false a seeded game matches one without the feature.
+- Old saves load with `mail = []` and `flags.mailSeq = 0`.

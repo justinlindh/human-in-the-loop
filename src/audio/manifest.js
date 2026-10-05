@@ -135,6 +135,9 @@ export const ON_EVENT = {
   chatPromptResolved: null,
   // Silent here: the Quiet advice setting lives in ui's settings store, so any sound belongs with ui's tray card.
   advice: null,
+  // The inbox: silent until the arrival ping is picked for it (ui asks for a soft, rare one).
+  mail: null,
+  mailResolved: null,
   // Only a notable deal rings the register (the same sound boxed or not).
   deal: (e) => (e.notable ? 'sfx.sales_register' : null),
   // The founder's quick post: a small cheer when it lands, a wince when it backfires, nothing when flat.
