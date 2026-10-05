@@ -639,6 +639,18 @@ export const ITEMS = [
     publish: true,
   },
 
+  // docs/features/decisions.md: the demo day smoothie. The decision is scheduled into a real game in its first
+  // months (the bot never meets it), and the game's tick raises it and stages the smoothie on a desk.
+  {
+    id: 'decision-investor_demo_day', title: 'Decision prop: the demo day smoothie', query: 'seed=1&speed=1', seconds: 14, warmup: 1,
+    setup: `(async () => { await ${PLAY({ weeks: 30, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE} s.scheduled.push({ id: 'sch_demo', week: s.week + 1, kind: 'event', payload: { eventId: 'investor_demo_day', subjectId: null } });` })}; await ${PRE_DECISION('investor_demo_day', 4)}; ${CLEAN}; ${NO_CARD}; ${NO_SAY}; })()`,
+    actions: [...OPEN(['smoothie']), ...FOLLOW(['smoothie'], 6, 0, 14, 0, true),
+      { at: 11, js: `(() => { if (window.__HITL.state.pendingDecision?.eventId !== 'investor_demo_day') console.error('capture: the demo day decision is not open'); })()` }],
+    screenshots: [11],
+    out: [{ path: 'decisions/investor_demo_day.webp', size: '1280x720', from: 11 }],
+    publish: true,
+  },
+
   // docs/features/decisions.md: what each decision stages in the office while its card is up. The pre-tick
   // snapshot is opened, the game's tick raises the card, the card is hidden and the camera holds on the prop.
   ...DECISION_PROPS.map(([id, query, prop, zoom = 5.5, center = false]) => ({
