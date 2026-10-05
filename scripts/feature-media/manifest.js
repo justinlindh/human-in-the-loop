@@ -119,8 +119,6 @@ const MOMENTS = [
   ['the-box', 'the_box --choice 1', 'box_poster', 0, 3.2],
   ['incubator', 'incubator_house --choice 0', 'house_sign', 0, 2.6],
 ];
-// Moments whose clip does not read yet (art's #1377); they render but do not publish.
-const HELD = new Set(['consultants', 'letter', 'bridge-loan']);
 
 // [event id, find.js query, staged prop, follow zoom]: the staged decisions of docs/features/decisions.md.
 const DECISION_PROPS = [
@@ -429,7 +427,7 @@ export const ITEMS = [
       ...DISMISS_AT([7, 7.5, 9, 12], { escape: false }), ...CAMLOG(length)],
     screenshots: [5],
     out: [{ path: `moments/${name}.mp4`, size: '1280x720', from: 1.5, seconds: length - 4, loop: 'none' }],
-    publish: !HELD.has(name),
+    publish: true,
   })),
 
   // Feature inventory: each shop item placed in the HQ mock the way a player would and upgraded to its top
