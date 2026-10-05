@@ -1,7 +1,8 @@
 // `npm run feature-media -- --check`: no rendering. Fails when
 //   - an `id:` in docs/features has no media link and no `media: none (<reason>)` on its entry, unless the
-//     pair `<file>:<id>` is in coverage-baseline.json (the entries not yet covered); a baseline pair that
-//     is covered now is also a failure, so the list only shrinks (`--write-baseline` rewrites it);
+//     pair `<file>:<id>` is in coverage-baseline.json (the entries not yet covered). A baseline pair that is
+//     covered now is only a note, so a batch that adds media never has to edit the file (and parallel batches
+//     do not conflict on it); `--write-baseline` rewrites it without the stale pairs;
 //   - a published media link names nothing a manifest can render (see NAMES below);
 //   - a manifest item opened at an indexed moment no longer resolves to a pre-tick snapshot (skipped with a
 //     note when the event index for this sim code is missing: build it with scripts/events/build.js).
@@ -66,7 +67,8 @@ export async function check({ writeBaseline = false } = {}) {
     return 0;
   }
   for (const k of [...uncovered].sort()) if (!baseline.has(k)) problems.push(`${k}: no media link and no "media: none (<reason>)" on its entry`);
-  for (const k of [...baseline].sort()) if (!uncovered.has(k)) problems.push(`${k}: covered now (or gone); remove it from scripts/feature-media/coverage-baseline.json with --write-baseline`);
+  const stale = [...baseline].filter((k) => !uncovered.has(k)).sort();
+  if (stale.length) notes.push(`${stale.length} baseline pair${stale.length === 1 ? ' is' : 's are'} covered now (or gone): ${stale.slice(0, 5).join(', ')}${stale.length > 5 ? ', ...' : ''}; tidy with --write-baseline`);
 
   // Moments: every item opened at an indexed moment still resolves.
   const { simHash, readIndex, match, parseQuery } = await import(pathToFileURL(join(ROOT, 'scripts/events/lib.js')).href);
