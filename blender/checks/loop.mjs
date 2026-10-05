@@ -2,7 +2,7 @@
 // handling (not the harness's direct stepping) let a staged moment play while its decision is open.
 //
 //   node blender/checks/loop.mjs [--moments 'first_user_test; open_plan_office --seed 3; hearing_summons --seed 1']
-//                                [--seconds 30] [--gpu | --software]
+//                                [--seconds 30] [--jobs 4] [--gpu | --software]
 //
 // Each moment is an indexed decision (scripts/events). The page loads the state just before the tick
 // that raised it (its preTick snapshot) through the title screen's Continue path
@@ -34,6 +34,8 @@ const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i
 const queries = opt('moments', 'first_user_test; open_plan_office --seed 3; hearing_summons --seed 1; party:coffee_machine_broke').split(';').map((q) => q.trim()).filter(Boolean);
 const seconds = Number(opt('seconds', 30));
 const MOVE_M = 0.3;
+const jobs = Number(opt('jobs', 4));
+if (!Number.isInteger(jobs) || jobs < 1) { console.error(`loop: --jobs wants a whole number of at least 1, not ${opt('jobs')}`); process.exit(2); }
 
 import { SHIM } from './loop-page.mjs';
 
@@ -42,23 +44,29 @@ holdRenderLock(mode);
 const server = await createServer({ server: { port: 0, strictPort: false }, logLevel: 'error' });
 await server.listen();
 const base = server.resolvedUrls.local[0];
-const { browser } = await launchChromium(chromium, { mode, label: 'loop' });
+// Each check plays in its own page (its own browser context, so its own localStorage and seeded
+// clock), --jobs at a time, each job in a Chromium of its own: pages in one browser share its GPU
+// process, so their frames would queue behind each other. A check's lines print in the checks'
+// order once it is done.
+const browsers = [];
+const checks = [];
 let failed = 0;
 try {
-  for (let query of queries) {
+  for (let query of queries) checks.push(async (log, browser) => {
+    let failed = 0;
     if (query.startsWith('party:')) {
       const id = query.slice(6), rows = readIndex(simHash())?.rows ?? [];
       const key = (r) => `${r.seed}|${r.bot}|${r.week}`;
       const party = new Set(rows.filter((r) => r.type === 'party').map(key));
       const hit = rows.find((r) => r.type === 'decision' && r.id === id && r.preTick && party.has(key(r)));
-      if (!hit) { console.log(`LOOP skip ${query}: no ${id} in a week with a company party in this index`); continue; }
+      if (!hit) { log(`LOOP skip ${query}: no ${id} in a week with a company party in this index`); return 0; }
       query = `${id} --seed ${hit.seed} --bot ${hit.bot} --weeks ${hit.week}-${hit.week}`;
     }
     // The state just before the tick that raises the decision, so the game's own tick raises it.
     let target;
-    try { target = resolveTarget({ event: `${query} --pre` }); } catch (e) { failed++; console.log(`LOOP FAIL ${query}: ${e.message}`); continue; }
+    try { target = resolveTarget({ event: `${query} --pre` }); } catch (e) { log(`LOOP FAIL ${query}: ${e.message}`); return 1; }
     const row = target.row;
-    if (!row?.preTick) { failed++; console.log(`LOOP FAIL ${query}: no indexed moment with a pre-tick snapshot`); continue; }
+    if (!row?.preTick) { log(`LOOP FAIL ${query}: no indexed moment with a pre-tick snapshot`); return 1; }
     target.file = join(indexDir(simHash()), 'snapshots', row.preTick);
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
     const errors = [];
@@ -105,7 +113,7 @@ try {
       return { eventId, subject: S().pendingDecision?.subjectId ?? S().pendingDecision?.stage?.staffId ?? null, trace: R.trace?.lines(20) ?? [], waited: +(waited / 30).toFixed(1), open: !!S().pendingDecision, frames, frozen, actors: [...actors].map(([id, a]) => ({ id, moment: a.what, moved: +a.far.toFixed(2) })) };
     }, { seconds, moveM: MOVE_M });
     const label = `${row?.id ?? query} (seed ${row?.seed} ${row?.bot} week ${row?.week})`;
-    if (res.error) { failed++; console.log(`LOOP FAIL ${label}: ${res.error}`); }
+    if (res.error) { failed++; log(`LOOP FAIL ${label}: ${res.error}`); }
     else {
       const moved = res.actors.filter((a) => a.moved >= MOVE_M);
       const pass = res.eventId && res.actors.length > 0 && moved.length > 0;
@@ -116,16 +124,18 @@ try {
         const detail = ids.length ? await page.evaluate(`(${ACTOR_JS})(${JSON.stringify(ids)})`) : [];
         res.detail = [...detail.map((a) => `  actor ${fmtActor(a)}`), ...res.trace.map((l) => `  trace ${fmtTrace(l)}`)];
       }
-      console.log(`LOOP ${pass ? 'ok  ' : 'FAIL'} ${label}: decision ${res.eventId ?? 'none'} raised after ${res.waited} s, open ${res.frames} frames (${res.frozen} with the game frozen); ${res.actors.length ? res.actors.map((a) => `${a.id} ${a.moment} moved ${a.moved} m`).join(', ') : 'nobody took the moment'}`);
-      for (const l of res.detail ?? []) console.log(l);
+      log(`LOOP ${pass ? 'ok  ' : 'FAIL'} ${label}: decision ${res.eventId ?? 'none'} raised after ${res.waited} s, open ${res.frames} frames (${res.frozen} with the game frozen); ${res.actors.length ? res.actors.map((a) => `${a.id} ${a.moment} moved ${a.moved} m`).join(', ') : 'nobody took the moment'}`);
+      for (const l of res.detail ?? []) log(l);
     }
-    if (errors.length) { failed++; console.log(`page errors: ${errors.slice(0, 3).join('; ')}`); }
+    if (errors.length) { failed++; log(`page errors: ${errors.slice(0, 3).join('; ')}`); }
     await page.close();
-  }
+    return failed;
+  });
   // Spotlight hold (main.js): while the renderer reports a spotlight moment, no week passes but the
   // office keeps rendering; once it ends the weeks resume, and one held past main.js's cap is let go.
   // The renderer's spotlight() is stood in for here, so the hold is checked on its own.
-  if (!argv.includes('--no-spotlight')) {
+  if (!argv.includes('--no-spotlight')) checks.push(async (log, browser) => {
+    let failed = 0;
     const page = await browser.newPage({ viewport: { width: 960, height: 600 }, deviceScaleFactor: 1 });
     const errors = [];
     const warnings = [];
@@ -216,10 +226,11 @@ try {
     ];
     const pass = checks.every(([ok]) => ok) && !errors.length;
     if (!pass) failed++;
-    console.log(`LOOP ${pass ? 'ok  ' : 'FAIL'} spotlight hold: ${checks.map(([ok, text]) => `${ok ? '' : 'NOT: '}${text}`).join('; ')}`);
-    if (errors.length) console.log(`page errors: ${errors.slice(0, 3).join('; ')}`);
+    log(`LOOP ${pass ? 'ok  ' : 'FAIL'} spotlight hold: ${checks.map(([ok, text]) => `${ok ? '' : 'NOT: '}${text}`).join('; ')}`);
+    if (errors.length) log(`page errors: ${errors.slice(0, 3).join('; ')}`);
     await page.close();
-  }
+    return failed;
+  });
   // A real spotlight: the printer taken out back, through the real game loop. The week before
   // printer_jam is loaded, the card is answered with the choice that stages the smash, and from the
   // spotlight's start to its end no week may pass; the weeks resume after, and no hold is cut short.
@@ -229,14 +240,15 @@ try {
     { query: 'coffee_machine_broke', event: 'coffee_machine_broke', kind: 'fumes' },
     { query: 'first_user_test', event: 'first_user_test', kind: 'first_user_test', skip: true },
     { query: 'efficiency_consultants', event: 'efficiency_consultants', kind: 'efficiency_consultants', fast: true },
-  ]) {
+  ]) checks.push(async (log, browser) => {
+    let failed = 0;
     let target = null, why = '';
     try {
       target = resolveTarget({ event: `${scene.query} --pre` });
       if (!target.row?.preTick) { why = 'no pre-tick snapshot'; target = null; }
       else target.file = join(indexDir(simHash()), 'snapshots', target.row.preTick);
     } catch (e) { why = e.message; }
-    if (!target) { failed++; console.log(`LOOP FAIL real spotlight (${scene.kind}): ${why}`); }
+    if (!target) { failed++; log(`LOOP FAIL real spotlight (${scene.kind}): ${why}`); }
     else {
       const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
       const errors = [], warnings = [];
@@ -292,13 +304,27 @@ try {
       ];
       const pass = checks.every(([ok]) => ok) && !errors.length;
       if (!pass) failed++;
-      console.log(`LOOP ${pass ? 'ok  ' : 'FAIL'} real spotlight (${scene.kind}, seed ${target.row.seed} week ${target.row.week}): ${checks.map(([ok, text]) => `${ok ? '' : 'NOT: '}${text}`).join('; ')}`);
-      if (errors.length) console.log(`page errors: ${errors.slice(0, 3).join('; ')}`);
+      log(`LOOP ${pass ? 'ok  ' : 'FAIL'} real spotlight (${scene.kind}, seed ${target.row.seed} week ${target.row.week}): ${checks.map(([ok, text]) => `${ok ? '' : 'NOT: '}${text}`).join('; ')}`);
+      if (errors.length) log(`page errors: ${errors.slice(0, 3).join('; ')}`);
       await page.close();
     }
-  }
+    return failed;
+  });
+  const outs = checks.map(() => null);
+  let next = 0, printed = 0;
+  const flush = () => { while (printed < outs.length && outs[printed]) { for (const l of outs[printed]) console.log(l); printed++; } };
+  await Promise.all(Array.from({ length: Math.min(jobs, checks.length) }, async (_, w) => {
+    const { browser } = await launchChromium(chromium, { mode, label: w ? `loop ${w + 1}` : 'loop' });
+    browsers.push(browser);
+    while (next < checks.length) {
+      const i = next++, lines = [];
+      try { failed += await checks[i]((l) => lines.push(l), browser); } catch (e) { failed++; lines.push(`LOOP FAIL check ${i + 1}: ${e.message}`); }
+      outs[i] = lines;
+      flush();
+    }
+  }));
 } finally {
-  await browser.close();
+  await Promise.all(browsers.map((b) => b.close()));
   await server.close();
 }
 const total = queries.length + (argv.includes('--no-spotlight') ? 0 : 6);

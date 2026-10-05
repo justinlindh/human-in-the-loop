@@ -4,6 +4,7 @@ import { PALETTE } from './palette.js';
 import { mat, glow, glass } from './materials.js';
 import { loadModels, getModel, PROP_NAMES, ITEM_IDS, itemModelName } from './models.js';
 import { createCharacter, ANIMS, WORLD_ANIMS } from './character.js';
+import { EXPRESSIONS } from './face.js';
 import { EMOTES } from './emotes.js';
 import { wardrobeEra, WARDROBE_MODELS, TEE_PRINTS } from './wardrobe.js';
 import { ROLE_COLORS } from './palette.js';
@@ -192,6 +193,37 @@ export function buildCharLineup(group) {
     add(8, 5, { hair: 7, hairColor: HAIRC[4], shirt: SHIRTS[5], skin: 3, accessory: 'glasses' }, 'engineer', (c) => { c.setLegend(true); c.setAnim('celebrate'); });
   });
   return new THREE.Box3(new THREE.Vector3(-w / 2, 0, -d / 2), new THREE.Vector3(w / 2, 1.4, d / 2));
+}
+
+// Every facial expression (face.js), one person each, all facing the camera, across skins and
+// hair styles. Query `look=1` turns the eyes toward the board's centre; `face=a,b` shows only those
+// expressions (one name frames a single close-up).
+export function buildFaceBoard(group) {
+  const only = new URLSearchParams(location.search).get('face');
+  const names = only ? only.split(',').filter((n) => EXPRESSIONS[n]) : Object.keys(EXPRESSIONS);
+  const cols = Math.min(6, names.length), rows = Math.ceil(names.length / cols);
+  const w = cols * 0.8, d = rows * 1.1;
+  group.add(mesh(roundedBox(w + 0.5, 0.22, d + 0.5, 0.06), mat('slab_side'), 0, -0.11, 0));
+  group.add(mesh(roundedBox(w + 0.4, 0.04, d + 0.4, 0.02), mat('floor_wood'), 0, 0.02, 0));
+  group.userData.windowMaterials = [];
+  const chars = [];
+  group.userData.update = (dt) => { for (const c of chars) c.update(dt); };
+  const look = new URLSearchParams(location.search).get('look') === '1';
+  loadModels(['chibi']).then(() => {
+    names.forEach((name, n) => {
+      const col = n % cols, row = Math.floor(n / cols), i = Object.keys(EXPRESSIONS).indexOf(name);
+      const c = createCharacter({ skin: i % 6, hair: i % 8, style: i % 8, hairColor: HAIRC[i % 8], shirt: SHIRTS[i % 10], pants: PANTS[0], accessory: 'none', build: 1 }, ROLE_COLORS[ROLES[i % 6]], { role: ROLES[i % 6], seed: `face-${i}` });
+      c.root.position.set((col - (cols - 1) / 2) * 0.8, 0.04, (row - (rows - 1) / 2) * 1.1);
+      c.root.rotation.y = Math.PI / 4;
+      c.root.name = `face-${name}`;
+      c.express(name, { hold: Infinity, blend: 0.01 });
+      if (look) c.lookAt(new THREE.Vector3(0, 0.8, 0), { hold: Infinity });
+      group.add(c.root);
+      chars.push(c);
+    });
+  });
+  if (names.length === 1) return new THREE.Box3(new THREE.Vector3(-0.25, 0.62, -0.25), new THREE.Vector3(0.25, 1.12, 0.25));
+  return new THREE.Box3(new THREE.Vector3(-w / 2, 0, -d / 2), new THREE.Vector3(w / 2, 1.2, d / 2));
 }
 
 // Wardrobe rows cover every build; the print board uses the same camera angle and character kit.
