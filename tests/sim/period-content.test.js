@@ -6,7 +6,7 @@ import { advice } from '../../src/sim/advisors.js';
 import { buildEpilogue } from '../../src/sim/endgame.js';
 import { dispatch } from '../../src/sim/actions.js';
 import { postOptions } from '../../src/sim/posts.js';
-import { runBot } from '../../src/sim/bots.js';
+import { safe, visibleStrings } from './_period.js';
 import { CHATTER } from '../../src/data/chatter.js';
 import { STANDUP } from '../../src/data/standup.js';
 import { POSTS } from '../../src/data/posts.js';
@@ -28,18 +28,8 @@ import { TALK, SAY_SOLO, RUNNING_JOKES } from '../../src/data/talk.js';
 import { PROMPTS } from '../../src/data/prompts.js';
 import { periodAllows } from '../../src/data/period-content.js';
 
-const FUTURE = /\b(AI|agents?|agentic|ChatGBT|Claudius|Gemenai|LLMs?|copilot|Yak|Slack|Zoom|TikTok|Twitter|LinkedOut|GitHug|TechCrunchy|Vergence|Hackerspews|podcast|livestream|crypto|bitcoin|pull requests?|PRs?|smartphone|Product Hunch)\b/i;
-const safe = (text, context) => {
-  expect(text, context).not.toMatch(FUTURE);
-  expect(text, context).not.toMatch(/second copy\. On my phone/);
-};
+// Seeded play through each early era is checked in period-content.full.test.js.
 const stringPools = (obj) => Object.values(obj).filter((a) => Array.isArray(a) && a.every((v) => typeof v === 'string'));
-const visibleStrings = (value) => {
-  if (!value || typeof value !== 'object') return [];
-  return Object.entries(value).flatMap(([key, child]) =>
-    typeof child === 'string' && ['text', 'title', 'label', 'hint', 'outcome'].includes(key)
-      ? [child] : visibleStrings(child));
-};
 
 describe('historical content boundaries', () => {
   it('uses period wording for wireless networks and code review in dot-com', () => {
@@ -167,42 +157,4 @@ describe('historical content boundaries', () => {
     }
     expect(WEB2_NAMES).not.toEqual(DOTCOM_NAMES);
   });
-  it.each(['classic', 'chatgbt', 'agents'])('respects AI and agent boundaries in a %s founding', (startEra) => {
-    for (let seed = 1; seed <= 6; seed++) {
-      let state;
-      let seen = 0;
-      const inspect = (events) => {
-        for (const text of [...visibleStrings(events), ...visibleStrings(state.pendingDecision), ...visibleStrings(state.chatPrompts)]) {
-          if (state.era.id === 'classic') expect(text).not.toMatch(/\b(AI|ChatGBT|LLMs?|copilots?|robots?|vibe.?cod\w*)\b/i);
-          if (['classic', 'chatgbt'].includes(state.era.id)) expect(text).not.toMatch(/\b(agents?|agentic)\b/i);
-          seen++;
-        }
-      };
-      runBot('sensible', seed, null, { founding: { startEra, companyName: 'Period Software' }, setup: (s) => { state = s; },
-        onEvents: inspect, onWeek: (s, events) => inspect(events), stopWhen: (s) => s.era.id !== startEra });
-      expect(seen).toBeGreaterThan(0);
-    }
-  }, 120000);
-  it.each(['preinternet', 'dotcom', 'web2'])('emits deterministic period-safe content across seeded %s play', (startEra) => {
-    const trace = (seed) => {
-      const seen = [];
-      let state;
-      const inspect = (events) => {
-        if (!['preinternet', 'dotcom', 'web2'].includes(state.era.id)) return;
-        for (const e of events) for (const text of visibleStrings(e)) {
-          if (state.era.id === 'dotcom') expect(text).not.toMatch(/wi-?fi/i);
-          safe(text, `${startEra} seed ${seed} week ${state.week}`); seen.push(text);
-        }
-        for (const text of visibleStrings(state.pendingDecision)) safe(text, 'pending decision');
-        for (const text of visibleStrings(state.chatPrompts)) safe(text, 'reply prompt');
-        safe(JSON.stringify(advice(state)), 'advisor');
-      };
-      runBot('sensible', seed, null, { founding: { startEra, companyName: 'Period Software' }, setup: (s) => { state = s; },
-        onEvents: inspect, onWeek: (s, ev) => inspect(ev), stopWhen: (s) => s.era.id === 'classic' });
-      return seen;
-    };
-    for (let seed = 1; seed <= 12; seed++) {
-      const a = trace(seed); expect(a.length).toBeGreaterThan(0); expect(trace(seed)).toEqual(a);
-    }
-  }, 120000);
 });
