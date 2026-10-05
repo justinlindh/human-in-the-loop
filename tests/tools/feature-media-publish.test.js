@@ -43,7 +43,9 @@ function fixture(name) {
   chmodSync(join(bin, 'gh'), 0o755);
   const media = join(root, 'still.webp');
   writeFileSync(media, 'not really a webp');
-  return { origin, repo, wt, media, env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, FEATURE_MEDIA_WORKTREE: wt } };
+  // The script commits to feature-media, which needs an identity even where none is configured.
+  const who = { GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t' };
+  return { origin, repo, wt, media, env: { ...process.env, ...who, PATH: `${bin}:${process.env.PATH}`, FEATURE_MEDIA_WORKTREE: wt } };
 }
 const run = (f, cwd = f.repo) => spawnAsync('bash', [join(f.repo, 'scripts/feature-media/publish.sh'), f.media], { cwd, env: f.env, timeout: 120000 });
 
