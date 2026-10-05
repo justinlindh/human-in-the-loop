@@ -61,10 +61,16 @@ vitest_workers() {
 # Signatures of a machine out of something (disk, memory, GPU, network), as the browsers, git and node report
 # it. Only a log's last INFRA_TAIL lines (default 40) count, where a tool reports why it stopped, so
 # the same words inside ordinary test output above an assertion don't turn a code failure into one.
-INFRA_RE='ERR_INSUFFICIENT_RESOURCES|ENOSPC|No space left on device|unable to write file|Cannot allocate memory|ENOMEM|asked for the GPU but got no WebGL2|Error creating WebGL context|Could not create a WebGL context|WebGL context could not be created|GPU process (exited|crashed|isn.t usable)|Shader Error [0-9]+ - VALIDATE_STATUS|CONTEXT_LOST_WEBGL|THREE\.WebGLRenderer: Context Lost|\[hitl\] webglcontextlost|GPU memory still under [0-9]+ MiB free|signal=SIGTRAP|no (software render lock|CI run slot) after|net::ERR_(NETWORK_CHANGED|INTERNET_DISCONNECTED|CONNECTION_RESET|CONNECTION_TIMED_OUT)'
+INFRA_RE='ERR_INSUFFICIENT_RESOURCES|ENOSPC|No space left on device|unable to write file|Cannot allocate memory|ENOMEM|asked for the GPU but got no WebGL2|Error creating WebGL context|Could not create a WebGL context|WebGL context could not be created|GPU process (exited|crashed|isn.t usable)|CONTEXT_LOST_WEBGL|THREE\.WebGLRenderer: Context Lost|\[hitl\] webglcontextlost|GPU memory still under [0-9]+ MiB free|signal=SIGTRAP|no (software render lock|CI run slot) after|net::ERR_(NETWORK_CHANGED|INTERNET_DISCONNECTED|CONNECTION_RESET|CONNECTION_TIMED_OUT)'
 infra_failure() {
-  local log="$1" secs="$2" hit
-  hit="$(tail -n "${INFRA_TAIL:-40}" "$log" 2>/dev/null | grep -m1 -oE "$INFRA_RE")"
+  local log="$1" secs="$2" hit tail
+  tail="$(tail -n "${INFRA_TAIL:-40}" "$log" 2>/dev/null)"
+  hit="$(grep -m1 -oE "$INFRA_RE" <<<"$tail")"
+  # three.js prints "Shader Error n - VALIDATE_STATUS" for every failed program, a GLSL compile error
+  # included. It is the machine's (a lost context) only when the compiler gave no line of its own.
+  if [ -z "$hit" ] && ! grep -qE 'ERROR: [0-9]+:[0-9]+' <<<"$tail"; then
+    hit="$(grep -m1 -oE 'Shader Error [0-9]+ - VALIDATE_STATUS' <<<"$tail")"
+  fi
   if [ -n "$hit" ]; then echo "$hit"; return 0; fi
   if [ "$secs" -le 1 ] && ! grep -q '[^[:space:]]' "$log" 2>/dev/null; then echo "failed in ${secs}s with no output"; return 0; fi
   return 1

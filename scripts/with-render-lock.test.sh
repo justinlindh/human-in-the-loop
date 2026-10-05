@@ -97,5 +97,9 @@ out="$(PATH="$tmp/bin:$PATH" HITL_GPU_FREE_MB=50 RENDER_LOCK_WAIT=2 bash "$W" --
 expect 'a software run does not wait for GPU memory' "$out" ran
 out="$(HITL_GPU_FREE_MB=50 PATH="/usr/bin:/bin" RENDER_LOCK_WAIT=2 bash "$W" --gpu echo ran 2>/dev/null)"
 expect 'without nvidia-smi the check is skipped' "$out" ran
+mkdir -p "$tmp/hang"; printf '#!/usr/bin/env bash\nsleep 60\n' >"$tmp/hang/nvidia-smi"; chmod +x "$tmp/hang/nvidia-smi"
+s=$(date +%s); out="$(PATH="$tmp/hang:$PATH" HITL_GPU_FREE_MB=50 RENDER_LOCK_WAIT=30 bash "$W" --gpu echo ran 2>/dev/null)"
+expect 'a hung nvidia-smi skips the check' "$out" ran
+[ $(( $(date +%s) - s )) -lt 15 ] || { echo "FAIL a hung nvidia-smi should not hold the run past its timeout"; fails=$((fails + 1)); }
 [ $fails -eq 0 ] && echo "with-render-lock: all cases pass" || echo "with-render-lock: $fails failing"
 [ $fails -eq 0 ]

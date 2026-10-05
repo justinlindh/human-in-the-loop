@@ -106,7 +106,7 @@ fi
 FREE_MB="${HITL_GPU_FREE_MB:-3000}"
 # The first card's free memory in MiB; prints nothing when it can't be read.
 vram_free_mb() {
-  nvidia-smi --query-gpu=memory.total,memory.used --format=csv,noheader,nounits 2>/dev/null | head -n 1 \
+  timeout 5 nvidia-smi --query-gpu=memory.total,memory.used --format=csv,noheader,nounits 2>/dev/null | head -n 1 \
     | awk -F', *' 'NF >= 2 && $1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ { print $1 - $2 }'
 }
 t0=$SECONDS; t0r=$EPOCHREALTIME; said=0; vram_wait=0

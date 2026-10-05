@@ -43,6 +43,8 @@ printf 'page.goto: net::ERR_NAME_NOT_RESOLVED at http://no-such-host.test\n' >"$
 infra_failure "$tmp/o.log" 30 >/dev/null && fail "an unresolvable host is the code (a wrong or removed host), not the machine"
 printf 'console: THREE.WebGLProgram: Shader Error 1282 - VALIDATE_STATUS false\n' >"$tmp/s.log"
 eq "a shader that fails to validate" "$(infra_failure "$tmp/s.log" 30)" "Shader Error 1282 - VALIDATE_STATUS"
+printf 'console: THREE.WebGLProgram: Shader Error 0 - VALIDATE_STATUS false\nProgram Info Log: \nERROR: 0:12: '"'foo'"' : undeclared identifier\n' >"$tmp/g.log"
+infra_failure "$tmp/g.log" 30 >/dev/null && fail "a GLSL compile error is the code, not the machine"
 printf 'page: [hitl] webglcontextlost\n' >"$tmp/w.log"
 eq "a lost WebGL context" "$(infra_failure "$tmp/w.log" 30)" "[hitl] webglcontextlost"
 : >"$tmp/d.log"
