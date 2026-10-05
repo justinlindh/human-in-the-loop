@@ -778,24 +778,32 @@ const FLAT = { scale: 1.8, x: 0.4, z: -0.3, rot: -0.12, overhang: 0.04 };
 const flatMat = (tex, rough = 0.85) => own(new THREE.MeshStandardMaterial({ map: tex, roughness: rough }));
 const cardTex = (key, w, h, draw) => canvasTex(key, w, h, draw);
 
+// The thick one is the hearing summons: a fat official-red envelope with a white address label,
+// a black bar and a gold seal, so it stands out on a pale desk from across the office.
+const SUMMONS = { w: 0.3, d: 0.2, h: 0.07 };
 function envelope(thick) {
   return () => {
     const g = new THREE.Group();
-    const h = thick ? 0.05 : 0.012;
+    const h = thick ? SUMMONS.h : 0.012;
+    const w = thick ? SUMMONS.w : 0.26, d = thick ? SUMMONS.d : 0.17;
     const tex = cardTex(`env|${thick}`, 256, 170, (ctx, W, H) => {
-      ctx.fillStyle = P.paper_sheet; ctx.fillRect(0, 0, W, H);
-      ctx.strokeStyle = P.metal_soft; ctx.lineWidth = 4;
+      ctx.fillStyle = thick ? P.summons_red : P.paper_sheet; ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = thick ? P.summons_red_dark : P.metal_soft; ctx.lineWidth = 4;
       ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(W / 2, H * 0.55); ctx.lineTo(W, 0); ctx.stroke();
-      if (thick) { ctx.fillStyle = P.fabric_terracotta; ctx.fillRect(W * 0.62, 0, 16, H); }
-      else {
+      if (thick) {
+        ctx.fillStyle = P.paper; ctx.fillRect(W * 0.12, H * 0.58, W * 0.46, H * 0.3);
+        ctx.fillStyle = P.ink; for (let i = 0; i < 3; i++) ctx.fillRect(W * 0.16, H * (0.63 + i * 0.075), W * (0.36 - i * 0.06), 6);
+        ctx.fillRect(W * 0.66, H * 0.62, W * 0.24, 12);
+        ctx.fillStyle = P.gold; ctx.beginPath(); ctx.arc(W / 2, H * 0.55, 20, 0, Math.PI * 2); ctx.fill();
+      } else {
         ctx.fillStyle = P.ink; ctx.fillRect(W * 0.3, H * 0.72, W * 0.4, 8);
         // A red urgent stamp, so it reads as bad news at gameplay zoom.
         ctx.strokeStyle = P.alarm_red; ctx.lineWidth = 7; ctx.beginPath(); ctx.arc(W * 0.78, H * 0.3, 26, 0, Math.PI * 2); ctx.stroke();
         ctx.fillStyle = P.alarm_red; ctx.fillRect(W * 0.78 - 4, H * 0.3 - 16, 8, 20); ctx.fillRect(W * 0.78 - 4, H * 0.3 + 8, 8, 7);
       }
     });
-    const body = mesh(roundedBox(0.26, h, 0.17, Math.min(0.006, h / 2.2), 2), mat('paper_sheet'), 0, h / 2, 0);
-    const top = new THREE.Mesh(plane(0.26, 0.17), flatMat(tex));
+    const body = mesh(roundedBox(w, h, d, Math.min(0.006, h / 2.2), 2), mat(thick ? 'summons_red' : 'paper_sheet'), 0, h / 2, 0);
+    const top = new THREE.Mesh(plane(w, d), flatMat(tex));
     top.rotation.x = -Math.PI / 2; top.position.y = h + 0.001;
     g.add(body, top);
     return g;
