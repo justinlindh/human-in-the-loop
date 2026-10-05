@@ -32,6 +32,7 @@ import './beats.js';
 import './moonshot.js';
 import './props.js';
 import './prompts.js';
+import './radio.js';
 import './posts.js';
 import './advisors.js';
 import './squads.js';

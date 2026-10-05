@@ -9,6 +9,8 @@ import { GOALS } from '../data/goals.js';
 import { assignSeats } from '../sim/office.js';
 import { voiceFor } from '../sim/staff.js';
 import { ensureRecord } from '../sim/record.js';
+import { tasteFor } from '../sim/radio.js';
+import { B } from '../sim/balance.js';
 import { tick } from '../sim/tick.js';
 
 export const SAVE_KEY = 'hitl.save.v1';
@@ -20,7 +22,7 @@ const REQUIRED_KEYS = [
   'flags', 'stats', 'history', 'gameOver', 'era', 'eraSchedule', 'unlocks', 'goals', 'office', 'founding',
 ];
 
-const STATE_DEFAULTS = () => ({ research: { done: [] }, modifiers: [], scheduled: [], chatLog: [], chatPrompts: [], advisors: { dismissed: {}, pushed: {}, lastPushWeek: null, noticed: {} }, lockdown: null, workPolicy: null, squads: [], pets: [], rival: null, purpose: null,
+const STATE_DEFAULTS = () => ({ research: { done: [] }, modifiers: [], scheduled: [], chatLog: [], chatPrompts: [], radio: { on: false, station: null }, advisors: { dismissed: {}, pushed: {}, lastPushWeek: null, noticed: {} }, lockdown: null, workPolicy: null, squads: [], pets: [], rival: null, purpose: null,
   debtFlow: { work: 0, automation: 0, products: 0, lowKnowledge: 0, seniors: 0, maintenance: 0, reviews: 0, oneOff: 0, net: 0 } });
 const STAFF_DEFAULTS = () => ({ path: null, pathPending: false, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 }, remote: false, call: null, strain: 0, growth: [] });
 
@@ -131,6 +133,7 @@ function normalize(state) {
     for (const p of list) p.voice ??= voiceFor(p);
     for (const p of list) ensureRecord(p);
   }
+  if (B.boombox.enabled) for (const p of state.staff) p.taste ??= tasteFor(state, p.id);
   // Launch credit used to live in flags.shippedBy; it now lives on each person's record.
   if (state.flags.shippedBy) {
     for (const p of state.staff) p.record.launches = Math.max(p.record.launches, state.flags.shippedBy[p.id] ?? 0);

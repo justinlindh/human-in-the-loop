@@ -22,6 +22,7 @@ import { eraLines, eraOnlyAllowsText, eraAtLeast } from './eras.js';
 import { remoteLearning } from './ladder.js';
 import { purposeLift } from './purpose.js';
 import { squadOutputBonus } from './squads.js';
+import { tasteFor } from './radio.js';
 
 export const STATS = ['features', 'polish', 'reliability', 'novelty'];
 export const SENIORITIES = ['junior', 'mid', 'senior'];
@@ -252,6 +253,7 @@ registerAction('hire', (ctx, { candidateId }) => {
   state.candidates = state.candidates.filter((x) => x.id !== c.id);
   c.hiredWeek = state.week;
   c.knowledge = Math.min(100, c.knowledge + researchBonus(state, 'newHireKnowledge'));
+  if (B.boombox.enabled) c.taste ??= tasteFor(state, c.id);
   state.staff.push(c);
   assignSeats(state);
   state.cash -= fee;
