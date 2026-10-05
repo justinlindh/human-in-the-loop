@@ -7,7 +7,8 @@ const ZOOM_MIN = 0.7;
 const ZOOM_MAX = 3.2;         // the closest zoom on the Office Floor; a bigger office allows more (officeScale)
 // The Office Floor's span: its fitted height in metres for a reference 16:10 view with no HUD. An
 // office's span against it is its officeScale, which depends on the office alone, not the window.
-const FLOOR_SPAN_M = 14;
+// Set a little above the Floor's own span, so every Office Floor layout keeps a scale of exactly 1.
+const FLOOR_SPAN_M = 14.5;
 const REF_ASPECT = 1.6;
 // Screen space the HUD covers, in CSS px; the office is fitted into what is left.
 const INSET = { top: 90, bottom: 100, left: 120, right: 150 };
