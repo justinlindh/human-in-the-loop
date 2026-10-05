@@ -5,8 +5,11 @@
 //   node blender/checks/dump.mjs --out <dir> [--mock floor | --seed N [--week W] [--bot balanced|none]]
 //        [--snapshot <path> | --moment '<find query>'] [--patch-js '<js>'] [--event '<json>'] [--warm 60]
 //        [--frames 0,30,60 | --clip <seconds> [--every 15]] [--size 1280x800] [--quality medium] [--trace]
-//        [--views 0,1,2,3]
+//        [--views 0,1,2,3] [--images | --browser]
 //
+//   --images     also write the PNGs (the frame, and the annotated one); this needs a browser and a GPU.
+//                Without it, dump.json is made on the studio engine (Node, nothing drawn): same fields
+//   --browser    make dump.json in the browser without PNGs (to compare with the engine)
 //   --bot        who plays a seeded game to --week (default balanced; none only ticks the weeks)
 //   --patch-js   statements run with S (state) and R (renderer) after the warm-up, before frame 0
 //   --snapshot   start from an indexed moment's snapshot (scripts/events/find.js prints paths)
@@ -21,11 +24,11 @@
 //                the function that set it
 //   --clip       dump every --every frames (default 15) for this many seconds
 //
-// Writes <dir>/dump.json ({ scene, frames: [{ frame, t, people, items, props, camera }] }), and for
-// each frame <dir>/NNNN.png (the frame as the player sees it, labels included) and
+// Writes <dir>/dump.json ({ scene, frames: [{ frame, t, people, items, props, camera }] }), and with
+// --images for each frame <dir>/NNNN.png (the frame as the player sees it, labels included) and
 // <dir>/NNNN-annotated.png (ids, boxes, facing arrows, gaze rays, hands). Query it with
-// dump-query.mjs. Units and fields are described in dump.js. Renders on the GPU (--software for
-// SwiftShader), under the render lock the harness takes.
+// dump-query.mjs. Units and fields are described in dump.js. The browser runs render on the GPU
+// (--software for SwiftShader), under the render lock the harness takes.
 import { spotReasons } from '../../src/render/spots.js';
 import { startHarness, wantGpu } from './harness.mjs';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
@@ -48,9 +51,30 @@ const week = Number(opt('week', 0));
 if (opt('seed')) { q.set('seed', opt('seed')); if (bot === 'none' && week) q.set('weeks', String(week)); } else q.set('mock', opt('mock', 'floor'));
 const timeout = Number(opt('timeout', 600));
 
+const images = argv.includes('--images');
+const useBrowser = images || argv.includes('--browser');
+
 const kill = setTimeout(() => { console.error(`dump: timed out after ${timeout} s`); process.exit(124); }, timeout * 1000);
 const dir = resolve(out);
 mkdirSync(dir, { recursive: true });
+if (!useBrowser) {
+  // The studio engine: the game's own scene in Node, stepped by the same page function, nothing drawn.
+  const { runCases } = await import('../../scripts/studio/page-host.mjs');
+  const { fileURLToPath } = await import('node:url');
+  const target = opt('snapshot') || opt('moment') ? resolveTarget({ snapshot: opt('snapshot'), event: opt('moment') }) : null;
+  const seeded = opt('seed') ? { seed: Number(opt('seed')), ...(bot === 'none' && week ? { weeks: week } : {}) } : { mock: opt('mock', 'floor') };
+  const page = { ...(target ? { snapshot: target.file } : seeded), quality: opt('quality', 'medium'), width: w, height: h };
+  if (target) console.log(`dump: ${target.row ? `${target.row.id} seed ${target.row.seed} bot ${target.row.bot} week ${target.row.week}` : 'snapshot'} from ${target.file}`);
+  const [r] = await runCases([{ page, module: fileURLToPath(new URL('./dump-page.js', import.meta.url)), fn: 'dumpPage', arg: { warm, patchJs: opt('patch-js'), events: opt('event') ? JSON.parse(opt('event')) : null, loaded: !!target, bot: opt('seed') && bot !== 'none' ? bot : null, week, trace: argv.includes('--trace'), frames, width: w, height: h, views: opt('views') ? opt('views').split(',').map(Number) : null } }], { jobs: 1 });
+  clearTimeout(kill);
+  if (r.error) { console.error(`dump: engine: ${r.error}`); process.exit(1); }
+  const dumped = r.value;
+  writeFileSync(`${dir}/dump.json`, JSON.stringify({ scene: target ? { snapshot: target.file, row: target.row } : Object.fromEntries(q), warm, frames: dumped }, null, 1));
+  const last = dumped[dumped.length - 1];
+  for (const line of spotReasons(last.spotSearches)) console.log(`spots: ${line}`);
+  console.log(`dump: ${dumped.length} frame(s), ${last.people.length} people, ${last.items.length} items, ${last.props.length} props -> ${out}/dump.json (studio engine)`);
+  process.exit(0);
+}
 const H = await startHarness({ gpu: wantGpu() });
 try {
   // An indexed moment (scripts/events): the page loads its snapshot, the state just before it.
@@ -81,19 +105,21 @@ try {
   const dumped = [];
   let at = 0;
   for (const f of frames) {
-    const shot = await page.evaluate(({ n, views }) => {
-      const o = { views };
+    const shot = await page.evaluate(({ n, views, img }) => {
+      const o = { views, images: img };
       window.__step(n);
       const R = window.__hitlRender, S = window.__HITL.state;
       const d = window.__dump.dumpFrame(R, S, { views: o.views });
       // The trace entries since the last dumped frame.
       if (R.trace?.on) { d.trace = R.trace.lines(600).filter((l) => l.seq > (window.__traceSeen ?? -1)); if (d.trace.length) window.__traceSeen = d.trace[d.trace.length - 1].seq; }
-      return { d, annotated: window.__dump.annotate(R, d) };
-    }, { n: f - at, views: opt('views') ? opt('views').split(',').map(Number) : null });
+      return { d, annotated: o.images ? window.__dump.annotate(R, d) : null };
+    }, { n: f - at, img: images, views: opt('views') ? opt('views').split(',').map(Number) : null });
     at = f;
     const name = String(f).padStart(4, '0');
-    await canvas.screenshot({ path: `${dir}/${name}.png` });
-    writeFileSync(`${dir}/${name}-annotated.png`, Buffer.from(shot.annotated.split(',')[1], 'base64'));
+    if (images) {
+      await canvas.screenshot({ path: `${dir}/${name}.png` });
+      writeFileSync(`${dir}/${name}-annotated.png`, Buffer.from(shot.annotated.split(',')[1], 'base64'));
+    }
     dumped.push({ frame: f, t: +(f / 30).toFixed(3), ...shot.d });
   }
   writeFileSync(`${dir}/dump.json`, JSON.stringify({ scene: target ? { snapshot: target.file, row } : Object.fromEntries(q), warm, frames: dumped }, null, 1));
