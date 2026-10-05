@@ -627,6 +627,18 @@ export const ITEMS = [
     // Not published until the onlookers leave an arc open to the camera: from every view the ring hides the dance.
   })),
 
+  // docs/features/nods.md: the oat milk pallets. No bot reaches the decision, so a real game is played into the
+  // Agents era and the event is scheduled for the next week; the game's tick raises it and stages the pallets.
+  {
+    id: 'decision-oat_milk', title: 'Decision prop: the oat milk pallets', query: 'seed=1&speed=1', seconds: 14, warmup: 1,
+    setup: `(async () => { await ${PLAY({ weeks: 500, until: 's.week >= s.eraSchedule.agents + 2', after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE} s.scheduled.push({ id: 'sch_oat', week: s.week + 1, kind: 'event', payload: { eventId: 'oat_milk', subjectId: null } });` })}; await ${PRE_DECISION('oat_milk', 4)}; ${CLEAN}; ${NO_CARD}; ${NO_SAY}; })()`,
+    actions: [...OPEN(['oat_milk']), ...FOLLOW(['oat_milk'], 6, 0, 14, 0, true),
+      { at: 11, js: `(() => { if (window.__HITL.state.pendingDecision?.eventId !== 'oat_milk') console.error('capture: the oat milk decision is not open'); })()` }],
+    screenshots: [11],
+    out: [{ path: 'decisions/oat_milk.webp', size: '1280x720', from: 11 }],
+    publish: true,
+  },
+
   // docs/features/decisions.md: what each decision stages in the office while its card is up. The pre-tick
   // snapshot is opened, the game's tick raises the card, the card is hidden and the camera holds on the prop.
   ...DECISION_PROPS.map(([id, query, prop, zoom = 5.5, center = false]) => ({
