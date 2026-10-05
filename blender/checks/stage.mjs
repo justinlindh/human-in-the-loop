@@ -220,6 +220,17 @@ const SPECS = {
   ] },
   'fumes.fan': { moment: 'fumes', beat: 'fan', rules: FUMES_RULES },
   'fumes_coffee.fan': { moment: 'fumes', scenario: 'fumes_coffee', beat: 'fan', rules: FUMES_RULES },
+  // The hearing summons: the reader holds the red envelope itself up to read it, and it has to read,
+  // unblocked and big on screen next to them (targetScale: its screen size over theirs, whatever
+  // the zoom). A flat envelope on a crowded desk shrinks to the free space and hides behind the
+  // monitor, so the held one carries it.
+  'summons.read': { moment: 'letter', scenario: 'summons', beat: 'read', rules: [
+    share('gazeOnLetter', 'line of sight meets the envelope', (x) => x.gaze.hit === 'held', 0.8),
+    share('facingCamera', 'face within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('envelopeVisible', 'envelope >= 70% unblocked', (x) => x.targetVisible >= 0.7, 0.9),
+    mean('envelopeSize', 'mean envelope size >= 0.3 of the reader\'s screen height', (x) => x.targetScale ?? 0, (v) => v >= 0.3),
+    visibleRule,
+  ] },
   // The printer carried out back: both carriers hold it low in both hands, its middle well under
   // their heads, and stay in view; the one with the bat faces it while swinging, bat in hand.
   // The carry crosses the office, so it passes behind a pillar or a desk now and then: its
@@ -378,6 +389,7 @@ const SCENARIOS = {
   y2k: { query: 'mock=garage', patch: {}, seconds: 20,
     steps: [{ at: 0, js: "S.flags.y2k = { stage: 'rollover', rolloverWeek: S.week, printerId: 'y2k-printer' }; S.office.props = [{ id: 'y2k-printer', prop: 'printer', x: 4, y: 0, since: S.week }];" }] },
   letter: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'resignation_letter', subjectId: 's6', stage: { prop: 'envelope', anchor: 'subjectDesk', x: 12, y: 2 } } }, seconds: 16 },
+  summons: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'hearing_summons', subjectId: 's6', stage: { prop: 'envelope_thick', anchor: 'subjectDesk', x: 12, y: 2 } } }, seconds: 16 },
   fumes: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'agent_runaway_spend', subjectId: null, stage: { prop: 'rack_hot', anchor: 'wall', x: 7, y: 0 } } }, seconds: 16 },
   // The sim anchors the dead coffee machine's smoke to a kitchen tile that is often bare floor;
   // the smoke and the fanner belong at the espresso machine itself.
