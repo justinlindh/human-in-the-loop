@@ -234,6 +234,8 @@ lane_no "$repo/tests/tools/x.test.js" "ui, a tools test"
 [[ "$err" == *"belongs to tools, sim."* ]] || fail "lane-guard should name tools before sim for tests/tools/ (got: $err)"
 lane_no "$repo/tests/sim.test.js" "ui, a sim test"
 [[ "$err" == *"belongs to sim."* ]] || fail "lane-guard should name only sim for tests/sim.test.js (got: $err)"
+lane_no "$repo/docs/superpowers/plans/x.md" "ui, the plan"
+[[ "$err" != *"belongs to #"* && "$err" != *", #"* ]] || fail "lane-guard should not name a comment line as an owner (got: $err)"
 lane_no "$repo/nowhere/x.md" "ui, no owner"
 [[ "$err" != *"belongs to"* ]] || fail "lane-guard should name no owner for an unowned path (got: $err)"
 g -C "$repo" checkout -q sim/balance
