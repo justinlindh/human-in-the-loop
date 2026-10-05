@@ -107,8 +107,9 @@ const MOMENTS = [
   // The all-hands screen on its floor stand: the camera holds on it, where the hammer goes through.
   ['hammer', 'open_plan_office --seed 10 --choice 0', '() => ({ x: -9.8, z: -6.25 })', 0, 3, 22],
   ['carrier', 'cat_request --choice 0', 'pet_carrier', 0, 2.8],
-  ['consultants', 'efficiency_consultants --choice 1', 'visitor_chair', 1, 3.2],
-  ['letter', 'hearing_summons --choice 0', 'envelope_thick', 0, 3.4],
+  // No follow zoom: the game's own moment camera frames these (it zooms further in the bigger offices).
+  ['consultants', 'efficiency_consultants --seed 1 --choice 1', 'visitor_chair', 1],
+  ['letter', 'hearing_summons --seed 1 --choice 0', 'envelope_thick', 0],
   // "Live with it" (the third answer) keeps the smoke up for 12 s after the card closes, so the fanning plays in it.
   ['fumes', 'coffee_machine_broke --stage floor --seed 2 --choice 0', '() => ({ x: -2.5, z: -5.5 })', 2, 3, 24],
   ['bridge-loan', 'bridge_loan --choice 0', 'screens_red', 0],
