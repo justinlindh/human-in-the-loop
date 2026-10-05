@@ -120,7 +120,7 @@ const MOMENTS = [
   ['incubator', 'incubator_house --choice 0', 'house_sign', 0, 2.6],
 ];
 // Moments whose clip does not read yet (art's #1377); they render but do not publish.
-const HELD = new Set(['hammer', 'consultants', 'letter', 'bridge-loan', 'fumes']);
+const HELD = new Set(['consultants', 'letter', 'bridge-loan']);
 
 // [event id, find.js query, staged prop, follow zoom]: the staged decisions of docs/features/decisions.md.
 const DECISION_PROPS = [
