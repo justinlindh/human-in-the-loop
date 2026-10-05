@@ -1361,7 +1361,9 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     express, lookAt,
     // Mouth opening for speech, 0..1 (a voice take's loudness envelope).
     setTalk(v) { faceTalk = Math.max(0, Math.min(1, v)); },
-    // The face's current expression name and blended morph weights, for checks.
+    // The expression shown now (a reaction, else the mood's face), cheap enough to read every frame.
+    get expression() { return faceName(); },
+    // The face's current expression name and blended morph weights, for checks and portraits.
     get face() { return { name: faceName(), weights: Object.fromEntries(MORPHS.map((m, i) => [m, +faceW[i].toFixed(3)])) }; },
     setPetTarget(target) { petTarget = target; },
     // Both wrists in world space, left then right (shared vectors: copy them to keep them).

@@ -664,6 +664,19 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     voices.add(r);
   }
   if (typeof addEventListener === 'function') addEventListener('hitl:voice', onVoice);
+
+  // 'hitl:faceChange' { staffId, name } whenever the expression someone shows changes (a reaction
+  // starts or ends, a mood changes), so portraits can follow; blinks, gaze and talk don't count.
+  function announceFaces() {
+    if (typeof dispatchEvent !== 'function') return;
+    for (const r of recs.values()) {
+      const name = r.char.expression;
+      if (name === r.faceShownName) continue;
+      const first = r.faceShownName === undefined;
+      r.faceShownName = name;
+      if (!first) dispatchEvent(new CustomEvent('hitl:faceChange', { detail: { staffId: r.id, name } }));
+    }
+  }
   function updateVoices(dt) {
     voiceT += dt;
     for (const r of voices) {
@@ -2036,7 +2049,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         r.char.root.rotation.y = r.yaw;
         if (!r.hidden) r.char.breathe(dt);
       }
-      if (staging) updateMomentSpeech(dt);
+      if (staging) { updateMomentSpeech(dt); announceFaces(); }
       return;
     }
     startGrowth();
@@ -2054,6 +2067,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     updateMomentSpeech(dt);
     momentCam.update(dt);
     for (const r of recs.values()) updateRec(r, dt);
+    announceFaces();
     for (let i = leavers.length - 1; i >= 0; i--) {
       if (!updateLeaver(leavers[i], dt)) { disposeRec(leavers[i]); leavers.splice(i, 1); }
     }

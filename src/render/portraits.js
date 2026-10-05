@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createCharacter } from './character.js';
+import { EXPRESSIONS } from './face.js';
 import { ROLE_COLORS, PALETTE } from './palette.js';
 
 // Menu portraits rendered from the same chibi builder the office uses: head and shoulders from a
@@ -7,6 +8,8 @@ import { ROLE_COLORS, PALETTE } from './palette.js';
 //
 // portrait(person, { size }) -> image URL | null   cached; null until rendered (a few per frame),
 //                                                     then window 'hitl:portraits' fires as each lands
+// person.expression (optional, an EXPRESSIONS name such as R.face(id).name) shows that face
+// instead of the mood's own; listen for 'hitl:faceChange' to know when it changes.
 // portraitLive(person, { size }) -> { el, dispose }  a canvas redrawn each frame (idle, blinks)
 //
 // One small offscreen WebGL renderer serves both; no post chain.
@@ -21,7 +24,7 @@ const IDEA_YAW = -0.3;          // radians the body turns for that frame
 const bucketFor = (px) => BUCKETS.find((b) => b >= px) ?? BUCKETS[BUCKETS.length - 1];
 
 function keyOf(p, px) {
-  return `${p.id}|${p.role}|${p.mood ?? 'ok'}|${p.legend ? 1 : 0}|${p.roleColor ?? ''}|${p.pose ?? ''}${p.poseT ?? ''}|${JSON.stringify(p.appearance ?? {})}|${px}`;
+  return `${p.id}|${p.role}|${p.mood ?? 'ok'}|${p.expression ?? ''}|${p.legend ? 1 : 0}|${p.roleColor ?? ''}|${p.pose ?? ''}${p.poseT ?? ''}|${JSON.stringify(p.appearance ?? {})}|${px}`;
 }
 
 export function createPortraits({ ready, lowQuality = () => false, wardrobe = () => null }) {
@@ -82,6 +85,9 @@ export function createPortraits({ ready, lowQuality = () => false, wardrobe = ()
     c.pickProxy.visible = false;
     c.setMood(person.mood && person.mood !== 'away' ? person.mood : 'ok');
     c.setLegend(!!person.legend);
+    // person.expression (an EXPRESSIONS name, as R.face(id).name gives it): the face the scene shows.
+    // An extra short step lets the face blend all the way in before the frame is drawn.
+    if (person.expression && EXPRESSIONS[person.expression] && person.expression !== c.expression) { c.express(person.expression, { hold: Infinity, blend: 0.01 }); c.update(0.1); }
     // 'idea': a hand up, for someone who has something to say (the UI adds its own badge).
     c.setAnim(person.pose === 'idea' ? 'wave' : 'idle');
     // The body turns a little so the raised hand sits beside the face, inside the frame.
