@@ -144,7 +144,7 @@ const DECISION_PROPS = [
 // The Yak reply prompt kinds of docs/features/yak.md (src/data/prompts.js).
 const YAK_PROMPTS = ['strain_vent', 'incident_blame', 'launch_hype', 'rival_itch', 'project_late', 'agent_prs', 'newhire_lost', 'coasting_check', 'support_swamped', 'lowcash_lunch', 'desk_squeeze', 'office_full', 'junior_pr'];
 
-const GARAGE_DECISIONS =new Set(['hackathon', 'team_offsite', 'onprem_bank']);
+const GARAGE_DECISIONS = new Set(['hackathon', 'team_offsite', 'onprem_bank']);
 
 // [item id, camera zoom, era the item needs] of the shop items shown in docs/features/office.md.
 const ITEM_STILLS = [
@@ -517,6 +517,53 @@ export const ITEMS = [
     publish: true,
   })),
 
+  // docs/features/interface.md: Reports > Inventory of a pre-internet company with a boxed release and a batch on order.
+  {
+    id: 'iface-inventory', title: 'Interface: Reports > Inventory', query: 'seed=1&eras&speed=0', still: true, warmup: 1,
+    setup: `(async () => {
+      const { createGame } = await import('/src/sim/state.js');
+      const { tick } = await import('/src/sim/tick.js');
+      const { dispatch } = await import('/src/sim/index.js');
+      const b = await import('/src/sim/bots.js');
+      const { saveGame } = await import('/src/save/save.js');
+      const s = createGame({ seed: 1, startEra: 'preinternet' });
+      const boxed = () => s.products.find((p) => p.boxed);
+      for (let i = 0; i < 160 && !s.gameOver && !(boxed() && boxed().boxed.installed > 0); i++) { b.botDecide('balanced', s); b.botTurn('balanced', s); tick(s); }
+      b.botDecide('balanced', s);
+      const p = boxed();
+      if (!p) throw new Error('no boxed release in this career');
+      s.cash = Math.max(s.cash, 50000);
+      dispatch(s, { type: 'orderBatch', productId: p.id, units: 500 });
+      if (!saveGame(s, localStorage)) throw new Error('could not save the era game');
+      const r = window.__HITL.controls.continueGame();
+      if (!r.ok) throw new Error('the game refused the era save: ' + (r.reason ?? ''));
+      window.__HITL.setSpeed?.(0);
+    })()`,
+    actions: [...CLEAR_EARLY, { at: 0.6, js: KEY('r', 'KeyR') }, { at: 1.4, js: CLICK_STARTS('Inventory') },
+      { at: 2.6, js: "(() => { if (!document.body.textContent.includes('Order 100')) console.error('capture: the Inventory tab is not open'); })()" }],
+    screenshots: [3],
+    out: [{ path: 'iface/inventory.webp', size: '1230x562', from: 3, crop: { x: 0.18, y: 0.07, w: 0.64, h: 0.52 } }],
+    publish: true,
+  },
+
+  // docs/features/interface.md: the NOC mode card of the Ops panel, with a Network Operations Center placed.
+  {
+    id: 'iface-noc', title: 'Interface: the NOC mode card', query: 'mock=hq&time=day&speed=0', still: true, warmup: 1,
+    setup: `(async () => {
+      const H = window.__HITL, s = H.state; s.cash = 1e9;
+      const { suggestPlacement } = await import('/src/sim/office.js');
+      const spot = suggestPlacement(s, 'noc');
+      if (!spot) throw new Error('no free spot for the NOC');
+      const r = H.dispatch({ type: 'placeItem', itemId: 'noc', x: spot.x, y: spot.y, rot: spot.rot });
+      if (!r.ok) throw new Error('placeItem refused: ' + (r.reason ?? ''));
+    })()`,
+    actions: [...CLEAR_EARLY, { at: 0.6, js: KEY('o', 'KeyO') },
+      { at: 2.2, js: "(() => { if (!document.body.textContent.includes('Humans on the glass')) console.error('capture: the NOC card is not showing'); })()" }],
+    screenshots: [3],
+    out: [{ path: 'iface/noc.webp', size: '1230x648', from: 3, crop: { x: 0.18, y: 0.07, w: 0.64, h: 0.6 } }],
+    publish: true,
+  },
+
   // docs/features/decisions.md: what each decision stages in the office while its card is up. The pre-tick
   // snapshot is opened, the game's tick raises the card, the card is hidden and the camera holds on the prop.
   ...DECISION_PROPS.map(([id, query, prop, zoom = 5.5]) => ({
@@ -548,6 +595,15 @@ export const ITEMS = [
         el.scrollIntoView({ block: 'center' });
         (window.__captureMarks ??= []).push({ t: ${2 + i * 0.5}, label: 'yak-prompt', kind: ${JSON.stringify(kind)}, id: p.id, text: el.textContent.slice(0, 60), inPanel: (() => { const r = el.getBoundingClientRect(), q = document.querySelector('.chat.yak').getBoundingClientRect(); return r.top >= q.top && r.bottom <= q.bottom; })() });
       })()` })),
+      // The still is only right when the prompt is open and fully in view just before it is taken.
+      { at: 21.8, js: `(() => {
+        const p = window.__HITL.state.chatPrompts.find((q) => q.kind === ${JSON.stringify(kind)});
+        const el = p && document.querySelector('.chat.yak .yprompt[data-prompt="' + CSS.escape(p.id) + '"]');
+        // console.error fails this item only; a throw would end the whole capture run.
+        if (!el) return console.error('capture: the ${kind} prompt is not in the Yak panel');
+        const r = el.getBoundingClientRect(), q = document.querySelector('.chat.yak').getBoundingClientRect();
+        if (!r.width || r.top < q.top || r.bottom > q.bottom) console.error('capture: the ${kind} prompt is outside the Yak panel');
+      })()` },
     ],
     screenshots: [22],
     out: [{ path: `yak/${kind}.webp`, size: '640x747', from: 22, crop: { x: 0, y: 0.43, w: 0.27, h: 0.56 }, publishAs: `yak-${kind}` }],
