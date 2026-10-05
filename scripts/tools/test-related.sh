@@ -21,9 +21,11 @@ full() { echo "test-related: $1: running the full test:fast"; [ "$list" = 1 ] &&
 [ -n "$files" ] || { echo "test-related: no changes against ${base:0:9}: nothing to run"; exit 0; }
 # Tests that run a changed script by its path (spawned, not imported), which vitest related can't see.
 spawned="$(node scripts/tools/spawned-tests.mjs $files 2>/dev/null)"
-named_by_test() { # <shell script>: true when a spawned test names it
-  [ -n "$spawned" ] && [ -n "$(node scripts/tools/spawned-tests.mjs "$1" 2>/dev/null)" ]
-}
+# The changed shell scripts some test reaches, from one more walk (none when no test was found).
+shells="$(grep -E '^scripts/([^/]+/)?[^/]+\.sh$' <<<"$files" || true)"
+reached=''
+[ -n "$spawned" ] && [ -n "$shells" ] && reached="$(node scripts/tools/spawned-tests.mjs --reached $shells 2>/dev/null)"
+named_by_test() { grep -qxF -- "$1" <<<"$reached"; } # <shell script>: true when a test reaches it
 keep=''
 while read -r f; do
   case "$f" in

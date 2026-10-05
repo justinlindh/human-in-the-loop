@@ -26,7 +26,7 @@ HITL_PUSH_TEST_MAX=100 FAKE_COUNT=41 runit
 # A shell script a test runs by its path goes to test-related (which adds that test); one no test
 # runs, and a shell test, run nothing here.
 rm -f "$r/src/a.js" "$tmp/runs"
-printf 'if (process.argv[2] === "scripts/run.sh") console.log("tests/run.test.js");\n' >"$r/scripts/tools/spawned-tests.mjs"
+printf 'if (process.argv[2] === "--reached" && process.argv.includes("scripts/run.sh")) console.log("scripts/run.sh");\n' >"$r/scripts/tools/spawned-tests.mjs"
 g add scripts/tools/spawned-tests.mjs; g commit -q -m stub; g update-ref refs/remotes/origin/main HEAD
 echo 'x' >"$r/scripts/run.sh"; echo 'x' >"$r/scripts/other.sh"; echo 'x' >"$r/scripts/run.test.sh"
 runit

@@ -14,9 +14,11 @@ changed="$( { git diff --name-only "$base"; git ls-files --others --exclude-stan
 files="$(grep -E '^((src|tests)/([^/]+/){0,2}[^/]+\.js|scripts/([^/]+/)?[^/]+\.(js|mjs))$' <<<"$changed" || true)"
 # A shell script a test runs by its path (scripts/tools/spawned-tests.mjs names that test) goes along
 # too, so test-related adds the test; one no test runs is left to GitHub.
-for f in $(grep -E '^scripts/([^/]+/)?[^/]+\.sh$' <<<"$changed" | grep -v '\.test\.sh$'); do
-  [ -f scripts/tools/spawned-tests.mjs ] && [ -n "$(node scripts/tools/spawned-tests.mjs "$f" 2>/dev/null)" ] && files+=$'\n'"$f"
-done
+shells="$(grep -E '^scripts/([^/]+/)?[^/]+\.sh$' <<<"$changed" | grep -v '\.test\.sh$' || true)"
+if [ -n "$shells" ] && [ -f scripts/tools/spawned-tests.mjs ]; then
+  # shellcheck disable=SC2086
+  files+=$'\n'"$(node scripts/tools/spawned-tests.mjs --reached $shells 2>/dev/null)"
+fi
 files="$(sed '/^$/d' <<<"$files")"
 if [ -z "$files" ]; then
   echo "test-push: no changed JS under src, tests or scripts: nothing to run here (GitHub runs the full suite)"

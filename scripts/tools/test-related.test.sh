@@ -18,6 +18,7 @@ lst src/ui/advisor.js scripts/ci-local.sh; grep -q 'scripts/ci-local.sh is a scr
 lst scripts/wait-for.sh; grep -q '^tests/tools/wait-for.test.js$' <<<"$out" && grep -q 'run a changed script by its path' <<<"$out" && ! grep -q 'full test:fast' <<<"$out" \
   || fail "a spawned shell script selects the test that runs it: $out"
 lst scripts/tools/ab.sh; grep -q '^tests/tools/ab.test.js$' <<<"$out" || fail "a spawned script under scripts/tools selects its test: $out"
+lst scripts/perf/loop-report.js; grep -q '^tests/loop-report.test.js$' <<<"$out" || fail "a test directly under tests/ that runs a script is found: $out"
 lst scripts/wait-for.test.sh; grep -q 'nothing to run' <<<"$out" || fail "a shell test is left to GitHub's tools job: $out"
 lst; grep -q 'no changes\|nothing to run' <<<"$out" || fail "no files: $out"
 # The real run: one test file's related tests pass and exit 0.
