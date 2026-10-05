@@ -395,15 +395,13 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (goal.seated) to = seatApproach(goal);
     r.path = walkPath(nav, { x: r.pos.x, z: r.pos.z }, { x: to.x, z: to.z });
     r.path.shift();
-    // Leaving a seat the way they came: back out behind the chair first (not through the nearest gap
-    // beside it), and at an item (the NOC) the item stays theirs until they're clear of it.
-    if (from && from !== goal && from.seated && Math.hypot(r.pos.x - from.x, r.pos.z - from.z) < 0.3) {
+    // Leaving a seat at an item (the NOC) the way they came: back out behind the chair first, the item
+    // still theirs until they're clear of it, as at a desk.
+    if (from && from !== goal && from.seated && from.uses && Math.hypot(r.pos.x - from.x, r.pos.z - from.z) < 0.3) {
       const back = seatApproach(from);
       r.path = [back, ...walkPath(nav, back, { x: to.x, z: to.z }).slice(1)];
-      if (from.uses) {
-        r.exitFrom = from.uses;
-        r.exitSide = back;
-      }
+      r.exitFrom = from.uses;
+      r.exitSide = back;
     }
     // Starting inside furniture (an item placed where they stood) finds no path: out to the nearest
     // clear point first, then on from there.
