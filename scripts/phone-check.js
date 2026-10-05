@@ -36,6 +36,7 @@ import { chromium, devices } from 'playwright';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { glMode, holdRenderLock, launchChromium } from './lib/gl.js';
+import { graphBase, graphPassedAt, recordGraphPass, requestedFiles } from '../blender/checks/cache.mjs';
 
 function parseArgs(argv) {
   const out = {};
@@ -127,6 +128,20 @@ for (const c of checks) if (!ALL_CHECKS.includes(c)) { console.error(`phone-chec
 mkdirSync(outDir, { recursive: true });
 
 const GL = glMode();
+// A clean full run is recorded in the check cache (blender/checks/cache.mjs) with every file its pages
+// requested and this script's own imports; the key adds the GL mode, Node, the installed Playwright,
+// Chromium, three and vite, and the page shell. A rerun skips, before taking a GPU slot, while all of
+// them are unchanged. A narrowed run (--failed, --devices, --checks, --only, --query) never skips or
+// records. HITL_NO_CHECK_CACHE=1 forces a run.
+const narrowed = ['failed', 'devices', 'checks', 'only', 'query'].some((k) => args[k] !== undefined);
+const cacheKey = narrowed ? null : graphBase('phone-check', `gl ${GL}`);
+const passedAt = cacheKey ? graphPassedAt('phone-check', cacheKey) : null;
+if (passedAt) {
+  writeFileSync(recordPath, JSON.stringify({ failed: [] }));
+  console.log(`phone-check: skipped, reusing the clean pass recorded at ${passedAt}: nothing the pages load has changed since (HITL_NO_CHECK_CACHE=1 runs it); no new screenshots`);
+  process.exit(0);
+}
+const requested = new Set();
 holdRenderLock(GL);
 
 // With __strictAudio set, the page's AudioContext acts like iOS Safari's: it starts or resumes only
@@ -149,6 +164,9 @@ const browsers = [];
 const launch = async (w) => {
   const { browser } = await launchChromium(chromium, { mode: GL, label: w ? `phone-check ${w + 1}` : 'phone-check', args: ['--autoplay-policy=user-gesture-required'] });
   browsers.push(browser);
+  // Every context's pages report what they request, for the cache record.
+  const newContext = browser.newContext.bind(browser);
+  browser.newContext = async (...a) => { const ctx = await newContext(...a); ctx.on('request', (r) => requested.add(r.url())); return ctx; };
   return browser;
 };
 
@@ -589,4 +607,5 @@ const failed = results.filter((r) => r.fails.length);
 const ran = (p) => results.some((r) => r.d === p.d && r.c === p.c);
 writeFileSync(recordPath, JSON.stringify({ failed: [...previouslyFailed.filter((p) => !ran(p)), ...failed.map((r) => ({ d: r.d, c: r.c }))] }));
 console.log(`phone-check: ${results.length - failed.length}/${results.length} passed; screenshots in ${outDir}`);
+if (cacheKey && !failed.length && results.length === work.length) recordGraphPass('phone-check', cacheKey, requestedFiles(requested));
 process.exit(failed.length ? 1 : 0);
