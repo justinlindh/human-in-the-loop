@@ -366,6 +366,13 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       }, h('b', { text: e.name }), routeOf(e.id) ? h('span.pill.trait', { text: `Route: ${routeOf(e.id).name}` }) : null, h('span.small.eblurb', { text: e.blurb }),
       h('span.small', { text: `${OFFICE_STAGES[k.officeStage].name} · ${k.desks} desks · ${shareText(k)}` }));
     })) : null;
+    // The eight starts sit behind one line, so a first-time player meets Classic and the funding question first;
+    // asking for the picker in the URL, or having left Classic, opens it.
+    const eraNow = h('span.small.era-pick-now');
+    const eraPick = erasPreview ? h('details.era-pick', null,
+      h('summary', null, h('b', { text: 'When does your company begin?' }), eraNow, h('span.small.era-pick-change', { text: 'Change' })),
+      eraCards, modeCards) : null;
+    if (eraPick) eraPick.open = new URLSearchParams(globalThis.location?.search ?? '').has('eras') || draft.startEra !== 'classic' || draft.startMode === 'takeover';
     const unlockNote = h('div.small.muted');
     const skippedNote = h('div.small.muted');
     const summary = h('div.era-start-summary', { 'aria-live': 'polite' });
@@ -421,6 +428,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       if (nextBtn && erasPreview) nextBtn.replaceChildren(icon('launch'), ' ', takeover ? 'Review the company' : 'Start the company');
       const era = ERA_STARTS[draft.startEra];
       const kit = B.eraStarts[draft.startEra];
+      setText(eraNow, takeover ? `Take over a ${era.name} company` : `${era.name} · ${shareText(kit)}`);
       eraCards?.querySelectorAll('.era-start').forEach((card) => {
         const id = card.dataset.era;
         const selected = id === draft.startEra;
@@ -453,8 +461,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       refreshSummary();
     };
     nextBtn = frame(2, h('div.fbody', null,
-      erasPreview ? h('b', { text: 'When does your company begin?' }) : null, eraCards,
-      modeCards,
+      eraPick,
       erasPreview ? unlockNote : null,
       erasPreview ? skippedNote : null,
       fundingLabel,
