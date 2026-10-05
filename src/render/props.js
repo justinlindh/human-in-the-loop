@@ -852,33 +852,44 @@ const giftCardTex = (col) => cardTex(`giftcard|${col}`, 192, 120, (ctx, W, H) =>
 });
 function giftCards() {
   const g = new THREE.Group();
-  g.add(mesh(roundedBox(0.22, 0.03, 0.07, 0.01, 2), mat('plastic_charcoal'), 0, 0.015, 0));
-  const cols = ['fabric_mustard', 'role_engineer', 'marker_green', 'screen_pink', 'fabric_terracotta'];
+  g.add(mesh(roundedBox(0.26, 0.03, 0.07, 0.01, 2), mat('plastic_charcoal'), 0, 0.015, 0));
+  const cols = ['fabric_mustard', 'role_engineer', 'marker_green', 'screen_pink'];
   cols.forEach((c, i) => {
     const card = new THREE.Group();
-    const face = new THREE.Mesh(plane(0.13, 0.081), flatMat(giftCardTex(c), 0.5));
-    face.position.y = 0.04;
+    const face = new THREE.Mesh(plane(0.15, 0.094), flatMat(giftCardTex(c), 0.5));
+    face.position.y = 0.047;
     face.userData.noAO = true;
-    const back = new THREE.Mesh(plane(0.13, 0.081), flatMat(giftCardTex(c), 0.5));
-    back.position.y = 0.04;
+    const back = new THREE.Mesh(plane(0.15, 0.094), flatMat(giftCardTex(c), 0.5));
+    back.position.y = 0.047;
     back.rotation.y = Math.PI;
     back.userData.noAO = true;
     card.add(face, back);
-    // Fanned from the stand: each leans back a little and turns about the stand's middle.
-    card.position.set((i - 2) * 0.035, 0.025, (i - 2) * -0.004);
-    card.rotation.set(-0.3, 0, (2 - i) * 0.22);
+    // Fanned from the stand: each leans back a little and turns about the stand's middle. Each
+    // card stands just in front of the one to its left, so every $ on a left edge stays in view.
+    card.position.set((i - 1.5) * 0.055, 0.025, (i - 1.5) * 0.006);
+    card.rotation.set(-0.3, 0, (1.5 - i) * 0.24);
     g.add(card);
   });
   return g;
 }
-// Sticky notes everywhere: a cube of them, and big bright notes stuck all over the desk top with
-// a curled corner, so the mess reads from across the room.
+// Sticky notes everywhere: a small memo board standing up and covered in them, a cube of them, and
+// big bright notes stuck all over the desk top, so the mess reads from across the room.
 function stickyNotes() {
   const g = new THREE.Group();
   const cols = ['fabric_mustard', 'marker_orange', 'screen_pink', 'marker_green'];
-  for (let i = 0; i < 6; i++) g.add(mesh(roundedBox(0.1, 0.016, 0.1, 0.003, 1), mat(cols[i % 4]), -0.2, 0.008 + i * 0.016, 0.02));
-  for (let i = 0; i < 8; i++) {
-    const n = mesh(roundedBox(0.11, 0.004, 0.11, 0.002, 1), mat(cols[(i + 1) % 4]), (i % 4) * 0.12 - 0.08, 0.003 + Math.floor(i / 4) * 0.004, Math.floor(i / 4) * 0.12 - 0.06);
+  const board = new THREE.Group();
+  board.add(mesh(roundedBox(0.26, 0.22, 0.02, 0.008, 2), mat('plastic_charcoal'), 0, 0.11, 0));
+  for (let i = 0; i < 4; i++) {
+    const n = mesh(roundedBox(0.1, 0.1, 0.006, 0.002, 1), mat(cols[(i + 2) % 4]), ((i % 2) - 0.5) * 0.115, 0.06 + Math.floor(i / 2) * 0.105, 0.013);
+    n.rotation.z = ((i * 31) % 7 - 3) * 0.06;
+    board.add(n);
+  }
+  board.position.set(0.04, 0, -0.06);
+  board.rotation.x = -0.22;
+  g.add(board);
+  for (let i = 0; i < 6; i++) g.add(mesh(roundedBox(0.1, 0.016, 0.1, 0.003, 1), mat(cols[i % 4]), -0.15, 0.008 + i * 0.016, 0.06));
+  for (let i = 0; i < 3; i++) {
+    const n = mesh(roundedBox(0.11, 0.004, 0.11, 0.002, 1), mat(cols[(i + 1) % 4]), i * 0.1 - 0.02, 0.003 + i * 0.002, 0.09 + (i % 2) * 0.02);
     n.rotation.set(((i * 29) % 7 - 3) * 0.04, ((i * 37) % 11 - 5) * 0.08, 0);
     g.add(n);
   }
@@ -1548,19 +1559,24 @@ function mugMesh(scale = 1, color = 'mug') {
   g.add(handle);
   return g;
 }
-// Mugs nobody took back to the kitchen, stacked into a leaning tower: one mug's footprint, so it fits a busy desk at full size and reads from across the room.
-// Stacked three, two, one into a pyramid, each mug a different colour with its handle out, so it
-// reads as many mugs rather than one tall thing.
+// Mugs nobody took back to the kitchen: a row of three on the desk and a leaning tower of three
+// more balanced on the middle one, each a different colour, so it reads as many mugs and as a
+// tall silhouette from across the room.
 function mugPile() {
   const g = new THREE.Group();
-  const S = 1.4, w = 0.09 * S, h = 0.1 * S;
-  const rows = [['plastic_white', 'fabric_teal', 'fabric_mustard'], ['screen_pink', 'plastic_white'], ['marker_orange']];
-  rows.forEach((row, k) => row.forEach((c, i) => {
+  const S = 1.4, w = 0.095 * S, pitch = 0.125;
+  ['plastic_white', 'fabric_teal', 'fabric_mustard'].forEach((c, i) => {
     const m = mugMesh(S, c);
-    m.position.set((i - (row.length - 1) / 2) * w, k * h, ((k + i) % 2 ? 1 : -1) * 0.006);
-    m.rotation.set(0, (k * 3 + i) * 1.3, ((k + i) % 2 ? 1 : -1) * 0.05);
+    m.position.set((i - 1) * w, 0, (i % 2) * 0.03);
+    m.rotation.y = i * 2.1 + 0.4;
     g.add(m);
-  }));
+  });
+  ['screen_pink', 'marker_orange', 'plastic_white'].forEach((c, i) => {
+    const k = i + 1, m = mugMesh(S, c);
+    m.position.set(k * 0.012, k * pitch, 0.03 + k * 0.004);
+    m.rotation.set(0, k * 1.7, (k % 2 ? 1 : -1) * 0.05);
+    g.add(m);
+  });
   return g;
 }
 // One absurdly big mug: the size of a waste bin, on the floor beside its owner's desk.
@@ -1806,8 +1822,8 @@ const BUILDERS = {
   envelope: atDesk(envelope(false), FLAT),
   envelope_thick: atDesk(envelope(true), FLAT),
   binder: atDesk(binder, { x: -0.62, z: -0.42, rot: 0 }),
-  gift_cards: atDesk(giftCards, { ...FLAT, group: true }),
-  sticky_notes: atDesk(stickyNotes, { x: 0.4, z: -0.28, rot: 0.1 }),
+  gift_cards: atDesk(giftCards, { ...FLAT, scale: 1.6, x: 0.4, z: -0.35, rot: 0.1, group: true }),
+  sticky_notes: atDesk(stickyNotes, { x: 0.38, z: -0.3, rot: 0.1 }),
   photos_laminated: atDesk(photosLaminated, FLAT),
   smoothie: atDesk(smoothie, { x: 0.45, z: -0.25, rot: 0, group: true }),
   pizza_boxes: atDesk(pizzaBoxes, { x: 0.5, z: -0.38, rot: 0.06, scale: 1.0, overhang: 0.1, group: true }),
