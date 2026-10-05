@@ -275,10 +275,15 @@ try {
         const on = [], weeks = [];
         let skippedAt = -1;
         const keys = new Set();
+        // Once the spotlight is over and a week has passed, a few more frames settle it and the watch ends.
+        let ended = -1, resumedAt = -1;
         for (let i = 0; i < 90 * 30; i++) {
+          if (resumedAt >= 0 && i - resumedAt >= 15) break;
           window.__frame(1);
           const sp = R.spotlight?.();
           on.push(sp ? sp.kind : null); weeks.push(S().week);
+          if (ended < 0 && !sp && on.includes(scene.kind)) ended = i;
+          if (ended >= 0 && resumedAt < 0 && S().week > weeks[ended - 1]) resumedAt = i;
           if (sp?.kind === scene.kind) {
             keys.add(sp.key);
             if (skippedAt < 0 && (scene.skip || scene.fast)) {
@@ -298,7 +303,7 @@ try {
         [r.start >= 0, r.start >= 0 ? `the ${scene.kind} spotlight started ${(r.start / 30).toFixed(1)} s after the choice` : `no ${scene.kind} spotlight came up (seen: ${r.kinds.join(', ') || 'none'})`],
         [r.start >= 0 && r.end > r.start, r.end > r.start ? `it ended by itself after ${((r.end - r.start) / 30).toFixed(1)} s` : 'it never ended in 90 s'],
         [r.end > r.start && r.weekAtStart === r.weekAtEnd, `no week passed while it played (week ${r.weekAtStart} to ${r.weekAtEnd})`],
-        [r.end > r.start && r.weekLast > r.weekAtEnd, `the weeks resumed after it (week ${r.weekLast} by the end of the watch)`],
+        [r.end > r.start && r.weekLast > r.weekAtEnd, `the weeks resumed after it (week ${r.weekLast} once they did)`],
         [!(scene.skip || scene.fast) || (r.skippedAt >= 0 && r.keys === 1), `Skip/4x starts the staged visitor only once (${r.keys} keys)`],
         [cut.length === 0, cut.length ? `the hold was cut short: ${cut[0]}` : 'the hold was never cut short'],
       ];
@@ -310,14 +315,17 @@ try {
     }
     return failed;
   });
+  for (const c of checks.slice(queries.length)) c.heavy = true; // the spotlight checks
   const outs = checks.map(() => null);
+  // The slow checks start first so the last one to finish is a short one; the output keeps the checks' order.
+  const order = checks.map((_, i) => i).sort((a, b) => (checks[b].heavy ? 1 : 0) - (checks[a].heavy ? 1 : 0) || a - b);
   let next = 0, printed = 0;
   const flush = () => { while (printed < outs.length && outs[printed]) { for (const l of outs[printed]) console.log(l); printed++; } };
   await Promise.all(Array.from({ length: Math.min(jobs, checks.length) }, async (_, w) => {
     const { browser } = await launchChromium(chromium, { mode, label: w ? `loop ${w + 1}` : 'loop' });
     browsers.push(browser);
     while (next < checks.length) {
-      const i = next++, lines = [];
+      const i = order[next++], lines = [];
       try { failed += await checks[i]((l) => lines.push(l), browser); } catch (e) { failed++; lines.push(`LOOP FAIL check ${i + 1}: ${e.message}`); }
       outs[i] = lines;
       flush();
