@@ -33,6 +33,8 @@ for p in $allowed; do
     *) [ "$rel" = "$p" ] && exit 0 ;;
   esac
 done
-owner="$(awk -v r="$rel" '$1 != "*" && $1 != "main" { for (i = 2; i <= NF; i++) { p = $i; if ((substr(p, length(p)) == "/" && index(r, p) == 1) || r == p) { print $1; exit } } }' "$lanes")"
+# Every lane whose paths match, the longest matching prefix first (tests/tools/ before tests/), comma separated.
+owner="$(awk -v r="$rel" '$1 != "*" && $1 != "main" { for (i = 2; i <= NF; i++) { p = $i; if (((substr(p, length(p)) == "/" && index(r, p) == 1) || r == p) && !($1 in best && best[$1] >= length(p))) { if (!($1 in best)) names[++n] = $1; best[$1] = length(p) } } }
+  END { for (k = 1; k <= n; k++) { m = ""; for (j = 1; j <= n; j++) if (!(names[j] in done) && (m == "" || best[names[j]] > best[m])) m = names[j]; done[m] = 1; printf "%s%s", (k > 1 ? ", " : ""), m } }' "$lanes")"
 echo "Blocked by the team's hook (scripts/hooks/claude/lane-guard.sh): $rel is outside the $lane lane (branch $branch)${owner:+; it belongs to $owner}. Message its owner instead. If the owner agreed to this edit, record it: echo '$rel' >> \"\$(git rev-parse --git-dir)/hitl-lane-allow\"" >&2
 exit 2
