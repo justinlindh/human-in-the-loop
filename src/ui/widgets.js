@@ -10,21 +10,56 @@ import { characterLook } from '../render/look.js';
 let source = null;
 const pending = new Set(); // { el, person, size, kind: 'el' | 'src' }
 const live = new Set(); // { el, handle }
+const faces = new Map(); // rendered still portraits of staff, swapped when the person's face changes
+const MAX_FACES = 300;
 const MAX_PENDING = 400;
 
 export function setPortraitSource(getRenderer) {
   source = getRenderer;
   addEventListener('hitl:portraits', upgradePending);
+  addEventListener('hitl:faceChange', onFaceChange);
   // Live canvases are disposed once their element leaves the page.
   setInterval(() => { for (const l of live) if (!l.el.isConnected) { l.handle.dispose?.(); live.delete(l); } }, 1000);
   // A light poll as well, in case a finished batch arrives without the event.
   setInterval(() => { if (pending.size) upgradePending(); }, 500);
 }
 
+// A person as the scene shows them right now: the renderer's current expression for a staff member rides
+// along, so a portrait never disagrees with the character on screen. Anyone the scene doesn't have
+// (candidates, archetypes) is drawn as given.
+function faced(person, r) {
+  let name = null;
+  try { name = person?.id != null ? r?.face?.(person.id)?.name ?? null : null; } catch { name = null; }
+  return name ? { ...person, expression: name } : person;
+}
+
 function rendered(person, size) {
   const r = source?.();
   if (!r?.portrait) return undefined;
-  try { return r.portrait(person, { size }) ?? null; } catch { return undefined; }
+  try { return r.portrait(faced(person, r), { size }) ?? null; } catch { return undefined; }
+}
+
+function watchFace(el, person, size) {
+  if (person?.id == null) return;
+  if (faces.size >= MAX_FACES) for (const k of faces.keys()) if (!k.isConnected) faces.delete(k);
+  if (faces.size < MAX_FACES) faces.set(el, { el, person, size });
+}
+
+// Re-renders every visible portrait of the person whose face changed; one still queued swaps in on arrival.
+function onFaceChange(ev) {
+  const id = (ev.detail ?? ev).staffId;
+  if (id == null) return;
+  for (const [k, e] of faces) {
+    if (!k.isConnected) { faces.delete(k); continue; }
+    if (e.person.id !== id) continue;
+    const url = rendered(e.person, e.size);
+    if (url) e.el.src = url;
+    else track({ el: e.el, person: e.person, size: e.size, kind: 'src' });
+  }
+  for (const l of [...live]) {
+    if (!l.el.isConnected) continue;
+    if (l.person.id === id) refreshLive(l);
+  }
 }
 
 function imgFor(url, person, size) {
@@ -34,6 +69,7 @@ function imgFor(url, person, size) {
   img.src = url;
   img.style.width = img.style.height = `${size / 16}em`;
   img.style.background = tint(roleColor(person.role), 0.72);
+  watchFace(img, person, size);
   return img;
 }
 
@@ -48,7 +84,7 @@ function upgradePending() {
     const url = rendered(e.person, e.size);
     if (!url) continue;
     pending.delete(e);
-    if (e.kind === 'src') e.el.src = url;
+    if (e.kind === 'src') { e.el.src = url; watchFace(e.el, e.person, e.size); }
     else e.el.replaceWith(imgFor(url, e.person, e.size));
   }
 }
@@ -68,16 +104,24 @@ export function portraitLive(person, size = 88) {
   const r = source?.();
   if (!r?.portraitLive) return portrait(person, size);
   try {
-    const handle = r.portraitLive(person, { size });
+    const handle = r.portraitLive(faced(person, r), { size });
     const el = handle.el;
     el.classList.add('portrait');
     el.style.width = el.style.height = `${size / 16}em`;
     el.style.background = tint(roleColor(person.role), 0.72);
-    live.add({ el, handle });
+    live.add({ el, handle, person, size });
     return el;
   } catch {
     return portrait(person, size);
   }
+}
+
+// A live portrait shows the face it was built with, so a changed face gets a fresh canvas in its place.
+function refreshLive(l) {
+  // The old canvas is released first: Low quality allows one live portrait, and a second would come back static.
+  l.handle.dispose?.();
+  live.delete(l);
+  l.el.replaceWith(portraitLive(l.person, l.size));
 }
 
 // Chibi head-and-shoulders portrait drawn from a staff member's appearance.
@@ -110,6 +154,7 @@ export function portraitImg(person, size = 44, cls = 'av') {
   img.alt = '';
   const r = rendered(person, size);
   img.src = r || drawnURL(person, size);
+  watchFace(img, person, size);
   if (!r && source) track({ el: img, person, size, kind: 'src' });
   return img;
 }
