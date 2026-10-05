@@ -97,6 +97,20 @@ up 'true'
 [ $rc -eq 0 ] && grep -q 'pushed' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" != "$before" ] \
   || fail "a worktree still on its branch is updated and pushed: $rc $(cat "$tmp/out")"
 
+# Without --test the merge is gated on the related tests (test:push, niced) where package.json has
+# that script, and on npm test where it does not. A stand-in npm records how it was called.
+printf '#!/usr/bin/env bash\necho "$*" >>"%s"\n' "$tmp/npm-calls" >"$tmp/bin/npm"; chmod +x "$tmp/bin/npm"
+deftest() { rm -f "$tmp/looked" "$tmp/npm-calls"; ( cd "$tmp/work" && PATH="$tmp/bin:$PATH" bash "$HERE/wait-for.sh" 9 --poll 0 --timeout 1 >"$tmp/out" 2>&1 ); rc=$?; }
+echo '{"scripts":{"test:push":"true"}}' >"$tmp/work/package.json"
+deftest
+[ $rc -eq 0 ] && grep -q 'running: nice -n 10 npm run test:push' "$tmp/out" && grep -qx 'run test:push' "$tmp/npm-calls" \
+  || fail "the default gate is the niced test:push: $rc $(cat "$tmp/out") calls: $(cat "$tmp/npm-calls" 2>/dev/null)"
+echo '{"scripts":{"test":"true"}}' >"$tmp/work/package.json"
+deftest
+[ $rc -eq 0 ] && grep -q 'running: npm test' "$tmp/out" && grep -qx 'test' "$tmp/npm-calls" \
+  || fail "without a test:push script the default gate is npm test: $rc $(cat "$tmp/out")"
+rm -f "$tmp/work/package.json"
+
 # Right after a push GitHub can still show the old head with its old failure: that head is an ancestor
 # of the pushed origin/<branch>, so it is waited out rather than judged.
 old="$(git -C "$tmp/work" rev-parse topic)"
