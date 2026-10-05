@@ -52,6 +52,9 @@ export async function check({ writeBaseline = false } = {}) {
     const covered = e.names.length > 0 || e.none || e.pending;
     for (const id of e.ids) { seen.add(`${e.file}:${id}`); if (covered) done.add(`${e.file}:${id}`); }
     for (const n of e.names) {
+      // `meme-<id>` is the Yak picture meme public/memes/<id>.webp, published as it is.
+      const meme = /^meme-(.+)$/.exec(n);
+      if (meme && existsSync(join(ROOT, 'public/memes', `${meme[1]}.webp`))) continue;
       if (!itemIds.has(n) && !itemIds.has(ALIASES[n])) problems.push(`${e.file}:${e.line}: media "${n}" names no manifest item (add the item, or an alias in check.mjs)`);
     }
   }
