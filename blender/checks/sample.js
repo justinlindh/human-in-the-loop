@@ -89,7 +89,9 @@ function checkPeople(R, C, t, list = X.bodies(R)) {
     const [p, w] = o.a.kind === 'person' ? [o.a, o.b] : [o.b, o.a];
     for (const q of o.parts) {
       const [pp, wp] = o.a === p ? [q.a, q.b] : [q.b, q.a];
-      C.add(R, 'person', t, `person(${what(p)})/${pp}`, `${w.label}/${wp}`, q.depth, o.at, `${p.id} (${what(p)}) ${pp} in ${w.label}${w.id ? `#${w.id}` : ''}[${wp}]`);
+      // One row per furniture, pose and body part: the material touched is in the detail only, so one
+      // brush past a bookshelf is one row, not one per material on it.
+      C.add(R, 'person', t, `person(${what(p)})/${pp}`, w.label, q.depth, o.at, `${p.id} (${what(p)}) ${pp} in ${w.label}${w.id ? `#${w.id}` : ''}[${wp}]`);
     }
   }
   for (const o of X.overlaps(ps, { tol: C.tol.person, measure: C.measure })) {
