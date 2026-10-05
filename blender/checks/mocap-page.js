@@ -10,6 +10,8 @@
 //   pairDepth    deepest this body sits in another clip person's body
 //   onScreen     share of the body's projected box inside the viewport, for the camera
 //   heightPx     the body's projected height in pixels
+//   jitter       mean angular acceleration of the rig's pivots (rad/s^2) over three consecutive frames: the
+//                twitch a viewer sees; null on a frame whose two predecessors were not sampled
 const PARTS = ['legL', 'legR', 'torso', 'head', 'armL', 'armR'];
 const BONES = ['body', 'hips', 'legL', 'legR', 'torso', 'head', 'armL', 'armR'];
 const LIMB_OF = { footL: 'legL', footR: 'legR', handL: 'armL', handR: 'armR' };
@@ -94,6 +96,16 @@ export const mocapPage = async (o) => {
     return info;
   });
 
+  // The rig's pivots by bone, for the angular acceleration of what is actually shown.
+  const pivotsOf = ids.map((id) => {
+    const root = found.get(id);
+    const parts = partsOf(root);
+    const bodyG = root.children.find((c) => c.isGroup);
+    const out = { body: bodyG, hips: bodyG?.children.find((c) => c.isGroup) };
+    for (const b of PARTS) if (parts[b][0]) out[b] = parts[b][0].parent;
+    return Object.fromEntries(Object.entries(out).filter(([, v]) => v));
+  });
+  const history = ids.map(() => ({ last: null, q1: null, q2: null }));
   const W = o.width ?? 1280, H = o.height ?? 800;
   const down = new T.Vector3(0, -1, 0), q = new T.Quaternion(), end = new T.Vector3(), goal = new T.Vector3();
   const rows = [];
@@ -116,10 +128,28 @@ export const mocapPage = async (o) => {
     }
     ids.forEach((id, i) => {
       const clip = o.clips[i];
+      // Angular acceleration from the pivots now and the two frames before (even when this clip is off).
+      const h = history[i];
+      const now = Object.fromEntries(Object.entries(pivotsOf[i]).map(([b, p]) => [b, p.quaternion.clone()]));
+      let jitter = null, jitterBone = null;
+      if (h.last === sf - 1 && h.q2) {
+        let sum = 0, n = 0, worst = -1;
+        for (const [b, q] of Object.entries(now)) {
+          const a = h.q1[b], c = h.q2[b];
+          const s1 = a.dot(q) < 0 ? -1 : 1, s2 = c.dot(a) < 0 ? -1 : 1;
+          // q2 - 2*q1 + q0 with each neighbour on the same side as the next.
+          const w = [q.x - 2 * s1 * a.x + s1 * s2 * c.x, q.y - 2 * s1 * a.y + s1 * s2 * c.y, q.z - 2 * s1 * a.z + s1 * s2 * c.z, q.w - 2 * s1 * a.w + s1 * s2 * c.w];
+          const acc = 2 * Math.hypot(...w) * 900;
+          sum += acc; n++;
+          if (acc > worst) { worst = acc; jitterBone = b; }
+        }
+        jitter = n ? +(sum / n).toFixed(2) : null;
+      }
+      history[i] = { last: sf, q1: now, q2: h.last === sf - 1 ? h.q1 : null };
       // This clip's own frame at this moment of the shot; before its first or past its last, it is not on.
       const f = Math.round((sf / 30 + (first - starts[i]) / VFPS) * clip.fps);
       if (f < 0 || f >= clip.frames) return;
-      const row = { frame: sf, clipFrame: f, id, clip: clip.name ?? String(i), contactMiss: null, contacts: [], selfDepth: 0, selfPair: null, pairDepth: between.get(id) ?? 0, onScreen: null, heightPx: null };
+      const row = { frame: sf, clipFrame: f, id, clip: clip.name ?? String(i), contactMiss: null, contacts: [], selfDepth: 0, selfPair: null, pairDepth: between.get(id) ?? 0, onScreen: null, heightPx: null, jitter, jitterBone };
       // Contacts held now: the limb's end against its point.
       const root = found.get(id);
       for (const c of players[i].contactsAt(f)) {

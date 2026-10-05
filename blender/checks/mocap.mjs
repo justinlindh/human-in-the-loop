@@ -21,7 +21,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-export const MEASURES = ['contactMiss', 'selfDepth', 'pairDepth', 'onScreen', 'heightPx'];
+export const MEASURES = ['contactMiss', 'selfDepth', 'pairDepth', 'onScreen', 'heightPx', 'jitter'];
 export const DEFAULT_RULES = ['contactMiss<=0.06@0.9', 'selfDepth<=0.03@1', 'pairDepth<=0.03@1', 'onScreen>=0.9@0.9'];
 const USAGE = "usage: node blender/checks/mocap.mjs --clip a.json[,b.json] [--mock floor | --seed N [--week W]] [--anchor x,z,yaw] [--spread k] [--shot '<json>'] [--camera cx,cy,cz,tx,ty,tz[,fov]] [--frames all|a-b|n,n] [--who s1,s2] [--expect '<measure><op><value>@<share>'] [--no-ik] [--rows] [--json out.json]";
 const fail = (msg) => { console.error(`mocap: ${msg}\n${USAGE}`); process.exit(2); };
@@ -120,7 +120,7 @@ async function main() {
     const mx = (m) => (col(m).length ? Math.max(...col(m)) : null), mn = (m) => (col(m).length ? Math.min(...col(m)) : null);
     const worst = mine.reduce((b, x) => (x.selfDepth > (b?.selfDepth ?? 0) ? x : b), null);
     const f = (v) => (v == null ? '-' : String(+v.toFixed(4)));
-    console.log(`MOCAP ${id} ${clips[i].name ?? i} at ${placed[i].x.toFixed(2)},${placed[i].z.toFixed(2)} yaw ${placed[i].yaw.toFixed(2)}: ${mine.length} frames; contactMiss max ${f(mx('contactMiss'))} over ${col('contactMiss').length} contact frames; selfDepth max ${f(mx('selfDepth'))}${worst?.selfPair ? ` (${worst.selfPair} at frame ${worst.frame})` : ''}; pairDepth max ${f(mx('pairDepth'))}; onScreen min ${f(mn('onScreen'))}; heightPx ${f(mn('heightPx'))} to ${f(mx('heightPx'))}`);
+    console.log(`MOCAP ${id} ${clips[i].name ?? i} at ${placed[i].x.toFixed(2)},${placed[i].z.toFixed(2)} yaw ${placed[i].yaw.toFixed(2)}: ${mine.length} frames; contactMiss max ${f(mx('contactMiss'))} over ${col('contactMiss').length} contact frames; selfDepth max ${f(mx('selfDepth'))}${worst?.selfPair ? ` (${worst.selfPair} at frame ${worst.frame})` : ''}; pairDepth max ${f(mx('pairDepth'))}; onScreen min ${f(mn('onScreen'))}; heightPx ${f(mn('heightPx'))} to ${f(mx('heightPx'))}; jitter mean ${f(col('jitter').length ? col('jitter').reduce((a, b) => a + b, 0) / col('jitter').length : null)} max ${f(mx('jitter'))} rad/s^2`);
   });
   if (opt.rows) for (const x of rows) console.log(`MOCAPROW ${x.frame} ${x.id} miss=${x.contactMiss ?? '-'} [${x.contacts.join(',')}] self=${x.selfDepth}${x.selfPair ? ` ${x.selfPair}` : ''} pair=${x.pairDepth} on=${x.onScreen ?? '-'} px=${x.heightPx ?? '-'}`);
   const verdicts = judge(rows, rules, new Set(opt.expect ?? []));

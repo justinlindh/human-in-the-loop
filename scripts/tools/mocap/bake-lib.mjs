@@ -7,6 +7,7 @@
 // its parent's frame. Every chibi bone rests pointing up with game axes, so a bone's rest orientation is
 // the identity and a world orientation is already its change from rest.
 import { Matrix4, Quaternion, Vector3 } from 'three';
+import { DEFAULT_FILTER, smoothQuats, smoothSeries } from './filter.mjs';
 
 export const RIG_BONES = ['body', 'hips', 'legL', 'legR', 'torso', 'head', 'armL', 'armR'];
 const PARENT = { body: null, hips: 'body', legL: 'hips', legR: 'hips', torso: 'hips', head: 'torso', armL: 'torso', armR: 'torso' };
@@ -109,10 +110,14 @@ export function bakeShot(shot, personId, opts = {}) {
   const placement = shared ? sharedOrigin(shared, personId, from, forwardOf(frame0)) : null;
   const outN = Math.max(2, Math.round(((n - 1) / srcFps) * CLIP_FPS) + 1);
   const at = (i) => Math.min(n - 1, (i * srcFps) / CLIP_FPS);
+  // Smoothing runs on the 30 fps output: every rotation, the root path, the gaze point and the limb bends.
+  const filter = opts.smooth === false || opts.smooth === 'off' ? null : { ...DEFAULT_FILTER, ...(opts.smooth ?? {}) };
+  const quatsOf = (b) => { const q = resampleQuats(local[b], outN, at); return filter ? smoothQuats(q, CLIP_FPS, filter) : q; };
+  const vecsOf = (v) => { const r = resampleVec(v, outN, at); return filter ? smoothSeries(r, CLIP_FPS, filter) : r; };
   const tracks = {};
-  for (const b of RIG_BONES) tracks[b] = { quat: resampleQuats(local[b], outN, at).map((q) => q.map(r5)) };
-  tracks.body.pos = resampleVec(pos, outN, at).map((v) => v.map(r4));
-  const bendOut = Object.fromEntries(Object.entries(bend).map(([k, v]) => [k, resampleScalar(v, outN, at).map(r4)]));
+  for (const b of RIG_BONES) tracks[b] = { quat: quatsOf(b).map((q) => q.map(r5)) };
+  tracks.body.pos = vecsOf(pos).map((v) => v.map(r4));
+  const bendOut = Object.fromEntries(Object.entries(bend).map(([k, v]) => [k, vecsOf(v.map((x) => [x])).map((x) => r4(Math.min(1, Math.max(0, x[0]))))]));
   return {
     format: 'hitl-mocap-clip', version: 1,
     name: opts.name ?? `shot${opts.shotIndex ?? 0}_p${personId}`,
@@ -121,9 +126,10 @@ export function bakeShot(shot, personId, opts = {}) {
     scale: r5(scale),
     ...(placement ? { origin: placement } : {}),
     source: { shot: opts.shotIndex ?? 0, trackId: personId, start: shot.shot.start_frame + from, end: shot.shot.start_frame + to },
+    filter: filter ? { type: 'one-euro', ...filter } : null,
     tracks,
     bend: bendOut,
-    look: resampleVec(look, outN, at).map((v) => v.map(r4)),
+    look: vecsOf(look).map((v) => v.map(r4)),
     conf: Object.fromEntries(RIG_BONES.map((b) => [b, resampleScalar(conf[b], outN, at).map(r4)])),
     contacts: contacts.map((c) => ({ limb: c.limb, from: Math.round((c.from * CLIP_FPS) / srcFps), to: Math.min(outN, Math.round((c.to * CLIP_FPS) / srcFps)), point: c.point.map(r4) })).filter((c) => c.to > c.from),
     notes: 'tracks[bone].quat: [x, y, z, w] per frame, change from rest in the parent frame; body.pos metres (chibi scale) relative to frame 0, y up; contact point and look are in the clip space (origin on the floor under the hips at frame 0, +z facing at frame 0); contacts [from, to) in clip frames; the rig L limb is the anatomical right one',

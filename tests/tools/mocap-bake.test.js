@@ -49,7 +49,7 @@ describe('bakeShot', () => {
   });
 
   it('puts a turn in the body bone and a facing at frame 0 of any heading in nothing', () => {
-    const turned = bakeShot(shotOf(30, 30, (t, p) => rotateAll(p, yawQ(90 + t * 3), p.Hips.clone())), 3, { pivots: PIVOTS });
+    const turned = bakeShot(shotOf(30, 30, (t, p) => rotateAll(p, yawQ(90 + t * 3), p.Hips.clone())), 3, { pivots: PIVOTS, smooth: false });
     expect(angle(turned.tracks.hips.quat[0])).toBeLessThan(1e-3);
     expect(angle(turned.tracks.body.quat[0])).toBeLessThan(1e-3);
     const last = turned.tracks.body.quat[29];
@@ -137,6 +137,20 @@ describe('bakeShot', () => {
       short.camera.w2c = short.camera.w2c.slice(0, n);
       expect(bakeShot(short, 3, { pivots: PIVOTS }).origin).toBeUndefined();
     }
+  });
+
+  it('smooths by default (one-euro, recorded in the clip) and leaves the raw track with smooth off', () => {
+    let seed = 3;
+    const noise = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2 ** 32 - 0.5; };
+    const noisy = shotOf(90, 30, (t, p) => { p.RightHand = new Vector3(-0.18 + noise() * 0.06, 0.95 + noise() * 0.06, noise() * 0.06); });
+    const raw = bakeShot(noisy, 3, { pivots: PIVOTS, smooth: false });
+    const smooth = bakeShot(noisy, 3, { pivots: PIVOTS });
+    expect(raw.filter).toBeNull();
+    expect(smooth.filter).toMatchObject({ type: 'one-euro', minCutoff: 1.5, beta: 0.3 });
+    const accel = (c) => { const q = c.tracks.armL.quat; let s = 0; for (let i = 2; i < q.length; i++) s += Math.hypot(...q[i].map((v, k) => v - 2 * q[i - 1][k] + q[i - 2][k])); return s / (q.length - 2); };
+    expect(accel(smooth)).toBeLessThan(accel(raw) * 0.4);
+    expect(smooth.frames).toBe(raw.frames);
+    for (const q of smooth.tracks.armL.quat) expect(Math.hypot(...q)).toBeCloseTo(1, 4);
   });
 
   it('reports an unknown person and a missing joint plainly', () => {

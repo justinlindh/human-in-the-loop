@@ -23,14 +23,14 @@ function standing() {
   };
   return Object.fromEntries(Object.entries(p).map(([k, v]) => [k, new Vector3(...v)]));
 }
-function clipOf(name, mod, origin) {
+function clipOf(name, mod, origin, smooth) {
   const frames = 12, joint_pos_world = [];
   for (let t = 0; t < frames; t++) { const pose = standing(); mod?.(t, pose); joint_pos_world.push(NAMES.map((n) => pose[n].toArray())); }
   const shot = {
     format: 'hitl-mocap-shot', version: 1, shot: { start_frame: 0, frames, fps: 30 }, joints: NAMES,
     people: [{ id: 0, observed: Array(frames).fill(1), trust: Array.from({ length: frames }, () => NAMES.map(() => 1)), joint_pos_world }],
   };
-  const clip = bakeShot(shot, 0, { pivots: PIVOTS, name });
+  const clip = bakeShot(shot, 0, { pivots: PIVOTS, name, ...(smooth === undefined ? {} : { smooth }) });
   if (origin) clip.origin = origin;
   return clip;
 }
@@ -97,6 +97,21 @@ describe('mocap.mjs', () => {
     for (const shot of ['nope', '[1]']) expect((await run(['--clip', a, '--shot', shot])).status).toBe(2);
     const passed = await run(['--clip', a, '--frames', '0,3', '--shot', '{"apart":0.8}']);
     expect(passed.status, passed.stdout + passed.stderr).toBe(0);
+  }, 240000);
+
+  it('measures jitter: the same noisy shot twitches less once the bake smooths it', async () => {
+    let seed = 5;
+    const noise = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2 ** 32 - 0.5; };
+    const jolt = [];
+    for (let t = 0; t < 12; t++) jolt.push([noise() * 0.08, noise() * 0.08, noise() * 0.08]);
+    const mod = (t, p) => { p.RightHand = p.RightHand.clone().add(new Vector3(...jolt[t])); p.LeftHand = p.LeftHand.clone().add(new Vector3(...jolt[11 - t])); };
+    const raw = file('jraw', clipOf('jraw', mod, null, false)), smooth = file('jsmooth', clipOf('jsmooth', mod));
+    const mean = async (f, out) => { const r = await run(['--clip', f, '--json', join(dir, out)]); expect(r.stdout + r.stderr).toMatch(/jitter mean/); const v = JSON.parse(readFileSync(join(dir, out), 'utf8')).map((x) => x.jitter).filter((x) => x != null); return v.reduce((a, b) => a + b, 0) / v.length; };
+    const [a, b] = await Promise.all([mean(raw, 'jr.json'), mean(smooth, 'js.json')]);
+    expect(a).toBeGreaterThan(0);
+    expect(b).toBeLessThan(a * 0.7);
+    const rule = await run(['--clip', raw, '--expect', `jitter<=${(a / 4).toFixed(1)}@0.9`]);
+    expect(rule.stdout).toMatch(/MOCAP FAIL s\d+ jitter/);
   }, 240000);
 
   it('refuses bad input with a usage line', async () => {
