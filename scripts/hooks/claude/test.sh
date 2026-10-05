@@ -237,7 +237,8 @@ lane_no "$repo/tests/sim.test.js" "ui, a sim test"
 lane_no "$repo/nowhere/x.md" "ui, no owner"
 [[ "$err" != *"belongs to"* ]] || fail "lane-guard should name no owner for an unowned path (got: $err)"
 g -C "$repo" checkout -q sim/balance
-lane_ok "$repo/tests/tools/x.test.js" "sim, a tools test"
+lane_no "$repo/tests/tools/x.test.js" "sim, a tools test"
+[[ "$err" == *"belongs to tools, sim."* ]] || fail "lane-guard should refuse sim on tests/tools/ and name tools first (got: $err)"
 lane_ok "$tmp/elsewhere/notes.md" sim
 other="$tmp/other"; g init -q -b sim/x "$other"; mkdir -p "$other/src/ui"
 lane_ok "$other/src/ui/x.js" "a checkout of another repository"
