@@ -138,6 +138,18 @@ describe('mocap player', () => {
     expect(c.pivots.body.quaternion.w).toBeCloseTo(1, 6);
   });
 
+  it('exaggerates a limb by its gain about the same axis, never past a half turn', () => {
+    const c = fakeChar();
+    const p = createMocapPlayer(c, clipOf(2, { legL: () => turnX(0.4) }), { gain: { legL: 1.5 } });
+    p.setTime(0); c.update();
+    const q = c.pivots.legL.quaternion;
+    expect(2 * Math.acos(Math.min(1, q.w))).toBeCloseTo(0.6, 4);
+    expect(Math.abs(q.y) + Math.abs(q.z)).toBeLessThan(1e-6);
+    const big = fakeChar();
+    createMocapPlayer(big, clipOf(2, { legL: () => turnX(2.8) }), { gain: { legL: 2 } }).setTime(0); big.update();
+    expect(2 * Math.acos(Math.min(1, Math.abs(big.pivots.legL.quaternion.w)))).toBeLessThanOrEqual(Math.PI * 0.95 + 1e-6);
+  });
+
   it('hands the pivots back on stop', () => {
     const c = fakeChar();
     const p = createMocapPlayer(c, clipOf(2));
