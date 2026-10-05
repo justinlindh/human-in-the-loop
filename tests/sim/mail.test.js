@@ -10,7 +10,7 @@ import { AMBIENT, MAIL_TEMPLATES, EVENT_MAIL, REPLY_ALL } from '../../src/data/m
 import { eraAllowsText } from '../../src/sim/eras.js';
 import { game, addStaff, addDesks, addProduct, expectFail } from './helpers.js';
 
-const CATEGORIES = ['applicant', 'partner', 'customer', 'vendor', 'recruiter', 'investor', 'event', 'legal', 'rival', 'staff', 'spam'];
+const CATEGORIES = ['applicant', 'partner', 'customer', 'vendor', 'recruiter', 'investor', 'invite', 'legal', 'rival', 'staff', 'spam'];
 const MOVED_CHOICES = ['alumni_referral', 'blockchain_pitch', 'vendor_new_version', 'app_store_rejection'];
 const MOVED_NOTICES = ['vendor_price_hike', 'analyst_report', 'vendor_outage', 'bootcamp_grads'];
 
@@ -84,6 +84,8 @@ describe('issue #17: the inbox', () => {
       expect(EVENT_MAIL[id], id).toBeTruthy();
     }
     for (const id of MOVED_CHOICES) expect(EVENTS[id].choices[EVENT_MAIL[id].ignore], id).toBeTruthy();
+    for (const id of Object.keys(EVENT_MAIL)) expect(CATEGORIES, id).toContain(EVENT_MAIL[id].category);
+    expect(EVENT_MAIL.analyst_report.category).toBe('partner');
     for (const id of MOVED_NOTICES) expect(EVENTS[id].choices, id).toBeUndefined();
     expect(Object.keys(EVENT_MAIL).sort()).toEqual([...MOVED_CHOICES, ...MOVED_NOTICES].sort());
   });
@@ -129,6 +131,9 @@ describe('issue #17: the inbox', () => {
     expect(m.read).toBe(readWeek);
     const cash = s.cash;
     const brand = s.brand;
+    const unread = openTemplate(s, 'partnership_offer');
+    expect(dispatch(s, { type: 'answerMail', mailId: unread.id, choice: 1 }).ok).toBe(true);
+    expect(unread.read).toBe(null);
     expect(dispatch(s, { type: 'answerMail', mailId: m.id, choice: 0 }).ok).toBe(true);
     expect(s.cash).toBe(cash - B.mail.refund);
     expect(s.brand).toBe(Math.min(100, brand + B.mail.refundBrand));
@@ -186,6 +191,20 @@ describe('issue #17: the inbox', () => {
     weekOf(s);
     expect(m.resolved.choice).toBe(null);
     expect(s.candidates.length).toBeGreaterThan(before);
+    const follow = s.mail.find((x) => x.inReplyTo === m.id);
+    expect(follow.body).toMatch(/^Nobody answered, so: /);
+    expect(follow.from).toEqual(m.from);
+
+    const u = company();
+    const founder = u.staff.find((p) => p.founder).id;
+    expect(fireEvent(makeCtx(u), EVENTS.blockchain_pitch, founder)).toBe(true);
+    const pitch = mailOf(u, 'blockchain_pitch');
+    dispatch(u, { type: 'answerMail', mailId: pitch.id, choice: 0 });
+    const outcome = u.mail.find((x) => x.inReplyTo === pitch.id);
+    expect(outcome.threadId).toBe(pitch.id);
+    expect(outcome.subject).toBe(`Re: ${pitch.subject}`);
+    expect(outcome.body).toBe(EVENTS.blockchain_pitch.choices[0].outcome);
+    expect(outcome.options).toEqual([]);
 
     const t = company();
     const vendor = resolveSubjects(t, EVENTS.vendor_price_hike);

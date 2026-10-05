@@ -58,7 +58,7 @@ export const AMBIENT = [
     from: [{ name: '{rivalFounder}', org: '{rival}' }],
     subject: ['Congrats!', 'Love what you are doing over there'],
     body: ['Hey! Huge congrats on the progress. It is so brave to build something that small in a market this big.\n\nWe should grab coffee. I would love to hear how you do it on that budget.'] },
-  { id: 'conference_invite', category: 'event',
+  { id: 'conference_invite', category: 'invite',
     from: [{ name: 'SaaSCon Team', org: 'SaaSCon' }],
     subject: ['You are invited to speak at SaaSCon (pay to speak)', 'Last chance: early bird tickets'],
     body: ['We would love to feature {company} on our main stage. Speaking slots start at $12,000 and include a lanyard.\n\nThis year\'s theme: "The Future of the Future".'] },
@@ -128,7 +128,7 @@ export const EVENT_MAIL = {
   vendor_new_version: { category: 'vendor', from: { name: 'Product Updates', org: 'Your model vendor' }, ignore: 1 },
   app_store_rejection: { category: 'legal', from: { name: 'App Review', org: 'App Marketplace Review Board' }, important: true, ignore: 0 },
   vendor_price_hike: { category: 'vendor', from: { name: 'Billing', org: 'Your model vendor' } },
-  analyst_report: { category: 'event', from: { name: 'Research Desk', org: 'Quadrant Analyst Group' } },
+  analyst_report: { category: 'partner', from: { name: 'Research Desk', org: 'Quadrant Analyst Group' } },
   vendor_outage: { category: 'vendor', from: { name: 'Status Updates', org: 'Your model vendor' }, important: true },
   bootcamp_grads: { category: 'applicant', from: { name: 'Career Services', org: 'Ten Week Code Academy' } },
 };

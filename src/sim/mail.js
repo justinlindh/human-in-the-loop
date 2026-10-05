@@ -73,7 +73,7 @@ function contextFor(ctx, t) {
     mc.productId = pick(ctx.rng, live).id;
   }
   if ((t.needs === 'preseed' || t.needs === 'family') && (state.founding?.funding ?? 'bootstrapped') !== t.needs) return null;
-  if (t.needs === 'rival' &&!(state.rival && ['rising', 'stalled'].includes(state.rival.status))) return null;
+  if (t.needs === 'rival' && !(state.rival && ['rising', 'stalled'].includes(state.rival.status))) return null;
   if (t.needs === 'staff') {
     const staff = present(state).filter((p) => !p.founder && p.seniority !== 'junior');
     if (!staff.length) return null;
@@ -85,9 +85,8 @@ function contextFor(ctx, t) {
   return mc;
 }
 
+// At most B.mail.kept mails, oldest dropped first; mail with an open choice is never dropped.
 function prune(state) {
-  const settledWeek = (m) => (m.resolved ? m.resolved.week : m.week);
-  state.mail = state.mail.filter((m) => openChoice(m) || state.week - settledWeek(m) < B.mail.keptWeeks);
   while (state.mail.length > B.mail.kept) {
     const i = state.mail.findLastIndex((m) => !openChoice(m));
     if (i < 0) break;
@@ -211,7 +210,14 @@ function resolveEvent(ctx, mail, choice) {
   if (index !== null && index !== undefined) {
     const c = ev.choices[index];
     if (choice !== null) replyText = fill2(c.label);
-    if (choice !== null || !eventChoiceBlocker(state, c, mc.subjectId)) applyEffects(ctx, c.effects, mc.subjectId, ev.id, mc.vars);
+    if (choice !== null || !eventChoiceBlocker(state, c, mc.subjectId)) {
+      applyEffects(ctx, c.effects, mc.subjectId, ev.id, mc.vars);
+      // The outcome arrives as the sender's follow-up in the thread, the way a popup toasts it.
+      if (c.outcome) {
+        addMail(ctx, { kind: `${ev.id}_outcome`, category: mail.category, from: mail.from, subject: `Re: ${mail.subject}`,
+          body: choice === null ? `Nobody answered, so: ${fill2(c.outcome)}` : fill2(c.outcome), threadId: mail.id, inReplyTo: mail.id, important: false });
+      }
+    }
   }
   return replyText;
 }
@@ -333,7 +339,6 @@ registerAction('answerMail', (outer, { mailId, choice }) => {
   if (mail.resolved) return { ok: false, reason: 'That has gone quiet' };
   if (!Number.isInteger(choice) || choice < 0 || choice >= mail.options.length) return { ok: false, reason: 'Invalid choice' };
   if (!mail.options[choice].available) return { ok: false, reason: mail.options[choice].reason ?? 'Invalid choice' };
-  mail.read ??= state.week;
   resolve(side(outer, 1000 + Number(mail.id.slice(1)) * 7 + choice), mail, choice);
   return { ok: true };
 });
