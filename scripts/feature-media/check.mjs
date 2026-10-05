@@ -45,6 +45,10 @@ export async function check({ writeBaseline = false } = {}) {
   for (const m of MANIFESTS) itemsByManifest[m] = (await import(pathToFileURL(join(ROOT, m)).href)).ITEMS;
   const itemIds = new Set(Object.values(itemsByManifest).flat().map((i) => i.id));
 
+  const own = itemsByManifest['scripts/feature-media/manifest.js'];
+  const publishedNames = new Set(own.filter((i) => i.publish).flatMap((i) => [i.id, ...(i.out ?? []).map((o) => o.publishAs).filter(Boolean)]));
+  const unpublished = new Set(own.flatMap((i) => [i.id, ...(i.out ?? []).map((o) => o.publishAs).filter(Boolean)]).filter((n) => !publishedNames.has(n)));
+
   const entries = parseEntries();
   // An id is covered when any entry of its file that carries it is. (A file may repeat an entry.)
   const seen = new Set(), done = new Set();
@@ -57,6 +61,8 @@ export async function check({ writeBaseline = false } = {}) {
       const meme = /^meme-(.+)$/.exec(n);
       if (meme && existsSync(join(ROOT, 'public/memes', `${meme[1]}.webp`))) continue;
       if (!itemIds.has(n) && !itemIds.has(ALIASES[n])) problems.push(`${e.file}:${e.line}: media "${n}" names no manifest item (add the item, or an alias in check.mjs)`);
+      // An item of the feature-media manifest reaches the branch only when it publishes.
+      else if (unpublished.has(n)) problems.push(`${e.file}:${e.line}: media "${n}" is a feature-media item without \`publish: true\`, so the refresh never publishes it`);
     }
   }
   const uncovered = new Set([...seen].filter((k) => !done.has(k)));

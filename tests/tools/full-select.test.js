@@ -49,6 +49,9 @@ describe('full-select', () => {
     const all = ['sim/imports', 'tools/globs', 'tools/lists', 'tools/spawns'];
     for (const f of ['vite.config.js', 'package.json', 'package-lock.json', 'src/data/new.json', 'tests/sim/fixture.json']) expect(picked(f), f).toEqual(all);
     expect(picked('src/render/tex.json')).toEqual([]);
+    // The render checks' own reference files select nothing; any other unread file there, every test.
+    expect(picked('blender/checks/golden/desk.png', 'blender/checks/sweep-baseline.json')).toEqual([]);
+    for (const f of ['blender/checks/golden/desk.json', 'blender/checks/other.json', 'blender/checks/golden/sub/x.png']) expect(picked(f), f).toEqual(all);
   });
 
   it('says why: the way from the changed file back to the test', () => {

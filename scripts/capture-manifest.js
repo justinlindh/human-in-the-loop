@@ -105,24 +105,30 @@ export const MARK_MOMENTS = `(() => { const t0 = window.__capture.now; window.__
 // damped spring glides the look point onto the staged prop, the printer while it is carried, or the visitors,
 // so the camera never steps. The game's own moment camera stands down while this drives.
 // `props` is a list of staged prop names, or a JS function source returning the world point to aim at.
-export const AIM = (props, zoom, shift = 0) => `(() => { const R = window.__hitlRender; dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: false } }));
-  const find = ${typeof props === 'string' ? props : `() => { const v = R.moments?.visitorState; if (v?.at) return { x: v.at.x, z: v.at.z };
+// `center` aims at the middle of the staged prop's bounds, height included, so a sheet on a wall is framed
+// by where it hangs and not by the floor point under it.
+export const AIM = (props, zoom, shift = 0, center = false) => `(() => { const R = window.__hitlRender; dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: false } }));
+${center ? `  const centerOf = (o) => { const V = o.position.constructor, mn = new V(1e9, 1e9, 1e9), mx = new V(-1e9, -1e9, -1e9), q = new V(); o.updateWorldMatrix(true, true);
+    o.traverse((m) => { if (!m.isMesh || !m.geometry) return; m.geometry.boundingBox || m.geometry.computeBoundingBox(); const b = m.geometry.boundingBox;
+      for (const x of [b.min.x, b.max.x]) for (const y of [b.min.y, b.max.y]) for (const z of [b.min.z, b.max.z]) { q.set(x, y, z).applyMatrix4(m.matrixWorld); mn.min(q); mx.max(q); } });
+    return mn.x > mx.x ? o.getWorldPosition(new V()) : new V((mn.x + mx.x) / 2, (mn.y + mx.y) / 2, (mn.z + mx.z) / 2); };
+` : ''}  const find = ${typeof props === 'string' ? props : `() => { const v = R.moments?.visitorState; if (v?.at) return { x: v.at.x, z: v.at.z };
     const pm = R.moments?.printerState; let o = pm?.obj; if (pm && !(o && o.visible)) o = pm.people?.[0]?.char?.root;
-    o ??= R.props.current().find((x) => ${JSON.stringify(props)}.includes(x.prop))?.obj; return o ? o.getWorldPosition(new o.position.constructor()) : null; }`};
+    o ??= R.props.current().find((x) => ${JSON.stringify(props)}.includes(x.prop))?.obj; return o ? ${center ? 'centerOf(o)' : 'o.getWorldPosition(new o.position.constructor())'} : null; }`};
   const f = window.__follow ??= { x: null, y: 0.4, z: null, vx: 0, vy: 0, vz: 0, zoom: null, vzoom: 0, last: performance.now() };
-  f.zoomGoal = ${zoom}; f.find = find; f.shift = ${shift}; f.on = true;
+  f.zoomGoal = ${zoom}; f.find = find; f.shift = ${shift};${center ? ' f.useY = true;' : ''} f.on = true;
   if (f.running) return; f.running = true;
   const damp = (x, v, goal, dt) => { const w = 2 / 0.6, k = w * dt, e = 1 / (1 + k + 0.48 * k * k + 0.235 * k * k * k), d = x - goal, t = (v + w * d) * dt; return [goal + (d + t) * e, (v - w * t) * e]; };
   const tick = () => { const now = performance.now(), dt = Math.min(0.1, (now - f.last) / 1000); f.last = now;
     let p = f.on && f.find();
     // Aim left of the subject so it lands the shift in px right of the frame center (a crop window center).
-    if (p && f.shift) { const e = R.camera.matrixWorld.elements, c = R.camera, wpp = (c.right - c.left) / c.zoom / innerWidth, k = f.shift * wpp / Math.hypot(e[0], e[2]); p = { x: p.x - e[0] * k, z: p.z - e[2] * k }; }
+    if (p && f.shift) { const e = R.camera.matrixWorld.elements, c = R.camera, wpp = (c.right - c.left) / c.zoom / innerWidth, k = f.shift * wpp / Math.hypot(e[0], e[2]); p = { x: p.x - e[0] * k, ${center ? 'y: p.y, ' : ''}z: p.z - e[2] * k }; }
     // While the renderer is held (loading, or a frozen frame) the camera does not move: the glide waits
     // with it instead of running ahead and leaving the camera a jump to catch up.
     const v = R.view(), held = f.seen && v.x === f.seen.x && v.z === f.seen.z && Math.hypot(f.x - v.x, f.z - v.z) > 1e-3; f.seen = v;
     if (held) { f.x = v.x; f.y = v.y; f.z = v.z; f.zoom = v.zoom; f.vx = f.vy = f.vz = f.vzoom = 0; }
     if (p) { if (f.x === null) { f.x = v.x; f.y = v.y; f.z = v.z; f.zoom = v.zoom; }
-      [f.x, f.vx] = damp(f.x, f.vx, p.x, dt); [f.y, f.vy] = damp(f.y, f.vy, 0.4, dt); [f.z, f.vz] = damp(f.z, f.vz, p.z, dt); [f.zoom, f.vzoom] = damp(f.zoom, f.vzoom, f.zoomGoal, dt);
+      [f.x, f.vx] = damp(f.x, f.vx, p.x, dt); [f.y, f.vy] = damp(f.y, f.vy, ${center ? 'f.useY && p.y != null ? p.y : 0.4' : '0.4'}, dt); [f.z, f.vz] = damp(f.z, f.vz, p.z, dt); [f.zoom, f.vzoom] = damp(f.zoom, f.vzoom, f.zoomGoal, dt);
       R.easeTo(f.x, f.z, f.zoom, 12, f.y); }
     requestAnimationFrame(tick); };
   requestAnimationFrame(tick); })()`;
@@ -140,7 +146,7 @@ export const BEST_VIEW = (props) => `(() => { const R = window.__hitlRender; if 
   window.__viewPicked = true;
   const best = views.reduce((a, v) => (v.visible > a.visible ? v : a));
   for (let i = 0; i < best.view; i++) dispatchEvent(new KeyboardEvent('keydown', { key: 'e', code: 'KeyE', bubbles: true })); })()`;
-export const FOLLOW = (props, zoom, from, to, shift = 0) => [{ at: from, js: AIM(props, zoom, shift) }, { at: to, js: UNAIM }];
+export const FOLLOW = (props, zoom, from, to, shift = 0, center = false) => [{ at: from, js: AIM(props, zoom, shift, center) }, { at: to, js: UNAIM }];
 // The nods reel crops a 1280x720 window whose center sits 320 px right of a 1920x1080 frame's.
 const NODS_FOLLOW = (props, zoom, from, to) => FOLLOW(props, zoom, from, to, 320);
 

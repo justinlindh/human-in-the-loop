@@ -4,7 +4,7 @@ import * as THREE from 'three';
 const PITCH = Math.atan(1 / Math.SQRT2);
 const DISTANCE = 60;
 const ZOOM_MIN = 0.7;
-const ZOOM_MAX = 3.2;         // the closest zoom on the Office Floor; a bigger office allows more (officeScale)
+const ZOOM_MAX = 5;           // the closest zoom on the Office Floor, a desk prop filling a good part of the view; a bigger office allows more (officeScale)
 // The Office Floor's span: its fitted height in metres for a reference 16:10 view with no HUD. An
 // office's span against it is its officeScale, which depends on the office alone, not the window.
 // Set a little above the Floor's own span, so every Office Floor layout keeps a scale of exactly 1.

@@ -128,6 +128,22 @@ run bash-guard.sh "$(jq -n --arg c 'until gh pr checks 12; do sleep 30; done' --
 run bash-guard.sh "$(bashjson 'until gh pr view 12; do sleep 60; done')"
 [[ "$err" == *"wait-for.sh"* ]] || fail "the sleep-poll refusal should name wait-for.sh (got: $err)"
 
+# wait-for.sh: run_in_background is the only way to keep it alive; &, nohup, setsid and --no-update are refused.
+for c in 'scripts/wait-for.sh 12 --merged &' 'scripts/wait-for.sh 12 --merged > w.log 2>&1 &' 'nohup scripts/wait-for.sh 12 --merged' \
+  'setsid scripts/wait-for.sh 12 --merged' 'nohup scripts/wait-for.sh 12 --merged > w.log &' 'scripts/wait-for.sh 12 --merged --no-update' \
+  'cd ../x && scripts/wait-for.sh 12 --merged &' 'timeout 60 scripts/wait-for.sh 12 --merged & echo $!' 'bash scripts/wait-for.sh 12 --no-update --merged'; do
+  denied "$c"
+done
+run bash-guard.sh "$(bashjson 'scripts/wait-for.sh 12 --merged &')"
+[[ "$err" == *"run_in_background"* ]] || fail "the wait-for refusal should name run_in_background (got: $err)"
+for c in 'scripts/wait-for.sh 12 --merged' 'scripts/wait-for.sh 12' 'scripts/wait-for.sh 12 --merged 2>&1' 'cd ../x && scripts/wait-for.sh 12 --merged' \
+  'cat scripts/wait-for.sh' 'git add scripts/wait-for.sh && git status' 'sleep 1 & scripts/wait-for.sh 12 --merged' \
+  "gh pr comment 12 --body 'run nohup scripts/wait-for.sh 12 &'" "git commit -m 'wait-for.sh --no-update is refused'" 'echo hi &'; do
+  allowed "$c"
+done
+run bash-guard.sh "$(jq -n --arg c 'scripts/wait-for.sh 12 --merged' --arg d "$tmp" '{hook_event_name: "PreToolUse", tool_name: "Bash", cwd: $d, tool_input: {command: $c, run_in_background: true}}')"
+[ $rc -eq 0 ] || fail "bash-guard should allow wait-for.sh with run_in_background (rc $rc: $err)"
+
 # git stash: every worktree shares one stack, so only the read-only list and show get through.
 for c in 'git stash' 'git stash push -m wip' 'git stash save wip' 'git stash pop' 'git stash apply stash@{0}' \
   'git stash drop' 'git -C ../gamedev-sim stash' 'cd x && git stash && git checkout main' 'npm test; git stash pop' \
@@ -212,6 +228,18 @@ lane_ok "$repo/.claude/agents/sim-engineer.md" sim
 lane_no "$repo/src/ui/hud.js" sim
 [[ "$err" == *"belongs to ui"* ]] || fail "lane-guard should name the owner (got: $err)"
 lane_no "$repo/scripts/ci-pr.sh" sim
+# The longest matching prefix is named first; every matching owner is listed; no match names no owner.
+g -C "$repo" checkout -q -b ui/hud
+lane_no "$repo/tests/tools/x.test.js" "ui, a tools test"
+[[ "$err" == *"belongs to tools, sim."* ]] || fail "lane-guard should name tools before sim for tests/tools/ (got: $err)"
+lane_no "$repo/tests/sim.test.js" "ui, a sim test"
+[[ "$err" == *"belongs to sim."* ]] || fail "lane-guard should name only sim for tests/sim.test.js (got: $err)"
+lane_no "$repo/docs/superpowers/plans/x.md" "ui, the plan"
+[[ "$err" != *"belongs to #"* && "$err" != *", #"* ]] || fail "lane-guard should not name a comment line as an owner (got: $err)"
+lane_no "$repo/nowhere/x.md" "ui, no owner"
+[[ "$err" != *"belongs to"* ]] || fail "lane-guard should name no owner for an unowned path (got: $err)"
+g -C "$repo" checkout -q sim/balance
+lane_ok "$repo/tests/tools/x.test.js" "sim, a tools test"
 lane_ok "$tmp/elsewhere/notes.md" sim
 other="$tmp/other"; g init -q -b sim/x "$other"; mkdir -p "$other/src/ui"
 lane_ok "$other/src/ui/x.js" "a checkout of another repository"

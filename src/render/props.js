@@ -392,8 +392,10 @@ const photoLake = () => canvasTex('photo_lake', 512, 384, (ctx, W, H) => {
 // The agent invoice: a long itemised sheet with a stamped total.
 const invoice = () => canvasTex('invoice', 384, 512, (ctx, W, H) => {
   ctx.fillStyle = P.paper; ctx.fillRect(0, 0, W, H);
-  text(ctx, 'INVOICE', 40, 50, 48, P.ink, 700, 'left');
-  text(ctx, 'agent compute, itemised', 40, 92, 20, P.ink, 500, 'left');
+  // A solid red header, so it reads as a bill from across the room.
+  ctx.fillStyle = P.alarm_red; ctx.fillRect(0, 0, W, 112);
+  text(ctx, 'INVOICE', 40, 50, 54, P.paper, 800, 'left');
+  text(ctx, 'agent compute, itemised', 40, 92, 20, P.paper, 500, 'left');
   for (let i = 0; i < 11; i++) {
     ctx.fillStyle = P.metal_soft; ctx.fillRect(40, 130 + i * 24, 200 - (i % 4) * 25, 8);
     ctx.fillRect(290, 130 + i * 24, 54, 8);
@@ -401,9 +403,9 @@ const invoice = () => canvasTex('invoice', 384, 512, (ctx, W, H) => {
   ctx.fillStyle = P.ink; ctx.fillRect(40, 404, 304, 4);
   text(ctx, 'TOTAL', 40, 436, 30, P.ink, 700, 'left');
   text(ctx, '$$$$$$', 344, 436, 30, P.ink, 700, 'right');
-  ctx.save(); ctx.translate(250, 250); ctx.rotate(-0.3);
-  ctx.strokeStyle = P.fabric_terracotta; ctx.lineWidth = 7; ctx.strokeRect(-110, -36, 220, 72);
-  text(ctx, 'PAST DUE', 0, 2, 44, P.fabric_terracotta);
+  ctx.save(); ctx.translate(200, 270); ctx.rotate(-0.3);
+  ctx.strokeStyle = P.alarm_red; ctx.lineWidth = 12; ctx.strokeRect(-150, -48, 300, 96);
+  text(ctx, 'PAST DUE', 0, 2, 62, P.alarm_red, 900);
   ctx.restore();
 });
 // The pre-rebrand sign: the company name in its own colour, kept for posterity.
@@ -940,14 +942,26 @@ function petCarrier() {
   return g;
 }
 // A network cable run along the floor from the desk, bitten through, frayed ends and all.
+// A thick hazard-yellow cable lying on the floor, chewed through in the middle: a plug on one end,
+// frayed wires and a few glowing sparks at the gap, so it reads on the floor from across the room.
+const CABLE_R = 0.035;
+const sparkGeo = new THREE.OctahedronGeometry(1, 0);   // shared by every spark; never disposed
 function cableChewed() {
   const g = new THREE.Group();
   // Lying on the floor: the centre line one radius up.
-  const seg = (x0, x1) => { const m = mesh(roundedCylinder(0.02, 0.02, x1 - x0, 0.006, 8), mat('role_engineer'), x1, 0.02, 0); m.rotation.z = Math.PI / 2; return m; };
-  g.add(seg(-0.6, -0.08), seg(0.06, 0.55));
+  const seg = (x0, x1) => { const m = mesh(roundedCylinder(CABLE_R, CABLE_R, x1 - x0, 0.01, 10), mat('fabric_mustard'), x1, CABLE_R, 0); m.rotation.z = Math.PI / 2; return m; };
+  g.add(seg(-0.48, -0.08), seg(0.06, 0.55));
+  g.add(mesh(roundedBox(0.12, 0.08, 0.1, 0.015, 2), mat('ink'), -0.54, 0.04, 0));
+  for (const z of [-0.022, 0.022]) g.add(mesh(roundedBox(0.05, 0.012, 0.012, 0.003, 1), mat('metal_soft'), -0.62, 0.035, z));
+  for (const [x, y, z, s] of [[-0.01, 0.07, 0.02, 0.035], [0.03, 0.1, -0.03, 0.025], [-0.04, 0.12, -0.01, 0.02]]) {
+    const spark = mesh(sparkGeo, glow('led_amber', 3), x, y, z, { cast: false });
+    spark.scale.setScalar(s);
+    spark.rotation.set(0.4, 0.6, 0);
+    g.add(spark);
+  }
   for (const [x, s] of [[-0.08, 1], [0.06, -1]]) {
     for (let i = 0; i < 4; i++) {
-      const w = mesh(roundedCylinder(0.003, 0.003, 0.05, 0.001, 4), mat(['fabric_terracotta', 'marker_green', 'fabric_mustard', 'paper'][i]), x + s * 0.02, 0.02, (i - 1.5) * 0.008);
+      const w = mesh(roundedCylinder(0.006, 0.006, 0.06, 0.002, 4), mat(['fabric_terracotta', 'marker_green', 'role_engineer', 'paper'][i]), x + s * 0.02, CABLE_R, (i - 1.5) * 0.014);
       w.rotation.z = Math.PI / 2 + (i - 1.5) * 0.4 * s;
       g.add(w);
     }
@@ -1379,11 +1393,12 @@ function byDoor(build, scale = 1, rot = 0.4) {
 // A printed sheet taped up: a one-star review, a heading, lines of text, a bar chart.
 const printout = () => canvasTex('printout', 384, 512, (ctx, W, H) => {
   ctx.fillStyle = P.paper_sheet; ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = P.ink; ctx.fillRect(28, 30, W - 56, 26);
-  ctx.fillStyle = P.fabric_mustard; ctx.font = '700 40px sans-serif'; ctx.textBaseline = 'top';
-  ctx.fillText('★', 28, 74);
-  ctx.fillStyle = P.metal_soft; ctx.fillText('★★★★', 70, 74);
-  for (let i = 0; i < 9; i++) ctx.fillRect(28, 140 + i * 22, W - 56 - (i % 3) * 60, 9);
+  ctx.fillStyle = P.alarm_red; ctx.fillRect(0, 0, W, 60);
+  // One big gold star and four grey ones: a one-star review from across the room.
+  ctx.font = '700 84px sans-serif'; ctx.textBaseline = 'top';
+  ctx.fillStyle = P.gold; ctx.fillText('★', 22, 70);
+  ctx.font = '700 52px sans-serif'; ctx.fillStyle = P.metal_soft; ctx.fillText('★★★★', 112, 92);
+  for (let i = 0; i < 7; i++) ctx.fillRect(28, 180 + i * 22, W - 56 - (i % 3) * 60, 9);
   const bars = [0.8, 0.55, 0.35, 0.2];
   bars.forEach((b, i) => { ctx.fillStyle = i ? P.metal_soft : P.alarm_red; ctx.fillRect(40 + i * 80, H - 40 - b * 110, 56, b * 110); });
 });
@@ -1732,7 +1747,7 @@ const BUILDERS = {
   picture_pingpong_ball: wallPrint(pingPongPicture(true)),
   brochure: wallPrint(brochure),
   photo_lake: wallPrint(photoLake),
-  invoice: wallPrint(invoice, { w: 0.5, h: 0.67 }),
+  invoice: wallPrint(invoice, { w: 0.7, h: 0.93 }),
   old_sign: wallPrint(oldSign, { w: 0.9, h: 0.45 }),
   sign_rival_copied: wallPrint(rivalCopied),
   envelope: atDesk(envelope(false), FLAT),
@@ -1760,7 +1775,7 @@ const BUILDERS = {
   printer_jammed: byKitchen(printerJammed),
   printer_out_of_order: byKitchen(printerOutOfOrder),
   printer_wrecked: byDoor(printerWrecked, 1.2),
-  printout: wallPrint(printout, { w: 0.52, h: 0.69, tilt: -0.04 }),
+  printout: wallPrint(printout, { w: 0.72, h: 0.96, tilt: -0.04 }),
   whiteboard_scrawl: whiteboardScrawl,
   mug_pile: atDesk(mugPile, { x: 0.2, z: -0.25, rot: 0.3, scale: 1.1, sprawl: true }),
   mug_bucket: onFloor(mugBucket, { x: 0.95, z: 0.05, rot: -0.4 }),
