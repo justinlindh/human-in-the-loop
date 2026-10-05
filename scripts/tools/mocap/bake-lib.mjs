@@ -13,7 +13,8 @@ const PARENT = { body: null, hips: 'body', legL: 'hips', legR: 'hips', torso: 'h
 export const CLIP_FPS = 30;
 const ANKLE_HEIGHT = 0.08; // human ankle above the sole, metres: the leg length the chibi hip height stands for
 const BEND_FULL = (150 * Math.PI) / 180; // joint flexion that reads as bend 1
-const FOOT_LIFT = 0.06, FOOT_SPEED = 0.5, FOOT_MIN = 3; // contact: toe within FOOT_LIFT of the floor, ankle under FOOT_SPEED m/s, FOOT_MIN frames
+const FOOT_LIFT = 0.05, FOOT_SPEED = 0.6, FOOT_MIN = 3, FLOOR_WINDOW = 15; // plant: toe within FOOT_LIFT of the lowest toe within FLOOR_WINDOW frames, ankle under FOOT_SPEED m/s, FOOT_MIN frames
+const SPLIT = 0.03; // a contact ends when the limb is this far (source metres) from its running mean
 const HAND_SPEED = 0.2, HAND_MIN_S = 0.3, HAND_AWAY = (40 * Math.PI) / 180; // hold: hand under HAND_SPEED m/s for HAND_MIN_S, arm off its hanging line by HAND_AWAY
 const LOOK_DIST = 1.5; // metres ahead of the head, in chibi units after scaling
 
@@ -35,6 +36,7 @@ export function bakeShot(shot, personId, opts = {}) {
   const n = to - from;
   const P = (t, name) => { const a = person.joint_pos_world[from + t][ix[name]]; return new Vector3(a[0], a[1], a[2]); };
 
+  const shared = sharedSpace(shot, pivots);
   // Align frame 0's heading to +z (about the hips' own vertical) and put the origin under the hips on the floor.
   const frame0 = bodyFrame(P(0, 'LeftLeg'), P(0, 'RightLeg'), P(0, 'Spine2').sub(P(0, 'Hips')));
   const yaw0 = Math.atan2(forwardOf(frame0).x, forwardOf(frame0).z);
@@ -47,9 +49,7 @@ export function bakeShot(shot, personId, opts = {}) {
   const toClip = (v, s = 1) => v.clone().sub(origin).applyQuaternion(align).multiplyScalar(s);
 
   // Chibi size: its leg length (hip pivot height) over the source leg (hip to ankle chains plus the ankle height).
-  const chains = [];
-  for (let t = 0; t < n; t++) for (const s of ['Left', 'Right']) chains.push(P(t, `${s}Leg`).distanceTo(P(t, `${s}Shin`)) + P(t, `${s}Shin`).distanceTo(P(t, `${s}Foot`)));
-  const scale = pivots.legL[1] / (median(chains) + ANKLE_HEIGHT);
+  const scale = legScale(shot, [personId], from, to, pivots);
 
   // Rig side to source side: the rig's L limb sits at -x, which is the anatomical right one.
   const side = { L: 'Right', R: 'Left' };
@@ -106,6 +106,7 @@ export function bakeShot(shot, personId, opts = {}) {
     ...handContacts(n, srcFps, (t, nm) => toClip(P(t, nm), scale), scale, side, (t, s) => P(t, `${s}Hand`).sub(P(t, `${s}Arm`)).applyQuaternion(align)),
   ];
 
+  const placement = shared ? sharedOrigin(shared, personId, from, forwardOf(frame0)) : null;
   const outN = Math.max(2, Math.round(((n - 1) / srcFps) * CLIP_FPS) + 1);
   const at = (i) => Math.min(n - 1, (i * srcFps) / CLIP_FPS);
   const tracks = {};
@@ -118,6 +119,7 @@ export function bakeShot(shot, personId, opts = {}) {
     fps: CLIP_FPS, frames: outN,
     bones: RIG_BONES,
     scale: r5(scale),
+    ...(placement ? { origin: placement } : {}),
     source: { shot: opts.shotIndex ?? 0, trackId: personId, start: shot.shot.start_frame + from, end: shot.shot.start_frame + to },
     tracks,
     bend: bendOut,
@@ -190,29 +192,101 @@ function speeds(n, fps, p) {
     return a.distanceTo(b) / ((Math.min(n - 1, t + 1) - Math.max(0, t - 1)) / fps);
   });
 }
+// A foot is planted when its toe is within FOOT_LIFT of the lowest toe of either foot nearby (so a floor
+// that drifts in the source does not matter) and the ankle is slow. Each run is then cut wherever the limb
+// leaves its running mean by more than SPLIT (at chibi scale), so a step in the middle makes two plants.
 function footContacts(n, fps, ankle, toeY, scale, side) {
   const out = [];
+  const low = Array.from({ length: n }, (_, t) => Math.min(toeY(t, side.L), toeY(t, side.R)));
+  const floor = low.map((_, t) => Math.min(...low.slice(Math.max(0, t - FLOOR_WINDOW), t + FLOOR_WINDOW + 1)));
   for (const k of ['L', 'R']) {
     const s = side[k];
     const v = speeds(n, fps, (t) => ankle(t, s));
     // The ankle track is in chibi units, the toe height in source metres.
-    const lowFlags = Array.from({ length: n }, (_, t) => toeY(t, s) < FOOT_LIFT && v[t] < FOOT_SPEED * scale);
-    for (const [a, b] of runs(lowFlags, FOOT_MIN)) out.push({ limb: `foot${k}`, from: a, to: b, point: meanOf(a, b, (t) => ankle(t, s)) });
+    const flags = Array.from({ length: n }, (_, t) => toeY(t, s) < floor[t] + FOOT_LIFT && v[t] < FOOT_SPEED * scale);
+    for (const c of segments(runs(flags, FOOT_MIN), FOOT_MIN, (t) => ankle(t, s), SPLIT * scale)) out.push({ limb: `foot${k}`, ...c });
   }
   return out;
 }
 function handContacts(n, fps, jointAt, scale, side, armDir) {
   const out = [];
+  const min = Math.round(HAND_MIN_S * fps);
   for (const k of ['L', 'R']) {
     const s = side[k];
     const v = speeds(n, fps, (t) => jointAt(t, `${s}Hand`));
     const flags = Array.from({ length: n }, (_, t) => v[t] < HAND_SPEED * scale && armDir(t, s).normalize().angleTo(DOWN) > HAND_AWAY);
-    for (const [a, b] of runs(flags, Math.round(HAND_MIN_S * fps))) out.push({ limb: `hand${k}`, from: a, to: b, point: meanOf(a, b, (t) => jointAt(t, `${s}Hand`)) });
+    for (const c of segments(runs(flags, min), min, (t) => jointAt(t, `${s}Hand`), SPLIT * scale)) out.push({ limb: `hand${k}`, ...c });
   }
   return out;
 }
-function meanOf(a, b, f) {
-  const m = new Vector3();
-  for (let t = a; t < b; t++) m.add(f(t));
-  return m.multiplyScalar(1 / (b - a)).toArray();
+// Splits each [from, to) where the point leaves its running mean by more than SPLIT; a piece shorter than min
+// is dropped. The point is the median of the piece (per axis).
+function segments(spans, min, at, limit) {
+  const out = [];
+  for (const [a, b] of spans) {
+    let start = a;
+    const mean = new Vector3();
+    let count = 0;
+    const close = (end) => {
+      if (end - start >= min) {
+        const pts = Array.from({ length: end - start }, (_, i) => at(start + i));
+        out.push({ from: start, to: end, point: ['x', 'y', 'z'].map((ax) => median(pts.map((p) => p[ax]))) });
+      }
+    };
+    for (let t = a; t < b; t++) {
+      const p = at(t);
+      if (count && p.distanceTo(mean) > limit) { close(t); start = t; count = 0; mean.set(0, 0, 0); }
+      mean.multiplyScalar(count).add(p).multiplyScalar(1 / (count + 1));
+      count++;
+    }
+    close(b);
+  }
+  return out;
 }
+
+const quatOf = (a) => new Quaternion(a[0], a[1], a[2], a[3]);
+const rowsOf = (m) => new Matrix4().set(m[0][0], m[0][1], m[0][2], 0, m[1][0], m[1][1], m[1][2], 0, m[2][0], m[2][1], m[2][2], 0, 0, 0, 0, 1);
+
+// Where the clips stand relative to each other. The shot's people live in separate gravity-aligned worlds and
+// the camera path lives in the depth model's world, so the link is the camera: each person's root orientation
+// in the camera against its orientation in its own world gives that world's up in camera space, hence in the
+// scene. The shared space has y up, z the first camera's forward direction flattened onto the floor, x = y cross z.
+// Null without the camera data.
+function sharedSpace(shot, pivots) {
+  const cam = shot.camera;
+  if (!cam?.w2c || !shot.people.every((p) => p.root_orient_cam && p.root_pos_scene && p.rot_local)) return null;
+  const T = cam.w2c.length;
+  const c2w = cam.w2c.map((m) => rowsOf(m).transpose()); // rotation only: the inverse of a rotation is its transpose
+  const worldToCam = (p, t) => quatOf(p.root_orient_cam[t]).multiply(quatOf(p.rot_local[t][0]).invert());
+  const toScene = (p, t, v) => v.clone().applyQuaternion(worldToCam(p, t)).applyMatrix4(c2w[t]);
+  const up = new Vector3();
+  for (const p of shot.people) for (let t = 0; t < T; t++) up.add(toScene(p, t, new Vector3(0, 1, 0)));
+  up.normalize();
+  const fwd = new Vector3(0, 0, 1).applyMatrix4(c2w[0]);
+  const z = fwd.sub(up.clone().multiplyScalar(fwd.dot(up))).normalize();
+  const x = up.clone().cross(z).normalize();
+  const coords = (v) => new Vector3(v.dot(x), v.dot(up), v.dot(z));
+  const rootAt = (p, t) => coords(new Vector3(...p.root_pos_scene[t]));
+  return { shot, coords, rootAt: (p, t) => coords(new Vector3(...p.root_pos_scene[t])), toScene, scale: shot.people.length ? sharedScale(shot, pivots) : 1 };
+}
+
+// The clip's frame-0 origin (the floor under the hips, which is y = 0 in the shared space) and heading in the
+// shared space. Positions are at the chibi scale of the shot's people together, so they keep their distances.
+function sharedOrigin(sp, personId, from, face0) {
+  const p = sp.shot.people.find((q) => q.id === personId);
+  const f = sp.coords(sp.toScene(p, from, face0));
+  const r = sp.rootAt(p, from);
+  return { pos: [r.x * sp.scale, 0, r.z * sp.scale].map(r4), yaw: r5(Math.atan2(f.x, f.z)), scale: r5(sp.scale) };
+}
+
+// Chibi leg length over the median source leg (hip to ankle chains plus the ankle height) of every person.
+function legScale(shot, ids, from, to, pivots) {
+  const J = shot.joints, chains = [];
+  for (const p of shot.people.filter((q) => ids.includes(q.id)))
+    for (let t = from; t < to; t++) for (const s of ['Left', 'Right']) {
+      const pt = (n) => new Vector3(...p.joint_pos_world[t][J.indexOf(`${s}${n}`)]);
+      chains.push(pt('Leg').distanceTo(pt('Shin')) + pt('Shin').distanceTo(pt('Foot')));
+    }
+  return pivots.legL[1] / (median(chains) + ANKLE_HEIGHT);
+}
+const sharedScale = (shot, pivots) => legScale(shot, shot.people.map((p) => p.id), 0, shot.people[0].joint_pos_world.length, pivots);
