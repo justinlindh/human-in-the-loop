@@ -226,6 +226,51 @@ const windows = [];
 const target_ = (spec) => {
   try { return resolveTarget(spec); } catch (e) { console.error(`sweep: ${e.message}`); process.exit(2); }
 };
+// In a browser run the seeds play alongside the mocks, moments and snapshots, each seed in a browser
+// of its own, with a time limit, so a slow or stuck seed can neither slow the ones after it nor use
+// up the whole run; the page reports the week it has reached. Their rows join after the others', in
+// the order a serial run gives.
+const seedRun = { stop: false, harness: null };
+async function browserSeeds() {
+  const out = { found: [], windows: [], errors: [], requested: [] };
+  for (const seed of M.seeds) {
+    if (seedRun.stop) break;
+    const HS = seedRun.harness = await startHarness({ gpu: wantGpu() });
+    if (seedRun.stop) { await HS.close(); break; }
+    const { page, errors: e } = await HS.openScene(`quality=low&seed=${seed}`, { width: 1600, height: 1000 });
+    let week = 0;
+    page.on('console', (m) => { const w = /^sweep-progress w(\d+)$/.exec(m.text()); if (w) week = Number(w[1]); });
+    const s0 = wall();
+    let limit;
+    const r = await Promise.race([
+      page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleSeed(o),
+        { seed, weeks: M.weeks, every: M.every, seconds: M.seconds, stagedSeconds: M.stagedSeconds, maxStaged: M.maxStaged, step: M.step, known, worst: acceptedWorst, item, only: plan?.seeds[seed] ?? null, screenOnly }),
+      new Promise((res) => { limit = setTimeout(() => res(null), M.seedLimit * 1000); }),
+    ]);
+    clearTimeout(limit);
+    if (!r) {
+      out.errors.push(`seed:${seed}: not done after ${M.seedLimit} s (at week ${week})`);
+      console.log(`sweep: seed:${seed} not done after ${M.seedLimit} s, at week ${week}; skipped`);
+      // The page is still busy, and closing would wait for it: end its browser outright.
+      HS.browser.process?.()?.kill('SIGKILL');
+      await HS.close().catch(() => {});
+      seedRun.harness = null;
+      continue;
+    }
+    out.found.push(...r.violations);
+    out.windows.push(...r.windows);
+    console.log(`sweep: seed:${seed} played to week ${r.end.week}${r.end.over ? ` (${r.end.over})` : ''}; windows: ${r.windows.map((w) => `w${w.state.split(':w')[1]} ${w.why}`).join(', ')}`);
+    out.errors.push(...e.map((x) => `seed:${seed}: ${x}`));
+    console.log(`sweep: seed:${seed} ${r.violations.length} violation(s) in ${Math.round((wall() - s0) / 1000)} s (${Math.round((wall() - t0) / 1000)} s)`);
+    if (screenLoads) out.requested.push(...HS.requested());
+    await HS.close();
+    seedRun.harness = null;
+  }
+  return out;
+}
+// Settled into a value, so a failing seed run is reported where its rows join, not as an unhandled
+// rejection while the mocks are still playing.
+const seedsDone = engine ? null : browserSeeds().then((out) => ({ out }), (err) => ({ err }));
 try {
   for (const name of M.mocks) {
     const [mock, era] = name.split('@');
@@ -270,47 +315,23 @@ try {
     console.log(`sweep: ${label} ${r.violations.length} violation(s) (${Math.round((wall() - t0) / 1000)} s)`);
     await page?.close();
   }
-  // Each seed runs in a browser of its own, with a time limit, so a slow or stuck seed can neither
-  // slow the ones after it nor use up the whole run; the page reports the week it has reached.
-  for (const seed of M.seeds) {
-    if (engine) {
-      // In this process, so no time limit can cut a seed short; the seed limit applies to browser runs.
+  if (engine) {
+    // In this process, so no time limit can cut a seed short; the seed limit applies to browser runs.
+    for (const seed of M.seeds) {
       const s0 = wall();
       const r = await host.hostSeed({ seed, weeks: M.weeks, every: M.every, seconds: M.seconds, stagedSeconds: M.stagedSeconds, maxStaged: M.maxStaged, step: M.step, known, worst: acceptedWorst, item, only: plan?.seeds[seed] ?? null });
       found.push(...r.violations);
       windows.push(...r.windows);
       console.log(`sweep: seed:${seed} played to week ${r.end.week}${r.end.over ? ` (${r.end.over})` : ''}; windows: ${r.windows.map((w) => `w${w.state.split(':w')[1]} ${w.why}`).join(', ')}`);
       console.log(`sweep: seed:${seed} ${r.violations.length} violation(s) in ${Math.round((wall() - s0) / 1000)} s (${Math.round((wall() - t0) / 1000)} s)`);
-      continue;
     }
-    const HS = await startHarness({ gpu: wantGpu() });
-    const { page, errors: e } = await HS.openScene(`quality=low&seed=${seed}`, { width: 1600, height: 1000 });
-    let week = 0;
-    page.on('console', (m) => { const w = /^sweep-progress w(\d+)$/.exec(m.text()); if (w) week = Number(w[1]); });
-    const s0 = wall();
-    let limit;
-    const r = await Promise.race([
-      page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleSeed(o),
-        { seed, weeks: M.weeks, every: M.every, seconds: M.seconds, stagedSeconds: M.stagedSeconds, maxStaged: M.maxStaged, step: M.step, known, worst: acceptedWorst, item, only: plan?.seeds[seed] ?? null, screenOnly }),
-      new Promise((res) => { limit = setTimeout(() => res(null), M.seedLimit * 1000); }),
-    ]);
-    clearTimeout(limit);
-    if (!r) {
-      errors.push(`seed:${seed}: not done after ${M.seedLimit} s (at week ${week})`);
-      console.log(`sweep: seed:${seed} not done after ${M.seedLimit} s, at week ${week}; skipped`);
-      // The page is still busy, and closing would wait for it: end its browser outright.
-      HS.browser.process?.()?.kill('SIGKILL');
-      await HS.close().catch(() => {});
-      continue;
-    }
-    const vs = r.violations;
-    found.push(...vs);
-    windows.push(...r.windows);
-    console.log(`sweep: seed:${seed} played to week ${r.end.week}${r.end.over ? ` (${r.end.over})` : ''}; windows: ${r.windows.map((w) => `w${w.state.split(':w')[1]} ${w.why}`).join(', ')}`);
-    errors.push(...e.map((x) => `seed:${seed}: ${x}`));
-    console.log(`sweep: seed:${seed} ${vs.length} violation(s) in ${Math.round((wall() - s0) / 1000)} s (${Math.round((wall() - t0) / 1000)} s)`);
-    if (screenLoads) requested.push(...HS.requested());
-    await HS.close();
+  } else {
+    const { out, err } = await seedsDone;
+    if (err) throw err;
+    found.push(...out.found);
+    windows.push(...out.windows);
+    errors.push(...out.errors);
+    requested.push(...out.requested);
   }
   // The page checks (screen, tooltip) need a browser: the same run's states (mocks and their moments,
   // indexed moments, snapshots, seeds) are played again there with the page checks alone, and its rows
@@ -327,6 +348,12 @@ try {
     }
   }
 } finally {
+  // A run that failed before its seeds' rows joined ends the seed still playing.
+  if (seedsDone) {
+    seedRun.stop = true;
+    seedRun.harness?.browser.process?.()?.kill('SIGKILL');
+    await seedsDone;
+  }
   if (screenLoads && H) requested.push(...H.requested());
   await H?.close();
   clearTimeout(kill);
