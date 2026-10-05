@@ -109,7 +109,7 @@ pstep() {
   ) &
   PNAMES+=("$name"); PPIDS+=($!)
 }
-pjoin() {
+pjoin() { # <start time> [phase name]
   local t0="$1" i rc wall sum=0
   for i in "${!PPIDS[@]}"; do
     wait "${PPIDS[$i]}"
@@ -124,7 +124,7 @@ pjoin() {
     fi
   done
   local phase=$(( $(now) - t0 ))
-  timing_log kind=phase tool=ci-local phase=browser wall_s="$phase" background_s="$sum" steps="$(IFS=,; echo "${PNAMES[*]}")"
+  timing_log kind=phase tool=ci-local phase="${2:-browser}" wall_s="$phase" background_s="$sum" steps="$(IFS=,; echo "${PNAMES[*]}")"
   PNAMES=(); PPIDS=()
 }
 
@@ -161,11 +161,13 @@ pr_selftest() { # <name> <command...>: sets PR_TEST_TMP to the PR's test file wh
 tool_step() { # <name> <command...>
   if [ "$tool_changes" = 1 ]; then
     pr_selftest "$@"
+    # The self-tests are independent and light: a few run side by side (collected by tool_join).
+    while [ "$(jobs -rp | wc -l)" -ge "${CI_SELFTEST_JOBS:-4}" ]; do wait -n; done
     if [ -n "$PR_TEST_TMP" ]; then
       local args=() a
       for a in "$@"; do [ "$a" = "$PR_TEST_ORIG" ] && a="$PR_TEST_TMP"; args+=("$a"); done
-      step "${args[@]}"
-    else step "$@"; fi
+      pstep "${args[@]}"
+    else pstep "$@"; fi
   else record "$1" "skipped: no tooling changes" 0; timing_log kind=step tool=ci-local step="$1" skipped=1 wall_s=0 exit=0; fi
 }
 
@@ -206,6 +208,7 @@ step toolkit toolkit_check
 # A changed golden image or sweep-baseline entry needs its own before/after media on the PR
 # (scripts/baseline-media.sh); without a PR number it only says so.
 step baseline-media env BASE="$BASE" bash "$SELF/baseline-media.sh" --check
+selftests_t0=$(now)
 tool_step ci-classify bash "$SELF/ci-classify.test.sh"
 tool_step ci-keep-logs bash "$SELF/ci-keep-logs.test.sh"
 tool_step ci-pr-selftest bash "$SELF/ci-pr-selftest.test.sh"
@@ -217,6 +220,7 @@ tool_step pr-body bash "$SELF/pr-body.test.sh"
 tool_step test-cache bash "$SELF/test-cache.test.sh"
 tool_step tmp-clean bash "$SELF/tmp-clean.test.sh"
 tool_step feature-media-auto bash "$SELF/feature-media-auto.test.sh"
+tool_step heavy bash "$SELF/heavy.test.sh"
 tool_step ci-merge-only bash "$SELF/ci-merge-only.test.sh"
 tool_step nice10 bash "$SELF/nice10.test.sh"
 tool_step test-push bash "$SELF/test-push.test.sh"
@@ -249,6 +253,7 @@ tool_step features-ids-test bash "$SELF/features-ids.test.sh"
 tool_step gates bash "$SELF/gates.test.sh"
 tool_step toolkit-test node "$SELF/toolkit.test.mjs"
 tool_step capture bash "$SELF/capture.test.sh"
+pjoin "$selftests_t0" selftests
 
 # The balance suite is the slow one; start it now and collect it at the end.
 # ...unless the change cannot move the game's balance: every changed path (commits since the base,

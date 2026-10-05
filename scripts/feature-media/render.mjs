@@ -17,9 +17,10 @@
 //   --compare  prints each file's size next to the same path in <dir> (a site checkout, say)
 // Recordings are 30 fps; capture.js takes a GPU render slot.
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { itemBase, itemStatus, recordItem, clearItem } from '../../blender/checks/cache.mjs';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
@@ -34,8 +35,27 @@ const RAW = join(OUT, '.raw');
 const compare = opt('compare', null);
 const { ITEMS } = await import(pathToFileURL(MANIFEST).href);
 const only = opt('only', null)?.split(',');
+// An item that publishes (`publish: true`) puts its outputs on the feature-media branch under the stable name
+// <item id>.<ext>, or its out entry's `publishAs`.
+const TOOL_FILES = ['scripts/feature-media/render.mjs', 'scripts/capture.js'];
+const baseOf = (it) => itemBase('feature-media', it, TOOL_FILES);
+// --stale: the publishing items whose spec, tools or loaded files changed since their last published render
+// (or that were never published), one id per line.
+if (argv.includes('--stale')) {
+  for (const it of ITEMS.filter((i) => i.publish)) if (!itemStatus('feature-media', it.id, baseOf(it)).upToDate) console.log(it.id);
+  process.exit(0);
+}
+const publishing = argv.includes('--publish');
+if (publishing && !only) { console.error('feature-media: --publish needs --only <id,id>'); process.exit(2); }
+const unknown = (only ?? []).filter((id) => !ITEMS.some((it) => it.id === id));
+if (unknown.length) { console.error(`feature-media: --only names no manifest item: ${unknown.join(', ')}`); process.exit(2); }
 const items = ITEMS.filter((it) => !only || only.includes(it.id));
 if (!items.length) { console.error(`feature-media: nothing matches --only ${only}`); process.exit(1); }
+if (publishing) {
+  const bad = items.filter((i) => !i.publish).map((i) => i.id);
+  if (bad.length) { console.error(`feature-media: --publish: ${bad.join(', ')} has no \`publish: true\` in the manifest`); process.exit(2); }
+  for (const it of items) clearItem('feature-media', it.id);
+}
 
 // Encodes run niced, under a timeout, like every heavy job on the shared machine.
 const run = (cmd, args, what) => {
@@ -57,18 +77,24 @@ const sizes = [...new Set(items.map((i) => i.record ?? REC))];
 const recorded = new Map();
 for (const size of sizes) {
   const dir = join(RAW, size), group = items.filter((i) => (i.record ?? REC) === size);
+  // Publishing starts from an empty recording folder, so a capture that dies cannot leave an old render
+  // (or its index) to be published and recorded as current.
+  if (publishing) rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
   console.log(`feature-media: recording at ${size}: ${group.map((i) => i.id).join(', ')}`);
   const cap = spawnSync('node', ['scripts/capture.js', '--manifest', MANIFEST, '--only', group.map((i) => i.id).join(','), '--out', dir, '--size', size, '--fps', String(FPS0), '--no-webm'], { stdio: 'inherit' });
-  if (cap.status !== 0) { console.error(`feature-media: capture.js exited ${cap.status}`); process.exit(1); }
-  const index = JSON.parse(readFileSync(join(dir, 'index.json'), 'utf8'));
+  // Publishing carries on past a failed item: the others still render, and the failed one is named below.
+  if (cap.status !== 0) { console.error(`feature-media: capture.js exited ${cap.status}`); if (!publishing) process.exit(1); }
+  const index = existsSync(join(dir, 'index.json')) ? JSON.parse(readFileSync(join(dir, 'index.json'), 'utf8')) : {};
   for (const [id, rec] of Object.entries(index.items ?? {})) if (group.some((i) => i.id === id)) recorded.set(id, { ...rec, dir, size: size.split('x').map(Number) });
 }
 
 const rows = [];
 let failed = 0;
+const failedItems = new Set();
 for (const it of items) {
   const rec = recorded.get(it.id);
+  if (publishing && (!rec || rec.error || rec.errors)) { failed++; failedItems.add(it.id); console.log(`FAIL ${it.id}: the capture did not record it cleanly${rec?.error ? `: ${rec.error}` : ''}`); continue; }
   const dim = rec?.size ?? REC.split('x').map(Number), raw = rec?.dir ?? RAW;
   for (const o of it.out ?? []) {
     const dest = join(OUT, o.path);
@@ -100,8 +126,29 @@ for (const it of items) {
         const was = compare && existsSync(join(compare, p)) ? statSync(join(compare, p)).size : null;
         rows.push({ item: it.id, path: p, kb: Math.round(size / 1024), wasKb: was == null ? null : Math.round(was / 1024) });
       }
-    } catch (e) { failed++; console.log(`FAIL ${it.id} -> ${o.path}: ${e.message}`); }
+    } catch (e) { failed++; failedItems.add(it.id); console.log(`FAIL ${it.id} -> ${o.path}: ${e.message}`); }
   }
+}
+// Publish each item that rendered clean, then record its inputs: only a published item counts as up to date.
+if (publishing) {
+  for (const it of items) {
+    if (failedItems.has(it.id)) continue;
+    try {
+      const stage = join(OUT, '.publish', it.id);
+      rmSync(stage, { recursive: true, force: true }); mkdirSync(stage, { recursive: true });
+      const outs = (it.out ?? []).filter((o) => /\.(webp|mp4)$/.test(o.path));
+      if (!outs.length) throw new Error('no .webp or .mp4 output to publish');
+      if (outs.length > 1 && outs.some((o) => !o.publishAs)) throw new Error('several outputs: each needs a publishAs name');
+      const files = outs.map((o) => { const f = join(stage, `${o.publishAs ?? it.id}${o.path.slice(o.path.lastIndexOf('.'))}`); copyFileSync(join(OUT, o.path), f); return f; });
+      const p = spawnSync(fileURLToPath(new URL('./publish.sh', import.meta.url)), files, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
+      if (p.status !== 0) throw new Error(`publish.sh exited ${p.status}`);
+      const loaded = recorded.get(it.id)?.requested;
+      if (!loaded?.length) console.log(`feature-media: ${it.id} published, but the capture listed no loaded files, so it stays stale`);
+      else if (!recordItem('feature-media', it.id, baseOf(it), loaded)) console.log(`feature-media: ${it.id} published, but its inputs could not be recorded`);
+      console.log(`published ${it.id}: ${files.map((f) => f.split('/').pop()).join(', ')}`);
+    } catch (e) { failed++; failedItems.add(it.id); console.log(`FAIL publish ${it.id}: ${e.message}`); }
+  }
+  rmSync(join(OUT, '.publish'), { recursive: true, force: true });
 }
 if (!argv.includes('--keep-raw')) rmSync(RAW, { recursive: true, force: true });
 console.log(`\n| file | KB |${compare ? ' before KB |' : ''}\n|---|---|${compare ? '---|' : ''}`);
