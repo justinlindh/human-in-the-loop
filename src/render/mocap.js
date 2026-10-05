@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { bodyShape, restAllowance, pushOut, limitJoint, JOINT_LIMITS } from './mocap-body.js';
 
 // Plays a baked motion clip (schema hitl-mocap-clip v1, from scripts/tools/mocap/bake.mjs) on a
 // character's rig pivots from an outside clock: setTime(t) poses the character at t seconds, so a
@@ -56,6 +57,10 @@ export const MOCAP_GAIN = { armL: 1.4, armR: 1.4, legL: 1.3, legR: 1.3 };
 // Scales a unit quaternion's rotation angle by k about the same axis (k > 1 exaggerates), capped
 // short of a full half turn so the limb never flips through.
 const MAX_TURN = Math.PI * 0.95;
+// Pivots the push may turn (limbs, and the torso and head leaning off them), how fast its turn
+// follows (seconds), and the clip-time jump past which it is taken at once.
+const PUSH_PIVOTS = ['legL', 'legR', 'armL', 'armR', 'torso', 'head'];
+const PUSH_EASE_S = 0.1, PUSH_SEEK_S = 0.25;
 function amplify(q, k) {
   if (q.w < 0) q.set(-q.x, -q.y, -q.z, -q.w);
   const half = Math.acos(Math.min(1, q.w));
@@ -65,8 +70,27 @@ function amplify(q, k) {
   return q.set(q.x * f, q.y * f, q.z * f, Math.cos(nh));
 }
 
-export function createMocapPlayer(char, clip, { minConf = 0.35, ik = true, ramp = 3, rootMotion = false, gain = {} } = {}) {
+// limits: clamp each bone to JOINT_LIMITS (mocap-body.js). push: turn limbs out of the torso and head.
+// The body's solids with their rest-pose allowances: every pivot turned back to rest (clip
+// rotations are changes from it) for the measurement, then put back.
+function restShape(char) {
+  const pv = char.pivots;
+  const shape = bodyShape(pv);
+  if (!shape) return null;
+  const saved = Object.entries(pv).map(([k, o]) => [o, o.quaternion.clone()]);
+  for (const [o] of saved) o.quaternion.identity();
+  char.root.updateMatrixWorld(true);
+  restAllowance(shape);
+  for (const [o, q] of saved) o.quaternion.copy(q);
+  char.root.updateMatrixWorld(true);
+  return shape;
+}
+
+export function createMocapPlayer(char, clip, { minConf = 0.35, ik = true, ramp = 5, rootMotion = false, gain = {}, limits = true, push = true, pushEase = PUSH_EASE_S } = {}) {
   const n = clip.frames, fps = clip.fps;
+  const pv = char.pivots;
+  const side = Object.fromEntries(Object.keys(JOINT_LIMITS).map((b) => [b, Math.sign(pv?.[b]?.position.x ?? 0)]));
+  const shape = push && pv ? restShape(char) : null;
   const bones = clip.bones.filter((b) => clip.tracks[b]?.quat);
   // For each bone and frame, the frame to read: itself when trusted, else the nearest trusted one.
   const src = {};
@@ -84,7 +108,8 @@ export function createMocapPlayer(char, clip, { minConf = 0.35, ik = true, ramp 
   const _fwd = new THREE.Vector3(), _strip = new THREE.Quaternion();
   const pose = { q: Object.fromEntries(bones.map((b) => [b, new THREE.Quaternion()])), pos: new THREE.Vector3(), after: null };
   const contacts = (clip.contacts ?? []).filter((c) => LIMB_OF[c.limb]);
-  let frame = 0;
+  let frame = 0, clipT = 0;
+  const _q0 = new THREE.Quaternion();
 
   const read = (b, i, out) => { const a = clip.tracks[b].quat[src[b][i]]; return out.set(a[0], a[1], a[2], a[3]); };
 
@@ -92,10 +117,12 @@ export function createMocapPlayer(char, clip, { minConf = 0.35, ik = true, ramp 
     const x = Math.max(0, Math.min(n - 1, t * fps));
     const i0 = Math.floor(x), i1 = Math.min(n - 1, i0 + 1), a = x - i0;
     frame = x;
+    clipT = t;
     for (const b of bones) {
       pose.q[b].copy(read(b, i0, qa)).slerp(read(b, i1, qb), a).normalize();
       const g = gain[b];
       if (g && g !== 1) amplify(pose.q[b], g);
+      if (limits) limitJoint(pose.q[b], JOINT_LIMITS[b], side[b]);
     }
     const P = clip.tracks.body?.pos;
     if (P) pose.pos.set(P[i0][0], P[i0][1], P[i0][2]).lerp(_p1.set(P[i1][0], P[i1][1], P[i1][2]), a);
@@ -104,11 +131,14 @@ export function createMocapPlayer(char, clip, { minConf = 0.35, ik = true, ramp 
     return pose;
   }
 
-  // How much contact c holds at frame x: 1 inside the span, easing to 0 over `ramp` frames outside.
+  // How much contact c holds at frame x: 1 inside the span, easing to 0 over `ramp` frames outside
+  // (smoothstep, so the pin neither snaps on nor lets go with a jerk).
   const weight = (c, x) => {
     if (x >= c.from && x < c.to) return 1;
     const d = x < c.from ? c.from - x : x - (c.to - 1);
-    return ramp > 0 ? Math.max(0, 1 - d / ramp) : 0;
+    if (ramp <= 0) return 0;
+    const u = Math.max(0, 1 - d / ramp);
+    return u * u * (3 - 2 * u);
   };
 
   const _pw = new THREE.Vector3(), _tw = new THREE.Vector3(), _d0 = new THREE.Vector3(), _d1 = new THREE.Vector3();
@@ -138,10 +168,46 @@ export function createMocapPlayer(char, clip, { minConf = 0.35, ik = true, ramp 
     limb.updateMatrixWorld(true);
     return limb;
   }
-  pose.after = ik && contacts.length ? (pivots) => {
+  // Contact IK, then the push of limbs out of the body: a limb pinned by a contact is pushed only by
+  // what its contact leaves free.
+  const held = {};
+  let liveNow = [];
+  // The push's turn of each pivot eases in and out over PUSH_EASE_S, so a limb grazing the body
+  // doesn't flick from frame to frame. A seek (a jump in clip time) takes the push at once.
+  const corr = {}, before = {}, _cq = new THREE.Quaternion();
+  let lastT = null;
+  function smoothPush(pivots) {
+    const dt = lastT == null ? Infinity : Math.abs(clipT - lastT);
+    lastT = clipT;
+    const a = dt > PUSH_SEEK_S || pushEase <= 0 ? 1 : 1 - Math.exp(-dt / pushEase);
+    for (const k of PUSH_PIVOTS) if (pivots[k]) before[k] = (before[k] ?? new THREE.Quaternion()).copy(pivots[k].quaternion);
+    pushOut(shape, (k) => 1 - (held[k] ?? 0));
+    for (const k of PUSH_PIVOTS) {
+      const p = pivots[k];
+      if (!p) continue;
+      // This frame's push as a turn applied on top of the unpushed pose.
+      _cq.copy(p.quaternion).multiply(_q0.copy(before[k]).invert());
+      corr[k] = (corr[k] ?? new THREE.Quaternion()).slerp(_cq, a);
+      p.quaternion.copy(corr[k]).multiply(before[k]);
+    }
+    char.root.updateMatrixWorld(true);
+  }
+  pose.after = (ik && contacts.length) || shape ? (pivots) => {
+    for (const k in held) held[k] = 0;
+    liveNow = [];
+    if (ik && contacts.length) solveContacts(pivots);
+    if (shape) {
+      smoothPush(pivots);
+      // The eased push may carry a turn onto a limb that has since planted: aim contacts again.
+      for (const [c, w] of liveNow) aim(pivots, char.root, c, w);
+    }
+  } : null;
+  function solveContacts(pivots) {
     const root = char.root;
     root.updateMatrixWorld(true);
     const live = contacts.map((c) => [c, weight(c, frame)]).filter(([, w]) => w > 0);
+    liveNow = live;
+    for (const [c, w] of live) { const k = LIMB_OF[c.limb]; held[k] = Math.max(held[k] ?? 0, w); }
     if (!live.length) return;
     for (const [c, w] of live) aim(pivots, root, c, w);
     // Where each planted foot ends up against its point, weighted; the body takes the mean miss.
@@ -154,8 +220,11 @@ export function createMocapPlayer(char, clip, { minConf = 0.35, ik = true, ramp 
       limb.getWorldQuaternion(_wq);
       _end.addScaledVector(_d0.copy(DOWN).applyQuaternion(_wq), legLen(pivots, k) * root.scale.y);
       pointOf(c, root, _tw);
-      _miss.addScaledVector(_tw.sub(_end), w);
-      wsum += w;
+      // A foot still easing in or out counts far less than a planted one (w cubed), so it doesn't
+      // pull the body off the planted foot's point.
+      const ws = w * w * w;
+      _miss.addScaledVector(_tw.sub(_end), ws);
+      wsum += ws;
     }
     if (wsum <= 0) return;
     _miss.multiplyScalar(1 / Math.max(1, wsum));
@@ -168,7 +237,7 @@ export function createMocapPlayer(char, clip, { minConf = 0.35, ik = true, ramp 
     body.position.copy(_end);
     body.updateMatrixWorld(true);
     if (live.length > 1) for (const [c, w] of live) aim(pivots, root, c, w);
-  } : null;
+  }
 
   return {
     clip,
