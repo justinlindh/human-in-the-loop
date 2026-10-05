@@ -97,6 +97,23 @@ describe('mocap.mjs', () => {
     expect(passed.status, passed.stdout + passed.stderr).toBe(0);
   }, 240000);
 
+  it('times clips on 24 fps footage in source frames: a later clip keeps its whole tail', async () => {
+    const at = (name, start, x) => { const c = clipOf(name, null, { pos: [x, 0, 0], yaw: 0, scale: 1 }); c.source = { shot: 0, trackId: 0, start, end: start + 8, fps: 24 }; return file(name, c); };
+    const a = at('fa', 0, 0), b = at('fb', 24, 3);
+    const r = await run(['--clip', `${a},${b}`, '--json', join(dir, 'fps.json')]);
+    expect(r.stdout + r.stderr).toMatch(/MOCAP/);
+    const rows = JSON.parse(readFileSync(join(dir, 'fps.json'), 'utf8'));
+    const second = rows.filter((x) => x.clip === 'fb');
+    // One second at 24 fps is 30 shot frames: the second clip plays shot frames 30 to 41, all its 12 frames.
+    expect(second.map((x) => x.clipFrame)).toEqual(Array.from({ length: 12 }, (_, i) => i));
+    expect(second[0].frame).toBe(30);
+    const mixed = at('fc', 0, 0);
+    const other = JSON.parse(readFileSync(mixed, 'utf8')); other.source.fps = 25;
+    const bad = await run(['--clip', `${a},${file('fd', other)}`]);
+    expect(bad.status).toBe(2);
+    expect(bad.stderr).toMatch(/different frame rates/);
+  }, 120000);
+
   it('refuses bad input with a usage line', async () => {
     const wrong = file('wrong', { format: 'x' });
     for (const args of [[], ['--clip', join(dir, 'missing.json')], ['--clip', wrong], ['--clip', file('ok', clipOf('ok')), '--expect', 'bogus<1'], ['--clip', file('ok', clipOf('ok')), '--frames', 'x'], ['--clip', file('ok', clipOf('ok')), '--mock', 'nowhere'], ['--clip', file('ok', clipOf('ok')), '--camera', '1,2']]) {

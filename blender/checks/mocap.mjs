@@ -83,6 +83,7 @@ async function main() {
     if (c.format !== 'hitl-mocap-clip' || c.version !== 1 || !c.tracks || !(c.frames >= 1)) fail(`${file} is not a hitl-mocap-clip version 1 file`);
     clips.push(c);
   }
+  if (new Set(clips.map((c) => c.source?.fps ?? 30)).size > 1) fail('the clips come from videos of different frame rates (source.fps); a shot has one');
   const nums = (key, n) => { if (opt[key] == null) return undefined; const v = opt[key].split(',').map(Number); if (v.length < n || v.some((x) => !Number.isFinite(x))) fail(`--${key} wants ${n} numbers separated by commas`); return v; };
   let anchor, camera, frames, rules;
   const a = nums('anchor', 3);

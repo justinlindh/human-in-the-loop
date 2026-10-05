@@ -98,7 +98,7 @@ export const mocapPage = async (o) => {
   const W = o.width ?? 1280, H = o.height ?? 800;
   const down = new T.Vector3(0, -1, 0), q = new T.Quaternion(), end = new T.Vector3(), goal = new T.Vector3();
   const rows = [];
-  const frames = o.frames?.length ? o.frames : Array.from({ length: Math.max(...o.clips.map((c, i) => c.frames + Math.round((starts[i] - first)))) }, (_, i) => i);
+  const frames = o.frames?.length ? o.frames : Array.from({ length: Math.max(...o.clips.map((c, i) => c.frames + Math.round(((starts[i] - first) / VFPS) * 30))) }, (_, i) => i);
   for (const sf of frames) {
     shotT = first / VFPS + sf / 30;
     window.__sample(1);
