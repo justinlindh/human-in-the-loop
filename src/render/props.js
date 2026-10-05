@@ -1603,19 +1603,21 @@ const mugLabel = () => canvasTex('mug_typo2', 256, 256, (ctx, W, H) => {
 // either wall's normal; the handle goes to the side, so the mug still reads as a mug.
 function mugShelf(wall) {
   const g = new THREE.Group();
-  g.add(mesh(roundedBox(0.5, 0.03, 0.22, 0.01, 2), mat('wood_honey'), 0, 0, 0.11));
+  g.add(mesh(roundedBox(0.5, 0.03, 0.28, 0.01, 2), mat('wood_honey'), 0, 0, 0.14));
   for (const sx of [-0.19, 0.19]) g.add(mesh(roundedBox(0.025, 0.09, 0.14, 0.006, 1), mat('metal_dark'), sx, -0.06, 0.07));
   const face = wall === 'x' ? -Math.PI / 4 : Math.PI / 4;
   const S = 3.4;
   const m = mugMesh(S, 'plastic_white');
-  m.position.set(0, 0.015, 0.13);
-  // The handle stands out on the left edge, a little behind, clear of the slogan.
-  m.rotation.y = face + Math.PI - 0.35;
+  // Far enough out that the mug's back clears the wall.
+  m.position.set(0, 0.015, 0.18);
+  // The handle stands out to the side away from the wall's corner, a little behind the slogan and
+  // clear of the wall.
+  m.rotation.y = wall === 'x' ? face + 0.35 : face + Math.PI - 0.35;
   g.add(m);
   // The slogan on a band wrapped round the mug's front, just proud of its tapered side.
   const y0 = 0.025 * S, y1 = 0.085 * S, rAt = (y) => 0.036 * S + (0.004 * S * y) / (0.1 * S) + 0.003;
   const band = new THREE.Mesh(own(new THREE.CylinderGeometry(rAt(y1), rAt(y0), y1 - y0, 24, 1, true, face - 0.7, 1.4)), flatMat(mugLabel(), 0.6));
-  band.position.set(0, 0.015 + (y0 + y1) / 2, 0.13);
+  band.position.set(0, 0.015 + (y0 + y1) / 2, 0.18);
   band.userData.noAO = true;
   g.add(band);
   return g;
