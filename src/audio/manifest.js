@@ -218,11 +218,12 @@ export const SPOTLIGHT_DEFAULT = { cues: [], cheers: true, stingers: true };
 export const MOMENT_CUES = {
   printer_jam: { eventId: 'printer_jam', file: 'moments/printer_smash', gain: 0.9 },
 };
-// A moment staged as a scene with named beats (hitl:moment phases 'beat' and 'hit'): a looping bed from its start
-// until its screen is hit or it ends, a cue per beat, and a cue per hit.
+// A moment staged as a scene with named beats (hitl:moment phases 'beat' and 'hit'): a looping bed from the beat
+// named by loop.startBeat (a beat only the scene's own staging emits) until a hit in stopLoopOn or the end, a cue
+// per beat, and a cue per hit. A moment that never emits the start beat plays nothing.
 export const MOMENT_SCENES = {
   open_plan_office: {
-    loop: { id: 'sfx/sledge_leader', bus: 'sfx', gain: 0.6, fade: 0.3 },
+    loop: { id: 'sfx/sledge_leader', bus: 'sfx', gain: 0.6, fade: 0.3, startBeat: 'screen' },
     beats: { run: 'moment.sledge_run' },
     hits: { screen: 'moment.sledge_shatter' },
     stopLoopOn: ['screen'],

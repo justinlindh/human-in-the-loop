@@ -369,8 +369,10 @@ describe('audio director', () => {
     const plays = (cmds) => cmds.filter((c) => c.op === 'play').map((c) => c.cue);
     const loops = (cmds) => cmds.filter((c) => c.op === 'loop');
     const d = createDirector();
-    const start = d.moment({ key, id, phase: 'start' }, 10);
-    expect(loops(start)).toMatchObject([{ id: 'sfx/sledge_leader', bus: 'sfx', gain: 0.6 }]);
+    // The moment's own start plays nothing (today's staging emits it with no screen); the screen beat starts the drone.
+    expect(d.moment({ key, id, phase: 'start' }, 10)).toEqual([]);
+    expect(loops(d.moment({ key, id, phase: 'beat', beat: 'screen' }, 10.5))).toMatchObject([{ id: 'sfx/sledge_leader', bus: 'sfx', gain: 0.6 }]);
+    expect(loops(d.moment({ key, id, phase: 'beat', beat: 'screen' }, 11))).toEqual([]);
     expect(plays(d.moment({ key, id, phase: 'beat', beat: 'run' }, 14))).toEqual(['moment.sledge_run']);
     expect(d.moment({ key, id, phase: 'beat', beat: 'throw' }, 16)).toEqual([]);
     const hit = d.moment({ key, id, phase: 'hit', hit: 'screen' }, 16.5);
@@ -382,11 +384,17 @@ describe('audio director', () => {
     // The card closing before any throw releases the drone.
     const d2 = createDirector();
     d2.moment({ key, id, phase: 'start' }, 10);
+    d2.moment({ key, id, phase: 'beat', beat: 'screen' }, 10.5);
     expect(loops(d2.moment({ key, id, phase: 'end' }, 12))).toMatchObject([{ gain: 0 }]);
+    // A moment that never emits the screen beat plays nothing at all.
+    const d4 = createDirector();
+    d4.moment({ key, id, phase: 'start' }, 10);
+    expect(d4.moment({ key, id, phase: 'end' }, 12)).toEqual([]);
     // A new game clears the moment without an end: the next update releases the drone.
     const d3 = createDirector();
     d3.update(state(), 1, { speed: 1, running: true });
     d3.moment({ key, id, phase: 'start' }, 2);
+    d3.moment({ key, id, phase: 'beat', beat: 'screen' }, 2.5);
     expect(loops(d3.update(state(), 3, { speed: 1, running: true }))).toMatchObject([{ id: 'sfx/sledge_leader', gain: 0 }]);
   });
 

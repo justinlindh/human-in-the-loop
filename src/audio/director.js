@@ -230,7 +230,7 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
 
   const voiceMomentOk = (t) => t - lastVoiceMoment.t >= VOICE.globalGap;
 
-  // A scene moment (MOMENT_SCENES): its bed loops from the start until a hit in stopLoopOn or the end, each
+  // A scene moment (MOMENT_SCENES): its bed loops from its start beat until a hit in stopLoopOn or the end, each
   // beat and hit plays its cue. The bed's gain going to 0 releases it; update() releases it too when a new
   // game clears the moment without an end.
   let sceneLoop = null;
@@ -240,14 +240,14 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
     return [{ op: 'loop', id: l.id, bus: l.bus, gain: 0, fade: 0.1 }];
   };
   function sceneMoment(scene, detail, t) {
-    if (detail.phase === 'start') {
-      const l = scene.loop;
-      if (!l || !entryFor(l.id)?.file) return [];
-      sceneLoop = { key: detail.key, ...l };
-      return [{ op: 'loop', id: l.id, bus: l.bus, gain: l.gain, fade: l.fade }];
-    }
+    if (detail.phase === 'start') return [];
     if (detail.phase === 'end') return stopSceneLoop();
     const out = [];
+    const l = scene.loop;
+    if (detail.phase === 'beat' && l && detail.beat === l.startBeat && !sceneLoop && entryFor(l.id)?.file) {
+      sceneLoop = { key: detail.key, ...l };
+      out.push({ op: 'loop', id: l.id, bus: l.bus, gain: l.gain, fade: l.fade });
+    }
     if (detail.phase === 'hit' && scene.stopLoopOn?.includes(detail.hit)) out.push(...stopSceneLoop());
     const cue = detail.phase === 'beat' ? scene.beats?.[detail.beat] : detail.phase === 'hit' ? scene.hits?.[detail.hit] : null;
     if (cue) out.push(...playCue(cue, t, { inMoment: true }));
