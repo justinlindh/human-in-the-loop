@@ -144,7 +144,8 @@ const DECISION_PROPS = [
 // The Yak reply prompt kinds of docs/features/yak.md (src/data/prompts.js).
 const YAK_PROMPTS = ['strain_vent', 'incident_blame', 'launch_hype', 'rival_itch', 'project_late', 'agent_prs', 'newhire_lost', 'coasting_check', 'support_swamped', 'lowcash_lunch', 'desk_squeeze', 'office_full', 'junior_pr'];
 
-const GARAGE_DECISIONS = new Set(['hackathon', 'team_offsite', 'onprem_bank']);
+// Decisions whose prop is still too small to read at the closest zoom; they render but do not publish.
+const UNREADABLE_DECISIONS = new Set(['no_show', 'junior_overwhelmed', 'founder_burnout', 'enterprise_rfp', 'phishing_ceo']);
 
 // [item id, camera zoom, era the item needs] of the shop items shown in docs/features/office.md.
 const ITEM_STILLS = [
@@ -575,8 +576,7 @@ export const ITEMS = [
     actions: [...OPEN(), ...FOLLOW([prop], zoom, 0, 14)],
     screenshots: [5],
     out: [{ path: `decisions/${id}.webp`, size: '1280x720', from: 5 }],
-    // Only the garage ones frame the prop big enough to read; the floor and HQ ones render but stay unpublished.
-    publish: GARAGE_DECISIONS.has(id),
+    publish: !UNREADABLE_DECISIONS.has(id),
   })),
 
   // docs/features/yak.md: the reply prompts. The pre-tick save of the week that raises each one is opened,
