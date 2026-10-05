@@ -53,6 +53,8 @@ describe('event index snapshots', () => {
     expect(json).toBe(expected.map((r) => JSON.stringify(r)).join('\n') + '\n');
     const rows = json.trim().split('\n').map(JSON.parse);
     expect(rows.some((r) => r.preTick)).toBe(true);
+    // A chat prompt can be opened like a decision.
+    expect(rows.some((r) => r.type === 'chatPrompt' && r.preTick && r.snapshot)).toBe(true);
     expect(compareSnapshots(a, b).length).toBeGreaterThan(0);
   });
 
