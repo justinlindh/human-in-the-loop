@@ -21,6 +21,8 @@
 #   --loop      check, sleep, and check again forever (for running it by hand)
 set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib/tmpdir.sh"
+# Niced commands go through nice10.sh so a process manager that renices by name can't lift their children.
+NICE10="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/nice10.sh"
 usage="usage: scripts/main-guard.sh [--sha <commit>] [--no-post] [--loop <seconds>]"
 sha_arg=""; post=1; loop=""
 while [ $# -gt 0 ]; do
@@ -80,7 +82,7 @@ sync_shared() {
   # Its install follows its lockfile, so tools run from it (and the reviewer's servers) have every package.
   local npm="${MAIN_GUARD_NPM:-npm}"
   if ! (cd "$dir" && $npm ls --depth=0 >/dev/null 2>&1); then
-    if (cd "$dir" && timeout 900 nice -n 10 $npm ci --no-audit --no-fund >/dev/null 2>&1); then echo "main-guard: shared checkout's node_modules reinstalled from its lockfile"
+    if (cd "$dir" && timeout 900 bash "$NICE10" $npm ci --no-audit --no-fund >/dev/null 2>&1); then echo "main-guard: shared checkout's node_modules reinstalled from its lockfile"
     else echo "main-guard: npm ci failed in the shared checkout"; fi
   fi
 }
@@ -181,10 +183,10 @@ gate() {
     gate_err=1; ci_rc=0
     gate_why="$(grep -oE 'error: machine \([^|]*\)' "$summary" 2>/dev/null | sed 's/ *$//' | sort -u | paste -sd';' -)"
   fi
-  run "${MAIN_GUARD_STRICT:-}" "$STATE/$cs.strict.log" timeout 1800 nice -n 10 node blender/checks/sweep.mjs --gpu --strict --out "$out"
+  run "${MAIN_GUARD_STRICT:-}" "$STATE/$cs.strict.log" timeout 1800 bash "$NICE10" node blender/checks/sweep.mjs --gpu --strict --out "$out"
   # Golden with no cache: local CI's golden skips scenes whose inputs it has seen pass, so a cache bug
   # would quietly stop it catching regressions. Here every scene renders, on every commit checked.
-  run "${MAIN_GUARD_GOLDEN:-}" "$STATE/$cs.golden.log" env HITL_NO_CHECK_CACHE=1 bash scripts/with-render-lock.sh --gpu timeout 900 nice -n 10 node blender/checks/golden.mjs
+  run "${MAIN_GUARD_GOLDEN:-}" "$STATE/$cs.golden.log" env HITL_NO_CHECK_CACHE=1 bash scripts/with-render-lock.sh --gpu timeout 900 bash "$NICE10" node blender/checks/golden.mjs
   golden_rc=$?
   # A failing golden's images (actual, diff, and the identity check's two renders) live in this gate's
   # worktree, which goes when the gate ends: keep them beside the commit's logs, for two weeks.
@@ -328,7 +330,7 @@ if [ -z "$what" ]; then
   # unanswered, 2 the index could not be built (logged); none of these turn main red.
   pw_dir="${HITL_SHARED_CHECKOUT:-$REPO}"
   if [ -n "${MAIN_GUARD_PREWARM:-}" ]; then (cd "$pw_dir" && bash -c "$MAIN_GUARD_PREWARM") >"$STATE/$short.prewarm.log" 2>&1; pw_rc=$?
-  elif [ -f "$pw_dir/scripts/events/prewarm.js" ]; then (cd "$pw_dir" && timeout 900 nice -n 10 node scripts/events/prewarm.js --quiet) >"$STATE/$short.prewarm.log" 2>&1; pw_rc=$?
+  elif [ -f "$pw_dir/scripts/events/prewarm.js" ]; then (cd "$pw_dir" && timeout 900 bash "$NICE10" node scripts/events/prewarm.js --quiet) >"$STATE/$short.prewarm.log" 2>&1; pw_rc=$?
   else pw_rc=0; fi
   case $pw_rc in 0) ;; 124) echo "main-guard: prewarm was killed after its time limit (see $STATE/$short.prewarm.log)" ;; 2) echo "main-guard: prewarm could not build the event index (see $STATE/$short.prewarm.log)" ;; *) echo "main-guard: prewarm left a query unanswered (see $STATE/$short.prewarm.log)" ;; esac
   if [ $post = 1 ]; then
