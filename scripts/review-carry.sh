@@ -45,8 +45,14 @@ done
 [ "$prev_state" = success ] || { echo "review-carry: #$pr's latest verdict (${prev:0:7}) is $prev_state, not a pass; not carrying"; exit 1; }
 
 git -C "$REPO" fetch -q origin "$base" "+refs/pull/$pr/head:refs/ci/pr-$pr/head" "$prev" 2>/dev/null || true
-own() { git -C "$REPO" diff "$(git -C "$REPO" merge-base "origin/$base" "$1")" "$1" | git patch-id --stable | cut -d' ' -f1; }
+own() { # <sha> [-U0]
+  local sha="$1"; shift
+  git -C "$REPO" diff "$@" "$(git -C "$REPO" merge-base "origin/$base" "$sha")" "$sha" | git patch-id --stable | cut -d' ' -f1
+}
 a="$(own "$prev")"; b="$(own "$head")"
+# Main changing lines next to the PR's own hunks alters their context but not what the PR changes:
+# with no context lines the same edits give the same patch-id.
+if [ "$a" != "$b" ]; then a="$(own "$prev" -U0)"; b="$(own "$head" -U0)"; fi
 # The newest review status on the head that is a verdict, not a carry: "state<US>description", or empty.
 verdict_on_head() {
   gh api "repos/{owner}/{repo}/commits/$head/statuses" \
