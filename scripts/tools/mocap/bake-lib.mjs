@@ -254,8 +254,9 @@ const rowsOf = (m) => new Matrix4().set(m[0][0], m[0][1], m[0][2], 0, m[1][0], m
 // Null without the camera data.
 function sharedSpace(shot, pivots) {
   const cam = shot.camera;
-  if (!cam?.w2c || !shot.people.every((p) => p.root_orient_cam && p.root_pos_scene && p.rot_local)) return null;
-  const T = cam.w2c.length;
+  const T = cam?.w2c?.length ?? 0;
+  // A camera path that does not cover every frame of every person (a static camera writes none) places nothing.
+  if (!T || !shot.people.every((p) => p.root_orient_cam?.length >= p.joint_pos_world.length && p.root_pos_scene?.length >= p.joint_pos_world.length && p.rot_local && p.joint_pos_world.length <= T)) return null;
   const c2w = cam.w2c.map((m) => rowsOf(m).transpose()); // rotation only: the inverse of a rotation is its transpose
   const worldToCam = (p, t) => quatOf(p.root_orient_cam[t]).multiply(quatOf(p.rot_local[t][0]).invert());
   const toScene = (p, t, v) => v.clone().applyQuaternion(worldToCam(p, t)).applyMatrix4(c2w[t]);
@@ -267,7 +268,7 @@ function sharedSpace(shot, pivots) {
   const x = up.clone().cross(z).normalize();
   const coords = (v) => new Vector3(v.dot(x), v.dot(up), v.dot(z));
   const rootAt = (p, t) => coords(new Vector3(...p.root_pos_scene[t]));
-  return { shot, coords, rootAt: (p, t) => coords(new Vector3(...p.root_pos_scene[t])), toScene, scale: shot.people.length ? sharedScale(shot, pivots) : 1 };
+  return { shot, coords, rootAt, toScene, scale: shot.people.length ? sharedScale(shot, pivots) : 1 };
 }
 
 // The clip's frame-0 origin (the floor under the hips, which is y = 0 in the shared space) and heading in the

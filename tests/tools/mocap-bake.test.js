@@ -131,6 +131,12 @@ describe('bakeShot', () => {
     expect(a.origin.pos[1]).toBe(0);
     expect(Math.abs(a.origin.yaw)).toBeCloseTo(Math.PI, 2);
     expect(bakeShot(shotOf(10, 30), 3, { pivots: PIVOTS }).origin).toBeUndefined();
+    // A camera path that is empty (a static camera) or shorter than the person's frames places nothing.
+    for (const n of [0, 5]) {
+      const short = JSON.parse(JSON.stringify(s));
+      short.camera.w2c = short.camera.w2c.slice(0, n);
+      expect(bakeShot(short, 3, { pivots: PIVOTS }).origin).toBeUndefined();
+    }
   });
 
   it('reports an unknown person and a missing joint plainly', () => {
