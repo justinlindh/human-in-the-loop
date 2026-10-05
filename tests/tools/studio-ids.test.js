@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
+import { spawnAsync } from './spawn-async.js';
 import * as THREE from 'three';
 import { pathBelow, partId, heldName } from '../../scripts/studio/ids.mjs';
 
@@ -73,15 +73,16 @@ describe('carried things', () => {
 });
 
 describe('studio scene ids', () => {
-  const frame = (n) => {
-    const r = spawnSync(process.execPath, [resolve(__dirname, '../../scripts/studio/scene.mjs'), '--mock', 'floor', '--from', String(n), '--to', String(n)], { encoding: 'utf8', timeout: 240000, maxBuffer: 1 << 28 });
+  const frame = async (n) => {
+    const r = await spawnAsync(process.execPath, [resolve(__dirname, '../../scripts/studio/scene.mjs'), '--mock', 'floor', '--from', String(n), '--to', String(n)], { timeout: 240000 });
     expect(r.status, r.stderr).toBe(0);
     return JSON.parse(r.stdout.split('\n')[0]);
   };
   const ids = (scene) => scene.objects.flatMap((o) => o.parts.map((p) => p.id));
 
-  it('are unique in a scene and the same on a later frame', () => {
-    const a = ids(frame(1)), b = ids(frame(45));
+  it('are unique in a scene and the same on a later frame', async () => {
+    const [first, later] = await Promise.all([frame(1), frame(45)]);
+    const a = ids(first), b = ids(later);
     expect(new Set(a).size).toBe(a.length);
     expect(new Set(b).size).toBe(b.length);
     // What is carried changes; everything else keeps its id.

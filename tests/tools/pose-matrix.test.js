@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
+import { spawnAsync } from './spawn-async.js';
 import { readdirSync, readFileSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { makeTemp } from '../../scripts/tools/tmp.mjs';
@@ -7,7 +8,7 @@ import { sensitivity, formatSweep } from '../../blender/checks/pose-matrix-sweep
 import { parseMatrix, cellsOf, parseRule, judgeCell, margin, worstOf, formatMatrix, valueOf, tally, tallyText, runMatrix, PRESETS, guideOf } from '../../blender/checks/pose-matrix.js';
 
 const POSE = resolve(__dirname, '../../blender/checks/pose.mjs');
-const run = (...args) => spawnSync(process.execPath, [POSE, ...args], { encoding: 'utf8', timeout: 180000 });
+const run = (...args) => spawnAsync(process.execPath, [POSE, ...args]);
 
 const frame = (t, cover, faceCam = 10, phase = 'gesture') => ({ t, phase, faceCam, contact: { hand0Head: 0.1, hand1Head: 0.3 }, cover: { coverHandEyeNear: cover } });
 
@@ -109,20 +110,20 @@ describe('pose matrix judging', () => {
   });
 });
 
-describe('pose.mjs --matrix', () => {
+// The cases that spawn pose.mjs are independent processes, so they run side by side.
+describe.concurrent('pose.mjs --matrix', () => {
   const base = ['--gesture', 'facepalm', '--matrix', 'views=0,postures=stand,builds=1,rig=on', '--measure', 'coverHandEyeNear,faceCam,clearance'];
 
-  it('passes and fails by exit code, and a broken palm fails where the shipped one passes', () => {
-    const ok = run(...base, '--expect', 'coverHandEyeNear>=0.5@0.7');
+  it('passes and fails by exit code, and a broken palm fails where the shipped one passes', async () => {
+    const [ok, broken] = await Promise.all([run(...base, '--expect', 'coverHandEyeNear>=0.5@0.7'), run(...base, '--expect', 'coverHandEyeNear>=0.5@0.7', '--param', 'PALM_STAND=[-2.75,0.14,0.9,-0.6,0.08]')]);
     expect(ok.status, ok.stdout + ok.stderr).toBe(0);
     expect(ok.stdout).toContain('MATRIX facepalm: 1 pass, 0 fail, 0 n/a (1 cells)');
-    const broken = run(...base, '--expect', 'coverHandEyeNear>=0.5@0.7', '--param', 'PALM_STAND=[-2.75,0.14,0.9,-0.6,0.08]');
     expect(broken.status, broken.stdout + broken.stderr).toBe(1);
     expect(broken.stdout).toContain('MATRIX worst cell: stand b1 rig on view 0');
   });
 
-  it('answers which swept value passes every cell', () => {
-    const r = run(...base, '--expect', 'coverHandEyeNear>=0.5@0.7', '--sweep', 'PALM_STAND[2]=0.27,0.9');
+  it('answers which swept value passes every cell', async () => {
+    const r = await run(...base, '--expect', 'coverHandEyeNear>=0.5@0.7', '--sweep', 'PALM_STAND[2]=0.27,0.9');
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toMatch(/PALM_STAND\[2\]=0\.27\s+1 pass\s+0 fail\s+0 n\/a of 1\s+judged \d+ frames\s+ALL PASS/);
     expect(r.stdout).toMatch(/PALM_STAND\[2\]=0\.9\s+0 pass\s+1 fail\s+0 n\/a of 1\s+judged \d+ frames\s+worst/);
@@ -145,33 +146,33 @@ describe('pose.mjs --matrix', () => {
     expect(formatSweep(rows, [{ name: 'PALM_SIT[0]', values: ['0.2', '0.3'] }]).lines.join('\n')).not.toContain('hand-eye');
   });
 
-  it('shows the guide in a real sweep of a preset gesture', () => {
-    const r = run('--gesture', 'facepalm', '--matrix', 'views=0,postures=sit,builds=1,rig=on', '--sweep', 'PALM_SIT[0]=-2.1,-2.75');
+  it('shows the guide in a real sweep of a preset gesture', async () => {
+    const r = await run('--gesture', 'facepalm', '--matrix', 'views=0,postures=sit,builds=1,rig=on', '--sweep', 'PALM_SIT[0]=-2.1,-2.75');
     expect(r.status, r.stdout + r.stderr).toBe(0);
     const g = (v) => Number(new RegExp(`PALM_SIT\\[0\\]=${v}\\s.*hand-eye ([\\d.]+) m`).exec(r.stdout)[1]);
     expect(g('-2.75')).toBeLessThan(g('-2.1'));
   });
 
-  it('prints the constants that tune a preset gesture with their values in source', () => {
+  it('prints the constants that tune a preset gesture with their values in source', async () => {
     const src = readFileSync(resolve(__dirname, '../../src/render/character.js'), 'utf8');
     const sit = /^const PALM_SIT = (\[[^\]]*\]);/m.exec(src)[1];
-    const r = run('--gesture', 'facepalm', '--matrix', 'views=0,postures=sit,builds=1,rig=on');
+    const r = await run('--gesture', 'facepalm', '--matrix', 'views=0,postures=sit,builds=1,rig=on');
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toContain(`pose: tuned by PALM_SIT = ${sit}, PALM_STAND = `);
     expect(r.stdout).toMatch(/PALM_BUILD_K = \S+, PALM_SHOULDER_REF = \S+ in src\/render\/character\.js \(docs\/toolkit\/pose\/constants-map\.md/);
   });
 
   // The slap's whole matrix is its smallest (the side-on views, one posture).
-  it('reads a bare --matrix before another flag as the whole matrix', () => {
-    const r = run('--gesture', 'slap', '--matrix', '--param', 'SLAP_AT=0.5');
+  it('reads a bare --matrix before another flag as the whole matrix', async () => {
+    const r = await run('--gesture', 'slap', '--matrix', '--param', 'SLAP_AT=0.5');
     expect(r.stderr).not.toContain('--matrix wants');
     const whole = cellsOf(parseMatrix('', 'slap')).length;
     expect(whole).toBeLessThan(cellsOf(parseMatrix('views=all', 'slap')).length);
     expect(r.stdout).toMatch(new RegExp(`MATRIX slap: \\d+ pass, \\d+ fail, \\d+ n/a \\(${whole} cells\\)`));
   }, 120000);
 
-  it('refuses matrix axes split by spaces, and prints the joined flag', () => {
-    const r = run('--gesture', 'facepalm', '--matrix', 'postures=sit', 'builds=0', 'views=1');
+  it('refuses matrix axes split by spaces, and prints the joined flag', async () => {
+    const r = await run('--gesture', 'facepalm', '--matrix', 'postures=sit', 'builds=0', 'views=1');
     expect(r.status).toBe(2);
     expect(r.stdout).toBe('');
     expect(r.stderr).toContain('--matrix postures=sit,builds=0,views=1');
@@ -193,29 +194,29 @@ describe('pose.mjs --matrix', () => {
     expect(code).toBe(0);
   });
 
-  it('uses a gesture\'s own pass rule when given no measure or rule, and says so', () => {
-    const r = run('--gesture', 'facepalm', '--matrix', 'views=0,postures=sit,builds=1,rig=on');
+  it('uses a gesture\'s own pass rule when given no measure or rule, and says so', async () => {
+    const r = await run('--gesture', 'facepalm', '--matrix', 'views=0,postures=sit,builds=1,rig=on');
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toContain(`pose: facepalm's pass rule: --measure ${PRESETS.facepalm.measures.join(',')} --expect '${PRESETS.facepalm.rules[0]}'`);
     expect(r.stdout).toContain(`MATRIX ${PRESETS.facepalm.rules[0]} (share of judged frames`);
   });
 
-  it('refuses a swept name declared in two files before running, and prints the flag that works', () => {
-    const r = run(...base, '--sweep', 'SEAT_HIP_Y=0.4,0.5');
+  it('refuses a swept name declared in two files before running, and prints the flag that works', async () => {
+    const r = await run(...base, '--sweep', 'SEAT_HIP_Y=0.4,0.5');
     expect(r.status).toBe(2);
     expect(r.stdout).not.toContain('SWEEP');
     expect(r.stderr).toContain("--sweep 'src/render/character.js:SEAT_HIP_Y=0.4,0.5'");
   });
 
-  it('refuses a grid over --max-runs before running anything, and names the run count', () => {
-    const r = run(...base, '--expect', 'coverHandEyeNear>=0.5@0.7', '--sweep', 'PALM_STAND[2]=0.27,0.9', '--sweep', 'PALM_STAND[3]=-0.6,-0.5', '--max-runs', '3');
+  it('refuses a grid over --max-runs before running anything, and names the run count', async () => {
+    const r = await run(...base, '--expect', 'coverHandEyeNear>=0.5@0.7', '--sweep', 'PALM_STAND[2]=0.27,0.9', '--sweep', 'PALM_STAND[3]=-0.6,-0.5', '--max-runs', '3');
     expect(r.status).toBe(2);
     expect(r.stdout).toContain('SWEEP 4 runs (2 x 2; a repeated --sweep multiplies)');
     expect(r.stderr).toContain('4 runs is over --max-runs 3');
   });
 
-  it('runs a grid in parallel and names the param that moves the pass count', () => {
-    const r = run(...base, '--expect', 'coverHandEyeNear>=0.5@0.7', '--sweep', 'PALM_STAND[2]=0.27,0.9', '--sweep', 'PALM_STAND[3]=-0.6,-0.55', '--jobs', '2');
+  it('runs a grid in parallel and names the param that moves the pass count', async () => {
+    const r = await run(...base, '--expect', 'coverHandEyeNear>=0.5@0.7', '--sweep', 'PALM_STAND[2]=0.27,0.9', '--sweep', 'PALM_STAND[3]=-0.6,-0.55', '--jobs', '2');
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toContain('SWEEP 4 runs');
     expect(r.stdout).toMatch(/SWEEP moves the pass count most: PALM_STAND\[2\] \(/);
@@ -245,39 +246,39 @@ describe('pose.mjs --matrix', () => {
     } finally { rmSync(tmp, { recursive: true, force: true }); }
   }, 60000);
 
-  it('view 3 plays the game hand, so a standing facepalm passes there and the other hand does not', () => {
+  it('view 3 plays the game hand, so a standing facepalm passes there and the other hand does not', async () => {
     const v3 = ['--gesture', 'facepalm', '--matrix', 'views=3,postures=stand,builds=1,rig=on', '--measure', 'coverHandEyeNear,faceCam', '--expect', 'coverHandEyeNear>=0.5@0.7 if faceCam<=80'];
-    expect(run(...v3).status).toBe(0);
-    expect(run(...v3.map((a) => (a.startsWith('views') ? `${a},side=1` : a))).status).toBe(1);
+    const [game, other] = await Promise.all([run(...v3), run(...v3.map((a) => (a.startsWith('views') ? `${a},side=1` : a)))]);
+    expect(game.status).toBe(0);
+    expect(other.status).toBe(1);
   });
 
-  it('a sweep whose every value errors passes nothing and exits non-zero', () => {
-    const r = run(...base, '--sweep', 'PALM_STAND[2]=nope1,nope2');
+  it('a sweep whose every value errors passes nothing and exits non-zero', async () => {
+    const [r, none] = await Promise.all([run(...base, '--sweep', 'PALM_STAND[2]=nope1,nope2'), run(...base, '--sweep', 'NO_SUCH_PARAM.x=0.05,0.12')]);
     expect(r.status).toBe(2);
     expect(r.stdout).toContain('error:');
     expect(r.stdout).toContain('SWEEP passing every judged cell: none');
-    expect(run(...base, '--sweep', 'NO_SUCH_PARAM.x=0.05,0.12').status).toBe(2);
+    expect(none.status).toBe(2);
   });
 
-  it('needs a gesture, and a measure for a gesture with no pass rule of its own', () => {
-    expect(run('--matrix', 'views=0', '--measure', 'faceCam').status).toBe(2);
-    const r = run('--gesture', 'shrug', '--matrix', 'views=0');
+  it('needs a gesture, and a measure for a gesture with no pass rule of its own', async () => {
+    const [bare, r] = await Promise.all([run('--matrix', 'views=0', '--measure', 'faceCam'), run('--gesture', 'shrug', '--matrix', 'views=0')]);
+    expect(bare.status).toBe(2);
     expect(r.status).toBe(2);
     expect(r.stderr).toContain('facepalm and slap have a pass rule');
   });
 
-  it('gives the same cells over several processes as over one, and refuses a bad --jobs', () => {
+  it('gives the same cells over several processes as over one, and refuses a bad --jobs', async () => {
     const tmp = makeTemp('matrix-jobs-');
     try {
       const cells = ['--gesture', 'facepalm', '--matrix', 'views=0,3,postures=stand,sit,builds=1,rig=on', '--measure', 'coverHandEyeNear,faceCam', '--expect', 'coverHandEyeNear>=0.5@0.7 if faceCam<=80'];
-      const one = run(...cells, '--jobs', '1', '--rows', '--json', join(tmp, '1.json'));
-      const three = run(...cells, '--jobs', '3', '--rows', '--json', join(tmp, '3.json'));
+      const [one, three, bad] = await Promise.all([run(...cells, '--jobs', '1', '--rows', '--json', join(tmp, '1.json')), run(...cells, '--jobs', '3', '--rows', '--json', join(tmp, '3.json')), run(...cells, '--jobs', '0')]);
       expect(one.status).toBe(three.status);
       const rows = (r) => r.stdout.split('\n').filter((l) => l.startsWith('CELL '));
       expect(rows(one)).toHaveLength(4);
       expect(rows(three)).toEqual(rows(one));
       expect(readFileSync(join(tmp, '3.json'), 'utf8')).toBe(readFileSync(join(tmp, '1.json'), 'utf8'));
-      expect(run(...cells, '--jobs', '0').status).toBe(2);
+      expect(bad.status).toBe(2);
     } finally { rmSync(tmp, { recursive: true, force: true }); }
   });
 });
