@@ -278,7 +278,8 @@ try {
         // Once the spotlight is over and a week has passed, a few more frames settle it and the watch ends.
         let ended = -1, resumedAt = -1;
         for (let i = 0; i < 90 * 30; i++) {
-          if (resumedAt >= 0 && i - resumedAt >= 15) break;
+          // The Skip and 4x cases count staged visitors, so they watch 30 s past the resume for a late duplicate.
+          if (resumedAt >= 0 && i - resumedAt >= (scene.skip || scene.fast ? 900 : 15)) break;
           window.__frame(1);
           const sp = R.spotlight?.();
           on.push(sp ? sp.kind : null); weeks.push(S().week);
