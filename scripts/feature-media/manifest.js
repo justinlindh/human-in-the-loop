@@ -116,6 +116,9 @@ const MOMENTS = [
   ['ransomware', 'ransomware --stage garage --choice 0', 'screens_skull', 0],
   ['printer', 'printer_jam --stage floor --choice 0', 'printer_jammed', 0, 2.6, 27],
   ['user-test', 'first_user_test --choice 1', 'visitor_chair', 1, 2.6],
+  ['banner', 'banner_company --choice 1', 'banner_company', 0, 3.2],
+  ['the-box', 'the_box --choice 1', 'box_poster', 0, 3.2],
+  ['incubator', 'incubator_house --choice 0', 'house_sign', 0, 2.6],
 ];
 
 // [event id, find.js query, staged prop, follow zoom]: the staged decisions of docs/features/decisions.md.
@@ -355,7 +358,7 @@ export const ITEMS = [
     setup: CLEAN,
     actions: [...OPEN(['stapler']), ...FOLLOW(['stapler'], 3.2, 0, 9), { at: 4, js: KEY('2', 'Digit2') }, ...DISMISS_AT([4.5, 5], { escape: false })],
     screenshots: [8],
-    out: [STILL('stapler', 8, { x: 0.4297, y: 0.4069, w: 0.15, h: 0.15 })],
+    out: [STILL('stapler', 8, { x: 0.4297, y: 0.4069, w: 0.15, h: 0.15 })], publish: true,
   },
   {
     // Both choices clear the stack, so it is shot while the decision is open, the card hidden.
@@ -363,7 +366,7 @@ export const ITEMS = [
     setup: `(() => { ${CLEAN}; ${NO_CARD}; })()`,
     actions: [...OPEN(['cover_sheets']), ...FOLLOW(['cover_sheets'], 3.2, 0, 5)],
     screenshots: [4.5],
-    out: [STILL('cover-sheets', 4.5, { x: 0.3917, y: 0.4125, w: 0.2083, h: 0.2083 })],
+    out: [STILL('cover-sheets', 4.5, { x: 0.3917, y: 0.4125, w: 0.2083, h: 0.2083 })], publish: true,
   },
   {
     // "Rise above it" hangs the sign; the live week raises the jab.
@@ -425,6 +428,7 @@ export const ITEMS = [
       ...DISMISS_AT([7, 7.5, 9, 12], { escape: false }), ...CAMLOG(length)],
     screenshots: [5],
     out: [{ path: `moments/${name}.mp4`, size: '1280x720', from: 1.5, seconds: length - 4, loop: 'none' }],
+    publish: true,
   })),
 
   // Feature inventory: each shop item placed in the HQ mock the way a player would and upgraded to its top
@@ -452,6 +456,7 @@ export const ITEMS = [
     screenshots: [2],
     // The item sits at the middle of the frame; the 4K recording is cropped tight round it.
     out: [{ path: `items/${itemId}.webp`, size: '1280x720', from: 2, crop: { x: 0.31, y: 0.285, w: 0.38, h: 0.43 } }],
+    publish: true,
   })),
 
   // The two bystander reactions of docs/features/moments.md, staged by the render checks' own fixtures on
