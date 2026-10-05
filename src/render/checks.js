@@ -1431,6 +1431,23 @@ export function setupRobotParty(R, S, reward, { x = 4, y = 11, rot = 0 } = {}) {
   R.handleEvents([{ type: 'incentive', staffId: ids[0], reward, ...(reward === 'music_night' ? { genre: 'corporate_synthwave', dancers: ids.slice(1, 4) } : {}) }], S);
 }
 
+// A music night for the first staffer with three more dancing and the rest free to watch. With
+// `standup`, a daily standup gathers first and is still standing when the music starts; with no
+// meeting table or whiteboard to gather at, its ring stands on the open floor the dance takes.
+export function setupMusic(R, S, { standup = false } = {}) {
+  R.perks.hold = true;
+  S.pendingDecision = null;
+  R.incentives?.reset();
+  if (standup) S.office.placed = S.office.placed.filter((p) => p.itemId !== 'meeting_table' && p.itemId !== 'whiteboard');
+  R.sync(S);
+  const ids = S.staff.filter((p) => p.mood !== 'away' && !p.remote).map((p) => p.id);
+  if (standup) {
+    R.handleEvents([{ type: 'standup', mode: 'daily', lines: ids.map((staffId) => ({ staffId, text: 'On track.' })) }], S);
+    window.__advance(6);
+  } else window.__advance(2);
+  R.handleEvents([{ type: 'incentive', staffId: ids[0], reward: 'music_night', genre: 'corporate_synthwave', dancers: ids.slice(1, 4) }], S);
+}
+
 export function setupRobotFix(R, S, { cause = 'spin', x = 13, y = 0, rot = 0 } = {}) {
   R.perks.hold = true;
   S.pendingDecision = null;
