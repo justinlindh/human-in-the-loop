@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# Resets an idle teammate's context with /clear or /compact, from outside its session.
-# Usage: scripts/team/reset-teammate.sh <name> <clear|compact> [max-wait-seconds] [--log <file>]
+# Compacts an idle teammate's context with /compact, from outside its session.
+# Usage: scripts/team/reset-teammate.sh <name> compact [max-wait-seconds] [--log <file>]
 # Finds the teammate's tmux pane by the "@<name>" bar on its last lines, waits until it is idle at
-# the prompt (default wait 1800 s), prints its context size, sends the slash command, and confirms a
-# compact from the transcript's compact_boundary line. A clear writes nothing to the transcript until
-# the next message, so it is confirmed by sending the command and letting the pane settle; resend the
-# teammate's spawn brief afterwards, since a clear drops it. --log appends a row (time, name, mode,
-# context size, transcript) to that file.
+# the prompt (default wait 1800 s), prints its context size, sends /compact, and confirms it from the
+# transcript's compact_boundary line. --log appends a row (time, name, mode, context size,
+# transcript) to that file.
+# clear is refused: a /clear'ed teammate keeps working, but its end-of-turn reports stop reaching
+# team-lead, so the lead loses it silently. Respawn the teammate instead when a compact isn't enough.
 # The transcript directory is Claude Code's, for the main checkout's path (found from any worktree): ~/.claude/projects/<the path
 # with every character outside A-Z a-z 0-9 turned into a dash>. CLAUDE_PROJECTS_DIR names another one.
 # A teammate's transcript is the newest one, touched in the last day, whose first lines hold its spawn
 # brief ("You are `<name>`"). Run it from the team lead's session, never for the session you are in.
 # Exit: 0 done, 1 not found, still busy or not confirmed, 2 usage.
 set -uo pipefail
-usage="usage: scripts/team/reset-teammate.sh <name> <clear|compact> [max-wait-seconds] [--log <file>]"
+usage="usage: scripts/team/reset-teammate.sh <name> compact [max-wait-seconds] [--log <file>]"
 pos=(); log=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -24,7 +24,11 @@ while [ $# -gt 0 ]; do
 done
 name="${pos[0]:-}"; mode="${pos[1]:-}"; maxwait="${pos[2]:-1800}"
 [ -n "$name" ] && [ "${#pos[@]}" -le 3 ] || { echo "$usage" >&2; exit 2; }
-case "$mode" in clear|compact) ;; *) echo "mode must be clear or compact" >&2; exit 2 ;; esac
+case "$mode" in
+  compact) ;;
+  clear) echo "clear is refused: a /clear'ed teammate's end-of-turn reports stop reaching team-lead. Use compact, or respawn the teammate." >&2; exit 2 ;;
+  *) echo "mode must be compact" >&2; exit 2 ;;
+esac
 case "$maxwait" in ''|*[!0-9]*) echo "max-wait must be a number of seconds" >&2; exit 2 ;; esac
 case "$name" in *[!A-Za-z0-9_-]*) echo "name must be letters, digits, dash or underscore" >&2; exit 2 ;; esac
 
@@ -68,9 +72,7 @@ done
 tmux send-keys -t "$pane" "/$mode" Enter
 ok=0
 for _ in $(seq 1 120); do
-  if [ "$mode" = compact ]; then
-    [ "$(grep -c compact_boundary "$before")" -gt "$n0" ] && { ok=1; break; }
-  else sleep "${RESET_POLL:-10}"; ok=1; break; fi
+  [ "$(grep -c compact_boundary "$before")" -gt "$n0" ] && { ok=1; break; }
   sleep "${RESET_POLL:-5}"
 done
 [ "$ok" = 1 ] || { echo "$name: /$mode not confirmed" >&2; exit 1; }
