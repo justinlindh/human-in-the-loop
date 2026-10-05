@@ -149,11 +149,9 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
         // The same n frames, drawing only the last: every update still runs each frame, so the final
         // picture is identical to __step(n), without paying for the frames nobody looks at.
         window.__settle = (n) => { for (let i = 0; i < n; i++) { window.__tick(1000 / 30); R.sync?.(window.__HITL.state); R.render(1 / 30, { draw: i === n - 1 }); } };
-        // Raycasts through a bounding-volume tree (three-mesh-bvh) instead of testing every triangle,
-        // for checks that probe the scene each frame. Hits are the same; only static meshes are indexed
-        // (skinned, instanced and morphing meshes keep the default test), each on its first raycast.
-        // Loading the module and building a tree make three.js objects, which take UUIDs from
-        // Math.random, so both run on the tool stream and the game's stream is untouched.
+        // Raycasts through a bounding-volume tree (blender/checks/bvh.js patchRaycast) instead of
+        // testing every triangle, for checks that probe the scene each frame. Loading the module makes
+        // three.js objects, which take UUIDs from Math.random, so it loads on the tool stream.
         // { install: false } loads the module without patching raycast (a comparison run).
         window.__fastRaycast = async ({ install = true } = {}) => {
           if (window.__fastRaycastOn) return;
@@ -163,17 +161,7 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
           let bvh;
           try { bvh = await import('/blender/checks/bvh.js'); } finally { Math.random = gameRandom; }
           if (!install) return;
-          const slow = THREE.Mesh.prototype.raycast;
-          THREE.Mesh.prototype.raycast = function (raycaster, hits) {
-            const g = this.geometry;
-            if (this.isSkinnedMesh || this.isInstancedMesh || this.morphTargetInfluences || !g?.attributes?.position || g.morphAttributes?.position) return slow.call(this, raycaster, hits);
-            if (!g.boundsTree) {
-              if ((g.index ? g.index.count : g.attributes.position.count) / 3 < 64) return slow.call(this, raycaster, hits);
-              // indirect: the game's geometry (its index, or its lack of one) stays as it was.
-              window.__tool(() => { g.boundsTree = new bvh.MeshBVH(g, { indirect: true }); });
-            }
-            return bvh.acceleratedRaycast.call(this, raycaster, hits);
-          };
+          bvh.patchRaycast(THREE, window.__tool);
           window.__fastRaycastOn = true;
         };
         // Stepping without drawing. R.advance() moves people, moments and effects but, unlike render(),
