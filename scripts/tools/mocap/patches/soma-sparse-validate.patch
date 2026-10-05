@@ -1,0 +1,13 @@
+diff --git a/soma/correctives_model.py b/soma/correctives_model.py
+index 8618f8b..704e213 100644
+--- a/soma/correctives_model.py
++++ b/soma/correctives_model.py
+@@ -198,7 +198,7 @@ class CorrectivesMLP(nn.Module):
+         # in forked workers.  The tensors are converted to dense
+         # immediately after loading, so validation is unnecessary.
+         _orig_validate = torch._utils._validate_loaded_sparse_tensors
+-        torch._utils._validate_loaded_sparse_tensors = lambda: None
++        torch._utils._validate_loaded_sparse_tensors = lambda *a, **k: None
+         try:
+             ckpt = torch.load(path, map_location="cpu", weights_only=True)
+         finally:

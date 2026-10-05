@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "worker": 2,
+  "gemX": { "repo": "https://github.com/NVlabs/GEM-X.git", "commit": "32992550dba114c62243fb55e361311972dce8f9" },
+  "soma": { "repo": "https://github.com/NVlabs/SOMA-X.git", "commit": "e0f8ff0ecfa3edbbb6058b1e0f08822ee2f84ee5" },
+  "sam3dBody": { "repo": "https://github.com/facebookresearch/sam-3d-body.git", "commit": "b5c765a0d89d789985e186d396315e7590887b94" },
+  "depthAnything3": { "repo": "https://github.com/ByteDance-Seed/Depth-Anything-3.git", "commit": "3d835ec1a5802d64a8b8b15f817a1ab54809bfe4", "weights": "depth-anything/DA3-BASE" },
+  "gemCheckpoint": "nvidia/GEM-X gem_soma.ckpt",
+  "gate2d": "rtmlib Body performance (YOLOX + RTMPose-x)",
+  "torchIndex": "cu130"
+}
