@@ -144,7 +144,7 @@ const DECISION_PROPS = [
 // The Yak reply prompt kinds of docs/features/yak.md (src/data/prompts.js).
 const YAK_PROMPTS = ['strain_vent', 'incident_blame', 'launch_hype', 'rival_itch', 'project_late', 'agent_prs', 'newhire_lost', 'coasting_check', 'support_swamped', 'lowcash_lunch', 'desk_squeeze', 'office_full', 'junior_pr'];
 
-const GARAGE_DECISIONS =new Set(['hackathon', 'team_offsite', 'onprem_bank']);
+const GARAGE_DECISIONS = new Set(['hackathon', 'team_offsite', 'onprem_bank']);
 
 // [item id, camera zoom, era the item needs] of the shop items shown in docs/features/office.md.
 const ITEM_STILLS = [
@@ -522,6 +522,15 @@ export const ITEMS = [
         el.scrollIntoView({ block: 'center' });
         (window.__captureMarks ??= []).push({ t: ${2 + i * 0.5}, label: 'yak-prompt', kind: ${JSON.stringify(kind)}, id: p.id, text: el.textContent.slice(0, 60), inPanel: (() => { const r = el.getBoundingClientRect(), q = document.querySelector('.chat.yak').getBoundingClientRect(); return r.top >= q.top && r.bottom <= q.bottom; })() });
       })()` })),
+      // The still is only right when the prompt is open and fully in view just before it is taken.
+      { at: 21.8, js: `(() => {
+        const p = window.__HITL.state.chatPrompts.find((q) => q.kind === ${JSON.stringify(kind)});
+        const el = p && document.querySelector('.chat.yak .yprompt[data-prompt="' + CSS.escape(p.id) + '"]');
+        // console.error fails this item only; a throw would end the whole capture run.
+        if (!el) return console.error('capture: the ${kind} prompt is not in the Yak panel');
+        const r = el.getBoundingClientRect(), q = document.querySelector('.chat.yak').getBoundingClientRect();
+        if (!r.width || r.top < q.top || r.bottom > q.bottom) console.error('capture: the ${kind} prompt is outside the Yak panel');
+      })()` },
     ],
     screenshots: [22],
     out: [{ path: `yak/${kind}.webp`, size: '640x747', from: 22, crop: { x: 0, y: 0.43, w: 0.27, h: 0.56 }, publishAs: `yak-${kind}` }],
