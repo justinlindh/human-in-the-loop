@@ -22,7 +22,7 @@ import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { holdSeconds } from './reading.js';
 import { pickSpot, spotDebug, spotRing } from './spots.js';
 import { between, draw, fixed } from './rand.js';
-import { createMocapPlayer } from './mocap.js';
+import { createMocapPlayer, placeInShot, clipTime } from './mocap.js';
 
 // Keeps one character per staff member in step with state, and plays event effects.
 // Characters are keyed by staff id; removed staff walk out and are disposed.
@@ -41,7 +41,8 @@ const FACE_HOLD = { deal: 2, notable: 2.5, hire: 4, launch: 3, award: 3, fired: 
 // the bark's 0..1 loudness to mouth opening.
 const VOICE_FACE = { happy: 'delighted', questioning: 'questioning', annoyed: 'sideeye', tired: 'tired', sighing: 'sad' };
 const VOICE_FACE_TAIL = 0.6, VOICE_TALK = 1;
-const CLICK_SWIVEL = 1.4;     // radians someone clicked may turn their chair toward the camera (past it the chair back hides them)
+const SHOT_SPREAD = 2;         // a tracked shot's gaps between people, times its real ones (chibis are wide)
+const CLICK_SWIVEL = 1.4;    // radians someone clicked may turn their chair toward the camera (past it the chair back hides them)
 // FACE_SEE: radians off a bystander's turned heading the person leaving may be and still be watched.
 // FACE_AWAY_COS: a turned heading further than about 80 degrees off the camera hides the face.
 const FACE_NEAR_M = 4, FACE_NEAR_MAX = 3, FACE_SEE = 1.1, FACE_AWAY_COS = 0.17;
@@ -1502,19 +1503,34 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   // Plays a baked motion clip (mocap.js) on staff member `id` where they stand, or at { x, z, yaw }:
   // timed by clock() seconds when given (a video's currentTime; it runs until stopMocap), else by
-  // frame time from now, for the clip's length. Returns the player, or null.
-  function playMocap(id, clip, { at = null, clock = null, ...opts } = {}) {
+  // frame time from t0 (negative: hold the first frame that long), until the clip's end. Returns the
+  // player, or null.
+  function playMocap(id, clip, { at = null, clock = null, t0 = 0, ...opts } = {}) {
     const r = recs.get(id);
     if (!r || r.hidden) return null;
     const p = createMocapPlayer(r.char, clip, opts);
     if (at) { r.pos.set(at.x, 0, at.z); r.yaw = at.yaw ?? r.yaw; }
     r.path = [];
-    let el = 0;
-    r.temp = { anim: 'idle', t: clock ? Infinity : p.duration, keepPos: true, moment: 'mocap', mocap: p,
+    let el = t0;
+    r.temp = { anim: 'idle', t: clock ? Infinity : p.duration - t0, keepPos: true, moment: 'mocap', mocap: p,
       tick: (rr, dt) => { el += dt; p.setTime(clock ? clock() : el); return true; } };
     r.mocap = p;
-    p.setTime(clock ? clock() : 0);
+    p.setTime(clock ? clock() : el);
     return p;
+  }
+  // A shot: one baked clip per person (entries [{ id, clip }]) on one clock. The group's centre
+  // stands at `at` { x, z, yaw }, yaw turning the shot's +z (its camera's forward); `spread` widens
+  // the gaps between people (mocap.js placeInShot). clock() gives seconds of the source video
+  // (videoFps); without one, the shot runs on frame time from its earliest clip's first frame.
+  function playShot(entries, { at = { x: 0, z: 0, yaw: 0 }, spread = SHOT_SPREAD, clock = null, videoFps = 30, ...opts } = {}) {
+    const first = Math.min(...entries.map((e) => e.clip.source?.start ?? 0));
+    const placed = entries.filter((e) => e.clip.origin);
+    const center = placed.length ? [0, 2].map((k) => placed.reduce((a, e) => a + e.clip.origin.pos[k], 0) / placed.length) : [0, 0];
+    const players = entries.map(({ id, clip }) => playMocap(id, clip, {
+      ...opts, at: placeInShot(clip, at, { spread, center }),
+      ...(clock ? { clock: () => clipTime(clip, clock(), videoFps) } : { t0: clipTime(clip, first / videoFps, videoFps) }),
+    }));
+    return { players, stop() { for (const { id } of entries) stopMocap(id); } };
   }
   function stopMocap(id) {
     const r = recs.get(id);
@@ -2137,7 +2153,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   return {
     // A staff member's character (character.js), for the staging probe.
     charOf(id) { return recs.get(id)?.char ?? null; },
-    playMocap, stopMocap,
+    playMocap, stopMocap, playShot,
     // For checks and the scene dump: where someone is headed and why (read only).
     // The moment ownership trace: trace.on = true starts it; lines(n) are the last n entries.
     trace: {

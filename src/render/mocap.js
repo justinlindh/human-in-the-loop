@@ -19,6 +19,27 @@ import * as THREE from 'three';
 const LIMB_OF = { footL: 'legL', footR: 'legR', handL: 'armL', handR: 'armR' };
 const DOWN = new THREE.Vector3(0, -1, 0);
 
+// Where a clip of a shot stands in the office, with the shot's shared space (clip.origin: frame-0
+// floor point and +z heading, y up) set down at `at` { x, z, yaw }: rotate by at.yaw, then move.
+// Yaw is the rotation about +y that takes +z to the facing (three.js rotation.y). A clip with no
+// origin stands at `at`. `center` [x, z] is the shot point `at` stands for (default the shot's own
+// origin). Chibis are far wider than their leg length says (head and shoulders), so `spread`
+// scales the distances from `center`, keeping people apart where real ones stood shoulder to shoulder.
+export function placeInShot(clip, at = { x: 0, z: 0, yaw: 0 }, { spread = 1, center = [0, 0] } = {}) {
+  const o = clip.origin;
+  const ay = at.yaw ?? 0;
+  if (!o) return { x: at.x, z: at.z, yaw: ay };
+  const ox = (o.pos[0] - center[0]) * spread, oz = (o.pos[2] - center[1]) * spread;
+  const c = Math.cos(ay), s = Math.sin(ay);
+  return { x: at.x + ox * c + oz * s, z: at.z - ox * s + oz * c, yaw: ay + o.yaw };
+}
+
+// A clip's own time on a shot's clock: the shot clock runs in seconds of the source video, and a
+// clip starts at its source frame (videoFps frames a second).
+export function clipTime(clip, shotT, videoFps = 30) {
+  return shotT - (clip.source?.start ?? 0) / videoFps;
+}
+
 export function isMocapClip(c) { return c?.format === 'hitl-mocap-clip' || (c?.tracks && c?.fps && Array.isArray(c?.bones)); }
 
 export function createMocapPlayer(char, clip, { minConf = 0.35, ik = true, ramp = 3 } = {}) {

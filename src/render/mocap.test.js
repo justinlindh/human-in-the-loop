@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
-import { createMocapPlayer } from './mocap.js';
+import { createMocapPlayer, placeInShot, clipTime } from './mocap.js';
 
 const BONES = ['body', 'hips', 'legL', 'legR', 'torso', 'head', 'armL', 'armR'];
 const HIP_Y = 0.3;
@@ -83,6 +83,27 @@ describe('mocap player', () => {
     const off = fakeChar();
     createMocapPlayer(off, clip, { ik: false }).setTime(2 / 30); off.update();
     expect(off.pivots.body.position.z).toBeCloseTo(0.04, 6);
+  });
+
+  it('sets a shot down in the office, keeping the people apart as they stood', () => {
+    const a = { origin: { pos: [0, 0, 0], yaw: 0, scale: 0.3 } };
+    const b = { origin: { pos: [0.6, 0, 0], yaw: Math.PI / 2, scale: 0.3 } };
+    const at = { x: 1, z: 2, yaw: Math.PI / 2 };
+    const pa = placeInShot(a, at), pb = placeInShot(b, at);
+    expect(Math.hypot(pb.x - pa.x, pb.z - pa.z)).toBeCloseTo(0.6, 6);
+    // Turning the shot a quarter takes shot +x to office -z (three.js rotation.y).
+    expect(pb.x).toBeCloseTo(1, 6); expect(pb.z).toBeCloseTo(2 - 0.6, 6);
+    expect(pb.yaw).toBeCloseTo(Math.PI, 6);
+    expect(placeInShot({}, at)).toEqual({ x: 1, z: 2, yaw: Math.PI / 2 });
+    // Spread about a centre: the centre stays at `at`, gaps from it double.
+    const c = [0.3, 0];
+    const sa = placeInShot(a, { x: 0, z: 0, yaw: 0 }, { spread: 2, center: c }), sb = placeInShot(b, { x: 0, z: 0, yaw: 0 }, { spread: 2, center: c });
+    expect([sa.x, sb.x]).toEqual([-0.6, 0.6].map((v) => expect.closeTo(v, 6)));
+  });
+
+  it('times each clip from its own source frame on the shot clock', () => {
+    expect(clipTime({ source: { start: 600 } }, 21, 30)).toBeCloseTo(1, 6);
+    expect(clipTime({ source: { start: 0 } }, 2.5)).toBeCloseTo(2.5, 6);
   });
 
   it('hands the pivots back on stop', () => {
