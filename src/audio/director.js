@@ -18,7 +18,7 @@
 import { ASSETS, entryFor } from './loader.js';
 import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, ROTATE_BEDS, ERA_EXTRAS, musicKey, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
   VOICE_VARIANTS, VOICE, GROUP_CUES, isFirstLaunch, resignReason, isWarmExit, WORLD, PROP_CUES,
-  MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision, MUSIC_BARS, PLAYLIST_MIN_S, PLAYLIST_LOOKAHEAD_S, PLAYLIST_PRELOAD_S, MOMENT_CUES, MOMENT_HITS, FOCUS_KEEP, SPOTLIGHT_KEEP, SPOTLIGHT_DEFAULT, OFFICE_PROP_CUES, OFFICE_PROP_LOOPS } from './manifest.js';
+  MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision, MUSIC_BARS, PLAYLIST_MIN_S, PLAYLIST_LOOKAHEAD_S, PLAYLIST_PRELOAD_S, MOMENT_CUES, MOMENT_HITS, MOMENT_SCENES, FOCUS_KEEP, SPOTLIGHT_KEEP, SPOTLIGHT_DEFAULT, OFFICE_PROP_CUES, OFFICE_PROP_LOOPS } from './manifest.js';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -230,6 +230,30 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
 
   const voiceMomentOk = (t) => t - lastVoiceMoment.t >= VOICE.globalGap;
 
+  // A scene moment (MOMENT_SCENES): its bed loops from the start until a hit in stopLoopOn or the end, each
+  // beat and hit plays its cue. The bed's gain going to 0 releases it; update() releases it too when a new
+  // game clears the moment without an end.
+  let sceneLoop = null;
+  const stopSceneLoop = () => {
+    if (!sceneLoop) return [];
+    const l = sceneLoop; sceneLoop = null;
+    return [{ op: 'loop', id: l.id, bus: l.bus, gain: 0, fade: 0.1 }];
+  };
+  function sceneMoment(scene, detail, t) {
+    if (detail.phase === 'start') {
+      const l = scene.loop;
+      if (!l || !entryFor(l.id)?.file) return [];
+      sceneLoop = { key: detail.key, ...l };
+      return [{ op: 'loop', id: l.id, bus: l.bus, gain: l.gain, fade: l.fade }];
+    }
+    if (detail.phase === 'end') return stopSceneLoop();
+    const out = [];
+    if (detail.phase === 'hit' && scene.stopLoopOn?.includes(detail.hit)) out.push(...stopSceneLoop());
+    const cue = detail.phase === 'beat' ? scene.beats?.[detail.beat] : detail.phase === 'hit' ? scene.hits?.[detail.hit] : null;
+    if (cue) out.push(...playCue(cue, t, { inMoment: true }));
+    return out;
+  }
+
   return {
     setQuality(v) { q = v === 'low' ? 'low' : 'high'; },
 
@@ -295,6 +319,7 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
       spotlight = ctx.spotlight ? (typeof ctx.spotlight === 'object' ? ctx.spotlight : { kind: typeof ctx.spotlight === 'string' ? ctx.spotlight : null }) : null;
       // A new or loaded game brings a new state object: no moment from the old one can still be playing.
       if (state && state !== lastStateRef) { if (lastStateRef) momentsOn.clear(); lastStateRef = state; }
+      if (sceneLoop && !momentsOn.has(sceneLoop.key)) out.push(...stopSceneLoop());
       if (Number.isFinite(ctx.speed)) speedNow = Math.max(1, ctx.speed);
       const hold = !!(ctx.menuPause || ctx.decision);
       // Music: title bed on the title screen, else the era's bed. An era change waits for its card.
@@ -411,6 +436,8 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
     // hitl:moment from the renderer: a moment with a cue starts it, its end stops it.
     moment(detail, t) {
       if (detail?.key) { if (detail.phase === 'start') momentsOn.add(detail.key); else if (detail.phase === 'end') momentsOn.delete(detail.key); }
+      const scene = MOMENT_SCENES[detail?.key];
+      if (scene) return sceneMoment(scene, detail, t);
       // Each hit lands on the frame the renderer shows it, so pauses and late carries need no timing here.
       if (detail?.phase === 'hit') return MOMENT_HITS[detail.key] ? playCue(MOMENT_HITS[detail.key], t, { inMoment: true }) : [];
       const m = MOMENT_CUES[detail?.key];

@@ -364,6 +364,32 @@ describe('audio director', () => {
     expect(Math.abs(loops - Math.round(loops))).toBeLessThan(1e-6);
   });
 
+  it('scores the sledgehammer parody: a looping drone, a sting on the run, a shatter on the screen hit', () => {
+    const key = 'open_plan_office', id = 'm1';
+    const plays = (cmds) => cmds.filter((c) => c.op === 'play').map((c) => c.cue);
+    const loops = (cmds) => cmds.filter((c) => c.op === 'loop');
+    const d = createDirector();
+    const start = d.moment({ key, id, phase: 'start' }, 10);
+    expect(loops(start)).toMatchObject([{ id: 'sfx/sledge_leader', bus: 'sfx', gain: 0.6 }]);
+    expect(plays(d.moment({ key, id, phase: 'beat', beat: 'run' }, 14))).toEqual(['moment.sledge_run']);
+    expect(d.moment({ key, id, phase: 'beat', beat: 'throw' }, 16)).toEqual([]);
+    const hit = d.moment({ key, id, phase: 'hit', hit: 'screen' }, 16.5);
+    expect(loops(hit)).toMatchObject([{ id: 'sfx/sledge_leader', gain: 0 }]);
+    expect(plays(hit)).toEqual(['moment.sledge_shatter']);
+    // The drone is already released: the end adds nothing, and an unknown beat or hit is silent.
+    expect(d.moment({ key, id, phase: 'end' }, 20)).toEqual([]);
+    expect(d.moment({ key, id, phase: 'beat', beat: 'nope' }, 21)).toEqual([]);
+    // The card closing before any throw releases the drone.
+    const d2 = createDirector();
+    d2.moment({ key, id, phase: 'start' }, 10);
+    expect(loops(d2.moment({ key, id, phase: 'end' }, 12))).toMatchObject([{ gain: 0 }]);
+    // A new game clears the moment without an end: the next update releases the drone.
+    const d3 = createDirector();
+    d3.update(state(), 1, { speed: 1, running: true });
+    d3.moment({ key, id, phase: 'start' }, 2);
+    expect(loops(d3.update(state(), 3, { speed: 1, running: true }))).toMatchObject([{ id: 'sfx/sledge_leader', gain: 0 }]);
+  });
+
   it('rings the register for a notable deal in every era, once per cooldown, and stays quiet otherwise', () => {
     const d = createDirector();
     const plays = (cmds) => cmds.filter((c) => c.op === 'play').map((c) => c.cue);
