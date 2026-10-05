@@ -308,6 +308,16 @@ function bodyInside(root, targets, arms = true) {
 }
 // Test hooks for the clip harness's planted controls.
 export const probe = { insideCount, vertices, bodyInside, meshes };
+// The id of the placed desk whose centre is nearest (x, z).
+function nearestDesk(R, x, z) {
+  let best = null, d = Infinity;
+  for (const e of R.office.placed.values()) {
+    if (!/desk/.test(e.itemId ?? '')) continue;
+    const p = e.obj.getWorldPosition(new THREE.Vector3()), k = Math.hypot(p.x - x, p.z - z);
+    if (k < d) { d = k; best = e.id; }
+  }
+  return best;
+}
 function furnitureOf(R, skip = new Set()) {
   const out = [];
   for (const e of R.office.placed.values()) if (!skip.has(e.id)) out.push(...meshes(e.obj));
@@ -1168,9 +1178,11 @@ export async function runCelebrationChecks(R, S, { dt = 1 / 30 } = {}) {
   R.perks.hold = true;
   const step = () => { window.__tick(dt * 1000); R.sync(S); R.render(dt, { draw: false }); };
   for (let i = 0; i < 180; i++) step();
-  for (const kind of ['growth', 'company_party', 'deal']) {
+  // 'fired' goes last: it takes the fired person out of the state.
+  for (const kind of ['growth', 'company_party', 'deal', 'fired']) {
     if (kind === 'growth') S.staff.find((p) => p.id === 's6').legend = true;
     else if (kind === 'deal') setupDeal(R, S);
+    else if (kind === 'fired') setupFired(R, S);
     else R.handleEvents([{ type: 'celebrate', staffId: null }], S);
     let worst = 0, worstWho = null, samples = 0, seen = false, ended = false;
     for (let i = 0; i < 30 * 25; i++) {
@@ -1182,7 +1194,9 @@ export async function runCelebrationChecks(R, S, { dt = 1 / 30 } = {}) {
       for (const [id] of actors) {
         const root = charOf(R.scene, id), st = R.moments.staging(id), rec = R.perks.peek(id);
         // Seated cheers and the first steps away from a seat may occupy their own chair.
-        const own = kind === 'company_party' || kind === 'deal' || st.role === 'coworker' || st.beat === 'walk' ? new Set([rec.seat]) : new Set();
+        const own = kind === 'company_party' || kind === 'deal' || kind === 'fired' || st.role === 'coworker' || st.beat === 'walk' ? new Set([rec.seat]) : new Set();
+        // A seated bystander stays in the chair they were in while desks are reassigned round them.
+        if (kind === 'fired' && R.isSeated(id)) own.add(nearestDesk(R, root.position.x, root.position.z));
         const overlap = bodyInside(root, furnitureOf(R, own), false);
         samples++;
         if (overlap > worst) { worst = overlap; worstWho = id; }
@@ -1305,9 +1319,10 @@ export async function runSkyCheck() {
   return { name: 'sky:trailing', pass: last.join() === night.join() && day.join() !== night.join(), day: day.join(), last: last.join(), night: night.join() };
 }
 
-// A notable deal for the seated person with the most seated neighbours within `near` metres, once
-// people have settled at their desks (at most `maxFrames`). Returns the seller's id, or null.
-export function setupDeal(R, S, { near = 3, maxFrames = 600 } = {}) {
+// A notable deal (`first`: the company's first) for the seated person with the most seated
+// neighbours within `near` metres, once people have settled at their desks (at most `maxFrames`).
+// Returns the seller's id, or null.
+export function setupDeal(R, S, { near = 3, maxFrames = 600, first = false } = {}) {
   R.perks.hold = true;
   S.pendingDecision = null;
   const settled = (id) => { const w = R.walkOf(id); return w && !w.hidden && !w.path.length && !w.temp && w.goal?.seated && w.goal; };
@@ -1319,7 +1334,28 @@ export function setupDeal(R, S, { near = 3, maxFrames = 600 } = {}) {
     else window.__advance(1);
   }
   if (!pick) return null;
-  R.handleEvents([{ type: 'deal', productId: S.products[0]?.id ?? null, customer: 'Initech Labs', customers: 3, mrr: 2400, week: S.week, sellerId: pick, first: false, notable: true }], S);
+  R.handleEvents([{ type: 'deal', productId: S.products[0]?.id ?? null, customer: 'Initech Labs', customers: 3, mrr: 2400, week: S.week, sellerId: pick, first, notable: true }], S);
+  return pick;
+}
+
+// Fires the settled person with the most settled colleagues within `near` metres, then drops
+// them from the state so they wave and walk out. Returns the fired person's id, or null.
+export function setupFired(R, S, { near = 4, maxFrames = 600 } = {}) {
+  R.perks.hold = true;
+  S.pendingDecision = null;
+  const settled = (id) => { const w = R.walkOf(id); return w && !w.hidden && !w.path.length && !w.temp && w.goal; };
+  let pick = null;
+  for (let f = 0; f < maxFrames && !pick; f++) {
+    const here = S.staff.filter((p) => !p.founder).map((p) => [p.id, settled(p.id)]).filter(([, g]) => g);
+    const all = S.staff.map((p) => [p.id, settled(p.id)]).filter(([, g]) => g);
+    const ranked = here.map(([id, g]) => [id, all.filter(([o, h]) => o !== id && Math.hypot(h.x - g.x, h.z - g.z) < near).length]).sort((a, b) => b[1] - a[1]);
+    if (ranked[0]?.[1] >= 2) pick = ranked[0][0];
+    else window.__advance(1);
+  }
+  if (!pick) return null;
+  const p = S.staff.find((x) => x.id === pick);
+  R.handleEvents([{ type: 'resign', staffId: pick, name: p.name, fired: true, reason: 'fired' }], S);
+  S.staff = S.staff.filter((x) => x.id !== pick);
   return pick;
 }
 

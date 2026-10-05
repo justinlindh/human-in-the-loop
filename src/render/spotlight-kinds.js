@@ -25,6 +25,8 @@ export const MOMENT_KINDS = {
   respond: { spotlight: false },
   // A notable deal: the seller's hand up at the desk while the week plays on.
   deal: { spotlight: false, seconds: 3 },
+  // Someone fired: the nearest colleagues turn to watch them go, shocked.
+  fired: { spotlight: false, seconds: 2 },
   coffee: { spotlight: false },
   pair: { spotlight: false },
   // The office robot slapped back to life: a breakdown never holds the clock.

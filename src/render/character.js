@@ -10,6 +10,7 @@ import { wardrobeLook } from './wardrobe.js';
 import { emoteMaterial } from './emotes.js';
 import { bakedMaterial, bakeParts } from './bake.js';
 import { rigClips, rigEnabled } from './rig.js';
+import { createFaceGeometry, faceWeights, bakeFace, EXPRESSIONS, MORPHS } from './face.js';
 import { draw } from './rand.js';
 
 // Chibi assembly from the named parts in chibi.glb, animated with plain transforms.
@@ -38,9 +39,21 @@ const BLEND_S = 0.3;
 // the walker's speed so feet do not slide.
 const WALK_CLIP_SPEED = 0.875;
 const LYING = new Set(['lie', 'nap', 'sprawl']);
-// Mood (and ':closed') -> face geometry shared by every character. Shared geometry bakes its
-// colours in, so face parts must use fixed palette colours only, never a per-person colour.
-const FACE_GEOS = new Map();
+// The face (face.js): one geometry shared by every character, its morph targets blended per person.
+// Shared geometry bakes its colours in, so face parts use fixed palette colours only. A settled
+// face, and every face with morphs off (Low quality), shows its expression baked once into a static
+// geometry instead, keyed by expression and whether the eyes are shut, and swapped whole.
+// Darker skins get their own copy with a warm red mouth, which an ink mouth would vanish against.
+const FACE_GEOS = new Map();     // 'light' | 'dark' -> morph geometry
+const FACE_BAKED = new Map();    // '<variant>:<expression>[:closed]' -> baked geometry
+const FACE_MOUTH_DARK = new THREE.Color('#d0646e');
+const DARK_SKIN_LUMA = 0.4;      // skins darker than this (sRGB luma) take the 'dark' face
+let faceMorphs = true;
+export function setFaceMorphs(on) { faceMorphs = !!on; }
+const BLINK = MORPHS.indexOf('blink');
+const LOOK_X = MORPHS.indexOf('lookX'), LOOK_UP = MORPHS.indexOf('lookUp'), LOOK_DOWN = MORPHS.indexOf('lookDown');
+const TALK = MORPHS.indexOf('talk');
+const FACE_BLEND_S = 0.18;   // default seconds an expression takes to blend in or out
 const SLEEPING = new Set(['lie', 'nap', 'desknap']);
 // Facepalm shoulder pitch, lift and spread for the palm hand, then head bow and body lean, standing and seated.
 const PALM_STAND = [-2.75, 0.14, 0.27, -0.6, 0.08];
@@ -344,8 +357,6 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   eyes.geometry.computeBoundingBox();
   const eyeLocal = eyes.geometry.boundingBox.getCenter(new THREE.Vector3()).add(eyes.position);
   const shine = P('eye_shine');
-  const mouths = { ok: P('mouth_smile'), coasting: P('mouth_flat'), burnout: P('mouth_frown') };
-  headGroup.add(eyes, shine, mouths.ok, mouths.coasting, mouths.burnout);
   const cheeks = makeCheeks(tpl, own.skin.color);
   if (CHEEK_FLUSH) headGroup.add(cheeks.group);
   // A hat replaces the hair; drawing both makes them fight through each other.
@@ -422,42 +433,87 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   baked.push(bakeParts(headParts, headGroup, bm, tintable));
   for (const a of arms) baked.push(bakeParts(a.parts, a.shoulder, bm, tintable));
   ['legL', 'legR', 'torso', 'head', 'armL', 'armR'].forEach((n, i) => { if (baked[i]) baked[i].userData.part = n; });
-  // Faces: eyes, eye shine and mouth baked into one mesh per mood, with the eyes open or closed.
-  // Only the face in use is attached; the mood picks the set and a blink swaps open for closed.
-  // Face geometry is the same for everyone, so it is baked once and shared (the per-person tint
-  // lives on the material).
-  const faces = {};
-  for (const k of ['ok', 'coasting', 'burnout']) {
-    for (const closed of [false, true]) {
-      const key = `${k}${closed ? ':closed' : ''}`;
-      let geo = FACE_GEOS.get(key);
-      if (!geo) {
-        const e = eyes.clone();
-        e.scale.y = closed ? 0.15 : 1;
-        const parts = [e, mouths[k].clone()];
-        if (!closed) parts.push(shine.clone());
-        headGroup.add(...parts);
-        const once = bakeParts(parts, headGroup, bm, tintable);
-        once.removeFromParent();
-        geo = once.geometry;
-        geo.userData.shared = true;
-        FACE_GEOS.set(key, geo);
+  // The face: one mesh on the head, its expression blended from morph targets (face.js), or with
+  // morphs off a baked copy per settled expression. The geometry is shared; the per-person tint
+  // lives on the material.
+  const skinSrgb = own.skin.color.clone().convertLinearToSRGB();
+  const faceVariant = 0.2126 * skinSrgb.r + 0.7152 * skinSrgb.g + 0.0722 * skinSrgb.b < DARK_SKIN_LUMA ? 'dark' : 'light';
+  if (!FACE_GEOS.has(faceVariant) && tpl) {
+    const src = (o) => { const m = o.isMesh ? o.material : o.children.find((c) => c.isMesh)?.material; return { color: m?.color ?? new THREE.Color(0.1, 0.1, 0.1), roughness: m?.roughness, metalness: m?.metalness, tint: m ? tintable(m) : false }; };
+    const ink = src(eyes);
+    const g = createFaceGeometry({ ink, shine: src(shine), mouth: faceVariant === 'dark' ? { ...ink, color: FACE_MOUTH_DARK } : ink });
+    g.userData.shared = true;
+    FACE_GEOS.set(faceVariant, g);
+  }
+  const FACE_GEO = FACE_GEOS.get(faceVariant) ?? null;
+  const faceMesh = new THREE.Mesh(FACE_GEO ?? new THREE.BufferGeometry(), bm);
+  faceMesh.name = 'baked';
+  faceMesh.receiveShadow = true;
+  faceMesh.userData.noAO = true;
+  faceMesh.userData.part = 'face';
+  if (FACE_GEO) headGroup.add(faceMesh);
+  baked.push(faceMesh);
+  const faceW = new Float32Array(MORPHS.length);      // blended weights shown now
+  const faceWant = new Float32Array(MORPHS.length);   // the weights being blended toward
+  let faceMood = 'ok';
+  let faceExpr = null;      // { name, t: seconds left, blend }
+  let faceLook = null;      // { target: Object3D | Vector3, t: seconds left }
+  let faceTalk = 0;         // mouth opening for speech, 0..1
+  let faceShown = null;     // the baked key on show with morphs off
+  const _look = new THREE.Vector3();
+  function faceName() {
+    if (anim === 'facepalm' || anim === 'facepalmsit') return 'burnout';
+    return faceExpr?.name ?? faceMood;
+  }
+  // Blends toward the current expression (plus blink, gaze and talk) and shows it.
+  function updateFace(dt, closed) {
+    if (!FACE_GEO) return;
+    const name = faceName();
+    faceWeights(name, faceWant);
+    if (closed) { faceWant[BLINK] = 1; for (const k of ['lidHalf', 'happyEyes', 'wide']) faceWant[MORPHS.indexOf(k)] = 0; }
+    if (faceLook && !closed) {
+      const tg = faceLook.target;
+      _look.copy(tg.isVector3 ? tg : tg.getWorldPosition(_look));
+      headGroup.worldToLocal(_look).sub(eyeLocal);
+      const yaw = Math.atan2(_look.x, Math.max(1e-3, _look.z)), pitch = Math.atan2(_look.y, Math.hypot(_look.x, _look.z));
+      faceWant[LOOK_X] = Math.max(-1, Math.min(1, yaw / 0.7));
+      faceWant[LOOK_UP] = Math.max(0, Math.min(1, pitch / 0.5));
+      faceWant[LOOK_DOWN] = Math.max(0, Math.min(1, -pitch / 0.5));
+    }
+    faceWant[TALK] = Math.max(faceWant[TALK], faceTalk);
+    // Morphs only while the face moves (blending, following a target, talking); a settled face
+    // shows its baked copy, which draws without the morph cost.
+    let moving = false;
+    if (faceMorphs) {
+      const k = 1 - Math.exp(-dt / Math.max(0.02, faceExpr?.blend ?? FACE_BLEND_S) * 3);
+      for (let i = 0; i < faceW.length; i++) {
+        faceW[i] += (faceWant[i] - faceW[i]) * (i === BLINK ? 1 : k);
+        if (Math.abs(faceWant[i] - faceW[i]) > 0.01) moving = true;
       }
-      const f = new THREE.Mesh(geo, bm);
-      f.name = 'baked';
-      f.receiveShadow = true;
-      f.userData.noAO = true;
-      faces[key] = f;
-      baked.push(f);
+      moving ||= !!faceLook || faceTalk > 0;
+    }
+    if (moving) {
+      if (faceMesh.geometry !== FACE_GEO) { faceMesh.geometry = FACE_GEO; faceMesh.updateMorphTargets(); faceShown = null; }
+      const inf = faceMesh.morphTargetInfluences;
+      for (let i = 0; i < faceW.length; i++) inf[i] = faceW[i];
+    } else {
+      const key = `${faceVariant}:${name}${closed ? ':closed' : ''}`;
+      if (key !== faceShown) {
+        let g = FACE_BAKED.get(key);
+        if (!g) { g = bakeFace(FACE_GEO, faceWant); FACE_BAKED.set(key, g); }
+        faceMesh.geometry = g;
+        faceShown = key;
+      }
+      faceW.set(faceWant);
     }
   }
-  for (const o of [eyes, shine, ...Object.values(mouths)]) o.removeFromParent();
-  let faceMood = 'ok';
-  let faceClosed = false;
-  const showFace = () => {
-    const key = anim === 'facepalm' || anim === 'facepalmsit' ? 'burnout:closed' : `${faceMood}${faceClosed ? ':closed' : ''}`;
-    for (const [k, o] of Object.entries(faces)) attach(o, headGroup, k === key);
-  };
+  // Shows an expression for `hold` seconds (Infinity: until cleared with express(null)), blending
+  // in and out over `blend` seconds. A name that isn't in EXPRESSIONS clears it.
+  function express(name, { hold = 2, blend = FACE_BLEND_S } = {}) {
+    faceExpr = name && EXPRESSIONS[name] ? { name, t: hold, blend } : null;
+  }
+  // The eyes follow a target (an object or a world point) for `hold` seconds; null stops.
+  function lookAt(target, { hold = 2 } = {}) { faceLook = target ? { target, t: hold } : null; }
   // Wrists hold nothing once the hands are baked into the arms; only the right one carries the mug.
   arms[0].wrist.removeFromParent();
 
@@ -1139,7 +1195,6 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   function applyAnim(name) {
     if (name === anim) return;
     anim = name;
-    showFace();
     animT = 0;
     attach(mug, mugParent, name === 'sip' || name === 'water');
     attach(slice, mugParent, name === 'eat');
@@ -1177,7 +1232,6 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     mood = m;
     const face = m === 'burnout' ? 'burnout' : m === 'coasting' ? 'coasting' : 'ok';
     faceMood = face;
-    showFace();
     setTint(m === 'burnout' ? 0.7 : m === 'coasting' ? 0.4 : 0);
   }
   setMood('ok');
@@ -1208,9 +1262,11 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     pose(dt);
     blinkIn -= dt;
     if (blinkIn <= 0) { blinkT = 0.12; blinkIn = 2.5 + rand() * 3.5; }
-    const closed = blinkT > 0 || anim === 'burnout' || SLEEPING.has(anim) || (mood === 'burnout' && anim !== 'celebrate');
+    if (faceExpr && (faceExpr.t -= dt) <= 0) faceExpr = null;
+    if (faceLook && (faceLook.t -= dt) <= 0) faceLook = null;
+    const closed = blinkT > 0 || anim === 'burnout' || SLEEPING.has(anim) || anim === 'facepalm' || anim === 'facepalmsit' || (mood === 'burnout' && anim !== 'celebrate' && !faceExpr);
     if (blinkT > 0) blinkT -= dt;
-    if (closed !== faceClosed) { faceClosed = closed; showFace(); }
+    updateFace(dt, closed);
     if (emote.visible) {
       emoteT += dt;
       const p = Math.min(1, emoteT / 0.2);
@@ -1293,6 +1349,11 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     setWardrobe,
     gesture: playGesture,
     root, head: headGroup, setShadows, setAnim, setHeld, setMoveSpeed, setAnimRate, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
+    express, lookAt,
+    // Mouth opening for speech, 0..1 (a voice take's loudness envelope).
+    setTalk(v) { faceTalk = Math.max(0, Math.min(1, v)); },
+    // The face's current expression name and blended morph weights, for checks.
+    get face() { return { name: faceName(), weights: Object.fromEntries(MORPHS.map((m, i) => [m, +faceW[i].toFixed(3)])) }; },
     setPetTarget(target) { petTarget = target; },
     // Both wrists in world space, left then right (shared vectors: copy them to keep them).
     hands() { return arms.map((a, i) => a.wrist.getWorldPosition(_hands[i])); },
