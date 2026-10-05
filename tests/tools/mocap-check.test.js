@@ -85,6 +85,15 @@ describe('mocap.mjs', () => {
     expect(crossed.stdout).toMatch(/selfDepth max 0\.0[4-9]\d* \(armL~torso/);
   }, 240000);
 
+  it('stages the gaps with --spread: close origins overlap at 1, clear at 8', async () => {
+    const a = file('sa', clipOf('sa', null, { pos: [0, 0, 0], yaw: 0, scale: 1 })), b = file('sb', clipOf('sb', null, { pos: [0.2, 0, 0], yaw: 0, scale: 1 }));
+    const [tight, wide] = await Promise.all([run(['--clip', `${a},${b}`, '--frames', '0,6', '--spread', '1']), run(['--clip', `${a},${b}`, '--frames', '0,6', '--spread', '8'])]);
+    expect(tight.stdout).toMatch(/MOCAP FAIL s\d+ pairDepth/);
+    expect(wide.stdout).toMatch(/MOCAP ok\s+s\d+ pairDepth/);
+    const bad = await run(['--clip', a, '--spread', '0']);
+    expect(bad.status).toBe(2);
+  }, 240000);
+
   it('refuses bad input with a usage line', async () => {
     const wrong = file('wrong', { format: 'x' });
     for (const args of [[], ['--clip', join(dir, 'missing.json')], ['--clip', wrong], ['--clip', file('ok', clipOf('ok')), '--expect', 'bogus<1'], ['--clip', file('ok', clipOf('ok')), '--frames', 'x'], ['--clip', file('ok', clipOf('ok')), '--mock', 'nowhere'], ['--clip', file('ok', clipOf('ok')), '--camera', '1,2']]) {

@@ -43,22 +43,23 @@ export const mocapPage = async (o) => {
     return { key, kind: 'person', label: key, meshes, box };
   };
 
-  // Where each clip's frame-0 origin goes: the anchor turned by its yaw, plus the clip's own place in the shot.
+  // The group stands at the anchor (default: where the first person stands, facing +z); R.playShot places
+  // each clip from its origin and widens the gaps by `spread`. A clip without an origin stands at the anchor,
+  // so those are spread out here.
   const anchor = o.anchor ?? (() => { const p = found.get(ids[0]).position; return { x: p.x, z: p.z, yaw: 0 }; })();
-  const placed = o.clips.map((clip, i) => {
-    const og = clip.origin;
-    const v = new T.Vector3(og ? og.pos[0] : i * 1.2, 0, og ? og.pos[2] : 0).applyAxisAngle(new T.Vector3(0, 1, 0), anchor.yaw);
-    return { x: anchor.x + v.x, z: anchor.z + v.z, yaw: anchor.yaw + (og?.yaw ?? 0) };
-  });
-
-  let t = 0;
-  const playAll = (clips) => clips.map((clip, i) => R.playMocap(ids[i], clip, { at: placed[i], clock: () => t, ik: o.ik !== false }));
+  const VFPS = 30;
+  const starts = o.clips.map((c) => c.source?.start ?? 0);
+  const first = Math.min(...starts);
+  let shotT = first / VFPS;
+  const shotOpts = { at: anchor, clock: () => shotT, videoFps: VFPS, ik: o.ik !== false, ...(o.spread != null ? { spread: o.spread } : {}) };
+  const entries = (clips) => clips.map((clip, i) => ({ id: ids[i], clip: clip.origin ? clip : { ...clip, origin: { pos: [i * 1.2, 0, 0], yaw: 0 } } }));
+  const playAll = (clips) => R.playShot(entries(clips), shotOpts).players;
   const settle = () => { for (let k = 0; k < 20; k++) window.__sample(1); R.scene.updateMatrixWorld(true); };
 
   // The rest pose first: what the parts of each body already overlap there is not a self-intersection.
   const identity = { format: 'hitl-mocap-clip', version: 1, fps: 30, frames: 2, bones: BONES, tracks: Object.fromEntries(BONES.map((b) => [b, { quat: [[0, 0, 0, 1], [0, 0, 0, 1]] }])), contacts: [] };
   identity.tracks.body.pos = [[0, 0, 0], [0, 0, 0]];
-  playAll(o.clips.map(() => identity));
+  playAll(o.clips.map((c) => ({ ...identity, origin: c.origin, source: c.source })));
   settle();
   const selfPairs = (root, key) => {
     const parts = partsOf(root);
@@ -70,8 +71,8 @@ export const mocapPage = async (o) => {
   const rest = ids.map((id) => selfPairs(found.get(id), id));
 
   const players = playAll(o.clips);
-  t = 0;
   settle();
+  const placed = ids.map((id) => { const r = found.get(id); return { x: r.position.x, z: r.position.z, yaw: r.rotation.y }; });
 
   // Limb ends in the character's own frame.
   const limbInfo = ids.map((id) => {
@@ -96,9 +97,9 @@ export const mocapPage = async (o) => {
   const W = o.width ?? 1280, H = o.height ?? 800;
   const down = new T.Vector3(0, -1, 0), q = new T.Quaternion(), end = new T.Vector3(), goal = new T.Vector3();
   const rows = [];
-  const frames = o.frames?.length ? o.frames : Array.from({ length: Math.max(...o.clips.map((c) => c.frames)) }, (_, i) => i);
-  for (const f of frames) {
-    t = f / 30;
+  const frames = o.frames?.length ? o.frames : Array.from({ length: Math.max(...o.clips.map((c, i) => c.frames + Math.round((starts[i] - first)))) }, (_, i) => i);
+  for (const sf of frames) {
+    shotT = first / VFPS + sf / 30;
     window.__sample(1);
     R.scene.updateMatrixWorld(true);
     if (o.camera) {
@@ -115,8 +116,10 @@ export const mocapPage = async (o) => {
     }
     ids.forEach((id, i) => {
       const clip = o.clips[i];
-      if (f >= clip.frames) return;
-      const row = { frame: f, id, clip: clip.name ?? String(i), contactMiss: null, contacts: [], selfDepth: 0, selfPair: null, pairDepth: between.get(id) ?? 0, onScreen: null, heightPx: null };
+      // This clip's own frame at this moment of the shot; before its first or past its last, it is not on.
+      const f = Math.round((sf / 30 + (first - starts[i]) / VFPS) * clip.fps);
+      if (f < 0 || f >= clip.frames) return;
+      const row = { frame: sf, clipFrame: f, id, clip: clip.name ?? String(i), contactMiss: null, contacts: [], selfDepth: 0, selfPair: null, pairDepth: between.get(id) ?? 0, onScreen: null, heightPx: null };
       // Contacts held now: the limb's end against its point.
       const root = found.get(id);
       for (const c of players[i].contactsAt(f)) {
@@ -124,7 +127,9 @@ export const mocapPage = async (o) => {
         const { pivot, reach } = limbInfo[i][c.limb];
         pivot.getWorldQuaternion(q);
         pivot.getWorldPosition(end).addScaledVector(down.clone().applyQuaternion(q), reach * root.scale.y);
-        goal.set(c.point[0], c.point[1], c.point[2]);
+        // The root travels with the clip's floor motion (rootOffset); the point is where it was set down.
+        const off = players[i].rootOffset ?? { x: 0, z: 0 };
+        goal.set(c.point[0] - off.x, c.point[1], c.point[2] - off.z);
         root.localToWorld(goal);
         const miss = end.distanceTo(goal);
         row.contacts.push(c.limb);
