@@ -43,8 +43,11 @@ const LYING = new Set(['lie', 'nap', 'sprawl']);
 // Shared geometry bakes its colours in, so face parts use fixed palette colours only. A settled
 // face, and every face with morphs off (Low quality), shows its expression baked once into a static
 // geometry instead, keyed by expression and whether the eyes are shut, and swapped whole.
-let FACE_GEO = null;
-const FACE_BAKED = new Map();
+// Darker skins get their own copy with a warm red mouth, which an ink mouth would vanish against.
+const FACE_GEOS = new Map();     // 'light' | 'dark' -> morph geometry
+const FACE_BAKED = new Map();    // '<variant>:<expression>[:closed]' -> baked geometry
+const FACE_MOUTH_DARK = new THREE.Color('#d0646e');
+const DARK_SKIN_LUMA = 0.4;      // skins darker than this (sRGB luma) take the 'dark' face
 let faceMorphs = true;
 export function setFaceMorphs(on) { faceMorphs = !!on; }
 const BLINK = MORPHS.indexOf('blink');
@@ -433,11 +436,16 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   // The face: one mesh on the head, its expression blended from morph targets (face.js), or with
   // morphs off a baked copy per settled expression. The geometry is shared; the per-person tint
   // lives on the material.
-  if (!FACE_GEO && tpl) {
+  const skinSrgb = own.skin.color.clone().convertLinearToSRGB();
+  const faceVariant = 0.2126 * skinSrgb.r + 0.7152 * skinSrgb.g + 0.0722 * skinSrgb.b < DARK_SKIN_LUMA ? 'dark' : 'light';
+  if (!FACE_GEOS.has(faceVariant) && tpl) {
     const src = (o) => { const m = o.isMesh ? o.material : o.children.find((c) => c.isMesh)?.material; return { color: m?.color ?? new THREE.Color(0.1, 0.1, 0.1), roughness: m?.roughness, metalness: m?.metalness, tint: m ? tintable(m) : false }; };
-    FACE_GEO = createFaceGeometry({ ink: src(eyes), shine: src(shine) });
-    FACE_GEO.userData.shared = true;
+    const ink = src(eyes);
+    const g = createFaceGeometry({ ink, shine: src(shine), mouth: faceVariant === 'dark' ? { ...ink, color: FACE_MOUTH_DARK } : ink });
+    g.userData.shared = true;
+    FACE_GEOS.set(faceVariant, g);
   }
+  const FACE_GEO = FACE_GEOS.get(faceVariant) ?? null;
   const faceMesh = new THREE.Mesh(FACE_GEO ?? new THREE.BufferGeometry(), bm);
   faceMesh.name = 'baked';
   faceMesh.receiveShadow = true;
@@ -489,7 +497,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       const inf = faceMesh.morphTargetInfluences;
       for (let i = 0; i < faceW.length; i++) inf[i] = faceW[i];
     } else {
-      const key = `${name}${closed ? ':closed' : ''}`;
+      const key = `${faceVariant}:${name}${closed ? ':closed' : ''}`;
       if (key !== faceShown) {
         let g = FACE_BAKED.get(key);
         if (!g) { g = bakeFace(FACE_GEO, faceWant); FACE_BAKED.set(key, g); }

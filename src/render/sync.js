@@ -36,7 +36,9 @@ const REWALK_S = 3;            // seconds between tries for someone left short o
 const DOOR_SPREAD = 0.45;      // how far apart people leaving by the door head for
 // Facial expressions for events (faceEvent): seconds each holds, and who sees a firing.
 const FACE_HOLD = { deal: 2, launch: 3, award: 3, fired: 2 };
-const FACE_NEAR_M = 4, FACE_NEAR_MAX = 4;
+// FACE_SEE: radians off a bystander's turned heading the person leaving may be and still be watched.
+// FACE_AWAY_COS: a turned heading further than about 80 degrees off the camera hides the face.
+const FACE_NEAR_M = 4, FACE_NEAR_MAX = 3, FACE_SEE = 1.1, FACE_AWAY_COS = 0.17;
 const WAVE_S = 1.1;            // someone leaving waves goodbye this long before heading out
 const LEAVE_SPEED = 1.0;       // and walks to the door at this speed
 const ENTER_S = 0.7;           // sliding from the front of a couch or chair onto the spot
@@ -624,12 +626,34 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     } else if (e.type === 'launch' || e.type === 'award') {
       for (const r of recs.values()) if (shown(r)) r.char.express('delighted', { hold: FACE_HOLD[e.type] });
     } else if (e.type === 'resign' && e.fired) {
-      // Whoever is near the person fired looks at them, shocked.
+      // Whoever is near the person fired, and not busy, turns to follow them (seated people only
+      // swivel), shocked.
       const gone = recs.get(e.staffId);
       if (!shown(gone)) return;
-      const near = [...recs.values()].filter((r) => r !== gone && shown(r) && r.pos.distanceTo(gone.pos) < FACE_NEAR_M)
-        .sort((a, b) => a.pos.distanceTo(gone.pos) - b.pos.distanceTo(gone.pos)).slice(0, FACE_NEAR_MAX);
-      for (const r of near) { faceToward(r, gone); r.char.express('shocked', { hold: FACE_HOLD.fired }); r.char.lookAt(gone.char.head, { hold: FACE_HOLD.fired }); }
+      // Only those whose turn brings the leaver into view, the most camera-facing first.
+      const camYaw = Math.PI / 4 + (rig?.yawStep ?? 0) * Math.PI / 2;
+      const toward = (r) => {
+        const yaw = Math.atan2(gone.pos.x - r.pos.x, gone.pos.z - r.pos.z);
+        if (!r.char.seated) return yaw;
+        const d = Math.atan2(Math.sin(yaw - r.goal.yaw), Math.cos(yaw - r.goal.yaw));
+        return r.goal.yaw + Math.max(-SWIVEL, Math.min(SWIVEL, d));
+      };
+      const sees = (r) => { const yaw = Math.atan2(gone.pos.x - r.pos.x, gone.pos.z - r.pos.z), t = toward(r); return Math.cos(yaw - t) >= Math.cos(FACE_SEE); };
+      const near = [...recs.values()].filter((r) => r !== gone && shown(r) && !r.temp && !r.path.length && r.goal && Math.hypot(r.pos.x - r.goal.x, r.pos.z - r.goal.z) < 0.25 && r.staff.mood !== 'away' && r.pos.distanceTo(gone.pos) < FACE_NEAR_M && sees(r))
+        .sort((a, b) => Math.cos(toward(b) - camYaw) - Math.cos(toward(a) - camYaw)).slice(0, FACE_NEAR_MAX);
+      for (const r of near) {
+        const seat = r.char.seated ? r.goal : null;
+        r.temp = {
+          // Seated, they lean back startled and swivel (hands left on the keys would swing into the desk).
+          anim: seat ? 'recoil' : 'idle', t: FACE_HOLD.fired, keepPos: true, moment: 'fired',
+          stage: { beat: 'react', role: 'bystander', target: gone.char.root },
+          tick: (rr, dt) => { rr.yaw = angleLerp(rr.yaw, toward(rr), 1 - Math.exp(-dt * 8)); return false; },
+        };
+        r.char.express('shocked', { hold: FACE_HOLD.fired });
+        r.char.lookAt(gone.char.head, { hold: FACE_HOLD.fired });
+        // Turned away from the camera, the face can't carry it: a "!" over the head does.
+        if (Math.cos(toward(r) - camYaw) < FACE_AWAY_COS) emote(r, 'exclamation', FACE_HOLD.fired);
+      }
     }
   }
 

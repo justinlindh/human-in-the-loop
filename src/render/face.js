@@ -9,7 +9,8 @@ import * as THREE from 'three';
 // A point maps to head space as (x, HEAD_C + dz, surface z + out); the head faces +z.
 //
 // createFaceGeometry(colors) -> BufferGeometry with morphAttributes.position, in MORPHS order.
-//   colors: { ink: { color, roughness, metalness, tint }, shine: { ... } }
+//   colors: { ink: { color, roughness, metalness, tint }, shine: { ... }, mouth?: { ... } }
+//   (the mouth takes ink's colour unless given its own)
 // EXPRESSIONS: name -> { morph: weight }. MORPHS: the morph target names.
 // faceWeights(name, out?) -> Float32Array of MORPHS.length weights for an expression.
 // bakeFace(geometry, weights) -> a static copy with those weights applied (Low quality).
@@ -143,7 +144,7 @@ function features() {
   for (const s of [-1, 1]) list.push({ pts: (m) => eye(s, m), tris: eyeTris, color: 'ink', id: `eye${s}` });
   for (const s of [-1, 1]) list.push({ pts: (m) => shine(s, m), tris: shineTris, color: 'shine', id: `shine${s}` });
   for (const s of [-1, 1]) list.push({ pts: (m) => brow(s, m), tris: (b) => stripTris(b, BROW_N, s < 0), color: 'ink', id: `brow${s}` });
-  list.push({ pts: (m) => mouth(m), tris: (b) => stripTris(b, MOUTH_N, false), color: 'ink', id: 'mouth' });
+  list.push({ pts: (m) => mouth(m), tris: (b) => stripTris(b, MOUTH_N, false), color: 'mouth', id: 'mouth' });
   return list;
 }
 
@@ -165,7 +166,7 @@ export function createFaceGeometry(colors) {
   for (const f of feats) {
     const base = pos.length / 3, basis = f.pts(null);
     RANGES[f.id] = [base, base + basis.length];
-    const c = colors[f.color];
+    const c = colors[f.color] ?? colors.ink;
     for (const p of basis) {
       const h = toHead(p, n);
       pos.push(...h); nor.push(n.x, n.y, n.z);
