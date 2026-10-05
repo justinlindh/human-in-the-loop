@@ -2,7 +2,7 @@
 //   node scripts/events/build.js [--seeds 1-20] [--bots balanced,sensible,allHumans]
 //     [--weeks 1040] [--jobs N] [--force] [--profile <file.json>]
 // Completed indexes live at <cache>/<sim hash>/{events.jsonl.gz,meta.json,snapshots/}.
-import { Worker, isMainThread, parentPort } from 'node:worker_threads';
+import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { mkdirSync, writeFileSync, existsSync, rmSync, readdirSync, statSync, mkdtempSync, renameSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { join, resolve } from 'node:path';
@@ -15,7 +15,8 @@ let stopCode = 0;
 
 if (!isMainThread) {
   const { play } = await import('./play.js');
-  parentPort.on('message', (run) => parentPort.postMessage(play(run)));
+  const flag = new Int32Array(workerData.stop);
+  parentPort.on('message', (run) => parentPort.postMessage(play(run, () => Atomics.load(flag, 0) === 1)));
 } else {
   try { await build(); }
   catch (err) {
@@ -87,12 +88,15 @@ async function build() {
   const workers = new Set();
   let interrupted = false;
   const cleanup = () => rmSync(staging, { recursive: true, force: true });
+  // An interrupt raises the shared stop flag: each worker's game returns at its next week, the pool
+  // stops handing out runs, and build() terminates only idle workers before removing the staging
+  // directory. Terminating a worker mid-write can abort the whole process.
+  const stop = new SharedArrayBuffer(4);
   const interrupt = (signal) => {
     if (interrupted) return;
     interrupted = true;
     stopCode = signal === 'SIGINT' ? 130 : 143;
-    // Workers write only into the unpublished directory. Stop them before removing it.
-    Promise.all([...workers].map((w) => w.terminate())).finally(cleanup);
+    Atomics.store(new Int32Array(stop), 0, 1);
   };
   const onInt = () => interrupt('SIGINT'), onTerm = () => interrupt('SIGTERM');
   process.on('SIGINT', onInt);
@@ -103,10 +107,10 @@ async function build() {
     const results = new Array(runs.length);
     let next = 0, done = 0;
     await Promise.all(Array.from({ length: Math.min(jobs, runs.length) }, async () => {
-      const w = new Worker(new URL(import.meta.url));
+      const w = new Worker(new URL(import.meta.url), { workerData: { stop } });
       workers.add(w);
       try {
-        while (next < runs.length) {
+        while (next < runs.length && !interrupted) {
           const i = next++;
           results[i] = await new Promise((res, rej) => {
             const clear = () => { w.off('message', message); w.off('error', error); w.off('exit', exit); };
@@ -121,6 +125,7 @@ async function build() {
         }
       } finally { await w.terminate(); workers.delete(w); }
     }));
+    if (interrupted) throw new Error('interrupted');
     const finish = performance.now();
     const all = results.flatMap((r) => r.rows);
     all.sort((a, b) => a.bot.localeCompare(b.bot) || a.seed - b.seed || a.week - b.week);
