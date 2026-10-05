@@ -247,7 +247,7 @@ const KIND = {
   ping_pong_table: 'pingpong', ping_pong: 'pingpong', foosball: 'foosball',
 };
 export const kindOf = (itemId) => KIND[itemId] ?? itemId;
-const SHADOWLESS = new Set(['disk_duplicator', 'retail_shelf']);
+const SHADOWLESS = new Set(['disk_duplicator', 'retail_shelf', 'dotcom_banner']);
 const FREE_STANDING = new Set(['desk', 'meeting', 'plant', 'couch', 'pingpong', 'foosball']);
 // Models with a piece meant to stand on the tile in front of their footprint.
 const FRONT_ZONE = new Set(['espresso_l3', 'standing_desk_l2', 'standing_desk_l3', 'server_rack_l3', 'noc_l2', 'noc_l3']);
