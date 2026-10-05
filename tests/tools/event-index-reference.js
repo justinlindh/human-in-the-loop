@@ -8,6 +8,7 @@ import { ROOT } from '../../scripts/events/lib.js';
 const KEEP = new Set(['era', 'officeUpgrade', 'incident', 'launch', 'award', 'resign', 'unlock', 'goal', 'hire', 'gameOver']);
 const SNAP = new Set(['era', 'officeUpgrade']);
 const SNAP_PER_ID = 2;
+const SNAP_PER_OTHER = 1;
 
 export async function referencePlay({ bot, seed, weeks, dir }) {
   const mod = (p) => import(pathToFileURL(join(ROOT, p)).href);
@@ -27,8 +28,14 @@ export async function referencePlay({ bot, seed, weeks, dir }) {
     return name;
   };
   let open = null, preTick = null;
-  const collect = (events) => {
+  const prompts = [];
+  const collect = (events, inTick = false) => {
     for (const e of events ?? []) {
+      if (e.type === 'chatPrompt') {
+        const p = s.chatPrompts.find((x) => x.id === e.promptId);
+        if (p) { const row = { ...base(), week: p.week, type: 'chatPrompt', id: p.kind, prompt: p.id }; rows.push(row); prompts.push({ row, inTick }); }
+        continue;
+      }
       if (e.type === 'decisionResolved' && open && open.id === e.eventId) open.choice = e.choice ?? null;
       else if (KEEP.has(e.type)) rows.push({ ...base(), type: e.type, id: e.eraId ?? e.eventId ?? e.kind ?? e.type });
       // A company-wide celebrate is an office party (a new product, a moonshot, Product of the Year);
@@ -42,7 +49,7 @@ export async function referencePlay({ bot, seed, weeks, dir }) {
       const d = s.pendingDecision;
       open = { ...base(), type: 'decision', id: d.eventId, subject: d.subjectId ?? null, stageProp: d.stage?.prop ?? null, choice: null };
       const n = taken.get(d.eventId) ?? 0;
-      if ((EVENTS[d.eventId]?.stage || MOMENT_CAPTIONS[d.eventId]) && n < SNAP_PER_ID) {
+      if (n < ((EVENTS[d.eventId]?.stage || MOMENT_CAPTIONS[d.eventId]) ? SNAP_PER_ID : SNAP_PER_OTHER)) {
         open.snapshot = snap(d.eventId, before);
         // And the state just before the tick that raised it, so a page can play into the decision.
         if (preTick) open.preTick = snap(`${d.eventId}-pre`, preTick, s.week - 1);
@@ -56,7 +63,21 @@ export async function referencePlay({ bot, seed, weeks, dir }) {
     const n = rows.length;
     botTurn(bot, s, { onEvents: collect });
     preTick = JSON.stringify(s);
-    collect(tick(s));
+    collect(tick(s), true);
+    // A chat prompt plays from the state before the step that posted it and shows open after it.
+    for (const { row, inTick } of prompts.splice(0)) {
+      const key = `prompt:${row.id}`, k = taken.get(key) ?? 0;
+      if (k >= SNAP_PER_OTHER) continue;
+      const tag = `prompt-${row.id}`;
+      if (!inTick) {
+        row.preTick = snap(`${tag}-pre`, before, row.week);
+        row.snapshot = snap(tag, preTick, row.week);
+      } else if (!s.gameOver && s.week < weeks) {
+        row.preTick = snap(`${tag}-pre`, preTick, s.week - 1);
+        row.snapshot = snap(tag, JSON.stringify(s), s.week);
+      } else continue;
+      taken.set(key, k + 1);
+    }
     if (!s.pendingDecision) preTick = null;
     // An era change or an office move this week: snapshot the week before it, so it plays on load.
     for (const r of rows.slice(n)) if (SNAP.has(r.type) && !r.snapshot) { r.week = s.week - 1; r.snapshot = snap(r.type, before, r.week); }
