@@ -19,21 +19,33 @@ cur="$(nice 2>/dev/null || echo 0)"
 # the command runs, this loop puts every process under it that sits below nice 10 back at 10. It only
 # raises a nice value, which needs no privilege. HITL_NICE_KEEP=<s> sets the pass interval in seconds
 # (default 2; 0 turns the loop off and execs the command directly).
+# tree <root> <skip> [low]: the pids under root (root included), without the ones under skip; with `low`,
+# only those whose nice value is below 10.
+tree() {
+  ps -eo pid=,ppid=,ni= 2>/dev/null | awk -v root="$1" -v skip="$2" -v low="${3:-}" '
+    { ni[$1] = $3; kids[$2] = kids[$2] " " $1 }
+    function mark(p, set,   n, a, i) { set[p] = 1; n = split(kids[p], a, " "); for (i = 1; i <= n; i++) if (!(a[i] in set)) mark(a[i], set) }
+    END { mark(root, job); if (skip != "") mark(skip, out)
+      for (p in job) if (!(p in out) && (low == "" || (ni[p] ~ /^-?[0-9]+$/ && ni[p] + 0 < 10))) print p }'
+}
 keep_nice() { # <root pid>
-  local root="$1" me="$BASHPID" pids nap
-  # Stopping the keeper stops its sleep too: a sleep left behind would hold the caller's lock
-  # descriptors (a slot or pass lock) open for a few more seconds.
+  local root="$1" pids nap f
+  # The keeper holds none of the caller's descriptors (a slot or pass lock), so it can never keep one
+  # open, and it ends with its root and takes its sleep with it.
+  for f in /proc/$BASHPID/fd/*; do [ "${f##*/}" -gt 2 ] 2>/dev/null && eval "exec ${f##*/}>&-" 2>/dev/null; done
   trap '[ -z "${nap:-}" ] || kill "$nap" 2>/dev/null; exit 0' TERM
   while sleep "${HITL_NICE_KEEP:-2}" & nap=$!; wait "$nap"; do
-    pids="$(ps -eo pid=,ppid=,ni= 2>/dev/null | awk -v root="$root" -v me="$me" '
-      { ppid[$1] = $2; ni[$1] = $3; kids[$2] = kids[$2] " " $1 }
-      function mark(p, set,   n, a, i) { set[p] = 1; n = split(kids[p], a, " "); for (i = 1; i <= n; i++) if (!(a[i] in set)) mark(a[i], set) }
-      END { mark(root, job); mark(me, self); for (p in job) if (!(p in self) && ni[p] ~ /^-?[0-9]+$/ && ni[p] + 0 < 10) print p }')"
+    kill -0 "$root" 2>/dev/null || exit 0
+    pids="$(tree "$root" "$BASHPID" low)"
     [ -n "$pids" ] && renice -n 10 -p $pids >/dev/null 2>&1
   done
 }
+# The command and its children may have SIGINT ignored (a background job of a non-interactive shell),
+# so a stop signal goes to every process under the command, not only the first one.
+stop() { kill -TERM $(tree "$$" "$keeper" | grep -vx "$$") 2>/dev/null; }
 "$@" <&0 & child=$!
-trap 'kill -TERM "$child" 2>/dev/null' TERM INT HUP
+keeper=""
+trap stop TERM INT HUP
 keep_nice $$ >/dev/null 2>&1 </dev/null & keeper=$!
 wait "$child"; rc=$?
 while kill -0 "$child" 2>/dev/null; do wait "$child"; rc=$?; done
