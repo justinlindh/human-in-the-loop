@@ -109,7 +109,7 @@ const MOMENTS = [
   ['consultants', 'efficiency_consultants --choice 1', 'visitor_chair', 1, 3.2],
   ['letter', 'hearing_summons --choice 0', 'envelope_thick', 0, 3.4],
   // "Live with it" (the third answer) keeps the smoke up for 12 s after the card closes, so the fanning plays in it.
-  ['fumes', 'coffee_machine_broke --stage floor --seed 2 --choice 0', 'smoke_puff', 2, 2.8],
+  ['fumes', 'coffee_machine_broke --stage floor --seed 2 --choice 0', '() => ({ x: -2.5, z: -5.5 })', 2, 3, 24],
   ['bridge-loan', 'bridge_loan --choice 0', 'screens_red', 0],
   ['ransomware', 'ransomware --stage garage --choice 0', 'screens_skull', 0],
   ['printer', 'printer_jam --stage floor --choice 0', 'printer_jammed', 0, 2.6, 27],
@@ -391,10 +391,14 @@ export const ITEMS = [
   // decision comes from the event index, the game's own tick raises it, the camera follows the prop,
   // and the card is held about 5 s before its choice is made by key.
   ...MOMENTS.map(([name, query, prop, choice, zoom, length = 18]) => ({
-    id: `moment-${name}`, title: `Staged moment: ${name}`, query: 'seed=1&speed=1', moment: query, pre: true, seconds: length, warmup: 6.5,
+    id: `moment-${name}`, title: `Staged moment: ${name}`, query: 'seed=1&speed=1', moment: query, pre: name !== 'fumes', seconds: length, warmup: 6.5,
     setup: CLEAN,
     // No zoom: the game's wide view.
-    actions: [{ at: 0, js: NO_SAY }, ...OPEN(), ...(zoom ? FOLLOW([prop], zoom, 0, length) : []), { at: 6.5, js: KEY(String(choice + 1), `Digit${choice + 1}`) }, ...DISMISS_AT([7, 7.5, 9, 12], { escape: false }), ...CAMLOG(length)],
+    actions: [{ at: 0, js: NO_SAY }, ...OPEN(), ...(zoom ? FOLLOW(prop.startsWith('(') ? prop : [prop], zoom, 0, length) : []),
+      // Fumes: the card opens about 8 s in (the tick that raises it), so it is answered when it is up, not at a fixed time.
+      // Any other decision that comes first (the pre-tick week can raise one) gets its first answer.
+      ...(name === 'fumes' ? [...Array.from({ length: 2 * length }, (_, i) => ({ at: i / 2, js: `(() => { const H = window.__HITL, d = H.state.pendingDecision; if (d && d.eventId !== 'coffee_machine_broke') H.dispatch({ type: 'resolveDecision', choice: 0 }); })()` })), ...CHOOSE_WHEN('coffee_machine_broke', choice, 1, length, 3)] : [{ at: 6.5, js: KEY(String(choice + 1), `Digit${choice + 1}`) }]),
+      ...DISMISS_AT([7, 7.5, 9, 12], { escape: false }), ...CAMLOG(length)],
     screenshots: [5],
     out: [{ path: `moments/${name}.mp4`, size: '1280x720', from: 1.5, seconds: length - 4, loop: 'none' }],
   })),
