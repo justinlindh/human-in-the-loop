@@ -166,6 +166,25 @@ const ITEM_STILLS = [
   ['office_robot'], ['server_rack'], ['trophy_case'],
 ];
 
+// A real game played to week 176 with the Incentives Program on and the ladder set to `reward`'s rung, then
+// advanced to the week before the award (found by ticking a copy ahead): the first live week awards it.
+const RUNG = (reward) => PLAY({ weeks: 176, after: `${IN_OFFICE}${CHAT_HISTORY}${DROP_UNSTAFFED}${STAFF_IDLE}
+  s.policies.incentives = true;
+  const { INCENTIVES } = await import('/src/data/incentives.js');
+  s.flags.incentiveCount = window.__rung = INCENTIVES.filter((r) => r.id !== 'waffle_party').findIndex((r) => r.id === '${reward}');
+  s.flags.incentiveWeek = s.week - (await import('/src/sim/balance.js')).B.incentiveEveryWeeks;
+  const ahead = structuredClone(s); let weeks = 0, found = false;
+  while (weeks < 12 && !found) { weeks++; const ev = sim.tick(ahead) ?? []; const hit = ev.find((e) => e.type === 'incentive' && e.reward === '${reward}'); found = !!hit; if (hit) window.__winner = hit.staffId; else b.botDecide('balanced', ahead); }
+  if (!found) throw new Error('capture: no ${reward} award within 12 weeks');
+  for (let i = 1; i < weeks; i++) { sim.tick(s); b.botDecide('balanced', s); }` });
+
+// The world point of the person an incentive was staged for (window.__winner), for FOLLOW.
+const WINNER = `() => { const R = window.__hitlRender; let o = null; R.scene.traverse((x) => { if (!o && x.userData.staffId === window.__winner) o = x.parent; }); return o ? o.getWorldPosition(new o.position.constructor()) : null; }`;
+
+// The framed caricature the award hangs on the wall (its world point is kept in userData.at), for FOLLOW.
+const CARICATURE = `() => { const R = window.__hitlRender; let g = null; R.scene.traverse((x) => { if (!g && x.userData.at && x.userData.at.y > 1) g = x; }); if (!g) return null;
+  const w = g.getWorldPosition(new g.position.constructor()), a = g.userData.at; return { x: w.x + a.x, y: w.y + a.y - 0.8, z: w.z + a.z - 1.2 }; }`;
+
 export const ITEMS = [
   // The office, by stage and time.
   {
@@ -579,6 +598,20 @@ export const ITEMS = [
     out: [{ path: 'iface/noc.webp', size: '1230x648', from: 3, crop: { x: 0.18, y: 0.07, w: 0.64, h: 0.6 } }],
     publish: true,
   },
+
+  // docs/features/moments.md: the minor incentive rewards, awarded on camera in a real game.
+  ...['finger_traps', 'balloons', 'caricature', 'melon_bar'].map((reward) => ({
+    id: `moment-incentive-${reward}`, title: `Staged moment: the ${reward} reward`, query: 'seed=1&speed=1', seconds: 20, warmup: 0.5, record: '3840x2160',
+    setup: `(async () => { await ${RUNG(reward)}; ${CLEAN}; })()`,
+    // The caricature goes up on the wall once the award is done, so the camera moves there after the winner.
+    actions: [...CLEAR_EARLY, ...WAFFLE_ACTIONS(20),
+      ...(reward === 'caricature' ? [...FOLLOW(WINNER, 3.4, 0, 8.9, 0, true), ...FOLLOW(CARICATURE, 3.4, 9, 20, 0, true)] : FOLLOW(WINNER, 3.4, 0, 20)),
+      // The award moves the ladder one rung; a run that missed it would publish an ordinary office.
+      { at: 17, js: `(() => { const s = window.__HITL.state; if (s.flags.incentiveCount !== window.__rung + 1 || !window.__winner) console.error('capture: the ${reward} award did not happen on camera'); })()` },
+      ...CAMLOG(20)], screenshots: [6, 10, 14],
+    out: [{ path: `moments/incentive-${reward}.mp4`, size: '1280x720', from: 6, seconds: 11, loop: 'none', crop: { x: 0.25, y: 0.2, w: 0.5, h: 0.56 } }],
+    publish: true,
+  })),
 
   // docs/features/decisions.md: what each decision stages in the office while its card is up. The pre-tick
   // snapshot is opened, the game's tick raises the card, the card is hidden and the camera holds on the prop.
