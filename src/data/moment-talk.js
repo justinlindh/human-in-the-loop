@@ -1,3 +1,5 @@
+import { ALLHANDS_SCREEN, variantPool } from './moment-variants.js';
+
 // Spoken pools for the prop on display and the choice just made. Choice order matches EVENTS.
 export const MOMENT_TALK = {
   printer_jam: {
@@ -24,18 +26,13 @@ export const MOMENT_TALK = {
       ['Two fewer meetings. Efficiency achieved.', 'Their first saving was their own visit.'],
     ],
   },
-  open_plan_office: {
-    open: [
-      "He's said 'synergy' eleven times. I'm counting.",
-      'Is the all-hands mandatory or just inescapable?',
-      "Don't blink. The screen counts blinks as disengagement.",
-      "The hammer didn't attend the planning meeting.",
-    ],
+  open_plan_office: variantPool(ALLHANDS_SCREEN, {
+    open: ["That's a very physical collaboration tool.", "The hammer didn't attend the planning meeting."],
     choices: [
-      ["Well, that's one way to flatten the org chart.", 'The all-hands is now an all-pieces.', 'We can hear the roadmap from here.', 'Privacy is now a headphone setting.'],
-      ['The walls survived. The screen did not.', "I'll file a ticket for the screen. Low priority.", 'Keeping the rooms. Radical stuff.'],
+      ['We can hear the roadmap from here.', 'Privacy is now a headphone setting.'],
+      ['The walls passed their performance review.', 'Keeping the rooms. Radical stuff.'],
     ],
-  },
+  }),
   resignation_letter: {
     open: ['That envelope looks heavier than paper.', "Everyone's suddenly very into their monitors."],
     choices: [
