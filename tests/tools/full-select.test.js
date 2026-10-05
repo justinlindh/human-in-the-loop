@@ -54,7 +54,19 @@ describe('full-select', () => {
   it('says why: the way from the changed file back to the test', () => {
     const { why } = select(['src/data/table.js', 'src/data/cards/two.js'], { root });
     expect(why['tests/tools/spawns.full.test.js']).toBe('src/data/table.js <- scripts/run.mjs <- tests/tools/spawns.full.test.js');
-    expect(why['tests/tools/globs.full.test.js']).toBe('src/data/cards/two.js <- src/data/cards/ (glob) <- tests/tools/globs.full.test.js');
+    expect(why['tests/tools/globs.full.test.js']).toBe('src/data/cards/two.js <- src/data/cards/ (directory) <- tests/tools/globs.full.test.js');
+  });
+
+  // The engine's fetch and the model loader build asset paths at run time, so no literal names them.
+  it('counts the assets the engine and the model loader read by run-time path, on this repository', () => {
+    const r = spawnSync(process.execPath, [SCRIPT, '--why', '--files', 'public/models/chibi_rig.glb'], { encoding: 'utf8' });
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.stdout).toContain('tests/tools/studio-clip.full.test.js');
+    expect(r.stdout).toContain('tests/tools/era-checks.full.test.js');
+    expect(r.stderr).toMatch(/public\/models\/chibi_rig\.glb <- public\/models\/ \(directory\) <- src\/render\/models\.js <- /);
+    const sound = spawnSync(process.execPath, [SCRIPT, '--files', 'public/audio/new.ogg'], { encoding: 'utf8' }).stdout;
+    expect(sound).toContain('tests/tools/studio-clip.full.test.js');
+    expect(sound).not.toContain('tests/sim/');
   });
 
   it('runs as a command on this repository, and refuses bad arguments', () => {

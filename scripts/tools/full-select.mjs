@@ -9,7 +9,9 @@
 // A test reaches a file through its static imports and, recursively from every file it reaches,
 // through any string literal naming a repo .js, .mjs or .json file (a script it spawns, a worker, a
 // literal import.meta.glob; not another test file, which a string names only as a list entry) and the
-// directories a wildcard import.meta.glob reads. A changed file selects every test that reaches it;
+// directories a wildcard import.meta.glob reads, and the asset directories the files in
+// COMPUTED_READS read by run-time path (the studio engine's public fetch, the model loader). A changed
+// file selects every test that reaches it;
 // vite.config.js, package.json and package-lock.json select every test.
 // One no test reaches selects nothing, except a file that is not JavaScript under the paths the
 // whole-game tests read (SCOPE: data a test may read without naming it, the build config, the
@@ -23,6 +25,9 @@ import { fileURLToPath } from 'node:url';
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const SCOPE = /^(src\/(sim|data|save)\/|tests\/|scripts\/(events|studio|tools|lib)\/|blender\/checks\/|scripts\/balance\.js$|vite\.config\.js$|package-lock\.json$|package\.json$)/;
 const CODE = /\.(m?js|ts)$/;
+// Files that read a directory by a path built at run time, which no literal names: the studio
+// engine's fetch serves every public asset, and the game's model loader builds each model's URL.
+const COMPUTED_READS = { 'scripts/studio/platform.mjs': ['public'], 'src/render/models.js': ['public/models'] };
 // The test runner's config and the installed packages: a change selects every test.
 const EVERY = /^(vite\.config\.js|package\.json|package-lock\.json)$/;
 const LITERAL = /['"`]((?:\.{1,2}\/|\/)?[\w@.\/-]+\.(?:m?js|json))['"`]/g;
@@ -83,6 +88,7 @@ export function reach(test, root = ROOT) {
     if (files.has(rel) || rel.startsWith('..') || /(^|\/)node_modules\//.test(rel)) continue;
     files.add(rel);
     from.set(rel, parent);
+    for (const x of COMPUTED_READS[rel] ?? []) if (!dirs.has(x)) { dirs.add(x); from.set(`${x}/`, rel); }
     if (!CODE.test(abs)) continue;
     const d = direct(abs, root);
     for (const n of d.names) pending.push([n, rel]);
@@ -101,7 +107,7 @@ export function select(changed, { root = ROOT, tests = fullTests(root) } = {}) {
     const { files, dirs, from } = reached[t];
     let at = files.has(f) ? f : `${[...dirs].find((d) => f.startsWith(`${d}/`))}/`;
     const out = [f];
-    if (at !== f) out.push(`${at} (glob)`);
+    if (at !== f) out.push(`${at} (directory)`);
     for (at = from.get(at); at; at = from.get(at)) out.push(at);
     return out.join(' <- ');
   };
