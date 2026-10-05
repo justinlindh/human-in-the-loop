@@ -624,7 +624,7 @@ export const ITEMS = [
       ...CAMLOG(40)],
     screenshots: [14, 18, 22, 26],
     out: [{ path: `moments/music-${genre}.mp4`, size: '1280x720', from: 13, seconds: 14, loop: 'none', crop: { x: 0.2, y: 0.3, w: 0.5, h: 0.5 } }],
-    publish: true,
+    // Not published until the onlookers leave an arc open to the camera: from every view the ring hides the dance.
   })),
 
   // docs/features/decisions.md: what each decision stages in the office while its card is up. The pre-tick
