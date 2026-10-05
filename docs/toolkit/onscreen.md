@@ -1,7 +1,9 @@
 ---
-tool: `node blender/checks/onscreen.mjs [--mock m | --moment '<query>' | --snapshot <path>] [--speed 1] [--frames a,b] [--patch-js ...] [--event '<json>'] [--json <file>]`
+tool: `node blender/checks/onscreen.mjs [--mock m | --moment '<query>' | --snapshot <path>] [--speed 1] [--frames a,b] [--patch-js ...] [--event '<json>'] [--no-panels] [--json <file>]`
 section: run
 who: video, art, reviewer
-covers: blender/checks/onscreen.mjs
+covers: blender/checks/onscreen.mjs blender/checks/onscreen-page.js tests/tools/onscreen-engine.test.js
 ---
 What's on screen, without recording: for each sampled frame, whether the title screen is up, the clock (week, speed, paused or frozen, a spotlight holding it), the pending decision and where it stages its prop, every visible UI panel (decision card, tray cards, top bar chips, chat) with its first line of text and screen rectangle, the camera's yaw and zoom, and the screen box of every staged prop and person on screen. It runs the game's own frame (sim, UI and renderer) with drawing off, so a moment's setup reads back in two or three seconds. Run it before a capture or a render check to confirm the shot holds what you expect: the card is up, the clock is stopped, the prop is in frame, nothing covers the subject. `--speed 1` lets the clock run (a mock or a loaded game otherwise sits at speed 0). A snapshot opened with `--moment` or `--snapshot` loads the save without leaving the title screen, and the probe says so on each frame.
+
+`--no-panels` runs on the studio engine instead (Node, nothing drawn, no browser): the clock's week, spotlight and the pending decision, the camera, and the props and people with their screen boxes, in about a second. It has no UI, so `panels` is empty and the title screen never shows; it has no game loop, so `speed` and `frozen` read null, `paused` reads true, and `--speed` is refused. The renderer steps alone, so a person who walks can stand elsewhere than in the browser run after the first second; static boxes match to the pixel. Without `--no-panels` the browser run is unchanged.
