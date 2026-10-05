@@ -886,7 +886,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   // Turn toward someone for a few seconds; seated people only swivel so they stay in the chair.
   function faceToward(a, b) {
-    if (a.char.anim === 'facepalm' || a.char.anim === 'facepalmsit') return;
+    // Facepalmers keep their camera-facing turn; lying people would spin on the couch or pod.
+    if (a.char.anim === 'facepalm' || a.char.anim === 'facepalmsit' || LYING.has(a.char.anim)) return;
     let yaw = Math.atan2(b.pos.x - a.pos.x, b.pos.z - a.pos.z);
     // Seated people (at a desk, or in a meeting chair for a standup) only swivel.
     const seat = a.temp?.seat ? a.temp.goal : a.goal?.seated && !a.path.length && !a.temp ? a.goal : null;
