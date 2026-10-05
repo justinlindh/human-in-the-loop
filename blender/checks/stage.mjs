@@ -103,10 +103,16 @@ const SPECS = {
     share('celebrating', 'nearby coworkers celebrate throughout the beat', (x) => x.anim === 'celebrate', 0.9),
   ] },
   'deal.seller': { moment: 'deal', beat: 'ring', role: 'seller', rules: [
-    share('handUp', 'seller plays the fist pump throughout the beat', (x) => x.anim === 'dealsit', 0.9),
+    share('handUp', 'seller rings the deal bell throughout the beat', (x) => x.anim === 'dealsit', 0.9),
     share('fistUp', 'a hand within 0.15 m below the eyes (typing hands sit 0.34 m below)', (x) => Math.max(x.handsRel[0][1], x.handsRel[1][1]) >= -0.15, 0.7),
-    share('fistNear', 'the raised hand sits nearer the camera than the eyes, clear of the head', (x) => x.handsCam[x.handsRel[0][1] >= x.handsRel[1][1] ? 0 : 1] >= 0.05, 0.7),
-    share('facingCamera', 'seller faces within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    // Seen from above, a fist over the chest reads as typing: the raised fist has to stand out beside
+    // the head (0.33 m across the view from the eyes) and not drop behind it.
+    // A chibi fist can't rise above the head, so the bell does: above the eyes and in front of the
+    // head, where it breaks the head's outline from above.
+    share('bellUp', 'the bell sits at least 0.08 m above the eyes', (x) => (x.held?.up ?? -1) >= 0.08, 0.7),
+    share('bellFront', 'the bell is not behind the head', (x) => (x.held?.cam ?? -1) >= 0, 0.7),
+    share('fistClear', 'the raised fist sits beside the head on screen, not over the chest or behind the head', (x) => { const h = x.handsRel[0][1] >= x.handsRel[1][1] ? 0 : 1; return x.handsSide[h] >= 0.33 && x.handsCam[h] >= -0.08; }, 0.7),
+    share('facingCamera', 'seller faces within 55 deg of the camera', (x) => x.faceCam <= 55, 0.8),
     share('smug', 'a notable deal: the seller looks pleased with themselves', (x) => x.face === 'smug', 0.7),
     // No noFade: the seller stays at the desk the sim names, so a column faded over it is the
     // office's own cutaway, not something this moment stages.
@@ -119,7 +125,7 @@ const SPECS = {
   // The company's first deal: the same beat, and the seller's face lights up (face.js 'delighted').
   'dealFirst.seller': { moment: 'deal', scenario: 'dealFirst', beat: 'ring', role: 'seller', rules: [
     share('delighted', 'the seller looks delighted for most of the beat', (x) => x.face === 'delighted', 0.7),
-    share('facingCamera', 'seller faces within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('facingCamera', 'seller faces within 55 deg of the camera', (x) => x.faceCam <= 55, 0.8),
   ] },
   'dealFirst.coworker': { moment: 'deal', scenario: 'dealFirst', beat: 'cheer', role: 'coworker', rules: [
     share('clapping', 'neighbours clap once their delay is over', (x) => x.anim === 'growthclapsit', 0.7),
@@ -143,8 +149,35 @@ const SPECS = {
     share('barkFace', 'a bark-only face (tired, questioning) on two of the four', (x) => ['tired', 'questioning'].includes(x.face), 0.35),
     share('mouthMoves', 'the mouth open past 0.2 with the voice', (x) => x.talk >= 0.2, 0.3),
   ] },
-  'company_party.cheer': { moment: 'company_party', beat: 'cheer', rules: [
-    share('celebrating', 'company celebrates throughout the beat', (x) => x.anim === 'celebrate', 0.9),
+  // Music night: the winner dances in front, facing the camera, body in view; the backup dancers
+  // face the camera too; the onlookers stand on an arc open toward the camera, watching the winner,
+  // never with their backs to it. `music_standup` starts it over a standup still in its ring.
+  ...Object.fromEntries(['music', 'music_standup'].flatMap((scenario) => [
+    [`${scenario}.dancer`, { moment: 'music', scenario, beat: 'dance', role: 'dancer', rules: [
+      share('visible', 'the dancer\'s body >= 75% unblocked', (x) => x.visible >= 0.75, 0.9),
+      share('facingCamera', 'face within 60 deg of the camera', (x) => x.faceCam <= 60, 0.9),
+      noFade,
+    ] }],
+    [`${scenario}.backup`, { moment: 'music', scenario, beat: 'dance', role: 'backup', rules: [
+      share('facingCamera', 'face within 60 deg of the camera', (x) => x.faceCam <= 60, 0.9),
+      share('visible', 'body >= 50% unblocked', (x) => x.visible >= 0.5, 0.8),
+    ] }],
+    [`${scenario}.onlooker`, { moment: 'music', scenario, beat: 'watch', role: 'onlooker', rules: [
+      share('watching', 'face within 45 deg of the dancer', (x) => x.targetAngle <= 45, 0.8),
+      share('faceShows', 'face within 90 deg of the camera (turned out toward it)', (x) => x.faceCam <= 90, 0.9),
+    ] }],
+  ])),
+  // A company party: everyone cheers with both arms up. Whoever sat at a desk stands up behind the
+  // chair to do it, facing the camera, so the cheer isn't hidden behind the chair back.
+  'company_party.seated': { moment: 'company_party', beat: 'cheer', role: 'seated', rules: [
+    share('celebrating', 'cheers throughout the beat', (x) => x.anim === 'celebrate', 0.9),
+    share('armsUp', 'both hands up level with the eyes, within 0.12 m (typing hands sit 0.34 m below)', (x) => Math.min(x.handsRel[0][1], x.handsRel[1][1]) > -0.12, 0.8),
+    share('facingCamera', 'face within 60 deg of the camera', (x) => x.faceCam <= 60, 0.8),
+    share('visible', 'body >= 60% unblocked', (x) => x.visible >= 0.6, 0.8),
+  ] },
+  'company_party.standing': { moment: 'company_party', beat: 'cheer', role: 'standing', rules: [
+    share('celebrating', 'cheers throughout the beat', (x) => x.anim === 'celebrate', 0.9),
+    share('armsUp', 'both hands up level with the eyes, within 0.12 m (typing hands sit 0.34 m below)', (x) => Math.min(x.handsRel[0][1], x.handsRel[1][1]) > -0.12, 0.8),
   ] },
   'pet.turn': { moment: 'pet', beat: 'turn', role: 'dog', rules: [
     share('upright', 'stand upright before reaching', x => x.anim === 'idle', 1),
@@ -368,7 +401,7 @@ const SCENARIOS = {
     setup: "(await import('/src/render/checks.js')).setupClick(R, S)" },
   click_voice: { moment: 'click', query: 'mock=floor', patch: {}, seconds: 2,
     setup: "(await import('/src/render/checks.js')).setupClick(R, S, { voice: true })" },
-  company_party: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "R.handleEvents([{ type: 'celebrate', staffId: null }], S);" }], seconds: 6 },
+  company_party: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "R.handleEvents([{ type: 'celebrate', staffId: null, cause: 'Product 5 launched' }], S);" }], seconds: 9 },
   pet: { query: 'mock=floor', patch: {}, seconds: 6,
     setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'dog', 2.104, 1.0)" },
   robot: { query: 'mock=floor', patch: {}, seconds: 14,
@@ -378,6 +411,10 @@ const SCENARIOS = {
     setup: "(await import('/src/render/checks.js')).setupRobotParty(R, S, 'waffle_party')" },
   robot_dj: { moment: 'robot', robot: true, query: 'mock=floor', patch: {}, seconds: 14,
     setup: "(await import('/src/render/checks.js')).setupRobotParty(R, S, 'music_night')" },
+  music: { query: 'mock=floor', patch: {}, seconds: 14,
+    setup: "(await import('/src/render/checks.js')).setupMusic(R, S)" },
+  music_standup: { moment: 'music', query: 'mock=floor', patch: {}, seconds: 14,
+    setup: "(await import('/src/render/checks.js')).setupMusic(R, S, { standup: true })" },
   petcat: { moment: 'pet', query: 'mock=floor', patch: {}, seconds: 6,
     setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'cat', 2.104, 1.0)" },
   y2k: { query: 'mock=garage', patch: {}, seconds: 20,
@@ -417,7 +454,7 @@ const SCENARIOS = {
 // each scenario played with that era's art on.
 for (const era of ['preinternet', 'dotcom', 'web2', 'agents']) {
   for (const base of ['growth', 'company_party']) SCENARIOS[`${base}_${era}`] = { ...SCENARIOS[base], era };
-  for (const key of ['growth.honoree', 'growth.coworker', 'company_party.cheer']) {
+  for (const key of ['growth.honoree', 'growth.coworker', 'company_party.seated', 'company_party.standing']) {
     const [base, role] = key.split('.');
     SPECS[`${base}_${era}.${role}`] = { ...SPECS[key], scenario: `${base}_${era}` };
   }

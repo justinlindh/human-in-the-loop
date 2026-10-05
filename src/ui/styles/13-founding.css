@@ -40,6 +40,14 @@
 .hitl .era-start:focus-visible, .hitl .start-mode:focus-visible { outline: 0.2em solid var(--green); outline-offset: 0.15em; }
 .hitl .era-start:disabled, .hitl .start-mode:disabled { opacity: 0.6; cursor: default; }
 .hitl .era-start .pill { align-self: flex-start; }
+.hitl .era-pick > summary { display: flex; align-items: center; gap: 0.6em; flex-wrap: wrap; min-height: 44px; padding: 0.5em 0.8em; cursor: pointer; list-style: none; background: var(--cream-2); border: var(--bw) solid var(--ink); border-radius: 0.7em; }
+.hitl .era-pick > summary::-webkit-details-marker { display: none; }
+.hitl .era-pick > summary:focus-visible { outline: 0.2em solid var(--green); outline-offset: 0.15em; }
+.hitl .era-pick[open] > summary { margin-bottom: 0.6em; }
+.hitl .era-pick-now { flex: 1 1 auto; color: var(--ink-soft, var(--ink)); font-weight: 600; }
+.hitl .era-pick-change { padding: 0.15em 0.6em; border: var(--bw) solid var(--ink); border-radius: 0.6em; background: #fff; font-weight: 700; }
+.hitl .era-pick[open] .era-pick-change { display: none; }
+.hitl .era-pick > .era-starts + .takeover-choices { margin-top: 0.6em; }
 .hitl .era-start-summary { padding: 0.7em; background: var(--cream-3); border-radius: 0.5em; font-weight: 600; }
 .hitl .takeover-choices, .hitl .takeover-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6em; }
 .hitl .takeover-fact { display: flex; flex-direction: column; gap: 0.25em; padding: 0.65em; background: var(--cream-3); border-radius: 0.5em; overflow-wrap: anywhere; }

@@ -56,6 +56,8 @@ const LEAVE_SPEED = 1.0;       // and walks to the door at this speed
 const ENTER_S = 0.7;           // sliding from the front of a couch or chair onto the spot
 const PERSON_GAP = 0.45;       // two people's centres nearer than this overlap
 const PARTY_MERGE_S = 1.5;     // two company-wide celebrations this close make one party
+const PARTY_CHEER_S = 3;       // how long each person cheers at a company party, once in place
+const PARTY_STAND_M = 1.2;     // a seated cheerer stands up no further than this from their seat
 const PASS_R = 1.2;            // walkers closing on each other within this start to pass (passWalkers)
 const PASS_K = 0.8;            // how fast they drift aside, as a share of walking speed
 const PASS_SIDE_M = 0.55;      // until the other is this far to one side of their line
@@ -684,7 +686,15 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         case 'posted': postReaction(e.outcome); break;
         case 'incident': incident(e, state); break;
         case 'standup': if (e.mode === 'daily') startStandup(e, state); break;
-        case 'incentive': incentives.handle(e); break;
+        case 'incentive':
+          // A standup waits out a spotlight where it stands, so one gathered on the floor a party
+          // takes would stand in front of it the whole time: the party ends it instead.
+          if (standup && (e.reward === 'music_night' || e.reward === 'waffle_party')) {
+            if (standup.spoken) labels.clearSpeech(standup.spoken.root, standup.spoken.text);
+            endStandup();
+          }
+          incentives.handle(e);
+          break;
         case 'robot': robot.event(e); break;
         default: break;
       }
@@ -992,7 +1002,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     r.temp = { anim: 'celebrate', t: seconds, keepPos: true };
   }
 
-  // A notable deal: the seller, seated at their desk, pumps a fist on the camera side,
+  // A notable deal: the seller, seated at their desk, rings a bell held up on the camera side,
   // turned toward the camera as far as the chair allows, and the nearest seated coworkers turn to
   // clap. Low plays the seller alone. Nobody stands or walks, and the clock never holds for it.
   function dealBell(e) {
@@ -1010,10 +1020,13 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const turnTo = turn(seller, camYaw - Math.sign(toCam || 1) * DEAL.threeQuarter);
     emote(seller, 'sparkle', DEAL.seconds);
     seller.temp = {
-      anim: 'typing', t: DEAL.seconds, keepPos: true, moment: 'deal', stage: { beat: 'ring', role: 'seller' },
+      anim: 'typing', t: DEAL.seconds, keepPos: true, moment: 'deal', stage: { beat: 'ring', role: 'seller', get held() { return seller.char.dealBell(); } },
       tick: (r, dt) => { r.yaw = angleLerp(r.yaw, turnTo, 1 - Math.exp(-dt * 8)); return false; },
     };
     seller.char.gesture('deal', DEAL.seconds, Math.sin(turnTo - camYaw) >= 0 ? 1 : -1);
+    // 'hitl:dealBell' { staffId, seconds } when the bell is rung on screen, so its sound plays only
+    // with the picture (a skipped beat stays silent).
+    if (typeof dispatchEvent === 'function') dispatchEvent(new CustomEvent('hitl:dealBell', { detail: { staffId: seller.id, seconds: DEAL.seconds } }));
     if (low()) return;
     const crowd = [...recs.values()]
       .filter((r) => r !== seller && !r.hidden && !r.temp && !r.path.length && r.char.seated && r.goal && r.staff.mood !== 'away' && r.pos.distanceTo(seller.pos) < DEAL.nearby)
@@ -1113,9 +1126,25 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     for (let i = 0; i < 3; i++) fx.confetti(jitter(-L.W / 4, L.W / 4), 1.0, jitter(-L.D / 4, L.D / 4), { spread: 1.4 });
     let k = 0;
     const cast = [];
+    const camYaw = rig?.yaw ?? Math.PI / 4, nav = office.nav();
     for (const r of recs.values()) {
       if (r.hidden || r.mode !== 'placed' || taken(r) || !roomToCelebrate(r)) continue;
-      r.temp = { anim: 'celebrate', t: 1.8 + (k++ % 5) * 0.12, keepPos: true, delay: (k % 7) * 0.08, moment: 'company_party', stage: { beat: 'cheer' } };
+      const stage = { beat: 'cheer', role: r.char.seated ? 'seated' : 'standing' };
+      const t = PARTY_CHEER_S + (k++ % 5) * 0.12;
+      if (r.char.seated && r.goal?.seated) {
+        // From a desk chair the cheer is hidden behind its back: up out of the chair, a step behind
+        // it, facing the camera, then back to the seat.
+        const back = seatApproach(r.goal);
+        const at = nav.isBlocked(back.x, back.z, BODY_R) ? standClear(nav, back) : back;
+        if (at && Math.hypot(at.x - r.goal.x, at.z - r.goal.z) < PARTY_STAND_M) {
+          const spot = { x: at.x, z: at.z, yaw: camYaw, anim: 'idle' };
+          r.temp = { anim: 'celebrate', t, goal: spot, back: true, moment: 'company_party', stage };
+          walkTo(r, spot);
+          cast.push(r);
+          continue;
+        }
+      }
+      r.temp = { anim: 'celebrate', t, keepPos: true, delay: (k % 7) * 0.08, moment: 'company_party', stage };
       cast.push(r);
     }
     partyCast = cast;
@@ -1318,7 +1347,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   // Perk visits (coffee, nap pod, couch, arcade, shelves, tables) replace plain wandering.
-  const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup, low });
+  // No new visits start while a standup or a music night holds the floor.
+  const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup || !!incentives.dance, low });
   const pets = createPets({ office, recs, emote, parent: group, getProps, resumeWalk: walkTo, low });
   const robot = createRobot({ office, recs, emote, parent: group, walkTo, inView: (q) => moments.inView(q, { body: true, walls: true }), camYaw: () => rig?.yaw ?? Math.PI / 4 });
   robotOut = () => robot.blocker();
