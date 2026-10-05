@@ -4,7 +4,7 @@ import { createMomentSpeech } from './moment-speech.js';
 import { createSpeechBudget } from './speech-budget.js';
 import { createStandupSpeech, standupContext, standupRevision, standupText } from './standup-speech.js';
 import * as THREE from 'three';
-import { createCharacter } from './character.js';
+import { createCharacter, LYING } from './character.js';
 import { wardrobeEra } from './wardrobe.js';
 import { PALETTE as P, ROLE_COLORS } from './palette.js';
 import { glow } from './materials.js';
@@ -857,7 +857,10 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     // Clear actors win first, then standing actors, then the most camera-facing heading.
     const facing = (r) => Math.cos(r.yaw - yaw) + (clear(r) ? PALM_PICK.clear : 0) + (!r.char.seated ? PALM_PICK.standing : 0) + (!r.temp ? PALM_PICK.idle : 0);
     here.sort((a, b) => facing(b) - facing(a));
-    const palm = here.shift();
+    // Not someone lying down: they nap face up, and the turn to the camera would spin them on the couch.
+    const pi = here.findIndex((r) => !LYING.has(r.char.anim));
+    if (pi < 0) return;
+    const [palm] = here.splice(pi, 1);
     // No emote over the facepalmer: the head bows, and a bubble would sit over the face.
     // Bring the temple hand toward the camera instead of behind the far cheek.
     // Seated, they swing round in the chair further than for a glance, so a desk facing a wall still shows the palm.
