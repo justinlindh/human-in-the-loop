@@ -16,7 +16,9 @@ const SNAP_PER_ID = 2;
 const SNAP_PER_OTHER = 1;
 
 // Workers reuse this module across runs; simulation results must depend only on each game's state.
-export function play({ bot, seed, weeks, dir, profile = false }) {
+// `stopped()` is checked each week of both passes; when it turns true the run returns early with
+// `stopped: true`, so a worker is never terminated in the middle of a write.
+export function play({ bot, seed, weeks, dir, profile = false }, stopped = () => false) {
   const started = performance.now();
   const ms = { sim: 0, extraction: 0, serialization: 0, compression: 0, io: 0 };
   const timed = profile ? (phase, fn) => {
@@ -56,6 +58,7 @@ export function play({ bot, seed, weeks, dir, profile = false }) {
     }
   });
   while (!s.gameOver && s.week < weeks) {
+    if (stopped()) return { rows, stopped: true };
     timed('extraction', () => {
       if (s.pendingDecision) {
         const d = s.pendingDecision;
@@ -111,6 +114,7 @@ export function play({ bot, seed, weeks, dir, profile = false }) {
   };
   // Checkpoint numbers distinguish the state before the bot from the state just before its tick.
   for (let i = 0; checkpoints.size; i++) {
+    if (stopped()) return { rows, stopped: true };
     if (replay.gameOver || replay.week >= weeks) throw new Error(`snapshot replay ended early: ${bot} seed ${seed}`);
     save(i * 2);
     if (!checkpoints.size) break;
