@@ -52,14 +52,21 @@ async function screenThenRun(argv, opt) {
   if (!Number.isSafeInteger(n) || n < 1 || n >= total) fail(`--screen must be a whole number below --seeds (${total})`);
   if (!['same', 'change'].includes(expect)) fail('--expect must be same or change');
   const full = without(argv, '--screen', '--expect');
+  let current = null;
   const play = (args) => new Promise((res) => {
     const child = spawn(process.execPath, [SELF, ...args], { stdio: 'inherit' });
+    current = { child, done: new Promise((r) => child.on('exit', r)) };
     child.on('exit', (code, sig) => res(code ?? (sig ? 1 : 0)));
   });
   const dir = makeTemp('pair-screen-');
-  // A signal ends the children too (they share the process group); the screen's directory goes with it.
-  for (const [sig, n] of [['SIGINT', 130], ['SIGTERM', 143], ['SIGHUP', 129]]) {
-    process.on(sig, () => { rmSync(dir, { recursive: true, force: true }); process.exit(n); });
+  // A signal sent to this process alone (by PID) is passed on to the running pair.js, which ends its sides;
+  // this process waits for it, removes the screen's directory, and exits 128+n.
+  for (const [sig, code] of [['SIGINT', 130], ['SIGTERM', 143], ['SIGHUP', 129]]) {
+    process.on(sig, async () => {
+      if (current) { try { current.child.kill(sig); } catch { /* gone */ } await current.done; }
+      rmSync(dir, { recursive: true, force: true });
+      process.exit(code);
+    });
   }
   const out = join(dir, 'screen.json');
   const code = await play([...without(full, '--seeds', '--json'), '--seeds', String(n), '--json', out]);
@@ -161,6 +168,8 @@ if (!isMainThread) {
   const sides = new Set();
   // The temporary directory goes here too: a signal handler exits without running the finally below.
   process.on('exit', () => { for (const c of sides) { try { c.kill('SIGKILL'); } catch { /* gone */ } } rmSync(tmp, { recursive: true, force: true }); });
+  // A signal by PID would otherwise end this process without the exit hook above, leaving both sides running.
+  for (const [sig, n] of [['SIGINT', 130], ['SIGTERM', 143], ['SIGHUP', 129]]) process.on(sig, () => process.exit(n));
   try {
     if (!a) execFileSync('git', ['fetch', '-q', 'origin', 'main'], { cwd: b, stdio: 'ignore' });
     // Side a's records are cached by the content of what they were played on.

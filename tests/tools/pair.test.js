@@ -1,5 +1,5 @@
 import { describe, it, expect, afterAll } from 'vitest';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { resolve, join } from 'node:path';
 import { cpSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { makeTemp } from '../../scripts/tools/tmp.mjs';
@@ -206,5 +206,26 @@ describe('pair.js --screen', () => {
     expect(run('--a', '.', '--bots', 'automateAll', '--seeds', '2', '--screen', '2').status).toBe(2);
     expect(run('--a', '.', '--bots', 'automateAll', '--seeds', '2', '--screen', '1', '--expect', 'maybe').status).toBe(2);
   });
+
+  it('a SIGTERM to the screening process by PID ends every process under it', async () => {
+    const descendants = (pid) => {
+      const kids = spawnSync('pgrep', ['-P', String(pid)], { encoding: 'utf8' }).stdout.split('\n').filter(Boolean).map(Number);
+      return kids.flatMap((k) => [k, ...descendants(k)]);
+    };
+    const alive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
+    const child = spawn(process.execPath, [PAIR, '--a', '.', '--b', '.', '--bots', 'balanced', '--seeds', '400', '--screen', '200', '--jobs', '1'],
+      { stdio: 'ignore', env: { ...process.env, HITL_NO_CHECK_CACHE: '1' } });
+    const exited = new Promise((res) => child.on('exit', (code, sig) => res(code ?? sig)));
+    // Wait until the screen run and both of its sides are up: parent, inner pair.js, two sides.
+    let tree = [];
+    for (let i = 0; i < 100 && tree.length < 3; i++) { await new Promise((r) => setTimeout(r, 100)); tree = descendants(child.pid); }
+    expect(tree.length).toBeGreaterThanOrEqual(3);
+    process.kill(child.pid, 'SIGTERM');
+    expect(await exited).toBe(143);
+    await new Promise((r) => setTimeout(r, 500));
+    const survivors = tree.filter(alive);
+    for (const p of survivors) process.kill(p, 'SIGKILL');
+    expect(survivors).toEqual([]);
+  }, 60000);
 });
 
