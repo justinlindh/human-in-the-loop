@@ -1,5 +1,6 @@
 // The moment camera: while a staged moment plays, the camera glides onto it (following it if it
-// moves) and zooms in a little, then glides back to where the player had it. It keeps its hands off
+// moves) and zooms in a little (further in a bigger office, so a moment frames the same metres at
+// every stage), then glides back to where the player had it. It keeps its hands off
 // whenever the player has steered the camera recently, lets go for good once they steer during the
 // moment, and does nothing with the player's "Moment camera" setting off (hitl:cameraSettings).
 //
@@ -13,6 +14,10 @@
 const HANDS_OFF_MS = 4000;   // the player steered this recently: leave the camera alone
 const GLIDE_S = 0.7;         // the spring's smoothing time: about how long a glide takes to settle
 const RIG_RATE = 12;         // how closely the rig tracks the gliding point (rig.focus rate)
+// Metres of view height the Office Floor is fitted into on a desktop window. A moment's zoom is set
+// for that office; a bigger one is fitted wider, so the zoom scales up to frame the same metres.
+const FLOOR_FIT_M = 17;
+const ZOOM_CAP = 3.2;        // the camera's own zoom limit (camera.js)
 
 let enabled = true;
 if (typeof window !== 'undefined') {
@@ -44,7 +49,8 @@ export function createMomentCamera(rig) {
     if (!rig || !enabled || now() - rig.lastInput < HANDS_OFF_MS) return false;
     // A new moment takes over from one already held, but the way back stays the player's view.
     const from = held?.from ?? back ?? { goal: rig.goal, zoom: rig.zoomGoal };
-    held = { key, target, zoom: Math.max(zoom, from.zoom), from, at: now() };
+    const wide = Math.max(1, (rig.fitHeight ?? FLOOR_FIT_M) / FLOOR_FIT_M);
+    held = { key, target, zoom: Math.max(Math.min(zoom * wide, ZOOM_CAP), from.zoom), from, at: now() };
     back = null;
     glide ??= start();
     return true;
