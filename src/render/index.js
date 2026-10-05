@@ -6,8 +6,8 @@ import { createCameraRig } from './camera.js';
 import { createLighting, createBackdrop } from './lighting.js';
 import { createPost } from './post.js';
 import { createFly } from './fly.js';
-import { setRingsShown } from './character.js';
-import { buildKitBoard, buildPropLineup, buildItemLineup, buildCharLineup, buildCharTurnaround, buildWardrobeLineup, buildIconBoard } from './debug.js';
+import { setRingsShown, setFaceMorphs } from './character.js';
+import { buildKitBoard, buildPropLineup, buildItemLineup, buildCharLineup, buildCharTurnaround, buildWardrobeLineup, buildIconBoard, buildFaceBoard } from './debug.js';
 import { setGlowScale, mat } from './materials.js';
 import { loadModels } from './models.js';
 import { setRigEnabled } from './rig.js';
@@ -61,7 +61,7 @@ const DEBUG_VIEWS = {
   kit: { '1': buildKitBoard },
   props: { '1': buildPropLineup },
   items: { '1': buildItemLineup },
-  chars: { '1': buildCharLineup, '2': buildCharTurnaround, '3': buildWardrobeLineup, '4': buildWardrobeLineup },
+  chars: { '1': buildCharLineup, '2': buildCharTurnaround, '3': buildWardrobeLineup, '4': buildWardrobeLineup, '5': buildFaceBoard },
   icons: { objects: (g) => buildIconBoard(g, labelsElRef) },
 };
 
@@ -185,6 +185,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     lighting.setInteriorBudget(q === 'low' ? 2 : 6);
     surroundings?.setQuality();
     staff?.setCharacterShadows(q !== 'low');
+    // Morph targets cost vertex work per face; Low swaps in baked faces instead.
+    setFaceMorphs(q !== 'low');
     setGlowScale(q === 'low' ? 0.45 : 1);
     screens.setBrightness(q === 'low' ? 1.0 : 1.7);
   }
@@ -469,6 +471,10 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     },
     isSeated(id) { return staff?.isSeated(id) ?? false; },
     walkOf(id) { return staff?.walkOf(id) ?? null; },
+    // Test hooks for faces: show an expression on staff member `id` (character.js express), and
+    // read their face's expression and morph weights.
+    express(id, name, o) { const c = charOf(id); if (!c) return false; c.express(name, o); return true; },
+    face(id) { return charOf(id)?.face ?? null; },
     walkDebug(id) { return staff?.walkDebug(id) ?? null; },
     // Test hook: the scenery's standing footprints and moving cars (surroundings.exterior).
     exterior() { return surroundings?.exterior() ?? null; },

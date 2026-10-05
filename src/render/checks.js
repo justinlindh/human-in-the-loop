@@ -1292,9 +1292,10 @@ export async function runSkyCheck() {
   return { name: 'sky:trailing', pass: last.join() === night.join() && day.join() !== night.join(), day: day.join(), last: last.join(), night: night.join() };
 }
 
-// A notable deal for the seated person with the most seated neighbours within `near` metres, once
-// people have settled at their desks (at most `maxFrames`). Returns the seller's id, or null.
-export function setupDeal(R, S, { near = 3, maxFrames = 600 } = {}) {
+// A notable deal (`first`: the company's first) for the seated person with the most seated
+// neighbours within `near` metres, once people have settled at their desks (at most `maxFrames`).
+// Returns the seller's id, or null.
+export function setupDeal(R, S, { near = 3, maxFrames = 600, first = false } = {}) {
   R.perks.hold = true;
   S.pendingDecision = null;
   const settled = (id) => { const w = R.walkOf(id); return w && !w.hidden && !w.path.length && !w.temp && w.goal?.seated && w.goal; };
@@ -1306,7 +1307,7 @@ export function setupDeal(R, S, { near = 3, maxFrames = 600 } = {}) {
     else window.__advance(1);
   }
   if (!pick) return null;
-  R.handleEvents([{ type: 'deal', productId: S.products[0]?.id ?? null, customer: 'Initech Labs', customers: 3, mrr: 2400, week: S.week, sellerId: pick, first: false, notable: true }], S);
+  R.handleEvents([{ type: 'deal', productId: S.products[0]?.id ?? null, customer: 'Initech Labs', customers: 3, mrr: 2400, week: S.week, sellerId: pick, first, notable: true }], S);
   return pick;
 }
 

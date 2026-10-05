@@ -104,6 +104,14 @@ const SPECS = {
     share('clapping', 'neighbours clap once their delay is over', (x) => x.anim === 'growthclapsit', 0.7),
     share('turned', 'neighbours face within 75 deg of the seller', (x) => x.targetAngle <= 75, 0.7),
   ] },
+  // The company's first deal: the same beat, and the seller's face lights up (face.js 'delighted').
+  'dealFirst.seller': { moment: 'deal', scenario: 'dealFirst', beat: 'ring', role: 'seller', rules: [
+    share('delighted', 'the seller looks delighted for most of the beat', (x) => x.face === 'delighted', 0.7),
+    share('facingCamera', 'seller faces within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+  ] },
+  'dealFirst.coworker': { moment: 'deal', scenario: 'dealFirst', beat: 'cheer', role: 'coworker', rules: [
+    share('clapping', 'neighbours clap once their delay is over', (x) => x.anim === 'growthclapsit', 0.7),
+  ] },
   'company_party.cheer': { moment: 'company_party', beat: 'cheer', rules: [
     share('celebrating', 'company celebrates throughout the beat', (x) => x.anim === 'celebrate', 0.9),
   ] },
@@ -285,6 +293,8 @@ const SCENARIOS = {
   // A notable deal for a seated seller with seated neighbours.
   deal: { query: 'mock=floor', patch: {}, seconds: 4,
     setup: "(await import('/src/render/checks.js')).setupDeal(R, S)" },
+  dealFirst: { query: 'mock=floor', patch: {}, seconds: 4,
+    setup: "(await import('/src/render/checks.js')).setupDeal(R, S, { first: true })" },
   company_party: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "R.handleEvents([{ type: 'celebrate', staffId: null }], S);" }], seconds: 6 },
   pet: { query: 'mock=floor', patch: {}, seconds: 6,
     setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'dog', 2.104, 1.0)" },

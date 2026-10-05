@@ -34,6 +34,9 @@ const CELEBRATE_APART = 0.5;   // and nobody else nearer than this
 const GLIDE_M = 0.8;           // further than this from their spot (beyond a seat's last step), people walk to it
 const REWALK_S = 3;            // seconds between tries for someone left short of a spot they can't reach
 const DOOR_SPREAD = 0.45;      // how far apart people leaving by the door head for
+// Facial expressions for events (faceEvent): seconds each holds, and who sees a firing.
+const FACE_HOLD = { deal: 2, launch: 3, award: 3, fired: 2 };
+const FACE_NEAR_M = 4, FACE_NEAR_MAX = 4;
 const WAVE_S = 1.1;            // someone leaving waves goodbye this long before heading out
 const LEAVE_SPEED = 1.0;       // and walks to the door at this speed
 const ENTER_S = 0.7;           // sliding from the front of a couch or chair onto the spot
@@ -607,8 +610,27 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         case 'robot': robot.event(e); break;
         default: break;
       }
+      faceEvent(e);
     }
     officeGrowth.events(events ?? [], state);
+  }
+
+  // Facial expressions (face.js) for game events, on top of whatever pose or moment is playing.
+  function faceEvent(e) {
+    const shown = (r) => r && !r.hidden;
+    if (e.type === 'deal' && e.first) {
+      const r = recs.get(e.sellerId);
+      if (shown(r)) r.char.express('delighted', { hold: FACE_HOLD.deal });
+    } else if (e.type === 'launch' || e.type === 'award') {
+      for (const r of recs.values()) if (shown(r)) r.char.express('delighted', { hold: FACE_HOLD[e.type] });
+    } else if (e.type === 'resign' && e.fired) {
+      // Whoever is near the person fired looks at them, shocked.
+      const gone = recs.get(e.staffId);
+      if (!shown(gone)) return;
+      const near = [...recs.values()].filter((r) => r !== gone && shown(r) && r.pos.distanceTo(gone.pos) < FACE_NEAR_M)
+        .sort((a, b) => a.pos.distanceTo(gone.pos) - b.pos.distanceTo(gone.pos)).slice(0, FACE_NEAR_MAX);
+      for (const r of near) { faceToward(r, gone); r.char.express('shocked', { hold: FACE_HOLD.fired }); r.char.lookAt(gone.char.head, { hold: FACE_HOLD.fired }); }
+    }
   }
 
   // Conversations: a say that answers or addresses someone in the office is staged between the
