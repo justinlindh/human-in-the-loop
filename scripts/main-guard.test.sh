@@ -51,7 +51,7 @@ expect() { # <name> <gh log> <patterns, | separated; !x means absent; out:x look
 # A failing case shows the guard's last lines, so a failure in CI can be read without rerunning it.
 shown() { tail -n 15 "$1.out" 2>/dev/null | sed 's/^/    guard: /'; }
 one() { # <name> <suite> <strict> <open "label n" lines, ; separated> <patterns> [extra env...]
-  case_root="$tmp/root-$RANDOM"; local log="$tmp/$RANDOM.log" open="$tmp/$RANDOM.open"; : >"$log"; printf '%s' "$4" | tr ';' '\n' >"$open"
+  case_root="$(mktemp -d "$tmp/root-XXXXXX")"; local log open; log="$(mktemp "$tmp/log-XXXXXX")"; open="$(mktemp "$tmp/open-XXXXXX")"; : >"$log"; printf '%s' "$4" | tr ';' '\n' >"$open"
   local name="$1" suite="$2" strict="$3" pats="$5"; shift 5
   guard "$log" "$open" MAIN_GUARD_SUITE="$suite" MAIN_GUARD_STRICT="$strict" "$@" -- --sha HEAD
   expect "$name" "$log" "$pats"
@@ -242,7 +242,7 @@ expect 'a commit unjudged twice is filed' "$cl" "--label main-unjudged|!--label 
 printf '**\n' >"$tmp/skip-all"; printf 'nothing/matches\n' >"$tmp/skip-none"
 tip="$(git -C "$REPO" rev-parse HEAD)"; before="$(git -C "$REPO" rev-parse HEAD~1)"
 tipcase() { # <name> <last> <green> <skip list> <min minutes> <expected: ran|skipped> [touch last: old|new]
-  case_root="$tmp/root-tip-$RANDOM"; mkdir -p "$case_root/main-guard"; local l="$tmp/tip.log"; : >"$l"; rm -f "$tmp/tip.ran"
+  case_root="$(mktemp -d "$tmp/root-tip-XXXXXX")"; mkdir -p "$case_root/main-guard"; local l="$tmp/tip.log"; : >"$l"; rm -f "$tmp/tip.ran"
   [ -n "$2" ] && echo "$2" >"$case_root/main-guard/last"; [ -n "$3" ] && echo "$3" >"$case_root/main-guard/last-green"
   [ "${7:-}" = old ] && touch -d '3 hours ago' "$case_root/main-guard/last"
   guard "$l" /dev/null MAIN_GUARD_REF="$tip" MAIN_GUARD_SKIP_LIST="$4" MAIN_GUARD_MIN_MINUTES="$5" MAIN_GUARD_SUITE="touch '$tmp/tip.ran'; $PASS" MAIN_GUARD_STRICT="$CLEAN" -- --no-post
