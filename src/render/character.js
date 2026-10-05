@@ -61,10 +61,10 @@ const PALM_STAND = [-2.75, 0.14, 0.27, -0.6, 0.08];
 const PALM_SHOULDER_REF = 0.18;   // metres from the spine to the shoulder of the middle build
 const PALM_BUILD_K = 3;
 const PALM_SIT = [-2.75, 0.14, 0.27, -0.6, 0.08];
-// The deal fist pump: raised arm's shoulder roll and pitch (back, so the fist rises beside the head
-// rather than over the chest, where it reads as typing from above), the pump's swing, the chin lift,
-// the bounce in the chair (metres).
-const DEAL_POSE = [2.75, -0.3, 0.25, 0.2, 0.03];
+// The deal bell: the raised arm's shoulder roll (up and out, so the bell stands beside the head on
+// screen, not over it) and pitch (back, clear of the face), the ringing swing, the chin lift, the
+// bounce in the chair and the shoulder's lift (metres), so the bell clears the hat.
+const DEAL_POSE = [2.5, -0.3, 0.25, 0.2, 0.03, 0.16];
 const SEATED = new Set(['growthpumpsit', 'growthclapsit', 'dealsit', 'typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit']);
 
 const roleMats = new Map();
@@ -180,6 +180,17 @@ function makeCheeks(tpl, skin) {
 }
 const _hands = [new THREE.Vector3(), new THREE.Vector3()];
 const haloGeo = new THREE.TorusGeometry(0.14, 0.022, 8, 28).rotateX(Math.PI / 2);
+// The deal bell, rung in the pumping fist: a chibi arm can't lift a fist above the head, so the bell
+// is what clears the hat from above. Built in the arm's frame (down the arm is -y): handle in the
+// fist, the cup flaring out past it.
+const BELL_GEO = {
+  handle: new THREE.CylinderGeometry(0.016, 0.016, 0.13, 8).translate(0, -0.265, 0),
+  cup: new THREE.CylinderGeometry(0.03, 0.075, 0.11, 16).translate(0, -0.385, 0),
+  lip: new THREE.TorusGeometry(0.075, 0.01, 6, 20).rotateX(Math.PI / 2).translate(0, -0.44, 0),
+  clapper: new THREE.SphereGeometry(0.02, 8, 6).translate(0, -0.455, 0),
+};
+const BELL_RING = { rate: 16, swing: 0.35 };
+let bellMetal = null;
 
 // Parts are modeled in their pivot's space, so the node transform from the file is kept as is.
 function part(tpl, name) {
@@ -712,16 +723,17 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       }
       case 'deal':
       case 'dealsit': {
-        // A closed deal: a fist pump with the camera-side arm, out beside the head (as high as a chibi
-        // arm goes), a bounce in the chair, the chin up; seated, the other hand stays on the keys.
+        // A closed deal: the camera-side arm up and out with the shoulder lifted, ringing the deal bell
+        // (syncBell) above the head, a bounce in the chair, the chin up; seated, the other hand stays
+        // on the keys.
         const pump = s(animT * DEAL.pumpRate);
         const up = DEAL_POSE[0] + pump * DEAL_POSE[2];
         tgt.bodyY += Math.max(0, pump) * DEAL_POSE[4];
         if (gestureSide > 0) {
-          tgt.armLZ = -up; tgt.armLX = DEAL_POSE[1];
+          tgt.armLZ = -up; tgt.armLX = DEAL_POSE[1]; tgt.armLY = DEAL_POSE[5];
           if (seated) { tgt.armRX = TYPE_REACH - 0.1; tgt.armRZ = -0.18; }
         } else {
-          tgt.armRZ = up; tgt.armRX = DEAL_POSE[1];
+          tgt.armRZ = up; tgt.armRX = DEAL_POSE[1]; tgt.armRY = DEAL_POSE[5];
           if (seated) { tgt.armLX = TYPE_REACH - 0.1; tgt.armLZ = 0.18; }
         }
         if (seated) tgt.lean = 0.1;
@@ -1241,6 +1253,23 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
 
   // Something carried in the right hand (moments.js: a sledgehammer), or null.
   let held = null;
+  // The deal bell in arm `side` (0 left, 1 right) while the deal plays; -1 puts it away.
+  let bell = null, bellT = 0;
+  function syncBell(side, dt) {
+    if (side < 0) { if (bell) bell.visible = false; return; }
+    if (!bell) {
+      bellMetal ??= new THREE.MeshStandardMaterial({ color: color('metal_soft'), emissive: color('metal_soft'), emissiveIntensity: 0.45, roughness: 0.25, metalness: 0.5 });
+      bell = new THREE.Group();
+      bell.add(new THREE.Mesh(BELL_GEO.handle, mat('alarm_red')), new THREE.Mesh(BELL_GEO.cup, bellMetal), new THREE.Mesh(BELL_GEO.lip, bellMetal), new THREE.Mesh(BELL_GEO.clapper, mat('ink')));
+      bell.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    }
+    const arm = arms[side].shoulder;
+    if (bell.parent !== arm) arm.add(bell);
+    bell.visible = true;
+    bellT += dt;
+    bell.rotation.x = Math.sin(bellT * BELL_RING.rate) * BELL_RING.swing;
+  }
+
   function setHeld(obj) {
     if (held === obj) return;
     if (held) held.removeFromParent();
@@ -1285,6 +1314,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     cheeks.set(flush);
     animT += dt;
     pose(dt);
+    syncBell(anim === 'deal' || anim === 'dealsit' ? (gestureSide > 0 ? 0 : 1) : -1, dt);
     blinkIn -= dt;
     // The burnout stare barely blinks.
     if (blinkIn <= 0) { blinkT = 0.12; blinkIn = (mood === 'burnout' ? 7 : 2.5) + rand() * 3.5; }
@@ -1374,7 +1404,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   return {
     setWardrobe,
     gesture: playGesture,
-    root, head: headGroup, setShadows, setAnim, setHeld, setMoveSpeed, setAnimRate, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
+    root, head: headGroup, dealBell: () => bell, setShadows, setAnim, setHeld, setMoveSpeed, setAnimRate, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
     express, lookAt,
     // Mouth opening for speech, 0..1 (a voice take's loudness envelope).
     setTalk(v) { faceTalk = Math.max(0, Math.min(1, v)); },

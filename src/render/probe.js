@@ -23,7 +23,8 @@ import * as THREE from 'three';
 //   hands: [[x, y, z], [x, y, z]], handsRel: hands relative to the eyes, in the face's heading
 //   handsCam: [a, b],       // metres each hand sits nearer the camera than the eyes
 //   handsSide: [a, b],      // metres each hand sits from the eyes across the view
-//   held: { dist, ahead } | null,   // held prop: distance from the eyes; angle off the face's direction
+//   held: { dist, ahead, up, cam } | null,   // held prop: distance from the eyes; angle off the face's
+//                           // direction; metres above the eyes; metres nearer the camera than the eyes
 //   lean,                   // metres the head sits ahead of the feet toward the target (negative: away)
 //   between,                // sprites of the moment's source (smoke) near the line from eyes to target
 // }
@@ -183,7 +184,7 @@ export function createProbe({ scene, camera, office, charOf, stagingOf = () => n
     let held = null;
     if (st.held) {
       const hc = targetPoint(st.held);
-      held = { dist: +hc.distanceTo(p.eyes).toFixed(3), ahead: +deg(p.forward, hc.clone().sub(p.eyes)).toFixed(1) };
+      held = { dist: +hc.distanceTo(p.eyes).toFixed(3), ahead: +deg(p.forward, hc.clone().sub(p.eyes)).toFixed(1), up: +(hc.y - p.eyes.y).toFixed(3), cam: +hc.clone().sub(p.eyes).dot(toCam).toFixed(3) };
     }
 
     const root = c.root.position;
