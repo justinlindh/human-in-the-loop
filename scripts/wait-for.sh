@@ -10,7 +10,9 @@
 #                checkout of that repository
 #   --merged     keep waiting after the checks pass, until the PR merges
 #   --no-update  report a PR that is behind or conflicting instead of merging main into it
-#   --test       the test command gating the push (default: npm test)
+#   --test       the test command gating the push (default: `nice -n 10 npm run test:push`, the tests
+#                related to the branch's changes, where package.json has that script, else npm test;
+#                the PR's required GitHub test check runs the whole suite on the pushed head)
 #   --pickup     warn once when local-ci hasn't reported on the head after this many minutes (default 15)
 #   --issue      wait until an issue closes (or, given a pull request number, until it merges or closes)
 # Green means every status the base branch requires (branch protection, less review) passed and no
@@ -21,7 +23,7 @@
 #   merge or push is due; 124 timed out.
 set -uo pipefail
 
-pr="" issue="" repo="" merged=0 update=1 test_cmd="npm test" poll=60 pickup=15 timeout=240
+pr="" issue="" repo="" merged=0 update=1 test_cmd="" poll=60 pickup=15 timeout=240
 while [ $# -gt 0 ]; do
   case "$1" in
     --merged) merged=1 ;;
@@ -84,6 +86,9 @@ update_branch() {
     git merge --abort
     say "merging origin/main into $branch conflicts; resolve it by hand"
     exit 4
+  fi
+  if [ -z "$test_cmd" ]; then
+    if jq -e '.scripts["test:push"]' package.json >/dev/null 2>&1; then test_cmd="nice -n 10 npm run test:push"; else test_cmd="npm test"; fi
   fi
   say "merged origin/main; running: $test_cmd"
   local log; log="$(mktemp)"
