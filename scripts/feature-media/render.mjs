@@ -13,7 +13,8 @@
 //     poster   a .webp path for the clip's first frame; webm: true adds a VP9 copy next to the MP4
 // An item may set record: 'WxH' (default 1920x1080) to record at another size, say 3840x2160 for a
 // still cropped tight at native resolution; crops stay fractions of the frame.
-// npm run feature-media -- [--only id,id] [--out shots/feature-media] [--compare <dir>] [--keep-raw]
+// npm run feature-media -- [--only id,id] [--out shots/feature-media] [--compare <dir>] [--keep-raw] [--sheet]
+//   --sheet    writes <out>/sheet.png, one labelled contact sheet of this run's files (scripts/tools/media-sheet.mjs)
 //   --compare  prints each file's size next to the same path in <dir> (a site checkout, say)
 // Recordings are 30 fps; capture.js takes a GPU render slot.
 import { spawnSync } from 'node:child_process';
@@ -151,6 +152,12 @@ if (publishing) {
   rmSync(join(OUT, '.publish'), { recursive: true, force: true });
 }
 if (!argv.includes('--keep-raw')) rmSync(RAW, { recursive: true, force: true });
+if (argv.includes('--sheet')) {
+  const made = rows.map((r) => join(OUT, r.path)).filter((f) => existsSync(f));
+  const sheet = join(OUT, 'sheet.png');
+  const r = made.length ? spawnSync(process.execPath, [fileURLToPath(new URL('../tools/media-sheet.mjs', import.meta.url)), sheet, '--base', OUT, ...made], { encoding: 'utf8' }) : null;
+  console.log(r?.status === 0 ? `\nsheet: ${sheet}` : `\nfeature-media: no sheet (${r ? r.stderr.trim().split('\n')[0] : 'nothing was rendered'})`);
+}
 console.log(`\n| file | KB |${compare ? ' before KB |' : ''}\n|---|---|${compare ? '---|' : ''}`);
 for (const r of rows) console.log(`| ${r.path} | ${r.kb} |${compare ? ` ${r.wasKb ?? 'new'} |` : ''}`);
 const tot = rows.reduce((a, r) => a + r.kb, 0), was = rows.reduce((a, r) => a + (r.wasKb ?? 0), 0);

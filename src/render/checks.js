@@ -784,27 +784,30 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     step(10);
     results.push({ name: 'prop:groupOnMovedTable', pass: where.length === 2 && where.every(Boolean), onTable: where, tile });
   }
-  // 4. The sledgehammer: whoever fetches it and carries it to the wall stays clear of furniture and
-  // props, and the walls-down choice (decisionResolved) ends in a swing.
+  // 4. The sledgehammer: whoever fetches it, carries it, runs in and throws it at the all-hands
+  // screen, and the colleagues who stand up to watch, stay clear of furniture and props; the
+  // walls-down choice (decisionResolved) ends in the throw and then a swing.
   {
     R.moments.full = true;
     S.pendingDecision = { eventId: 'open_plan_office', subjectId: ids[0], stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } };
     let worst = 0, worstWho = null, worstAt = null, phases = new Set();
-    for (let i = 0; i < 30 * 25; i++) {
-      if (i === 30 * 16) { S.pendingDecision = null; R.handleEvents([{ type: 'decisionResolved', eventId: 'open_plan_office', choice: 0, subjectId: ids[0] }], S); }
+    for (let i = 0; i < 30 * 40; i++) {
+      if (i === 30 * 20) { S.pendingDecision = null; R.handleEvents([{ type: 'decisionResolved', eventId: 'open_plan_office', choice: 0, subjectId: ids[0] }], S); }
       step(1);
       const h = R.moments.hammer;
       if (!h || i % 5) continue;
       phases.add(h.phase);
-      const root = charOf(R.scene, h.id);
-      const own = new Set([R.perks.peek(h.id)?.seat]);
-      for (const e of R.office.placed.values()) {
-        if (own.has(e.id)) continue;
-        const v = bodyInside(root, meshes(e.obj), false);
-        if (v > worst) { worst = v; worstWho = `${h.id} (${h.phase}) in ${e.itemId}:${e.id}`; worstAt = actorAt(R, h.id); }
+      for (const id of [h.id, ...h.watchers]) {
+        const root = charOf(R.scene, id);
+        const own = new Set([R.perks.peek(id)?.seat]);
+        for (const e of R.office.placed.values()) {
+          if (own.has(e.id)) continue;
+          const v = bodyInside(root, meshes(e.obj), false);
+          if (v > worst) { worst = v; worstWho = `${id} (${h.phase}) in ${e.itemId}:${e.id}`; worstAt = actorAt(R, id); }
+        }
       }
     }
-    results.push({ name: 'moment:hammer', pass: phases.has('hold') && phases.has('swing') && worst < 0.01, phases: [...phases], insidePct: +(100 * worst).toFixed(2), worstWho, worstAt });
+    results.push({ name: 'moment:hammer', pass: phases.has('hold') && phases.has('spin') && phases.has('swing') && worst < 0.01, phases: [...phases], insidePct: +(100 * worst).toFixed(2), worstWho, worstAt });
     R.moments.full = false;
     step(10);
   }

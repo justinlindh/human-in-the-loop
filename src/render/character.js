@@ -28,7 +28,7 @@ export const SLAP_AT = 0.5;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'hide', 'flinch', 'pointscreen', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake', 'facepalm', 'facepalmsit', 'pet', 'fidget', 'dilemma',
-  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff', 'growthpump', 'growthpumpsit', 'growthclap', 'growthclapsit', 'rackfix', 'slap', 'deal', 'dealsit'];
+  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff', 'growthpump', 'growthpumpsit', 'growthclap', 'growthclapsit', 'rackfix', 'slap', 'deal', 'dealsit', 'hurlspin', 'hurlthrow'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
 // for the moment before the rig model has loaded.
 const ALWAYS_CLIP = /^dance_/;
@@ -798,6 +798,22 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.armRZ = -0.1; tgt.armLZ = 0.1;
         tgt.lean = -0.12 + e * 0.4;
         tgt.bodyY = -e * 0.03;
+        break;
+      }
+      case 'hurlspin':
+        // Turning on the spot with something heavy held out in front: feet braced wide, leaning
+        // back against its pull.
+        tgt.legL = 0.32; tgt.legR = -0.28;
+        tgt.lean = -0.22; tgt.bodyY = -0.025;
+        tgt.headX = -0.08;
+        break;
+      case 'hurlthrow': {
+        // Just let go: arms flung forward and up after it, chest following through, then easing back.
+        const k = Math.min(1, animT / 0.18), back = Math.min(1, Math.max(0, (animT - 0.6) / 0.6));
+        tgt.armLX = tgt.armRX = -1.2 - k * 1.2 + back * 1.2;
+        tgt.armLZ = 0.25; tgt.armRZ = -0.25;
+        tgt.lean = 0.3 * k - back * 0.2;
+        tgt.legL = 0.4 - back * 0.3; tgt.legR = -0.2 + back * 0.1;
         break;
       }
       case 'slap': {

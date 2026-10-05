@@ -80,6 +80,16 @@ const Y2K_RULES = [
   visibleRule, noFade,
 ];
 
+const FUMES_RULES = [
+  { metric: 'handHz', want: '>= 3 Hz', test: (xs) => motion(xs).hz, pass: (v) => v >= 3 },
+  { metric: 'handAmp', want: '<= 0.15 m', test: (xs) => motion(xs).amp, pass: (v) => v > 0.005 && v <= 0.15 },
+  mean('leanAway', 'head behind the feet, away from the fumes (m)', (x) => x.lean ?? 0, (v) => v < -0.01),
+  share('headAway', 'face >= 50 deg off the fumes', (x) => x.targetAngle >= 50, 0.8),
+  share('smokeBetween', 'smoke on the line from eyes to the fumes', (x) => (x.between ?? 0) > 0, 0.5),
+  mean('besideSource', 'feet within 2 m of the centre of the item the fumes come from', (x) => x.targetDist ?? 99, (v) => v <= 2),
+  visibleRule, noFade,
+];
+
 const SPECS = {
   'y2k.countdown': { moment: 'y2k', beat: 'countdown', role: 'watcher', rules: Y2K_RULES },
   'y2k.nothing': { moment: 'y2k', beat: 'nothing', role: 'watcher', rules: Y2K_RULES },
@@ -202,14 +212,8 @@ const SPECS = {
     }, pass: (v) => v >= 0.03 },
     visibleRule, noFade,
   ] },
-  'fumes.fan': { moment: 'fumes', beat: 'fan', rules: [
-    { metric: 'handHz', want: '>= 3 Hz', test: (xs) => motion(xs).hz, pass: (v) => v >= 3 },
-    { metric: 'handAmp', want: '<= 0.15 m', test: (xs) => motion(xs).amp, pass: (v) => v > 0.005 && v <= 0.15 },
-    mean('leanAway', 'head behind the feet, away from the fumes (m)', (x) => x.lean ?? 0, (v) => v < -0.01),
-    share('headAway', 'face >= 50 deg off the fumes', (x) => x.targetAngle >= 50, 0.8),
-    share('smokeBetween', 'smoke on the line from eyes to the fumes', (x) => (x.between ?? 0) > 0, 0.5),
-    visibleRule, noFade,
-  ] },
+  'fumes.fan': { moment: 'fumes', beat: 'fan', rules: FUMES_RULES },
+  'fumes_coffee.fan': { moment: 'fumes', scenario: 'fumes_coffee', beat: 'fan', rules: FUMES_RULES },
   // The printer carried out back: both carriers hold it low in both hands, its middle well under
   // their heads, and stay in view; the one with the bat faces it while swinging, bat in hand.
   // The carry crosses the office, so it passes behind a pillar or a desk now and then: its
@@ -297,12 +301,42 @@ const SPECS = {
     tenseRule,
     share('visible', 'body >= 50% unblocked (seated behind a desk)', (x) => x.visible >= 0.5, 0.9),
   ] },
-  ...Object.fromEntries(['carry', 'hold', 'swing'].map((beat) => [`hammer.${beat}`, { moment: 'hammer', beat, rules: [
+  // The office stares at the droning screen, deadpan, and is shocked when it shatters.
+  'hammer.stare': { moment: 'hammer', beat: 'stare', role: 'watcher', rules: [
+    share('deadpan', 'flat face', (x) => x.face === 'flat', 0.9),
+    share('atScreen', 'face within 75 deg of the screen', (x) => x.targetAngle <= 75, 0.6),
+  ] },
+  'hammer.shock': { moment: 'hammer', beat: 'shock', role: 'watcher', rules: [
+    share('shocked', 'shocked face', (x) => x.face === 'shocked', 0.8),
+  ] },
+  // Just let go: arms after it, square to the screen, in view.
+  'hammer.throw': { moment: 'hammer', beat: 'throw', role: 'thrower', rules: [
+    share('atScreen', 'face within 45 deg of the screen (it is high on the wall)', (x) => x.targetAngle <= 45, 0.8),
+    visibleRule,
+  ] },
+  // The spin turns the body between the camera and the hammer for part of each turn.
+  'hammer.spin': { moment: 'hammer', beat: 'spin', role: 'thrower', rules: [
+    ...[['heldHeadDepth', 1e-6], ['heldTorsoDepth', 1e-6], ['heldPalmGap', 0.02], ['heldSupportGap', 0.02]].map(([metric, limit]) =>
+      share(metric, `${metric} <= ${limit} m`, (x) => Number.isFinite(x[metric]) && x[metric] <= limit, 1)),
+    share('headVisible', 'at least half the head visible', (x) => x.heldHeadVisible >= 0.5, 0.6),
+    share('shaftSilhouette', 'shaft projects at least 60% of its length', (x) => x.heldShaftProjection >= 0.6, 0.6),
+  ] },
+  'hammer.fetch': { moment: 'hammer', beat: 'fetch', role: 'thrower', rules: [visibleRule] },
+  'hammer_keep.throw': { moment: 'hammer', scenario: 'hammer_keep', beat: 'throw', role: 'thrower', rules: [visibleRule] },
+  // Carried across the room it rests one-handed on the shoulder, out of the desks' way: clear of the
+  // head and the body. Behind the back, its head is out of sight while they walk toward the camera,
+  // so it only has to show for most of the walk; hold and swing keep the strict visibility rules.
+  'hammer.carry': { moment: 'hammer', beat: 'carry', role: 'thrower', rules: [
+    ...[['heldHeadDepth', 1e-6], ['heldTorsoDepth', 1e-6]].map(([metric, limit]) =>
+      share(metric, `${metric} <= ${limit} m`, (x) => Number.isFinite(x[metric]) && x[metric] <= limit, 1)),
+    share('headVisible', 'at least half the head visible', (x) => x.heldHeadVisible >= 0.5, 0.55),
+  ] },
+  ...Object.fromEntries([['hammer', 'hold'], ['hammer', 'swing']].map(([scenario, beat]) => [`${scenario}.${beat}`, { moment: 'hammer', scenario, beat, role: 'thrower', rules: [
     ...[['heldHeadDepth', 1e-6], ['heldTorsoDepth', 1e-6], ['heldPalmGap', 0.02], ['heldSupportGap', 0.02], ['heldHeadDistance', 0.6], ['heldHeadJoint', 0.08], ['heldScreenDistance', 0.6]].map(([metric, limit]) =>
       share(metric, `${metric} <= ${limit} m`, (x) => Number.isFinite(x[metric]) && x[metric] <= limit, 1)),
     share('headReach', 'head at least 0.35 m along the shaft from the palm', (x) => x.heldHeadDistance >= 0.35, 1),
-    share('shaftVisible', 'at least half the shaft visible', (x) => x.heldHandleVisible >= 0.5, beat === 'carry' ? 0.85 : 1),
-    share('headVisible', 'at least half the head visible', (x) => x.heldHeadVisible >= 0.5, beat === 'carry' ? 0.85 : 1),
+    share('shaftVisible', 'at least half the shaft visible', (x) => x.heldHandleVisible >= 0.5, { hold: 0.97, swing: 0.95 }[beat]),
+    share('headVisible', 'at least half the head visible', (x) => x.heldHeadVisible >= 0.5, { hold: 0.97, swing: 0.95 }[beat]),
     share('shaftSilhouette', 'shaft projects at least 60% of its length', (x) => x.heldShaftProjection >= 0.6, 0.95),
     share('headSilhouette', 'head crosses shaft by at least 25% of shaft length', (x) => x.heldHeadCross >= 0.25, 0.95),
   ] }]))
@@ -339,6 +373,9 @@ const SCENARIOS = {
     steps: [{ at: 0, js: "S.flags.y2k = { stage: 'rollover', rolloverWeek: S.week, printerId: 'y2k-printer' }; S.office.props = [{ id: 'y2k-printer', prop: 'printer', x: 4, y: 0, since: S.week }];" }] },
   letter: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'resignation_letter', subjectId: 's6', stage: { prop: 'envelope', anchor: 'subjectDesk', x: 12, y: 2 } } }, seconds: 16 },
   fumes: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'agent_runaway_spend', subjectId: null, stage: { prop: 'rack_hot', anchor: 'wall', x: 7, y: 0 } } }, seconds: 16 },
+  // The sim anchors the dead coffee machine's smoke to a kitchen tile that is often bare floor;
+  // the smoke and the fanner belong at the espresso machine itself.
+  fumes_coffee: { moment: 'fumes', query: 'mock=floor', patch: { pendingDecision: { eventId: 'coffee_machine_broke', subjectId: null, stage: { prop: 'smoke_puff', anchor: 'kitchen', x: 1, y: 0 } } }, seconds: 16 },
   // Staged by the kitchen, then taken out back 1 s in, the wreck staged where it will lie.
   printer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'printer_jam', subjectId: 's1', stage: { prop: 'printer_jammed', anchor: 'kitchen', x: 1, y: 1 } } }, seconds: 32,
     steps: [{ at: 30, js: "S.pendingDecision = null; S.office.props = [...(S.office.props ?? []), { id: 'stage_wreck', prop: 'printer_wrecked', x: 1, y: 1, since: S.week, until: { weeks: 4 } }]; R.handleEvents([{ type: 'decisionResolved', eventId: 'printer_jam', choice: 0, subjectId: 's1' }], S);" }] },
@@ -348,8 +385,11 @@ const SCENARIOS = {
   pizza: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'hackathon', subjectId: 's1', stage: { prop: 'pizza_boxes', anchor: 'subjectDesk' } } }, seconds: 16 },
   screen: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'bridge_loan', subjectId: null, stage: { prop: 'screens_red', anchor: 'screens' } } }, seconds: 12 },
   carrier: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'cat_request', subjectId: 's3', stage: { prop: 'pet_carrier', anchor: 'door' } } }, seconds: 16 },
-  hammer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'open_plan_office', subjectId: 's1', stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } } }, seconds: 20,
-    steps: [{ at: 480, js: "R.handleEvents([{type:'decisionResolved',eventId:'open_plan_office',choice:0}], S); S.pendingDecision=null;" }] },
+  hammer: { query: 'mock=floor', patch: { pendingDecision: { eventId: 'open_plan_office', subjectId: 's1', stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } } }, seconds: 38,
+    steps: [{ at: 720, js: "R.handleEvents([{type:'decisionResolved',eventId:'open_plan_office',choice:0}], S); S.pendingDecision=null;" }] },
+  // "Keep the walls": the screen still goes, then the hammer goes back where it came from.
+  hammer_keep: { moment: 'hammer', query: 'mock=floor', patch: { pendingDecision: { eventId: 'open_plan_office', subjectId: 's1', stage: { prop: 'sledgehammer', anchor: 'wall', x: 4, y: 0 } } }, seconds: 40,
+    steps: [{ at: 720, js: "R.handleEvents([{type:'decisionResolved',eventId:'open_plan_office',choice:1}], S); S.pendingDecision=null;" }] },
   // An outage with three named responders, at the floor's rack and, with the rack taken out, at a desk.
   respond: { query: 'mock=floor', patch: {}, seconds: 12, steps: [{ at: 0, js: OUTAGE }] },
   respond_desk: { moment: 'respond', query: 'mock=floor', patch: {}, seconds: 12,

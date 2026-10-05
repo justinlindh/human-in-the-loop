@@ -8,6 +8,7 @@ import { printerModel, visitorChairModel } from './props.js';
 import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { between, draw } from './rand.js';
 import { createY2kMoment } from './y2k.js';
+import { createLeaderScreen, SCREEN_W, SCREEN_H } from './leader-screen.js';
 
 // Staff moments around staged props (#284): brief reactions by idle people to what a decision put
 // in the office. Render only; they borrow the perk visit mechanism (r.temp), so walking goes through
@@ -22,8 +23,11 @@ import { createY2kMoment } from './y2k.js';
 // Moments:
 //   pizza  pizza_boxes up: two or three idle people gather round the box and eat, then go back.
 //   screen a screen takeover: people at their desks recoil from their monitors with an exclamation.
-//   hammer the sledgehammer (open plan): the subject holds it across both palms and sizes up the back wall; if the
-//          walls come down (decisionResolved) they swing and dust flies.
+//   hammer the sledgehammer (open plan): an all-hands screen on the back wall drones at a deadpan office while
+//          the subject waits across the room with the hammer; on the choice they run in, spin and throw it
+//          through the screen (a white flash and shards, skipped on Low) and the office looks shocked; then
+//          they swing at the wall if it comes down, else carry the hammer back. With no room for the
+//          screen, they hold it by the wall and only swing.
 //   letter the envelope on a desk: its sitter sighs over it now and then.
 //   visitor the visitor chair (first user test): a visitor sits in it while someone hovers, sweating.
 //   fumes  smoke or a hot rack: someone comes over and fans it away.
@@ -53,7 +57,8 @@ const COLUMN_SCREEN_R = 0.45;  // a column's half-width on screen for staging: i
 const WATCH_AT = 1.05, WATCH_S = 1;   // where the carriers watch from (metres off the printer), and how long they take to get there
 // Room for a sledgehammer at the wall: furniture between lowY and highY within m metres of the spot
 // is in the swing's way; the search starts startM toward the camera's side of the hammer.
-const HAMMER_ROOM = { lowY: 0.35, highY: 1.4, m: 0.65, startM: 1.2 };
+// carryClear: the clearances its carrier's route tries to keep from furniture, widest first.
+const HAMMER_ROOM = { lowY: 0.35, highY: 1.4, m: 0.65, startM: 1.2, carryClear: [0.55, 0.45, 0.4] };
 const FAN_SIDE = 1.8;        // radians off the camera line to either side where a fanner stands
 const FAN_TURN = 1.0;        // radians a fanner faces off the source, toward the camera
 const CHEAT_TURN = 0.5;      // radians the consultants' scene turns off face-to-face toward the camera
@@ -62,6 +67,8 @@ const FAR_TURN = 0.44;       // radians a ring spot's facing may turn off its ce
 const SWING_AT = 0.9;        // and swings from this far off it
 const JAM_SCALE = 1.2;       // the jammed printer's scale as staged (props.js)
 const BAT_SHOULDER = [Math.PI, 0, -0.4];   // the bat's turn in the hand, resting back over the shoulder
+const HAMMER_SHOULDER = [2.6, 0, 0.2];   // the sledgehammer's, carried the same way, its head clear of the back and close in to the side
+const SHOULDER_UP_S = 0.3;  // seconds of walking before the hammer goes up on the shoulder, once the arm is there
 const CHAIR_CLEAR = 0.65;   // metres from a desk seat a carrier keeps: the chair reaches about 0.36 from it, plus a body
 const TWIST_STEP = 0.1, END_ON_HOLD = 0.8, TWIST_EASE = 0.3;   // metres: turn samples, how far an end-on stretch reaches, and its easing
 const SETTLE_S = 0.5;        // the visitor's cast waits this long before setting off
@@ -75,6 +82,21 @@ const PRINTER_GATHER_S = 8;  // the carriers walking to the printer and lifting 
 const FLINCH_S = 0.9;        // the founders' flinch on 'Watch in silence'
 const SWING_HIT = 0.605;     // seconds from the start of the 'batswing' pose to its blow (character.js)
 const KNOCK_DOWN = 0;        // open_plan_office's 'Knock them down' choice index
+// The all-hands screen on its floor stand: its centre's height and its distance out from the wall (metres).
+const SCREEN_Y = 1.62, SCREEN_OUT = 0.35;
+// The throw: metres off the wall spot where the run ends, and further back from there where the
+// subject waits (each tried in order, at these sideways offsets), the spin and flight seconds, the
+// flight's rise and tumble, furniture taller than tallY and columns nearer than columnR in its way,
+// how long the room reacts, and who stares (up to `watchers` people within stareR metres of the
+// screen; seated ones turned further than seatedTurn from it stand up standBack behind the chair,
+// the rest swivel up to `swivel`). The post-throw swing keeps besideM of wall clear of the
+// screen's edge and is at most swingNear metres off (else it lands on the wreck), and the hammer's
+// head swaps sides once the camera is flipSide off square.
+const THROW = { from: [2.4, 2.0, 2.8, 3.2], poise: [2.2, 1.8, 2.6, 1.4, 3.0], side: [0, 0.6, -0.6, 1.2, -1.2], spinS: 0.85, flightS: 0.5, arc: 0.5, tumble: Math.PI * 2.5, tallY: 1.5, columnR: 0.45, react: 1.6, watchers: 8, stareR: 9, seatedTurn: 1.6, swivel: 0.6, standBack: 0.75, besideM: 0.6, swingNear: 3.5, flipSide: 0.25 };
+// Where the thrown hammer comes to rest (`out` metres from the wall spot into the room, in front of
+// the stand's foot) and where it is picked up from (`pick` metres out).
+const HAMMER_LAND = { out: 0.05, pick: 0.6 };
+const WRECK_S = 8;          // seconds the broken screen stays on the wall after the moment
 // The letter sheet: paper with lines of text and a big red stamp, both faces (the camera sees its back).
 const SHEET_GEO = new THREE.PlaneGeometry(0.26, 0.32);
 let sheetMatCache = null;
@@ -301,6 +323,17 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   // Sledgehammer. One run per decision: fetch it, carry it to the back wall, hold it there; swing
   // once the walls come down, else carry nothing back (the prop goes with the decision).
   let hammer = null;      // { r, phase, wall, obj, held }
+  let hammerDone = null;  // the staged hammer whose throw or swing has played
+  const wrecks = [];      // broken screens left on the wall a while: { screen, t }
+  function updateWrecks(dt) {
+    for (let i = wrecks.length - 1; i >= 0; i--) {
+      const w = wrecks[i];
+      w.screen.update(dt);
+      w.t -= dt;
+      if (w.t <= 0) { w.screen.dispose(); wrecks.splice(i, 1); }
+    }
+  }
+  const angleLerp = (a, b, k) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * k;
   function hammerHead() {
     const g = new THREE.Group();
     // The shaft runs through both palms, with the head beyond the supporting hand.
@@ -318,7 +351,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   // A clear spot facing a wall, nearest the hammer, on the far side from the camera (the near walls
   // are cut away, and whoever stood at one would be hidden behind its stub). { x, z, yaw, n } where
   // n is the wall's outward normal.
-  function wallSpot(from) {
+  function wallSpot(from, { screen = false, avoid = null } = {}) {
     const L = office.current.L, yaw = getYaw?.() ?? Math.PI / 4;
     const cam = [Math.sin(yaw), Math.cos(yaw)];
     const furniture = [...office.placed.values()].map((e) => new THREE.Box3().setFromObject(e.obj));
@@ -337,20 +370,159 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
         }
       }
     }
-    return choose(from, 'hammer', 'wall', {
-      candidates: candidates(), needs: ['loadClear', 'clear', 'approachClear'],
+    return choose(from, 'hammer', screen ? 'screenWall' : 'wall', {
+      candidates: candidates(), needs: screen ? ['standRoom', 'throwRoom'] : ['loadClear', 'clear', 'approachClear', ...(avoid ? ['offScreen'] : [])],
       checks: {
+        standRoom,
+        offScreen: (q) => Math.hypot(q.x + q.n[0] * 0.7 - avoid.x, q.z + q.n[1] * 0.7 - avoid.z) > SCREEN_W / 2 + THROW.besideM,
         loadClear: (q) => roomForLoad(q.x, q.z),
         approachClear: (q) => !office.nav().isBlocked(q.x - q.n[0] * 0.8, q.z - q.n[1] * 0.8, BODY_R),
+        throwRoom: (q) => !!(q.plan = throwPlan(q)),
       },
     });
   }
-  function hammerTick(p, state) {
-    // The walls came down: decisionResolved chose KNOCK_DOWN of open_plan_office.
-    const knocked = resolved.get('open_plan_office') === KNOCK_DOWN;
+  // The all-hands screen's centre: on its floor stand in front of the wall at wall spot w.
+  const screenAt = (w) => new THREE.Vector3(w.x + w.n[0] * (0.7 - SCREEN_OUT), SCREEN_Y, w.z + w.n[1] * (0.7 - SCREEN_OUT));
+  // Whether the stand fits there: under the ceiling, its footprint and the screen's width clear of
+  // furniture (windows behind it don't matter).
+  function standRoom(w) {
+    const L = office.current.L, n = w.n, at = screenAt(w), side = [-n[1], n[0]];
+    if (SCREEN_Y + SCREEN_H / 2 + 0.1 > L.wallH) return false;
+    const half = SCREEN_W / 2 + 0.1;
+    const box = new THREE.Box3(
+      new THREE.Vector3(at.x - Math.abs(side[0]) * half - Math.abs(n[0]) * 0.3, 0.02, at.z - Math.abs(side[1]) * half - Math.abs(n[1]) * 0.3),
+      new THREE.Vector3(at.x + Math.abs(side[0]) * half + Math.abs(n[0]) * 0.3, SCREEN_Y + SCREEN_H / 2, at.z + Math.abs(side[1]) * half + Math.abs(n[1]) * 0.3));
+    return [...office.placed.values()].every((e) => !new THREE.Box3().setFromObject(e.obj).intersectsBox(box))
+      && (office.current.columns ?? []).every((c) => Math.abs((c.x - at.x) * side[0] + (c.z - at.z) * side[1]) > half + 0.3 || Math.abs((c.x - at.x) * n[0] + (c.z - at.z) * n[1]) > 0.6);
+  }
+  // The throw at the screen over wall spot w: where the run ends in the spin (from) and where the
+  // subject waits with the hammer (poise). null when no spot in view has a clear flight to it.
+  function throwPlan(w) {
+    const nav = office.nav(), n = w.n, side = [-n[1], n[0]], screen = screenAt(w);
+    const columns = office.current.columns ?? [];
+    const tall = [...office.placed.values()].map((e) => new THREE.Box3().setFromObject(e.obj)).filter((b) => b.max.y > THROW.tallY);
+    const lineClear = (a, b, step, ok) => {
+      const l = Math.hypot(b.x - a.x, b.z - a.z);
+      for (let k = 0; k <= l; k += step) { const t = l ? k / l : 0; if (!ok(a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t)) return false; }
+      return true;
+    };
+    const flies = (x, z) => columns.every((c) => Math.hypot(c.x - x, c.z - z) > THROW.columnR) && tall.every((b) => x < b.min.x - 0.1 || x > b.max.x + 0.1 || z < b.min.z - 0.1 || z > b.max.z + 0.1);
+    const runs = (x, z) => !nav.isBlocked(x, z, BODY_R);
+    const at = (d, s) => ({ x: w.x - n[0] * d + side[0] * s, z: w.z - n[1] * d + side[1] * s });
+    const facing = (q) => ({ ...q, yaw: Math.atan2(screen.x - q.x, screen.z - q.z) });
+    // Where the spin and the throw happen: clear, in view, with nothing tall in the hammer's way.
+    let from = null;
+    for (const d of THROW.from) for (const s of THROW.side) {
+      const q = at(d, s);
+      if (runs(q.x, q.z) && lineClear(q, at(0.3, 0), 0.2, flies) && inView(q, { body: true })) { from = q; break; }
+      if (from) break;
+    }
+    if (!from) return null;
+    // Where they wait with it while the card is up: further back behind the throw spot, else there.
+    const back = Math.hypot(from.x - w.x, from.z - w.z);
+    let poise = from;
+    for (const d of THROW.poise) for (const s of THROW.side) {
+      const q = at(back + d, s);
+      if (runs(q.x, q.z) && inView(q, { body: true })) { poise = q; break; }
+      if (poise !== from) break;
+    }
+    return { screen, poise: facing(poise), from: facing(from) };
+  }
+  // People in the room turn to the screen, deadpan, while it drones; the shatter shocks them.
+  function stare(h) {
+    const pic = h.screen.picture;
+    for (const o of free()) {
+      if (o === h.r || h.watchers.length >= THROW.watchers) continue;
+      if (Math.hypot(o.pos.x - h.plan.screen.x, o.pos.z - h.plan.screen.z) > THROW.stareR) continue;
+      const seated = !!(o.goal?.seated && o.char.seated);
+      const toScreen = () => Math.atan2(h.plan.screen.x - o.pos.x, h.plan.screen.z - o.pos.z);
+      // Someone seated with their back to it stands up behind the chair and turns round to watch.
+      if (seated && Math.abs(Math.atan2(Math.sin(toScreen() - o.yaw), Math.cos(toScreen() - o.yaw))) > THROW.seatedTurn) {
+        const spot = { x: o.pos.x - Math.sin(o.yaw) * THROW.standBack, z: o.pos.z - Math.cos(o.yaw) * THROW.standBack };
+        if (office.nav().isBlocked(spot.x, spot.z, BODY_R) || !inView(spot, { body: true })) continue;
+        // Never between the camera and the thrower's spots.
+        const cx = Math.sin(getYaw()), cz = Math.cos(getYaw());
+        const hides = (q) => { const dx = spot.x - q.x, dz = spot.z - q.z, along = dx * cx + dz * cz; return along > 0 && along < 4 && Math.abs(dx * cz - dz * cx) < 0.9; };
+        if (hides(h.plan.poise) || hides(h.plan.from)) continue;
+        spot.yaw = Math.atan2(h.plan.screen.x - spot.x, h.plan.screen.z - spot.z);
+        o.temp = { anim: 'idle', t: 1e6, goal: spot, moment: 'hammer', stage: { beat: 'stare', role: 'watcher', target: pic } };
+        walkTo(o, spot);
+        o.char.lookAt(pic, { hold: 1e6 });
+        o.char.express('flat', { hold: Infinity, blend: 0.4 });
+        h.watchers.push(o);
+        continue;
+      }
+      // Seated, they swivel only a little in the chair; the head does the rest.
+      const seatYaw = o.yaw, aim = () => {
+        if (!seated) return toScreen();
+        const d = Math.atan2(Math.sin(toScreen() - seatYaw), Math.cos(toScreen() - seatYaw));
+        return seatYaw + Math.max(-THROW.swivel, Math.min(THROW.swivel, d));
+      };
+      o.temp = {
+        anim: seated ? 'sit' : 'idle', t: 1e6, keepPos: true, moment: 'hammer', seated, seatYaw, stage: { beat: 'stare', role: 'watcher', target: pic },
+        tick: (rr, d) => { rr.yaw = angleLerp(rr.yaw, aim(), 1 - Math.exp(-d * 5)); return false; },
+      };
+      o.char.lookAt(pic, { hold: 1e6 });
+      o.char.express('flat', { hold: Infinity, blend: 0.4 });
+      h.watchers.push(o);
+    }
+  }
+  function shock(h) {
+    for (const o of h.watchers) {
+      if (o.temp?.moment !== 'hammer') continue;
+      o.temp.stage.beat = 'shock';
+      o.temp.anim = o.temp.seated ? 'recoil' : 'flinch';
+      o.char.express('shocked', { hold: THROW.react + 0.4, blend: 0.08 });
+      emote(o, 'exclamation', 1.6);
+    }
+  }
+  function releaseWatchers(h) {
+    for (const o of h.watchers) {
+      o.char.lookAt(null);
+      o.char.express(null);
+      if (o.temp?.moment !== 'hammer') continue;
+      const seated = o.temp.seated;
+      if (seated) o.yaw = o.temp.seatYaw;
+      o.temp = null;
+      if (!seated && o.goal) walkTo(o, o.goal);
+    }
+    h.watchers = [];
+  }
+  // Which hand leads and which way the chest faces at the wall: the head toward the wall, the chest
+  // to the open aisle.
+  function wallFacing(h, w) {
+    const yaw = getYaw?.() ?? Math.PI / 4;
+    const leftSide = w.n[1] * Math.sin(yaw) - w.n[0] * Math.cos(yaw);
+    h.primary = leftSide >= 0 ? 1 : 0;
+    h.facing = Math.atan2(w.n[1], -w.n[0]) + (leftSide >= 0 ? 0 : Math.PI);
+  }
+  const wallTarget = (w) => new THREE.Vector3(w.x + w.n[0] * 0.7, 1.2, w.z + w.n[1] * 0.7);
+  function swingAtWall(h) {
+    const r = h.r;
+    h.phase = 'swing';
+    h.held.userData.primaryHand = h.primary;
+    h.held.rotation.set(0, 0, 0);
+    r.temp = { anim: 'swing', t: 3.3, goal: { ...h.wall, yaw: h.facing }, moment: 'hammer', back: true, stage: { role: 'thrower', beat: 'swing', held: h.held, target: wallTarget(h.wall) } };
+    h.swingT = 0;
+  }
+  // Walking with the hammer held out in front: the route keeps a wider berth of furniture corners.
+  function carryTo(r, goal, run = false) {
+    walkTo(r, goal, run);
+    const nav = office.nav();
+    let p = null;
+    for (const c of HAMMER_ROOM.carryClear) if ((p = nav.path(r.pos, goal, c))) break;
+    p ??= nav.path(r.pos, goal, HAMMER_ROOM.carryClear[0], { soft: true }) ?? [];
+    if (p.length > 1) r.path = [...p.slice(1, -1), { x: goal.x, z: goal.z }];
+  }
+  function holdAgain(h) {
+    h.held.userData.primaryHand = h.primary;
+    h.r.char.setHeld(h.held);
+  }
+  function hammerTick(p, state, dt) {
     if (!hammer) {
-      if (!p) { timers.delete('hammer'); return; }
-      if (lite()) { if (!timers.has('hammer')) { timers.set('hammer', 1); const who = pickIdle(1)[0]; if (who) emote(who, 'exclamation', 2); } return; }
+      if (!p) { timers.delete('hammer'); hammerDone = null; return; }
+      // The prop lingers after the choice so the throw can finish; once it has, leave it be.
+      if (hammerDone === p.obj) return;
       const subject = stagedBy(state, 'sledgehammer')?.subjectId;
       const r = (subject && recs.get(subject) && free().includes(recs.get(subject))) ? recs.get(subject) : pickIdle(1)[0];
       if (!r) return;
@@ -364,57 +536,189 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
         if (!nav.isBlocked(x, z, BODY_R)) pick = { x, z, yaw: Math.atan2(at.x - x, at.z - z) };
       }
       if (!pick) { const q = nav.freePoint(at.x, at.z); pick = { x: q.x, z: q.z, yaw: Math.atan2(at.x - q.x, at.z - q.z) }; }
-      hammer = { r, phase: 'fetch', obj: p.obj, held: null };
-      // The caption ("Someone brought a sledgehammer") belongs to the fetch; the swing is the spotlight.
+      // The wall it goes to, with the all-hands screen over it when the room allows a throw.
+      const w = wallSpot(at, { screen: !!parent }) ?? wallSpot(at);
+      if (!w) { hammerDone = p.obj; return; }
+      hammer = { r, phase: 'fetch', obj: p.obj, held: null, wall: w, plan: w.plan ?? null, pick, watchers: [], choice: undefined };
+      wallFacing(hammer, w);
+      if (hammer.plan) {
+        const s = createLeaderScreen({ low: lite, height: SCREEN_Y });
+        s.group.position.copy(hammer.plan.screen);
+        s.group.rotation.y = Math.atan2(-w.n[0], -w.n[1]);
+        parent.add(s.group);
+        hammer.screen = s;
+        stare(hammer);
+      }
+      // The caption belongs to the fetch; the throw (or the swing) is the spotlight.
       hammer.mid = dispatch('start', 'open_plan_office');
-      r.temp = { anim: 'peer', t: 1.2, goal: pick, moment: 'hammer', stage: { beat: 'fetch', target: p.obj } };
+      if (hammer.screen && hammer.mid) dispatch('beat', 'open_plan_office', hammer.mid, { beat: 'screen' });
+      r.temp = { anim: 'peer', t: 1.2, goal: pick, moment: 'hammer', stage: { role: 'thrower', beat: 'fetch', target: p.obj } };
       walkTo(r, pick);
       return;
     }
     const h = hammer, r = h.r;
     if (!recs.has(r.id)) { stopHammer(); return; }
-    if (h.phase === 'fetch' && r.temp?.moment === 'hammer' && !r.path.length && r.temp.t < 0.3) {
-      // Picked up: the prop hides and the person carries a hammer of their own to the wall.
+    if (resolved.has('open_plan_office')) h.choice ??= resolved.get('open_plan_office');
+    h.screen?.update(dt);
+    const pickedUp = r.temp?.moment === 'hammer' && !r.path.length && r.temp.t < 0.3;
+    if (h.phase === 'fetch' && pickedUp) {
+      // Picked up: the prop hides and the person carries a hammer of their own.
       h.obj.visible = false;
       h.held = hammerHead();
+      h.held.userData.primaryHand = h.primary;
       r.char.setHeld(h.held);
-      const w = wallSpot(r.pos);
-      if (!w) { stopHammer(); return; }
-      // Put the head toward the wall while the chest faces the open aisle.
-      const leftSide = w.n[1] * Math.sin(getYaw?.() ?? Math.PI / 4) - w.n[0] * Math.cos(getYaw?.() ?? Math.PI / 4);
-      h.held.userData.primaryHand = leftSide >= 0 ? 1 : 0;
-      h.facing = Math.atan2(w.n[1], -w.n[0]) + (leftSide >= 0 ? 0 : Math.PI);
       h.phase = 'carry';
-      r.temp = { anim: 'shoulder', t: 1e6, goal: w, walkYaw: h.facing, moment: 'hammer', stage: { beat: 'carry', held: h.held, target: new THREE.Vector3(w.x + w.n[0] * 0.7, 1.2, w.z + w.n[1] * 0.7) } };
-      walkTo(r, w);
-      // Approach the wall from the aisle, keeping the head away from wall-side furniture.
+      const w = h.wall, goal = h.plan?.poise ?? w;
+      r.temp = { anim: 'shoulder', t: 1e6, goal, moment: 'hammer', stage: { role: 'thrower', beat: 'carry', held: h.held, target: h.plan?.screen ?? wallTarget(w) } };
+      carryTo(r, goal);
+      // To the wall itself: approach from the aisle, keeping the head away from wall-side furniture.
       const nav = office.nav(), approach = { x: w.x - w.n[0] * 0.8, z: w.z - w.n[1] * 0.8 };
-      if (!nav.isBlocked(approach.x, approach.z, BODY_R)) {
+      if (!h.plan && !nav.isBlocked(approach.x, approach.z, BODY_R)) {
         r.path = [...nav.path(r.pos, approach, 0.35, { soft: true }).slice(1), { x: w.x, z: w.z }];
       }
-      h.wall = w;
     } else if (h.phase === 'carry' && !r.path.length) {
       h.phase = 'hold';
       if (r.temp?.stage) r.temp.stage.beat = 'hold';
-      // Face the aisle so both palms and the shaft stay visible beside the wall.
-      r.temp.goal = { ...h.wall, yaw: h.facing };
+      // At the wall, face the aisle so both palms and the shaft stay visible; out in the room, turn
+      // three-quarters to the camera, still on the screen.
+      r.temp.goal = h.plan ? { ...h.plan.poise, yaw: towardCamera(h.plan.poise, h.plan.screen) } : { ...h.wall, yaw: h.facing };
       emote(r, 'lightbulb', 2);
     }
-    if (knocked && h.phase === 'hold') {
-      h.phase = 'swing';
-      h.held.rotation.set(0, 0, 0);
-      r.temp = { anim: 'swing', t: 3.3, goal: { ...h.wall, yaw: h.facing }, moment: 'hammer', back: true, stage: { beat: 'swing', held: h.held, target: new THREE.Vector3(h.wall.x + h.wall.n[0] * 0.7, 1.2, h.wall.z + h.wall.n[1] * 0.7) } };
-      h.swingT = 0;
+    // Waiting out in the room, the hammer's head goes on the side the camera sees.
+    if (h.plan && h.held && h.phase === 'hold') {
+      const cam = getYaw(), side = Math.sin(r.yaw) * Math.cos(cam) - Math.cos(r.yaw) * Math.sin(cam);
+      if (Math.abs(side) > THROW.flipSide) h.held.userData.primaryHand = side > 0 ? 1 : 0;
+    }
+    // Walking with it, the hammer rests back over the shoulder, clear of the desks either side of an
+    // aisle; it comes down across both palms whenever they stop, and for the run in.
+    if (h.held) {
+      const moving = !!r.path.length && r.temp?.moment === 'hammer' && ['carry', 'return', 'toWall'].includes(h.phase);
+      // The arm eases up to the shoulder under 'shoulderwalk' while both palms still hold the shaft, so
+      // the hammer never swings over the shoulder of an arm that is still down.
+      h.walkT = moving ? (h.walkT ?? 0) + dt : 0;
+      const walking = moving && h.walkT >= SHOULDER_UP_S;
+      if (moving) r.walkAnim = 'shoulderwalk';
+      if (walking !== !h.held.userData.handSpan) {
+        h.held.userData.handSpan = !walking;
+        // The two-hand grip moves the hammer to the palms; on the shoulder it sits at the hand again.
+        if (walking) { h.held.position.set(0, 0, 0); h.held.rotation.set(...HAMMER_SHOULDER); }
+        else h.held.rotation.set(0, 0, 0);
+      }
+    }
+    if ((h.phase === 'hold' || h.phase === 'carry') && h.choice !== undefined && h.plan) {
+      // The run in, from wherever they have got to with it.
+      h.phase = 'run';
+      if (h.mid) dispatch('beat', 'open_plan_office', h.mid, { beat: 'run' });
+      r.temp = { anim: 'shoulder', t: 1e6, goal: h.plan.from, moment: 'hammer', stage: { role: 'thrower', beat: 'run', held: h.held, target: h.plan.screen } };
+      carryTo(r, h.plan.from, true);
+      h.spot = spotlights?.begin('open_plan_office', () => stopHammer(true), MOMENT_KINDS.open_plan_office.seconds, () => ({ x: (r.pos.x + h.plan.screen.x) / 2, z: (r.pos.z + h.plan.screen.z) / 2 }));
+    } else if (h.phase === 'hold' && h.choice === KNOCK_DOWN && !h.plan) {
+      swingAtWall(h);
       h.spot = spotlights?.begin('open_plan_office', () => stopHammer(true), 3.3, () => h.wall);
+    } else if (h.phase === 'run' && !r.path.length) {
+      // One accelerating turn on the spot, ending square to the screen.
+      h.phase = 'spin';
+      h.spinT = 0;
+      const aim = Math.atan2(h.plan.screen.x - r.pos.x, h.plan.screen.z - r.pos.z);
+      r.temp = {
+        anim: 'hurlspin', t: 1e6, keepPos: true, moment: 'hammer', stage: { role: 'thrower', beat: 'spin', held: h.held, target: h.plan.screen },
+        tick: (rr) => { rr.yaw = aim - Math.PI * 2 * (1 - (Math.min(1, h.spinT / THROW.spinS)) ** 2); return false; },
+      };
+    } else if (h.phase === 'spin') {
+      h.spinT += dt;
+      if (h.spinT >= THROW.spinS) hurl(h);
+    } else if (h.phase === 'flight') {
+      h.flyT += dt;
+      const k = Math.min(1, h.flyT / THROW.flightS);
+      h.held.position.lerpVectors(h.from, h.to, k);
+      h.held.position.y += 4 * THROW.arc * k * (1 - k);
+      h.held.quaternion.setFromAxisAngle(h.tumble, k * THROW.tumble).multiply(h.fromQ);
+      if (k >= 1) impact(h);
+    } else if (h.phase === 'react') {
+      h.reactT -= dt;
+      if (h.reactT <= 0) {
+        // Back for the hammer, under the broken screen; the wall then takes its blows beside it.
+        releaseWatchers(h);
+        h.phase = 'pickup';
+        const w = h.wall, nav = office.nav();
+        const p0 = { x: w.x - w.n[0] * HAMMER_LAND.pick, z: w.z - w.n[1] * HAMMER_LAND.pick };
+        const q = nav.isBlocked(p0.x, p0.z, BODY_R) ? nav.freePoint(p0.x, p0.z) : p0;
+        const land = { x: w.x - w.n[0] * HAMMER_LAND.out, z: w.z - w.n[1] * HAMMER_LAND.out };
+        const spot = { x: q.x, z: q.z, yaw: Math.atan2(land.x - q.x, land.z - q.z) };
+        r.temp = { anim: 'peer', t: 0.8, goal: spot, moment: 'hammer', stage: { role: 'thrower', beat: 'pickup', target: h.held } };
+        walkTo(r, spot);
+      }
+    } else if (h.phase === 'pickup' && pickedUp) {
+      holdAgain(h);
+      // The walls come down: on to a stretch of wall clear of the screen and of furniture.
+      const sw = h.choice === KNOCK_DOWN ? wallSpot(r.pos, { avoid: h.plan.screen }) : null;
+      // Too far to walk with the room watching: they lay into the wrecked screen where they stand.
+      if (h.choice === KNOCK_DOWN && (!sw || Math.hypot(sw.x - r.pos.x, sw.z - r.pos.z) > THROW.swingNear)) {
+        const here = { x: r.pos.x, z: r.pos.z, yaw: h.wall.yaw, n: h.wall.n };
+        h.wall = here;
+        wallFacing(h, here);
+        swingAtWall(h);
+      } else if (sw) {
+        h.wall = sw;
+        wallFacing(h, sw);
+        h.held.userData.primaryHand = h.primary;
+        h.phase = 'toWall';
+        r.temp = { anim: 'shoulder', t: 1e6, goal: sw, moment: 'hammer', stage: { role: 'thrower', beat: 'carry', held: h.held, target: wallTarget(sw) } };
+        walkTo(r, sw);
+        const nav = office.nav(), approach = { x: sw.x - sw.n[0] * 0.8, z: sw.z - sw.n[1] * 0.8 };
+        if (!nav.isBlocked(approach.x, approach.z, BODY_R)) r.path = [...nav.path(r.pos, approach, 0.35, { soft: true }).slice(1), { x: sw.x, z: sw.z }];
+      } else {
+        // The walls stay: the hammer goes back where it came from.
+        h.phase = 'return';
+        r.temp = { anim: 'shoulder', t: 1e6, goal: h.pick, moment: 'hammer', stage: { role: 'thrower', beat: 'return', held: h.held, target: h.obj } };
+        carryTo(r, h.pick);
+      }
+    } else if (h.phase === 'toWall' && !r.path.length) {
+      swingAtWall(h);
+    } else if (h.phase === 'return' && !r.path.length) {
+      h.putBack = true;
+      stopHammer(true);
+      return;
     }
     if (h.phase === 'swing') {
-      h.swingT += 1 / 30;
+      h.swingT += dt;
       const hit = Math.floor((h.swingT - 0.6) / 1.1);
-      if (hit >= 0 && hit !== h.lastHit) { h.lastHit = hit; wallDust(h.wall.x + h.wall.n[0] * 0.62 - h.wall.n[1] * 0.35, 1.0, h.wall.z + h.wall.n[1] * 0.62 + h.wall.n[0] * 0.35); }
+      if (hit >= 0 && hit !== h.lastHit && !lite()) { h.lastHit = hit; wallDust(h.wall.x + h.wall.n[0] * 0.62 - h.wall.n[1] * 0.35, 1.0, h.wall.z + h.wall.n[1] * 0.62 + h.wall.n[0] * 0.35); }
       if (!r.temp) { stopHammer(); return; }
     }
-    // The decision went the other way: put it down and go back to work.
-    if (!p && h.phase !== 'swing') { stopHammer(true); }
+    // The card went away before anything was thrown: put it down and go back to work.
+    if (!p && (h.phase === 'fetch' || h.phase === 'carry' || h.phase === 'hold')) stopHammer(true);
+  }
+  // Let go at the end of the spin: the hammer leaves the hands and flies, tumbling, into the screen.
+  function hurl(h) {
+    const r = h.r;
+    h.held.updateMatrixWorld(true);
+    r.char.setHeld(null);
+    parent.attach(h.held);
+    h.thrown = true;
+    h.phase = 'flight';
+    h.flyT = 0;
+    h.from = h.held.position.clone();
+    h.fromQ = h.held.quaternion.clone();
+    h.to = parent.worldToLocal(h.plan.screen.clone().addScaledVector(new THREE.Vector3(-h.wall.n[0], 0, -h.wall.n[1]), 0.08));
+    h.tumble = new THREE.Vector3(h.wall.n[1], 0, -h.wall.n[0]);
+    r.yaw = Math.atan2(h.plan.screen.x - r.pos.x, h.plan.screen.z - r.pos.z);
+    if (h.mid) dispatch('beat', 'open_plan_office', h.mid, { beat: 'throw' });
+    r.temp = { anim: 'hurlthrow', t: 1e6, keepPos: true, moment: 'hammer', stage: { role: 'thrower', beat: 'throw', target: h.plan.screen } };
+  }
+  function impact(h) {
+    const r = h.r, w = h.wall;
+    h.screen.shatter();
+    if (h.mid) dispatch('hit', 'open_plan_office', h.mid, { hit: 'screen' });
+    if (!lite()) wallDust(h.plan.screen.x - w.n[0] * 0.1, h.plan.screen.y, h.plan.screen.z - w.n[1] * 0.1);
+    // It drops to the floor under the screen, lying along the wall.
+    h.held.position.copy(parent.worldToLocal(new THREE.Vector3(w.x - w.n[0] * HAMMER_LAND.out, 0.07, w.z - w.n[1] * HAMMER_LAND.out)));
+    h.held.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), new THREE.Vector3(w.n[1], 0, -w.n[0]));
+    shock(h);
+    r.char.express('delighted', { hold: THROW.react + 0.6 });
+    h.phase = 'react';
+    h.reactT = THROW.react;
+    if (r.temp?.stage) r.temp.stage.beat = 'shatter';
   }
   // Wall dust bursts: pooled sprite sets, each puff flying out from the wall and settling.
   const bursts = [];
@@ -450,8 +754,13 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     if (!hammer) return;
     const r = hammer.r;
     r.char.setHeld(null);
+    hammer.held?.removeFromParent();
     hammer.held?.traverse((o) => o.geometry?.dispose());
-    if (hammer.obj) hammer.obj.visible = true;
+    releaseWatchers(hammer);
+    r.char.express(null);
+    if (hammer.screen) wrecks.push({ screen: hammer.screen, t: hammer.screen.broken ? WRECK_S : 0 });
+    if (hammer.thrown || hammer.phase === 'swing') hammerDone = hammer.obj;
+    if (hammer.obj) hammer.obj.visible = hammer.putBack || (!hammer.thrown && hammer.phase !== 'swing');
     if (r.temp?.moment === 'hammer') { r.temp = null; if (walkBack && r.goal) walkTo(r, r.goal); }
     if (hammer.mid) dispatch('end', 'open_plan_office', hammer.mid);
     spotlights?.end(hammer.spot);
@@ -1413,8 +1722,10 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   // Moment captions (ui): hitl:moment { phase, id, key }. A start makes the moment's id and returns it;
   // its end passes the same id back.
   let momentSeq = 0;
-  // hitl:moment { phase: 'start' | 'end' | 'hit', id, key, ...extra }; 'hit' marks a beat inside a
-  // moment as it lands (the printer's blows: { hit: 0.. }).
+  // hitl:moment { phase: 'start' | 'end' | 'hit' | 'beat', id, key, ...extra }; 'hit' marks a beat
+  // inside a moment as it lands (the printer's blows: { hit: 0.. }, the hammer into the all-hands
+  // screen: { hit: 'screen' }); 'beat' names a stretch as it begins ({ beat: 'screen' } when the
+  // all-hands screen appears, { beat: 'run' }).
   function dispatch(phase, key, id = null, extra = null) {
     if (phase === 'start') id = `${key}-${++momentSeq}`;
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('hitl:moment', { detail: { phase, id, key, ...extra } }));
@@ -1430,10 +1741,11 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     for (const [k, t] of resolvedT) { if (t - dt <= 0) { resolvedT.delete(k); resolved.delete(k); } else resolvedT.set(k, t - dt); }
     updateBursts(dt);
     updateRolls(dt);
+    updateWrecks(dt);
     const props = getProps();
     if (!props || !office.current) return;
     const cur = props.current();
-    hammerTick(cur.find((p) => p.prop === 'sledgehammer') ?? null, state);
+    hammerTick(cur.find((p) => p.prop === 'sledgehammer') ?? null, state, dt);
     visitorTick(cur.find((p) => p.prop === 'visitor_chair') ?? null, dt, state);
     // The carrier went (the pet came out, or the answer was no): nobody keeps peering at the floor,
     // even while a standup or party holds the room.
@@ -1449,7 +1761,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     else { screenSpotlight = null; for (const k of [...timers.keys()]) if (k.startsWith('screen|')) timers.delete(k); }
   }
 
-  function reset() { y2k.reset(); printerEnd(); printerDue = 0; rolls.length = 0; stopHammer(); endVisitor(); timers.clear(); resolved.clear(); resolvedT.clear(); }
+  function reset() { y2k.reset(); printerEnd(); printerDue = 0; rolls.length = 0; stopHammer(); for (const w of wrecks.splice(0)) w.screen.dispose(); hammerDone = null; endVisitor(); timers.clear(); resolved.clear(); resolvedT.clear(); }
 
   // What a moment says about someone now, for the staging probe (probe.js): the moment, its beat
   // ('walk' while they are on the way), the target they deal with, what they hold, the effect source.
@@ -1483,5 +1795,5 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       checks: { inView: (q) => inView(q, { body: true, walls: true }) },
     });
   }
-  return { growthSpot, inView, update, releaseLetters, reset, decided, staging, extras, kinds: KINDS, get visitorState() { return visitor; }, get printerState() { return printer; }, get printer() { return printer && { phase: printer.phase, cue: +printer.cue.toFixed(2), s: +printer.s.toFixed(2), len: +printer.len.toFixed(2), hit: printer.hit, ids: printer.people.map((r) => r.id), at: printer.people.map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
+  return { growthSpot, inView, update, releaseLetters, reset, decided, staging, extras, kinds: KINDS, get visitorState() { return visitor; }, get printerState() { return printer; }, get printer() { return printer && { phase: printer.phase, cue: +printer.cue.toFixed(2), s: +printer.s.toFixed(2), len: +printer.len.toFixed(2), hit: printer.hit, ids: printer.people.map((r) => r.id), at: printer.people.map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, watchers: hammer.watchers.map((r) => r.id), path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
 }
