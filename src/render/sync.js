@@ -20,6 +20,7 @@ import { createGrowthMoments } from './growth-moments.js';
 import { createOfficeGrowth, promotionWeek } from './growth-office.js';
 import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { holdSeconds } from './reading.js';
+import { lookYaw } from './turn.js';
 import { pickSpot, spotDebug, spotRing } from './spots.js';
 import { between, draw, fixed } from './rand.js';
 
@@ -886,17 +887,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   // Turn toward someone for a few seconds; seated people only swivel so they stay in the chair.
   function faceToward(a, b) {
-    // Facepalmers keep their camera-facing turn; lying people would spin on the couch or pod.
-    if (a.char.anim === 'facepalm' || a.char.anim === 'facepalmsit' || LYING.has(a.char.anim)) return;
-    let yaw = Math.atan2(b.pos.x - a.pos.x, b.pos.z - a.pos.z);
-    // Seated people (at a desk, or in a meeting chair for a standup) only swivel.
-    const seat = a.temp?.seat ? a.temp.goal : a.goal?.seated && !a.path.length && !a.temp ? a.goal : null;
-    if (seat) {
-      let d = ((yaw - seat.yaw + Math.PI) % (Math.PI * 2)) - Math.PI;
-      if (d < -Math.PI) d += Math.PI * 2;
-      yaw = seat.yaw + Math.max(-SWIVEL, Math.min(SWIVEL, d));
-    }
-    a.face = { yaw, t: 3.6 };
+    const yaw = lookYaw(a, b, SWIVEL);
+    if (yaw !== null) a.face = { yaw, t: 3.6 };
   }
 
   function approach(r, other, text, moment = null) {
