@@ -316,11 +316,13 @@ full_check() {
   if [ "${CI_FULL:-}" != 1 ]; then
     local mb sel; mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb="$BASE"
     sel="$(node scripts/tools/full-select.mjs --base "$mb")" || return 1
+    # harness-uuid has its own GPU step.
+    sel="$(grep -v '^tests/tools/harness-uuid\.full\.test\.js$' <<<"$sel")" || true
     [ -n "$sel" ] || { echo "skipped: no whole-game test reaches this change"; return 0; }
     echo "selected:"; echo "$sel"
     # Not `npm run test:full -- files`: its pattern would still match every .full file.
     # shellcheck disable=SC2086
-    bash scripts/nice10.sh vitest run $sel --exclude tests/tools/harness-uuid.full.test.js --maxWorkers="$VITEST_WORKERS"
+    bash scripts/nice10.sh npx vitest run $sel --exclude tests/tools/harness-uuid.full.test.js --maxWorkers="$VITEST_WORKERS"
     return
   fi
   npm run test:full -- --maxWorkers="$VITEST_WORKERS"
