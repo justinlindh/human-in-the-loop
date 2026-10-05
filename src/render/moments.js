@@ -41,7 +41,7 @@ const rnd = (a, b) => between(a, b, 'moments');
 const IDLE_W = { idle: 4, maintenance: 1, support: 0.8, sales: 0.8, marketing: 0.8, security: 0.6, project: 0.5, mentor: 0.4, oversight: 0.3, hardProblem: 0.2 };
 const BODY_R = 0.22;
 // The moments this module plays, for checks that need to know what exists (blender/checks/stage.mjs).
-const KINDS = ['pet', 'robot', 'pizza', 'screen', 'hammer', 'carrier', 'printer', 'visitor', 'letter', 'fumes', 'growth', 'company_party', 'respond', 'y2k', 'deal', 'fired', 'click'];
+const KINDS = ['pet', 'robot', 'pizza', 'screen', 'hammer', 'carrier', 'printer', 'visitor', 'letter', 'fumes', 'growth', 'company_party', 'respond', 'y2k', 'deal', 'fired', 'click', 'music'];
 const READ_S = 2.2, SLUMP_S = 2.0;   // the letter moment: reading it, then the reaction
 const CHAIR_ROLL = 0.5;      // how far a chair rolls back when someone gets up from it
 const SIDE_OUT = 0.62;       // how far sideways someone steps out of their chair
@@ -1798,12 +1798,15 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     if (rob?.root.visible) out.push({ id: 'visitor:1', char: rob, stage: { moment: 'visitor', beat: arrived ? 'interview' : 'wait', role: 'clipboard', target: at, held: null, source: null } });
     return out;
   }
+  // The moment a temp stages: its own moment, or for a beat run elsewhere (a music night) the
+  // stage record's.
+  const stagedAs = (tp) => tp?.moment ?? tp?.stage?.moment ?? null;
   function staging(id) {
     if (typeof id === 'string' && id.startsWith('visitor:')) return extras().find((e) => e.id === id)?.stage ?? null;
     const r = recs.get(id), tp = r?.temp;
-    if (!tp?.moment) return null;
+    if (!stagedAs(tp)) return null;
     const st = tp.stage ?? {};
-    return { moment: tp.moment, beat: r.path.length ? 'walk' : tp.delay > 0 ? 'wait' : st.beat ?? null, role: st.role ?? null, target: st.target ?? null, held: st.held ?? null, source: st.source ?? null };
+    return { moment: stagedAs(tp), beat: r.path.length ? 'walk' : tp.delay > 0 ? 'wait' : st.beat ?? null, role: st.role ?? null, target: st.target ?? null, held: st.held ?? null, source: st.source ?? null };
   }
 
   function growthSpot(r) {
@@ -1813,5 +1816,5 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       checks: { inView: (q) => inView(q, { body: true, walls: true }) },
     });
   }
-  return { growthSpot, inView, update, releaseLetters, reset, decided, staging, extras, kinds: KINDS, get visitorState() { return visitor; }, get printerState() { return printer; }, get printer() { return printer && { phase: printer.phase, cue: +printer.cue.toFixed(2), s: +printer.s.toFixed(2), len: +printer.len.toFixed(2), hit: printer.hit, ids: printer.people.map((r) => r.id), at: printer.people.map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, watchers: hammer.watchers.map((r) => r.id), path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => r.temp?.moment).map((r) => [r.id, r.temp.moment]); } };
+  return { growthSpot, inView, update, releaseLetters, reset, decided, staging, extras, kinds: KINDS, get visitorState() { return visitor; }, get printerState() { return printer; }, get printer() { return printer && { phase: printer.phase, cue: +printer.cue.toFixed(2), s: +printer.s.toFixed(2), len: +printer.len.toFixed(2), hit: printer.hit, ids: printer.people.map((r) => r.id), at: printer.people.map((r) => [+r.pos.x.toFixed(2), +r.pos.y.toFixed(2), +r.pos.z.toFixed(2)]) }; }, get hammer() { return hammer && { id: hammer.r.id, phase: hammer.phase, watchers: hammer.watchers.map((r) => r.id), path: hammer.r.path.length, temp: hammer.r.temp && { anim: hammer.r.temp.anim, t: +hammer.r.temp.t.toFixed(2), moment: hammer.r.temp.moment } }; }, set full(on) { full = !!on; }, get active() { return [...recs.values()].filter((r) => stagedAs(r.temp)).map((r) => [r.id, stagedAs(r.temp)]); } };
 }

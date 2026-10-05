@@ -686,7 +686,15 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         case 'posted': postReaction(e.outcome); break;
         case 'incident': incident(e, state); break;
         case 'standup': if (e.mode === 'daily') startStandup(e, state); break;
-        case 'incentive': incentives.handle(e); break;
+        case 'incentive':
+          // A standup waits out a spotlight where it stands, so one gathered on the floor a party
+          // takes would stand in front of it the whole time: the party ends it instead.
+          if (standup && (e.reward === 'music_night' || e.reward === 'waffle_party')) {
+            if (standup.spoken) labels.clearSpeech(standup.spoken.root, standup.spoken.text);
+            endStandup();
+          }
+          incentives.handle(e);
+          break;
         case 'robot': robot.event(e); break;
         default: break;
       }
@@ -1339,7 +1347,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   // Perk visits (coffee, nap pod, couch, arcade, shelves, tables) replace plain wandering.
-  const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup, low });
+  // No new visits start while a standup or a music night holds the floor.
+  const perks = createPerks({ office, recs, walkTo, emote, parent: group, isBusy: () => !!standup || !!incentives.dance, low });
   const pets = createPets({ office, recs, emote, parent: group, getProps, resumeWalk: walkTo, low });
   const robot = createRobot({ office, recs, emote, parent: group, walkTo, inView: (q) => moments.inView(q, { body: true, walls: true }), camYaw: () => rig?.yaw ?? Math.PI / 4 });
   robotOut = () => robot.blocker();
