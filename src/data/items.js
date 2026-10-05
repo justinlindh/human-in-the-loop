@@ -83,7 +83,7 @@ export const ITEMS = Object.fromEntries([
     era: 'preinternet', onlyEras: ['preinternet', 'dotcom', 'web2'], standIn: 'crate', outdoor: false, frontFrom: null, levelStage: null, unique: false }]),
   ['dotcom_banner', { id: 'dotcom_banner', name: 'Banner Rotation Server', desc: 'The ad has loaded. The page is considering it. Adds new-customer acquisition during the dot-com chapter.', kind: 'shop',
     minStage: 0, costs: B.dotcom.bannerCosts, effects: B.dotcom.bannerAcquisition.map((bannerAcquisition) => ({ bannerAcquisition })),
-    requires: null, footprint: { w: 2, h: 1 }, adjacency: null, era: 'dotcom', onlyEras: ['dotcom'], standIn: 'crate', outdoor: false, frontFrom: null, levelStage: null, unique: true }],
+    requires: null, footprint: { w: 2, h: 1 }, adjacency: null, era: 'dotcom', onlyEras: ['dotcom'], outdoor: false, frontFrom: null, levelStage: null, unique: true }],
   ...FURNITURE.map(([id, name, desc, costs, footprint, adjacency, effect = {}, minStage = 0]) => [
     id, { id, name, desc, kind: 'furniture', minStage, costs, effects: [effect], requires: null, footprint, adjacency, era: null, outdoor: OUTDOOR.has(id), frontFrom: FRONT_FROM[id] ?? null, levelStage: null, unique: false },
   ]),
