@@ -46,7 +46,25 @@ export function isMocapClip(c) { return c?.format === 'hitl-mocap-clip' || (c?.t
 // (clip space x, z) by whoever moves the character's root, so its ring, shadow and label go along.
 // The root must keep its yaw while the clip plays (the heading stays on the body pivot; heading()
 // gives it, to hand over on stop).
-export function createMocapPlayer(char, clip, { minConf = 0.35, ik = true, ramp = 3, rootMotion = false } = {}) {
+//
+// gain: { bone: k } multiplies a bone's turn from rest (its angle, same axis) before contacts are
+// solved, so a gesture reads bigger on the chibi's short limbs from a high camera; contacts still
+// pin where they were. MOCAP_GAIN is the readable default for arms and legs.
+export const MOCAP_GAIN = { armL: 1.4, armR: 1.4, legL: 1.3, legR: 1.3 };
+
+// Scales a unit quaternion's rotation angle by k about the same axis (k > 1 exaggerates), capped
+// short of a full half turn so the limb never flips through.
+const MAX_TURN = Math.PI * 0.95;
+function amplify(q, k) {
+  if (q.w < 0) q.set(-q.x, -q.y, -q.z, -q.w);
+  const half = Math.acos(Math.min(1, q.w));
+  const s = Math.sin(half);
+  if (s < 1e-6) return q;
+  const nh = Math.min(MAX_TURN, 2 * half * k) / 2, f = Math.sin(nh) / s;
+  return q.set(q.x * f, q.y * f, q.z * f, Math.cos(nh));
+}
+
+export function createMocapPlayer(char, clip, { minConf = 0.35, ik = true, ramp = 3, rootMotion = false, gain = {} } = {}) {
   const n = clip.frames, fps = clip.fps;
   const bones = clip.bones.filter((b) => clip.tracks[b]?.quat);
   // For each bone and frame, the frame to read: itself when trusted, else the nearest trusted one.
@@ -73,7 +91,11 @@ export function createMocapPlayer(char, clip, { minConf = 0.35, ik = true, ramp 
     const x = Math.max(0, Math.min(n - 1, t * fps));
     const i0 = Math.floor(x), i1 = Math.min(n - 1, i0 + 1), a = x - i0;
     frame = x;
-    for (const b of bones) pose.q[b].copy(read(b, i0, qa)).slerp(read(b, i1, qb), a).normalize();
+    for (const b of bones) {
+      pose.q[b].copy(read(b, i0, qa)).slerp(read(b, i1, qb), a).normalize();
+      const g = gain[b];
+      if (g && g !== 1) amplify(pose.q[b], g);
+    }
     const P = clip.tracks.body?.pos;
     if (P) pose.pos.set(P[i0][0], P[i0][1], P[i0][2]).lerp(_p1.set(P[i1][0], P[i1][1], P[i1][2]), a);
     if (rootMotion) { off.x = pose.pos.x; off.z = pose.pos.z; pose.pos.x = 0; pose.pos.z = 0; }

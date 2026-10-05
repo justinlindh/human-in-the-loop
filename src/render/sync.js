@@ -22,7 +22,7 @@ import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { holdSeconds } from './reading.js';
 import { pickSpot, spotDebug, spotRing } from './spots.js';
 import { between, draw, fixed } from './rand.js';
-import { createMocapPlayer, placeInShot, clipTime } from './mocap.js';
+import { createMocapPlayer, placeInShot, clipTime, MOCAP_GAIN } from './mocap.js';
 
 // Keeps one character per staff member in step with state, and plays event effects.
 // Characters are keyed by staff id; removed staff walk out and are disposed.
@@ -42,6 +42,8 @@ const FACE_HOLD = { deal: 2, notable: 2.5, hire: 4, launch: 3, award: 3, fired: 
 const VOICE_FACE = { happy: 'delighted', excited: 'delighted', laughing: 'delighted', questioning: 'questioning', annoyed: 'sideeye', tired: 'tired', sighing: 'sad' };
 const VOICE_FACE_TAIL = 0.6, VOICE_TALK = 1, VOICE_CLOSE_S = 0.4;
 const SHOT_SPREAD = 2;        // a tracked shot's gaps between people, times its real ones (chibis are wide)
+const SHOT_APART = 0.6;       // metres a shot keeps people's head centres apart on the floor (a chibi head is about 0.4 m wide)
+const SHOT_PUSH_EASE = 0.3;   // share of the way a push moves toward its target each frame (no snaps)
 const CLICK_SWIVEL = 1.4;     // radians someone clicked may turn their chair toward the camera (past it the chair back hides them)
 // FACE_SEE: radians off a bystander's turned heading the person leaving may be and still be watched.
 // FACE_AWAY_COS: a turned heading further than about 80 degrees off the camera hides the face.
@@ -1515,7 +1517,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   // timed by clock() seconds when given (a video's currentTime; it runs until stopMocap), else by
   // frame time from t0 (negative: hold the first frame that long), until the clip's end. Returns the
   // player, or null.
-  function playMocap(id, clip, { at = null, clock = null, t0 = 0, ...opts } = {}) {
+  // place(x, z) -> [x, z] may move where the root goes each frame (a shot keeping people apart).
+  function playMocap(id, clip, { at = null, clock = null, t0 = 0, place = null, ...opts } = {}) {
     const r = recs.get(id);
     if (!r || r.hidden) return null;
     // The clip's floor travel moves the root (ring, shadow and label go along); its heading stays on
@@ -1528,7 +1531,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const step = (t) => {
       p.setTime(t);
       const o = p.rootOffset;
-      r.pos.set(base.x + o.x * c + o.z * s, 0, base.z - o.x * s + o.z * c);
+      const x = base.x + o.x * c + o.z * s, z = base.z - o.x * s + o.z * c;
+      if (place) { const q = place(x, z); r.pos.set(q[0], 0, q[1]); } else r.pos.set(x, 0, z);
     };
     let el = t0;
     r.temp = { anim: 'idle', t: clock ? Infinity : p.duration - t0, keepPos: true, moment: 'mocap', mocap: p,
@@ -1542,14 +1546,47 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   // stands at `at` { x, z, yaw }, yaw turning the shot's +z (its camera's forward); `spread` widens
   // the gaps between people (mocap.js placeInShot). clock() gives seconds of the source video
   // (videoFps); without one, the shot runs on frame time from its earliest clip's first frame.
-  function playShot(entries, { at = { x: 0, z: 0, yaw: 0 }, spread = SHOT_SPREAD, clock = null, videoFps = 30, ...opts } = {}) {
+  // People whose heads come closer than `apart` metres (on the floor plan) are eased apart, each by
+  // half the overlap, so big chibi heads never meet where real people stood close or leaned in.
+  // Heads, not roots: a lean or a bow carries the head well off the root.
+  function playShot(entries, { at = { x: 0, z: 0, yaw: 0 }, spread = SHOT_SPREAD, apart = SHOT_APART, gain = MOCAP_GAIN, clock = null, videoFps = 30, ...opts } = {}) {
     const first = Math.min(...entries.map((e) => e.clip.source?.start ?? 0));
     const placed = entries.filter((e) => e.clip.origin);
     const center = placed.length ? [0, 2].map((k) => placed.reduce((a, e) => a + e.clip.origin.pos[k], 0) / placed.length) : [0, 0];
-    const players = entries.map(({ id, clip }) => playMocap(id, clip, {
-      ...opts, at: placeInShot(clip, at, { spread, center }),
-      ...(clock ? { clock: () => clipTime(clip, clock(), videoFps) } : { t0: clipTime(clip, first / videoFps, videoFps) }),
-    }));
+    // Each person's wanted head spot this frame (before pushing) and their current push.
+    const want = entries.map(() => [0, 0]), push = entries.map(() => [0, 0]);
+    const heads = entries.map(({ id }) => recs.get(id));
+    const _h = new THREE.Vector3(), _box = new THREE.Box3();
+    // The head's floor offset from the root as last drawn: its box centre, since the head pivot is
+    // at the neck and a lean carries the big head well past it.
+    const headOff = (i) => {
+      const r = heads[i], hp = r?.char?.pivots?.head;
+      if (!hp) return [0, 0];
+      _box.setFromObject(hp).getCenter(_h);
+      return [_h.x - r.char.root.position.x, _h.z - r.char.root.position.z];
+    };
+    const keepApart = (i) => (rx, rz) => {
+      const [hx, hz] = headOff(i), x = rx + hx, z = rz + hz;
+      want[i][0] = x; want[i][1] = z;
+      let px = 0, pz = 0;
+      want.forEach((w, j) => {
+        if (j === i) return;
+        const dx = x - w[0], dz = z - w[1], d = Math.hypot(dx, dz);
+        if (d >= apart) return;
+        const k = (apart - d) / 2 / Math.max(d, 1e-3);
+        px += d > 1e-3 ? dx * k : (i < j ? -1 : 1) * (apart - d) / 2; pz += dz * k;
+      });
+      push[i][0] += (px - push[i][0]) * SHOT_PUSH_EASE; push[i][1] += (pz - push[i][1]) * SHOT_PUSH_EASE;
+      return [rx + push[i][0], rz + push[i][1]];
+    };
+    const players = entries.map(({ id, clip }, i) => {
+      const where = placeInShot(clip, at, { spread, center });
+      want[i] = [where.x, where.z];
+      return playMocap(id, clip, {
+        ...opts, gain, at: where, place: apart > 0 ? keepApart(i) : null,
+        ...(clock ? { clock: () => clipTime(clip, clock(), videoFps) } : { t0: clipTime(clip, first / videoFps, videoFps) }),
+      });
+    });
     return { players, stop() { for (const { id } of entries) stopMocap(id); } };
   }
   function stopMocap(id) {
