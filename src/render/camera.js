@@ -266,6 +266,8 @@ export function createCameraRig(canvas) {
     // Which of the four views the camera is turning to, 0 to 3 (0 is the starting view).
     get yawStep() { return ((Math.round((yawGoal - Math.PI / 4) / (Math.PI / 2)) % 4) + 4) % 4; },
     get zoom() { return zoom; },
+    // World height the whole office is fitted into at zoom 1.
+    get fitHeight() { return fitHeight; },
     setZoom(z, ease = false) { zoomGoal = THREE.MathUtils.clamp(z, ZOOM_MIN, ZOOM_MAX); if (!ease) zoom = zoomGoal; },
     get dragging() { return dragging; },
     get lastInput() { return lastInput; },

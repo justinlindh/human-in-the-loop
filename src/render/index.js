@@ -33,6 +33,10 @@ const STAGE_ZOOM = [1, 1.05, 1.25];
 
 const WILT_WEEKS = 16;
 const RECOVER_WEEKS = 6;
+// The red screen takeover (bridge loan) also washes the room red through the alarm light, pulsing
+// slowly, and reddens the screen's edges (the alarm vignette), so it reads in a wide shot where the
+// monitors themselves are a few pixels. edge: the vignette's opacity per unit of wash.
+const RED_WASH = { k: 0.55, pulse: 0.2, hz: 0.6, edge: 1.1 };
 function lockdownLevel(state) {
   const L = state.lockdown;
   if (!L) return { dim: 0, wilt: 0 };
@@ -210,6 +214,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let stageJustBuilt = false;
   let buildSig = '';
   let partyDim = 0;
+  let washT = 0;   // seconds the red takeover has been up
   let speedZero = false;
   let menuPaused = false;
   let firstSync = true;
@@ -413,7 +418,10 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       props?.update(dt);
       build?.update(dt, scene);
       portraits.update(dt);
-      lighting.setAlarm(fx.alarmLevel);
+      washT = screens.overlay === 'red' ? washT + dt : 0;
+      const wash = washT ? RED_WASH.k * Math.min(1, washT * 2) * (1 - RED_WASH.pulse * (0.5 + 0.5 * Math.cos(washT * RED_WASH.hz * Math.PI * 2))) : 0;
+      lighting.setAlarm(Math.max(fx.alarmLevel, wash));
+      fx.setWash(wash * RED_WASH.edge);
       scene.updateMatrixWorld();
       // Skipping the draw is exact only while post keeps no state between frames (golden checks this).
       if (draw) post.render(dt);
