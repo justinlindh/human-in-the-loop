@@ -25,6 +25,15 @@ sleep 3
 n="$(ps -o ni= -p "$victim" | tr -d ' ')"
 kill "$keeper" "$victim" 2>/dev/null
 [ "${n:-0}" -ge 10 ] 2>/dev/null || fail "keep_nice puts a process under the root at nice 10 or more: got [$n]"
+# tree lists the pids under a root that sit below nice 10, and leaves out the ones under `skip`.
+got="$(ps() { printf '%s\n' '100 1 0' '200 100 -4' '300 200 -4' '400 100 12' '500 1 -4'; }; tree 100 "" low | sort -n | tr '\n' ' ')"
+[ "$got" = "100 200 300 " ] || fail "tree names the processes under the root below nice 10: [$got]"
+got="$(ps() { printf '%s\n' '100 1 0' '200 100 -4' '300 200 -4'; }; tree 100 200 low | tr '\n' ' ')"
+[ "$got" = "100 " ] || fail "tree leaves out what is under skip: [$got]"
+# A keeper whose root is gone (here: not its parent) ends on its next pass.
+( HITL_NICE_KEEP=1 keep_nice 1 ) & orphan=$!
+sleep 3
+kill -0 "$orphan" 2>/dev/null && { fail "a keeper that is not its root's child ends"; kill "$orphan" 2>/dev/null; }
 # The command's exit code, its stdin and a TERM sent to the wrapper all reach the command.
 bash "$HERE/nice10.sh" bash -c 'exit 7'; [ $? -eq 7 ] || fail "the command's exit code passes through"
 [ "$(echo hi | bash "$HERE/nice10.sh" cat)" = hi ] || fail "stdin reaches the command"
