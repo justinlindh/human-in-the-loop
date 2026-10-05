@@ -17,7 +17,7 @@ import * as THREE from 'three';
 // needs only an aim), easing in and out over `ramp` frames.
 
 const LIMB_OF = { footL: 'legL', footR: 'legR', handL: 'armL', handR: 'armR' };
-const DOWN = new THREE.Vector3(0, -1, 0);
+const DOWN = new THREE.Vector3(0, -1, 0), UP = new THREE.Vector3(0, 1, 0);
 
 // Where a clip of a shot stands in the office, with the shot's shared space (clip.origin: frame-0
 // floor point and +z heading, y up) set down at `at` { x, z, yaw }: rotate by at.yaw, then move.
@@ -42,7 +42,11 @@ export function clipTime(clip, shotT, videoFps = 30) {
 
 export function isMocapClip(c) { return c?.format === 'hitl-mocap-clip' || (c?.tracks && c?.fps && Array.isArray(c?.bones)); }
 
-export function createMocapPlayer(char, clip, { minConf = 0.35, ik = true, ramp = 3 } = {}) {
+// rootMotion: the clip's travel on the floor leaves the body pivot and is read from rootOffset
+// (clip space x, z) by whoever moves the character's root, so its ring, shadow and label go along.
+// The root must keep its yaw while the clip plays (the heading stays on the body pivot; heading()
+// gives it, to hand over on stop).
+export function createMocapPlayer(char, clip, { minConf = 0.35, ik = true, ramp = 3, rootMotion = false } = {}) {
   const n = clip.frames, fps = clip.fps;
   const bones = clip.bones.filter((b) => clip.tracks[b]?.quat);
   // For each bone and frame, the frame to read: itself when trusted, else the nearest trusted one.
@@ -57,6 +61,8 @@ export function createMocapPlayer(char, clip, { minConf = 0.35, ik = true, ramp 
     src[b] = map;
   }
   const qa = new THREE.Quaternion(), qb = new THREE.Quaternion(), _p1 = new THREE.Vector3();
+  const off = { x: 0, z: 0 };   // the clip's floor travel taken out of the body (rootMotion)
+  const _fwd = new THREE.Vector3(), _strip = new THREE.Quaternion();
   const pose = { q: Object.fromEntries(bones.map((b) => [b, new THREE.Quaternion()])), pos: new THREE.Vector3(), after: null };
   const contacts = (clip.contacts ?? []).filter((c) => LIMB_OF[c.limb]);
   let frame = 0;
@@ -70,6 +76,7 @@ export function createMocapPlayer(char, clip, { minConf = 0.35, ik = true, ramp 
     for (const b of bones) pose.q[b].copy(read(b, i0, qa)).slerp(read(b, i1, qb), a).normalize();
     const P = clip.tracks.body?.pos;
     if (P) pose.pos.set(P[i0][0], P[i0][1], P[i0][2]).lerp(_p1.set(P[i1][0], P[i1][1], P[i1][2]), a);
+    if (rootMotion) { off.x = pose.pos.x; off.z = pose.pos.z; pose.pos.x = 0; pose.pos.z = 0; }
     char.drive(pose);
     return pose;
   }
@@ -87,12 +94,14 @@ export function createMocapPlayer(char, clip, { minConf = 0.35, ik = true, ramp 
   // aiming alone: the body moves by the planted feet's weighted miss so the feet land on their points.
   const legLen = (pivots, k) => { let y = 0; for (let o = pivots[k]; o && o !== pivots.body; o = o.parent) y += o.position.y; return Math.abs(y); };
   const _miss = new THREE.Vector3(), _end = new THREE.Vector3(), _inv = new THREE.Matrix4();
+  function heading() { _fwd.set(0, 0, 1).applyQuaternion(pose.q.body ?? qa.identity()); return Math.atan2(_fwd.x, _fwd.z); }
+  // A contact point in world space: clip space is the root's own, less the travel the root took over.
+  const pointOf = (c, root, out) => root.localToWorld(out.set(c.point[0] - off.x, c.point[1], c.point[2] - off.z));
   function aim(pivots, root, c, w) {
     const limb = pivots[LIMB_OF[c.limb]];
     if (!limb) return null;
     limb.getWorldPosition(_pw);
-    _tw.set(c.point[0], c.point[1], c.point[2]);
-    root.localToWorld(_tw);
+    pointOf(c, root, _tw);
     limb.getWorldQuaternion(_wq);
     _d0.copy(DOWN).applyQuaternion(_wq);
     _d1.copy(_tw).sub(_pw);
@@ -121,8 +130,7 @@ export function createMocapPlayer(char, clip, { minConf = 0.35, ik = true, ramp 
       limb.getWorldPosition(_end);
       limb.getWorldQuaternion(_wq);
       _end.addScaledVector(_d0.copy(DOWN).applyQuaternion(_wq), legLen(pivots, k) * root.scale.y);
-      _tw.set(c.point[0], c.point[1], c.point[2]);
-      root.localToWorld(_tw);
+      pointOf(c, root, _tw);
       _miss.addScaledVector(_tw.sub(_end), w);
       wsum += w;
     }
@@ -145,7 +153,17 @@ export function createMocapPlayer(char, clip, { minConf = 0.35, ik = true, ramp 
     get frame() { return frame; },
     setTime,
     // Contacts active at frame x with their weights (checks).
+    // The floor travel moved out of the body (rootMotion), clip space.
+    get rootOffset() { return off; },
+    // The body's heading now, radians about +y (0: the clip's +z).
+    heading,
     contactsAt(x = frame) { return contacts.map((c) => ({ ...c, w: weight(c, x) })).filter((c) => c.w > 0); },
-    stop() { char.drive(null); },
+    // With rootMotion the root takes the heading over (root yaw += heading()), so it comes off the
+    // body pivot first: the blend back to code then starts from the same look.
+    stop() {
+      const body = char.pivots?.body;
+      if (rootMotion && body) body.quaternion.premultiply(_strip.setFromAxisAngle(UP, -heading()));
+      char.drive(null);
+    },
   };
 }

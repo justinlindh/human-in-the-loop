@@ -106,6 +106,38 @@ describe('mocap player', () => {
     expect(clipTime({ source: { start: 0 } }, 2.5)).toBeCloseTo(2.5, 6);
   });
 
+  it('moves the floor travel to the root and keeps planted feet pinned there', () => {
+    const c = fakeChar();
+    c.root.rotation.y = 0.5;
+    const point = [-0.06, 0, 0.05];
+    const clip = clipOf(20, { pos: (i) => [0.01 * i, 0, i * 0.015], contacts: [{ limb: 'footL', from: 0, to: 20, point }] });
+    const p = createMocapPlayer(c, clip, { ramp: 0, rootMotion: true });
+    const want = c.root.localToWorld(new THREE.Vector3(...point));
+    const base = c.root.position.clone(), cs = Math.cos(0.5), sn = Math.sin(0.5);
+    for (const f of [0, 7, 19]) {
+      p.setTime(f / 30);
+      const o = p.rootOffset;
+      c.root.position.set(base.x + o.x * cs + o.z * sn, 0, base.z - o.x * sn + o.z * cs);
+      c.update();
+      if (f === 0) expect(Math.hypot(c.pivots.body.position.x, c.pivots.body.position.z)).toBeLessThan(0.01);
+      const got = footOf(c, 'legL');
+      expect(Math.hypot(got.x - want.x, got.z - want.z)).toBeLessThan(0.01);
+    }
+    expect(p.rootOffset.z).toBeCloseTo(19 * 0.015, 6);
+  });
+
+  it('gives the body heading to hand over, and strips it from the body on stop', () => {
+    const c = fakeChar();
+    const yawQ = (a) => { const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), a); return [q.x, q.y, q.z, q.w]; };
+    const clip = clipOf(2);
+    clip.tracks.body.quat = [yawQ(0.8), yawQ(0.8)];
+    const p = createMocapPlayer(c, clip, { rootMotion: true });
+    p.setTime(0); c.update();
+    expect(p.heading()).toBeCloseTo(0.8, 6);
+    p.stop();
+    expect(c.pivots.body.quaternion.w).toBeCloseTo(1, 6);
+  });
+
   it('hands the pivots back on stop', () => {
     const c = fakeChar();
     const p = createMocapPlayer(c, clipOf(2));

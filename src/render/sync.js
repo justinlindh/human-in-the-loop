@@ -1518,14 +1518,24 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   function playMocap(id, clip, { at = null, clock = null, t0 = 0, ...opts } = {}) {
     const r = recs.get(id);
     if (!r || r.hidden) return null;
-    const p = createMocapPlayer(r.char, clip, opts);
+    // The clip's floor travel moves the root (ring, shadow and label go along); its heading stays on
+    // the body pivot until the clip ends, when the root takes it over.
+    const p = createMocapPlayer(r.char, clip, { ...opts, rootMotion: true });
     if (at) { r.pos.set(at.x, 0, at.z); r.yaw = at.yaw ?? r.yaw; }
     r.path = [];
+    const base = { x: r.pos.x, z: r.pos.z, yaw: r.yaw };
+    const c = Math.cos(base.yaw), s = Math.sin(base.yaw);
+    const step = (t) => {
+      p.setTime(t);
+      const o = p.rootOffset;
+      r.pos.set(base.x + o.x * c + o.z * s, 0, base.z - o.x * s + o.z * c);
+    };
     let el = t0;
     r.temp = { anim: 'idle', t: clock ? Infinity : p.duration - t0, keepPos: true, moment: 'mocap', mocap: p,
-      tick: (rr, dt) => { el += dt; p.setTime(clock ? clock() : el); return true; } };
+      tick: (rr, dt) => { el += dt; step(clock ? clock() : el); return true; } };
     r.mocap = p;
-    p.setTime(clock ? clock() : el);
+    r.mocapYaw = base.yaw;
+    step(clock ? clock() : el);
     return p;
   }
   // A shot: one baked clip per person (entries [{ id, clip }]) on one clock. The group's centre
@@ -1550,7 +1560,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   function updateRec(r, dt) {
     const c = r.char;
     // A clip whose temp ended or was replaced hands the pivots back.
-    if (r.mocap && r.temp?.mocap !== r.mocap) { r.mocap.stop(); r.mocap = null; }
+    if (r.mocap && r.temp?.mocap !== r.mocap) { r.yaw = r.mocapYaw + r.mocap.heading(); r.mocap.stop(); r.mocap = null; }
     if (r.face) { r.face.t -= dt; if (r.face.t <= 0) r.face = null; }
     if (r.emoteT > 0) { r.emoteT -= dt; if (r.emoteT <= 0) c.setEmote(null); }
 
