@@ -75,7 +75,7 @@ describe('sweep-parity', () => {
 describe.concurrent('sweep --engine', () => {
   it('runs the mocks on the studio engine and finds what the browser sweep finds there', async () => {
     const out = mkdtempSync(join(toolTmp(), 'sweep-engine-'));
-    const r = await spawnAsync(process.execPath, [script('blender/checks/sweep.mjs'), '--no-screen', '--mocks', 'garage,night', '--seeds', 'none', '--out', out], { timeout: 240000 });
+    const r = await spawnAsync(process.execPath, [script('blender/checks/sweep.mjs'), '--no-screen', '--mocks', 'garage,night', '--seeds', 'none', '--out', out], { timeout: 240000, env: { ...process.env, HITL_NO_CHECK_CACHE: '1' } });
     rmSync(out, { recursive: true, force: true });
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toMatch(/mock:garage 0 violation/);
