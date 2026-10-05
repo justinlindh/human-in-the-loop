@@ -2,10 +2,10 @@ import { calendarDate } from '../sim/util.js';
 
 // Era art is on for any company founded in an era mode, which follows its saved calendar and era, and
 // for a fixed preview (`?eras&eraArt=<era>`, the mock scenes). A Classic founding keeps the ordinary
-// office, and `?noeras` keeps it for every company.
+// office, and `?eras=0` (or `off`, `false`) keeps it for every company, as it turns off era starts.
 const query = new URLSearchParams(globalThis.location?.search ?? '');
 const ERAS = ['preinternet', 'dotcom', 'dotcom-bust', 'web2', 'classic', 'chatgbt', 'agents', 'consolidation', 'plateau', 'calendar'];
-export const ERAS_OFF = query.has('noeras');
+export const ERAS_OFF = ['0', 'off', 'false'].includes((query.get('eras') ?? '').toLowerCase());
 const selected = query.get('eraArt');
 export const ERA_ART_PREVIEW = !ERAS_OFF && query.has('eras') && ERAS.includes(selected);
 // `?eras` loads the era models with the rest at the start (previews, checks and tools that step the

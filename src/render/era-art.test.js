@@ -39,8 +39,8 @@ test('without a flag a founded era career wears era art, loaded once it is wante
   expect(m.eraArtActive()).toBe(true);
 });
 
-test('noeras keeps the ordinary office, even for a saved era career or a preview', async () => {
-  const m = await eraArt('?noeras&eras&eraArt=web2');
+test('eras=0 keeps the ordinary office, even for a saved era career or a preview', async () => {
+  const m = await eraArt('?eras=0&eraArt=web2');
   expect(m.ERA_ART_PREVIEW).toBe(false);
   expect(m.ERA_MODELS_AT_START).toBe(false);
   expect(m.eraArtWanted(dotcom())).toBe(false);
