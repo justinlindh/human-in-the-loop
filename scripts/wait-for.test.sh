@@ -45,11 +45,21 @@ w; [ $rc -eq 124 ] && grep -q 'waiting on: local-ci' "$tmp/out" && ! grep -q -- 
 pr OPEN 'test=SUCCESS,local-ci=SUCCESS,review=PENDING'
 w; [ $rc -eq 0 ] || fail "local-ci and checks green, review pending: $rc $(cat "$tmp/out")"
 
-# Without --repo the PR is read from the shared snapshot (one pr list), not pr view; a PR missing from it
-# (merged or closed) falls back to pr view.
-echo '[{"number":9,"state":"OPEN","headRefOid":"abc1234def","headRefName":"x/y","baseRefName":"main","mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","labels":[],"comments":[],"statusCheckRollup":[{"__typename":"StatusContext","context":"local-ci","state":"SUCCESS"}]}]' >"$tmp/list.json"
-pr OPEN 'test=SUCCESS,local-ci=FAILURE'
-w; [ $rc -eq 0 ] && grep -q '^pr list' "$tmp/calls" && ! grep -q '^pr view' "$tmp/calls" || fail "an open PR is read from the snapshot: $rc $(cat "$tmp/out") $(cat "$tmp/calls")"
+# Without --repo the PR is polled from the shared snapshot (one pr list); a PR missing from it (merged
+# or closed) falls back to pr view, and every exit is decided again on a live pr view.
+echo '[{"number":9,"state":"OPEN","headRefOid":"abc1234def","headRefName":"x/y","baseRefName":"main","mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","labels":[],"comments":[],"statusCheckRollup":[{"__typename":"StatusContext","context":"local-ci","state":"PENDING"}]}]' >"$tmp/list.json"
+pr OPEN 'test=SUCCESS,local-ci=PENDING'
+w; [ $rc -eq 124 ] && grep -q '^pr list' "$tmp/calls" && ! grep -q '^pr view' "$tmp/calls" || fail "a waiting PR is polled from the snapshot alone: $rc $(cat "$tmp/out") $(cat "$tmp/calls")"
+pr OPEN 'test=SUCCESS,local-ci=SUCCESS'
+w; [ $rc -eq 124 ] || fail "green on a live read but pending in the snapshot keeps waiting: $rc $(cat "$tmp/out")"
+rm -f "$tmp/snap.json"
+echo '[{"number":9,"state":"OPEN","headRefOid":"0ld0ld0ld0","headRefName":"x/y","baseRefName":"main","mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","labels":[],"comments":[],"statusCheckRollup":[{"__typename":"StatusContext","context":"local-ci","state":"FAILURE"}]}]' >"$tmp/list.json"
+pr OPEN 'test=SUCCESS,local-ci=PENDING'
+w; [ $rc -eq 124 ] && grep -q '^pr view' "$tmp/calls" && ! grep -q 'failing' "$tmp/out" || fail "a stale snapshot's old failure is not reported once a live read shows the new head pending: $rc $(cat "$tmp/out")"
+[ "$(grep -c '^pr list' "$tmp/calls")" -eq 2 ] || fail "a live head the snapshot lacks refreshes the snapshot: $(cat "$tmp/calls")"
+pr OPEN 'test=SUCCESS,local-ci=SUCCESS'
+w; [ $rc -eq 0 ] && grep -q 'abc1234d: local-ci and every GitHub check passed' "$tmp/out" || fail "a stale snapshot's failure gives way to a live green: $rc $(cat "$tmp/out")"
+rm -f "$tmp/snap.json"
 echo '[]' >"$tmp/list.json"; rm -f "$tmp/snap.json"
 pr MERGED ''
 w; [ $rc -eq 0 ] && grep -q '^pr view' "$tmp/calls" || fail "a PR gone from the snapshot is looked up with pr view: $rc $(cat "$tmp/out")"
@@ -86,6 +96,26 @@ before="$(git -C "$tmp/origin.git" rev-parse topic)"
 up 'true'
 [ $rc -eq 0 ] && grep -q 'pushed' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" != "$before" ] \
   || fail "a worktree still on its branch is updated and pushed: $rc $(cat "$tmp/out")"
+
+# Right after a push GitHub can still show the old head with its old failure: that head is an ancestor
+# of the pushed origin/<branch>, so it is waited out rather than judged.
+old="$(git -C "$tmp/work" rev-parse topic)"
+( cd "$tmp/work" && g commit -q --allow-empty -m fix && g push -q origin topic )
+new="$(git -C "$tmp/work" rev-parse topic)"
+cat >"$tmp/bin/gh" <<F
+#!/usr/bin/env bash
+case "\$*" in
+  "pr view"*) n=\$(( \$(cat "$tmp/views" 2>/dev/null || echo 0) + 1 )); echo \$n >"$tmp/views"
+    if [ \$n -le 2 ]; then h=$old; s=OPEN; c=FAILURE; else h=$new; s=MERGED; c=SUCCESS; fi
+    jq -n --arg s "\$s" --arg h "\$h" --arg c "\$c" '{state: \$s, headRefOid: \$h, headRefName: "topic", baseRefName: "main", mergeStateStatus: "CLEAN", mergeable: "MERGEABLE", labels: [],
+      statusCheckRollup: [{__typename: "StatusContext", context: "local-ci", state: \$c}]}' ;;
+  *) exit 1 ;;
+esac
+F
+rm -f "$tmp/views"
+( cd "$tmp/work" && HITL_WAIT_SNAPSHOT=0 PATH="$tmp/bin:$PATH" bash "$HERE/wait-for.sh" 9 --merged --poll 0 --timeout 1 >"$tmp/out" 2>&1 ); rc=$?
+[ $rc -eq 0 ] && grep -q "GitHub still shows ${old:0:8}; waiting for the pushed ${new:0:8}" "$tmp/out" && ! grep -q failing "$tmp/out" \
+  || fail "the head before a push is waited out, not judged: $rc $(cat "$tmp/out")"
 
 [ $fails -eq 0 ] && echo "wait-for: all cases pass"
 exit $fails
