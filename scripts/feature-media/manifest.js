@@ -517,6 +517,53 @@ export const ITEMS = [
     publish: true,
   })),
 
+  // docs/features/interface.md: Reports > Inventory of a pre-internet company with a boxed release and a batch on order.
+  {
+    id: 'iface-inventory', title: 'Interface: Reports > Inventory', query: 'seed=1&eras&speed=0', still: true, warmup: 1,
+    setup: `(async () => {
+      const { createGame } = await import('/src/sim/state.js');
+      const { tick } = await import('/src/sim/tick.js');
+      const { dispatch } = await import('/src/sim/index.js');
+      const b = await import('/src/sim/bots.js');
+      const { saveGame } = await import('/src/save/save.js');
+      const s = createGame({ seed: 1, startEra: 'preinternet' });
+      const boxed = () => s.products.find((p) => p.boxed);
+      for (let i = 0; i < 160 && !s.gameOver && !(boxed() && boxed().boxed.installed > 0); i++) { b.botDecide('balanced', s); b.botTurn('balanced', s); tick(s); }
+      b.botDecide('balanced', s);
+      const p = boxed();
+      if (!p) throw new Error('no boxed release in this career');
+      s.cash = Math.max(s.cash, 50000);
+      dispatch(s, { type: 'orderBatch', productId: p.id, units: 500 });
+      if (!saveGame(s, localStorage)) throw new Error('could not save the era game');
+      const r = window.__HITL.controls.continueGame();
+      if (!r.ok) throw new Error('the game refused the era save: ' + (r.reason ?? ''));
+      window.__HITL.setSpeed?.(0);
+    })()`,
+    actions: [...CLEAR_EARLY, { at: 0.6, js: KEY('r', 'KeyR') }, { at: 1.4, js: CLICK_STARTS('Inventory') },
+      { at: 2.6, js: "(() => { if (!document.body.textContent.includes('Order 100')) console.error('capture: the Inventory tab is not open'); })()" }],
+    screenshots: [3],
+    out: [{ path: 'iface/inventory.webp', size: '1230x562', from: 3, crop: { x: 0.18, y: 0.07, w: 0.64, h: 0.52 } }],
+    publish: true,
+  },
+
+  // docs/features/interface.md: the NOC mode card of the Ops panel, with a Network Operations Center placed.
+  {
+    id: 'iface-noc', title: 'Interface: the NOC mode card', query: 'mock=hq&time=day&speed=0', still: true, warmup: 1,
+    setup: `(async () => {
+      const H = window.__HITL, s = H.state; s.cash = 1e9;
+      const { suggestPlacement } = await import('/src/sim/office.js');
+      const spot = suggestPlacement(s, 'noc');
+      if (!spot) throw new Error('no free spot for the NOC');
+      const r = H.dispatch({ type: 'placeItem', itemId: 'noc', x: spot.x, y: spot.y, rot: spot.rot });
+      if (!r.ok) throw new Error('placeItem refused: ' + (r.reason ?? ''));
+    })()`,
+    actions: [...CLEAR_EARLY, { at: 0.6, js: KEY('o', 'KeyO') },
+      { at: 2.2, js: "(() => { if (!document.body.textContent.includes('Humans on the glass')) console.error('capture: the NOC card is not showing'); })()" }],
+    screenshots: [3],
+    out: [{ path: 'iface/noc.webp', size: '1230x648', from: 3, crop: { x: 0.18, y: 0.07, w: 0.64, h: 0.6 } }],
+    publish: true,
+  },
+
   // docs/features/decisions.md: what each decision stages in the office while its card is up. The pre-tick
   // snapshot is opened, the game's tick raises the card, the card is hidden and the camera holds on the prop.
   ...DECISION_PROPS.map(([id, query, prop, zoom = 5.5]) => ({
