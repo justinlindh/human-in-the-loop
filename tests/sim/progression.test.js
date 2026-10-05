@@ -35,7 +35,9 @@ describe('office shop', () => {
       expect(it.effects).toHaveLength(3);
       // The office robot is the late-game money sink.
       if (it.id !== 'office_robot') expect(it.costs[0]).toBeLessThanOrEqual(8000);
-      expect(it.costs[1]).toBeGreaterThanOrEqual(it.costs[0] * 2);
+      // The dot-com banner doubles exactly; it only lives one chapter.
+      if (it.id === 'dotcom_banner') expect(it.costs[1]).toBe(it.costs[0] * 2);
+      else expect(it.costs[1]).toBeGreaterThan(it.costs[0] * 2);
     }
     const furniture = Object.values(ITEMS).filter((i) => i.kind === 'furniture');
     expect(furniture.map((i) => i.id).sort()).toEqual(['bookshelf', 'coffee_corner', 'couch', 'desk', 'foosball', 'meeting_table', 'ping_pong_table', 'plant', 'whiteboard']);
