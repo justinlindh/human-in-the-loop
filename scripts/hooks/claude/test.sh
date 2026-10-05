@@ -52,6 +52,47 @@ EOF" "$repo"
 denied "echo x | tee $T" "$repo"
 denied "echo x | tee -a $T" "$repo"
 denied "make 2>&1 | sed -i 's/a/b/' $T" "$repo"
+# python and node scripts that write a tracked file by a literal path (directly or through a variable).
+denied "python3 -c \"open('$T','w').write('x')\"" "$repo"
+denied "python -c 'open(\"$T\", \"a\").write(\"x\")'" "$repo"
+denied "python3 - <<'PY'
+p='$T'
+s=open(p).read()
+open(p,'w').write(s)
+PY" "$repo"
+denied "python3 <<EOF
+from pathlib import Path
+Path('$T').write_text('x')
+EOF" "$repo"
+denied "python3 -c \"import pathlib; p = pathlib.Path('$T'); p.write_text('x')\"" "$repo"
+denied "node -e \"require('fs').writeFileSync('$T','x')\"" "$repo"
+denied "node -e \"const f='$T'; require('fs').appendFileSync(f,'x')\"" "$repo"
+denied "cd sub && node --input-type=module - <<'JS'
+import { writeFileSync } from 'node:fs';
+writeFileSync('$T', 'x');
+JS" "$repo"
+run bash-guard.sh "$(bashjson "python3 -c \"open('$T','w')\"" "$repo")"
+[[ "$err" == *"Edit or Write"* ]] || fail "the script-write refusal should point at Edit and Write (got: $err)"
+# Reads, scratch targets, run-time paths, script files and quoted mentions get through.
+allowed "python3 -c \"print(open('$T').read())\"" "$repo"
+allowed "python3 -c \"open('/tmp/out.txt','w').write('x')\"" "$repo"
+allowed "python3 -c \"open('\$HOME/.cache/hitl-ci/tmp/x.txt','w').write('x')\"" "$repo"
+allowed "python3 -c \"open('notes-untracked.txt','w').write('x')\"" "$repo"
+allowed "python3 - <<'PY'
+import json
+d = json.load(open('$T'))
+open('/tmp/scratch/out.json','w').write(json.dumps(d))
+PY" "$repo"
+allowed "python3 -c \"import sys; open(sys.argv[1],'w').write('x')\" out.txt" "$repo"
+allowed "python3 scripts/tools/thing.py $T" "$repo"
+allowed "node -e \"console.log(require('fs').readFileSync('$T','utf8').length)\"" "$repo"
+allowed "node -e \"require('fs').writeFileSync('/tmp/o.txt','x')\"" "$repo"
+allowed "cat $T | python3 -c 'import sys; print(sys.stdin.read())'" "$repo"
+allowed "jq -r .name package.json | python3 -c 'import sys; print(sys.stdin.read())'" "$repo"
+allowed "git commit -m \"python3 -c open('$T','w') is refused\"" "$repo"
+allowed "printf '%s\n' x > ~/.cache/hitl-ci/tmp/pr.txt" "$repo"
+allowed "gh pr edit 12 --body-file ~/.cache/hitl-ci/tmp/pr.txt" "$repo"
+allowed "python3 -c \"import json; print(json.load(open('/tmp/x.json')))\" | tee /tmp/y.txt" "$repo"
 allowed "sed -i 's/a/b/' /tmp/scratch.txt" "$repo"
 allowed "sed -i 's/a/b/' notes-untracked.txt" "$repo"
 allowed "sed -n 1p $T" "$repo"

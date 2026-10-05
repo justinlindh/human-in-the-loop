@@ -16,16 +16,18 @@
 #     another lane's work;
 #   - gh pr create/comment/review/edit text (title, body, heredoc bodies, body files), and gh api posts
 #     to comments or reviews (body fields, body=@file, --input), that contain a local path (/home/..., /tmp/...);
+#   - python or node one-liners and heredocs that open a tracked file for writing by a string-literal path
+#     (open(p, 'w'), write_text, writeFileSync), for the same reason;
 #   - sed -i, perl -i and redirecting writes (>, >>, tee) whose target is a file tracked in the repository:
 #     lane-guard only sees the Edit and Write tools, so those are the way to change tracked files.
 #     Scratchpads, /tmp, logs and other untracked outputs are allowed.
-# It looks only at commands mentioning pkill, pgrep, push, commit, stash, ci-pr, sleep, gh pr, gh api, sed, perl, tee or a redirect, and fails open on its own errors.
+# It looks only at commands mentioning pkill, python, node, pgrep, push, commit, stash, ci-pr, sleep, gh pr, gh api, sed, perl, tee or a redirect, and fails open on its own errors.
 # Only deny() exits 2; any other failure exits otherwise, which Claude Code treats as allow.
 set -f
 input="$(cat)" || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 cmd="$(jq -r '.tool_input.command // empty' <<<"$input" 2>/dev/null)" || exit 0
-case "$cmd" in *pkill*|*pgrep*|*push*|*commit*|*stash*|*ci-pr*|*review-verdict*|*wait-for*|*sleep*|*"gh pr"*|*"gh api"*|*sed*|*perl*|*tee*|*'>'*) ;; *) exit 0 ;; esac
+case "$cmd" in *pkill*|*pgrep*|*push*|*commit*|*stash*|*ci-pr*|*review-verdict*|*wait-for*|*sleep*|*"gh pr"*|*"gh api"*|*sed*|*perl*|*tee*|*python*|*node*|*'>'*) ;; *) exit 0 ;; esac
 cwd="$(jq -r '.cwd // empty' <<<"$input" 2>/dev/null)"
 deny() { echo "Blocked by the team's hook (scripts/hooks/claude/bash-guard.sh): $1" >&2; exit 2; }
 
@@ -115,6 +117,38 @@ while IFS= read -r seg; do
     [ -n "$dir" ] && [ "$(git -C "$dir" branch --show-current 2>/dev/null)" = main ] && deny "this checkout is on main, and a bare git push would push to main. Push a <lane>/<topic> branch instead."
   fi
 done < <(grep -oE 'git([[:space:]]+-C[[:space:]]+[^[:space:];&|]+)?[[:space:]]+push([^;&|]*)' <<<"$cmd")
+
+# A python or node script (python -c, node -e, or a heredoc fed to either) that writes a tracked file by a
+# string-literal path, directly or through a variable assigned from one. A script file run by name, and a
+# path built at run time, are not looked into.
+trigger="$(awk '/<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ && !inside { match($0, /<<-?[[:space:]]*'"'"'?[A-Za-z_]+/); tag=substr($0, RSTART, RLENGTH); gsub(/<<-?[[:space:]]*'"'"'?/, "", tag); print; inside=1; next } inside && $0 == tag { inside=0; next } !inside { print }' <<<"$cmd" \
+  | sed -zE "s/'[^']*'/Q/g; s/\"([^\"\\\\]|\\\\.)*\"/Q/g" \
+  | grep -E '(^|[[:space:];&|(])(python3?|node)([[:space:]]+-[A-Za-z-]+)*[[:space:]]+(-[ce]|--eval|-)([[:space:]]|$)|(^|[[:space:];&|(])(python3?|node)[^;&|]*<<' || true)"
+if [ -n "$trigger" ]; then
+  scripts_w="$(grep -oE "open\([[:space:]]*(['\"][^'\"]+['\"]|[A-Za-z_][A-Za-z0-9_]*)[[:space:]]*,[[:space:]]*(mode[[:space:]]*=[[:space:]]*)?['\"][^'\"]*[wax+][^'\"]*['\"]|Path\([[:space:]]*['\"][^'\"]+['\"][[:space:]]*\)\.(write_text|write_bytes)|(Path\([[:space:]]*[A-Za-z_][A-Za-z0-9_]*[[:space:]]*\)|[A-Za-z_][A-Za-z0-9_]*)\.(write_text|write_bytes)|(writeFileSync|appendFileSync|writeFile|appendFile|createWriteStream)\([[:space:]]*(['\"][^'\"]+['\"]|[A-Za-z_][A-Za-z0-9_]*)" <<<"$cmd" || true)"
+  wpaths=""
+  while IFS= read -r w; do
+    [ -n "$w" ] || continue
+    # The path argument: a leading string literal, else a variable name (open(p, ..), p.write_text, writeFileSync(p, ..)).
+    lit=""; var=""
+    arg="$(sed -E 's/^(open|writeFileSync|appendFileSync|writeFile|appendFile|createWriteStream)\([[:space:]]*//; s/^Path\([[:space:]]*//' <<<"$w")"
+    case "$arg" in
+      \'*|\"*) lit="$(sed -E "s/^(['\"])([^'\"]+)['\"].*/\2/" <<<"$arg")" ;;
+      *) var="$(sed -E 's/[^A-Za-z0-9_].*$//' <<<"$arg")" ;;
+    esac
+    if [ -z "$lit" ] && [ -n "$var" ]; then
+      lit="$(grep -oE "(^|[^A-Za-z0-9_.])$var[[:space:]]*=[[:space:]]*([A-Za-z_.]+\()?['\"][^'\"]+['\"]" <<<"$cmd" | head -1 | grep -oE "['\"][^'\"]+['\"]" | head -1 | tr -d "'\"")"
+    fi
+    wpaths+="$lit"$'\n'
+  done <<<"$scripts_w"
+  while IFS= read -r t; do
+    [ -n "$t" ] || continue
+    case "$t" in '$'*|'~'*|/dev/*) continue ;; esac
+    if git -C "${cwd:-.}" ls-files --error-unmatch -- "$t" >/dev/null 2>&1; then
+      deny "this script writes $t, a tracked file, and lane-guard only sees the Edit and Write tools. Change tracked files with Edit or Write. A script may write to a scratchpad, /tmp or ~/.cache, or build a file that is not tracked."
+    fi
+  done <<<"$wpaths"
+fi
 
 # In-place edits (sed -i, perl -i) and redirecting writes (>, >>, tee) of a tracked file. Heredoc bodies
 # are dropped, path-like quoted words are unquoted so a quoted target still counts, other quoted text
