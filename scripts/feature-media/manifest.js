@@ -116,6 +116,28 @@ const MOMENTS = [
   ['user-test', 'first_user_test --choice 1', 'visitor_chair', 1, 2.6],
 ];
 
+// [event id, find.js query, staged prop, follow zoom]: the staged decisions of docs/features/decisions.md.
+const DECISION_PROPS = [
+  ['hackathon', 'hackathon --choice 0', 'pizza_boxes'],
+  ['team_offsite', 'team_offsite --choice 0', 'brochure'],
+  ['no_show', 'no_show --choice 0', 'sticky_notes'],
+  ['junior_overwhelmed', 'junior_overwhelmed --choice 0', 'sticky_notes'],
+  ['pivot_pitch', 'pivot_pitch --choice 1', 'whiteboard_scrawl'],
+  ['founder_burnout', 'founder_burnout --choice 0', 'mug_pile'],
+  ['enterprise_rfp', 'enterprise_rfp --choice 0', 'binder'],
+  ['onprem_bank', 'onprem_bank --choice 0', 'binder'],
+  ['phishing_ceo', 'phishing_ceo --choice 1', 'gift_cards'],
+  ['pet_mishap', 'pet_mishap --choice 0', 'cable_chewed'],
+  ['cloud_bill', 'cloud_bill --choice 0', 'invoice'],
+  ['floor_next_door', 'floor_next_door --choice 0', 'tape_measure'],
+  ['mission_test_support', 'mission_test_support --choice 0', 'printout'],
+  ['moonshot_pitch', 'moonshot_pitch --choice 1', 'printout'],
+  ['conference_expo', 'conference_expo --choice 1', 'printout'],
+  ['ping_pong', 'ping_pong --choice 1', 'picture_pingpong'],
+];
+
+const GARAGE_DECISIONS = new Set(['hackathon', 'team_offsite', 'onprem_bank']);
+
 // [item id, camera zoom, era the item needs] of the shop items shown in docs/features/office.md.
 const ITEM_STILLS = [
   ['disk_duplicator', 3.2, 'preinternet'], ['retail_shelf', 3.2, 'preinternet'], ['dotcom_banner', 3.2, 'dotcom'],
@@ -457,5 +479,17 @@ export const ITEMS = [
     ...(name === 'click' ? { record: '3840x2160' } : {}),
     out: [{ path: `moments/${name}.mp4`, size: '1280x720', from: 0, seconds: 5, loop: 'none', ...(name === 'click' ? { crop: { x: 0.32, y: 0.28, w: 0.36, h: 0.4 } } : {}) }],
     publish: true,
+  })),
+
+  // docs/features/decisions.md: what each decision stages in the office while its card is up. The pre-tick
+  // snapshot is opened, the game's tick raises the card, the card is hidden and the camera holds on the prop.
+  ...DECISION_PROPS.map(([id, query, prop, zoom = 5.5]) => ({
+    id: `decision-${id}`, title: `Decision prop: ${id}`, query: 'seed=1&speed=1', moment: query, pre: true, still: true, warmup: 8,
+    setup: `(() => { ${CLEAN}; ${NO_CARD}; ${NO_SAY}; })()`,
+    actions: [...OPEN(), ...FOLLOW([prop], zoom, 0, 14)],
+    screenshots: [5],
+    out: [{ path: `decisions/${id}.webp`, size: '1280x720', from: 5 }],
+    // Only the garage ones frame the prop big enough to read; the floor and HQ ones render but stay unpublished.
+    publish: GARAGE_DECISIONS.has(id),
   })),
 ];
