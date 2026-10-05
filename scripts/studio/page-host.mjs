@@ -62,22 +62,7 @@ export async function openPage({ mock = 'floor', seed, week, weeks, quality = 'l
     Math.random = g.__tool(() => Math.random);
     try { await import('three-mesh-bvh'); } finally { Math.random = game; }
   }
-  g.__fastRaycast = async ({ install = true } = {}) => {
-    if (g.__fastRaycastOn || !install) return;
-    const bvh = await import('three-mesh-bvh');
-    const THREE = R.THREE;
-    const slow = THREE.Mesh.prototype.raycast;
-    THREE.Mesh.prototype.raycast = function (raycaster, hits) {
-      const geo = this.geometry;
-      if (this.isSkinnedMesh || this.isInstancedMesh || this.morphTargetInfluences || !geo?.attributes?.position || geo.morphAttributes?.position) return slow.call(this, raycaster, hits);
-      if (!geo.boundsTree) {
-        if ((geo.index ? geo.index.count : geo.attributes.position.count) / 3 < 64) return slow.call(this, raycaster, hits);
-        g.__tool(() => { geo.boundsTree = new bvh.MeshBVH(geo, { indirect: true }); });
-      }
-      return bvh.acceleratedRaycast.call(this, raycaster, hits);
-    };
-    g.__fastRaycastOn = true;
-  };
+  g.__fastRaycast = fastRaycast(R);
   g.__hitlRender = R;
   g.__HITL = { state: S };
   // The page's clock moves in milliseconds; the engine's in frames of 1/30 s.
@@ -94,6 +79,34 @@ export async function openPage({ mock = 'floor', seed, week, weeks, quality = 'l
   // The browser harness resets the game's random stream once the page's own bootstrap is done.
   rt.clock.reseed();
   return rt;
+}
+
+// The harness page's __fastRaycast for renderer R: raycasts on static meshes go through a per-mesh
+// bounding-volume tree (three-mesh-bvh), each built on the tool stream on the mesh's first raycast.
+export function fastRaycast(R) {
+  const g = globalThis;
+  return async ({ install = true } = {}) => {
+    if (g.__fastRaycastOn || !install) return;
+    const bvh = await import('three-mesh-bvh');
+    const THREE = R.THREE;
+    const slow = THREE.Mesh.prototype.raycast;
+    const sphere = new THREE.Sphere();
+    THREE.Mesh.prototype.raycast = function (raycaster, hits) {
+      const geo = this.geometry;
+      if (this.isSkinnedMesh || this.isInstancedMesh || this.morphTargetInfluences || !geo?.attributes?.position || geo.morphAttributes?.position) return slow.call(this, raycaster, hits);
+      // three's own early outs, which acceleratedRaycast skips: a ray that misses the bounding sphere
+      // would still invert the mesh's matrix and walk its tree.
+      if (this.material === undefined) return;
+      if (geo.boundingSphere === null) geo.computeBoundingSphere();
+      if (!raycaster.ray.intersectsSphere(sphere.copy(geo.boundingSphere).applyMatrix4(this.matrixWorld))) return;
+      if (!geo.boundsTree) {
+        if ((geo.index ? geo.index.count : geo.attributes.position.count) / 3 < 64) return slow.call(this, raycaster, hits);
+        g.__tool(() => { geo.boundsTree = new bvh.MeshBVH(geo, { indirect: true }); });
+      }
+      return bvh.acceleratedRaycast.call(this, raycaster, hits);
+    };
+    g.__fastRaycastOn = true;
+  };
 }
 
 // Runs the cases `jobs` at a time, each in its own process; results in case order.

@@ -5,7 +5,7 @@
 
 // Installed in each page: measures also count triangles crossing furniture (blender/checks/clip-exact.js),
 // which a vertex count misses on a thin slab. The module and its trees are made on the tool stream so
-// the game's random stream is untouched.
+// the game's random stream is untouched. Raycasts (the inside tests) go through per-mesh trees.
 export const installExact = async () => {
   const C = await import('/src/render/checks.js');
   const tool = window.__tool(() => Math.random), game = Math.random;
@@ -13,6 +13,7 @@ export const installExact = async () => {
   let X;
   try { X = await import('/blender/checks/clip-exact.js'); } finally { Math.random = game; }
   C.useExactCross((...a) => window.__tool(() => X.crossFraction(...a)));
+  await window.__fastRaycast();
 };
 
 // The eras whose offices the seated checks also run in, and the mock each is played in.
