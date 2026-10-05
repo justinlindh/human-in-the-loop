@@ -309,6 +309,19 @@ if [ -z "$VITEST_WORKERS" ]; then
   timing_log kind=vitest tool=ci-local workers="$VITEST_WORKERS" cores="$(nproc)" load1="$(load1)" runs="$(ci_runs_going)"
 fi
 gh_step test:fast test npm run test:fast -- --maxWorkers="$VITEST_WORKERS"
+# The whole-game cases test:fast leaves out (tests/**/*.full.test.js) play many games: they run here, not
+# on GitHub's two-core runner (where one file alone took half an hour), for changes to the sim, its data,
+# the tools they exercise or the tests themselves; the main guard (CI_FULL=1) always runs them.
+full_check() {
+  if [ "${CI_FULL:-}" != 1 ]; then
+    local mb files; mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
+    files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; } 2>/dev/null)"
+    grep -qE '^(src/sim/|src/data/|src/save/|tests/sim/|tests/tools/|scripts/events/|scripts/studio/|scripts/tools/|blender/checks/|vite\.config\.js$|package-lock\.json$)' <<<"$files" \
+      || { echo "skipped: no sim, data, tool or test changes"; return 0; }
+  fi
+  npm run test:full -- --maxWorkers="$VITEST_WORKERS"
+}
+pstep test:full full_check
 gh_step build test npm run build
 # Trailer and landing beats (tests/sim/trailer-beats/replay.mjs, sim only, about 20 s), for changes to
 # what a beat's capture setup runs against or the setups themselves. A beat whose setup throws (its
@@ -422,6 +435,19 @@ rng_check() {
   fi
   render_step tool-rng gpu "node blender/checks/tool-rng.mjs"
 }
+# Material UUIDs stay unique after the game stream is reseeded (tests/tools/harness-uuid.full.test.js
+# drives a browser, so it runs here on a GPU slot, not in GitHub's balance job). Runs for changes to the
+# renderer, the harness or the probe; the main guard always runs it.
+uuid_check() {
+  [ -f tests/tools/harness-uuid.full.test.js ] || { echo "skipped: no harness-uuid test in this tree"; return 0; }
+  local mb files
+  mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
+  files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; })"
+  if [ "${CI_FULL:-}" != 1 ] && ! grep -qE '^(src/render/|blender/checks/harness\.mjs$|tests/tools/harness-uuid|package-lock\.json$)' <<<"$files"; then
+    echo "skipped: no render, harness or probe changes"; return 0
+  fi
+  render_step harness-uuid gpu "npx vitest run tests/tools/harness-uuid.full.test.js"
+}
 # Text textures must converge when their font arrives after scene construction. Compare both font
 # schedules without a scene cache, so ordinary asset arrival order cannot hide the regression.
 golden_font_check() {
@@ -441,7 +467,7 @@ browser_t0=$(now)
 # CI_TIER=tests (ci-pr sets it for a change only tests read, scripts/ci-tests-only-paths) leaves out the
 # render, browser and perf checks; the main guard (CI_FULL=1) always runs them.
 if [ "${CI_TIER:-}" = tests ] && [ "${CI_FULL:-}" != 1 ]; then
-  for name in golden golden-font lifecycle soak render-checks perf-budget phone-check stage tool-rng; do
+  for name in golden golden-font lifecycle soak render-checks perf-budget phone-check stage tool-rng harness-uuid; do
     record "$name" "skipped: tests tier (only tests read these changes)" 0
     timing_log kind=step tool=ci-local step="$name" skipped=1 tier=tests wall_s=0 exit=0
   done
@@ -456,6 +482,7 @@ gh_step perf-budget tools perf_budget
 step phone-check phone_check
 step stage stage_check
 step tool-rng rng_check
+step harness-uuid uuid_check
 fi
 pjoin "$browser_t0"
 commits() { "$SELF/check-commits.sh" "$(git merge-base "$BASE" HEAD)" HEAD "$TITLE"; }
