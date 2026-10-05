@@ -53,6 +53,7 @@ const share = (metric, want, cond, min) => ({ metric, want: `>= ${min} of frames
 const mean = (metric, want, f, pass) => ({ metric, want, test: (xs) => xs.reduce((a, x) => a + f(x), 0) / Math.max(1, xs.length), pass });
 const visibleRule = share('visible', 'body >= 70% unblocked', (x) => x.visible >= 0.7, 0.9);
 const noFade = share('noFade', 'no faded column over them', (x) => x.fadeOver === 0, 1);
+const tenseRule = share('tense', 'an outage face: panicked, then gritted', (x) => x.face === 'panicked' || x.face === 'gritted', 0.9);
 
 // Hand motion over the beat: dominant frequency and half-amplitude along the hand's busiest axis,
 // for the busier hand (fanning is fast and small; a wave is slow and wide).
@@ -96,6 +97,7 @@ const SPECS = {
     share('fistUp', 'a hand within 0.15 m below the eyes (typing hands sit 0.34 m below)', (x) => Math.max(x.handsRel[0][1], x.handsRel[1][1]) >= -0.15, 0.7),
     share('fistNear', 'the raised hand sits nearer the camera than the eyes, clear of the head', (x) => x.handsCam[x.handsRel[0][1] >= x.handsRel[1][1] ? 0 : 1] >= 0.05, 0.7),
     share('facingCamera', 'seller faces within 70 deg of the camera', (x) => x.faceCam <= 70, 0.8),
+    share('smug', 'a notable deal: the seller looks pleased with themselves', (x) => x.face === 'smug', 0.7),
     // No noFade: the seller stays at the desk the sim names, so a column faded over it is the
     // office's own cutaway, not something this moment stages.
     share('visible', 'body >= 50% unblocked (seated behind a desk)', (x) => x.visible >= 0.5, 0.9),
@@ -117,6 +119,12 @@ const SPECS = {
     share('shocked', 'bystanders look shocked through the beat', (x) => x.face === 'shocked', 0.9),
     share('watching', 'face within 75 deg of the person leaving', (x) => x.targetAngle <= 75, 0.6),
     share('reads', 'face within 80 deg of the camera, or a "!" over the head', (x) => x.faceCam <= 80 || x.emote === 'exclamation', 0.9),
+    share('visible', 'body >= 50% unblocked', (x) => x.visible >= 0.5, 0.8),
+  ] },
+  // Someone clicked turns to the camera (seated, as far as the chair swivels) with a mood face.
+  'click.clicked': { moment: 'click', beat: 'look', role: 'clicked', rules: [
+    share('moodFace', 'a click face: delighted, side-eye or sad', (x) => ['delighted', 'sideeye', 'sad'].includes(x.face), 0.9),
+    share('facingCamera', 'face within 60 deg of the camera', (x) => x.faceCam <= 60, 0.75),
     share('visible', 'body >= 50% unblocked', (x) => x.visible >= 0.5, 0.8),
   ] },
   'company_party.cheer': { moment: 'company_party', beat: 'cheer', rules: [
@@ -272,14 +280,15 @@ const SPECS = {
   // watching that screen while the lead types.
   'respond.rack': { moment: 'respond', beat: 'fix', role: 'responder', rules: [
     share('facesWork', 'face within 60 deg of the rack (or, with it turned away, the lead\'s screen)', (x) => x.targetAngle <= 60, 0.9),
-    visibleRule, noFade,
+    visibleRule, noFade, tenseRule,
   ] },
   'respond_desk.responder': { moment: 'respond', scenario: 'respond_desk', beat: 'fix', role: 'responder', rules: [
     share('facesScreen', 'face within 60 deg of the lead\'s screen', (x) => x.targetAngle <= 60, 0.9),
-    visibleRule, noFade,
+    visibleRule, noFade, tenseRule,
   ] },
   'respond_desk.lead': { moment: 'respond', scenario: 'respond_desk', beat: 'fix', role: 'lead', rules: [
     share('typing', 'the lead types at their own desk', (x) => x.anim === 'typing', 1),
+    tenseRule,
     share('visible', 'body >= 50% unblocked (seated behind a desk)', (x) => x.visible >= 0.5, 0.9),
   ] },
   ...Object.fromEntries(['carry', 'hold', 'swing'].map((beat) => [`hammer.${beat}`, { moment: 'hammer', beat, rules: [
@@ -304,6 +313,8 @@ const SCENARIOS = {
     setup: "(await import('/src/render/checks.js')).setupDeal(R, S, { first: true })" },
   fired: { query: 'mock=floor', patch: {}, seconds: 3,
     setup: "(await import('/src/render/checks.js')).setupFired(R, S)" },
+  click: { query: 'mock=floor', patch: {}, seconds: 2,
+    setup: "(await import('/src/render/checks.js')).setupClick(R, S)" },
   company_party: { query: 'mock=floor', patch: {}, steps: [{ at: 0, js: "R.handleEvents([{ type: 'celebrate', staffId: null }], S);" }], seconds: 6 },
   pet: { query: 'mock=floor', patch: {}, seconds: 6,
     setup: "(await import('/src/render/checks.js')).setupPetPasser(R, S, 'dog', 2.104, 1.0)" },

@@ -54,6 +54,7 @@ const BLINK = MORPHS.indexOf('blink');
 const LOOK_X = MORPHS.indexOf('lookX'), LOOK_UP = MORPHS.indexOf('lookUp'), LOOK_DOWN = MORPHS.indexOf('lookDown');
 const TALK = MORPHS.indexOf('talk');
 const FACE_BLEND_S = 0.18;   // default seconds an expression takes to blend in or out
+const HEAD_LOOK = 0.7;       // radians the head turns, either way, toward a lookAt target
 const SLEEPING = new Set(['lie', 'nap', 'desknap']);
 // Facepalm shoulder pitch, lift and spread for the palm hand, then head bow and body lean, standing and seated.
 const PALM_STAND = [-2.75, 0.14, 0.27, -0.6, 0.08];
@@ -460,7 +461,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   let faceLook = null;      // { target: Object3D | Vector3, t: seconds left }
   let faceTalk = 0;         // mouth opening for speech, 0..1
   let faceShown = null;     // the baked key on show with morphs off
-  const _look = new THREE.Vector3();
+  const _look = new THREE.Vector3(), _lookHead = new THREE.Vector3();
   function faceName() {
     if (anim === 'facepalm' || anim === 'facepalmsit') return 'burnout';
     return faceExpr?.name ?? faceMood;
@@ -1126,6 +1127,13 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     }
     if (mood === 'coasting' && !seated && anim === 'idle') { tgt.headX += 0.25; tgt.lean += 0.12; }
     if (tired && !seated && anim === 'idle') { tgt.headX += 0.3; tgt.lean += 0.15; tgt.bodyY -= 0.015; }
+    // Following a target turns the head part of the way; the eyes do the rest (updateFace).
+    if (faceLook) {
+      const tg = faceLook.target;
+      _lookHead.copy(tg.isVector3 ? tg : tg.getWorldPosition(_lookHead));
+      root.worldToLocal(_lookHead);
+      tgt.headY += Math.max(-HEAD_LOOK, Math.min(HEAD_LOOK, Math.atan2(_lookHead.x, _lookHead.z)));
+    }
     const k = 1 - Math.exp(-dt * 16);
     for (const key in cur) cur[key] += (tgt[key] - cur[key]) * k;
 
@@ -1261,10 +1269,11 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     animT += dt;
     pose(dt);
     blinkIn -= dt;
-    if (blinkIn <= 0) { blinkT = 0.12; blinkIn = 2.5 + rand() * 3.5; }
+    // The burnout stare barely blinks.
+    if (blinkIn <= 0) { blinkT = 0.12; blinkIn = (mood === 'burnout' ? 7 : 2.5) + rand() * 3.5; }
     if (faceExpr && (faceExpr.t -= dt) <= 0) faceExpr = null;
     if (faceLook && (faceLook.t -= dt) <= 0) faceLook = null;
-    const closed = blinkT > 0 || anim === 'burnout' || SLEEPING.has(anim) || anim === 'facepalm' || anim === 'facepalmsit' || (mood === 'burnout' && anim !== 'celebrate' && !faceExpr);
+    const closed = blinkT > 0 || SLEEPING.has(anim) || anim === 'facepalm' || anim === 'facepalmsit';
     if (blinkT > 0) blinkT -= dt;
     updateFace(dt, closed);
     if (emote.visible) {

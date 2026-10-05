@@ -35,10 +35,14 @@ const GLIDE_M = 0.8;           // further than this from their spot (beyond a se
 const REWALK_S = 3;            // seconds between tries for someone left short of a spot they can't reach
 const DOOR_SPREAD = 0.45;      // how far apart people leaving by the door head for
 // Facial expressions for events (faceEvent): seconds each holds, and who sees a firing.
-const FACE_HOLD = { deal: 2, launch: 3, award: 3, fired: 2 };
+const FACE_HOLD = { deal: 2, notable: 2.5, hire: 4, launch: 3, award: 3, fired: 2, click: 2.5 };
+const CLICK_SWIVEL = 1.4;      // radians someone clicked may turn their chair toward the camera (past it the chair back hides them)
 // FACE_SEE: radians off a bystander's turned heading the person leaving may be and still be watched.
 // FACE_AWAY_COS: a turned heading further than about 80 degrees off the camera hides the face.
 const FACE_NEAR_M = 4, FACE_NEAR_MAX = 3, FACE_SEE = 1.1, FACE_AWAY_COS = 0.17;
+// An outage: responders (and the founders, at severity FACE_OUTAGE_SEV or worse) panic for
+// FACE_PANIC_S, then grit their teeth until the all-clear. Held faces refresh every FACE_REFRESH_S.
+const FACE_PANIC_S = 3, FACE_OUTAGE_SEV = 4, FACE_REFRESH_S = 0.3;
 const WAVE_S = 1.1;            // someone leaving waves goodbye this long before heading out
 const LEAVE_SPEED = 1.0;       // and walks to the door at this speed
 const ENTER_S = 0.7;           // sliding from the front of a couch or chair onto the spot
@@ -498,6 +502,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
           r.yaw = Math.PI / 2;
           r.mode = 'enter';
           emote(r, 'sparkle', 2.5);
+          r.char.express('delighted', { hold: FACE_HOLD.hire });
           walkTo(r, g);
         } else {
           teleport(r, g);
@@ -617,12 +622,41 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     officeGrowth.events(events ?? [], state);
   }
 
+  // Clicking someone (ui's hitl:characterClick): they look up at the camera with a face that fits
+  // the voice bark audio picks for them (worn out, fed up, or pleased). Someone free turns to the
+  // camera as well: seated, they sit back and swivel the chair round to it (up to CLICK_SWIVEL).
+  function clickFace(id) {
+    const r = recs.get(id);
+    if (!r || r.hidden || !rig?.camera) return;
+    const s = r.staff;
+    const name = s.mood === 'burnout' || (s.strain ?? 0) >= 60 || (s.stamina ?? 100) < 25 ? 'sad'
+      : (s.meaning ?? 100) < 35 || s.mood === 'coasting' ? 'sideeye' : 'delighted';
+    r.char.express(name, { hold: FACE_HOLD.click });
+    r.char.lookAt(rig.camera, { hold: FACE_HOLD.click });
+    if (r.temp || r.path.length || r.mode !== 'placed' || !r.goal || Math.hypot(r.pos.x - r.goal.x, r.pos.z - r.goal.z) > 0.05) return;
+    const camYaw = Math.PI / 4 + (rig.yawStep ?? 0) * Math.PI / 2;
+    const seated = r.char.seated;
+    const d = Math.atan2(Math.sin(camYaw - r.goal.yaw), Math.cos(camYaw - r.goal.yaw));
+    const turnTo = seated ? r.goal.yaw + Math.max(-CLICK_SWIVEL, Math.min(CLICK_SWIVEL, d)) : camYaw;
+    r.temp = {
+      anim: seated ? 'sit' : 'idle', t: FACE_HOLD.click, keepPos: true, moment: 'click',
+      stage: { beat: 'look', role: 'clicked' },
+      tick: (rr, dt) => { rr.yaw = angleLerp(rr.yaw, turnTo, 1 - Math.exp(-dt * 8)); return false; },
+    };
+  }
+  const onCharacterClick = (ev) => clickFace(ev.detail?.staffId);
+  if (typeof addEventListener === 'function') addEventListener('hitl:characterClick', onCharacterClick);
+
   // Facial expressions (face.js) for game events, on top of whatever pose or moment is playing.
   function faceEvent(e) {
     const shown = (r) => r && !r.hidden;
     if (e.type === 'deal' && e.first) {
       const r = recs.get(e.sellerId);
       if (shown(r)) r.char.express('delighted', { hold: FACE_HOLD.deal });
+    } else if (e.type === 'deal' && e.notable) {
+      // A notable deal: the seller looks pleased with themselves, at most once a game week.
+      const r = recs.get(e.sellerId);
+      if (shown(r) && r.smugWeek !== e.week) { r.smugWeek = e.week; r.char.express('smug', { hold: FACE_HOLD.notable }); }
     } else if (e.type === 'launch' || e.type === 'award') {
       for (const r of recs.values()) if (shown(r)) r.char.express('delighted', { hold: FACE_HOLD[e.type] });
     } else if (e.type === 'resign' && e.fired) {
@@ -1014,6 +1048,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       .slice(0, e.caught ? 1 : 4);
     for (const r of near) {
       emote(r, 'exclamation', 3);
+      if (!e.caught) r.char.express('panicked', { hold: FACE_PANIC_S });
       const spot = arcSpot(r, hot, rackPlaces(r));
       if (!spot) continue;
       r.temp = { anim: 'idle', t: 5.5, goal: spot, back: true, run: true, incident: true };
@@ -1114,12 +1149,27 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     return spot && { x: spot.x, z: spot.z, yaw: Math.atan2(aim.x - spot.x, aim.z - spot.z), anim: 'idle' };
   }
 
+  let outageAt = 0;
+  function outageFaces(outage) {
+    const want = playTime - outageAt < FACE_PANIC_S ? 'panicked' : 'gritted';
+    const founders = (outage.severity ?? 0) >= FACE_OUTAGE_SEV, ids = outage.responderIds ?? [];
+    for (const r of recs.values()) {
+      if (r.hidden || !(ids.includes(r.id) || (founders && r.staff.founder))) continue;
+      if (r.temp && !r.temp.respond && !r.temp.incident) continue;
+      if (r.faceSet === want && playTime - r.faceAt < FACE_REFRESH_S) continue;
+      r.char.express(want, { hold: FACE_REFRESH_S * 2 });
+      r.faceSet = want; r.faceAt = playTime;
+    }
+  }
+
   function updateResponders(state) {
     const all = responderIds(state);
     hub = all.size ? findHub(all) : null;
     const ids = hub ? all : new Set();
     const cleared = outageSeen && !state?.outage;
+    if (state?.outage && !outageSeen) outageAt = playTime;
     outageSeen = !!state?.outage;
+    if (state?.outage) outageFaces(state.outage);
     const beat = state?.outage ? 'fix' : 'writeup';
     for (const r of recs.values()) {
       const tp = r.temp;
@@ -2004,6 +2054,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
 
   function dispose() {
+    if (typeof removeEventListener === 'function') removeEventListener('hitl:characterClick', onCharacterClick);
     spotlights.clear();
     officeGrowth.dispose();
     growthGlow?.geometry.dispose(); growthGlow?.material.dispose();
