@@ -7,7 +7,7 @@
 // --files given. --why prints, on stderr, each selected test with the way it reaches a changed file.
 //
 // A test reaches a file through its static imports and, recursively from every file it reaches,
-// through any string literal naming a repo .js, .mjs or .json file (a script it spawns, a worker, a
+// through any string literal naming a repo .js, .mjs, .json or .sh file (a script it spawns, a worker, a
 // literal import.meta.glob; not another test file, which a string names only as a list entry) and the
 // directories a wildcard import.meta.glob reads, and the asset directories the files in
 // COMPUTED_READS read by run-time path (the studio engine's public fetch, the model loader). A changed
@@ -35,7 +35,7 @@ const COMPUTED_READS = { 'scripts/studio/platform.mjs': ['public'], 'src/render/
 const RENDER_ONLY = /^(blender\/checks\/golden\/[^/]+\.png|blender\/checks\/sweep-baseline\.json)$/;
 // The test runner's config and the installed packages: a change selects every test.
 const EVERY = /^(vite\.config\.js|package\.json|package-lock\.json)$/;
-const LITERAL = /['"`]((?:\.{1,2}\/|\/)?[\w@.\/-]+\.(?:m?js|json))['"`]/g;
+const LITERAL = /['"`]((?:\.{1,2}\/|\/)?[\w@.\/-]+\.(?:m?js|json|sh))['"`]/g;
 const GLOB = /import\.meta\.glob\(\s*['"`]([^'"`]*\*[^'"`]*)['"`]/g;
 const IMPORTS = [/\b(?:import|export)\b[^'"`;]*?\bfrom\s*['"]([^'"]+)['"]/g, /\bimport\s*['"]([^'"]+)['"]/g, /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g];
 
