@@ -4,7 +4,6 @@ import { makeCtx } from '../../src/sim/registry.js';
 import { annualSystem } from '../../src/sim/calendar.js';
 import { onDeparture } from '../../src/sim/knowledge.js';
 import { raiseDecision } from '../../src/sim/events.js';
-import { runBot } from '../../src/sim/bots.js';
 import { B } from '../../src/sim/balance.js';
 import { EVENTS } from '../../src/data/events.js';
 import { game, classicGame, addStaff, addProduct } from './helpers.js';
@@ -181,18 +180,5 @@ describe('alumni', () => {
     expect(JSON.stringify(s.pendingDecision)).not.toMatch(/\{alum\}/);
     expect(EVENTS.alumni_referral.when(game(8), { live: [] })).toBe(false);
   });
-
-  it('shows up in real runs, and the state stays JSON-safe', () => {
-    let seen = 0;
-    for (const seed of [1, 2, 3]) {
-      let last = null;
-      runBot('balanced', seed, 700, { setup: (s) => { last = s; }, onWeek: (s) => {
-        const id = s.pendingDecision?.eventId ?? '';
-        if (/^alumni_|^hearing_|^ai_summit/.test(id)) seen++;
-      } });
-      expect(() => JSON.parse(JSON.stringify(last.flags.alumni ?? []))).not.toThrow();
-      expect(Number.isFinite(last.cash)).toBe(true);
-    }
-    expect(seen).toBeGreaterThan(0);
-  }, 300000);
+  // The alumni, hearing and summit decisions in real bot runs are checked in chunkc.full.test.js.
 });

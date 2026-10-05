@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { officeGateReason, totalMrr } from '../../src/sim/index.js';
-import { runBot } from '../../src/sim/bots.js';
 import { OFFICE_STAGES } from '../../src/data/office.js';
-import { ARCHETYPES } from '../../src/data/founders.js';
 import { game, addStaff, addProduct } from './helpers.js';
+
+// Every founder pair's bot runs through the gate are checked in office-gate.full.test.js.
 
 describe('issue #67: the Office Floor gate', () => {
   it('takes a stage index or a stage; from orCashWeek, savings stand in for the MRR minimum', () => {
@@ -25,20 +25,4 @@ describe('issue #67: the Office Floor gate', () => {
     expect(totalMrr(s)).toBe(g.mrr);
     expect(officeGateReason(s, 1)).toBeNull();
   });
-
-  it('every founder pair playing sensibly moves by about week 150 (175 at worst) in at least 4 of 6 seeds', () => {
-    const ids = Object.keys(ARCHETYPES);
-    const slow = [];
-    for (let i = 0; i < ids.length; i++) for (let k = i + 1; k < ids.length; k++) {
-      const moves = [];
-      for (const seed of [1, 2, 3, 4, 5, 6]) {
-        let moved = Infinity;
-        runBot('sensible', seed, 200, { founding: { founders: [ids[i], ids[k]] }, onWeek: (s) => { if (moved === Infinity && s.officeStage >= 1) moved = s.week; }, stopWhen: () => moved !== Infinity });
-        moves.push(moved);
-      }
-      moves.sort((a, b) => a - b);
-      if (moves[3] > 175) slow.push(`${ids[i]}+${ids[k]}: ${moves.join(', ')}`);
-    }
-    expect(slow).toEqual([]);
-  }, 600000);
 });
