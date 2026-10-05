@@ -10,7 +10,10 @@ import { MOMENT_CAPTIONS } from '../../src/data/moments.js';
 
 const KEEP = new Set(['era', 'officeUpgrade', 'incident', 'launch', 'award', 'resign', 'unlock', 'goal', 'hire', 'gameOver']);
 const SNAP = new Set(['era', 'officeUpgrade']);
+// Snapshots per id per run: a staged or captioned decision gets two, any other decision or chat
+// prompt one, enough for a capture to open it.
 const SNAP_PER_ID = 2;
+const SNAP_PER_OTHER = 1;
 
 // Workers reuse this module across runs; simulation results must depend only on each game's state.
 export function play({ bot, seed, weeks, dir, profile = false }) {
@@ -33,8 +36,20 @@ export function play({ bot, seed, weeks, dir, profile = false }) {
     checkpoints.get(at).push(name);
     return name;
   };
-  const collect = (events) => timed('extraction', () => {
+  // A chat prompt posted in a tick plays from the state before that tick (checkpoint 2t+1) and shows
+  // open after it (2t+2, while the game goes on); one posted during the bot's turn, from the state
+  // before the turn (2t) and after it (2t+1).
+  const prompts = [];
+  const collect = (events, inTick = false) => timed('extraction', () => {
     for (const e of events ?? []) {
+      if (e.type === 'chatPrompt') {
+        const p = s.chatPrompts.find((x) => x.id === e.promptId);
+        if (!p) continue;
+        const row = { ...base(), week: p.week, type: 'chatPrompt', id: p.kind, prompt: p.id };
+        rows.push(row);
+        prompts.push({ row, inTick });
+        continue;
+      }
       if (e.type === 'decisionResolved' && open && open.id === e.eventId) open.choice = e.choice ?? null;
       else if (KEEP.has(e.type)) rows.push({ ...base(), type: e.type, id: e.eraId ?? e.eventId ?? e.kind ?? e.type });
       else if (e.type === 'celebrate' && !e.staffId) rows.push({ ...base(), type: 'party', id: e.cause ?? 'party' });
@@ -46,7 +61,7 @@ export function play({ bot, seed, weeks, dir, profile = false }) {
         const d = s.pendingDecision;
         open = { ...base(), type: 'decision', id: d.eventId, subject: d.subjectId ?? null, stageProp: d.stage?.prop ?? null, choice: null };
         const n = taken.get(d.eventId) ?? 0;
-        if ((EVENTS[d.eventId]?.stage || MOMENT_CAPTIONS[d.eventId]) && n < SNAP_PER_ID) {
+        if (n < ((EVENTS[d.eventId]?.stage || MOMENT_CAPTIONS[d.eventId]) ? SNAP_PER_ID : SNAP_PER_OTHER)) {
           open.snapshot = snap(d.eventId, turn * 2);
           if (turn) open.preTick = snap(`${d.eventId}-pre`, turn * 2 - 1, s.week - 1);
           taken.set(d.eventId, n + 1);
@@ -59,8 +74,22 @@ export function play({ bot, seed, weeks, dir, profile = false }) {
     if (s.gameOver) break;
     const n = rows.length;
     timed('sim', () => botTurn(bot, s, { onEvents: collect }));
-    collect(timed('sim', () => tick(s)));
+    collect(timed('sim', () => tick(s)), true);
     timed('extraction', () => {
+      for (const { row, inTick } of prompts.splice(0)) {
+        const key = `prompt:${row.id}`, k = taken.get(key) ?? 0;
+        if (k >= SNAP_PER_OTHER) continue;
+        // Tagged apart from decisions: a prompt opened by an event shares the event's id.
+        const tag = `prompt-${row.id}`;
+        if (!inTick) {
+          row.preTick = snap(`${tag}-pre`, turn * 2, row.week);
+          row.snapshot = snap(tag, turn * 2 + 1, row.week);
+        } else if (!s.gameOver && s.week < weeks) {
+          row.preTick = snap(`${tag}-pre`, turn * 2 + 1, s.week - 1);
+          row.snapshot = snap(tag, turn * 2 + 2, s.week);
+        } else continue;
+        taken.set(key, k + 1);
+      }
       for (let i = n; i < rows.length; i++) {
         const r = rows[i];
         if (SNAP.has(r.type) && !r.snapshot) {
