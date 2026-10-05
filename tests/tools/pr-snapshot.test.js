@@ -102,6 +102,19 @@ describe('ensureFresh', () => {
     expect(existsSync(`${file}.lock`)).toBe(false);
   });
 
+  it('clears what killed refreshers left beside the snapshot, but not a live one\'s or anything else', async () => {
+    const dead = spawnSync(process.execPath, ['-e', '']).pid, live = process.ppid;
+    const left = [`snap.json.${dead}.tmp`, `snap.json.lock.${dead}.tmp`, `snap.json.lock.${dead}.gone`];
+    const kept = [`snap.json.lock.${live}.tmp`, `snap.json.${live}.tmp`, 'snap.json.notes'];
+    // Lock leftovers are directories with a pid file; a half-written snapshot is a file.
+    for (const n of [...left, ...kept]) {
+      if (n.includes('.lock.')) { mkdirSync(join(dir, n)); writeFileSync(join(dir, n, 'pid'), '1'); } else writeFileSync(join(dir, n), 'x');
+    }
+    await ensureFresh({ file, fetchPrs: () => [pr(1)], now: () => 5 });
+    expect(left.filter((n) => existsSync(join(dir, n)))).toEqual([]);
+    expect(kept.filter((n) => existsSync(join(dir, n)))).toEqual(kept);
+  });
+
   it('trims comments in what it writes', async () => {
     const { fetchPrs } = counted([[pr(1, { comments: [{ body: 'chat' }, { body: '### Local CI: PASS' }] })]]);
     await ensureFresh({ file, fetchPrs, now: () => 5 });

@@ -16,9 +16,9 @@
 // isCrossRepository, reviewDecision, updatedAt, url, and `comments` cut down to the newest Local CI
 // comment and the newest owner record (what pr-status.sh and the review queue read).
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
@@ -102,10 +102,26 @@ function drop(dir) {
   try { renameSync(dir, gone); } catch { return; }
   rmSync(gone, { recursive: true, force: true });
 }
+// What a killed process leaves beside the snapshot: a half-written snapshot (<file>.<pid>.tmp), a lock
+// it was building (<file>.lock.<pid>.tmp) or deleting (<file>.lock.<pid>.gone). The lock's holder
+// clears those whose process is gone.
+export function clearLitter(file) {
+  const base = basename(file).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`^${base}(\\.lock)?\\.(\\d+)\\.(tmp|gone)$`);
+  let names = [];
+  try { names = readdirSync(dirname(file)); } catch { return; }
+  for (const name of names) {
+    const m = re.exec(name);
+    if (!m) continue;
+    const pid = Number(m[2]);
+    if (pid !== process.pid) { try { process.kill(pid, 0); continue; } catch (e) { if (e.code !== 'ESRCH') continue; } }
+    rmSync(join(dirname(file), name), { recursive: true, force: true });
+  }
+}
 async function lock(dir, waitMs = 20000) {
   const until = Date.now() + waitMs;
   for (;;) {
-    if (take(dir)) return true;
+    if (take(dir)) { clearLitter(dir.replace(/\.lock$/, '')); return true; }
     if (isAbandoned(dir)) { drop(dir); continue; }
     if (Date.now() >= until) return false;
     await sleep(200);
