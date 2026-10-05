@@ -104,7 +104,8 @@ const CARD_IN = `(() => { const st = document.createElement('style'); st.textCon
 // wide view, for scenes on every screen)]. The big offices need a closer zoom than the garage.
 const MOMENTS = [
   ['pizza', 'hackathon_week --stage floor --choice 0', 'pizza_boxes', 0, 2.8],
-  ['hammer', 'open_plan_office --stage floor --choice 0', 'sledgehammer', 0, 2.8],
+  // The all-hands screen on its floor stand: the camera holds on it, where the hammer goes through.
+  ['hammer', 'open_plan_office --seed 10 --choice 0', '() => ({ x: -9.8, z: -6.25 })', 0, 3, 22],
   ['carrier', 'cat_request --choice 0', 'pet_carrier', 0, 2.8],
   ['consultants', 'efficiency_consultants --choice 1', 'visitor_chair', 1, 3.2],
   ['letter', 'hearing_summons --choice 0', 'envelope_thick', 0, 3.4],
