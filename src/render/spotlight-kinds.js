@@ -7,7 +7,7 @@ export const MOMENT_KINDS = {
   printer_jam: { spotlight: true, seconds: 22, zoom: 1.8 },
   first_user_test: { spotlight: true, seconds: 12, zoom: 2 },
   efficiency_consultants: { spotlight: true, seconds: 12, zoom: 2 },
-  open_plan_office: { spotlight: true, seconds: 3.3, zoom: 2 },
+  open_plan_office: { spotlight: true, seconds: 9.5, zoom: 2 },
   waffle_party: { spotlight: true, seconds: 16, zoom: 1.6 },
   music_night: { spotlight: true, seconds: 90, zoom: 1.6 },
   letter: { spotlight: true, seconds: 7, zoom: 2, caption: 'An envelope, a deep breath, and some unwelcome news.' },
