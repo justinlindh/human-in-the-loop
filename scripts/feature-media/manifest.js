@@ -221,7 +221,7 @@ export const ITEMS = [
   {
     id: 'site-loop-waffle', title: 'Landing page loop: the Waffle Party', query: 'seed=1&speed=1', seconds: 30,
     setup: `(async () => { await ${WAFFLE_SETUP}; ${CLEAN}; })()`, actions: [{ at: 0, js: NO_SAY }, ...WAFFLE_ACTIONS(30), ...CAMLOG(30)], screenshots: [12, 16, 20, 24],
-    out: [LOOP('waffle', 16, 4.2, MIDDLE, 28)],
+    out: [LOOP('waffle', 16, 4.2, MIDDLE, 28)], publish: true,
   },
   {
     // Music night is made the next reward, and the live week raises its genre decision; the first
@@ -230,7 +230,7 @@ export const ITEMS = [
     setup: `(async () => { await ${PLAY({ weeks: 176, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE} sim.stageIncentive(s, 'music_night');` })}; await ${PRE_DECISION('music_night_genre', 16)}; ${CLEAN}; })()`,
     actions: [{ at: 0, js: NO_SAY }, ...CLEAR_EARLY, ...CHOOSE_WHEN('music_night_genre', 0, 1, 20, 3), ...Array.from({ length: 36 }, (_, i) => ({ at: i + 4.5, js: CLICK('Onward') })), ...CAMLOG(40)],
     screenshots: [16, 20, 24, 28],
-    out: [LOOP('music', 19, 4.2, MIDDLE, 30)],
+    out: [LOOP('music', 19, 4.2, MIDDLE, 30)], publish: true,
   },
   {
     // Every monitor shows the ransom skull while the decision is open; the office holds still under
