@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { toolTmp } from '../../scripts/tools/tmp.mjs';
+import { spawnAsync } from './spawn-async.js';
 import { join, resolve } from 'node:path';
 import { pairDepths, touching, useInterior } from '../../blender/checks/intersect.js';
 import { meshContact, depthAtTol } from '../../scripts/studio/geometry.mjs';
@@ -70,22 +71,23 @@ describe('sweep-parity', () => {
   });
 });
 
-describe('sweep --engine', () => {
-  it('runs the mocks on the studio engine and finds what the browser sweep finds there', () => {
+// The three runs are independent of each other, so they overlap.
+describe.concurrent('sweep --engine', () => {
+  it('runs the mocks on the studio engine and finds what the browser sweep finds there', async () => {
     const out = mkdtempSync(join(toolTmp(), 'sweep-engine-'));
-    const r = spawnSync(process.execPath, [script('blender/checks/sweep.mjs'), '--no-screen', '--mocks', 'garage,night', '--seeds', 'none', '--out', out], { encoding: 'utf8', timeout: 240000 });
+    const r = await spawnAsync(process.execPath, [script('blender/checks/sweep.mjs'), '--no-screen', '--mocks', 'garage,night', '--seeds', 'none', '--out', out], { timeout: 240000 });
     rmSync(out, { recursive: true, force: true });
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toMatch(/mock:garage 0 violation/);
     expect(r.stdout).toMatch(/mock:night 0 violation/);
   }, 260000);
 
-  it('replays one state from a report in seconds, and refuses an indexed moment', () => {
+  it('replays one state from a report in seconds, and refuses an indexed moment', async () => {
     const dir = mkdtempSync(join(toolTmp(), 'sweep-replay-'));
     const v = (state) => ({ check: 'person', key: 'person|a|b', state, states: [state], a: 'a', b: 'b', value: 0.1 });
     const write = (name, report) => { const f = join(dir, name); writeFileSync(f, JSON.stringify({ mode: 'fast', ...report })); return f; };
     const t0 = Date.now();
-    let r = spawnSync(process.execPath, [script('blender/checks/sweep.mjs'), '--no-screen', '--replay', write('seed.json', { windows: [], violations: [v('seed:1:w5')] }), '--out', join(dir, 'out')], { encoding: 'utf8', timeout: 120000 });
+    const r = await spawnAsync(process.execPath, [script('blender/checks/sweep.mjs'), '--no-screen', '--replay', write('seed.json', { windows: [], violations: [v('seed:1:w5')] }), '--out', join(dir, 'out')], { timeout: 120000 });
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toMatch(/seed:1 played to week 6; windows: w5/);
     expect(r.stdout).toMatch(/replay: 0 of 1 reported violation\(s\) still present, 1 gone/);
@@ -95,17 +97,22 @@ describe('sweep --engine', () => {
 
   // A cold event index builds 60 seeded runs first, which takes longer than a hosted runner allows
   // this test; where the index is warm (a lane's machine, the local CI) it runs.
-  it.skipIf(process.env.GITHUB_ACTIONS)('plays an indexed moment from its snapshot, replays it from the report, and takes it as a control run', () => {
+  it.skipIf(process.env.GITHUB_ACTIONS)('plays an indexed moment from its snapshot, replays it from the report, and takes it as a control run', async () => {
     const dir = mkdtempSync(join(toolTmp(), 'sweep-moment-'));
-    const sweep = (...args) => spawnSync(process.execPath, [script('blender/checks/sweep.mjs'), '--no-screen', '--seeds', 'none', '--mocks', 'none', ...args], { encoding: 'utf8', timeout: 500000 });
-    let r = sweep('--moments', 'printer_jam --choice 0', '--out', join(dir, 'a'));
+    const sweep = (...args) => spawnAsync(process.execPath, [script('blender/checks/sweep.mjs'), '--no-screen', '--seeds', 'none', '--mocks', 'none', ...args], { timeout: 500000 });
+    // The control run does not read the first run's report, so the two start together.
+    const [first, control] = await Promise.all([
+      sweep('--moments', 'printer_jam --choice 0', '--out', join(dir, 'a')),
+      sweep('--moments', 'printer_jam --choice 0', '--against', 'HEAD', '--out', join(dir, 'c')),
+    ]);
+    let r = first;
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toMatch(/sweep: event:printer_jam:\S+ \d+ violation/);
-    r = sweep('--replay', join(dir, 'a/report.json'), '--out', join(dir, 'b'));
+    r = await sweep('--replay', join(dir, 'a/report.json'), '--out', join(dir, 'b'));
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toMatch(/replay: (\d+) of \1 reported violation\(s\) still present, 0 gone/);
     // The same moment on this checkout as the control: nothing is new against itself.
-    r = sweep('--moments', 'printer_jam --choice 0', '--against', 'HEAD', '--out', join(dir, 'c'));
+    r = control;
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toMatch(/has \d+ violation\(s\) in the same states/);
     expect(r.stdout).toMatch(/, 0 new,/);

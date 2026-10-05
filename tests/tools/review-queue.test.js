@@ -98,7 +98,8 @@ describe('review-queue command', () => {
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
   });
 
-  it('--wait blocks until something wakes it and then prints all of it, pending CI included', async () => {
+  // The cases that wait out real polling run side by side; each has a scratch queue of its own.
+  it.concurrent('--wait blocks until something wakes it and then prints all of it, pending CI included', async () => {
     const t = setup([pr(3, {}, 'PENDING')]);
     try {
       const child = spawn(process.execPath, [QUEUE, '--wait', '--interval', '0.2'], { env: t.env });
@@ -113,7 +114,7 @@ describe('review-queue command', () => {
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
   }, 20000);
 
-  it('--drain prints each PR once and exits only when none is left that needs a look', async () => {
+  it.concurrent('--drain prints each PR once and exits only when none is left that needs a look', async () => {
     const t = setup([pr(7)]);
     try {
       const child = spawn(process.execPath, [QUEUE, '--drain', '--interval', '0.2'], { env: t.env });
@@ -136,7 +137,7 @@ describe('review-queue command', () => {
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
   }, 30000);
 
-  it('--drain on a queue that holds only pending CI keeps waiting until that PR is ready and then reviewed', async () => {
+  it.concurrent('--drain on a queue that holds only pending CI keeps waiting until that PR is ready and then reviewed', async () => {
     const t = setup([pr(3, {}, 'PENDING')]);
     try {
       const child = spawn(process.execPath, [QUEUE, '--drain', '--interval', '0.2'], { env: t.env });
@@ -158,7 +159,7 @@ describe('review-queue command', () => {
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
   }, 30000);
 
-  it('--drain prints a PR again when it moves from pending CI to ready on the same head', async () => {
+  it.concurrent('--drain prints a PR again when it moves from pending CI to ready on the same head', async () => {
     const t = setup([pr(3, {}, 'PENDING'), pr(5)]);
     try {
       const child = spawn(process.execPath, [QUEUE, '--drain', '--interval', '0.2'], { env: t.env });
@@ -187,7 +188,7 @@ describe('review-queue command', () => {
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
   });
 
-  it('exits 143 when interrupted while waiting', async () => {
+  it.concurrent('exits 143 when interrupted while waiting', async () => {
     const t = setup([]);
     try {
       const child = spawn(process.execPath, [QUEUE, '--wait', '--interval', '5'], { env: t.env, stdio: 'ignore' });

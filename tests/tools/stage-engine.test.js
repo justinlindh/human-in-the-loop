@@ -1,18 +1,20 @@
 import { describe, it, expect } from 'vitest';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { toolTmp } from '../../scripts/tools/tmp.mjs';
+import { spawnAsync } from './spawn-async.js';
 import { join, resolve } from 'node:path';
 
 const STAGE = resolve(__dirname, '../../blender/checks/stage.mjs');
-const run = (...args) => spawnSync(process.execPath, [STAGE, ...args], { encoding: 'utf8', timeout: 180000, env: { ...process.env, HITL_NO_CHECK_CACHE: '1' } });
+const run = (...args) => spawnAsync(process.execPath, [STAGE, ...args], { timeout: 180000, env: { ...process.env, HITL_NO_CHECK_CACHE: '1' } });
 const alive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
 
-describe('stage.mjs on the studio engine', () => {
-  it('plays a scenario in both views and prints a parity row per report row', () => {
+// Each case starts its own processes, so the cases overlap.
+describe.concurrent('stage.mjs on the studio engine', () => {
+  it('plays a scenario in both views and prints a parity row per report row', async () => {
     const tmp = mkdtempSync(join(toolTmp(), 'stage-engine-'));
     try {
-      const r = run('--only=letter', '--rows', '--out', join(tmp, 'report.json'));
+      const r = await run('--only=letter', '--rows', '--out', join(tmp, 'report.json'));
       expect(r.status, r.stdout + r.stderr).toBe(0);
       const rows = r.stdout.split('\n').filter((l) => l.startsWith('STAGEROW '));
       const report = JSON.parse(readFileSync(join(tmp, 'report.json'), 'utf8')).rows;
@@ -23,9 +25,10 @@ describe('stage.mjs on the studio engine', () => {
     // Engine processes for both views: a loaded runner can stretch them past the default timeout.
   }, 120000);
 
-  it('refuses an unknown option and a name that matches no spec', () => {
-    expect(run('--brwoser').status).toBe(2);
-    expect(run('--only=nosuchmoment').status).toBe(2);
+  it('refuses an unknown option and a name that matches no spec', async () => {
+    const [a, b] = await Promise.all([run('--brwoser'), run('--only=nosuchmoment')]);
+    expect(a.status).toBe(2);
+    expect(b.status).toBe(2);
   });
 
   it('stops its engine processes when interrupted', async () => {

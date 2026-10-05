@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GROWTH } from './growth-tune.js';
+import { GROWTH, DEAL } from './growth-tune.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { getTemplate } from './models.js';
 import { mat, color, paletteMaterial } from './materials.js';
@@ -27,7 +27,7 @@ export const SLAP_AT = 0.5;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'hide', 'flinch', 'pointscreen', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake', 'facepalm', 'facepalmsit', 'pet', 'fidget', 'dilemma',
-  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff', 'growthpump', 'growthpumpsit', 'growthclap', 'growthclapsit', 'rackfix', 'slap'];
+  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff', 'growthpump', 'growthpumpsit', 'growthclap', 'growthclapsit', 'rackfix', 'slap', 'deal', 'dealsit'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
 // for the moment before the rig model has loaded.
 const ALWAYS_CLIP = /^dance_/;
@@ -47,7 +47,10 @@ const PALM_STAND = [-2.75, 0.14, 0.27, -0.6, 0.08];
 const PALM_SHOULDER_REF = 0.18;   // metres from the spine to the shoulder of the middle build
 const PALM_BUILD_K = 3;
 const PALM_SIT = [-2.75, 0.14, 0.27, -0.6, 0.08];
-const SEATED = new Set(['growthpumpsit', 'growthclapsit', 'typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit']);
+// The deal fist pump: raised arm's shoulder roll and forward pitch, the pump's swing, the chin lift,
+// the bounce in the chair (metres).
+const DEAL_POSE = [2.75, 0.6, 0.25, 0.2, 0.03];
+const SEATED = new Set(['growthpumpsit', 'growthclapsit', 'dealsit', 'typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit']);
 
 const roleMats = new Map();
 // A role's own colour shares the palette material; any other colour (an advisor's accent) gets its own.
@@ -647,6 +650,24 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.armLZ = -GROWTH.standAngle - pump;
         if (!seated) tgt.bodyY += Math.max(0, s(animT * GROWTH.pumpRate)) * GROWTH.pumpHop;
         tgt.headX = -GROWTH.pumpLift;
+        break;
+      }
+      case 'deal':
+      case 'dealsit': {
+        // A closed deal: a fist pump with the camera-side arm, out beside the head (as high as a chibi
+        // arm goes), a bounce in the chair, the chin up; seated, the other hand stays on the keys.
+        const pump = s(animT * DEAL.pumpRate);
+        const up = DEAL_POSE[0] + pump * DEAL_POSE[2];
+        tgt.bodyY += Math.max(0, pump) * DEAL_POSE[4];
+        if (gestureSide > 0) {
+          tgt.armLZ = -up; tgt.armLX = DEAL_POSE[1];
+          if (seated) { tgt.armRX = TYPE_REACH - 0.1; tgt.armRZ = -0.18; }
+        } else {
+          tgt.armRZ = up; tgt.armRX = DEAL_POSE[1];
+          if (seated) { tgt.armLX = TYPE_REACH - 0.1; tgt.armLZ = 0.18; }
+        }
+        if (seated) tgt.lean = 0.1;
+        tgt.headX = -DEAL_POSE[3];
         break;
       }
       case 'growthclap':

@@ -23,6 +23,8 @@ export const MOMENT_KINDS = {
   top_level: { spotlight: false, seconds: 6 },
   standup: { spotlight: false },
   respond: { spotlight: false },
+  // A notable deal: the seller's hand up at the desk while the week plays on.
+  deal: { spotlight: false, seconds: 3 },
   coffee: { spotlight: false },
   pair: { spotlight: false },
   // The office robot slapped back to life: a breakdown never holds the clock.

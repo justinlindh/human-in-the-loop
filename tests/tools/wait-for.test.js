@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import { spawnSync, execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, rmSync, mkdirSync, chmodSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync, chmodSync, cpSync } from 'node:fs';
 import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { join, resolve } from 'node:path';
 
@@ -37,18 +37,28 @@ const replies = (...list) => list.forEach((r, i) => writeFileSync(join(ghDir, `p
 const run = (...args) => spawnSync('bash', [SCRIPT, ...args], { cwd: work, encoding: 'utf8', timeout: 60000,
   env: cleanEnv({ PATH: `${bin}:${process.env.PATH}`, FAKE_GH_DIR: ghDir, WORK: work }) });
 
+// The origin and the work clone are built once and copied per case; only the clone's remote URL
+// has to follow the copy.
+let template;
+beforeAll(() => {
+  template = mkdtempSync(join(toolTmp(), 'wait-for-tpl-'));
+  const origin = join(template, 'origin.git'), w = join(template, 'work');
+  git(template, 'init', '-q', '--bare', '-b', 'main', origin);
+  git(template, 'clone', '-q', origin, w);
+  writeFileSync(join(w, 'a.txt'), 'one\n'); git(w, 'add', '.'); git(w, 'commit', '-qm', 'base'); git(w, 'push', '-q', 'origin', 'HEAD:main');
+  git(w, 'switch', '-qc', 'feature'); writeFileSync(join(w, 'b.txt'), 'feature\n'); git(w, 'add', '.'); git(w, 'commit', '-qm', 'feature');
+  git(w, 'push', '-q', '-u', 'origin', 'feature');
+}, 60000);
+afterAll(() => rmSync(template, { recursive: true, force: true }));
+
 beforeEach(() => {
   root = mkdtempSync(join(toolTmp(), 'wait-for-'));
+  cpSync(template, root, { recursive: true });
   bin = join(root, 'bin'); ghDir = join(root, 'gh'); mkdirSync(bin); mkdirSync(ghDir);
   writeFileSync(join(bin, 'gh'), FAKE_GH); chmodSync(join(bin, 'gh'), 0o755);
   writeFileSync(join(ghDir, 'comments.json'), JSON.stringify([{ body: '### Local CI: FAIL', html_url: 'https://example.test/c/1' }]));
-  const origin = join(root, 'origin.git');
-  git(root, 'init', '-q', '--bare', '-b', 'main', origin);
   work = join(root, 'work');
-  git(root, 'clone', '-q', origin, work);
-  writeFileSync(join(work, 'a.txt'), 'one\n'); git(work, 'add', '.'); git(work, 'commit', '-qm', 'base'); git(work, 'push', '-q', 'origin', 'HEAD:main');
-  git(work, 'switch', '-qc', 'feature'); writeFileSync(join(work, 'b.txt'), 'feature\n'); git(work, 'add', '.'); git(work, 'commit', '-qm', 'feature');
-  git(work, 'push', '-q', '-u', 'origin', 'feature');
+  git(work, 'remote', 'set-url', 'origin', join(root, 'origin.git'));
 }, 60000);
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 

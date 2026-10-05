@@ -25,8 +25,9 @@ git add -A && git commit -qm pr
 
 LOGS="$tmp/logs"; mkdir -p "$LOGS"
 note() { echo "$*" >>"$LOGS/notes"; }
-# step stub: runs the test file it is handed and records which copy that was.
-step() { case "${*: -1}" in "$tmp"/tree/*) ran="PR:$(bash "${@: -1}")" ;; *) ran="MAIN:$(bash "${@: -1}")" ;; esac; }
+# pstep stub (tool_step starts its steps with pstep): runs the test file it is handed, in the
+# foreground, and records which copy that was.
+pstep() { case "${*: -1}" in "$tmp"/tree/*) ran="PR:$(bash "${@: -1}")" ;; *) ran="MAIN:$(bash "${@: -1}")" ;; esac; }
 tool_changes=1
 source "$tmp/fns.sh"
 run() { ran=""; : >"$LOGS/notes"; tool_step "$@"; }

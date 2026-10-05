@@ -41,17 +41,7 @@ export async function hostStage(task) {
     __fastRaycast: async () => {
       if (fast) return;
       const bvh = await globalThis.__toolImport('/blender/checks/bvh.js');
-      const THREE = R.THREE;
-      const slow = THREE.Mesh.prototype.raycast;
-      THREE.Mesh.prototype.raycast = function (raycaster, hits) {
-        const g = this.geometry;
-        if (this.isSkinnedMesh || this.isInstancedMesh || this.morphTargetInfluences || !g?.attributes?.position || g.morphAttributes?.position) return slow.call(this, raycaster, hits);
-        if (!g.boundsTree) {
-          if ((g.index ? g.index.count : g.attributes.position.count) / 3 < 64) return slow.call(this, raycaster, hits);
-          globalThis.__tool(() => { g.boundsTree = new bvh.MeshBVH(g, { indirect: true }); });
-        }
-        return bvh.acceleratedRaycast.call(this, raycaster, hits);
-      };
+      bvh.patchRaycast(R.THREE, globalThis.__tool);
       fast = true;
     },
     // A module that makes three.js objects as it loads, loaded on the tool stream.
