@@ -11,6 +11,11 @@ import { MOMENT_CAPTIONS } from '../../src/data/moments.js';
 const KEEP = new Set(['era', 'officeUpgrade', 'incident', 'launch', 'award', 'resign', 'unlock', 'goal', 'hire', 'gameOver']);
 const SNAP = new Set(['era', 'officeUpgrade']);
 const SNAP_PER_ID = 2;
+// A decision without a staged prop, and a Yak reply prompt of each kind: one pre-tick snapshot per run, so a page can
+// play into the card or the prompt without the index holding a second state for each. Only the first seeds
+// keep them: that covers every kind, and the index stays a third smaller than with all seeds.
+const PRE_PER_ID = 1;
+const PRE_SEEDS = 10;
 
 // Workers reuse this module across runs; simulation results must depend only on each game's state.
 export function play({ bot, seed, weeks, dir, profile = false }) {
@@ -50,6 +55,9 @@ export function play({ bot, seed, weeks, dir, profile = false }) {
           open.snapshot = snap(d.eventId, turn * 2);
           if (turn) open.preTick = snap(`${d.eventId}-pre`, turn * 2 - 1, s.week - 1);
           taken.set(d.eventId, n + 1);
+        } else if (turn && seed <= PRE_SEEDS && !EVENTS[d.eventId]?.stage && !MOMENT_CAPTIONS[d.eventId] && n < PRE_PER_ID) {
+          open.preTick = snap(`${d.eventId}-pre`, turn * 2 - 1, s.week - 1);
+          taken.set(d.eventId, n + 1);
         }
         rows.push(open);
       }
@@ -59,7 +67,20 @@ export function play({ bot, seed, weeks, dir, profile = false }) {
     if (s.gameOver) break;
     const n = rows.length;
     timed('sim', () => botTurn(bot, s, { onEvents: collect }));
-    collect(timed('sim', () => tick(s)));
+    const events = timed('sim', () => tick(s));
+    collect(events);
+    timed('extraction', () => {
+      // A Yak reply prompt opened by this tick, by kind (a template id, or the event id of a low-stakes event).
+      for (const e of events) {
+        if (e.type !== 'chatPrompt') continue;
+        const p = (s.chatPrompts ?? []).find((x) => x.id === e.promptId);
+        if (!p) continue;
+        const key = `prompt:${p.kind}`;
+        const row = { ...base(), type: 'prompt', id: p.kind, subject: p.subjectId ?? p.fromId ?? null };
+        if (seed <= PRE_SEEDS && (taken.get(key) ?? 0) < PRE_PER_ID) { row.preTick = snap(`prompt-${p.kind}-pre`, turn * 2 + 1, s.week - 1); taken.set(key, 1); }
+        rows.push(row);
+      }
+    });
     timed('extraction', () => {
       for (let i = n; i < rows.length; i++) {
         const r = rows[i];

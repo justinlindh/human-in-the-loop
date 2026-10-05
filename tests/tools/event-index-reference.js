@@ -8,6 +8,8 @@ import { ROOT } from '../../scripts/events/lib.js';
 const KEEP = new Set(['era', 'officeUpgrade', 'incident', 'launch', 'award', 'resign', 'unlock', 'goal', 'hire', 'gameOver']);
 const SNAP = new Set(['era', 'officeUpgrade']);
 const SNAP_PER_ID = 2;
+const PRE_PER_ID = 1;
+const PRE_SEEDS = 10;
 
 export async function referencePlay({ bot, seed, weeks, dir }) {
   const mod = (p) => import(pathToFileURL(join(ROOT, p)).href);
@@ -47,6 +49,9 @@ export async function referencePlay({ bot, seed, weeks, dir }) {
         // And the state just before the tick that raised it, so a page can play into the decision.
         if (preTick) open.preTick = snap(`${d.eventId}-pre`, preTick, s.week - 1);
         taken.set(d.eventId, n + 1);
+      } else if (preTick && seed <= PRE_SEEDS && !EVENTS[d.eventId]?.stage && !MOMENT_CAPTIONS[d.eventId] && n < PRE_PER_ID) {
+        open.preTick = snap(`${d.eventId}-pre`, preTick, s.week - 1);
+        taken.set(d.eventId, n + 1);
       }
       rows.push(open);
     }
@@ -56,8 +61,17 @@ export async function referencePlay({ bot, seed, weeks, dir }) {
     const n = rows.length;
     botTurn(bot, s, { onEvents: collect });
     preTick = JSON.stringify(s);
-    collect(tick(s));
-    if (!s.pendingDecision) preTick = null;
+    const events = tick(s);
+    collect(events);
+    for (const e of events) {
+      if (e.type !== 'chatPrompt') continue;
+      const p = (s.chatPrompts ?? []).find((x) => x.id === e.promptId);
+      if (!p) continue;
+      const key = `prompt:${p.kind}`;
+      const row = { ...base(), type: 'prompt', id: p.kind, subject: p.subjectId ?? p.fromId ?? null };
+      if (seed <= PRE_SEEDS && (taken.get(key) ?? 0) < PRE_PER_ID) { row.preTick = snap(`prompt-${p.kind}-pre`, preTick, s.week - 1); taken.set(key, 1); }
+      rows.push(row);
+    }
     // An era change or an office move this week: snapshot the week before it, so it plays on load.
     for (const r of rows.slice(n)) if (SNAP.has(r.type) && !r.snapshot) { r.week = s.week - 1; r.snapshot = snap(r.type, before, r.week); }
   }

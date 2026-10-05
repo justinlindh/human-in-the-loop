@@ -56,6 +56,37 @@ describe('event index snapshots', () => {
     expect(compareSnapshots(a, b).length).toBeGreaterThan(0);
   });
 
+  it('keeps one pre-tick snapshot per decision id and per Yak prompt kind, and one tick of each raises it', async () => {
+    const dir = directory('prompts'), run2 = { seed: 1, bot: 'allHumans', weeks: 40 };
+    const r = run(dir, ['--seeds', String(run2.seed), '--bots', run2.bot, '--weeks', String(run2.weeks), '--jobs', '1']);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    const out = join(dir, simHash());
+    const rows = gunzipSync(readFileSync(join(out, 'events.jsonl.gz'))).toString().trim().split('\n').map(JSON.parse);
+    const ref = directory('prompts-reference');
+    mkdirSync(join(ref, 'snapshots'));
+    expect(rows.map((x) => JSON.stringify(x))).toEqual((await referencePlay({ ...run2, dir: ref })).map((x) => JSON.stringify(x)));
+    expect(compareSnapshots(ref, out).length).toBeGreaterThan(0);
+    const prompts = rows.filter((x) => x.type === 'prompt');
+    expect(prompts.length).toBeGreaterThan(3);
+    const withPre = prompts.filter((x) => x.preTick);
+    // The first prompt of each kind has one; later ones of the same kind do not.
+    expect(new Set(withPre.map((x) => x.id)).size).toBe(withPre.length);
+    expect(new Set(prompts.map((x) => x.id)).size).toBe(withPre.length);
+    const decisions = rows.filter((x) => x.type === 'decision' && !x.snapshot && x.preTick);
+    const { tick } = await import('../../src/sim/tick.js');
+    const load = (name) => JSON.parse(gunzipSync(readFileSync(join(out, 'snapshots', name))));
+    for (const x of withPre) {
+      const st = load(x.preTick);
+      tick(st);
+      expect(st.chatPrompts.some((p) => p.kind === x.id && !p.resolved), x.preTick).toBe(true);
+    }
+    for (const x of decisions) {
+      const st = load(x.preTick);
+      tick(st);
+      expect(st.pendingDecision?.eventId, x.preTick).toBe(x.id);
+    }
+  });
+
   it('reuses the completed fixture', () => {
     const r = run(fixture);
     expect(r.status, r.stdout + r.stderr).toBe(0);
