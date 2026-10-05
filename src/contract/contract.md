@@ -621,3 +621,52 @@ Events:
 
 - Props: `robot_note` while grumbling, `googly_eyes` for good once chosen, `traffic_cone` during a cone breakdown.
 - No new actions: buying, upgrading and moving use the existing item actions.
+
+## Inbox (#17)
+
+Letters from outside the company: popups stay for big or staged moments, Yak for the team talking, mail for the outside world. Mail never pauses the clock and never opens a popup. The whole feature sits behind `B.mail.enabled`.
+
+```js
+state.mail = [Mail]   // newest first; resolved and archived mail kept B.mail.keptWeeks, at most B.mail.kept in all, oldest dropped first; open-choice mail is never dropped
+Mail = {
+  id,            // 'm12', from its own sequence (state.flags.mailSeq)
+  kind,          // template id in src/data/mail.js, or the event id for an event delivered as mail
+  week,          // arrived
+  from: { name, org, staffId },   // org null for a person; staffId set when the sender is one of ours
+  to,            // display string, e.g. 'everyone@{company}' for the reply-all thread
+  category,      // 'applicant'|'partner'|'customer'|'vendor'|'recruiter'|'investor'|'event'|'legal'|'rival'|'staff'|'spam'
+  subject, body, // plain text, paragraphs split on a blank line; era-gated copy
+  important,     // legal, investor, anything with a deadline
+  threadId, inReplyTo,
+  read: null | week,
+  expiresWeek: null | week,   // mail with options resolves as ignored when state.week reaches it
+  options: [{ label, hint, available, reason, opens? }],   // 0 to 3; [] for plain mail; hint states effects, as decision choices do
+  resolved: null | { choice, week, replyText },   // choice null when ignored (expired or archived)
+  archived,      // bool
+  subjectId: null | staffId,
+}
+```
+
+### Events: Inbox
+
+```js
+{ type: 'mail', mailId, week }            // arrived
+{ type: 'mailResolved', mailId, choice }  // choice: index, or null when ignored
+```
+
+### Actions: Inbox
+
+```js
+{ type: 'readMail', mailId }              // idempotent; the only thing that sets `read`
+{ type: 'answerMail', mailId, choice }    // refusals: 'No such mail' | 'Already answered' | 'That has gone quiet' | 'Invalid choice' | the option's own reason
+{ type: 'archiveMail', mailId }           // archiving mail with an open choice resolves it as ignored
+```
+
+- All three work while paused, like `answerPrompt`. An option's `opens` is acted on by ui after a successful answer, as for prompts.
+- Ignored mail: template mail takes its stated small consequence, never a departure. An event delivered as mail takes its mildest choice, under the same rule as an event delivered as a prompt (no penalty, no grant).
+- Events delivered as mail: `alumni_referral`, `blockchain_pitch`, `vendor_new_version`, `app_store_rejection` (choices); `vendor_price_hike`, `analyst_report`, `vendor_outage`, `bootcamp_grads` (no choices). They keep their place in the decision cadence. Nothing staged is delivered as mail.
+- Spam is inert: no options. Folders (Inbox, Spam, Done) and the unread badge are derived by ui; spam never counts toward the badge.
+- At most one ambient mail arrives a week, and at most `B.mail.actionOpen` mails with an open choice exist at once.
+- A chat event may carry `mailId`, and a prompt option may use `opens: { panel: 'mail', arg: mailId }`.
+- Mail randomness comes from its own stream (seed, week, `mailSeq`), so with `B.mail.enabled` false a seeded game matches one without the feature.
+- Old saves load with `mail = []` and `flags.mailSeq = 0`.
