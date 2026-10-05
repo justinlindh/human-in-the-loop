@@ -106,8 +106,9 @@ const MOMENTS = [
   ['pizza', 'hackathon_week --stage floor --choice 0', 'pizza_boxes', 0, 2.8],
   ['hammer', 'open_plan_office --stage floor --choice 0', 'sledgehammer', 0, 2.8],
   ['carrier', 'cat_request --choice 0', 'pet_carrier', 0, 2.8],
-  ['consultants', 'efficiency_consultants --choice 1', 'visitor_chair', 1, 3.2],
-  ['letter', 'hearing_summons --choice 0', 'envelope_thick', 0, 3.4],
+  // No follow zoom: the game's own moment camera frames these (it zooms further in the bigger offices).
+  ['consultants', 'efficiency_consultants --seed 1 --choice 1', 'visitor_chair', 1],
+  ['letter', 'hearing_summons --seed 1 --choice 0', 'envelope_thick', 0],
   ['fumes', 'coffee_machine_broke --stage floor --choice 0', 'smoke_puff', 0, 2.8],
   ['bridge-loan', 'bridge_loan --choice 0', 'screens_red', 0],
   ['ransomware', 'ransomware --stage garage --choice 0', 'screens_skull', 0],
