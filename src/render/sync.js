@@ -38,8 +38,8 @@ const DOOR_SPREAD = 0.45;      // how far apart people leaving by the door head 
 const FACE_HOLD = { deal: 2, notable: 2.5, hire: 4, launch: 3, award: 3, fired: 2, click: 2.5 };
 // A voice bark's face by its emotion; it holds VOICE_FACE_TAIL s past the bark. VOICE_TALK scales
 // the bark's 0..1 loudness to mouth opening.
-const VOICE_FACE = { happy: 'delighted', questioning: 'questioning', annoyed: 'sideeye', tired: 'tired', sighing: 'sad' };
-const VOICE_FACE_TAIL = 0.6, VOICE_TALK = 1;
+const VOICE_FACE = { happy: 'delighted', excited: 'delighted', laughing: 'delighted', questioning: 'questioning', annoyed: 'sideeye', tired: 'tired', sighing: 'sad' };
+const VOICE_FACE_TAIL = 0.6, VOICE_TALK = 1, VOICE_CLOSE_S = 0.4;
 const CLICK_SWIVEL = 1.4;     // radians someone clicked may turn their chair toward the camera (past it the chair back hides them)
 // FACE_SEE: radians off a bystander's turned heading the person leaving may be and still be watched.
 // FACE_AWAY_COS: a turned heading further than about 80 degrees off the camera hides the face.
@@ -687,6 +687,16 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       if (i >= v.env.length) { r.char.setTalk(0); r.voice = null; voices.delete(r); continue; }
       if (!v.started) { v.started = true; if (v.face) r.char.express(v.face, { hold: v.seconds + VOICE_FACE_TAIL }); }
       r.char.setTalk(v.env[i] * VOICE_TALK);
+      r.talkUntil = voiceT + VOICE_CLOSE_S;
+    }
+  }
+  // Paused, nobody's update runs, but the bark still sounds: speakers' faces (and the mouth closing
+  // after) keep blending. Someone a staged moment updates is left to that.
+  function talkWhilePaused(dt, staging) {
+    for (const r of recs.values()) {
+      if (!(r.talkUntil > voiceT) || r.hidden) continue;
+      if (staging && (r.temp?.moment || r.temp?.party)) continue;
+      r.char.faceOnly(dt);
     }
   }
 
@@ -2049,7 +2059,9 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         r.char.root.rotation.y = r.yaw;
         if (!r.hidden) r.char.breathe(dt);
       }
-      if (staging) { updateMomentSpeech(dt); announceFaces(); }
+      if (staging) updateMomentSpeech(dt);
+      talkWhilePaused(dt, staging);
+      announceFaces();
       return;
     }
     startGrowth();
