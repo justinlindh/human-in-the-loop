@@ -172,7 +172,7 @@ cw; [ $rc -eq 2 ] && grep -q 'test=failure' "$tmp/out" && ! grep -q '^run rerun'
 cpr 'test=CANCELLED@'; runs '101=completed'
 cw; [ $rc -eq 2 ] || fail "a cancelled check whose run can't be placed fails: $rc $(cat "$tmp/out")"
 
-# The update queue (q_join in wait-for.sh): a PR that is only behind main merges it in when it is ready
+# The update queue (q_state in wait-for.sh): a PR that is only behind main merges it in when it is ready
 # (review and local-ci passed) and first in line by the time it became ready; otherwise it waits and says
 # why. An entry is kept on a timeout, and removed on a failure, changes requested or a merge.
 rm -rf "$tmp/queue"; mkdir -p "$tmp/queue"

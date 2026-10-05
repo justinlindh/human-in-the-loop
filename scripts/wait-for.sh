@@ -77,8 +77,9 @@ q_write() { # <ready_since> <state> <since>: replaces the entry whole, so a read
     && printf 'ready_since=%s pr=%s state=%s since=%s\n' "$1" "$pr" "$2" "$3" >"$t" && mv -f "$t" "$qfile"
 }
 # q_state <ready|pending> [join]: records a change of state with its time; with `join`, also enters the
-# queue when not in it. An entry that has been pending (its PR not fully green) longer than HITL_QUEUE_PENDING seconds (default 1200,
-# a CI cycle plus runner queueing) no longer holds the line, and gets its place back when the PR is ready again.
+# queue when not in it. An entry pending (its PR not fully green) longer than HITL_QUEUE_PENDING seconds
+# (default 1200, a CI cycle plus runner queueing) no longer holds the line, and gets its place back when
+# the PR is ready again.
 q_state() {
   local now cur; now="$(date +%s)"
   if [ ! -f "$qfile" ]; then
@@ -268,7 +269,7 @@ while :; do
   pending="$(jq -r '[.statusCheckRollup[]? | select(.__typename == "CheckRun" and (.status != "COMPLETED")) | .name] | join(" ")' <<<"$json")"
   review="$(jq -r '[.statusCheckRollup[]? | select(.__typename == "StatusContext" and .context == "review") | .state] | first // "NONE"' <<<"$json")"
 
-  # The update queue (see q_join): ready means review and local-ci passed on this head with nothing failing.
+  # The update queue (see q_state): ready means review and local-ci passed on this head with nothing failing.
   # A PR that is only pending after its own merge of main keeps its place.
   # Required statuses not yet passing, by name (a status or a check run). A skipped or neutral check
   # run satisfies a required check, as GitHub counts it.
