@@ -314,14 +314,18 @@ if [ -z "$VITEST_WORKERS" ]; then
 fi
 gh_step test:fast test npm run test:fast -- --maxWorkers="$VITEST_WORKERS"
 # The whole-game cases test:fast leaves out (tests/**/*.full.test.js) play many games: they run here, not
-# on GitHub's two-core runner (where one file alone took half an hour), for changes to the sim, its data,
-# the tools they exercise or the tests themselves; the main guard (CI_FULL=1) always runs them.
+# on GitHub's two-core runner (where one file alone took half an hour). A PR run plays only the files
+# scripts/tools/full-select.mjs says the change reaches; the main guard (CI_FULL=1) always runs all of them.
 full_check() {
   if [ "${CI_FULL:-}" != 1 ]; then
-    local mb files; mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb=""
-    files="$({ [ -n "$mb" ] && git diff --name-only --no-renames "$mb"; git ls-files --others --exclude-standard; } 2>/dev/null)"
-    grep -qE '^(src/sim/|src/data/|src/save/|tests/sim/|tests/tools/|scripts/events/|scripts/studio/|scripts/tools/|blender/checks/|vite\.config\.js$|package-lock\.json$)' <<<"$files" \
-      || { echo "skipped: no sim, data, tool or test changes"; return 0; }
+    local mb sel; mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb="$BASE"
+    sel="$(node scripts/tools/full-select.mjs --base "$mb")" || return 1
+    [ -n "$sel" ] || { echo "skipped: no whole-game test reaches this change"; return 0; }
+    echo "selected:"; echo "$sel"
+    # Not `npm run test:full -- files`: its pattern would still match every .full file.
+    # shellcheck disable=SC2086
+    bash scripts/nice10.sh vitest run $sel --exclude tests/tools/harness-uuid.full.test.js --maxWorkers="$VITEST_WORKERS"
+    return
   fi
   npm run test:full -- --maxWorkers="$VITEST_WORKERS"
 }
