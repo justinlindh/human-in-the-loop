@@ -16,9 +16,9 @@
 // isCrossRepository, reviewDecision, updatedAt, url, and `comments` cut down to the newest Local CI
 // comment and the newest owner record (what pr-status.sh and the review queue read).
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
@@ -80,12 +80,49 @@ function isAbandoned(dir) {
   try { return Date.now() - statSync(dir).mtimeMs > LOCK_STALE_MS; } catch { return false; }
 }
 
-// Takes the refresh lock, or waits for whoever holds it (up to waitMs) and reports false.
+// Takes the refresh lock, or waits for whoever holds it (up to waitMs) and reports false. The lock is
+// built aside with its pid file and renamed into place, so it never exists without the pid that
+// tells a reader whether its holder is gone.
+function take(dir) {
+  const tmp = `${dir}.${process.pid}.tmp`;
+  try {
+    mkdirSync(tmp, { recursive: true });
+    writeFileSync(join(tmp, 'pid'), String(process.pid));
+    renameSync(tmp, dir);
+    return true;
+  } catch {
+    rmSync(tmp, { recursive: true, force: true });
+    return false;
+  }
+}
+// Removes a lock by moving it aside first: deleting it in place empties it before removing it, and a
+// rename onto an empty directory succeeds, so another reader's lock could land in it mid-delete.
+function drop(dir) {
+  const gone = `${dir}.${process.pid}.gone`;
+  try { renameSync(dir, gone); } catch { return; }
+  rmSync(gone, { recursive: true, force: true });
+}
+// What a killed process leaves beside the snapshot: a half-written snapshot (<file>.<pid>.tmp), a lock
+// it was building (<file>.lock.<pid>.tmp) or deleting (<file>.lock.<pid>.gone). The lock's holder
+// clears those whose process is gone.
+export function clearLitter(file) {
+  const base = basename(file).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`^${base}(\\.lock)?\\.(\\d+)\\.(tmp|gone)$`);
+  let names = [];
+  try { names = readdirSync(dirname(file)); } catch { return; }
+  for (const name of names) {
+    const m = re.exec(name);
+    if (!m) continue;
+    const pid = Number(m[2]);
+    if (pid !== process.pid) { try { process.kill(pid, 0); continue; } catch (e) { if (e.code !== 'ESRCH') continue; } }
+    rmSync(join(dirname(file), name), { recursive: true, force: true });
+  }
+}
 async function lock(dir, waitMs = 20000) {
   const until = Date.now() + waitMs;
   for (;;) {
-    try { mkdirSync(dir); writeFileSync(join(dir, 'pid'), String(process.pid)); return true; } catch { /* held */ }
-    if (isAbandoned(dir)) { rmSync(dir, { recursive: true, force: true }); continue; }
+    if (take(dir)) { clearLitter(dir.replace(/\.lock$/, '')); return true; }
+    if (isAbandoned(dir)) { drop(dir); continue; }
     if (Date.now() >= until) return false;
     await sleep(200);
   }
@@ -112,7 +149,7 @@ export async function ensureFresh({ file = snapshotFile(), maxAgeMs = 60000, for
   } catch (err) {
     return snap ? { ...snap, isStale: true, error: err.message } : null;
   } finally {
-    if (mine) rmSync(dir, { recursive: true, force: true });
+    if (mine) drop(dir);
   }
 }
 

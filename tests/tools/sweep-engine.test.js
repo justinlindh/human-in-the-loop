@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { spawnAsync } from './spawn-async.js';
 import { join, resolve } from 'node:path';
@@ -75,11 +75,26 @@ describe('sweep-parity', () => {
 describe.concurrent('sweep --engine', () => {
   it('runs the mocks on the studio engine and finds what the browser sweep finds there', async () => {
     const out = mkdtempSync(join(toolTmp(), 'sweep-engine-'));
-    const r = await spawnAsync(process.execPath, [script('blender/checks/sweep.mjs'), '--no-screen', '--mocks', 'garage,night', '--seeds', 'none', '--out', out], { timeout: 240000 });
+    const r = await spawnAsync(process.execPath, [script('blender/checks/sweep.mjs'), '--no-screen', '--mocks', 'garage,night', '--seeds', 'none', '--out', out], { timeout: 240000, env: { ...process.env, HITL_NO_CHECK_CACHE: '1' } });
     rmSync(out, { recursive: true, force: true });
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toMatch(/mock:garage 0 violation/);
     expect(r.stdout).toMatch(/mock:night 0 violation/);
+  }, 260000);
+
+  it('skips a run whose inputs passed before and hands back that pass\'s reports', async () => {
+    const dir = mkdtempSync(join(toolTmp(), 'sweep-cache-'));
+    const env = { ...process.env, HITL_CHECK_CACHE_DIR: join(dir, 'cache') };
+    delete env.HITL_NO_CHECK_CACHE;
+    const sweep = (out) => spawnAsync(process.execPath, [script('blender/checks/sweep.mjs'), '--no-screen', '--mocks', 'garage', '--seeds', 'none', '--out', join(dir, out)], { timeout: 240000, env });
+    const a = await sweep('a');
+    expect(a.status, a.stdout + a.stderr).toBe(0);
+    expect(a.stdout).toMatch(/mock:garage 0 violation/);
+    const b = await sweep('b');
+    expect(b.status, b.stdout + b.stderr).toBe(0);
+    expect(b.stdout).toMatch(/inputs unchanged since .*, skipped/);
+    for (const f of ['report.json', 'report.md']) expect(readFileSync(join(dir, 'b', f), 'utf8')).toBe(readFileSync(join(dir, 'a', f), 'utf8'));
+    rmSync(dir, { recursive: true, force: true });
   }, 260000);
 
   it('replays one state from a report in seconds, and refuses an indexed moment', async () => {

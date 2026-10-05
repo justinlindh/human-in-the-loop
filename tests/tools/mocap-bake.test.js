@@ -84,6 +84,61 @@ describe('bakeShot', () => {
     expect(f.to - f.from).toBe(40);
   });
 
+  it('ends a contact where the foot steps and gives the point at the piece, not across the step', () => {
+    const c = bakeShot(shotOf(40, 30, (t, p) => { if (t >= 20) { p.LeftFoot = p.LeftFoot.clone().add(new Vector3(0, 0, 0.2)); p.LeftToeBase = p.LeftToeBase.clone().add(new Vector3(0, 0, 0.2)); } }), 3, { pivots: PIVOTS });
+    const plants = c.contacts.filter((k) => k.limb === 'footR');
+    expect(plants.map((k) => [k.from, k.to])).toEqual([[0, 20], [20, 40]]);
+    expect(plants[1].point[2] - plants[0].point[2]).toBeCloseTo(0.2 * c.scale, 3);
+  });
+
+  it('finds the plants of a walk: each foot planted while the other swings, with a floor that drifts', () => {
+    const c = bakeShot(shotOf(60, 30, (t, p) => {
+      const swingLeft = Math.floor(t / 20) % 2 === 0;
+      const lift = 0.12 * Math.sin(((t % 20) / 20) * Math.PI);
+      const drift = 0.002 * t;
+      for (const [s, up] of [['Left', swingLeft], ['Right', !swingLeft]]) {
+        const dy = drift + (up ? lift : 0);
+        p[`${s}Foot`] = p[`${s}Foot`].clone().add(new Vector3(0, dy, 0));
+        p[`${s}ToeBase`] = p[`${s}ToeBase`].clone().add(new Vector3(0, dy, 0));
+      }
+    }), 3, { pivots: PIVOTS });
+    const left = c.contacts.filter((k) => k.limb === 'footR'); // the anatomical left is the rig R limb
+    const right = c.contacts.filter((k) => k.limb === 'footL');
+    expect(left.length).toBeGreaterThan(0);
+    expect(right.length).toBeGreaterThan(0);
+    expect(left.every((k) => k.from >= 18 && k.to <= 42)).toBe(true);
+  });
+
+  it('places clips of one shot in a shared space through the camera', () => {
+    const s = shotOf(10, 30);
+    const second = JSON.parse(JSON.stringify(s.people[0]));
+    second.id = 4;
+    s.people.push(second);
+    // Identity camera; the persons' worlds are the camera turned over (x right, y down, z forward).
+    s.camera = { w2c: Array.from({ length: 10 }, () => [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]]) };
+    const at = { 3: [0.5, 0.9, 2], 4: [-1, 0.9, 3] };
+    for (const p of s.people) {
+      p.root_orient_cam = Array.from({ length: 10 }, () => [1, 0, 0, 0]);
+      p.rot_local = Array.from({ length: 10 }, () => [[0, 0, 0, 1]]);
+      p.root_pos_scene = Array.from({ length: 10 }, () => at[p.id]);
+    }
+    const a = bakeShot(s, 3, { pivots: PIVOTS }), b = bakeShot(s, 4, { pivots: PIVOTS });
+    expect(a.origin.scale).toBe(b.origin.scale);
+    const k = a.origin.scale;
+    // Shared x runs opposite the camera's x here (y points down in the camera), z is the camera's forward.
+    expect(b.origin.pos[0] - a.origin.pos[0]).toBeCloseTo(1.5 * k, 3);
+    expect(b.origin.pos[2] - a.origin.pos[2]).toBeCloseTo(1 * k, 3);
+    expect(a.origin.pos[1]).toBe(0);
+    expect(Math.abs(a.origin.yaw)).toBeCloseTo(Math.PI, 2);
+    expect(bakeShot(shotOf(10, 30), 3, { pivots: PIVOTS }).origin).toBeUndefined();
+    // A camera path that is empty (a static camera) or shorter than the person's frames places nothing.
+    for (const n of [0, 5]) {
+      const short = JSON.parse(JSON.stringify(s));
+      short.camera.w2c = short.camera.w2c.slice(0, n);
+      expect(bakeShot(short, 3, { pivots: PIVOTS }).origin).toBeUndefined();
+    }
+  });
+
   it('reports an unknown person and a missing joint plainly', () => {
     expect(() => bakeShot(shotOf(10, 30), 9, { pivots: PIVOTS })).toThrow(/no person 9/);
     const s = shotOf(10, 30);

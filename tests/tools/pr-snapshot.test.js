@@ -102,6 +102,19 @@ describe('ensureFresh', () => {
     expect(existsSync(`${file}.lock`)).toBe(false);
   });
 
+  it('clears what killed refreshers left beside the snapshot, but not a live one\'s or anything else', async () => {
+    const dead = spawnSync(process.execPath, ['-e', '']).pid, live = process.ppid;
+    const left = [`snap.json.${dead}.tmp`, `snap.json.lock.${dead}.tmp`, `snap.json.lock.${dead}.gone`];
+    const kept = [`snap.json.lock.${live}.tmp`, `snap.json.${live}.tmp`, 'snap.json.notes'];
+    // Lock leftovers are directories with a pid file; a half-written snapshot is a file.
+    for (const n of [...left, ...kept]) {
+      if (n.includes('.lock.')) { mkdirSync(join(dir, n)); writeFileSync(join(dir, n, 'pid'), '1'); } else writeFileSync(join(dir, n), 'x');
+    }
+    await ensureFresh({ file, fetchPrs: () => [pr(1)], now: () => 5 });
+    expect(left.filter((n) => existsSync(join(dir, n)))).toEqual([]);
+    expect(kept.filter((n) => existsSync(join(dir, n)))).toEqual(kept);
+  });
+
   it('trims comments in what it writes', async () => {
     const { fetchPrs } = counted([[pr(1, { comments: [{ body: 'chat' }, { body: '### Local CI: PASS' }] })]]);
     await ensureFresh({ file, fetchPrs, now: () => 5 });
@@ -159,6 +172,8 @@ describe('pr-snapshot.mjs', () => {
     const victim = spawn(process.execPath, [SCRIPT], { env: { ...env, GH_SLEEP: '30' }, stdio: 'ignore' });
     for (let i = 0; i < 100 && !existsSync(`${file}.lock`); i++) await new Promise((r) => setTimeout(r, 50));
     expect(existsSync(`${file}.lock`)).toBe(true);
+    // The lock appears with its pid already in it, so a kill at any moment leaves one a reader can clear.
+    expect(existsSync(`${file}.lock/pid`)).toBe(true);
     victim.kill('SIGKILL');
     await new Promise((r) => victim.on('close', r));
     const r = run();
