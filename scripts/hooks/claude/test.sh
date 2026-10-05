@@ -228,6 +228,18 @@ lane_ok "$repo/.claude/agents/sim-engineer.md" sim
 lane_no "$repo/src/ui/hud.js" sim
 [[ "$err" == *"belongs to ui"* ]] || fail "lane-guard should name the owner (got: $err)"
 lane_no "$repo/scripts/ci-pr.sh" sim
+# The longest matching prefix is named first; every matching owner is listed; no match names no owner.
+g -C "$repo" checkout -q -b ui/hud
+lane_no "$repo/tests/tools/x.test.js" "ui, a tools test"
+[[ "$err" == *"belongs to tools, sim."* ]] || fail "lane-guard should name tools before sim for tests/tools/ (got: $err)"
+lane_no "$repo/tests/sim.test.js" "ui, a sim test"
+[[ "$err" == *"belongs to sim."* ]] || fail "lane-guard should name only sim for tests/sim.test.js (got: $err)"
+lane_no "$repo/docs/superpowers/plans/x.md" "ui, the plan"
+[[ "$err" != *"belongs to #"* && "$err" != *", #"* ]] || fail "lane-guard should not name a comment line as an owner (got: $err)"
+lane_no "$repo/nowhere/x.md" "ui, no owner"
+[[ "$err" != *"belongs to"* ]] || fail "lane-guard should name no owner for an unowned path (got: $err)"
+g -C "$repo" checkout -q sim/balance
+lane_ok "$repo/tests/tools/x.test.js" "sim, a tools test"
 lane_ok "$tmp/elsewhere/notes.md" sim
 other="$tmp/other"; g init -q -b sim/x "$other"; mkdir -p "$other/src/ui"
 lane_ok "$other/src/ui/x.js" "a checkout of another repository"
