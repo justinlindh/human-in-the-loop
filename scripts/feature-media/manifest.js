@@ -212,7 +212,9 @@ export const ITEMS = [
         window.__HITL.dispatch({ type: 'setPolicy', id: 'async_standups', on: false });
         window.__HITL.dispatch({ type: 'setPolicy', id: 'daily_standups', on: true });`,
     })}; ${CLEAN}; })()`,
-    actions: [...CLEAR_EARLY, ...DISMISS_AT([2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18], { escape: false }), ...CAMLOG(24)],
+    // The week the table is placed can raise a decision (a poaching offer, say) that holds the office still
+    // under its card: answer whichever one it is in the first seconds.
+    actions: [...CLEAR_EARLY, ...CHOOSE_WHEN(null, 0, 0.3, 24, 0.4), ...DISMISS_AT([2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18], { escape: false }), ...CAMLOG(24)],
     screenshots: [8.5, 12, 15, 18],
     // People start walking over around 8.5s and are seated by 10s; the dialogue lands by 14s. Cropped
     // on the table (it sits in a back corner, so the full frame reads as mostly empty).
