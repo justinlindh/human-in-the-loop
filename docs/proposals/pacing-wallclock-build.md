@@ -18,7 +18,7 @@ Each PR that adds a switch also adds a test: with the switch off, its part behav
 | `askExpiry` | 1 sim, 2 integrator | A non-emergency ask that waits 3 min resolves to its default, with one Yak line. At most `queueCap` (3) wait; when another arrives, the least pressing, oldest one expires at once | Nothing expires, and the queue has no cap |
 | `askRealTime` | 2 integrator | The ask gaps and the expiry are fixed in real seconds at every speed, so 4x shows the same asks per minute as 1x | The gaps shrink with speed (gap seconds ÷ speed), so 4x asks four times as often |
 | `momentCap` | 2 integrator | At most one staged moment per 5 min, holding the clock at most 25 s; music night plays without holding it | Today's spotlight holds and caps |
-| `askRates` | 3 sim | The event and prompt chances are retuned to about 0.4 to 0.5 candidates per running minute | Today's `randomEventChance` and `chatPromptChance` |
+| `askRates` | 3 sim | The event and prompt chances are retuned to about 0.35 to 0.4 candidates per running minute | Today's `randomEventChance` and `chatPromptChance` |
 | `letterMail` | 3 sim | No flavour mail; mail is only outside letters with a real choice; reply-all is a Yak gag | Today's inbox rolls, templates and reply-all storms |
 | `quietEvents` | 3 sim | The office gags (ping-pong, printer, pet) are ambient with no choice; incidents below severity 3 resolve ambiently; music night picks its genre | They stay decisions |
 | `quietToasts` | 4 ui | Game-started toasts at least 30 s apart and merged by subject; info and good ones dropped after 30 s waiting; warnings first; status news goes to the world, not a toast | Today's toast budget and status toasts |
@@ -77,12 +77,12 @@ This builds on draft #1641. Switches: `askRates`, `letterMail` and `quietEvents`
 - Flavour mail goes (`mail.ambientChance` 0).
 - Mail keeps only outside-world letters with a real choice: acquisition, investor, poaching, legal, a rival's pitch.
 - Reply-all becomes a Yak and bubble gag.
-- `randomEventChance` and `chatPromptChance` come down until the sim proposes about 0.4 to 0.5 candidates per running minute at 1x.
+- `randomEventChance` and `chatPromptChance` come down until the sim proposes about 0.35 to 0.4 candidates per running minute at 1x. That keeps the approved 150 s mean gap between the asks the player is shown.
 - The repetitive office gags (ping-pong, printer, pet) become ambient events with no choice.
 - Incidents below severity 3 resolve ambiently.
 - Music night picks its genre without asking.
 
-**Targets:** in the sim emit probe over 5 seeds and Classic weeks 0 to 1040, candidates come at 0.4 to 0.5 per running minute and letters at 0.12 to 0.2, with flavour mail at 0. A dot-com start lands within the same bands. Under the human policy at 1x, fewer than 1 in 5 asks expire. Paired balance runs over 200 seeds show endings within noise, or the shift is listed as a change to how the game plays.
+**Targets:** in the sim emit probe over 5 seeds and Classic weeks 0 to 1040, candidates come at 0.35 to 0.4 per running minute and letters at 0.12 to 0.2, with flavour mail at 0. A dot-com start lands within the same bands. Under the human policy at 1x, fewer than 1 in 5 asks expire. Paired balance runs over 200 seeds show endings within noise, or the shift is listed as a change to how the game plays.
 
 ## Step 4. Quiet the interface (ui: `src/ui/`, `src/audio/`)
 
