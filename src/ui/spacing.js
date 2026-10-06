@@ -6,7 +6,9 @@
 export const GAP_MS = 30000;
 export const MAX_WEEKS = 4;
 
-export function createSpacing({ gap = GAP_MS, maxWeeks = MAX_WEEKS } = {}) {
+// With the ask queue on, `attention` (a function returning the attention clock, or null) owns the
+// spacing: a card waits out the same quiet an ask does. The clock sees every open modal itself.
+export function createSpacing({ gap = GAP_MS, maxWeeks = MAX_WEEKS, attention = null } = {}) {
   let playMs = 0;
   let lastClose = -Infinity; // playMs when the last pausing popup closed
   let week = 0, closeWeek = -Infinity; // the game week now, and when the last one closed
@@ -24,7 +26,10 @@ export function createSpacing({ gap = GAP_MS, maxWeeks = MAX_WEEKS } = {}) {
     },
     // True when a non-urgent popup may open now.
     // Never on a frame that still had a popup up: the close is only counted on the next tick.
-    ready() { return !wasOpen && (first || playMs - lastClose >= gap || week - closeWeek >= maxWeeks); },
+    ready() {
+      const clock = attention?.();
+      if (clock) return !wasOpen && clock.quietOk();
+      return !wasOpen && (first || playMs - lastClose >= gap || week - closeWeek >= maxWeeks); },
     // Seconds of play still to wait (for debugging and tests).
     get waitMs() { return first || week - closeWeek >= maxWeeks ? 0 : Math.max(0, gap - (playMs - lastClose)); },
     get playMs() { return playMs; },

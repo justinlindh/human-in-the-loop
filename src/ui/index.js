@@ -197,7 +197,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     isBlocked: () => buildMode.on || layer.classList.contains('title-mode'),
   });
   const callGrid = createCallGrid({ layer, openStaff: (id) => menu.open('staff', { staffId: id }) });
-  const spacing = createSpacing();
+  const spacing = createSpacing({ attention: () => controls.attention ?? null });
   ctx.spacing = spacing;
   const growth = createGrowth();
   ctx.growth = growth;

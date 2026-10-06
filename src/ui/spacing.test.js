@@ -1,6 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import { createSpacing } from './spacing.js';
 
+describe('popup spacing under the attention clock', () => {
+  it('follows the clock while one is given and the old gap when it is not', () => {
+    let clock = { quietOk: () => false };
+    const s = createSpacing({ gap: 30000, attention: () => clock });
+    expect(s.ready()).toBe(false);
+    clock = { quietOk: () => true };
+    expect(s.ready()).toBe(true);
+    clock = null;
+    expect(s.ready()).toBe(true);
+    s.tick(16, true, true); s.tick(16, true, false);
+    expect(s.ready()).toBe(false);
+  });
+});
+
 describe('popup spacing', () => {
   it('lets the first popup through, then waits for 30 s of unpaused play after each one closes', () => {
     const s = createSpacing({ gap: 30000 });
