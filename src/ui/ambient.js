@@ -14,7 +14,6 @@ const TOPICS = {
   reward: { icon: 'award', kind: 'staff', short: (e) => e.short ?? 'Nice work' },
   pet: { icon: 'pet', kind: 'company', short: (e) => e.short ?? 'New office pet' },
   rival: { icon: 'rival', kind: 'company', short: (e) => e.short ?? 'Rival news' },
-  incident: { icon: 'warn', kind: 'product', short: (e) => e.short ?? 'Small outage' },
 };
 export const AMBIENT_TOPICS = Object.keys(TOPICS);
 const MERGE_MS = 15000;
@@ -33,10 +32,11 @@ export function createAmbient({ target = globalThis } = {}) {
   const last = new Map(); // `${topic}:${subject}` -> presentation time
   // Returns true when the news was handled (drawn, or merged into one just shown); false when the caller
   // should toast it instead.
-  function send(e) {
-    const detail = ambientDetail(e);
+  function send(e) { return sendDetail(ambientDetail(e)); }
+  function sendDetail(detail) {
     if (!detail || typeof CustomEvent !== 'function' || !target?.dispatchEvent) return false;
-    const key = `${detail.topic}:${detail.subjectId ?? ''}`;
+    // An incident and its all-clear are different news about the same product.
+    const key = `${detail.topic}:${detail.subjectId ?? ''}${detail.topic === 'incident' ? `:${detail.text}` : ''}`;
     const now = pnow();
     if (last.has(key) && now - last.get(key) < MERGE_MS) return true;
     const ev = new CustomEvent('hitl:ambient', { detail, cancelable: true });
@@ -46,5 +46,15 @@ export function createAmbient({ target = globalThis } = {}) {
     if (last.size > 200) last.delete(last.keys().next().value);
     return true;
   }
-  return { send };
+  return { send, sendDetail };
+}
+
+// Minor incidents (severity below 3, the SEV4 and SEV5 ones) and their all-clear go to the world instead of a toast.
+export const MINOR_SEVERITY = 3;
+export function incidentDetail(e) {
+  if (!(e.severity < MINOR_SEVERITY)) return null;
+  const common = { topic: 'incident', subjectId: e.productId ?? null, subjectKind: 'product' };
+  if (e.type === 'incidentResolved') return { ...common, text: 'All clear', icon: 'check', tone: 'good' };
+  if (e.caught) return { ...common, text: 'Caught early', icon: 'shield', tone: 'good' };
+  return { ...common, text: `SEV${6 - e.severity}`, icon: 'warn', tone: 'bad' };
 }

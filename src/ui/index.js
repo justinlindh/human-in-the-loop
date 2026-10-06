@@ -22,7 +22,7 @@ import { icon } from './icons.js';
 import { createSettings } from './settings.js';
 import { watchFullscreen } from './fullscreen.js';
 import { pacingOn } from './pacing.js';
-import { createAmbient } from './ambient.js';
+import { createAmbient, incidentDetail } from './ambient.js';
 import { createTitle } from './title.js';
 import { erasPreview } from './eraPreview.js';
 import { createGameOver } from './gameover.js';
@@ -518,6 +518,7 @@ export function createUI({ root, getState, dispatch, controls }) {
           resolutions.add(e);
           // A severe incident's resolution heads the postmortem decision that follows; a minor one gets a toast.
           if (e.severity >= 4) break;
+          if (pacingOn('quietToasts') && ambient.sendDetail(incidentDetail(e))) break;
           toasts.push(`${state.products.find((x) => x.id === e.productId)?.name ?? 'The product'} is back up after ${e.weeks} week${e.weeks === 1 ? '' : 's'}.`, 'good', {
             action: () => {
               let close = null;
@@ -530,6 +531,7 @@ export function createUI({ root, getState, dispatch, controls }) {
         }
         case 'incident': {
           const p = state.products.find((x) => x.id === e.productId);
+          if (pacingOn('quietToasts') && ambient.sendDetail(incidentDetail(e))) break;
           toasts.push(e.caught ? `An overseer caught an incident${p ? ` on ${p.name}` : ''}!` : `Incident${p ? ` on ${p.name}` : ''} (SEV${6 - e.severity})`, e.caught ? 'good' : 'bad');
           break;
         }

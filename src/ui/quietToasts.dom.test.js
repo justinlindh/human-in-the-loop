@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createToasts } from './toasts.js';
-import { createAmbient, ambientDetail, SHORT_MAX } from './ambient.js';
+import { createAmbient, ambientDetail, incidentDetail, SHORT_MAX } from './ambient.js';
 import { pacingOn } from './pacing.js';
 import { pTick, pReset } from './pclock.js';
 import { B } from '../sim/balance.js';
@@ -116,6 +116,33 @@ describe('status news', () => {
     pTick(15100);
     expect(ambient.send(news)).toBe(true);
     expect(seen).toHaveLength(2);
+  });
+});
+
+describe('minor incidents', () => {
+  it('become ambient cues below severity 3 and keep their toast from 3 up', () => {
+    expect(incidentDetail({ type: 'incident', productId: 'pr1', severity: 2, caught: false }))
+      .toEqual({ topic: 'incident', subjectId: 'pr1', subjectKind: 'product', text: 'SEV4', icon: 'warn', tone: 'bad' });
+    expect(incidentDetail({ type: 'incident', productId: 'pr1', severity: 1, caught: false }).text).toBe('SEV5');
+    expect(incidentDetail({ type: 'incident', productId: 'pr1', severity: 2, caught: true }))
+      .toMatchObject({ text: 'Caught early', icon: 'shield', tone: 'good' });
+    expect(incidentDetail({ type: 'incidentResolved', productId: 'pr1', severity: 2 }))
+      .toMatchObject({ text: 'All clear', icon: 'check', tone: 'good' });
+    expect(incidentDetail({ type: 'incident', productId: 'pr1', severity: 3 })).toBeNull();
+    expect(incidentDetail({ type: 'incidentResolved', productId: 'pr1', severity: 4 })).toBeNull();
+  });
+
+  it('keeps the incident and its all-clear as two cues, and falls back to a toast when unclaimed', () => {
+    const target = new EventTarget();
+    const ambient = createAmbient({ target });
+    const down = incidentDetail({ type: 'incident', productId: 'pr1', severity: 2 });
+    const clear = incidentDetail({ type: 'incidentResolved', productId: 'pr1', severity: 2 });
+    expect(ambient.sendDetail(down)).toBe(false);
+    const seen = [];
+    target.addEventListener('hitl:ambient', (e) => { seen.push(e.detail.text); e.preventDefault(); });
+    expect(ambient.sendDetail(down)).toBe(true);
+    expect(ambient.sendDetail(clear)).toBe(true);
+    expect(seen).toEqual(['SEV4', 'All clear']);
   });
 });
 
