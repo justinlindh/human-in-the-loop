@@ -15,7 +15,7 @@ export function pipToast(pip, title) {
   if (!pip.length) return null;
   const first = pip[0];
   const text = pip.length === 1
-    ? `${title(first.key)}${first.menuLabel ? `. It's in ${first.menuLabel}.` : '.'}`
+    ? `New: ${title(first.key)}${first.menuLabel ? `, placed from ${first.menuLabel}.` : '.'}`
     : `${pip.length} new things unlocked. Look for the New pips.`;
   return { text, menuId: first.menuId };
 }

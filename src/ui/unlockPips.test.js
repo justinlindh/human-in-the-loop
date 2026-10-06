@@ -11,7 +11,7 @@ describe('unlockPips', () => {
     const { card, pip } = splitUnlocks([item('research'), item('marketing', 'marketing', 'Marketing')], null);
     expect(card.map((i) => i.key)).toEqual(['marketing']);
     expect(pip.map((i) => i.key)).toEqual(['research']);
-    expect(pipToast(pip, () => 'Research lab').text).toBe("Research lab. It's in Build.");
+    expect(pipToast(pip, () => 'Research lab').text).toBe('New: Research lab, placed from Build.');
     expect(pipToast([item('a'), item('b')], () => '').text).toMatch(/^2 new things/);
     expect(pipToast([], () => '')).toBeNull();
   });
