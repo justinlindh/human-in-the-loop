@@ -246,7 +246,8 @@ export const B = {
     quietToasts: true, oneLaunchCard: true, unlockPips: true, advisorGlow: true, quietYak: true, mailArchive: true, deskBubbles: true,
     shownExpiry: true,
   },
-  // The attention clock, in real seconds: `gap` is the least running play between two asks, `quiet` the hush
+  // The attention clock, in real seconds: `gap` is the least running play between two asks (`gapFast` above
+  // 1x speed), `launchGap` the least between two launch cards (`launchGapFast` above 1x), `quiet` the hush
   // after a modal or beat, `expiry` how long a low-priority ask waits before it resolves to its default, and at
   // most one staged moment per `momentWindow` holds the clock for `momentCap`; every `watchWindow` holds a
   // stretch of `watchStretch` with no ask and no beat, just watching the office; `yakGap` is the least
@@ -256,7 +257,7 @@ export const B = {
   // sends the least pressing, oldest one to its default at once. Under B.pacing.shownExpiry a Yak prompt or
   // letter on screen closes after openExpiry seconds of running play (expireOpen).
   attention: {
-    gap: 90, quiet: 45, expiry: 180, momentWindow: 300, momentCap: 25, watchWindow: 600, watchStretch: 180, yakGap: 20,
+    gap: 90, gapFast: 150, launchGap: 90, launchGapFast: 150, quiet: 45, expiry: 180, momentWindow: 300, momentCap: 25, watchWindow: 600, watchStretch: 180, yakGap: 20,
     botGapWeeks: 11, botExpiryWeeks: 22, staleWeeks: 52, queueCap: 3, openExpiry: 120,
   },
   // Under B.pacing.askRates the game shows about 0.4 asks per running minute at 1x in all. The staff-prompt
