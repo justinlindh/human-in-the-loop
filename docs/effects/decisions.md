@@ -1396,3 +1396,13 @@ misc · raised by a rule · cooldown 156 weeks · about one of your live product
 | Order 100 copies | order 100 copies through the Inventory order: cash -$800 before discounts, on the shelves in 2 weeks |
 | Order 500 copies | order 500 copies through the Inventory order: cash -$4,000 before discounts, on the shelves in 2 weeks |
 | Hold off | no order; no cost |
+
+## The interview is still going `ai_interview_loop`
+
+misc · raised by a rule
+
+| Choice | Effects |
+|---|---|
+| Let them finish | a candidate whose own AI did the interview joins the pool, skills listed +20 until 4 weeks after hire |
+| Pull the plug | brand -1 |
+| Hire the AI | hype on your newest product +5; automation level +1 (0.05) |
