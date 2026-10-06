@@ -146,6 +146,32 @@ describe('browser pacing presentations', () => {
     assert.equal(withText(rows, 'Queued warning').origin, 'game');
   });
 
+  it('files a launch card hold as card and counts an ask that closed unseen as missed', async () => {
+    await fixture('<div class="modal launch"><h2>Planster launched!</h2><button>Nice!</button></div>');
+    await page.evaluate(() => {
+      const H = window.__HITL;
+      H.state.pendingDecision = null; H.state.chatPrompts = [{ id: 'cp1', chatId: 'm1' }];
+      H.controls = { getSpeed: () => 0 };
+    });
+    await page.evaluate(collectPresentations);
+    await page.waitForTimeout(150);
+    await page.evaluate(() => { window.__HITL.state.chatPrompts[0].resolved = { choice: null }; });
+    const r = await page.evaluate(collectPresentations);
+    assert.ok(r.heldBy.card > 0, JSON.stringify(r.heldBy));
+    assert.equal(r.heldBy.speed0, undefined);
+    assert.deepEqual(r.missed.map((m) => m.key), ['yak-prompt:cp1']);
+  });
+
+  it('counts a Yak prompt that ran out of time while on screen as expired, not missed', async () => {
+    await fixture('<div class="msg reply" data-id="m1" data-root="m1"><div class="yprompt" data-prompt="cp2"><button class="yp-opt">Sure</button></div></div>');
+    await page.evaluate(() => { const s = window.__HITL.state; s.pendingDecision = null; s.chatPrompts = [{ id: 'cp2', chatId: 'm1' }]; });
+    await page.evaluate(collectPresentations);
+    await page.evaluate(() => { window.__HITL.state.chatPrompts[0].resolved = { choice: null }; document.querySelector('.msg').remove(); });
+    const r = await page.evaluate(collectPresentations);
+    assert.deepEqual(r.missed, []);
+    assert.deepEqual(r.expired.map((m) => m.key), ['yak-prompt:cp2']);
+  });
+
   it('fails closed when metadata hooks move', () => {
     const plugin = presentationMetadata();
     for (const file of ['dom', 'toasts', 'chat', 'hud', 'advisor', 'incident']) {
