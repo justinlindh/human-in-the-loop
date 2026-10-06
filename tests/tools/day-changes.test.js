@@ -135,7 +135,8 @@ describe('docs/effects', () => {
 
 describe('a merged PR against a real repository', () => {
   const dir = mkdtempSync(join(toolTmp(), 'day-changes-test-'));
-  const g = (...a) => spawnSync('git', ['-C', dir, '-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { encoding: 'utf8' });
+  const g = (...a) => spawnSync('git', ['-C', dir, '-c', 'user.name=t', '-c', 'user.email=t@t', ...a],
+    { encoding: 'utf8', env: { ...process.env, GIT_AUTHOR_DATE: '2026-10-05T11:00:00-07:00', GIT_COMMITTER_DATE: '2026-10-05T11:00:00-07:00' } });
   const gitOut = (a) => { const r = g(...a); return r.status === 0 ? r.stdout : null; };
   const oids = {};
 
