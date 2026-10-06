@@ -52,7 +52,7 @@ Switches: adds the whole `B.pacing` block. `askQueue` and `askExpiry` land `fals
   - `botGapWeeks` (11): bots present the head this long after the last presentation. Emergencies come at once.
   - `botExpiryWeeks` (22): with `askExpiry` on, a waiting non-emergency ask expires after this in bot runs, and its default applies.
   - `queueCap` (3): with `askExpiry` on, the most non-emergency asks that can wait.
-- Emergencies are incident and cyber decisions; they never expire. The rest are normal (other decisions) or low (prompts and letters).
+- Emergencies are incidents, cyber attacks, a cash crisis and legal letters; they never expire. The rest are normal (other decisions) or low (prompts and other letters).
 - The expiry default is the event's `defaultChoice`, else its entry in `src/data/ask-defaults.js` (new), else its choice with no effect. A prompt or letter takes its ignore outcome. A test fails for any decision that can expire without one.
 - New actions: `{ type: 'presentAsk', askId? }` turns the head candidate, or the named one, into `pendingDecision`, a prompt or a letter. `{ type: 'expireAsk', askId }` applies the default and emits one ambient Yak line.
 - `runBot` and the balance bots present from the queue on `botGapWeeks` and `botExpiryWeeks`, so balance runs never depend on the wall clock.

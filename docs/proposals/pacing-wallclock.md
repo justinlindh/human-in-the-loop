@@ -128,7 +128,7 @@ Three tiers. Every message the game produces belongs to exactly one of them.
 Rules:
 
 - **One Ask at a time.** A single attention queue holds every candidate Ask (decision, prompt, letter), ordered by priority. Only the head of the queue is shown. The others wait.
-- **Waiting costs something.** Any Ask that isn't an emergency expires to its default after waiting **3 min**, shown as one ambient Yak line ("Lena picked the cat for you."). The default is the cautious one, never the punishing one. At most **3** non-emergency Asks wait; when another arrives, the least pressing, oldest one expires at once. Emergencies (incidents and cyber attacks) never expire. They jump the queue but still wait out the 45 s quiet after a Beat.
+- **Waiting costs something.** Any Ask that isn't an emergency expires to its default after waiting **3 min**, shown as one ambient Yak line ("Lena picked the cat for you."). The default is the cautious one, never the punishing one. At most **3** non-emergency Asks wait; when another arrives, the least pressing, oldest one expires at once. Emergencies (incidents, cyber attacks, a cash crisis and legal letters) never expire. They jump the queue but still wait out the 45 s quiet after a Beat.
 - **Quiet after a modal.** No Ask or Beat for **45 s of running play** after any modal closes, so the player gets to watch what they just chose play out.
 - **A guaranteed watching stretch.** In any 10 minutes of play there is at least one **3 min** stretch with no Ask and no Beat that the game started.
 - **Player-caused feedback is exempt** (the toast for your own hire, the card for your own launch). It still collapses: a launch is **one** card, not a toast followed by a card with the same news.
