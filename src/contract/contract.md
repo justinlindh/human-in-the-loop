@@ -765,8 +765,8 @@ state.asks: [{ id, kind, priority, week, expiresWeek, defaultChoice, ref }]
 { type: 'expireAsk', askId }     // behind B.pacing.askExpiry: applies the ask's default and posts one Yak line saying what was chosen; refusals: 'No such ask' | 'Emergencies never expire'
 ```
 
-- The default is the event's `defaultChoice`, else its choice with no effect; an event that can expire must have one of the two. A prompt or letter takes its ignore outcome. Expiring never costs more than answering cautiously.
-- At most `B.attention.queueCap` asks wait. When another arrives, the oldest of the lowest priority expires at once.
+- The default is the event's own `defaultChoice`, else its entry in `src/data/ask-defaults.js`, else its choice with no effect; every decision that can expire has one. A prompt or letter takes its ignore outcome. The Yak line names what the team picked. Expiring never costs more than answering cautiously.
+- At most `B.attention.queueCap` non-emergency asks wait. When another arrives, the least pressing, oldest one expires at once and emits `askExpired`.
 
 ### Events: Attention queue
 
