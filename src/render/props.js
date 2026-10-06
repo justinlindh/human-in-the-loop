@@ -5,6 +5,7 @@ import { tileCenter, footprint } from './layout.js';
 import { roundedBox, roundedCylinder, mesh } from './prims.js';
 import { getModel } from './models.js';
 import { mat, glow } from './materials.js';
+import { holdSeconds } from './reading.js';
 
 // Staged props (contract: Staged props): the open decision's stage prop and the lingering
 // office.props, diffed each sync. New props pop in, gone ones shrink away, on the frame clock.
@@ -20,10 +21,11 @@ const SCREEN_OVERLAYS = { screens_red: 'red', screens_skull: 'skull' };
 // staged moment plays where the card no longer covers it. The broken coffee machine smokes on
 // while someone fans it: briefly until the repair, longer when the office lives with it.
 const AFTER_CHOICE = { coffee_machine_broke: { 1: 6, 2: 12 }, open_plan_office: { 0: 20, 1: 18 } };
-// An event resolved with no card (quietEvent) shows its stage for this long, or its AFTER_CHOICE time
-// when that is longer. A jammed printer that is about to be carried out shows only for QUIET_JAM_S:
-// the carry starts once it goes.
-const QUIET_STAGE_S = 12;
+// An event resolved with no card (quietEvent) shows its stage for QUIET_STAGE_S of running play (paused
+// or in a menu doesn't count), or for its text's reading time plus QUIET_READ_PAD_S, or its AFTER_CHOICE
+// time, whichever is longest. A jammed printer that is about to be carried out shows only for
+// QUIET_JAM_S: the carry starts once it goes.
+const QUIET_STAGE_S = 15, QUIET_READ_PAD_S = 8;
 export const QUIET_JAM_S = 2.5;
 
 export function createProps(office, screens = null) {
@@ -61,8 +63,10 @@ export function createProps(office, screens = null) {
   function quiet(e) {
     const st = e.stage;
     if (!st?.prop) return;
-    const s = e.eventId === 'printer_jam' && e.choice === 0 ? QUIET_JAM_S : Math.max(QUIET_STAGE_S, AFTER_CHOICE[e.eventId]?.[e.choice] ?? 0);
-    after.set(stageKey(st), { st, t: s });
+    const text = e.short || e.text;
+    const s = e.eventId === 'printer_jam' && e.choice === 0 ? QUIET_JAM_S
+      : Math.max(QUIET_STAGE_S, text ? holdSeconds(text) + QUIET_READ_PAD_S : 0, AFTER_CHOICE[e.eventId]?.[e.choice] ?? 0);
+    after.set(stageKey(st), { st, t: s, play: true });
     if (lastState) sync(lastState);
   }
 
@@ -160,11 +164,12 @@ export function createProps(office, screens = null) {
   function pin(obj) { pinned.set(obj, floorRect(obj)); pushObstacles(); }
   function unpin(obj) { if (pinned.delete(obj)) pushObstacles(); }
 
-  function update(dt) {
+  // playDt: running play only (0 while paused or in a menu), which a quiet event's hold counts.
+  function update(dt, playDt = dt) {
     clock += dt;
     while (gone.length && clock - gone[0].at > 8) gone.shift();
     let ended = false;
-    for (const [k, a] of after) if ((a.t -= dt) <= 0) { after.delete(k); ended = true; }
+    for (const [k, a] of after) if ((a.t -= a.play ? playDt : dt) <= 0) { after.delete(k); ended = true; }
     if (ended && lastState) sync(lastState);
     let moved = false;
     for (const [k, e] of live) {

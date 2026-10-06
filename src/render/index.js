@@ -363,7 +363,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     get hoverPlaced() { return build?.hoverId ?? null; },
     // Steps characters, labels, and effects without drawing (for headless verification).
     advance(seconds, step = 1 / 30) {
-      for (let t = 0; t < seconds; t += step) { office?.update(step, { yaw: rig.yaw, env: lighting.env }); staff?.update(step); floating.update(step); fx.update(step); props?.update(step); }
+      for (let t = 0; t < seconds; t += step) { office?.update(step, { yaw: rig.yaw, env: lighting.env }); staff?.update(step); floating.update(step); fx.update(step); props?.update(step, speedZero || menuPaused ? 0 : step); }
     },
     // Where a picked thing is on screen, for anchoring UI (tooltips): { left, top, width, height } in
     // client pixels, from its bounding box. kind: 'staff' | 'item' (as pick() returns); null if absent.
@@ -447,7 +447,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       staff?.update(dt, { paused, moments: paused && !speedZero });
       floating.update(simDt, decisionOpen && !speedZero ? dt : simDt);
       fx.update(simDt, dt);
-      props?.update(dt);
+      props?.update(dt, simDt);
       build?.update(dt, scene);
       portraits.update(dt);
       washT = screens.overlay === 'red' ? washT + dt : 0;

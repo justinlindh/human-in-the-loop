@@ -2,7 +2,7 @@
 
 Props appear on the desk, wall, floor, kitchen or door while a decision is open; some choices leave a prop behind.
 
-- **Events with no card**: with quiet events on (`B.pacing.quietEvents`), the office gags and the conference and AI-summit events resolve on their own. Their prop still shows for about 12 s, and a moment the answer plays (the printer carried out back) still plays: the jammed printer shows for a beat, then the carry starts. A clip case covers it (`clip.mjs --only=moment:quiet`).
+- **Events with no card**: with quiet events on (`B.pacing.quietEvents`), the office gags and the conference and AI-summit events resolve on their own. Their prop still shows for 15 s of running play (time paused or in a menu doesn't count), and a moment the answer plays (the printer carried out back) still plays: the jammed printer shows for a beat, then the carry starts. A clip case covers it (`clip.mjs --only=moment:quiet`).
 
 - **The resignation letter**: an envelope on the burnt-out person's desk. `id: resignation_letter` Media: [letter clip](https://github.com/justinlindh/human-in-the-loop/blob/feature-media/moment-letter.mp4?raw=true).
 - **The hackathon**: pizza boxes; "Host it" leaves them two weeks. `id: hackathon` `id: hackathon_week` Media: [still](https://github.com/justinlindh/human-in-the-loop/blob/feature-media/decision-hackathon.webp?raw=true).
