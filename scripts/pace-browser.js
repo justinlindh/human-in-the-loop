@@ -121,7 +121,9 @@ export function readPresentations() {
   const add = (el, kind, id, extra = {}) => {
     if (!visible(el)) return;
     const actions = [...el.querySelectorAll('button:not(:disabled):not(.unavail)')].filter(visible).map(x => x.textContent.trim());
-    rows.push({ kind, id: String(id), text: el.textContent.trim().replace(/\s+/g, ' ').slice(0, 500),
+    const full = el.textContent.trim().replace(/\s+/g, ' ');
+    // words is the whole surface's, for reading time; text is cut for the report.
+    rows.push({ kind, id: String(id), text: full.slice(0, 500), words: full ? full.split(' ').length : 0,
       actionable: actions.length > 0 || el.matches('button,.clickable'), actions,
       origin: el.dataset.paceOrigin ?? el.__paceOrigin ?? 'game', ...extra });
   };
@@ -164,7 +166,9 @@ export function collectPresentations() {
     else {
       P.held = (P.held ?? 0) + dt;
       // What held it: the first that applies, in the order the game checks them.
+      // A launch card pauses the game itself (speed 0), so it is checked before speed.
       const c = H.controls, why = s.gameOver ? 'gameOver' : s.pendingDecision ? 'decision'
+        : document.querySelector('.modal.launch')?.checkVisibility() ? 'card'
         : c?.getSpeed?.() === 0 ? (c.awayPaused ? 'away' : 'speed0') : window.__HITL_UI?.isBusy?.() ? 'menu'
         : c?.spotlightHeld?.() ? 'spotlight' : document.hidden ? 'hidden' : 'other';
       P.heldBy ??= {}; P.heldBy[why] = (P.heldBy[why] ?? 0) + dt;
@@ -209,13 +213,29 @@ export function collectPresentations() {
     fresh.push({ ...r, ...context, transition: 'hidden', ...(prompt?.resolved ? { resolution: prompt.resolved } : {}) });
   }
   P.active = next;
-  return { ...context, held: P.held ?? 0, heldBy: P.heldBy ?? {}, task: P.task ?? null, asks: P.asks, openMax: P.openMax, longestQuiet: P.longestQuiet ?? 0, fresh, gameOver: s.gameOver, active: [...next.values()] };
+  // An ask that closes without having been on screen (a decision or Yak prompt seen in a sample, a letter
+  // the player opened) is missed: it took its default, and the series still counts it.
+  P.viewed ??= new Set();
+  for (const r of next.values()) {
+    if (r.kind === 'decision' && s.pendingDecision) P.viewed.add(`decision:${s.pendingDecision.eventId}#${P.decisionN}`);
+    if (r.kind === 'yak-prompt') P.viewed.add(`yak-prompt:${r.id}`);
+  }
+  const openKeys = new Set(open.map(([kind, id]) => `${kind}:${id}`));
+  // A Yak prompt seen but closed with no choice ran out of time while on screen.
+  for (const key of P.lastOpen ?? []) {
+    if (openKeys.has(key)) continue;
+    if (!P.viewed.has(key)) { (P.missed ??= []).push({ key, t, week: s.week }); continue; }
+    const p = key.startsWith('yak-prompt:') && s.chatPrompts?.find((x) => `yak-prompt:${x.id}` === key);
+    if (p && p.resolved && p.resolved.choice == null) (P.expired ??= []).push({ key, t, week: s.week });
+  }
+  P.lastOpen = openKeys;
+  return { ...context, held: P.held ?? 0, heldBy: P.heldBy ?? {}, task: P.task ?? null, missed: P.missed ?? [], expired: P.expired ?? [], asks: P.asks, openMax: P.openMax, longestQuiet: P.longestQuiet ?? 0, fresh, gameOver: s.gameOver, active: [...next.values()] };
 }
 
 // The paused share of wall time and the answerable series: asks ({ kind, run }, in order), the gaps
 // between them in running-play seconds, the longest running stretch with nothing open to answer, and
 // the most open at once.
-export function askGaps(asks, elapsed, held, { openMax = 0, longestQuiet = 0, heldBy = {} } = {}) {
+export function askGaps(asks, elapsed, held, { openMax = 0, longestQuiet = 0, heldBy = {}, missed = [], expired = [] } = {}) {
   const gaps = asks.slice(1).map((r, i) => +(r.run - asks[i].run).toFixed(1));
   const sorted = [...gaps].sort((a, b) => a - b);
   const runTotal = Math.max(0, elapsed - held);
@@ -225,7 +245,7 @@ export function askGaps(asks, elapsed, held, { openMax = 0, longestQuiet = 0, he
     asks: asks.length, asksPerRunningMinute: runTotal ? +(asks.length * 60 / runTotal).toFixed(2) : 0,
     byKind: Object.fromEntries(ASKS.map((k) => [k, asks.filter((r) => r.kind === k).length])),
     gap: gaps.length ? { min: sorted[0], median: sorted[Math.floor(sorted.length / 2)], mean: +(gaps.reduce((a, b) => a + b, 0) / gaps.length).toFixed(1), max: sorted.at(-1) } : null,
-    longestWithNothingToAnswer: +longestQuiet.toFixed(1), mostOpenAtOnce: openMax,
+    longestWithNothingToAnswer: +longestQuiet.toFixed(1), mostOpenAtOnce: openMax, missedAsks: missed.length, missed, expiredWhileShown: expired.length, expired,
     gaps, series: asks,
   };
 }
@@ -242,8 +262,8 @@ export async function installPlayer(o) {
   P.start = performance.now(); P.lastTurn = -1; P.weekAt = performance.now(); P.seenWeek = H.state.week;
   P.due = new Map(); P.task = null; P.owed = 0; P.ranAt = 0;
   const now = () => (performance.now() - P.start) / 1000;
-  const words = (t) => String(t ?? '').split(/\s+/).filter(Boolean).length;
-  const dwell = (text, actionable, kind) => (o.flat ? (kind === 'decision' ? 8 : 6) : words(text) / o.wpm * 60 + (actionable ? o.choose : 0));
+  const dwellSeconds = (0, eval)(`(${o.dwell})`);
+  const dwell = (words, actionable, kind) => (o.flat ? (kind === 'decision' ? 8 : 6) : dwellSeconds(words, actionable, o));
   const due = (key, secs) => { if (!P.due.has(key)) P.due.set(key, now() + secs); return now() >= P.due.get(key); };
   const on = { onEvents: (events) => { P.tag(events, 'player'); H.emit(events); } };
   const shown = (el) => !!el?.isConnected && el.checkVisibility();
@@ -281,9 +301,9 @@ export async function installPlayer(o) {
     // Decisions, cards and tutorials the game put up: read, then choose or dismiss.
     for (const r of active) {
       const key = `${r.kind}:${r.sequence}`;
-      if (r.kind === 'decision' && H.state.pendingDecision && due(key, dwell(r.text, r.actionable, r.kind))) P.player(() => bots.botDecide(o.bot, H.state, on));
+      if (r.kind === 'decision' && H.state.pendingDecision && due(key, dwell(r.words ?? r.text, r.actionable, r.kind))) P.player(() => bots.botDecide(o.bot, H.state, on));
       if (['card', 'tutorial'].includes(r.kind) || (r.kind === 'panel' && !P.task)) {
-        if (!due(key, dwell(r.text, r.actionable, r.kind))) continue;
+        if (!due(key, dwell(r.words ?? r.text, r.actionable, r.kind))) continue;
         const b = [...document.querySelectorAll('.modal button,.announce button,.coach button,.panel-head button')]
           .find((x) => x.checkVisibility() && /^(Got it|Onward|Nice!|Later|Skip tour|Close|See the decision)$/.test(x.textContent.trim()));
         if (b) click(b);
@@ -298,15 +318,21 @@ export async function installPlayer(o) {
       else click(bar.querySelector('button.btn.go:not(.bplace)'));
     }
     if (!o.flat) {
-      // Yak prompts: bring a waiting one into view with its Reply mark, read it and its post, then reply.
+      // Yak prompts: read a visible one with its post, then reply.
       for (const r of active.filter((x) => x.kind === 'yak-prompt')) {
         const post = active.find((x) => x.kind === 'yak' && x.id === r.chatId);
-        if (!due(`prompt:${r.id}`, dwell(`${post?.text ?? ''} ${r.text}`, true))) continue;
+        if (!due(`prompt:${r.id}`, dwell((post?.words ?? 0) + (r.words ?? 0), true))) continue;
         const el = document.querySelector(`.yprompt[data-prompt="${CSS.escape(r.id)}"]`);
         const b = pick([...(el?.querySelectorAll('button.yp-opt') ?? [])], botChoice('prompt', r.id));
         if (b) click(b);
       }
-      if (openPrompts().length && !active.some((x) => x.kind === 'yak-prompt')) click(document.querySelector('button.ymark'));
+      // One waiting out of view: the Reply mark while Yak is collapsed, else the channel tab marked for a
+      // prompt, else scroll the open channel to it.
+      if (openPrompts().length && !active.some((x) => x.kind === 'yak-prompt')) {
+        const tab = [...document.querySelectorAll('button.ctab.prompt')].find((b) => shown(b) && !b.classList.contains('on'));
+        const el = document.querySelector(`.yprompt[data-prompt="${CSS.escape(openPrompts()[0].id)}"]`);
+        if (!click(document.querySelector('button.ymark')) && !click(tab) && el) P.player(() => el.scrollIntoView({ block: 'center' }));
+      }
       // Mail: open the inbox when a letter needs an answer, read each one, answer it, then close the inbox.
       const busy = H.state.pendingDecision || active.some((x) => ['decision', 'card', 'tutorial'].includes(x.kind));
       if (!P.task && !busy && openMail().length && !window.__HITL_UI.isBusy() && click(document.querySelector('button.mailbtn'))) P.task = { kind: 'mail', id: null };
@@ -315,7 +341,7 @@ export async function installPlayer(o) {
         if (!P.task.id || !letter || letter.resolved) {
           const next = openMail()[0];
           if (!next) { closePanel(); P.task = null; }
-          else if (click(document.querySelector(`[data-mail="${CSS.escape(next.id)}"]`))) P.task = { kind: 'mail', id: next.id, due: t + dwell(`${next.subject ?? ''} ${next.body ?? ''}`, true) };
+          else if (click(document.querySelector(`[data-mail="${CSS.escape(next.id)}"]`)) && (P.viewed ??= new Set()).add(`mail:${next.id}`)) P.task = { kind: 'mail', id: next.id, due: t + dwell(`${next.subject ?? ''} ${next.body ?? ''}`, true) };
           else if (!document.querySelector('.maillist')) click(document.querySelector('button.mailback'));
         } else if (t >= P.task.due) {
           const b = pick([...document.querySelectorAll('button.mailopt')], botChoice('mail', letter.id));
@@ -335,9 +361,10 @@ export async function installPlayer(o) {
   H.setSpeed(o.speed);
 }
 
-// Seconds a person spends on a surface: its words at wpm, plus choose when it asks for a choice.
-export const dwellSeconds = (text, actionable, { wpm, choose }) =>
-  String(text ?? '').split(/\s+/).filter(Boolean).length / wpm * 60 + (actionable ? choose : 0);
+// Seconds a person spends on a surface: its words (a count, or the text) at wpm, plus choose when it
+// asks for a choice. installPlayer runs this same function in the page.
+export const dwellSeconds = (words, actionable, { wpm, choose }) =>
+  (typeof words === 'number' ? words : String(words ?? '').split(/\s+/).filter(Boolean).length) / wpm * 60 + (actionable ? choose : 0);
 
 export function summarize(records, seconds) {
   return Object.fromEntries(KINDS.map(kind => {
@@ -414,7 +441,7 @@ export async function runBrowserPacing(args) {
       return { week: H.state.week, era: H.state.era?.id };
     }, { seed, era: args.era ?? null, saved });
     if (start.error) throw new Error(`pace: ${start.error}`);
-    await page.evaluate(installPlayer, { bot, speed, reader: readPresentations.toString(), wpm, choose, flat, menuSeconds });
+    await page.evaluate(installPlayer, { bot, speed, reader: readPresentations.toString(), dwell: dwellSeconds.toString(), wpm, choose, flat, menuSeconds });
     const records = [], samples = [];
     let result, lastProgress = -1;
     while (true) {
@@ -442,7 +469,7 @@ export async function runBrowserPacing(args) {
       start: args.load ? { load: String(args.load), ...start } : { era: start.era, week: start.week },
       timing: flat ? { flat: true } : { wpm, choose, menuSeconds }, policy,
       elapsedSeconds: result.t, weeks: result.week, gameOver: result.gameOver,
-      pacing: askGaps(result.asks, result.t, result.held, { openMax: result.openMax, longestQuiet: result.longestQuiet, heldBy: result.heldBy }),
+      pacing: askGaps(result.asks, result.t, result.held, { openMax: result.openMax, longestQuiet: result.longestQuiet, heldBy: result.heldBy, missed: result.missed, expired: result.expired }),
       stop: errors.length ? 'error' : result.gameOver ? 'gameOver' : result.week >= weeks ? 'weeks' : 'minutes',
       rates: summarize(records, result.t), sample: { from: (sampleMinute - 1) * 60, to: sampleMinute * 60, frames: samples }, records, errors };
     writeFileSync(`${out}/observed.json`, JSON.stringify(report, null, 2) + '\n');
