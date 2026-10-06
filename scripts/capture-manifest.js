@@ -38,10 +38,15 @@ const TYPE = (text, n = 0) => `(() => { const el = [...document.querySelectorAll
 // The first person in the office (present, not remote or away).
 const PICK = `(() => { const s = window.__HITL.state; return s.staff.find((p) => p.mood !== 'away' && !p.remote && p.assignment?.type !== 'sabbatical'); })()`;
 
+// Page JS: the pacing switches the event index plays with (scripts/events/play.js INDEX_PACING), so a decision
+// opens on the tick that raises it instead of queueing, for any helper that plays or looks ahead for one.
+export const PIN_PACING = `Object.assign((await import('/src/sim/balance.js')).B.pacing, ${JSON.stringify(INDEX_PACING)});`;
+
 // Fast-forwards a real game with a bot, straight through the sim (no presentation), until `until`
 // (a JS condition on s) holds or `weeks` pass. With keepDecision it stops at the first decision
 // raised after minWeeks.
 export const PLAY = ({ weeks, bot = 'balanced', until = 'false', keepDecision = false, minWeeks = 0, after = '' }) => `(async () => {
+  ${PIN_PACING}
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
   const s = window.__HITL.state;
@@ -57,11 +62,6 @@ export const PLAY = ({ weeks, bot = 'balanced', until = 'false', keepDecision = 
   ${IDLE};
 })()`;
 
-// Office Space nods (group 'nods', #383): each opens at an indexed moment (the event index follows
-// the sim code, so a history that shifts still finds one) and plays the week into its decision; the
-// card shows, a choice is made, and the camera frames what it stages. A nod that stages nothing has no
-// snapshot in the index, so it fast-forwards seed 1 with the allHumans bot to its decision instead.
-const NOD = (eventId, weeks) => PLAY({ weeks, bot: 'allHumans', until: `s.pendingDecision?.eventId === '${eventId}'`, keepDecision: true, minWeeks: 1e9 });
 // A bare frame for the reel: the side overlays (top bar, tray, Yak, menu, toasts) hidden, so the
 // office and the beat fill the frame; the decision card and the moment caption stay. YAK brings Yak
 // back, at the right where the reel's crop keeps it, for a beat whose payoff is a message.
@@ -153,10 +153,6 @@ export const BEST_VIEW = (props) => `(() => { const R = window.__hitlRender; if 
 export const FOLLOW = (props, zoom, from, to, shift = 0, center = false, scaled = false) => [{ at: from, js: AIM(props, zoom, shift, center, scaled) }, { at: to, js: UNAIM }];
 // The nods reel crops a 1280x720 window whose center sits 320 px right of a 1920x1080 frame's.
 const NODS_FOLLOW = (props, zoom, from, to) => FOLLOW(props, zoom, from, to, 320);
-
-// Page JS: the pacing switches the event index plays with (scripts/events/play.js INDEX_PACING), so a decision
-// opens on the tick that raises it instead of queueing, for any helper that looks ahead for a decision.
-export const PIN_PACING = `Object.assign((await import('/src/sim/balance.js')).B.pacing, ${JSON.stringify(INDEX_PACING)});`;
 
 // Plays a real game with a bot straight through the sim until the next week would bring what the
 // shot is about (`hit`, tested on a copy ticked one week ahead, given the copy and the week's
