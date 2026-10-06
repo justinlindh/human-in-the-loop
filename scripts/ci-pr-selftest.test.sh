@@ -28,7 +28,7 @@ note() { echo "$*" >>"$LOGS/notes"; }
 # pstep stub (tool_step starts its steps with pstep): runs the test file it is handed, in the
 # foreground, and records which copy that was.
 pstep() { case "${*: -1}" in "$tmp"/tree/*) ran="PR:$(bash "${@: -1}")" ;; *) ran="MAIN:$(bash "${@: -1}")" ;; esac; }
-tool_changes=1
+tool_changes=1; tool_select=0; tool_relevant=""
 source "$tmp/fns.sh"
 run() { ran=""; : >"$LOGS/notes"; tool_step "$@"; }
 

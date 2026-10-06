@@ -17,6 +17,7 @@
     "ci": "bash scripts/nice10.sh bash scripts/ci-local.sh",
     "gates": "bash scripts/gates.sh",
     "toolkit": "node scripts/toolkit.mjs",
+    "smoke": "bash scripts/smoke.sh",
     "usage": "node scripts/usage.mjs",
     "feature-media": "node scripts/feature-media/render.mjs",
     "balance": "node scripts/balance.js",

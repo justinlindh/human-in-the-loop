@@ -31,7 +31,7 @@ cat >"$tmp/npm" <<'SH'
 case "$1" in ls) [ ! -e "$T/npm-stale" ] ;; ci) echo ci >>"$T/npm-ci" ;; esac
 SH
 chmod +x "$tmp/gh" "$tmp/ci-pr" "$tmp/npm"
-export T="$tmp" FIXTURE="$tmp/prs.json" AUTO_CI_STATE="$tmp/state" AUTO_CI_GH="$tmp/gh" AUTO_CI_PR="$tmp/ci-pr" AUTO_CI_TREE="$tmp" AUTO_CI_JOBS=2 AUTO_CI_TMP="$tmp/tmpfs" AUTO_CI_NPM="$tmp/npm" AUTO_CI_GUARD_RED="$tmp/red" AUTO_CI_MODS="$tmp/mods" AUTO_CI_TMP_FREE_GB=100 AUTO_CI_MEM_FREE_GB=100
+export AUTO_CI_PR_RUNS=1 T="$tmp" FIXTURE="$tmp/prs.json" AUTO_CI_STATE="$tmp/state" AUTO_CI_GH="$tmp/gh" AUTO_CI_PR="$tmp/ci-pr" AUTO_CI_TREE="$tmp" AUTO_CI_JOBS=2 AUTO_CI_TMP="$tmp/tmpfs" AUTO_CI_NPM="$tmp/npm" AUTO_CI_GUARD_RED="$tmp/red" AUTO_CI_MODS="$tmp/mods" AUTO_CI_TMP_FREE_GB=100 AUTO_CI_MEM_FREE_GB=100
 
 pr() { # number head local-ci-state [draft] [author] [label] [review-state] [auto-merge: on]
   local ctx='[]'; [ "$3" != none ] && ctx="[{\"context\":\"local-ci\",\"state\":\"$3\"}]"
@@ -231,6 +231,19 @@ run
 git -C "$tmp/mods" checkout -q -- a
 run
 [ "$(git -C "$tmp/mods" rev-parse HEAD)" = "$(git -C "$tmp/mods" rev-parse origin/main)" ] || fail "a clean mods worktree should follow origin/main"
+
+# Without AUTO_CI_PR_RUNS no run starts for a PR (it merges on GitHub's smoke check and the review).
+for f in "$tmp"/state/jobs/*; do [ -e "$f" ] && read -r p _ <"$f" && kill -KILL -- "-$p" 2>/dev/null; done; sleep 0.3
+rm -rf "$tmp/state/jobs"/*; : >"$tmp/started"
+fixture "$(pr 70 zzz none)"
+printf '#!/bin/sh\necho "$1" >>"%s/carried"\necho "carry output"\n[ "$(wc -l <"%s/carried")" -ge 2 ] && exit 0\nexit 2\n' "$tmp" "$tmp" >"$tmp/carry"; : >"$tmp/carried"
+( unset AUTO_CI_PR_RUNS; export AUTO_CI_CARRY="$tmp/carry"; run; run; run )
+[ "$(count started)" -eq 0 ] || fail "a PR should start no local CI run unless AUTO_CI_PR_RUNS=1 ($(count started) starts)"
+[ "$(count carried)" -eq 2 ] && has carried 70 || fail "review-carry should be tried again after an error and not again once it succeeds ($(count carried) runs)"
+grep -q 'review-carry #70: carry output' "$tmp/state/log" || fail "the carry's output should be in the log"
+fixture "$(pr 71 yyy none false justinlindh '' SUCCESS)"
+( unset AUTO_CI_PR_RUNS; export AUTO_CI_CARRY="$tmp/carry"; run )
+has carried 71 && fail "a head that already has a review pass needs no carry"
 
 [ $fails -eq 0 ] && echo "auto-ci: all cases pass" || echo "auto-ci: $fails failing"
 [ $fails -eq 0 ]
