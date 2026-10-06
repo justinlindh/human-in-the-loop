@@ -55,4 +55,19 @@ describe('radio', () => {
     r.sync({ radio: { on: false, station: 'funk' } });
     expect(r.group.visible).toBe(false);
   });
+
+  it('turns the console record while it plays and leaves it still when off', () => {
+    const o = office(true);
+    const rec = new THREE.Object3D();
+    rec.name = 'boombox_record';
+    o.placed.get('bb').obj.add(rec);
+    const r = createRadio({ office: o, parent: new THREE.Group() });
+    r.sync({ radio: { on: true, station: 'bossa' } });
+    r.update(0.5);
+    const turned = rec.rotation.y;
+    expect(turned).toBeGreaterThan(0);
+    r.sync({ radio: { on: false, station: 'bossa' } });
+    r.update(0.5);
+    expect(rec.rotation.y).toBe(turned);
+  });
 });

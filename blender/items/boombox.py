@@ -12,6 +12,14 @@ FRONT = (math.pi / 2, 0, 0)  # a cylinder's axis turned to face the front
 def build(level, fn, name):
     reset()
     join(fn(), f'{name}_l{level}')
+    if level == 3:
+        top = 0.2 + 0.38  # the console's legs plus its body
+        join(record(top), 'boombox_record')
+        # Origin on the platter's axis: the game turns the record about it.
+        bpy.context.scene.cursor.location = (RX, RY, top)
+        bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
+        bpy.context.scene.cursor.location = (0, 0, 0)
+        require_parts(['boombox_record'])
     export(tier_path(level), budget=BUDGET[level])
 
 
@@ -99,19 +107,32 @@ def l3():
         for sy in (-1, 1):
             parts.append(cyl(f'leg{sx}{sy}', 0.022, legs + 0.02, (sx * (W / 2 - 0.07), 0.2 + sy * (D / 2 - 0.06), legs / 2), 'wood_dark', verts=8, bevel=0.004, r2=0.014))
     top = legs + H
-    # The turntable: a plinth, a platter, a black record with a red label, and the tone arm.
-    parts.append(box('plinth', (0.42, 0.36, 0.03), (-0.14, 0.2, top + 0.015), 'wood_dark', bevel=0.008))
-    parts.append(cyl('platter', 0.15, 0.022, (-0.17, 0.2, top + 0.041), 'metal_soft', verts=24, bevel=0.004))
-    parts.append(cyl('record', 0.145, 0.006, (-0.17, 0.2, top + 0.055), 'ink', verts=24, bevel=0.001))
-    parts.append(cyl('label', 0.045, 0.004, (-0.17, 0.2, top + 0.059), 'alarm_red', verts=16, bevel=0))
-    parts.append(cyl('arm_base', 0.025, 0.03, (0.03, 0.32, top + 0.045), 'metal_dark', verts=10, bevel=0.004))
-    parts.append(box('arm', (0.012, 0.2, 0.012), (0.0, 0.24, top + 0.068), 'metal_soft', bevel=0.003, rot=(0, 0, 0.35)))
-    parts.append(box('cart', (0.03, 0.04, 0.018), (-0.035, 0.14, top + 0.064), 'ink', bevel=0.004, rot=(0, 0, 0.35)))
-    # The dust lid, propped open behind the turntable.
-    parts.append(box('lid', (0.42, 0.012, 0.3), (-0.14, 0.4, top + 0.17), 'glass', bevel=0.006, rot=(-0.22, 0, 0)))
-    # A record sleeve and a small speaker on the right half.
-    parts.append(box('sleeve', (0.26, 0.012, 0.26), (0.26, 0.33, top + 0.14), 'fabric_teal', bevel=0.004, rot=(-0.25, 0, 0)))
-    parts.append(cyl('sleeve_dot', 0.06, 0.004, (0.26, 0.322, top + 0.15), 'fabric_mustard', verts=16, bevel=0, rot=(math.pi / 2 - 0.25, 0, 0)))
+    # The turntable: a plinth, a platter and the tone arm resting on the record. The record itself is
+    # its own object (record() below) so the game can spin it.
+    parts.append(box('plinth', (0.44, 0.38, 0.03), (-0.13, 0.2, top + 0.015), 'wood_dark', bevel=0.008))
+    parts.append(cyl('platter', 0.165, 0.02, (RX, RY, top + 0.04), 'metal_soft', verts=24, bevel=0.004))
+    parts.append(cyl('arm_base', 0.025, 0.03, (0.05, 0.33, top + 0.045), 'metal_dark', verts=10, bevel=0.004))
+    parts.append(box('arm', (0.012, 0.21, 0.012), (0.02, 0.25, top + 0.075), 'metal_soft', bevel=0.003, rot=(0, 0, 0.35)))
+    parts.append(box('cart', (0.03, 0.04, 0.018), (-0.015, 0.15, top + 0.07), 'ink', bevel=0.004, rot=(0, 0, 0.35)))
+    # A short stack of square record sleeves on the right half.
+    for i, c in enumerate(('fabric_teal', 'fabric_mustard', 'fabric_terracotta')):
+        parts.append(box(f'sleeve{i}', (0.24, 0.24, 0.012), (0.27, 0.2, top + 0.006 + i * 0.013), c, bevel=0.003, rot=(0, 0, (i - 1) * 0.12)))
+    return parts
+
+
+RX, RY = -0.17, 0.2   # the platter's centre
+
+
+def record(top):
+    """The record on the platter: black vinyl with pressed grooves, a red label and the spindle,
+    its origin on the platter's axis."""
+    z = top + 0.054
+    parts = [cyl('vinyl', 0.155, 0.008, (RX, RY, z), 'ink', verts=32, bevel=0.0015)]
+    for k, r in enumerate((0.075, 0.1, 0.125, 0.145)):
+        parts.append(torus(f'groove{k}', r, 0.0018, (RX, RY, z + 0.004), 'plastic_charcoal', major_seg=24, minor_seg=3))
+    parts.append(cyl('label', 0.05, 0.003, (RX, RY, z + 0.0055), 'alarm_red', verts=20, bevel=0))
+    parts.append(box('label_mark', (0.03, 0.008, 0.001), (RX, RY + 0.025, z + 0.0072), 'paper', bevel=0))
+    parts.append(cyl('spindle', 0.006, 0.02, (RX, RY, z + 0.01), 'metal_soft', verts=8, bevel=0))
     return parts
 
 

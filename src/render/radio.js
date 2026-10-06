@@ -8,6 +8,7 @@ import { PALETTE as P } from './palette.js';
 const NOTES = 3;
 const LIFE = 2.4;
 const RISE = 0.7;
+const SPIN = 1.6;      // the record's turn, radians a second
 const NOTE_M = 0.26;   // one note sprite's size: one square glyph cell of the sheet
 
 let noteTex = null;
@@ -84,6 +85,9 @@ export function createRadio({ office, parent, low = () => false }) {
   function update(dt) {
     if (!playing || !entry?.obj) return;
     t += dt;
+    // The HQ console's record turns slowly while it plays and stays where it stopped when off.
+    const rec = entry.obj.getObjectByName('boombox_record');
+    if (rec) rec.rotation.y += dt * SPIN;
     box.setFromObject(entry.obj);
     const cx = (box.min.x + box.max.x) / 2, cz = (box.min.z + box.max.z) / 2, top = box.max.y;
     const shown = low() ? 1 : NOTES;
