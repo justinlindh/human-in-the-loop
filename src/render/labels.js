@@ -74,6 +74,7 @@ export function createLabels(parent) {
       l = { el, inner, obj, t: 0, life: 1, kind: '', follow: null, jit: new THREE.Vector3(), rise: 0, dx: 0, dy: 0 };
     }
     l.growthOwner = null;
+    l.retiring = false;
     l.dx = l.dy = 0;
     l.px = 0; l.hideK = 1;
     return l;
@@ -171,7 +172,7 @@ export function createLabels(parent) {
     if (!float) for (const o of live) if (o.kind === 'say' && o.follow === follow) o.t = o.life;
     if (!float && typeof innerWidth === 'number' && innerWidth < NARROW_W) {
       const others = live.filter((o) => o.kind === 'say' && !o.moment && o.t < o.life - 0.35).sort((a, b) => b.t - a.t);
-      for (const o of others.slice(0, Math.max(0, others.length - (NARROW_BUBBLES - 1)))) o.t = o.life - 0.35;
+      for (const o of others.slice(0, Math.max(0, others.length - (NARROW_BUBBLES - 1)))) { o.t = o.life - 0.35; o.retiring = true; }
     }
     const l = acquire();
     l.kind = float ? 'stat' : 'say';
@@ -440,7 +441,8 @@ export function createLabels(parent) {
     const stats = [];
     for (const l of live) {
       if (l.el.style.display === 'none') continue;
-      if (l.kind === 'say') says.push(l);
+      // A bubble retired to make room fades where it is and no longer takes a place in the stack.
+      if (l.kind === 'say') { if (!l.retiring) says.push(l); }
       else if (l.kind === 'stat') stats.push(l);
     }
     const k = 1 - Math.exp(-dt * 14);
