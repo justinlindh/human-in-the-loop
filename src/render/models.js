@@ -7,8 +7,12 @@ import { WARDROBE_MODELS } from './wardrobe.js';
 // The era art and clothes: loaded with the rest under `?eras`, otherwise once a company needs them.
 export const ERA_MODELS = [...ERA_ART_MODELS, ...WARDROBE_MODELS];
 
+// The boombox has one look per office stage (garage, floor, HQ) rather than per level. Like the era
+// models it loads at the start under `?eras` (the check harness), otherwise once a game has a radio.
+export const BOOMBOX_MODELS = [1, 2, 3].map((l) => `boombox_l${l}`);
+
 export const PROP_NAMES = [
-  ...(ERA_MODELS_AT_START ? ERA_MODELS : []),
+  ...(ERA_MODELS_AT_START ? [...ERA_MODELS, ...BOOMBOX_MODELS] : []),
   'desk', 'chair', 'monitor', 'laptop', 'server_rack', 'plant_tall', 'plant_small', 'coffee_machine',
   'whiteboard', 'couch', 'bookshelf', 'garage_door', 'window_frame', 'monitoring_wall', 'water_cooler', 'trophy', 'kitchenette', 'ping_pong_table', 'foosball', 'balloons', 'waffle_station',
 ];
@@ -19,7 +23,6 @@ export const ITEM_IDS = [
 ];
 export const itemModelName = (itemId, level) => `${itemId}_l${Math.max(1, Math.min(3, level | 0))}`;
 const ITEM_MODELS = ITEM_IDS.flatMap((id) => [1, 2, 3].map((l) => itemModelName(id, l)));
-
 const loader = new GLTFLoader();
 const templates = new Map();
 const pending = new Map();

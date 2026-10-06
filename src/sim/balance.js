@@ -174,7 +174,7 @@ export const B = {
   // scoreShare: a start's pooled median final score (six bots, seeds 1 to 200) as a share of Classic's,
   // for the founding screen. Retuning scoreMult means re-measuring that share against the target.
   eraStarts: {
-    preinternet: { cash: 240000, officeStage: 0, desks: 3, scoreMult: 0.72, scoreShare: 0.95, exitMrrMult: 1.3 },
+    preinternet: { cash: 240000, officeStage: 0, desks: 3, scoreMult: 0.67, scoreShare: 0.95, exitMrrMult: 1.3 },
     web2: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 0.56, scoreShare: 0.75, exitMrrMult: 1.2 },
     dotcom: { cash: 140000, officeStage: 0, desks: 4, scoreMult: 0.61, scoreShare: 0.9, exitMrrMult: 1.35 },
     classic: { cash: 0, officeStage: 0, desks: 2, scoreMult: 1, scoreShare: 1, exitMrrMult: 1 },
