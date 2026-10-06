@@ -29,9 +29,8 @@ function punishes(fx) {
   if (fx.gamble && (harms(fx.gamble.effects) || harms(fx.gamble.else))) return 'a gamble that can hurt';
   return null;
 }
-// The most a default may cost a careful player: a small one-off (meaning -5, brand -1, team meaning -2, a few
-// hundred dollars).
-const SMALL_COST = -1.25;
+// The most a default may cost a careful player: a small one-off (meaning -5, brand -1, a few hundred dollars).
+const SMALL_COST = -1;
 
 describe('ask defaults are cautious', () => {
   // A mid-game company of eight, so a careful player values a hard problem as a team that size would.
@@ -55,6 +54,21 @@ describe('ask defaults are cautious', () => {
     expect(bad).toEqual([]);
   });
 
+  // The cards whose default is a cautious middle choice written for it; elsewhere the default is an existing
+  // choice, often scored by effects sensibleValue does not price.
+  const MIDDLE = ['poached_by_bigco', 'pay_equity_question', 'ceo_support_fallout', 'public_complaint', 'grokk_pr_scandal'];
+  it('ignoring never beats answering: a written middle default scores below the best other choice', () => {
+    const bad = [];
+    for (const ev of expirable.filter((e) => MIDDLE.includes(e.id))) {
+      const v = ev.choices.map((c) => sensibleValue(s, c.effects));
+      for (const [via, i] of defaultsOf(ev)) {
+        const best = Math.max(...v.filter((_, j) => j !== i));
+        if (!(v[i] < best)) bad.push([ev.id, via, i, Math.round(v[i] * 100) / 100, Math.round(best * 100) / 100]);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
   it('an unanswered NOC still watches: the agents take the glass', () => {
     expect(EVENTS.noc_bet.choices[defaultChoiceOf(EVENTS.noc_bet)].effects.nocMode).toBe('agents');
   });
@@ -62,6 +76,6 @@ describe('ask defaults are cautious', () => {
   it('a poached senior gets a small counter-offer by default', () => {
     const ev = EVENTS.poached_by_bigco;
     const i = defaultChoiceOf(ev);
-    expect(ev.choices[i]).toMatchObject({ label: 'Make a small counter-offer', hint: '+8% salary; they stay, for now', effects: { salaryPct: 8, meaning: 1 } });
+    expect(ev.choices[i]).toMatchObject({ label: 'Make a small counter-offer', hint: '+8% salary', effects: { salaryPct: 8, meaning: 1 } });
   });
 });

@@ -94,9 +94,9 @@ const list = [
     title: 'A recruiter is circling',
     text: '{incumbent} offered {name} a job with a title that has three words and one of them is "Principal".',
     choices: [
-      { label: 'Match the offer', hint: '+20% salary', effects: { salaryPct: 20, meaning: 3 }, outcome: '{name} stays and buys a nicer chair.' },
+      { label: 'Match the offer', hint: '+20% salary; they and the team see loyalty pay', effects: { salaryPct: 20, meaning: 8, teamMeaning: 2 }, outcome: '{name} stays and buys a nicer chair. Word gets around that staying pays.' },
       { label: 'Wish them well', hint: 'They leave', effects: { resign: 'poached' }, outcome: '{name} leaves for {incumbent}. They will be back in #alumni.' },
-      { label: 'Make a small counter-offer', hint: '+8% salary; they stay, for now', effects: { salaryPct: 8, meaning: 1 }, outcome: '{name} stays. They keep the recruiter\'s number in a drawer, next to the good pens.' },
+      { label: 'Make a small counter-offer', hint: '+8% salary', effects: { salaryPct: 8, meaning: 1 }, outcome: '{name} stays, for now. They keep the recruiter\'s number in a drawer, next to the good pens.' },
     ],
   },
   {
@@ -223,7 +223,7 @@ const list = [
       { label: 'Respond publicly with real changes', hint: 'Costs cash; brand and team meaning up', effects: { cash: -3000, brand: 2, teamMeaning: 2, meaning: 6 }, outcome: 'Your reply is the second most liked comment. {name} reposts it.' },
       { label: 'Ask them to take it down', hint: 'Brand and their meaning down', effects: { brand: -3, meaning: -10 }, outcome: 'They take it down. Screenshots do not.' },
       { label: 'Ignore it', hint: 'Might blow over, might not', effects: { gamble: { p: 0.5, effects: { brand: -5 } } }, outcome: 'You close the tab. You open the tab again.' },
-      { label: 'Reply politely in private', hint: 'Brand dips a little; they feel brushed off', effects: { brand: -1, meaning: -3 }, outcome: 'A courteous DM. The post stays up, now with "UPDATE: they DMed me" at the bottom.' },
+      { label: 'Reply politely in private', hint: 'Brand dips a little; they feel brushed off', effects: { brand: -1, meaning: -1 }, outcome: 'A courteous DM. The post stays up, now with "UPDATE: they DMed me" at the bottom.' },
     ],
   },
   {
@@ -269,8 +269,8 @@ const list = [
     text: 'Customers noticed the support bot. The support bot did not notice the customers. A thread titled "is anyone human at {company}" is trending.',
     choices: [
       { label: 'Keep the bot', hint: 'Some customers leave; brand down', effects: { customersPct: -6, brand: -3 }, outcome: 'The bot keeps saying "Great question!". Fewer people are asking.' },
-      { label: 'Bring humans back', hint: 'Costs cash; brand recovers a little', effects: { setAutomation: { support: 0.25 }, cash: -5000, brand: 1 }, outcome: 'Real humans answer the phones. A customer cries with relief.' },
-      { label: 'Add a "talk to a human" button', hint: 'Costs a little; the bot stays, brand dips', effects: { cash: -1500, brand: -1 }, outcome: 'The button works. It routes to the founder\'s phone. The founder has opinions about this.' },
+      { label: 'Bring humans back', hint: 'Costs cash; brand recovers, the team is relieved', effects: { setAutomation: { support: 0.25 }, cash: -5000, brand: 3, teamMeaning: 2 }, outcome: 'Real humans answer the phones. A customer cries with relief.' },
+      { label: 'Add a "talk to a human" button', hint: 'Costs a little; the bot stays, brand dips', effects: { cash: -3000, brand: -1 }, outcome: 'The button works. It routes to the founder\'s phone. The founder has opinions about this.' },
     ],
   },
   {
@@ -280,7 +280,7 @@ const list = [
     text: '{name} saw a study about four-day weeks and cannot stop talking about it. "Same output, happier people. Probably."',
     choices: [
       { label: 'Run an 8-week trial', hint: 'Less output, faster recovery for 8 weeks, then decide', effects: { modifier: [{ key: 'output', value: -0.1, weeks: 8, label: 'Four-day week trial' }, { key: 'meaningRecovery', value: 0.5, weeks: 8, label: 'Four-day week trial' }], followUp: { eventId: 'four_day_week_review', inWeeks: 8 } }, outcome: 'Fridays are gone. Nobody knows what day it is anymore. Everyone is thrilled.' },
-      { label: 'Not now', hint: 'The team is a little disappointed', effects: { teamMeaning: -2 }, outcome: 'The study gets forwarded around anyway.' },
+      { label: 'Not now', hint: 'The team is a little disappointed', effects: { teamMeaning: -1 }, outcome: 'The study gets forwarded around anyway.' },
     ],
   },
   {
