@@ -72,7 +72,7 @@ async function firstSeed({ match, weeks, minWeeks = 0, clean = false, first = fa
 }
 
 const AGENT_INCIDENT = "(e) => e.type === 'incident' && !e.caught && ['db_wipe', 'runaway_spend', 'mass_email', 'pricing_rewrite', 'refund_hallucination', 'prompt_injection_leak'].includes(e.kind)";
-const INCIDENT_SEED = await firstSeed({ match: AGENT_INCIDENT, weeks: 1000, minWeeks: 300, clean: true, seeds: Array.from({ length: 80 }, (_, i) => i + 1) });
+const INCIDENT_SEED = await firstSeed({ match: AGENT_INCIDENT, weeks: 1000, minWeeks: 300, clean: true, seeds: Array.from({ length: 400 }, (_, i) => i + 1) });
 
 const FIRST_LAUNCH = "(e) => e.type === 'launch'";
 const LAUNCH_SEED = await firstSeed({ match: FIRST_LAUNCH, weeks: 300, clean: true, first: true, seeds: Array.from({ length: 80 }, (_, i) => i + 1) });

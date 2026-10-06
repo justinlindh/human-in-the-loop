@@ -510,13 +510,29 @@ function atDesk(build, { x: lx = -0.5, z: lz = -0.28, rot = 0.3, y = TOP_Y, scal
         // A group prop (a pizza stack for everyone) is nobody's in particular and may move on.
         const mine = anchor.anchor === 'subjectDesk' && !group;
         const near = mine ? [e] : [e, ...deskList(env.office).filter((o) => o !== e).sort((a2, b2) => dist(a2, e) - dist(b2, e)).slice(0, 6)];
+        // The first desk with a spot the default view sees past the monitor and the sitter; else the
+        // first with any spot.
+        let seenLess = null;
         for (const d of near) {
           const others = (env.onDesk ?? []).filter((r) => r.deskId === d.id);
           item.scale.setScalar(scale);
           spot = deskSpot(d, g, lx, lz, rot, overhang, around, others, !sprawl, spotDebug(env.office), anchor.prop);
           for (let k = 0; !spot && k < 4; k++) { item.scale.multiplyScalar(0.88); spot = deskSpot(d, g, lx, lz, rot, overhang, around, others, !sprawl, spotDebug(env.office), anchor.prop); }
-          if (spot) { desk = d; break; }
+          // Only spots hidden from the default view: a little smaller may fit one it sees.
+          if (spot?.hidden) {
+            const full = item.scale.x;
+            for (let k = 0; k < 3; k++) {
+              item.scale.multiplyScalar(0.88);
+              const s = deskSpot(d, g, lx, lz, rot, overhang, around, others, !sprawl, spotDebug(env.office), anchor.prop);
+              if (s && !s.hidden) { spot = s; break; }
+            }
+            if (spot.hidden) item.scale.setScalar(full);
+          }
+          if (spot && !spot.hidden) { desk = d; seenLess = null; break; }
+          if (spot && !seenLess) seenLess = { spot, d, s: item.scale.x };
+          spot = null;
         }
+        if (seenLess) { spot = seenLess.spot; desk = seenLess.d; item.scale.setScalar(seenLess.s); }
         // Still no room on its own desk: it may take the sitter's hand zone (the thing is theirs,
         // and they will move it), shrinking a little further, rather than leave the desk its
         // moment looks for.
@@ -685,10 +701,42 @@ function deskSpot(e, g, lx, lz, rot, overhang = 0, around = [], others = [], han
   };
   const at = (x, z) => ({ x, z, rect: { x0: x + b.min.x, x1: x + b.max.x, z0: z + b.min.z, z1: z + b.max.z } });
   function* radii() { for (let d = CELL; d < 1.4; d += CELL) yield d; }
+  // The nearest clear spot the default camera sees past the desk's monitor and its sitter; else the
+  // one it sees best.
+  const hidden = (q) => blockedFromView(e, q.x, (b.min.x + b.max.x) / 2, b.max.x - b.min.x, q.z + (b.min.z + b.max.z) / 2, TOP_Y + b.max.y * 0.6);
   const spot = pickSpot({ x: lx, z: lz }, { ring: { centerFirst: true, radii: radii(), count: (d) => Math.max(8, Math.round(d * 60)) },
-    needs: ['clear'], checks: { clear: (q) => fits(q.x, q.z) }, debug, moment, search: 'desk',
+    needs: ['clear'], checks: { clear: (q) => fits(q.x, q.z) }, score: hidden, minScore: 0, debug, moment, search: 'desk',
   });
-  return spot && at(spot.x, spot.z);
+  return spot && { ...at(spot.x, spot.z), hidden: hidden(spot) };
+}
+
+// How many of three sight lines from a desk prop to the default camera (view 0) its desk or the
+// person at it blocks: from the prop's left, middle and right (desk frame: x0 + cx + -w/3..w/3 at z,
+// height y) along the camera's direction. The desk's own meshes (monitor, chair) are ray-tested; the
+// sitter is a standing body's cylinder at the seat.
+const VIEW0_PITCH = Math.atan(1 / Math.SQRT2), VIEW0_YAW = Math.PI / 4;
+const VIEW0 = new THREE.Vector3(Math.sin(VIEW0_YAW) * Math.cos(VIEW0_PITCH), Math.sin(VIEW0_PITCH), Math.cos(VIEW0_YAW) * Math.cos(VIEW0_PITCH));
+const SITTER_R = 0.24, SITTER_H = 1.3;
+const sightRay = new THREE.Raycaster(), SIGHT = new THREE.Vector3();
+function blockedFromView(e, x, cx, w, z, y) {
+  const o = e.obj;
+  o.updateMatrixWorld(true);
+  sightRay.far = 4;
+  const seat = e.desk?.seat;
+  let n = 0;
+  for (const k of [-1 / 3, 0, 1 / 3]) {
+    const p = SIGHT.set(x + cx + k * w, y, z).applyMatrix4(o.matrixWorld);
+    sightRay.set(p, VIEW0);
+    let hit = sightRay.intersectObject(o, true).some((h) => h.object.isMesh && h.object.visible);
+    if (!hit && seat) {
+      // The ray's nearest pass by the seat's upright axis, below head height.
+      const hx = VIEW0.x, hz = VIEW0.z, hl = hx * hx + hz * hz;
+      const t = ((seat.x - p.x) * hx + (seat.z - p.z) * hz) / hl;
+      if (t > 0 && p.y + t * VIEW0.y < SITTER_H) hit = Math.hypot(p.x + t * hx - seat.x, p.z + t * hz - seat.z) < SITTER_R;
+    }
+    if (hit) n++;
+  }
+  return n;
 }
 
 // Put a desk-following prop where its desk is now (it may be sliding to a new spot).
@@ -843,28 +891,26 @@ const binderLabel = (word) => cardTex(`binder|${word}`, 128, 256, (ctx, W, H) =>
   text(ctx, word, 0, 4, 64, P.ink, 900);
   ctx.restore();
 });
+// One fat binder, narrow enough for the strip beside a monitor that the default view sees on a desk
+// facing the camera, with POLICY on both spines so one faces the camera whichever way the desk turns.
 function binder() {
-  const g = new THREE.Group();
-  [['role_security', 'POLICY'], ['marker_orange', 'POLICY'], ['fabric_teal', 'FINAL']].forEach(([c, word], i) => {
-    const x = (i - 1) * 0.11, h = 0.34 - i * 0.02;
-    g.add(mesh(roundedBox(0.1, h, 0.3, 0.012, 2), mat(c), x, h / 2, 0));
-    const tex = binderLabel(word);
-    for (const s of [-1, 1]) {
-      // Spine labels on both narrow ends.
-      const spine = new THREE.Mesh(plane(0.06, h * 0.7), flatMat(tex));
-      spine.position.set(x, h / 2, s * 0.151);
-      spine.rotation.y = s < 0 ? Math.PI : 0;
-      spine.userData.noAO = true;
-      g.add(spine);
-    }
-    // The three rings showing over the top edge.
-    for (const rz of [-0.08, 0, 0.08]) {
-      const ring = mesh(new THREE.TorusGeometry(0.022, 0.005, 6, 12, Math.PI), mat('metal_soft'), x, h, rz);
-      ring.geometry.userData.own = true;
-      ring.rotation.y = Math.PI / 2;
-      g.add(ring);
-    }
-  });
+  const g = new THREE.Group(), h = 0.36;
+  g.add(mesh(roundedBox(0.1, h, 0.3, 0.012, 2), mat('role_security'), 0, h / 2, 0));
+  const tex = binderLabel('POLICY');
+  for (const s of [-1, 1]) {
+    const spine = new THREE.Mesh(plane(0.06, h * 0.7), flatMat(tex));
+    spine.position.set(0, h / 2, s * 0.151);
+    spine.rotation.y = s < 0 ? Math.PI : 0;
+    spine.userData.noAO = true;
+    g.add(spine);
+  }
+  // The three rings showing over the top edge.
+  for (const rz of [-0.08, 0, 0.08]) {
+    const ring = mesh(new THREE.TorusGeometry(0.022, 0.005, 6, 12, Math.PI), mat('metal_soft'), 0, h, rz);
+    ring.geometry.userData.own = true;
+    ring.rotation.y = Math.PI / 2;
+    g.add(ring);
+  }
   return g;
 }
 // The gift cards: fanned upright in a little stand, faces out, each a bright card with a big $.
@@ -1847,7 +1893,7 @@ const BUILDERS = {
   sign_rival_copied: wallPrint(rivalCopied),
   envelope: atDesk(envelope(false), FLAT),
   envelope_thick: atDesk(envelope(true), FLAT),
-  binder: atDesk(binder, { x: -0.62, z: -0.42, rot: 0 }),
+  binder: atDesk(binder, { x: -0.62, z: -0.42, rot: 0, scale: 1.2 }),
   gift_cards: atDesk(giftCards, { ...FLAT, scale: 1.6, x: 0.4, z: -0.35, rot: 0.1, group: true }),
   sticky_notes: atDesk(stickyNotes, { x: 0.38, z: -0.3, rot: 0.1 }),
   photos_laminated: atDesk(photosLaminated, FLAT),

@@ -2,6 +2,9 @@
 // performance.now and Date.now driven one frame at a time by __frame) and a page that loads a
 // snapshot through the title screen's Continue path, so main.js's own frame loop runs as for a player.
 import { snapshotEntries } from '../../scripts/events/load.js';
+import * as indexPlay from '../../scripts/events/play.js';
+// An older checkout's index has no pin to match.
+const pinIndexPacing = (page) => indexPlay.pinIndexPacing?.(page);
 
 // Virtual time for the page. __frame(n) advances n frames: due timers run, then the frames' rAFs.
 export const SHIM = `(() => {
@@ -46,5 +49,7 @@ export async function openLoopPage(browser, base, snapshotFile, { width = 1280, 
     await page.evaluate(() => window.__frame(1));
     await new Promise((r) => setTimeout(r, 50));
   }
+  // The caller continues the snapshot; it plays on with the switches the index was built with.
+  await pinIndexPacing(page);
   return { page, errors };
 }
