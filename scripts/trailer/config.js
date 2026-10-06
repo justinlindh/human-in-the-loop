@@ -1,5 +1,5 @@
 import { YAK_HELPERS, YAK_CHECK } from '../feature-media/yak.js';
-import { LOAD_PIN } from './pins.js';
+import { LOAD_PIN, BEFORE_EVENT } from './pins.js';
 import { GROW, EMPTY_DESKS } from '../feature-media/manifest.js';
 import { PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY, CAMLOG, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK_SEL, STAGE_ONLY, CLEAR_CARDS } from '../capture-manifest.js';
 // A player closes any launch or unlock card that turns up while the Yak thread plays out; a modal card holds the clock.
@@ -117,12 +117,12 @@ export const BEATS = [
   // The PC LOAD LETTER meme held full size from its first frame, so the sign reads. No narration.
   { id: 'printer-meme', item: 'site-yak-backfire', capture: { query: 'seed=62&speed=1', setup: MEME_SETUP, still: false, seconds: 8, screenshots: [], actions: MEME_ACTIONS }, from: 3.65, dur: 3.5 },
   { id: 'printer', item: 'trail-fly-printer', capture: { seconds: 36, pin: 'printer' }, from: 26 + 4 / 30, dur: 7.0 },
-  { id: 'era-chatgbt', item: 'real-era-chatgbt', actions: [NO_ERA_CARD(0)], from: 9.0, dur: 4.1 },
-  { id: 'era-agents', item: 'real-era-agents', actions: [NO_ERA_CARD(0)], from: 9.0, dur: 2.4 },
+  { id: 'era-chatgbt', item: 'real-era', capture: { pin: 'eraChatgbt' }, actions: [NO_ERA_CARD(0)], from: 9.0, dur: 4.1 },
+  { id: 'era-agents', item: 'real-era', capture: { pin: 'eraAgents' }, actions: [NO_ERA_CARD(0)], from: 9.0, dur: 2.4 },
   // The runaway cloud bill: the hot rack smoking behind the card.
   { id: 'cloud-bill', item: 'site-loop-automation', capture: { query: 'seed=6&speed=1', pin: 'cloud' }, from: 10.0, dur: 4.0 },
   // Consolidation's redress is mostly cleanup: the beat frames the crowd, the busiest HQ.
-  { id: 'era-consolidation', item: 'real-era-consolidation', actions: [NO_ERA_CARD(0)], capture: { camera: [{ at: 0, target: PEOPLE, zoom: 1.7 }] }, from: 9.0, dur: 2.8 },
+  { id: 'era-consolidation', item: 'real-era', actions: [NO_ERA_CARD(0)], capture: { pin: 'eraConsolidation', camera: [{ at: 0, target: PEOPLE, zoom: 1.7 }] }, from: 9.0, dur: 2.8 },
   // The flying camera's orbit onto the waffle table.
   { id: 'waffle', item: 'trail-fly-waffle', from: 14.3, dur: 4.2 },
   { id: 'dance', item: 'site-loop-music', capture: { camera: [{ at: 14, target: DANCER, zoom: 2.2 }] }, from: 19.0, dur: 3.0 },
@@ -183,6 +183,9 @@ export const PIN_SOURCES = {
   meme: { query: 'seed=62&speed=1', setup: `(async () => { await ${PRE_UNTIL(MEME_PLAY)}; })()` },
   garage: { query: 'seed=5&speed=1&time=day', setup: GROW(4) },
   cloud: { query: 'seed=6&speed=1' },
+  eraChatgbt: { query: 'seed=1&speed=1', setup: BEFORE_EVENT("(e) => e.type === 'era' && e.eraId === 'chatgbt'") },
+  eraAgents: { query: 'seed=1&speed=1', setup: BEFORE_EVENT("(e) => e.type === 'era' && e.eraId === 'agents'") },
+  eraConsolidation: { query: 'seed=1&speed=1', setup: BEFORE_EVENT("(e) => e.type === 'era' && e.eraId === 'consolidation'") },
   plateau: { query: 'seed=3&speed=1&time=day', setup: GROW(800, { lateHires: false }) },
   printer: { moment: 'printer_jam --stage floor --choice 0' },
 };
