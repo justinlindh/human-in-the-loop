@@ -13,7 +13,8 @@ import { ALLHANDS_SCREEN, variantText } from './moment-variants.js';
 // funding: only for companies funded that way. yak: { ignore }: a low-stakes event delivered as a Yak reply prompt
 // instead of a popup while prompts are on; ignore is the choice that happens if nobody answers: the mildest one, with
 // the smallest cost to the subject (or overall), and never one that grants an item or a pet, so nobody pays for or
-// gets saddled with a prompt they did not see (null: nothing).
+// gets saddled with a prompt they did not see (null: nothing). scripted: under B.pacing.askRates the event leaves
+// the random pool and comes as soon as `when` holds and its cooldown has passed.
 // Placeholders in title/text: {name} (subject staff), {product} (subject product), {company}, {incumbent}, {rival}, {rivalFounder},
 // {ransom} (what a ransom would cost this company), {alum} (a recent former employee).
 // Effects apply to the subject (staff or product) where the key is per-subject; see EFFECT_KEYS below.
@@ -428,6 +429,7 @@ const list = [
   },
   {
     id: 'acquisition_offer', kind: 'market', weight: B.acquisitionOfferWeight, cooldownWeeks: 52, random: true, subject: null, marks: 'acquisitionOfferWeek',
+    scripted: true, noExpire: true,
     when: (s, h) => h.offerReady,
     title: 'An acquisition offer',
     text: '{incumbent} wants to buy {company}. The number has a lot of zeros. The integration plan has a lot of question marks.',

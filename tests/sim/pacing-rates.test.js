@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { B } from '../../src/sim/balance.js';
 import { makeCtx } from '../../src/sim/registry.js';
-import { eventChance, raiseDecision } from '../../src/sim/events.js';
+import { eventChance, raiseDecision, eligibleEvents, eventsSystem } from '../../src/sim/events.js';
 import { postmortemSeverity } from '../../src/sim/incidents.js';
 import { moonshotSystem } from '../../src/sim/moonshot.js';
 import { promptChance } from '../../src/sim/prompts.js';
@@ -104,6 +104,39 @@ describe('quietEvents: small events play out without a card', () => {
     expect(postmortemSeverity()).toBe(5);
     B.pacing.quietEvents = false;
     expect(postmortemSeverity()).toBe(4);
+  });
+});
+
+describe('askRates: the acquisition offer is a scripted beat', () => {
+  const ready = () => {
+    const s = company();
+    s.week = B.retireFromWeek + 10;
+    s.brand = 100;
+    s.products[0].mrr = 1e7;
+    return s;
+  };
+
+  it('on, the offer leaves the random pool and comes once offerReady holds, then not again for its cooldown', () => {
+    B.pacing.askRates = true;
+    const s = ready();
+    expect(eligibleEvents(s).some((e) => e.id === 'acquisition_offer')).toBe(false);
+    eventsSystem(makeCtx(s));
+    expect(s.pendingDecision?.eventId).toBe('acquisition_offer');
+    s.pendingDecision = null;
+    s.week += 51;
+    delete s.flags.lastPauseWeek;
+    delete s.flags.lastDecisionWeek;
+    eventsSystem(makeCtx(s));
+    expect(s.pendingDecision?.eventId).not.toBe('acquisition_offer');
+  });
+
+  it('off, the offer stays a random event', () => {
+    B.pacing.askRates = false;
+    expect(eligibleEvents(ready()).some((e) => e.id === 'acquisition_offer')).toBe(true);
+  });
+
+  it('the offer never expires', () => {
+    expect(EVENTS.acquisition_offer.noExpire).toBe(true);
   });
 });
 

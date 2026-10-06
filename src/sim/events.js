@@ -239,7 +239,21 @@ export function eligibleEvents(state) {
     && eventFitsEra(state, ev)
     && (!ev.funding || ev.funding === (state.founding?.funding ?? 'bootstrapped'))
     && ev.when(state, h)
-    && (ev.subject === null || resolveSubjects(state, ev).length > 0));
+    && (ev.subject === null || resolveSubjects(state, ev).length > 0)
+    && !(ev.scripted && B.pacing.askRates));
+}
+
+// Under askRates a scripted event comes the week it is ready, rather than from the cut random roll.
+function scriptedEvents(ctx) {
+  const { state } = ctx;
+  const h = helpers(state);
+  for (const ev of Object.values(EVENTS)) {
+    if (!ev.scripted || (state.flags[`cd_${ev.id}`] ?? -1) > state.week || !eventFitsEra(state, ev) || !ev.when(state, h)) continue;
+    const subjects = resolveSubjects(state, ev);
+    if (ev.subject !== null && !subjects.length) continue;
+    if (fireEvent(ctx, ev, subjects.length ? pick(ctx.rng, subjects).id : null)) return true;
+  }
+  return false;
 }
 
 export function fireEvent(ctx, ev, subjectId) {
@@ -299,6 +313,7 @@ export const eventChance = () => (B.pacing.askRates ? B.askRates.randomEventChan
 export function eventsSystem(ctx) {
   const { state } = ctx;
   if (state.pendingDecision) return;
+  if (B.pacing.askRates && !launchPause(state) && scriptedEvents(ctx)) return;
   const rolled = chance(ctx.rng, eventChance());
   const held = state.flags.heldRolls ?? 0;
   // A roll that lands while a launch or unlock is keeping decisions waiting is held (up to heldRollsMax) and

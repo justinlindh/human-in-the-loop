@@ -39,8 +39,8 @@ describe('issue #1646: the ask queue', () => {
 
   it('off: a decision opens as it always has and the queue stays empty', () => {
     const s = company();
-    expect(raise(s, 'acquisition_offer').ok).toBe(true);
-    expect(s.pendingDecision.eventId).toBe('acquisition_offer');
+    expect(raise(s, 'team_offsite').ok).toBe(true);
+    expect(s.pendingDecision.eventId).toBe('team_offsite');
     expect(s.asks).toEqual([]);
   });
 
@@ -52,7 +52,7 @@ describe('issue #1646: the ask queue', () => {
   it('on: a decision waits as a candidate, an incident as an emergency ahead of it, and presentAsk opens them in that order', () => {
     B.pacing.askQueue = true;
     const s = company();
-    const a = raise(s, 'acquisition_offer');
+    const a = raise(s, 'team_offsite');
     expect(a.ok).toBe(true);
     expect(s.pendingDecision).toBeNull();
     expect(a.events).toContainEqual({ type: 'askQueued', askId: s.asks[0].id, kind: 'decision', priority: 'normal' });
@@ -65,7 +65,7 @@ describe('issue #1646: the ask queue', () => {
     expectFail(expect, dispatch, s, { type: 'presentAsk', askId: 'nope' }, 'No such ask');
     s.pendingDecision = null;
     dispatch(s, { type: 'presentAsk' });
-    expect(s.pendingDecision.eventId).toBe('acquisition_offer');
+    expect(s.pendingDecision.eventId).toBe('team_offsite');
     s.pendingDecision = null;
     expectFail(expect, dispatch, s, { type: 'presentAsk' }, 'No asks waiting');
   });
@@ -95,7 +95,7 @@ describe('issue #1646: the ask queue', () => {
     s.mail = [{ id: 'm', options: [{}], resolved: null }, { id: 'n', options: [{}], resolved: null }];
     fire(s, 'pet_request');
     fire(s, 'vendor_new_version');
-    raise(s, 'acquisition_offer');
+    raise(s, 'team_offsite');
     s.chatPrompts = [];
     s.mail = [];
     const presented = (r) => r.events.filter((e) => e.type === 'askPresented');
@@ -117,7 +117,7 @@ describe('issue #1646: the ask queue', () => {
   it('with askExpiry off, expireAsk refuses and the queue has no cap', () => {
     B.pacing.askQueue = true;
     const s = company();
-    for (const id of ['acquisition_offer', 'vc_offer', 'remote_debate', 'pivot_pitch', 'hackathon_week']) raise(s, id);
+    for (const id of ['team_offsite', 'vc_offer', 'remote_debate', 'pivot_pitch', 'hackathon_week']) raise(s, id);
     expect(s.asks).toHaveLength(5);
     expectFail(expect, dispatch, s, { type: 'expireAsk', askId: s.asks[0].id }, 'Expiry is off');
   });
@@ -200,19 +200,19 @@ describe('issue #1646: the ask queue', () => {
     B.pacing.askExpiry = true;
     const s = company();
     fire(s, 'pet_request');
-    raise(s, 'acquisition_offer');
+    raise(s, 'team_offsite');
     raise(s, 'agent_db_wipe');
     raise(s, 'vc_offer');
-    expect(s.asks.map((x) => x.ref.eventId)).toEqual(['pet_request', 'acquisition_offer', 'agent_db_wipe', 'vc_offer']);
+    expect(s.asks.map((x) => x.ref.eventId)).toEqual(['pet_request', 'team_offsite', 'agent_db_wipe', 'vc_offer']);
     const chat = s.chatLog.length;
     const ev = makeCtx(s);
     raiseDecision(ev, 'remote_debate');
     expect(ev.events).toContainEqual(expect.objectContaining({ type: 'askExpired', kind: 'prompt' }));
     expect(s.chatLog.slice(chat).some((m) => m.text.includes('"Not in the office"'))).toBe(true);
-    expect(s.asks.map((x) => x.ref.eventId)).toEqual(['acquisition_offer', 'agent_db_wipe', 'vc_offer', 'remote_debate']);
+    expect(s.asks.map((x) => x.ref.eventId)).toEqual(['team_offsite', 'agent_db_wipe', 'vc_offer', 'remote_debate']);
     const order = [];
     while (s.asks.length) { dispatch(s, { type: 'presentAsk' }); order.push(s.pendingDecision.eventId); s.pendingDecision = null; }
-    expect(order).toEqual(['agent_db_wipe', 'acquisition_offer', 'vc_offer', 'remote_debate']);
+    expect(order).toEqual(['agent_db_wipe', 'team_offsite', 'vc_offer', 'remote_debate']);
   });
 
   it('bots present an emergency at once and anything else after botGapWeeks, and let low asks expire with askExpiry on', () => {
@@ -220,7 +220,7 @@ describe('issue #1646: the ask queue', () => {
     B.pacing.askExpiry = true;
     const s = company();
     s.flags.lastAskWeek = s.week;
-    raise(s, 'acquisition_offer');
+    raise(s, 'team_offsite');
     botAsks(s);
     expect(s.pendingDecision).toBeNull();
     raise(s, 'agent_db_wipe');
@@ -229,7 +229,7 @@ describe('issue #1646: the ask queue', () => {
     s.pendingDecision = null;
     s.week += B.attention.botGapWeeks;
     botAsks(s);
-    expect(s.pendingDecision.eventId).toBe('acquisition_offer');
+    expect(s.pendingDecision.eventId).toBe('team_offsite');
     s.pendingDecision = null;
     fire(s, 'pet_request');
     raise(s, 'vc_offer');
@@ -275,7 +275,7 @@ describe('issue #1646: the ask queue', () => {
 
   it('the era beats and mission tests are marked noExpire, and the postmortem is no emergency', () => {
     const marked = Object.keys(EVENTS).filter((id) => EVENTS[id].noExpire).sort();
-    expect(marked).toEqual(['era_agents', 'era_chatgbt', 'era_consolidation', 'era_plateau', 'mission_test_demo', 'mission_test_support']);
+    expect(marked).toEqual(['acquisition_offer', 'era_agents', 'era_chatgbt', 'era_consolidation', 'era_plateau', 'mission_test_demo', 'mission_test_support']);
     B.pacing.askQueue = true;
     const s = company();
     raise(s, 'incident_postmortem');
@@ -317,8 +317,8 @@ describe('issue #1646: the ask queue', () => {
     B.pacing.askExpiry = true;
     const s = company();
     raise(s, 'era_chatgbt');
-    for (const id of ['acquisition_offer', 'vc_offer', 'remote_debate']) raise(s, id);
-    expect(s.asks.map((a) => a.ref.eventId)).toEqual(['era_chatgbt', 'acquisition_offer', 'vc_offer', 'remote_debate']);
+    for (const id of ['team_offsite', 'vc_offer', 'remote_debate']) raise(s, id);
+    expect(s.asks.map((a) => a.ref.eventId)).toEqual(['era_chatgbt', 'team_offsite', 'vc_offer', 'remote_debate']);
     raise(s, 'pivot_pitch');
     expect(s.asks.map((a) => a.ref.eventId)).toEqual(['era_chatgbt', 'vc_offer', 'remote_debate', 'pivot_pitch']);
   });
@@ -354,7 +354,7 @@ describe('issue #1646: the ask queue', () => {
   it('asks survive a save, and an old save without them loads with an empty queue', () => {
     B.pacing.askQueue = true;
     const s = company();
-    raise(s, 'acquisition_offer');
+    raise(s, 'team_offsite');
     const mem = new Map();
     const storage = { getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, v), removeItem: (k) => mem.delete(k) };
     saveGame(s, storage);
