@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { readFileSync } from 'node:fs';
-import { presentationMetadata, installObservation, readPresentations, collectPresentations, summarize } from './pace-browser.js';
+import { missingHooks, installObservation, readPresentations, collectPresentations, summarize } from './pace-browser.js';
 import { launchChromium, glMode, holdRenderLock } from './lib/gl.js';
 
 holdRenderLock(glMode());
@@ -11,7 +11,7 @@ holdRenderLock(glMode());
 describe('browser pacing presentations', () => {
   let server, browser, page;
   before(async () => {
-    server = await createServer({ plugins: [presentationMetadata(), {
+    server = await createServer({ plugins: [{
       name: 'pace-fixture', configureServer(s) {
         s.middlewares.use('/pace-fixture', (_req, res) => {
           res.setHeader('Content-Type', 'text/html');
@@ -53,8 +53,8 @@ describe('browser pacing presentations', () => {
       <div class="msg reply" data-id="c2" data-root="c1"><div class="yprompt" data-prompt="p1"><button>Reply</button><button disabled>Unavailable</button></div></div>
       <div class="clip"><div style="height:40px"></div><div class="msg" data-id="offscreen">Hidden</div></div>
       <div style="display:none"><div class="panel"><h2>Hidden panel</h2></div></div>
-      <div class="advpeek show" data-pace-id="cash"><button>Advice</button></div>
-      <div class="needrow" data-pace-id="office-move-0"><button>Office</button></div>
+      <div class="advpeek show" data-advice-key="cash"><button>Advice</button></div>
+      <div class="needrow" data-need-key="office-move-0"><button>Office</button></div>
     `);
     const { fresh } = await page.evaluate(collectPresentations);
     assert.deepEqual(fresh.map(r => r.kind), ['decision', 'yak', 'yak', 'yak-prompt', 'advisor-prompt', 'office-prompt']);
@@ -172,13 +172,10 @@ describe('browser pacing presentations', () => {
     assert.deepEqual(r.expired.map((m) => m.key), ['yak-prompt:cp2']);
   });
 
-  it('fails closed when metadata hooks move', () => {
-    const plugin = presentationMetadata();
-    for (const file of ['dom', 'toasts', 'chat', 'hud', 'advisor', 'incident']) {
-      assert(plugin.transform(readFileSync(`src/ui/${file}.js`, 'utf8'), `/src/ui/${file}.js`).code);
-    }
-    assert(plugin.transform(readFileSync('src/main.js', 'utf8'), '/src/main.js').code);
-    assert.throws(() => plugin.transform('', '/src/ui/toasts.js'), /metadata hook missing/);
+  it('fails closed when a measurement hook is gone from the game', () => {
+    assert.deepEqual(missingHooks(), []);
+    const missing = missingHooks((f) => (f === 'src/ui/toasts.js' ? '' : readFileSync(f, 'utf8')));
+    assert.ok(missing.length && missing.every((m) => m.includes('src/ui/toasts.js')), missing.join('\n'));
   });
 
   it('uses elapsed exposure and only shown transitions for rates', () => {
