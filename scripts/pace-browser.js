@@ -118,6 +118,12 @@ export function readPresentations() {
     const title = el.matches('.inccard') ? `incident:${s.outage?.productId}:${s.outage?.kind}`
       : el.matches('.chat.max') ? 'Yak'
       : el.querySelector('h1,h2')?.textContent ?? el.querySelector('b')?.textContent ?? el.textContent.slice(0, 80);
+    // A letter the attention queue presents opens as a decision-like card; it is the letter, by its mail id.
+    if (el.matches('.letterdecision')) {
+      const m = (s.mail ?? []).find((x) => x.options?.length && !x.resolved && !x.archived && x.subject && el.textContent.includes(x.subject));
+      add(el, 'mail', m?.id ?? title);
+      continue;
+    }
     const decision = el.matches('.decision');
     const kind = decision ? 'decision' : el.matches('.coach') ? 'tutorial' : el.matches('.announce,.launch,.go-card') ? 'card' : 'panel';
     add(el, kind, decision ? s.pendingDecision?.id ?? s.pendingDecision?.eventId ?? title : title,
@@ -155,6 +161,7 @@ export function collectPresentations() {
       // What held it: the first that applies, in the order the game checks them.
       // A launch card pauses the game itself (speed 0), so it is checked before speed.
       const c = H.controls, why = s.gameOver ? 'gameOver' : s.pendingDecision ? 'decision'
+        : document.querySelector('.modal.letterdecision')?.checkVisibility() ? 'decision'
         : document.querySelector('.modal.launch')?.checkVisibility() ? 'card'
         : c?.getSpeed?.() === 0 ? (c.awayPaused ? 'away' : 'speed0') : window.__HITL_UI?.isBusy?.() ? 'menu'
         : c?.spotlightHeld?.() ? 'spotlight' : document.hidden ? 'hidden' : 'other';
@@ -206,6 +213,7 @@ export function collectPresentations() {
   for (const r of next.values()) {
     if (r.kind === 'decision' && s.pendingDecision) P.viewed.add(`decision:${s.pendingDecision.eventId}#${P.decisionN}`);
     if (r.kind === 'yak-prompt') P.viewed.add(`yak-prompt:${r.id}`);
+    if (r.kind === 'mail') P.viewed.add(`mail:${r.id}`);
   }
   const openKeys = new Set(open.map(([kind, id]) => `${kind}:${id}`));
   // A Yak prompt seen but closed with no choice ran out of time while on screen.
@@ -285,6 +293,16 @@ export async function installPlayer(o) {
     if (H.state.week !== P.seenWeek) { P.seenWeek = H.state.week; P.weekAt = performance.now(); }
     if (o.menuSeconds) { P.owed += Math.max(0, run - P.ranAt) * o.menuSeconds / 60; P.ranAt = run; }
     const active = [...P.active.values()];
+    // A letter the attention queue presented as a card: read it, then answer with the bot's choice.
+    const letterCard = document.querySelector('.modal.letterdecision');
+    if (shown(letterCard)) {
+      const m = openMail().find((x) => x.subject && letterCard.textContent.includes(x.subject));
+      if (m && due(`letter:${m.id}`, dwell(`${m.subject ?? ''} ${m.body ?? ''}`, true))) {
+        (P.viewed ??= new Set()).add(`mail:${m.id}`);
+        const b = pick([...letterCard.querySelectorAll('button.mailopt')], botChoice('mail', m.id));
+        if (b) click(b);
+      }
+    }
     // Decisions, cards and tutorials the game put up: read, then choose or dismiss.
     for (const r of active) {
       const key = `${r.kind}:${r.sequence}`;
@@ -321,7 +339,7 @@ export async function installPlayer(o) {
         if (!click(document.querySelector('button.ymark')) && !click(tab) && el) P.player(() => el.scrollIntoView({ block: 'center' }));
       }
       // Mail: open the inbox when a letter needs an answer, read each one, answer it, then close the inbox.
-      const busy = H.state.pendingDecision || active.some((x) => ['decision', 'card', 'tutorial'].includes(x.kind));
+      const busy = H.state.pendingDecision || shown(letterCard) || active.some((x) => ['decision', 'card', 'tutorial'].includes(x.kind));
       if (!P.task && !busy && openMail().length && !window.__HITL_UI.isBusy() && click(document.querySelector('button.mailbtn'))) P.task = { kind: 'mail', id: null };
       else if (P.task?.kind === 'mail') {
         const letter = P.task.id && H.state.mail.find((m) => m.id === P.task.id);
@@ -341,7 +359,7 @@ export async function installPlayer(o) {
         if (click(staff)) { P.task = { kind: 'menu', until: t + P.owed }; P.owed = 0; }
       } else if (P.task?.kind === 'menu' && t >= P.task.until) { closePanel(); P.task = null; }
     }
-    if (!P.task && !H.state.pendingDecision && !window.__HITL_UI.isBusy() && P.lastTurn !== H.state.week && performance.now() - P.weekAt >= 2000) {
+    if (!P.task && !H.state.pendingDecision && !shown(letterCard) && !window.__HITL_UI.isBusy() && P.lastTurn !== H.state.week && performance.now() - P.weekAt >= 2000) {
       turn(); P.lastTurn = H.state.week;
     }
   };
