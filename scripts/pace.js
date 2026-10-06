@@ -21,7 +21,8 @@ import { createGrowthMoments } from '../src/render/growth-moments.js';
 import { createGame, tick, dispatch } from '../src/sim/index.js';
 import * as bots from '../src/sim/bots.js';
 import { EVENTS } from '../src/data/events.js';
-import { createPacer, WEEK_SECONDS, readSeconds } from '../src/pacing.js';
+import { createPacer, createAttention, WEEK_SECONDS, readSeconds } from '../src/pacing.js';
+import { B } from '../src/sim/balance.js';
 import { speechMax } from '../src/render/speech-budget.js';
 import { createYakPacer, importantChat } from '../src/yak-pacing.js';
 
@@ -189,6 +190,8 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
   const draw = ([a, b]) => a + rand() * (b - a);
   const pacer = createPacer({ weekSeconds });
   const yakPacer = createYakPacer();
+  // With the ask queue on, decisions open only when the attention clock presents them, as in the page.
+  const clock = createAttention(B.attention);
   const urgentChats = new WeakSet();
   // When each queued important Yak post entered the queue, and the longest wait before one showed, in
   // seconds the Yak pacer was running (menus and spotlights freeze it).
@@ -475,6 +478,18 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
       if (left <= frame) activeSpots.delete(key); else activeSpots.set(key, left - frame);
     }
     if (menuPause || state.pendingDecision) touch();
+    if (B.pacing?.askQueue) {
+      const asks = (state.asks ?? []).filter((a) => a.expiresWeek == null || state.week < a.expiresWeek);
+      const out = clock.tick(frame, {
+        running, held, speed, asks, realTime: B.pacing.askRealTime !== false, expiry: !!B.pacing.askExpiry,
+        askOpen: !!state.pendingDecision || state.chatPrompts.some((p) => !p.resolved)
+          || (state.mail ?? []).some((m) => m.options?.length && !m.resolved && !m.archived),
+        decisionOpen: !!state.pendingDecision,
+        modal: !!state.pendingDecision || (!!menu && menu.kind !== 'menu'),
+      });
+      for (const askId of out.expire) route(dispatch(state, { type: 'expireAsk', askId }).events);
+      if (out.present) route(dispatch(state, { type: 'presentAsk', askId: out.present }).events);
+    }
     if (running) playT += frame;
     if (menuPause) { paused.menu += frame; if (menu.kind === 'menu') paused.sessions += frame; }
     else if (state.pendingDecision) paused.decision += frame;
