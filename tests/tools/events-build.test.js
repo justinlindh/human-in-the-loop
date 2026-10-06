@@ -10,7 +10,7 @@ import { B } from '../../src/sim/balance.js';
 
 describe('index pacing', () => {
   it('plays with the quiet pacing switches off and puts them back after, on return, throw or a promise', async () => {
-    expect(INDEX_PACING).toEqual({ askRates: false, letterMail: false, quietEvents: false });
+    expect(INDEX_PACING).toEqual({ askRates: false, letterMail: false, quietEvents: false, askQueue: false, askExpiry: false });
     const before = { ...B.pacing }, pinned = { ...before, ...INDEX_PACING };
     expect(withIndexPacing(() => ({ ...B.pacing }))).toEqual(pinned);
     expect(B.pacing).toEqual(before);
