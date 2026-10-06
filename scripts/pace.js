@@ -323,6 +323,9 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
     for (const e of events) {
       if (e.type === 'decision') stageSpotlight(state.pendingDecision, `decision:${state.week}:${state.pendingDecision?.eventId}`);
       if (e.type === 'chatPrompt') stageSpotlight(state.chatPrompts.find((p) => p.id === e.promptId), `prompt:${e.promptId}`);
+      // As the page does: a prompt on screen is marked shown, and a letter with a choice is read.
+      if (e.type === 'chatPrompt' && B.pacing?.shownExpiry) dispatch(state, { type: 'promptShown', promptId: e.promptId });
+      if (e.type === 'mail' && B.pacing?.shownExpiry && state.mail.find((m) => m.id === e.mailId)?.options?.length) dispatch(state, { type: 'readMail', mailId: e.mailId });
       if (e.type === 'decisionResolved' || e.type === 'chatPromptResolved') {
         const d = e.type === 'decisionResolved' ? e : { ...e, eventId: state.chatPrompts.find((p) => p.id === e.promptId)?.kind };
         if (d.eventId === 'printer_jam' && d.choice === 0) beginSpotlight('printer_jam', `printer:${state.week}`);
@@ -478,15 +481,23 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
       if (left <= frame) activeSpots.delete(key); else activeSpots.set(key, left - frame);
     }
     if (menuPause || state.pendingDecision) touch();
-    if (B.pacing?.askQueue) {
-      const asks = (state.asks ?? []).filter((a) => a.expiresWeek == null || state.week < a.expiresWeek);
+    // The clock always runs; it is fed only while the game is on, and asks reach it only with the queue on.
+    if (!state.gameOver) {
+      const queued = !!B.pacing?.askQueue;
+      const asks = queued ? (state.asks ?? []).filter((a) => a.expiresWeek == null || state.week < a.expiresWeek) : [];
       const out = clock.tick(frame, {
-        running, held, speed, asks, realTime: B.pacing.askRealTime !== false, expiry: !!B.pacing.askExpiry,
+        running, held, speed, asks, realTime: B.pacing?.askRealTime !== false, expiry: queued && !!B.pacing?.askExpiry,
+        openExpiry: !!B.pacing?.shownExpiry,
+        shown: [
+          ...state.chatPrompts.filter((p) => p.shownWeek != null && !p.resolved).map((p) => ({ kind: 'prompt', id: p.id })),
+          ...(state.mail ?? []).filter((m) => m.shownWeek != null && m.options?.length && !m.resolved && !m.archived).map((m) => ({ kind: 'letter', id: m.id })),
+        ],
         askOpen: !!state.pendingDecision || state.chatPrompts.some((p) => !p.resolved)
           || (state.mail ?? []).some((m) => m.options?.length && !m.resolved && !m.archived),
         decisionOpen: !!state.pendingDecision,
         modal: !!state.pendingDecision || (!!menu && menu.kind !== 'menu'),
       });
+      for (const x of out.expireOpen) route(dispatch(state, { type: 'expireOpen', kind: x.kind, id: x.id }).events);
       for (const askId of out.expire) route(dispatch(state, { type: 'expireAsk', askId }).events);
       if (out.present) route(dispatch(state, { type: 'presentAsk', askId: out.present }).events);
     }
