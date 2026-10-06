@@ -49,13 +49,13 @@ function remark(ctx) {
   const verdict = who.taste === station.id ? 'like' : 'dislike';
   ctx.emit({ type: 'radioTaste', staffId: who.id, station: station.id, verdict });
   const msg = emitChat(ctx, { channel: 'random', person: who, text: pick(ctx.rng, station[verdict]) });
-  // A fan of the station draws a groan from someone who isn't, and the reverse.
+  // A fan of the station draws a groan in the thread from someone who isn't, and the reverse. The reply is a
+  // Yak line only: one radioTaste event per gap.
   const other = people.filter((p) => p !== who && (p.taste === station.id) !== (verdict === 'like'));
   if (other.length && chance(ctx.rng, B.boombox.argueChance)) {
     const second = pick(ctx.rng, other);
     const lines = verdict === 'like' ? [...station.dislike, ...STATION_ARGUMENT_LINES] : station.like;
     emitChat(ctx, { channel: 'random', person: second, text: pick(ctx.rng, lines), replyTo: msg?.id });
-    ctx.emit({ type: 'radioTaste', staffId: second.id, station: station.id, verdict: verdict === 'like' ? 'dislike' : 'like' });
   }
   state.flags.radioRemarkWeek = state.week;
 }
@@ -65,7 +65,7 @@ function swap(ctx) {
   const people = listeners(state).filter((p) => !p.founder && p.taste !== state.radio.station);
   if (!people.length) return;
   const who = pick(ctx.rng, people);
-  setRadio(ctx, true, who.taste, who.id);
+  setRadio(ctx, state.radio.on, who.taste, who.id);
   emitChat(ctx, { channel: 'random', person: who, text: pick(ctx.rng, STATION_SWAP_LINES).replaceAll('{station}', stationName(who.taste)) });
 }
 

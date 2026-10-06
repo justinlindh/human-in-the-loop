@@ -114,8 +114,7 @@ describe('issue #139: the boombox', () => {
       const who = s.staff.find((p) => p.id === e.staffId);
       expect(e.verdict).toBe(who.taste === e.station ? 'like' : 'dislike');
     }
-    const first = [...new Set(tastes.map((e) => e.week))];
-    for (let i = 1; i < first.length; i++) expect(first[i] - first[i - 1]).toBeGreaterThanOrEqual(B.boombox.tasteGapWeeks);
+    for (let i = 1; i < tastes.length; i++) expect(tastes[i].week - tastes[i - 1].week).toBeGreaterThanOrEqual(B.boombox.tasteGapWeeks);
     expect(s.staff.map((p) => p.meaning)).toEqual(meaning);
     expect(s.rng).toEqual(rng);
   });
@@ -129,6 +128,8 @@ describe('issue #139: the boombox', () => {
     try { ev = weekOf(s); } finally { B.boombox.swapChance = keep; }
     const swap = ev.find((e) => e.type === 'radio');
     const who = s.staff.find((p) => p.id === swap.by);
+    expect(swap.on).toBe(true);
+    expect(s.radio.on).toBe(true);
     expect(who.founder).toBe(false);
     expect(swap.station).toBe(who.taste);
     expect(s.radio.station).toBe(who.taste);
