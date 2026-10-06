@@ -44,5 +44,10 @@
     "query": "seed=1&speed=1",
     "seed": 1,
     "week": 534
+  },
+  "launch": {
+    "query": "seed=9&speed=1",
+    "seed": 9,
+    "week": 140
   }
 }

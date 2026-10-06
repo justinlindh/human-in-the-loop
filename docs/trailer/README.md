@@ -71,7 +71,7 @@ If a beat's `from + dur` runs past its capture, the build stops and says which b
 
 ## Launch and Yak shots
 
-`trail-launch` selects a seed that reaches a first-version hit on the Office Floor. The setup validates the
+The launch beat opens on the `launch` pin, one week before a first-version hit on the Office Floor. The setup validates the
 look-ahead and keeps only that new-product project, so subsequent updates cannot bundle into its
 results card. The launch beat starts after the reviews finish appearing.
 
