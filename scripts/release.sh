@@ -32,7 +32,7 @@ subject="$(git log -1 --format=%s "$sha")"
 log="$(mktemp "${TMPDIR:-/tmp}/release.XXXXXX")"; trap 'rm -f "$log"' EXIT
 echo "release: running the whole suite on $short ($subject)"
 t0=$SECONDS
-if [ -n "${RELEASE_GUARD:-}" ]; then bash -c "$RELEASE_GUARD" >"$log" 2>&1; else bash scripts/main-guard.sh --sha "$sha" --no-post >"$log" 2>&1; fi
+if [ -n "${RELEASE_GUARD:-}" ]; then bash -c "$RELEASE_GUARD" >"$log" 2>&1; else MAIN_GUARD_NO_BISECT=1 bash scripts/main-guard.sh --sha "$sha" --no-post >"$log" 2>&1; fi
 rc=$?
 secs=$(( SECONDS - t0 ))
 cat "$log"
