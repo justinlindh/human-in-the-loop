@@ -178,17 +178,17 @@ run bash-guard.sh "$(jq -n --arg c 'until gh pr checks 12; do sleep 30; done' --
 run bash-guard.sh "$(bashjson 'until gh pr view 12; do sleep 60; done')"
 [[ "$err" == *"wait-for.sh"* ]] || fail "the sleep-poll refusal should name wait-for.sh (got: $err)"
 
-# wait-for.sh: run_in_background is the only way to keep it alive; &, nohup, setsid and --no-update are refused.
+# wait-for.sh: run_in_background is the only way to keep it alive; &, nohup and setsid are refused.
 for c in 'scripts/wait-for.sh 12 --merged &' 'scripts/wait-for.sh 12 --merged > w.log 2>&1 &' 'nohup scripts/wait-for.sh 12 --merged' \
-  'setsid scripts/wait-for.sh 12 --merged' 'nohup scripts/wait-for.sh 12 --merged > w.log &' 'scripts/wait-for.sh 12 --merged --no-update' \
-  'cd ../x && scripts/wait-for.sh 12 --merged &' 'timeout 60 scripts/wait-for.sh 12 --merged & echo $!' 'bash scripts/wait-for.sh 12 --no-update --merged'; do
+  'setsid scripts/wait-for.sh 12 --merged' 'nohup scripts/wait-for.sh 12 --merged > w.log &' \
+  'cd ../x && scripts/wait-for.sh 12 --merged &' 'timeout 60 scripts/wait-for.sh 12 --merged & echo $!'; do
   denied "$c"
 done
 run bash-guard.sh "$(bashjson 'scripts/wait-for.sh 12 --merged &')"
 [[ "$err" == *"run_in_background"* ]] || fail "the wait-for refusal should name run_in_background (got: $err)"
 for c in 'scripts/wait-for.sh 12 --merged' 'scripts/wait-for.sh 12' 'scripts/wait-for.sh 12 --merged 2>&1' 'cd ../x && scripts/wait-for.sh 12 --merged' \
   'cat scripts/wait-for.sh' 'git add scripts/wait-for.sh && git status' 'sleep 1 & scripts/wait-for.sh 12 --merged' \
-  "gh pr comment 12 --body 'run nohup scripts/wait-for.sh 12 &'" "git commit -m 'wait-for.sh --no-update is refused'" 'echo hi &'; do
+  "gh pr comment 12 --body 'run nohup scripts/wait-for.sh 12 &'" "git commit -m 'wait-for.sh --no-update is allowed'" 'scripts/wait-for.sh 12 --merged --no-update' 'scripts/wait-for.sh 12 --update --merged' 'echo hi &'; do
   allowed "$c"
 done
 run bash-guard.sh "$(jq -n --arg c 'scripts/wait-for.sh 12 --merged' --arg d "$tmp" '{hook_event_name: "PreToolUse", tool_name: "Bash", cwd: $d, tool_input: {command: $c, run_in_background: true}}')"
