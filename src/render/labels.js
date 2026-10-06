@@ -543,5 +543,9 @@ export function createLabels(parent) {
 
   const speechCount = () => live.filter((l) => l.kind === 'say').length;
   const speaking = (follow) => live.some((l) => l.kind === 'say' && l.follow === follow && l.t < l.life - 0.3);
-  return { stat, banner, say, note, growth, update, layout, clearFor, clearSpeech, speechCount, speaking, get count() { return live.length; } };
+  // A bubble over `follow` still within its reading hold, to its last frame: what a note must wait
+  // for, since a note replaces the bubble over the same person (speaking() lets chatter follow on in
+  // the last 0.3 s).
+  const lineUp = (follow) => live.some((l) => l.kind === 'say' && l.follow === follow && !l.retiring && l.t < l.life);
+  return { stat, banner, say, note, growth, update, layout, clearFor, clearSpeech, speechCount, speaking, lineUp, get count() { return live.length; } };
 }
