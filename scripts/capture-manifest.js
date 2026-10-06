@@ -11,6 +11,8 @@
 // Page JS has window.__HITL (state, dispatch, tickN, emit, controls), window.__HITL_UI (dev only),
 // and window.__capture. Setups change state directly to stage a moment; that is fine for capture.
 
+import { INDEX_PACING } from './events/play.js';
+
 // Clicks the visible button with this label (a player pressing it).
 export const CLICK = (label) => `[...document.querySelectorAll('button')].find((b) => b.getClientRects().length && b.textContent.trim() === ${JSON.stringify(label)})?.click()`;
 // Clicks the nth visible element matching a CSS selector.
@@ -152,6 +154,10 @@ export const FOLLOW = (props, zoom, from, to, shift = 0, center = false, scaled 
 // The nods reel crops a 1280x720 window whose center sits 320 px right of a 1920x1080 frame's.
 const NODS_FOLLOW = (props, zoom, from, to) => FOLLOW(props, zoom, from, to, 320);
 
+// Page JS: the pacing switches the event index plays with (scripts/events/play.js INDEX_PACING), so a decision
+// opens on the tick that raises it instead of queueing, for any helper that looks ahead for a decision.
+export const PIN_PACING = `Object.assign((await import('/src/sim/balance.js')).B.pacing, ${JSON.stringify(INDEX_PACING)});`;
+
 // Plays a real game with a bot straight through the sim until the next week would bring what the
 // shot is about (`hit`, tested on a copy ticked one week ahead, given the copy and the week's
 // events), and stops the week before: the game's own tick brings it live, with its card, freeze and
@@ -159,6 +165,7 @@ const NODS_FOLLOW = (props, zoom, from, to) => FOLLOW(props, zoom, from, to, 320
 // look-ahead (so the live week matches it); `after` only presents (it must not change state).
 // `turn` controls whether the bot manages projects and expansion that week.
 export const PRE_UNTIL = ({ weeks, hit, bot = 'allHumans', prep = '', after = '', turn = 'true' }) => `(async () => {
+  ${PIN_PACING}
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
   const s = window.__HITL.state;
