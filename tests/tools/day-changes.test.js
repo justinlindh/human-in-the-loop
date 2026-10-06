@@ -135,8 +135,12 @@ describe('docs/effects', () => {
 
 describe('a merged PR against a real repository', () => {
   const dir = mkdtempSync(join(toolTmp(), 'day-changes-test-'));
+  // Every commit is dated the day before the days the cases ask about (a commit's own --date sets its
+  // author date), so the result never depends on the day the test runs. The tool's git log reaches a
+  // day back by committer date, which keeps these commits in its window.
+  const fixed = '2026-10-04T12:00:00Z';
   const g = (...a) => spawnSync('git', ['-C', dir, '-c', 'user.name=t', '-c', 'user.email=t@t', ...a],
-    { encoding: 'utf8', env: { ...process.env, GIT_AUTHOR_DATE: '2026-10-05T11:00:00-07:00', GIT_COMMITTER_DATE: '2026-10-05T11:00:00-07:00' } });
+    { encoding: 'utf8', env: { ...process.env, GIT_AUTHOR_DATE: fixed, GIT_COMMITTER_DATE: fixed } });
   const gitOut = (a) => { const r = g(...a); return r.status === 0 ? r.stdout : null; };
   const oids = {};
 
@@ -191,7 +195,6 @@ describe('a merged PR against a real repository', () => {
     expect(fx.days[0].prs[0].features.find((f) => f.title === 'Box').effects).toEqual([expect.objectContaining({ name: 'Box', kind: 'row' })]);
     expect(d5.prs[1].featuresUnavailable).toBe(true);
     expect(d5.skipped).toContainEqual({ number: 2, title: 'fix(tools): readme', reason: 'scope tools' });
-    // The repository's own commits are dated now, so other direct commits may share the day.
     expect(d5.direct).toContainEqual(expect.objectContaining({ subject: 'Add the HUD', body: 'A clock and a cash counter.', areas: ['ui'], features: [] }));
     expect(d5.skipped).toContainEqual(expect.objectContaining({ title: 'Notes', reason: 'direct commit, no player-facing paths' }));
     expect(out.days[1]).toMatchObject({ prs: [], direct: [] });

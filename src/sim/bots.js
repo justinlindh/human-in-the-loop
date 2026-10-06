@@ -576,10 +576,15 @@ function answerPrompts(name, s) {
   }
 }
 
-// Bots answer mail the week it arrives: an event delivered as mail the way they answer it as a popup, a
-// reply-all storm by muting it, and any other mail with its first available reply.
+// Bots answer mail: an event delivered as mail the way they answer it as a popup, a reply-all storm by muting
+// it, and any other mail with its first available reply. Most answer the week it arrives; automateAll gets to
+// it B.mail.botLateWeeks later, and recklessHumans never opens the inbox, so its mail expires unanswered.
+const MAIL_LATE = new Set(['automateAll']);
+const MAIL_NEVER = new Set(['recklessHumans']);
 function answerMail(name, s) {
-  for (const m of (s.mail ?? []).filter((x) => x.options.length && !x.resolved)) {
+  if (MAIL_NEVER.has(name)) return;
+  const age = MAIL_LATE.has(name) ? B.mail.botLateWeeks : 0;
+  for (const m of (s.mail ?? []).filter((x) => x.options.length && !x.resolved && s.week - x.week >= age)) {
     const open = m.options.map((o, i) => (o.available ? i : -1)).filter((i) => i >= 0);
     if (!open.length) continue;
     let choice = open[0];

@@ -2,6 +2,7 @@ import { createYakPacer } from './yak-pacing.js';
 import { createMockSim } from './dev/mockSim.js';
 import { createPacer, createFrameClock, MAX_CATCHUP, MAX_STEP } from './pacing.js';
 import { autoQuality, deviceTraits, glRendererName } from './quality.js';
+import { registerPwa } from './dev/pwa.js';
 
 // Optional layers: each lane's worktree renders whatever layers exist there.
 const renderMods = import.meta.glob('./render/index.js');
@@ -362,6 +363,7 @@ async function boot() {
   }
 }
 
+registerPwa();
 boot().catch((e) => {
   console.error(e);
   // Ready stays true so a waiting check doesn't hang; the error says the game never came up.

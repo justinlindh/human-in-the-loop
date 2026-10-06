@@ -198,8 +198,8 @@ const YAK_PROMPTS = ['strain_vent', 'incident_blame', 'launch_hype', 'rival_itch
 // from before the decision and the clip answers it.
 const LEFT_BEHIND = new Map([['rival_jab', 0], ['alumni_reunion', 0], ['mission_statement', 0], ['ai_summit_hackathon', 1], ['last_bet', 0]]);
 
-// Decisions whose prop is still too small to read at the closest zoom; they render but do not publish.
-const UNREADABLE_DECISIONS = new Set(['no_show', 'junior_overwhelmed', 'founder_burnout', 'enterprise_rfp', 'phishing_ceo', 'alumni_reunion']);
+// Decisions whose prop is small: they open the game's own best view of it and scale the zoom with the office.
+const SMALL_PROP_DECISIONS = new Set(['no_show', 'junior_overwhelmed', 'founder_burnout', 'enterprise_rfp', 'phishing_ceo', 'alumni_reunion']);
 
 // [item id, camera zoom, era the item needs] of the shop items shown in docs/features/office.md.
 const ITEM_STILLS = [
@@ -666,7 +666,7 @@ export const ITEMS = [
       ...CAMLOG(40)],
     screenshots: [14, 18, 22, 26],
     out: [{ path: `moments/music-${genre}.mp4`, size: '1280x720', from: 13, seconds: 14, loop: 'none', crop: { x: 0.2, y: 0.3, w: 0.5, h: 0.5 } }],
-    // Not published until the onlookers leave an arc open to the camera: from every view the ring hides the dance.
+    publish: true,
   })),
 
   // docs/features/nods.md: the oat milk pallets. No bot reaches the decision, so a real game is played into the
@@ -746,10 +746,11 @@ export const ITEMS = [
     id: `decision-${id}`, title: `Decision prop: ${id}`, query: 'seed=1&speed=1', moment: ANY_CHOICE(query), pre: true, still: true, warmup: 8,
     setup: `(() => { ${CLEAN}; ${NO_CARD}; ${NO_SAY}; })()`,
     // A prop a choice leaves behind exists only after the card is answered (by key, as a player would).
-    actions: [...OPEN(), ...(LEFT_BEHIND.has(id) ? CHOOSE_WHEN(id, LEFT_BEHIND.get(id), 1, 8, 1.5) : []), ...FOLLOW([prop], zoom, 0, LEFT_BEHIND.has(id) ? 20 : 14, 0, center)],
+    // The held props are turned to their clearest view and framed at the office-scaled zoom.
+    actions: [...OPEN(SMALL_PROP_DECISIONS.has(id) ? [prop] : undefined), ...(LEFT_BEHIND.has(id) ? CHOOSE_WHEN(id, LEFT_BEHIND.get(id), 1, 8, 1.5) : []), ...FOLLOW([prop], zoom, 0, LEFT_BEHIND.has(id) ? 20 : 14, 0, center, SMALL_PROP_DECISIONS.has(id))],
     screenshots: [LEFT_BEHIND.has(id) ? 14 : 5],
     out: [{ path: `decisions/${id}.webp`, size: '1280x720', from: LEFT_BEHIND.has(id) ? 14 : 5 }],
-    publish: !UNREADABLE_DECISIONS.has(id),
+    publish: true,
   })),
 
   // docs/features/yak.md: the reply prompts. The pre-tick save of the week that raises each one is opened,

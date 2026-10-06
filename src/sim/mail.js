@@ -27,7 +27,7 @@ function side(ctx, salt) {
 }
 
 const TEMPLATES = Object.fromEntries(MAIL_TEMPLATES.map((t) => [t.id, t]));
-const REPLY_ALL_KIND = 'reply_all';
+const REPLY_ALL_KIND = REPLY_ALL.id;
 const present = (state) => state.staff.filter((p) => p.mood !== 'away');
 const founderOf = (state) => present(state).find((p) => p.founder) ?? state.staff.find((p) => p.founder) ?? null;
 export const openChoice = (m) => m.options.length > 0 && !m.resolved;
