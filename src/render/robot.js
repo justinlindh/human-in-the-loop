@@ -806,6 +806,13 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
   return {
     sync, update, event, reset, join, leave,
     // Read-only snapshot for scripts.
+    // The way to its party post, turn by turn from where it stands, so others can keep off it.
+    partyWay() {
+      if (!rec?.party) return [];
+      const e = dockEntry();
+      const from = rec.docked && e ? wayHome(e) : rec.pos;
+      return [{ x: rec.pos.x, z: rec.pos.z }, ...(route({ x: from.x, z: from.z }, rec.party.spot) ?? [rec.party.spot])];
+    },
     peek() {
       if (!rec) return null;
       const last = rec.path.length ? rec.path[rec.path.length - 1] : null;

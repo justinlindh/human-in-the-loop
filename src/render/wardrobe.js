@@ -1,9 +1,8 @@
 import { hashLook } from './look.js';
 import { PALETTE } from './palette.js';
-import { ERA_ART_PREVIEW, eraArtEra } from './era-art.js';
+import { ERA_ART_PREVIEW, ERAS_OFF, eraArtEra } from './era-art.js';
 
-const query = new URLSearchParams(globalThis.location?.search ?? '');
-export const WARDROBE_MODELS = query.has('eras') ? ['era_attire'] : [];
+export const WARDROBE_MODELS = ['era_attire'];
 export const TEE_PRINTS = ['parcel_paws', 'onlineland', 'y2k', 'shoutbook', 'tuesday', 'beta_forever', 'weekend', 'ship_it'];
 
 const TEES = {
@@ -18,7 +17,7 @@ const TEES = {
 };
 
 export function wardrobeEra(state) {
-  if (!query.has('eras')) return null;
+  if (ERAS_OFF) return null;
   const era = ERA_ART_PREVIEW ? eraArtEra(state) : state?.founding?.startEra ? state.era?.id : null;
   return ['preinternet', 'dotcom', 'dotcom-bust', 'web2'].includes(era) ? era : null;
 }

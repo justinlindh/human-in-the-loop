@@ -7,6 +7,8 @@ import { tick } from '../sim/tick.js';
 import { ERA_STARTS } from '../data/era-modes.js';
 import { saveGame, listSaves, loadGame } from '../save/save.js';
 
+// A saved company keeps its start with the picker off (`?eras=0`) too.
+vi.mock('./eraPreview.js', () => ({ erasPreview: false }));
 vi.hoisted(() => vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({}) }))));
 afterAll(() => vi.unstubAllGlobals());
 afterEach(() => { document.body.replaceChildren(); localStorage.clear(); });
