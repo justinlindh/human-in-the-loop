@@ -328,7 +328,8 @@ ChatPrompt = {
   chatId,            // the chatLog message the options hang under
   channel, fromId,   // copied from that message; fromId is a staff id, or null for bots
   week,              // week opened
-  expiresWeek,       // resolves as ignored when state.week reaches it
+  expiresWeek,       // resolves as ignored when state.week reaches it, unless shownWeek is set under B.pacing.shownExpiry
+  shownWeek,         // null until the prompt is on screen (promptShown)
   options: [{ label, hint, available, reason, opens? }],   // 2 or 3; hint states the effects, as decision choices do; opens: optional { panel, arg? } as in Advice.target, the menu ui opens after the answer succeeds, e.g. { panel: 'office', arg: 'desk' } to place a desk
   resolved: null | { choice, week, replyId },       // choice: index, or null when ignored; replyId: the founder's chat id, or null
   stage: null | { prop, anchor, x, y, staffId },   // an event delivered as a prompt keeps its staged prop, resolved as for pendingDecision.stage
@@ -639,7 +640,8 @@ Mail = {
   important,     // legal, investor, anything with a deadline
   threadId, inReplyTo,
   read: null | week,
-  expiresWeek: null | week,   // mail with options resolves as ignored when state.week reaches it
+  expiresWeek: null | week,   // mail with options resolves as ignored when state.week reaches it, unless shownWeek is set under B.pacing.shownExpiry
+  shownWeek: null | week,     // set when readMail first opens it
   options: [{ label, hint, available, reason, opens? }],   // 0 to 3; [] for plain mail; hint states effects, as decision choices do
   resolved: null | { choice, week, replyText },   // choice null when ignored (expired or archived)
   archived,      // bool
@@ -771,15 +773,15 @@ state.asks: [{ id, kind, priority, week, expiresWeek, defaultChoice, ref }]
 
 ### Shown prompts and letters
 
-A Yak prompt or letter's lifetime runs in game weeks only until the player sees it; once shown, it runs in real seconds.
+Behind `B.pacing.shownExpiry`. With it off, prompts and letters keep today's week expiry whether shown or not. With it on, a Yak prompt or letter's lifetime runs in game weeks only until the player sees it; once shown, it runs in real seconds: `B.attention.openExpiry` (120) seconds of running play.
 
 ```js
 { type: 'promptShown', promptId }        // ui dispatches when the prompt is on screen; sets the prompt's shownWeek; works while paused; refusals: 'No such prompt'
 { type: 'expireOpen', kind, id }         // kind: 'prompt' | 'letter'; the presentation clock dispatches after B.attention.openExpiry seconds of running play since it was shown; applies the ignore outcome; refusals: 'No such prompt' | 'No such letter' | 'Already answered'
 ```
 
-- A prompt's `chatPromptExpiryWeeks` applies only while it has no `shownWeek`; such a prompt is dropped as stale. A shown prompt never expires by weeks: it closes when answered or through `expireOpen` (or `expireAsk` when it came from the queue).
-- A letter is shown when `readMail` opens it, which sets its `shownWeek`; the same rule applies.
+- With the switch on, `expiresWeek` applies only while `shownWeek` is null, and an unshown prompt or letter that reaches it resolves as ignored, as today. A shown one never expires by weeks: it closes when answered or through `expireOpen` (or `expireAsk` when it came from the queue).
+- A letter is shown when `readMail` first opens it, which sets its `shownWeek`. A letter the queue presents counts as shown only once ui has opened it with `readMail`.
 - Bots never dispatch `promptShown`, so balance runs keep the week-based expiry.
 
 ### Events: Attention queue
