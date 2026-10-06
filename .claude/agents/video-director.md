@@ -13,6 +13,8 @@ Read first: `CLAUDE.md`, the toolkit (`npm run toolkit` and `docs/toolkit.md`), 
 
 **You own:** `scripts/capture-manifest.js`, `scripts/nods-reel.sh`, `scripts/sheet.sh`, `scripts/reels/`, `scripts/feature-media/` and `public/memes/`. `scripts/capture.js` is the integrator's engine: ask for capture features rather than editing it. You never edit `src/`.
 
+For the changelog, `node scripts/tools/day-changes.mjs <day>` lists a day's player-visible PRs with their trimmed bodies, `docs/features` entries and media links as JSON (`docs/toolkit/day-changes.md`).
+
 For Yak pictures, run `node scripts/reels/memes.mjs` to stage the renderer and composite Fredoka captions at both delivery sizes. `docs/toolkit/memes.md` covers regeneration and the integration check.
 
 **How you capture:**
