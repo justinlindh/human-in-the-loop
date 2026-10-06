@@ -158,6 +158,19 @@ describe('audio director', () => {
     expect(start.filter((c) => c.cue === 'voice.bark')).toHaveLength(0);
   });
 
+  it('does not cheer an era it first sees after a trip back to the title, for a new game or a load', () => {
+    const cheered = (cmds) => cmds.some((c) => c.op === 'duck' && c.key === 'cheer' && c.on);
+    for (const next of ['classic', 'agents']) {
+      const d = createDirector();
+      d.update(state({ era: { id: 'chatgbt' } }), 0, { speed: 1, running: true });
+      d.update(state({ era: { id: 'chatgbt' } }), 30, { speed: 1, running: true });
+      d.update(state({ era: { id: 'chatgbt' } }), 40, { title: true });
+      const s = state({ era: { id: next } });
+      expect(cheered(d.update(s, 41, { speed: 1, running: true }))).toBe(false);
+      expect(cheered(d.update(s, 50, { speed: 1, running: true }))).toBe(false);
+    }
+  });
+
   it('keeps single barks to VOICE.maxSingle at once', () => {
     const d = createDirector();
     const s = state();
@@ -429,9 +442,21 @@ describe('audio director', () => {
     });
 
     it('stays on the era bed with no radio state, an unknown station, or a station with no delivered beds', () => {
-      const d = createDirector({ seed: 3, beds });
-      run(d, state(), 0);
-      for (const [i, s] of [state(), radio('nope'), radio('polka'), radio('lofi', false)].entries()) expect(music(run(d, s, 5 + i))).toEqual([]);
+      const had = ASSETS.music.radio_polka;
+      delete ASSETS.music.radio_polka;
+      try {
+        const d = createDirector({ seed: 3, beds });
+        run(d, state(), 0);
+        for (const [i, s] of [state(), radio('nope'), radio('polka'), radio('lofi', false)].entries()) expect(music(run(d, s, 5 + i))).toEqual([]);
+      } finally { ASSETS.music.radio_polka = had; }
+    });
+
+    it('ships three beds for each of the six stations, every one a delivered file', () => {
+      for (const id of ['lofi', 'synth88', 'polka', 'bossa', 'elevator', 'funk']) {
+        const beds = ASSETS.music[`radio_${id}`]?.beds ?? [];
+        expect(beds.map((b) => b.id), id).toEqual(['a', 'b', 'c']);
+        for (const b of beds) expect(b.stems.full.file, id).toBe(`music/radio_${id}/${b.id}_full.ogg`);
+      }
     });
 
     it('rotates a station beds as a playlist and does not cheer for a station change', () => {
@@ -441,6 +466,42 @@ describe('audio director', () => {
       for (let t = 5; t < 400; t += 0.5) cmds.push(...run(d, radio('lofi'), t));
       expect(music(cmds).map((c) => c.bed).filter((b) => b.startsWith('radio_lofi'))).toEqual(expect.arrayContaining(['radio_lofi/a', 'radio_lofi/b']));
       expect(cmds.filter((c) => c.op === 'play' && /cheer/.test(c.cue))).toEqual([]);
+    });
+
+    const cheered = (cmds) => cmds.some((c) => c.op === 'duck' && c.key === 'cheer' && c.on);
+    const bedsEra = { ...beds, chatgbt: ['chatgbt/a'] };
+
+    it('still cheers a new era while a station plays, and keeps the station', () => {
+      const d = createDirector({ seed: 3, beds: bedsEra });
+      run(d, state(), 0);
+      run(d, radio('lofi'), 5);
+      const era = { ...radio('lofi'), era: { id: 'chatgbt' } };
+      d.events([{ type: 'era', eraId: 'chatgbt' }], era, 100);
+      const cmds = run(d, era, 101);
+      expect(cheered(cmds)).toBe(true);
+      expect(music(cmds)).toEqual([]);
+      expect(cheered(run(d, era, 102))).toBe(false);
+    });
+
+    it('does not replay the era cheer, or cheer at all, when the radio is turned off later', () => {
+      const d = createDirector({ seed: 3, beds: bedsEra });
+      run(d, state(), 0);
+      run(d, radio('lofi'), 5);
+      const era = { ...radio('lofi'), era: { id: 'chatgbt' } };
+      d.events([{ type: 'era', eraId: 'chatgbt' }], era, 100);
+      run(d, era, 101);
+      const off = run(d, { ...era, radio: { on: false, station: 'lofi' } }, 400);
+      expect(music(off)).toMatchObject([{ era: 'chatgbt' }]);
+      expect(cheered(off)).toBe(false);
+    });
+
+    it('waits for the era card with a station on, then cheers once', () => {
+      const d = createDirector({ seed: 3, beds: bedsEra });
+      run(d, radio('lofi'), 0);
+      const era = { ...radio('lofi'), era: { id: 'chatgbt' } };
+      d.events([{ type: 'era', eraId: 'chatgbt' }], era, 100);
+      expect(cheered(d.update(era, 101, { speed: 1, running: true, menuPause: true }))).toBe(false);
+      expect(cheered(run(d, era, 110))).toBe(true);
     });
 
     it('plays the tuning and click cues when they exist: a click on and off, tuning between stations', () => {
