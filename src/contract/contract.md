@@ -791,5 +791,5 @@ Behind `B.pacing.shownExpiry`. With it off, prompts and letters keep today's wee
 { type: 'askQueued', askId, kind, priority }
 { type: 'askExpired', askId, kind }
 { type: 'askPresented', askId, kind, priority, mailId, promptId }   // presentAsk opened it; mailId set for a letter, promptId for a prompt, both null for a decision (it is pendingDecision). ui brings a presented letter or prompt in front of the player
-{ type: 'quietEvent', eventId, subjectId, choice, stage }          // behind B.pacing.quietEvents: an event resolved with no card; choice is the index applied; stage is the resolved { prop, anchor, x, y } or null. Render stages the prop and plays any moment ambiently (subject to momentCap); ui may show a bubble. One Yak line names what happened
+{ type: 'quietEvent', eventId, subjectId, choice, stage }          // behind B.pacing.quietEvents: an event resolved with no card; choice is the index applied, or null for an event with no choices; stage is the resolved { prop, anchor, x, y, staffId } or null. Render stages the prop and plays any moment ambiently (subject to momentCap); ui may show a bubble. One Yak line names what happened
 ```
