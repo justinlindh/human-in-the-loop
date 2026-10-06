@@ -1,6 +1,7 @@
 // unlock(state): the trigger. with: opens alongside that unlock key, without a card of its own.
 // era: arrives with that era. Otherwise policies unlock one at a time (see checkUnlocks).
 import { ERA_IDS } from './eras.js';
+import { B } from '../sim/balance.js';
 export const POLICIES = {
   daily_standups: {
     id: 'daily_standups', with: 'standups', lockText: 'Unlocks at 5 people', name: 'Daily Standups', weeklyCost: 0, unlock: (s) => s.staff.length >= 5, excludes: 'async_standups',
@@ -59,5 +60,10 @@ export const POLICIES = {
     id: 'incentives', lockText: 'Unlocks with a team of 8 and three launches', name: 'Incentives Program', weeklyCost: 300,
     unlock: (s) => s.staff.length >= 8 && s.stats.launches >= 3,
     desc: 'Every couple of months the top performer gets a reward. More output for a while, a happy winner, a slightly envious team. It wears thin.',
+  },
+  ai_interviews: {
+    id: 'ai_interviews', era: 'agents', lockText: 'Arrives with the Agents era', name: 'AI Video Interviews', weeklyCost: 0,
+    unlock: (s) => B.aiInterviews.enabled && ERA_IDS.indexOf(s.era.id) >= ERA_IDS.indexOf('agents'),
+    desc: 'Candidates sit alone with a screen that interviews them. Half the hiring fee and a faster pool, but candidates are harder to read, some had their own AI do the talking, and people hear about it.',
   },
 };
