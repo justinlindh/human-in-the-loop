@@ -777,12 +777,13 @@ Behind `B.pacing.shownExpiry`. With it off, prompts and letters keep today's wee
 
 ```js
 { type: 'promptShown', promptId }        // ui dispatches when the prompt is on screen; sets the prompt's shownWeek; works while paused; refusals: 'No such prompt'
-{ type: 'expireOpen', kind, id }         // kind: 'prompt' | 'letter'; the presentation clock dispatches after B.attention.openExpiry seconds of running play since it was shown; applies the ignore outcome; refusals: 'No such prompt' | 'No such letter' | 'Already answered'
+{ type: 'expireOpen', kind, id }         // kind: 'prompt' | 'letter'; the presentation clock dispatches after B.attention.openExpiry seconds of running play since it was shown; applies the ignore outcome; refusals: 'Expiry is off' (B.pacing.shownExpiry off) | 'No such prompt' | 'No such letter' | 'Already answered'
 ```
 
 - With the switch on, `expiresWeek` applies only while `shownWeek` is null, and an unshown prompt or letter that reaches it resolves as ignored, as today. A shown one never expires by weeks: it closes when answered or through `expireOpen` (or `expireAsk` when it came from the queue).
 - A letter is shown when `readMail` first opens it, which sets its `shownWeek`. A letter the queue presents counts as shown only once ui has opened it with `readMail`.
 - Bots never dispatch `promptShown`, so balance runs keep the week-based expiry.
+- Saves without `shownWeek` load with it null.
 
 ### Events: Attention queue
 
