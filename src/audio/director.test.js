@@ -421,8 +421,9 @@ describe('audio director', () => {
       expect(plays(d.dealBell({ staffId: 's1', seconds: 3 }, 100 + i * 100))).toEqual(['sfx.deal_handbell']);
     }
     expect(plays(d.dealBell({ staffId: 's1' }, 500.5))).toEqual([]);
-    expect(plays(d.dealBell({ staffId: 's1' }, 503))).toEqual(['sfx.deal_handbell']);
-    expect(CUES['sfx.deal_handbell']).toMatchObject({ bus: 'sfx', cooldown: 2 });
+    expect(plays(d.dealBell({ staffId: 's1' }, 520))).toEqual([]);
+    expect(plays(d.dealBell({ staffId: 's1' }, 531))).toEqual(['sfx.deal_handbell']);
+    expect(CUES['sfx.deal_handbell']).toMatchObject({ bus: 'sfx', cooldown: 30 });
     expect(CUES['sfx.sales_register']).toBeUndefined();
   });
 
