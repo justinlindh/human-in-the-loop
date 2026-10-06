@@ -135,15 +135,16 @@ describe('askRates: fewer events and staff prompts come up', () => {
     expect(structural(s, { brand: 2, meaning: 5, teamMeaning: 1 })).toBe(false);
   });
 
-  it('founder calls also cover pay changes either way, the founder\'s time off, pets and buying things', () => {
+  it('founder calls also cover pay cuts, the founder\'s time off, pets and buying things, but not raises', () => {
     const s = company();
     s.cash = 100000;
     const founder = s.staff.find((p) => p.founder);
     const staff = s.staff.find((p) => !p.founder);
-    expect(structural(s, { salaryPct: 8, meaning: 1 })).toBe(true);
+    expect(structural(s, { salaryPct: 8, meaning: 1 })).toBe(false);
     expect(structural(s, { salaryPct: -10 })).toBe(true);
     expect(structural(s, { teamSalaryPct: -5 })).toBe(true);
-    expect(structural(s, { teamSalaryPct: 8 })).toBe(true);
+    expect(structural(s, { teamSalaryPct: 8 })).toBe(false);
+    expect(structural(s, { cond: { then: { teamSalaryPct: -3 } } })).toBe(true);
     expect(structural(s, { adoptPet: 'dog' })).toBe(true);
     expect(structural(s, { buyItem: 'espresso' })).toBe(true);
     expect(structural(s, { upgradeItem: 'espresso' })).toBe(true);
@@ -199,6 +200,36 @@ describe('askRates: fewer events and staff prompts come up', () => {
     try { raiseDecision(ctx, '__test_best', null, { quiet: true }); } finally { delete EVENTS.__test_best; }
     expect(ctx.events).toContainEqual(expect.objectContaining({ type: 'quietEvent', choice: 3 }));
     expect(s.chatLog.at(-1).text).toBe('Test card: "Shrug".');
+  });
+
+  it('a raise the office gives quietly posts an important line in #general saying who got how much', () => {
+    B.pacing.quietEvents = true;
+    const s = company();
+    s.cash = 100000;
+    const who = s.staff.find((p) => !p.founder);
+    EVENTS.__test_pay = { id: '__test_pay', kind: 'staff', title: 'Pay talk', subject: 'randomStaff', defaultChoice: 1,
+      choices: [{ label: 'Raise them', effects: { salaryPct: 10, meaning: 30 } }, { label: 'Shrug', effects: {} }] };
+    EVENTS.__test_team = { id: '__test_team', kind: 'staff', title: 'Pay equity', subject: null, defaultChoice: 1,
+      choices: [{ label: 'Fix it', effects: { teamSalaryPct: 8, teamMeaning: 10 } }, { label: 'Shrug', effects: {} }] };
+    const ctx = makeCtx(s);
+    try {
+      raiseDecision(ctx, '__test_pay', who.id, { quiet: true });
+      expect(s.chatLog.at(-1)).toMatchObject({ channel: 'general', important: true });
+      expect(s.chatLog.at(-1).text).toContain(`${who.name} got a raise (+10%)`);
+      raiseDecision(ctx, '__test_team', null, { quiet: true });
+      expect(s.chatLog.at(-1)).toMatchObject({ channel: 'general', important: true });
+      expect(s.chatLog.at(-1).text).toContain('the team got a raise (+8%)');
+    } finally { delete EVENTS.__test_pay; delete EVENTS.__test_team; }
+  });
+
+  it('a quiet line without a pay change is not flagged important', () => {
+    B.pacing.quietEvents = true;
+    const s = company();
+    EVENTS.__test_best = { id: '__test_best', kind: 'staff', title: 'Test card', subject: null, defaultChoice: 0,
+      choices: [{ label: 'Nothing', effects: {} }] };
+    const ctx = makeCtx(s);
+    try { raiseDecision(ctx, '__test_best', null, { quiet: true }); } finally { delete EVENTS.__test_best; }
+    expect(s.chatLog.at(-1).important).toBeUndefined();
   });
 
   it('when every choice is a founder call, the quiet event takes the ask default', () => {

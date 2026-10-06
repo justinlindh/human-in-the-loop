@@ -426,8 +426,18 @@ function resolveQuietly(ctx, ev, subjectId, own = null) {
   const line = ev.quietLine
     ? { channel: ev.quietLine.channel, text: fill(ev.quietLine.text) }
     : { channel: 'general', text: `${fill(ev.title)}: "${fill(c.label)}". ${c.outcome ? fill(c.outcome) : ''}`.trim() };
-  emitChat(ctx, { ...line, from: '@officebot' });
+  const raise = raiseLine(state, c.quietEffects ?? c.effects, subjectId);
+  emitChat(ctx, raise ? { channel: 'general', text: `${line.text} ${raise}`, important: true, from: '@officebot' } : { ...line, from: '@officebot' });
   return true;
+}
+
+// The payroll note on a raise the office gave without asking, so the player sees where the money went.
+function raiseLine(state, fx, subjectId) {
+  const who = state.staff.find((p) => p.id === subjectId);
+  const parts = [];
+  if (fx?.salaryPct > 0 && who) parts.push(`${who.name} got a raise (+${fx.salaryPct}%)`);
+  if (fx?.teamSalaryPct > 0) parts.push(`the team got a raise (+${fx.teamSalaryPct}%)`);
+  return parts.length ? `Payroll: ${parts.join(', ')}.` : null;
 }
 
 registerAction('resolveDecision', (ctx, { choice }) => {

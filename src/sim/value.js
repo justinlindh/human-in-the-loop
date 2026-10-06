@@ -10,14 +10,15 @@ export const STRUCTURAL_KEYS = ['setAutomation', 'automationBump', 'migrateOff',
 // Story flags that give away part of the company; other flags only remember what happened.
 export const EQUITY_FLAGS = ['diluted', 'incubatorCut'];
 
-// Whether effects make a founder's call: a structural key, an equity flag, a pay change either way for one
-// person or the team, the founder's own time off (subjectId is the event's subject), a modifier over
+// Whether effects make a founder's call: a structural key, an equity flag, a pay cut for one person or the
+// team, the founder's own time off (subjectId is the event's subject), a modifier over
 // B.askRates.structuralWeeks, or a cash swing over B.askRates.structuralCashShare of the cash in hand.
+// A raise is not one: the office may give it, and says so loudly (resolveQuietly).
 export function structural(s, fx, subjectId = null, depth = 0) {
   if (!fx || depth > 3) return false;
   if (STRUCTURAL_KEYS.some((k) => fx[k] !== undefined && fx[k] !== null && fx[k] !== false)) return true;
   if (EQUITY_FLAGS.includes(fx.flag?.name)) return true;
-  if (fx.salaryPct || fx.teamSalaryPct) return true;
+  if (fx.salaryPct < 0 || fx.teamSalaryPct < 0) return true;
   if (fx.awayWeeks && s.staff.some((p) => p.id === subjectId && p.founder)) return true;
   if (fx.cash && Math.abs(fx.cash) > Math.max(0, s.cash) * B.askRates.structuralCashShare) return true;
   if ([fx.modifier].flat().some((m) => m && m.weeks > B.askRates.structuralWeeks)) return true;

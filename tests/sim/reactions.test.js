@@ -10,7 +10,8 @@ const total = (r) => Object.values(r ?? {}).reduce((a, b) => a + b, 0);
 describe("issue #609: reactions scale with a post's weight", () => {
   it('routine chatter mostly gets none, big posts get more, replies rarely any, and pile-ons stay rare', () => {
     const routine = [], big = [], replies = [];
-    runBot('balanced', 3, 600, { onWeek: (s, ev) => {
+    // Pooled over a few games: one game's replies are too few to pin a share.
+    for (const seed of [1, 2, 3, 4, 5]) runBot('balanced', seed, 600, { onWeek: (s, ev) => {
       for (const e of ev) {
         if (e.type !== 'chat' || e.reactions?.no_at_channel) continue;
         if (e.replyTo) replies.push(total(e.reactions));
