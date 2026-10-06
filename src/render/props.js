@@ -20,6 +20,11 @@ const SCREEN_OVERLAYS = { screens_red: 'red', screens_skull: 'skull' };
 // staged moment plays where the card no longer covers it. The broken coffee machine smokes on
 // while someone fans it: briefly until the repair, longer when the office lives with it.
 const AFTER_CHOICE = { coffee_machine_broke: { 1: 6, 2: 12 }, open_plan_office: { 0: 20, 1: 18 } };
+// An event resolved with no card (quietEvent) shows its stage for this long, or its AFTER_CHOICE time
+// when that is longer. A jammed printer that is about to be carried out shows only for QUIET_JAM_S:
+// the carry starts once it goes.
+const QUIET_STAGE_S = 12;
+export const QUIET_JAM_S = 2.5;
 
 export function createProps(office, screens = null) {
   const live = new Map();   // key -> { obj, t, gone }
@@ -49,6 +54,14 @@ export function createProps(office, screens = null) {
     const st = lastStage.get(e.eventId);
     lastStage.delete(e.eventId);
     if (!s || !st) return;
+    after.set(stageKey(st), { st, t: s });
+    if (lastState) sync(lastState);
+  }
+  // quietEvent: no card was shown, so its stage goes up now and stays for a beat.
+  function quiet(e) {
+    const st = e.stage;
+    if (!st?.prop) return;
+    const s = e.eventId === 'printer_jam' && e.choice === 0 ? QUIET_JAM_S : Math.max(QUIET_STAGE_S, AFTER_CHOICE[e.eventId]?.[e.choice] ?? 0);
     after.set(stageKey(st), { st, t: s });
     if (lastState) sync(lastState);
   }
@@ -199,7 +212,7 @@ export function createProps(office, screens = null) {
 
   // For checks: a counter's free grids for a prop this tall, one per level, as rows of '.' and '#'.
   const counterMap = (e, tall) => counterGrid(e, tall).map((g) => { const rows = []; for (let k = 0; k < g.nz; k++) { let r = ''; for (let i = 0; i < g.nx; i++) r += g.free[i + k * g.nx] ? '.' : '#'; rows.push(r); } return { y: g.y, rows }; });
-  return { sync, update, decided, objectOf, current, deskMap, counterMap, goneAt, pin, unpin, get overlay() { return overlay; }, get ids() { return [...Object.keys(BUILDERS), ...Object.keys(SCREEN_OVERLAYS)]; } };
+  return { sync, update, decided, quiet, objectOf, current, deskMap, counterMap, goneAt, pin, unpin, get overlay() { return overlay; }, get ids() { return [...Object.keys(BUILDERS), ...Object.keys(SCREEN_OVERLAYS)]; } };
 }
 
 // Frees what a prop made for itself: geometry and materials marked own. Palette materials (mat()),
