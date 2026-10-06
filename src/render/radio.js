@@ -8,7 +8,8 @@ import { PALETTE as P } from './palette.js';
 const NOTES = 3;
 const LIFE = 2.4;
 const RISE = 0.7;
-const SPIN = 1.6;      // the record's turn, radians a second
+const NOTE_LIFT = 0.22; // where notes start above the item's top
+const SPIN = 1.6;     // the record's turn, radians a second
 const NOTE_M = 0.26;   // one note sprite's size: one square glyph cell of the sheet
 
 let noteTex = null;
@@ -95,8 +96,9 @@ export function createRadio({ office, parent, low = () => false }) {
       if (i >= shown) { n.sp.visible = false; return; }
       n.sp.visible = true;
       const q = ((t + n.t0) % LIFE) / LIFE;
-      // From just under the top (the aerial reaches past the body), out to either side and up.
-      n.sp.position.set(cx + n.side * (0.12 + q * 0.22) + Math.sin(q * Math.PI * 2) * 0.05, top - 0.12 + q * RISE, cz);
+      // From clear above the top, so the boombox (and the HQ console's record) stays in view, out to
+      // either side and up.
+      n.sp.position.set(cx + n.side * (0.2 + q * 0.2) + Math.sin(q * Math.PI * 2) * 0.05, top + NOTE_LIFT + q * RISE, cz);
       n.sp.material.opacity = Math.min(1, q * 6) * (1 - q * q);
       const s = 0.85 + q * 0.4;
       n.sp.scale.set(NOTE_M * s, NOTE_M * s, 1);
