@@ -7,7 +7,7 @@ import { STATIONS, STATION_IDS, STATION_SWAP_LINES, STATION_ARGUMENT_LINES, stat
 // The boombox's radio: state.radio = { on, station }. The station is flavour; the boombox's adjacency pays
 // only while the radio is on (src/sim/bonus.js). Staff have a taste, a station derived from the game seed and
 // their id, and remark on the radio now and then: they like it, they don't, and sometimes two of them argue.
-// Rarely someone changes the station to theirs while you're not looking. None of it costs anything.
+// Rarely someone switches the station to theirs. None of it costs anything.
 
 // The radio draws from its own stream, so with B.boombox.enabled false a seeded game plays as without it.
 function side(ctx, salt) {
@@ -87,6 +87,7 @@ registerAction('setRadio', (ctx, { on, station } = {}) => {
   if (!hasBoombox(state)) return { ok: false, reason: 'No boombox' };
   if (on === undefined && station === undefined) return { ok: false, reason: 'Nothing to change' };
   if (station !== undefined && !STATION_IDS.includes(station)) return { ok: false, reason: 'Unknown station' };
-  setRadio(ctx, on ?? state.radio?.on ?? false, station ?? state.radio?.station ?? 'lofi');
+  const next = { on: on ?? state.radio?.on ?? false, station: station ?? state.radio?.station ?? 'lofi' };
+  if (next.on !== state.radio?.on || next.station !== state.radio?.station) setRadio(ctx, next.on, next.station);
   return { ok: true };
 });
