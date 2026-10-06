@@ -178,7 +178,7 @@ export const B = {
     web2: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 0.56, scoreShare: 0.75, exitMrrMult: 1.2 },
     dotcom: { cash: 140000, officeStage: 0, desks: 4, scoreMult: 0.61, scoreShare: 0.9, exitMrrMult: 1.35 },
     classic: { cash: 0, officeStage: 0, desks: 2, scoreMult: 1, scoreShare: 1, exitMrrMult: 1 },
-    chatgbt: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 1, scoreShare: 0.74, exitMrrMult: 0.8 },
+    chatgbt: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 1, scoreShare: 0.7, exitMrrMult: 0.84 },
     agents: { cash: 240000, officeStage: 0, desks: 4, scoreMult: 0.6, scoreShare: 0.4, exitMrrMult: 0.75, incidentGraceWeeks: 260, incidentSeverityCap: 2 },
     consolidation: { cash: 390000, officeStage: 0, desks: 4, scoreMult: 1, scoreShare: 0.28, exitMrrMult: 0.65 },
     plateau: { cash: 540000, officeStage: 0, desks: 4, scoreMult: 1, scoreShare: 0.19, exitMrrMult: 0.45 },
