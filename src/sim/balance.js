@@ -231,6 +231,10 @@ export const B = {
     cooldownWeeks: 2, repeatWeeks: 8, newsWeeks: 2, replyWeeks: 2, lowMorale: 30, pizzaPerHead: 25,
     pepTalk: 2, meme: 2, pizza: 3, pizzaStamina: 10, news: 3, backfire: 1, scare: 2, memeBackfire: 3, blame: 1, fixHealth: 3,
   },
+  // The boombox: its price, and the recovery bonus for desks within radius while it plays. While it plays, at
+  // most one taste remark per tasteGapWeeks (tasteChance a week once the gap has passed), and a swapChance a
+  // week that someone changes the station to theirs.
+  boombox: { enabled: false, cost: 350, radius: 3, meaning: 0.05, tasteGapWeeks: 6, tasteChance: 0.5, argueChance: 0.35, swapChance: 0.012 },
   // The inbox: one ambient roll and one actionable roll a week, at most actionOpen mails with an open choice,
   // each open for expiryWeeks; at most kept mails in all, oldest settled first. A reply-all storm grows for
   // up to replyAllWeeks. The rest are the actionable templates' effect sizes.
