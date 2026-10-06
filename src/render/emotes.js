@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 
 // Emote bubbles drawn once into canvas textures and shared by every character.
-export const EMOTES = ['sweat', 'sparkle', 'storm', 'lightbulb', 'heart', 'zzz', 'exclamation', 'music', 'typing', 'tired'];
+export const EMOTES = ['sweat', 'sparkle', 'storm', 'lightbulb', 'heart', 'zzz', 'exclamation', 'music', 'typing', 'tired', 'music_like', 'music_dislike'];
 
 const SIZE = 128;
 const textures = new Map();
@@ -37,6 +37,19 @@ function star(ctx, x, y, r, fill) {
   ctx.fillStyle = fill;
   ctx.fill();
   ctx.stroke();
+}
+
+// One eighth note, filled with fill, on the left half of the bubble.
+function smallNote(ctx, fill) {
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.ellipse(50, 80, 13, 10, -0.4, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+  ctx.lineWidth = 7;
+  ctx.beginPath();
+  ctx.moveTo(61, 78); ctx.lineTo(61, 32); ctx.quadraticCurveTo(80, 42, 74, 58);
+  ctx.stroke();
+  ctx.lineWidth = 5;
 }
 
 const DRAW = {
@@ -141,6 +154,24 @@ const DRAW = {
     ctx.beginPath();
     ctx.moveTo(61, 78); ctx.lineTo(61, 34); ctx.lineTo(95, 26); ctx.lineTo(95, 70);
     ctx.stroke();
+  },
+  // A station someone likes: a note with a small pink heart beside it.
+  music_like(ctx) {
+    smallNote(ctx, P.role_engineer);
+    ctx.fillStyle = P.screen_pink;
+    ctx.beginPath();
+    ctx.moveTo(88, 64);
+    ctx.bezierCurveTo(68, 52, 70, 30, 88, 38);
+    ctx.bezierCurveTo(106, 30, 108, 52, 88, 64);
+    ctx.fill(); ctx.stroke();
+  },
+  // A station someone can't stand: a grey note struck through in red.
+  music_dislike(ctx) {
+    smallNote(ctx, P.metal_soft);
+    ctx.strokeStyle = P.alarm_red;
+    ctx.lineWidth = 9;
+    ctx.beginPath(); ctx.arc(64, 58, 32, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(42, 36); ctx.lineTo(86, 80); ctx.stroke();
   },
   tired(ctx) {
     // A nearly empty battery: tiredness, as opposed to burnout's storm and zzz.
