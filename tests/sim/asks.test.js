@@ -84,6 +84,32 @@ describe('issue #1646: the ask queue', () => {
     expect(s.mail[0].kind).toBe('vendor_new_version');
   });
 
+  it('presentAsk emits askPresented naming the mail or prompt it opened, and nothing when it opened nothing', () => {
+    B.pacing.askQueue = true;
+    const s = company();
+    s.chatPrompts = [{ id: 'x', resolved: null }];
+    s.mail = [{ id: 'm', options: [{}], resolved: null }, { id: 'n', options: [{}], resolved: null }];
+    fire(s, 'pet_request');
+    fire(s, 'vendor_new_version');
+    raise(s, 'acquisition_offer');
+    s.chatPrompts = [];
+    s.mail = [];
+    const presented = (r) => r.events.filter((e) => e.type === 'askPresented');
+    const [prompt, letter, decision] = s.asks.map((a) => a.id);
+    let r = dispatch(s, { type: 'presentAsk', askId: prompt });
+    expect(presented(r)).toEqual([{ type: 'askPresented', askId: prompt, kind: 'prompt', priority: 'low', mailId: null, promptId: s.chatPrompts.at(-1).id }]);
+    r = dispatch(s, { type: 'presentAsk', askId: letter });
+    expect(presented(r)).toEqual([{ type: 'askPresented', askId: letter, kind: 'letter', priority: 'low', mailId: s.mail[0].id, promptId: null }]);
+    r = dispatch(s, { type: 'presentAsk', askId: decision });
+    expect(presented(r)).toEqual([{ type: 'askPresented', askId: decision, kind: 'decision', priority: 'normal', mailId: null, promptId: null }]);
+    s.pendingDecision = null;
+    // A candidate whose subject has gone opens nothing and says nothing.
+    s.asks = [{ id: 'ask99', kind: 'decision', priority: 'normal', week: s.week, expiresWeek: null, defaultChoice: null, ref: { eventId: 'no_such_event', subjectId: null } }];
+    r = dispatch(s, { type: 'presentAsk' });
+    expect(r.opened).toBe(false);
+    expect(presented(r)).toEqual([]);
+  });
+
   it('with askExpiry off, expireAsk refuses and the queue has no cap', () => {
     B.pacing.askQueue = true;
     const s = company();
