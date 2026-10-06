@@ -19,10 +19,12 @@ runit
 echo 'x' >"$r/src/a.js"
 FAKE_COUNT=3 runit
 [ $rc -eq 0 ] && [ "$(runs)" -eq 1 ] && grep -q 'related --files src/a.js' "$tmp/runs" || fail "a small related set runs: rc $rc: $out"
-FAKE_COUNT=41 runit
-[ $rc -eq 0 ] && grep -q 'reach 41 test files' <<<"$out" && [ "$(runs)" -eq 1 ] || fail "more than 40 test files skips the run: rc $rc: $out"
+FAKE_COUNT=300 runit
+[ $rc -eq 0 ] && grep -q 'reach 300 test files: running them' <<<"$out" && [ "$(runs)" -eq 2 ] || fail "a wide change runs every test it reaches: rc $rc: $out"
+HITL_PUSH_TEST_MAX=40 FAKE_COUNT=41 runit
+[ $rc -eq 0 ] && grep -q 'more than HITL_PUSH_TEST_MAX=40): skipped; no tests ran' <<<"$out" && [ "$(runs)" -eq 2 ] || fail "HITL_PUSH_TEST_MAX skips past it and says nothing ran: rc $rc: $out"
 HITL_PUSH_TEST_MAX=100 FAKE_COUNT=41 runit
-[ "$(runs)" -eq 2 ] || fail "HITL_PUSH_TEST_MAX raises the cutoff: runs $(runs): $out"
+[ "$(runs)" -eq 3 ] || fail "under HITL_PUSH_TEST_MAX it runs: runs $(runs): $out"
 # A shell script a test runs by its path goes to test-related (which adds that test); one no test
 # runs, and a shell test, run nothing here.
 rm -f "$r/src/a.js" "$tmp/runs"

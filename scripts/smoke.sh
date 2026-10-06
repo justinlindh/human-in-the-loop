@@ -3,8 +3,7 @@
 # what a change most often breaks, in a few minutes. The whole suite (balance, browser, render, golden,
 # phone and the tool self-tests) runs only when a release is cut (scripts/release.sh).
 #   syntax      every .js and .mjs the change touches parses
-#   related     the tests that import the changed JS (scripts/test-push.sh; a change that reaches more than
-#               HITL_PUSH_TEST_MAX test files leaves the rest to the release)
+#   related     the tests that import the changed JS (scripts/test-push.sh; a wide change runs them all)
 #   features    docs/features ids match the data (scripts/features-ids.mjs)
 #   toolkit     every script has a docs/toolkit entry (npm run toolkit -- --check)
 #   build       a production build (npm run build)
