@@ -16,12 +16,18 @@ import { applyEffects } from './effects.js';
 
 export const askQueueOn = () => !!B.pacing.askQueue;
 
-// What interrupts at once and never expires: incident and cyber events, and any event or mail template
-// whose data says `emergency: true`.
+// What interrupts at once and never expires: incident and cyber events unless their data says
+// `emergency: false`, and any event or mail template whose data says `emergency: true`.
 const EMERGENCY_KINDS = new Set(['incident', 'cyber']);
-const isEmergency = (ev) => EMERGENCY_KINDS.has(ev.kind) || !!ev.emergency || !!EVENT_MAIL[ev.id]?.emergency;
+const isEmergency = (ev) => (EMERGENCY_KINDS.has(ev.kind) && ev.emergency !== false) || !!ev.emergency || !!EVENT_MAIL[ev.id]?.emergency;
 const decisionPriority = (ev) => (isEmergency(ev) ? 'emergency' : 'normal');
 const RANK = { emergency: 0, normal: 1, low: 2 };
+
+// An identity choice the player must make (`noExpire: true` in its data): it waits its turn but never
+// expires, goes stale or counts toward the cap.
+export const needsAnswer = (ask) => !!EVENTS[ask.ref?.eventId]?.noExpire;
+// Asks the cap counts and expiry may take: neither emergencies nor ones that need an answer.
+export const expirable = (ask) => ask.priority !== 'emergency' && !needsAnswer(ask);
 
 // The choice an unanswered decision falls back to: its own defaultChoice, the one picked for it in
 // ASK_DEFAULTS, or the choice that does nothing. Null when it has none of these.
@@ -37,14 +43,13 @@ function enqueue(ctx, { kind, priority, ref, defaultChoice }) {
   state.asks ??= [];
   state.flags.askSeq = (state.flags.askSeq ?? 0) + 1;
   const ask = {
-    id: `ask${state.flags.askSeq}`, kind, priority, week: state.week,
-    expiresWeek: priority === 'emergency' ? null : state.week + B.attention.staleWeeks,
-    defaultChoice, ref,
+    id: `ask${state.flags.askSeq}`, kind, priority, week: state.week, expiresWeek: null, defaultChoice, ref,
   };
+  if (expirable(ask)) ask.expiresWeek = state.week + B.attention.staleWeeks;
   state.asks.push(ask);
   ctx.emit({ type: 'askQueued', askId: ask.id, kind, priority });
   // With expiry on, a full queue lets its least pressing, oldest ask go to its default at once.
-  const waiting = state.asks.filter((a) => a.priority !== 'emergency');
+  const waiting = state.asks.filter(expirable);
   if (B.pacing.askExpiry && waiting.length > B.attention.queueCap) {
     const out = waiting.sort((a, b) => RANK[b.priority] - RANK[a.priority] || a.week - b.week || seqOf(a) - seqOf(b))[0];
     expire(ctx, out);
@@ -152,6 +157,7 @@ registerAction('expireAsk', (ctx, { askId } = {}) => {
   const ask = (state.asks ?? []).find((a) => a.id === askId);
   if (!ask) return { ok: false, reason: 'No such ask' };
   if (ask.priority === 'emergency') return { ok: false, reason: 'Emergencies never expire' };
+  if (needsAnswer(ask)) return { ok: false, reason: 'This one needs an answer' };
   expire(ctx, ask);
   return { ok: true };
 });

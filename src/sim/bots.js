@@ -26,7 +26,7 @@ import { ITEMS } from '../data/items.js';
 import { ROLES } from '../data/roles.js';
 import { SQUAD_NAMES } from '../data/squads.js';
 import { batchQuote, patchQuote } from './boxed.js';
-import { askQueueOn, headAsk, dropStale } from './asks.js';
+import { askQueueOn, headAsk, dropStale, expirable } from './asks.js';
 
 // Where the events of the bots' own dispatches go while botTurn or botDecide runs (null: dropped).
 let sink = null;
@@ -551,7 +551,7 @@ export function botAsks(s, { onEvents = null } = {}) {
   try {
     dropStale(s);
     if (B.pacing.askExpiry) {
-      for (const a of s.asks.filter((x) => x.priority !== 'emergency' && s.week - x.week >= B.attention.botExpiryWeeks)) dispatch(s, { type: 'expireAsk', askId: a.id });
+      for (const a of s.asks.filter((x) => expirable(x) && s.week - x.week >= B.attention.botExpiryWeeks)) dispatch(s, { type: 'expireAsk', askId: a.id });
     }
     const head = headAsk(s);
     if (!head || (head.kind === 'decision' && s.pendingDecision)) return;

@@ -49,8 +49,9 @@ When: `(s) => s.week >= 26`
 
 | Choice | Effects |
 |---|---|
-| Match the offer | their meaning +3; their salary +20% |
+| Match the offer | their meaning +8; team meaning +2; their salary +20% |
 | Wish them well | they leave the company |
+| Make a small counter-offer | their meaning +1; their salary +8% |
 
 ## First feature shipped `junior_first_feature`
 
@@ -173,6 +174,7 @@ When: `(s) => Object.values(s.automation).some((a) => a.level >= 0.5)`
 | Respond publicly with real changes | cash -$3,000; brand +2; their meaning +6; team meaning +2 |
 | Ask them to take it down | brand -3; their meaning -10 |
 | Ignore it | 50% chance of brand -5; otherwise nothing |
+| Reply politely in private | brand -1; their meaning -1 |
 
 ## A question about pay `pay_equity_question`
 
@@ -184,6 +186,7 @@ When: `(s) => s.stats.hires >= 2`
 |---|---|
 | Fix it across the team | their meaning +10; team meaning +4; everyone's salary +8% |
 | Explain the market | their meaning -8; after 8 weeks: their meaning -6, team meaning -2 |
+| Promise a review next quarter | their meaning -4 |
 
 ## Fourteen tabs of docs `junior_overwhelmed`
 
@@ -214,7 +217,8 @@ leadership · raised by a rule
 | Choice | Effects |
 |---|---|
 | Keep the bot | brand -3; customers -6% |
-| Bring humans back | cash -$5,000; brand +1; automation set by the choice |
+| Bring humans back | cash -$5,000; brand +3; team meaning +2; automation set by the choice |
+| Add a "talk to a human" button | cash -$3,000; brand -1 |
 
 ## What about a four-day week? `four_day_week`
 
@@ -225,7 +229,7 @@ When: `(s) => s.staff.length >= 5`
 | Choice | Effects |
 |---|---|
 | Run an 8-week trial | Output -10% for 8 weeks ("Four-day week trial"); Meaning recovery +50% for 8 weeks ("Four-day week trial"); "Four-day week: keep going?" follows in 8 weeks |
-| Not now | team meaning -2 |
+| Not now | team meaning -1 |
 
 ## Four-day week: keep going? `four_day_week_review`
 
@@ -457,6 +461,7 @@ When: `(s, h) => h.usesModel('grokk')`
 |---|---|
 | Ride it out | brand -4 |
 | Switch vendors now | brand +1; products on Grokk need a migration within 26 weeks |
+| Issue a careful statement | cash -$1,000; brand -1 |
 
 ## New open weights `open_weights_release`
 
