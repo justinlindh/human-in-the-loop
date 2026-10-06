@@ -1,4 +1,4 @@
-import { pAfter, pClear } from './pclock.js';
+import { pAfter, pClear, pnow } from './pclock.js';
 import { h, fmtMoney } from './dom.js';
 import { CHANNEL } from './content.js';
 import { SIMX } from './simapi.js';
@@ -15,6 +15,10 @@ const DELAYED = /later|week/i;
 
 const isLeadership = (d) => EVENTS[d.eventId]?.kind === 'leadership' || LEADERSHIP_IDS.has(d.eventId);
 
+// Under oneLaunchCard a new product's card comes at least this long after the last one closed; launches in
+// between wait and join the next card.
+export const LAUNCH_GAP_MS = 90000;
+
 // True for the sim's "<name> launched!" toast when a launch card already tells that news.
 export const launchToastCarded = (names, text) => pacingOn('oneLaunchCard') && names.some((n) => String(text).startsWith(`${n} launched!`));
 
@@ -22,6 +26,7 @@ export const launchToastCarded = (names, text) => pacingOn('oneLaunchCard') && n
 // toasts dock in its strip so a refused choice's reason shows right under the choices.
 export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = () => null }) {
   const queue = []; // launch results waiting for the screen
+  let lastClosed = -Infinity; // when the last launch card closed, for the oneLaunchCard gap
   let launch = null; // { productId, prevSpeed, timers }
   let resumeSpeed = null; // speed to restore after a launch popup that a decision interrupted
   // Above the big Yak overlay, so a card raised while Yak is open can be answered.
@@ -232,6 +237,7 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
     launch.timers.forEach(pClear);
     if ((ctx.controls.getSpeed?.() ?? 0) === 0) ctx.controls.setSpeed?.(launch.prevSpeed);
     launch = null;
+    lastClosed = pnow();
     backdrop.style.display = 'none';
     backdrop.replaceChildren();
     restoreDock();
@@ -260,7 +266,8 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
       showBatch(s, ids);
       return;
     }
-    if (!holdLaunch && !shown && !launch && queue.length && !s.gameOver && (ctx.spacing?.ready() ?? true)) {
+    const spaced = !pacingOn('oneLaunchCard') || pnow() - lastClosed >= LAUNCH_GAP_MS;
+    if (!holdLaunch && !shown && !launch && queue.length && !s.gameOver && spaced && (ctx.spacing?.ready() ?? true)) {
       if (queue.length > 1) { const ids = queue.splice(0); if (!showBatch(s, ids)) queue.length = 0; }
       else while (queue.length && !showLaunch(s, queue.shift()));
     }

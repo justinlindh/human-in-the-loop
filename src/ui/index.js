@@ -22,7 +22,7 @@ import { icon } from './icons.js';
 import { createSettings } from './settings.js';
 import { watchFullscreen } from './fullscreen.js';
 import { pacingOn } from './pacing.js';
-import { createAmbient, incidentDetail } from './ambient.js';
+import { createAmbient, incidentDetail, shippedDetail } from './ambient.js';
 import { createTitle } from './title.js';
 import { erasPreview } from './eraPreview.js';
 import { createGameOver } from './gameover.js';
@@ -548,6 +548,12 @@ export function createUI({ root, getState, dispatch, controls }) {
           const p = state.products.find((x) => x.id === e.productId);
           const prev = launchScores.get(e.productId);
           if (p) launchScores.set(e.productId, p.score);
+          // Under oneLaunchCard an update never gets a card: a "shipped" bubble over the team says it, and
+          // the sim's toast stays only when nothing draws the bubble.
+          if (p && p.version > 1 && pacingOn('oneLaunchCard')) {
+            if (ambient.sendDetail(shippedDetail(p, prev))) carded.push(p.name);
+            break;
+          }
           if (!p || p.version <= 1 || prev === undefined || Math.abs(p.score - prev) > 0.5) {
             popups.queueLaunch(e.productId);
             if (p) carded.push(p.name);

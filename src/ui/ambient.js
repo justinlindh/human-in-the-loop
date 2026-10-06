@@ -52,6 +52,12 @@ export function createAmbient({ target = globalThis } = {}) {
   return { send, sendDetail };
 }
 
+// A product update shipping: "v3: 8.4" over the product's team, warn when the score fell.
+export function shippedDetail(p, prevScore) {
+  const fell = prevScore !== undefined && p.score < prevScore;
+  return { topic: 'shipped', subjectId: p.id, subjectKind: 'product', text: clip(`v${p.version}: ${p.score.toFixed(1)}`), icon: 'launch', tone: fell ? 'warn' : 'good' };
+}
+
 // Minor incidents (severity below 3, the SEV4 and SEV5 ones) and their all-clear go to the world instead of a toast.
 export const MINOR_SEVERITY = 3;
 export function incidentDetail(e) {

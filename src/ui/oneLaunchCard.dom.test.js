@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createPopups, launchToastCarded } from './popups.js';
-import { pReset } from './pclock.js';
+import { createPopups, launchToastCarded, LAUNCH_GAP_MS } from './popups.js';
+import { shippedDetail } from './ambient.js';
+import { pReset, pTick } from './pclock.js';
 import { B } from '../sim/balance.js';
 
 vi.hoisted(() => vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({}) }))));
@@ -50,6 +51,29 @@ describe('oneLaunchCard', () => {
     expect(layer.querySelectorAll('.lbrow')).toHaveLength(2);
     layer.querySelector('.btn.go').click();
     expect(speed).toBe(2);
+  });
+
+  it('on: a launch inside 90 s of the last card closing waits and shows after the gap', () => {
+    B.pacing = { oneLaunchCard: true };
+    const { layer, p } = setup();
+    const s = state();
+    p.queueLaunch(1);
+    p.update(s);
+    layer.querySelector('.btn.go').click();
+    p.queueLaunch(2);
+    pTick(LAUNCH_GAP_MS - 1000);
+    p.update(s);
+    expect(heading(layer)).toBeUndefined();
+    pTick(1500);
+    p.update(s);
+    expect(heading(layer)).toBe('Beta launched!');
+  });
+
+  it('describes an update as a shipped bubble, warn when the score fell', () => {
+    const p = { id: 7, name: 'Alpha', version: 3, score: 8.44 };
+    expect(shippedDetail(p, 7)).toMatchObject({ topic: 'shipped', subjectId: 7, subjectKind: 'product', text: 'v3: 8.4', tone: 'good' });
+    expect(shippedDetail(p, 9).tone).toBe('warn');
+    expect(shippedDetail(p, undefined).tone).toBe('good');
   });
 
   it('off: the open card stays alone and the next launch waits for its own card', () => {
