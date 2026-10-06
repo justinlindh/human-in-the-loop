@@ -138,7 +138,7 @@ const SEEN_GUARD = (eventId, length) => [
 const PINNED_PROMPTS = {
   lowcash_lunch: `${PLAY({ weeks: 100, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE}` })}; await ${PRE_UNTIL({ weeks: 16, prep: 's.cash = Math.min(s.cash, -1e6); s.lowCashWeeks = Math.max(s.lowCashWeeks, 1);', hit: `(c) => (c.chatPrompts ?? []).some((p) => p.kind === 'lowcash_lunch' && !p.resolved)` })}`,
 };
-const PINNED_EVENT = { 'bridge-loan': 'bridge_loan', fumes: 'coffee_machine_broke', consultants: 'efficiency_consultants', letter: 'hearing_summons', hammer: 'open_plan_office' };
+const PINNED_EVENT = { 'bridge-loan': 'bridge_loan', fumes: 'coffee_machine_broke', consultants: 'efficiency_consultants', letter: 'hearing_summons', hammer: 'open_plan_office', ransomware: 'ransomware' };
 // A game stored under scripts/feature-media/pins/, the state the week before the decision (fumes: with its card
 // open), loaded through the game's own save. The clip's framing is written for that office, so the game is kept
 // exactly as it was rather than replayed by a bot.
@@ -158,6 +158,7 @@ const PINNED_MOMENTS = {
   consultants: PIN_LOAD('consultants'),
   letter: PIN_LOAD('letter'),
   hammer: PIN_LOAD('hammer'),
+  ransomware: PIN_LOAD('ransomware-garage'),
 };
 
 // [event id, find.js query, staged prop, follow zoom]: the staged decisions of docs/features/decisions.md.
@@ -338,8 +339,8 @@ export const ITEMS = [
   {
     // Every monitor shows the ransom skull while the decision is open; the office holds still under
     // the card, so the camera sits on one person at their desk. The window keeps the card out.
-    id: 'site-loop-ransomware', title: 'Landing page loop: ransomware on every screen', query: 'seed=9&speed=1', moment: 'ransomware --stage floor', pre: true, seconds: 14, warmup: 6.5,
-    setup: BARE, actions: [{ at: 0, js: NO_SAY }, ...FOLLOW(SEATED, 3.2, 0, 14, -320), ...CAMLOG(14)], screenshots: [3, 6, 9],
+    id: 'site-loop-ransomware', title: 'Landing page loop: ransomware on every screen', query: 'seed=9&speed=1', seconds: 14, warmup: 6.5,
+    setup: `(async () => { await ${PIN_LOAD('ransomware-floor')}; ${BARE}; })()`, actions: [{ at: 0, js: NO_SAY }, ...FOLLOW(SEATED, 3.2, 0, 14, -320), ...CAMLOG(14)], screenshots: [3, 6, 9],
     out: [LOOP('ransomware', 5, 4.2, { x: 0, y: 1 / 6, w: 2 / 3, h: 2 / 3 }, 27)],
   },
   {
