@@ -173,8 +173,10 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     }
   }
   if (fx.candidates) {
-    const seniority = fx.candidates === 'seniorBatch' ? 'senior' : 'junior';
-    for (let i = 0; i < 3; i++) state.candidates.push(makeCandidate(state, pick(ctx.rng, ['engineer', 'engineer', 'designer', 'support', 'security', 'marketer']), seniority));
+    // 'seniorBatch' and the default add three; 'single' adds one mid-level applicant.
+    const single = fx.candidates === 'single';
+    const seniority = fx.candidates === 'seniorBatch' ? 'senior' : single ? 'mid' : 'junior';
+    for (let i = 0; i < (single ? 1 : 3); i++) state.candidates.push(makeCandidate(state, pick(ctx.rng, ['engineer', 'engineer', 'designer', 'support', 'security', 'marketer']), seniority));
     state.candidates = state.candidates.slice(-8);
   }
   if (fx.flag) state.flags[fx.flag.name] = fx.flag.value;
