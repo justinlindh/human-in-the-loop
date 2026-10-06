@@ -91,6 +91,7 @@ export function createMailButton({ open }) {
   const el = h('button.btn.small.mailbtn', { type: 'button', title: 'Mail (I)', 'aria-label': 'Mail', onclick: () => open() }, icon('mail', { size: 18 }), pip);
   el.style.display = 'none';
   let shown = null;
+  let lastCount = 0;
   return {
     el,
     update(s) {
@@ -103,6 +104,9 @@ export function createMailButton({ open }) {
       }
       const n = unreadCount(s);
       toggleClass(pip, 'show', n > 0);
+      // A new letter restarts the three pulses.
+      if (n > lastCount) { el.classList.remove('pulse'); void el.offsetWidth; }
+      lastCount = n;
       toggleClass(el, 'pulse', n > 0 && pacingOn('mailArchive'));
       setText(pip, n > 9 ? '9+' : String(n || ''));
       el.setAttribute('aria-label', n > 0 ? `Mail, ${n} unread` : 'Mail');
