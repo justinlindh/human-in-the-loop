@@ -2,6 +2,7 @@ import { h, setText, toggleClass } from './dom.js';
 import { icon } from './icons.js';
 import { SAVE_NOTE } from './saveNote.js';
 import { downloadSave } from './saveFiles.js';
+import { pacingOn } from './pacing.js';
 import { fullscreenAvailable, fullscreenActive, toggleFullscreen, onFullscreenChange } from './fullscreen.js';
 
 const KEY = 'hitl.settings';
@@ -40,7 +41,8 @@ function saveSettings(s) {
 
 // How much Yak asks for attention: every message, only the ones that matter, or nothing but prompts.
 export const YAK_LEVELS = [
-  { v: 'all', label: 'All', tip: 'Yak: every message counts as new' },
+  // Under quietYak chatter never counts as new, so the tip says what All still lights.
+  { v: 'all', label: 'All', get tip() { return pacingOn('quietYak') ? 'Yak: every message shows; only incidents, wins and replies count as new' : 'Yak: every message counts as new'; } },
   { v: 'important', label: 'Important', tip: 'Yak: only incidents, wins, launches and bots count as new' },
   { v: 'off', label: 'Off', tip: 'Yak: kept shut and quiet; replies it needs still show' },
 ];
