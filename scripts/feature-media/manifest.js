@@ -105,7 +105,7 @@ const CARD_IN = `(() => { const st = document.createElement('style'); st.textCon
 const MOMENTS = [
   ['pizza', 'hackathon_week --stage floor --choice 0', 'pizza_boxes', 0, 2.8],
   // The all-hands screen on its floor stand: the camera holds on it, where the hammer goes through.
-  ['hammer', 'open_plan_office --seed 10 --choice 0', '() => ({ x: -9.8, z: -6.25 })', 0, 3, 22],
+  ['hammer', 'open_plan_office --seed 10', '() => ({ x: -9.8, z: -6.25 })', 0, 3, 22],
   ['carrier', 'cat_request --choice 0', 'pet_carrier', 0, 2.8],
   // No follow zoom: the game's own moment camera frames these (it zooms further in the bigger offices).
   ['consultants', 'efficiency_consultants --seed 1 --choice 1', 'visitor_chair', 1],
