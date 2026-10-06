@@ -1,7 +1,7 @@
 import { B } from './balance.js';
 import { dotcomEffect } from './dotcom.js';
 import { preinternetEffect } from './boxed.js';
-import { addFinishedCandidate } from './ai-interviews.js';
+import { addFinishedCandidate, watchOutcome } from './ai-interviews.js';
 import { applyCompatibility } from './web2.js';
 import { chance, pick } from './rng.js';
 import { clamp, newId, marketYear } from './util.js';
@@ -143,6 +143,7 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
   if (fx.dotcom) dotcomEffect(ctx, fx.dotcom);
   if (fx.preinternet) preinternetEffect(ctx, fx.preinternet, subjectId);
   if (fx.aiInterview === 'finish') addFinishedCandidate(state);
+  if (fx.aiInterview === 'hire' || fx.aiInterview === 'reject') watchOutcome(ctx, fx.aiInterview, subjectId);
   const person = findStaff(state, subjectId);
   const subjectProduct = findProduct(state, subjectId);
   const product = subjectProduct && !subjectProduct.killed ? subjectProduct : newestLive(state);

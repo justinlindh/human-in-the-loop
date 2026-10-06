@@ -34,6 +34,7 @@ import './moonshot.js';
 import './props.js';
 import './prompts.js';
 import './mail.js';
+import './radio.js';
 import './posts.js';
 import './advisors.js';
 import './squads.js';

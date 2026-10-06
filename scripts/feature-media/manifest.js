@@ -373,11 +373,10 @@ export const ITEMS = [
   },
 
   {
-    // Automate it, and live with it: the seeded game grows to an Agents-era HQ with the balanced bot, then the
-    // automate-everything bot runs it until the live week raises the runaway cloud bill. The office
-    // holds still under the card (the bill), so the camera pushes in on the hot rack.
+    // Automate it, and live with it: a stored Agents-era HQ run by the automate-everything bot, the week before
+    // the runaway cloud bill. The office holds still under the card (the bill), so the camera pushes in on the hot rack.
     id: 'site-loop-automation', title: 'Landing page loop: the runaway cloud bill and the hot rack', query: 'seed=6&speed=1', seconds: 22, warmup: 0.5,
-    setup: `(async () => { await ${RUNAWAY}; ${BARE}; ${CARD_IN} })()`,
+    setup: `(async () => { await ${PIN_LOAD('cloud', { eventId: 'agent_runaway_spend', subjectId: null })}; ${BARE}; ${CARD_IN} })()`,
     actions: [...CLEAR_EARLY, { at: 0, js: MARK_MOMENTS }, ...CAMLOG(22), ...[10, 14, 18, 21].map(at => ({ at, js: `(() => {
       const s = window.__HITL.state, R = window.__hitlRender;
       const card = document.querySelector('#ui .modal.decision');

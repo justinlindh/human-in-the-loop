@@ -231,6 +231,10 @@ export const B = {
     cooldownWeeks: 2, repeatWeeks: 8, newsWeeks: 2, replyWeeks: 2, lowMorale: 30, pizzaPerHead: 25,
     pepTalk: 2, meme: 2, pizza: 3, pizzaStamina: 10, news: 3, backfire: 1, scare: 2, memeBackfire: 3, blame: 1, fixHealth: 3,
   },
+  // The boombox: its price, and the recovery bonus for desks within radius while it plays. While it plays, at
+  // most one taste remark per tasteGapWeeks (tasteChance a week once the gap has passed), and a swapChance a
+  // week that someone changes the station to theirs.
+  boombox: { enabled: false, cost: 350, radius: 3, meaning: 0.05, tasteGapWeeks: 6, tasteChance: 0.5, argueChance: 0.35, swapChance: 0.012 },
   // The inbox: one ambient roll and one actionable roll a week, at most actionOpen mails with an open choice,
   // each open for expiryWeeks; at most kept mails in all, oldest settled first. A reply-all storm grows for
   // up to replyAllWeeks. The rest are the actionable templates' effect sizes.
@@ -248,9 +252,18 @@ export const B = {
   aiInterviews: {
     enabled: false, feeMult: 0.5, refreshWeeks: 2, extraCandidates: 1, spread: 15, gamerChance: 0.2, polish: 20, revealWeeks: 4,
     brandPerHire: -0.5, calibrateMeaning: -2, stageChance: 0.15, loopChance: 0.02, chatterChance: 0.08,
+    // Spot the AI: the watched candidate is an AI this often; an AI shows a third tell and a decoy this often.
+    watchAiChance: 0.5, thirdTellChance: 0.3, aiDecoyChance: 0.5,
+    catchBrand: 2, catchMeaning: 1, wrongRejectBrand: -1,
+    // A hired AI walks out with its credentials this many weeks later, costing brand and the smaller of
+    // exposeCash or exposeCashShare of cash in hand.
+    exposeWeeks: [8, 12], exposeCash: 20000, exposeCashShare: 0.25, exposeBrand: -1,
   },
   chatPromptsEnabled: true, chatPromptsOpen: 1, chatPromptGapWeeks: 1, chatPromptExpiryWeeks: 3, chatPromptsKept: 4, chatPromptChance: 0.6, chatPromptFromWeek: 6,
+  // yearCap: most times one template opens in 52 weeks (yearCaps per template, for the ones whose trigger
+  // is true most of a game); samePosterWeeks: before a template asks the same person again.
   prompts: {
+    yearCap: 3, yearCaps: { desk_squeeze: 1, newhire_lost: 1, junior_pr: 1, agent_prs: 1 }, samePosterWeeks: 26,
     strainAt: 40, lateWeeks: 12, newHireWeeks: 3, supportShortfall: 0.2, lateProgress: 0.6, agentLevel: 0.3,
     restStrain: 20, pushStrain: 3, pushOutput: 0.02, launchHype: 4, cakeCost: 300, subtweetBackfire: 0.25,
     crunchOutput: 0.04, reviewDebt: 3, mergeDebt: 4, lunchCost: 40, teamLunchCost: 400,
