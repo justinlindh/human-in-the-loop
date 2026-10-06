@@ -67,6 +67,8 @@ jobs:
       - name: semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # semantic-release takes its branch from the run's ref, which is the one this was dispatched on.
+          GITHUB_REF: refs/heads/release
         run: npx semantic-release --no-ci --branches release ${{ inputs.dry_run && '--dry-run' || '' }}
       # A release made with GITHUB_TOKEN triggers no other workflow, so Pages is called from here. A real
       # release that made no tag (nothing releasable since the last one) fails the run instead of passing.
