@@ -312,6 +312,7 @@ export const ITEMS = [
     id: '1-2-founding', title: '1.2 Founding: name, logo, founders, funding', query: '', seconds: 22,
     actions: [
       { at: 1.0, js: CLICK('New Game') },
+      { at: 1.8, js: CLICK('Next: company') },
       { at: 2.5, js: TYPE('Lantern Works') },
       { at: 4.0, js: CLICK_SEL('.swatch', 3) },
       { at: 6.0, js: CLICK('Next: founders') },
@@ -327,6 +328,7 @@ export const ITEMS = [
     id: '1-2-no-builder', title: '1.2 Founders with no builder (warning)', query: '', still: true,
     actions: [
       { at: 0.3, js: CLICK('New Game') },
+      { at: 0.5, js: CLICK('Next: company') },
       { at: 0.8, js: CLICK('Next: founders') },
       { at: 1.3, js: `(() => { const cards = [...document.querySelectorAll('.fcard')]; for (const c of cards.filter((c) => !/Engineer|Designer|Researcher/.test(c.textContent)).slice(0, 2)) c.click(); })()` },
     ],

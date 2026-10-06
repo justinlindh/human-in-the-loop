@@ -71,9 +71,10 @@ try {
     const orig = c.newGame;
     c.newGame = (o) => { window.__newGameOpts = o; return orig(o); };
   });
-  // From the title: New Game, then the three founding steps.
+  // From the title: New Game, then the founding steps (era first, Classic chosen).
   const found = async (name, seed, shots = false) => {
     await clickText(/New Game/);
+    await clickText(/Next: company/);
     await page.locator('input.text').first().fill(name);
     await page.locator('input.seed').fill(String(seed));
     if (shots) await shot('2-company.png');
