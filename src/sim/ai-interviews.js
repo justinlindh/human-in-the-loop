@@ -135,8 +135,7 @@ registerAction('watchInterview', (ctx, { candidateId }) => {
   if (!c) return { ok: false, reason: 'No such candidate' };
   if (c.watched) return { ok: false, reason: 'Already watched' };
   if (state.pendingDecision) return { ok: false, reason: 'Finish the open decision first' };
-  // The policy only runs in eras the card is allowed in, so a declined card means the feature is off here.
-  if (!openWatch(ctx, c, { asked: true })) return { ok: false, reason: 'AI interviews are off' };
+  if (!openWatch(ctx, c, { asked: true })) return { ok: false, reason: 'Not right now' };
   return { ok: true };
 });
 
