@@ -800,7 +800,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     }
     for (const id of ambientCarriers(d, lastState)) {
       const r = recs.get(id);
-      if (!present(r) || labels.speaking(r.char.root)) continue;
+      if (!present(r) || labels.lineUp(r.char.root)) continue;
       speech.admit(r.id, seconds, 0, { moment: true });
       labels.note(text, src, d.tone, r.char.root, seconds, opts);
       return true;
@@ -821,7 +821,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (!item.envelope) return showAmbient(item);
     const r = item.envelope;
     if (ambientT < item.at) return false;
-    if (present(r) && !labels.speaking(r.char.root)) labels.note('', glyphSrc('mail'), 'info', r.char.root, REPLY_ALL.holdS, { iconOnly: true, icon: 'mail' });
+    if (present(r) && !labels.lineUp(r.char.root)) labels.note('', glyphSrc('mail'), 'info', r.char.root, REPLY_ALL.holdS, { iconOnly: true, icon: 'mail' });
     return true;
   }
   function ambient(d) {
