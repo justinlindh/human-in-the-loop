@@ -92,7 +92,7 @@ Product = {
 
 ```js
 { type: 'bubble', staffId, text, tone }   // tone: features|polish|reliability|novelty|good|bad
-{ type: 'toast', text, tone, trendId }    // tone: info|good|warn|bad; trendId: set when the toast announces a market trend, else absent
+{ type: 'toast', text, tone, trendId, topic, subjectId }    // tone: info|good|warn|bad; trendId: set when the toast announces a market trend, else absent; topic: set on status news only, one of 'progress'|'timeoff'|'back'|'mood'|'trend'|'blocked'|'reward'|'pet'|'rival'|'incident' (ui may show it ambiently); subjectId: the staff or product id the news is about, or null. Money, staff changes, goals and player-caused feedback carry no topic and always stay toasts
 { type: 'chat', id, week, channel, from, fromId, text, replyTo, reactions, mailId? }   // mailId: a mail this post points at (#17)
                                           // channel: general|incidents|wins|random|standup; from: staff name or a bot handle like '@pagerbot'
                                           // fromId: staff id or null for bots; replyTo: chat id or null; reactions: { [emoji]: count }
@@ -754,7 +754,7 @@ state.asks: [{ id, kind, priority, week, expiresWeek, defaultChoice, ref }]
 
 - With the switch on, `raiseDecision`, `openEventPrompt` and actionable mail append a candidate to `asks` instead of opening it. Era, period and gate checks still apply, but the sim's week-based spacing and slot limits do not: the attention clock in `src/pacing.js` owns cadence, in real seconds.
 - Order: emergencies first (incidents, cyber), then oldest first. Only the presentation layer opens an ask, one at a time.
-- A candidate whose `expiresWeek` passes without being presented is dropped silently, with no default applied: it no longer fits the game.
+- `expiresWeek` is the created week plus `B.attention.staleWeeks` for normal and low asks, and null for emergencies. A candidate past it is dropped silently, with no default applied, the next time the queue is read: it no longer fits the game.
 - Bots present the head after `B.attention.botGapWeeks`, and emergencies at once, so balance runs never depend on the wall clock.
 - Saves without `asks` load with `asks: []`.
 
