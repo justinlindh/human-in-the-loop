@@ -98,6 +98,25 @@ up 'true'
 [ $rc -eq 0 ] && grep -q 'pushed' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" != "$before" ] \
   || fail "a worktree still on its branch is updated and pushed: $rc $(cat "$tmp/out")"
 
+# A branch with no upstream (pushed without -u) is still updated, and gets its upstream set.
+moves() { ( cd "$tmp/work" && g checkout -q main && g commit -q --allow-empty -m "main moves again" && g push -q origin main && g checkout -q topic ); }
+moves
+( cd "$tmp/work" && g branch -q --unset-upstream topic )
+before="$(git -C "$tmp/origin.git" rev-parse topic)"
+up 'true'
+[ $rc -eq 0 ] && grep -q 'pushed' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" != "$before" ] \
+  && [ -n "$(git -C "$tmp/work" config branch.topic.remote)" ] \
+  || fail "a branch with no upstream is pushed and tracked: $rc $(cat "$tmp/out")"
+# A push that origin refuses exits 8, says so, and is not reported as pushed.
+moves
+printf '#!/bin/sh\necho "refused by the stand-in origin" >&2\nexit 1\n' >"$tmp/origin.git/hooks/pre-receive"; chmod +x "$tmp/origin.git/hooks/pre-receive"
+before="$(git -C "$tmp/origin.git" rev-parse topic)"
+up 'true'
+[ $rc -eq 8 ] && grep -q 'pushing topic failed' "$tmp/out" && ! grep -q 'pushed ' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" = "$before" ] \
+  || fail "a refused push exits 8 and is not reported as pushed: $rc $(cat "$tmp/out")"
+rm -f "$tmp/origin.git/hooks/pre-receive"
+( cd "$tmp/work" && g reset -q --hard "origin/topic" )
+
 # Without --test the merge is gated on the related tests (test:push, niced) where package.json has
 # that script, and on npm test where it does not. A stand-in npm records how it was called.
 printf '#!/usr/bin/env bash\necho "$*" >>"%s"\n' "$tmp/npm-calls" >"$tmp/bin/npm"; chmod +x "$tmp/bin/npm"
