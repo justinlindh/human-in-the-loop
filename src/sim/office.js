@@ -181,6 +181,7 @@ export function purchaseProblem(state, itemId) {
   const it = ITEMS[itemId];
   if (!it) return 'Unknown item';
   if (state.officeStage < it.minStage) return 'Needs a bigger office';
+  if (it.onlyEras?.length === 0) return 'Not available';
   if (it.onlyEras && !it.onlyEras.includes(state.era.id)) return it.onlyEras.length === 1 ? 'Available in the dot-com chapter' : 'Available before Classic';
   if (it.era && !eraAtLeast(state, it.era)) return 'Arrives with the Agents era';
   if (it.requires === 'award' && state.stats.awards < 1) return 'Needs an award first';

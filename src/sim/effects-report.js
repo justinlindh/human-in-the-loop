@@ -169,7 +169,7 @@ function officeFile() {
     const near = a && (a.to ? `${label(a.key)} ${pct(a.value)} for each other ${ITEMS[a.to].name} ${tiles}`
       : `${label(a.key)} ${pct(a.value)} for each occupied desk ${tiles}, shared across the team`);
     const effects = [levels.join(' · '), near, ITEM_RULES[it.id]?.(B)].filter(Boolean).join('; ');
-    const from = [it.minStage ? ['', 'Office Floor', 'HQ Building'][it.minStage] : 'any', it.era ? `the ${list(ERAS).find((e) => e.id === it.era)?.name ?? it.era} era` : null, ITEM_NEEDS[it.requires] ?? it.requires].filter(Boolean).join(', ');
+    const from = it.onlyEras?.length === 0 ? 'not in the game yet' : [it.minStage ? ['', 'Office Floor', 'HQ Building'][it.minStage] : 'any', it.era ? `the ${list(ERAS).find((e) => e.id === it.era)?.name ?? it.era} era` : null, ITEM_NEEDS[it.requires] ?? it.requires].filter(Boolean).join(', ');
     return [it.name, it.kind, from, effects];
   });
   const rules = `A second copy of an item adds its level effect at ${Math.round(B.itemSecondCopy * 100)}%, and copies past the second add no level effect. `

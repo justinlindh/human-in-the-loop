@@ -91,13 +91,15 @@ export const ITEMS = Object.fromEntries([
     id, { id, name, desc, kind: 'shop', minStage, costs, effects, requires, footprint: SHOP_SHAPE[id][0], adjacency: SHOP_SHAPE[id][1], era: SHOP_ERA[id] ?? null, outdoor: OUTDOOR.has(id), frontFrom: FRONT_FROM[id] ?? null,
       levelStage: LEVEL_STAGE[id] ?? null, unique: UNIQUE.has(id) },
   ]),
-  ...(B.boombox.enabled ? [['boombox', boomboxItem()]] : []),
+  ['boombox', boomboxItem()],
 ]);
 
-// The boombox: its adjacency pays only while the radio is on (src/sim/bonus.js). It's in ITEMS only while
-// B.boombox.enabled, so the shop never shows it before the feature ships.
+// The boombox: its adjacency pays only while the radio is on (src/sim/bonus.js). The item always exists, so a
+// placed one still loads; while B.boombox.enabled is false, onlyEras is empty, which keeps it out of the shop
+// and refuses a new one.
 export function boomboxItem() {
   return { id: 'boombox', name: 'Boombox', desc: 'One working tape deck, a bent antenna and strong opinions. People nearby recover a little faster while it plays.',
     kind: 'furniture', minStage: 0, costs: [B.boombox.cost], effects: [{}], requires: null, footprint: { w: 1, h: 1 },
-    adjacency: { radius: B.boombox.radius, key: 'meaningRecovery', value: B.boombox.meaning }, era: null, outdoor: true, frontFrom: null, levelStage: null, unique: true };
+    adjacency: { radius: B.boombox.radius, key: 'meaningRecovery', value: B.boombox.meaning }, era: null, outdoor: true, frontFrom: null, levelStage: null, unique: true,
+    get onlyEras() { return B.boombox.enabled ? null : []; } };
 }
