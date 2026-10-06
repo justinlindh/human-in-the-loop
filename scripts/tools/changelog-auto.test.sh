@@ -67,6 +67,7 @@ run "$DAY"
   || fail "a player-visible day opens a site PR with the entry: rc=$rc $(cat "$tmp/out") $(cat "$CL_GH_CALLS")"
 git -C "$tmp/site.git" show "changelog/$DAY:changelog/entries.json" | jq -e '.[0].date == "'"$DAY"'" and .[0].items[0].media[0].src == "https://raw.githubusercontent.com/justinlindh/human-in-the-loop/feature-media/office-box.webp"' >/dev/null || fail "the entry is newest first and the still is its raw link"
 grep -q '/home/\|/tmp/' "$tmp/state/$DAY.pr.md" && fail "the PR body holds a local path"
+grep -q 'Check each number and each claim' "$tmp/state/$DAY.pr.md" || fail "the PR body asks the reviewer to fact-check the text"
 
 # The same day again without --force does nothing.
 run "$DAY"

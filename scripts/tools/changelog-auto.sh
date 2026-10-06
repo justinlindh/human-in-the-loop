@@ -158,6 +158,8 @@ body="$STATE/$day.pr.md"
   echo "## What"; echo
   echo "The changelog entry for $day, drafted from that day's merged player-visible PRs and their feature entries by the daily changelog run, then checked by the site's tests."; echo
   echo "## Changes"; echo; echo "$titles"; echo
+  echo "## For the reviewer"; echo
+  echo "The text is written by a model from the day's merged PRs and feature entries, and it has been wrong before (multipliers, which starts exist). Check each number and each claim against the game's code and docs/effects at that day's commit before the verdict; the site cannot merge this PR without one."; echo
   echo "## Evidence"; echo
   echo "- **Checks:** \`npm test\` passes (the changelog and site checks)."
   echo "- **Screenshots:** none; the entry is data and stills the page already shows."; echo
