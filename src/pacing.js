@@ -162,3 +162,85 @@ export function createPacer({ weekSeconds = WEEK_SECONDS } = {}) {
     },
   };
 }
+
+// The attention clock. The sim proposes asks (state.asks); this decides, in running real seconds, when
+// the player sees one. Pure: the caller feeds it frame time and what is open, and dispatches what it
+// returns (presentAsk for `present`, expireAsk for each id in `expire`).
+//
+// Every number is in running play seconds, so a paused game or an open modal never spends them.
+export const ATTENTION_DEFAULTS = {
+  gap: 90,            // least play seconds between one ask opening and the next
+  quiet: 45,          // least play seconds after any modal or beat closes before an ask opens
+  expiry: 180,        // play seconds a non-emergency ask may wait before it takes its default
+  momentWindow: 300,  // one staged moment per this many play seconds
+  momentCap: 25,      // longest a staged moment may hold the clock
+  watchWindow: 600,   // every window holds a stretch with no ask and no beat ...
+  watchStretch: 180,  // ... this long
+};
+const RANK = { emergency: 0, normal: 1, low: 2 };
+
+export function createAttention(cfg = {}) {
+  const c = { ...ATTENTION_DEFAULTS, ...cfg };
+  let t, lastAsk, lastClose, lastEvent, lastMoment, wasModal, windowStart, watched, waited;
+  function reset() {
+    t = 0; lastAsk = -Infinity; lastClose = -Infinity; lastEvent = -Infinity; lastMoment = -Infinity;
+    wasModal = false; windowStart = 0; watched = false; waited = new Map();
+  }
+  reset();
+
+  // Quiet play so far inside the current window.
+  const stretch = () => t - Math.max(lastEvent, windowStart);
+  const quietOver = () => t - lastClose >= c.quiet;
+
+  return {
+    config: c,
+    reset,
+    get playSeconds() { return t; },
+    // True when a card or other non-urgent popup may open: nothing is open and the quiet is over.
+    quietOk(modal = false) { return !modal && quietOver(); },
+    // A beat (launch card, era, staged moment) opened or closed just now.
+    beat() { lastEvent = t; lastClose = t; },
+    // Staged moments: one per window.
+    momentReady() { return t - lastMoment >= c.momentWindow; },
+    momentBegun() { lastMoment = t; this.beat(); },
+    get momentCap() { return c.momentCap; },
+    // One frame. `dt` real seconds; `running` the clock is running; `speed` the game speed; `realTime`
+    // keeps every gap in real seconds at any speed (off, they shrink with speed). `modal` a pausing
+    // popup is up; `askOpen` an ask is still open; `asks` the candidates ({ id, priority }) in sim order;
+    // `expiry` expiry is on.
+    tick(dt, { running = true, speed = 1, realTime = true, modal = false, askOpen = false, asks = [], expiry = true } = {}) {
+      const step = realTime ? dt : dt * Math.max(speed, 0);
+      if (running) t += step;
+      if (modal && !wasModal) lastEvent = t;
+      if (!modal && wasModal) lastClose = t;
+      wasModal = modal;
+      if (modal) lastEvent = t;
+
+      // The watching stretch: a window rolls over once it has run its length.
+      if (stretch() >= c.watchStretch) watched = true;
+      if (t - windowStart >= c.watchWindow) { windowStart = t; watched = false; }
+
+      const ids = new Set(asks.map((a) => a.id));
+      for (const id of [...waited.keys()]) if (!ids.has(id)) waited.delete(id);
+      const out = { present: null, expire: [] };
+      for (const a of asks) {
+        if (!waited.has(a.id)) waited.set(a.id, 0);
+        if (a.priority === 'emergency') continue;
+        if (running) waited.set(a.id, waited.get(a.id) + step);
+        if (expiry && waited.get(a.id) >= c.expiry) out.expire.push(a.id);
+      }
+      if (!running || modal || askOpen || !asks.length || !quietOver()) return out;
+      const head = asks.filter((a) => !out.expire.includes(a.id))
+        .sort((a, b) => (RANK[a.priority] ?? 1) - (RANK[b.priority] ?? 1))[0];
+      if (!head) return out;
+      if (head.priority !== 'emergency') {
+        if (t - lastAsk < c.gap) return out;
+        // The end of a window stays clear when it has had no watching stretch yet.
+        if (!watched && t - windowStart >= c.watchWindow - c.watchStretch && stretch() < c.watchStretch) return out;
+      }
+      out.present = head.id;
+      lastAsk = t; lastEvent = t;
+      return out;
+    },
+  };
+}
