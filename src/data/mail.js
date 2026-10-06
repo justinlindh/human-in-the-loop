@@ -135,6 +135,7 @@ export const EVENT_MAIL = {
 
 // The reply-all storm: an all-company thread that grows every week until someone mutes it or it burns out.
 export const REPLY_ALL = {
+  id: 'reply_all',
   to: ['everyone@{companySlug}.com', 'all-staff@{companySlug}.com'],
   subjects: ['Who took my oat milk', 'Fridge cleanup this Friday', 'Parking lot is closed Tuesday', 'Someone left a lanyard in room B'],
   agentSubjects: ['Automated notice: kitchen inventory', 'Agent summary of the fridge situation'],

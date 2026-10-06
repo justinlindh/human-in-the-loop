@@ -308,7 +308,7 @@ describe('interruption cut 2: low-stakes events arrive as Yak prompts', () => {
   let mail;
   beforeEach(() => { mail = B.mail.enabled; B.mail.enabled = false; });
   afterEach(() => { B.mail.enabled = mail; });
-  const YAK =['coffee_wanted', 'coffee_wanted_corner', 'pet_request', 'vendor_new_version', 'senior_side_project', 'app_store_rejection'];
+  const YAK = ['coffee_wanted', 'coffee_wanted_corner', 'pet_request', 'vendor_new_version', 'senior_side_project', 'app_store_rejection'];
 
   it('the six are marked, with an ignore choice that exists', () => {
     const marked = Object.values(EVENTS).filter((e) => e.yak).map((e) => e.id).sort();
