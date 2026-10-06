@@ -523,6 +523,14 @@ export function createUI({ root, getState, dispatch, controls }) {
           break;
         }
         case 'chat': chat.add(e, e.week ?? state.week); break;
+        // The attention queue opened a letter or a Yak prompt: bring it to the player, since it holds the
+        // other asks back until it is answered or expires.
+        case 'askPresented': {
+          if (!pacingOn('askQueue')) break;
+          if (e.kind === 'letter') menu.open('mail', { mailId: e.mailId ?? state.mail?.[0]?.id });
+          else if (e.kind === 'prompt') chat.revealPrompt(e.promptId ?? e.chatId);
+          break;
+        }
         case 'say': callGrid.say(e, state); break;
         case 'hire': {
           const p = state.staff.find((s) => s.id === e.staffId);

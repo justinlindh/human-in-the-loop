@@ -8,7 +8,9 @@ vi.hoisted(() => vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => (
 afterAll(() => vi.unstubAllGlobals());
 
 let listeners;
+const real = B.pacing;
 beforeEach(() => {
+  B.pacing = {}; // the ordinary three levels unless a case turns quietYak on
   vi.useFakeTimers();
   localStorage.clear();
   listeners = vi.spyOn(window, 'addEventListener');
@@ -20,6 +22,7 @@ afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
   localStorage.clear();
+  B.pacing = real;
   document.body.replaceChildren();
 });
 

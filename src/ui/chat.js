@@ -6,7 +6,8 @@ import { h, setText, toggleClass, calendarDate, clear } from './dom.js';
 import { icon, reactionIcon } from './icons.js';
 import { portraitImg } from './widgets.js';
 import { CHAT_CHANNELS } from '../contract/events.js';
-import { loadSettings, saveSetting, YAK_LEVELS, yakLevel, setYakLevel } from './settings.js';
+import { pacingOn } from './pacing.js';
+import { loadSettings, saveSetting, yakLevels, normalizeYak, yakLevel, setYakLevel } from './settings.js';
 import { chatApp } from '../data/early-eras.js';
 import { createPromptView } from './chatPrompts.js';
 import { createPostBar } from './yakPosts.js';
@@ -49,7 +50,7 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
   const sizeBtns = Object.keys(SIZES).map((k) => h('button.ysz', { title: `${k[0].toUpperCase()}${k.slice(1)} Yak`, 'aria-label': `${k} size`, onclick: stop(() => setSize(k, null)) }, k[0].toUpperCase()));
   const maxBtn = h('button.ysz.ymax', { title: 'Open Yak big', 'aria-label': 'Maximize Yak', onclick: stop(() => setMax(!maximized)) }, icon('expand', { size: 13 }));
   let level = yakLevel();
-  const levelBtn = h('button.ysz.ylevel', { type: 'button', onclick: stop(() => setYakLevel(YAK_LEVELS[(YAK_LEVELS.findIndex((l) => l.v === level) + 1) % YAK_LEVELS.length].v)) });
+  const levelBtn = h('button.ysz.ylevel', { type: 'button', onclick: stop(() => { const lv = yakLevels(); setYakLevel(lv[(lv.findIndex((l) => l.v === level) + 1) % lv.length].v); }) });
   const head = h('div.chat-head', { title: touchUI() ? 'Yak' : 'Yak (C)', onclick: () => { if (!maximized) toggle(); } },
     h('span.slogo', null, icon('brand.yak', { size: 18 })), h('b.sbrand', { text: 'Yak' }), replyMark, totalBadge,
     h('span.ysizes', null, levelBtn, ...sizeBtns, maxBtn), caret);
@@ -207,8 +208,10 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
     refreshBadges();
   }
 
-  function showPrompt() {
-    const p = prompts.open()[0];
+  // Brings an open prompt into view: its channel selected and Yak expanded (maximized on a phone).
+  function showPrompt(id) {
+    const list0 = prompts.open();
+    const p = (id != null ? list0.find((x) => x.id === id || x.chatId === id) : null) ?? list0[0];
     if (!p) return;
     select(CHANNELS.includes(p.channel) ? p.channel : 'general');
     if (phoneLayout() || touchUI()) setMax(true); else toggle(false);
@@ -252,6 +255,7 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
     refreshBadges();
   }
 
+  let reveal = null; // id of a presented prompt to bring into view on the next update, or '' for the first open one
   let quietText = '';
   let appName = 'Yak';
   let markSig = '';
@@ -278,6 +282,8 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
     }
     prompts.sync(s);
     posts.update(s);
+    // A prompt the attention queue just presented waits here until the view has it.
+    if (reveal !== null && prompts.open().length) { const id = reveal; reveal = null; showPrompt(id); }
     const open = prompts.open();
     const sig = `${collapsed ? 1 : 0}|${open.map((p) => p.channel).join(',')}`;
     if (sig !== markSig) {
@@ -337,9 +343,9 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
   }
 
   function setLevel(v) {
-    level = YAK_LEVELS.some((l) => l.v === v) ? v : 'all';
-    const l = YAK_LEVELS.find((x) => x.v === level);
-    levelBtn.replaceChildren(icon(LEVEL_ICON[level], { size: 13 }));
+    level = normalizeYak(v);
+    const l = yakLevels().find((x) => x.v === level);
+    levelBtn.replaceChildren(icon(LEVEL_ICON[level === 'important' && pacingOn('quietYak') ? 'all' : level], { size: 13 }));
     levelBtn.dataset.level = level;
     setTip(levelBtn, `${l.tip}. Tap to change.`);
     levelBtn.setAttribute('aria-label', l.tip);
@@ -356,7 +362,7 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
   // unread badge still counts new messages.
   if (phoneLayout()) toggle(true);
   applySize();
-  return { add, toggle, update, reset, el, setMax, get maximized() { return maximized; },
+  return { add, toggle, update, reset, el, setMax, revealPrompt(id) { reveal = id ?? ''; }, get maximized() { return maximized; },
     onKey(e) {
       if (e.key === 'Escape' && memeBox.close()) { e.preventDefault(); return true; }
       if (maximized && e.key === 'Escape') { e.preventDefault(); setMax(false); return true; }
