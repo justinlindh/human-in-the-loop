@@ -291,7 +291,12 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
   // which starts its expiry clock.
   function showLetter(s, mailId) {
     const m = (s.mail ?? []).find((x) => x.id === mailId);
-    if (!m) return false;
+    // A letter that expired or was answered while it waited has nothing to decide; skip it and give back the
+    // speed an interrupted card was holding.
+    if (!m || !hasOpenChoice(m)) {
+      if (resumeSpeed !== null) { if ((ctx.controls.getSpeed?.() ?? 0) === 0) ctx.controls.setSpeed?.(resumeSpeed); resumeSpeed = null; }
+      return false;
+    }
     const prevSpeed = resumeSpeed ?? ctx.controls.getSpeed?.() ?? 1;
     resumeSpeed = null;
     ctx.controls.setSpeed?.(0);
