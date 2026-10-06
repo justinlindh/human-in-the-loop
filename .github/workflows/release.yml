@@ -2,18 +2,23 @@ name: release
 
 # semantic-release reads the Conventional Commits since the last tag, tags the next version, and
 # publishes a GitHub release; a new release then deploys to Pages. Release rules: .releaserc.json.
+# A release is cut on request only, by scripts/release.sh: it runs the whole suite on the commit first and,
+# when everything passes, sets the `release-gate` status on that commit and dispatches this workflow. The
+# workflow publishes only a commit that carries that status (a dry run, which publishes nothing, needs none).
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
+      sha:
+        description: The commit to release (main's tip, with the release-gate status)
+        type: string
+        required: true
       dry_run:
         description: Only compute and print the next version
         type: boolean
-        default: true
+        default: false
 
 concurrency:
-  group: release-${{ github.ref_name }}
+  group: release
   cancel-in-progress: false
 
 permissions:
@@ -23,16 +28,26 @@ jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
+      statuses: read
       contents: write
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
-      # The commit that triggered this run, not the branch tip: the Pages job below runs this commit's
-      # pages.yml, so it must build the same commit. A queued run that main has moved past releases
-      # nothing (semantic-release sees the branch ahead), and the newest run releases.
+      # Only a commit the whole suite passed on (scripts/release.sh set `release-gate` on it) is published.
+      - name: The commit passed the whole suite
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ inputs.sha }}
+        run: |
+          state="$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/statuses" --jq '[.[] | select(.context == "release-gate")][0].state // "none"')"
+          echo "release-gate on $SHA: $state"
+          [ "$state" = success ] || { echo "::error::$SHA has no passing release-gate status; run scripts/release.sh"; exit 1; }
+      # The commit that passed, not the branch tip: the Pages job below builds the tag made from it. A
+      # commit main has moved past releases nothing (semantic-release sees the branch ahead).
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.sha }}
           fetch-depth: 0
       - uses: actions/setup-node@v7
         with:

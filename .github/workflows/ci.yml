@@ -1,7 +1,7 @@
 name: ci
 
-# Runs on pushes to the default branches and on every pull request. The merge gate is the Local CI
-# comment from scripts/ci-pr.sh (see CLAUDE.md).
+# Runs on pushes to the default branches and on every pull request. A PR merges on `smoke` (or `test`),
+# `commits` and the reviewer's `review` status (see CLAUDE.md); the heavy jobs run on a manual dispatch.
 on:
   push:
     branches: [main]
@@ -70,7 +70,27 @@ jobs:
       - run: npm run build
         if: steps.cls.outputs.mode == 'full'
 
+  # The gate a PR passes (scripts/smoke.sh: syntax, the tests that import the change, the features and
+  # toolkit checks, a build). The jobs below are the rest of the suite; they run on a manual dispatch of
+  # this workflow, and a release runs the whole suite itself (scripts/release.sh).
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 25
+          cache: npm
+      - run: npm ci
+      - name: Smoke checks
+        env:
+          BASE: ${{ github.base_ref || 'main' }}
+        run: bash scripts/smoke.sh --base "origin/$BASE"
+
   balance:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -123,6 +143,7 @@ jobs:
         if: steps.cls.outputs.mode == 'full' && steps.bal.outputs.run == 'true'
 
   browser:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     # The runners have no GPU; local runs default to it (scripts/lib/gl.js).
     env:
@@ -168,6 +189,7 @@ jobs:
   # Checks that need nothing from the local machine, moved out of local CI: the main guard's own cases,
   # and the renderer's counts against scripts/perf/budget.json (counts, never timings, on software GL).
   tools:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       HITL_GL: software
