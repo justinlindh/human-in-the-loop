@@ -373,6 +373,13 @@ export function createLabels(parent) {
       .map((r) => ({ left: r.left - base.left, right: r.right - base.left, top: r.top - base.top, bottom: r.bottom - base.top }));
   }
   const inRect = (x, y, r) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  // The shift that keeps a box inside the window's sides (none for a box wider than the window).
+  const onScreenDx = (box, dx, w) => {
+    if (box.right - box.left > w - 2 * GAP) return dx;
+    if (box.right + dx > w - GAP) return w - GAP - box.right;
+    if (box.left + dx < GAP) return GAP - box.left;
+    return dx;
+  };
   function clearOfPanels(l, box, anchor, w, h, k) {
     const off = anchor.x < 0 || anchor.y < 0 || anchor.x > w || anchor.y > h;
     let dx = 0, hidden = false;
@@ -383,6 +390,7 @@ export function createLabels(parent) {
       if (off || inRect(anchor.x, anchor.y, o)) { hidden = true; break; }
       dx += anchor.x < (o.left + o.right) / 2 ? o.left - GAP - at.right : o.right + GAP - at.left;
     }
+    if (!off && !hidden) dx = onScreenDx(box, dx, w);
     l.px = (l.px ?? 0) + (dx - (l.px ?? 0)) * k;
     l.hideK = (l.hideK ?? 1) + ((hidden ? 0 : 1) - (l.hideK ?? 1)) * k;
   }
@@ -425,7 +433,10 @@ export function createLabels(parent) {
     }
     const k = 1 - Math.exp(-dt * 14);
     if (!says.length) {
-      for (const l of stats) l.dx += (0 - l.dx) * k;
+      for (const l of stats) {
+        if (!l.w) { l.w = l.el.offsetWidth; l.h = l.el.offsetHeight; }
+        l.dx += (onScreenDx(rectOf(l, camera, w, h), 0, w) - l.dx) * k;
+      }
       layoutGrowth(camera, w, h);
       drawLeads(segs, overlay);
       return;
@@ -503,7 +514,7 @@ export function createLabels(parent) {
         const mid = (at.left + at.right) / 2;
         dx += mid < (p.left + p.right) / 2 ? p.left - GAP * 2 - at.right : p.right + GAP * 2 - at.left;
       }
-      l.dx += (dx - l.dx) * k;
+      l.dx += (onScreenDx(r, dx, w) - l.dx) * k;
     }
     layoutGrowth(camera, w, h);
     drawLeads(segs, overlay);
