@@ -70,6 +70,7 @@ describe('issue #1646: the ask queue', () => {
 
   it('on: a Yak event and a letter event wait as low-priority candidates and open as a prompt and a mail', () => {
     B.pacing.askQueue = true;
+    B.pacing.letterMail = false;
     const s = company();
     s.chatPrompts = [{ id: 'x', resolved: null }];
     s.mail = [{ id: 'm', options: [{}], resolved: null }, { id: 'n', options: [{}], resolved: null }];
@@ -86,6 +87,7 @@ describe('issue #1646: the ask queue', () => {
 
   it('presentAsk emits askPresented naming the mail or prompt it opened, and nothing when it opened nothing', () => {
     B.pacing.askQueue = true;
+    B.pacing.letterMail = false;
     const s = company();
     s.chatPrompts = [{ id: 'x', resolved: null }];
     s.mail = [{ id: 'm', options: [{}], resolved: null }, { id: 'n', options: [{}], resolved: null }];
@@ -285,7 +287,7 @@ describe('issue #1646: the ask queue', () => {
   });
 
   it('status-news toasts carry a known topic and a subject id or null; money, staff changes and goals carry none', () => {
-    const TOPICS = ['progress', 'timeoff', 'back', 'mood', 'trend', 'blocked', 'reward', 'pet', 'rival', 'incident'];
+    const TOPICS = ['progress', 'timeoff', 'back', 'mood', 'trend', 'blocked', 'reward', 'pet', 'rival', 'replyall', 'incident'];
     const seen = new Set();
     const toasts = [];
     for (const bot of ['balanced', 'allHumans']) {

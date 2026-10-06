@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, onTestFinished } from 'vitest';
 import { dispatch, tick } from '../../src/sim/index.js';
 import { eventsSystem, eligibleEvents, raiseDecision, resolveSubjects, fillText } from '../../src/sim/events.js';
 import { applyEffects, modifierBonus, processScheduled, expireModifiers } from '../../src/sim/effects.js';
@@ -395,6 +395,10 @@ describe('content', () => {
   });
 
   it('300 weeks with a fixed seed produce at least 10 distinct events', () => {
+    // Variety at today's event rate; askRates' cut is measured separately.
+    const keep = B.pacing.askRates;
+    B.pacing.askRates = false;
+    onTestFinished(() => { B.pacing.askRates = keep; });
     const s = busy(3);
     for (let w = 0; w < 300; w++) {
       if (s.pendingDecision) resolve(s, s.pendingDecision.choices.findIndex((_, i) => dispatch(JSON.parse(JSON.stringify(s)), { type: 'resolveDecision', choice: i }).ok));

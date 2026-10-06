@@ -291,10 +291,12 @@ function launchPause(state) {
   return recent(p) && !recent(d);
 }
 
+export const eventChance = () => (B.pacing.askRates ? B.askRates.randomEventChance : B.randomEventChance);
+
 export function eventsSystem(ctx) {
   const { state } = ctx;
   if (state.pendingDecision) return;
-  const rolled = chance(ctx.rng, B.randomEventChance);
+  const rolled = chance(ctx.rng, eventChance());
   const held = state.flags.heldRolls ?? 0;
   // A roll that lands while a launch or unlock is keeping decisions waiting is held (up to heldRollsMax) and
   // spent once the gap clears, so the spacing never lowers how often events come up.

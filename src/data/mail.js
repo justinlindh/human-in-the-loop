@@ -100,7 +100,7 @@ export const MAIL_TEMPLATES = [
       { label: 'Ship a fix', hint: 'The product\'s health up; output down a little for 1 week', effects: { modifier: { key: 'output', value: N.fixOutput, weeks: 1, label: 'Fixing a complaint' }, health: N.fixHealth }, reply: 'Thank you for the detail. A fix is going out this week.' },
     ],
     ignored: { effects: { brand: N.complaintIgnoredBrand } } },
-  { id: 'recruiter_poach', category: 'recruiter', needs: 'staff', about: 'staff',
+  { id: 'recruiter_poach', category: 'recruiter', needs: 'staff', about: 'staff', letter: true,
     from: [{ name: 'Brittany', org: 'TalentHunt Partners' }, { name: 'Marcus', org: 'Apex Talent Fishing' }],
     subject: ['Confidential opportunity for {staff}', 'Is {staff} open to new roles?'],
     body: ['Hi there! I came across {staff}\'s profile and was blown away. I know this is a little awkward since you are their employer. I have a role that pays more, has a slide, and a CEO who "gets it".\n\nCould you pass this along? No pressure. Some pressure.'],
@@ -109,7 +109,7 @@ export const MAIL_TEMPLATES = [
       { label: 'Counter with a raise', hint: `Their salary up ${N.poachRaisePct}%; their meaning up a little`, effects: { salaryPct: N.poachRaisePct, meaning: N.poachRaiseMeaning }, reply: 'No thanks. We are giving {staff} a raise instead.', line: ['Wait, I got a raise because someone else wanted me? I love recruiters now.'] },
     ],
     ignored: { effects: { strain: N.poachIgnoredStrain } } },
-  { id: 'partnership_offer', category: 'partner', needs: 'product', about: 'product', minWeek: 26,
+  { id: 'partnership_offer', category: 'partner', needs: 'product', about: 'product', minWeek: 26, letter: true,
     from: [{ name: 'Lena Fischer', org: 'Bridgely' }, { name: 'Omar Haddad', org: 'Socketly' }],
     subject: ['Partnership: {product} x {org}', 'Integration proposal'],
     body: ['Hi! Our users keep asking for a {product} integration. We would love to build one together and announce it with a joint blog post nobody reads but everybody shares.'],
@@ -121,12 +121,14 @@ export const MAIL_TEMPLATES = [
 ];
 
 // Senders for events delivered as mail. ignore: the choice that applies when nobody answers, the event's mildest
-// (no cost, no item or pet); events without choices arrive as read-only notices.
+// (no cost, no item or pet); events without choices arrive as read-only notices. `letter: true` (here and on a
+// template) marks a letter from outside the company with a real choice: under B.pacing.letterMail only those
+// arrive as mail.
 export const EVENT_MAIL = {
   alumni_referral: { category: 'staff', from: { name: '{alum}', org: null }, ignore: 0 },
-  blockchain_pitch: { category: 'partner', from: { name: 'Kyle', org: 'Chain of Value' }, ignore: 0 },
+  blockchain_pitch: { category: 'partner', from: { name: 'Kyle', org: 'Chain of Value' }, ignore: 0, letter: true },
   vendor_new_version: { category: 'vendor', from: { name: 'Product Updates', org: 'Your model vendor' }, ignore: 1 },
-  app_store_rejection: { category: 'legal', from: { name: 'App Review', org: 'App Marketplace Review Board' }, important: true, ignore: 0 },
+  app_store_rejection: { category: 'legal', from: { name: 'App Review', org: 'App Marketplace Review Board' }, important: true, ignore: 0, letter: true },
   vendor_price_hike: { category: 'vendor', from: { name: 'Billing', org: 'Your model vendor' } },
   analyst_report: { category: 'partner', from: { name: 'Research Desk', org: 'Quadrant Analyst Group' } },
   vendor_outage: { category: 'vendor', from: { name: 'Status Updates', org: 'Your model vendor' }, important: true },

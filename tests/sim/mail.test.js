@@ -11,6 +11,11 @@ import { eraAllowsText } from '../../src/sim/eras.js';
 import { botTurn } from '../../src/sim/bots.js';
 import { game, addStaff, addDesks, addProduct, expectFail } from './helpers.js';
 
+// These cases cover the full inbox; letterMail's letters-only inbox has its own tests in pacing-rates.test.js.
+let keepLetterMail;
+beforeEach(() => { keepLetterMail = B.pacing.letterMail; B.pacing.letterMail = false; });
+afterEach(() => { B.pacing.letterMail = keepLetterMail; });
+
 const CATEGORIES = ['applicant', 'partner', 'customer', 'vendor', 'recruiter', 'investor', 'invite', 'legal', 'rival', 'staff', 'spam'];
 const MOVED_CHOICES = ['alumni_referral', 'blockchain_pitch', 'vendor_new_version', 'app_store_rejection'];
 const MOVED_NOTICES = ['vendor_price_hike', 'analyst_report', 'vendor_outage', 'bootcamp_grads'];

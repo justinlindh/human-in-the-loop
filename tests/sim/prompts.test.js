@@ -11,6 +11,11 @@ import { EVENTS } from '../../src/data/events.js';
 import { fireEvent, resolveSubjects } from '../../src/sim/events.js';
 import { game, addStaff, addDesks, addProduct } from './helpers.js';
 
+// These cases cover the prompt roll at its full rate; askRates' cut has its own test in pacing-rates.test.js.
+let keepAskRates;
+beforeEach(() => { keepAskRates = B.pacing.askRates; B.pacing.askRates = false; });
+afterEach(() => { B.pacing.askRates = keepAskRates; });
+
 const TRIGGERS = ['strain', 'incident', 'launch', 'rival', 'late', 'agents', 'newhire', 'coasting', 'support', 'lowcash', 'crowded', 'full', 'junior'];
 
 // A settled company where only one thing is going on: someone is worn out.

@@ -163,6 +163,8 @@ function applyOption(ctx, o, pc) {
 const eventChoiceBlocker = (state, c, subjectId) =>
   (c.requires && !checkCondition(state, c.requires, subjectId) ? requireReason(state, c.requires) : grantBlocker(state, c));
 
+export const promptChance = () => (B.pacing.askRates ? B.askRates.chatPromptChance : B.chatPromptChance);
+
 // Whether a new prompt can open now: fewer than chatPromptsOpen are open.
 export const promptSlotFree = (state) => (state.chatPrompts ?? []).filter((p) => !p.resolved).length < B.chatPromptsOpen;
 
@@ -321,7 +323,7 @@ export function promptsSystem(outer) {
   }
   if (open.length >= B.chatPromptsOpen || state.week < B.chatPromptFromWeek) return;
   if (state.week - (state.flags.lastPromptWeek ?? -Infinity) < B.chatPromptGapWeeks) return;
-  if (!chance(ctx.rng, B.chatPromptChance)) return;
+  if (!chance(ctx.rng, promptChance())) return;
   openPrompt(ctx);
 }
 
