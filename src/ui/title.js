@@ -13,13 +13,12 @@ import { B } from '../sim/balance.js';
 import { OFFICE_STAGES } from '../data/office.js';
 import { GOALS } from '../data/goals.js';
 import { erasPreview } from './eraPreview.js';
+import { suggestCompany } from './companyNames.js';
 import { periodCopy } from '../data/period-content.js';
 import { createGame } from '../sim/state.js';
 import { canTakeOver } from '../sim/takeover.js';
 import { weeklyCosts, weeklyRevenue } from '../sim/economy.js';
 
-const NAME_A = ['Loop', 'Pair', 'Kindly', 'Tiny', 'Candor', 'Hearth', 'Paper', 'Lantern', 'Honest', 'Maple', 'Orbit', 'Quiet'];
-const NAME_B = ['works', 'labs', ' & Co', ' Software', 'craft', ' Systems', 'house', ' Collective', 'forge', ' Studio'];
 const KIT_FUNDING = {
   bootstrapped: 'Savings and a credit card, plus the era kit. Nobody to answer to.',
   family: 'Money from people who love you, plus the era kit. More runway, with dinner-table questions.',
@@ -34,10 +33,6 @@ const versionLabel = () => (/^\d/.test(BUILD_VERSION) ? `v${BUILD_VERSION}` : BU
 // A save the current build cannot read (older or newer): the loader says so with a flag or its reason text.
 const isOldSave = (r) => !!r && r.ok === false && (r.stale === true || r.incompatible === true || r.code === 'incompatible' || /incompatible|(older|newer) build|older version/i.test(r.reason ?? ''));
 
-function suggestCompany() {
-  const pick = (a) => a[Math.floor(Math.random() * a.length)];
-  return `${pick(NAME_A)}${pick(NAME_B)}`;
-}
 
 // Title screen over the live diorama: New Game (company name, optional seed), Continue, Settings.
 export function createTitle({ layer, controls, sfx, toast, onStart, openSettings, getState = null }) {
@@ -348,7 +343,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     frame('identity', h('div.fbody', null,
       h('div.row', null, logo, h('div.col', { style: { flex: 1 } },
         h('label', null, h('b', { text: 'Company name' }),
-          h('div.row', null, nameIn, h('button.btn.small', { onclick: () => { draft.companyName = suggestCompany(); nameIn.value = draft.companyName; setLogo(); } }, icon('dice'), ' Suggest'))))),
+          h('div.row', null, nameIn, h('button.btn.small', { onclick: () => { draft.companyName = suggestCompany(draft.startEra); nameIn.value = draft.companyName; setLogo(); } }, icon('dice'), ' Suggest'))))),
       h('label', null, h('b', { text: 'Logo color' }), swatches),
       h('label', null, h('b', { text: 'Tagline' }),
         h('div.row', null, tagIn, h('button.btn.small', { onclick: () => { draft.tagline = TAGLINES[(TAGLINES.indexOf(draft.tagline) + 1) % TAGLINES.length]; tagIn.value = draft.tagline; } }, icon('dice'), ' Suggest'))),
