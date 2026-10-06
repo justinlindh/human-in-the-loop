@@ -1,8 +1,7 @@
 import { h, toggleClass } from '../dom.js';
 import { icon } from '../icons.js';
 import { liveView, tabs } from '../widgets.js';
-import { openTarget } from '../openTarget.js';
-import { pacingOn } from '../pacing.js';
+import { letterView } from '../letterView.js';
 import { FOLDERS, categoryOf, inboxOf, folderOf, unreadCount, hasOpenChoice, ageText, firstLine, threadOf, weeksLeft } from '../mail.js';
 
 const chip = (m) => { const c = categoryOf(m); return h('span.mailchip', { text: c.label, style: { '--mc': c.color } }); };
@@ -65,37 +64,9 @@ export function mailPanel(ctx, arg) {
     (s) => {
       const m = byId(s, selected);
       if (!m) return h('div.empty.mailempty', { text: 'Pick a letter to read it.' });
-      const left = weeksLeft(m, s.week);
-      const thread = threadOf(s, m);
-      const answer = (i) => {
-        const opens = m.options?.[i]?.opens;
-        if (!ctx.act({ type: 'answerMail', mailId: m.id, choice: i }).ok) return;
-        ctx.sfx('confirm');
-        if (opens) openTarget(ctx, opens);
-      };
-      const done = m.resolved ? h('div.mailreply', null, icon('check', { size: 16 }),
-        h('span', { text: m.resolved.choice == null || m.resolved.replyText == null ? 'No reply.' : `You replied: ${m.resolved.replyText}` })) : null;
       return [
         h('button.btn.small.mailback', { type: 'button', onclick: () => select(null) }, icon('arrow.back', { size: 14 }), ' Back'),
-        h(`div.mailhead${hasOpenChoice(m) && pacingOn('mailArchive') ? '.letter' : ''}`, null,
-          chip(m),
-          h('h3', { text: m.subject }),
-          h('div.small.muted', { text: `From ${m.from?.name ?? 'someone'}${m.from?.org ? `, ${m.from.org}` : ''}${m.to ? ` to ${m.to}` : ''} · ${ageText(m.week, s.week)}` }),
-          m.category === 'spam' ? h('div.small.mailspamtag', { text: 'Slipped through the filter.' }) : null),
-        h('div.mailbody', null, ...String(m.body ?? '').split(/\n\s*\n/).map((p) => h('p', { text: p }))),
-        thread.length ? h('div.mailthread', null, h('b.small', { text: 'Earlier in this thread' }),
-          ...thread.map((t) => h('div.mailthreadline', null, h('b', { text: `${t.from?.name ?? ''}:` }), ' ', firstLine(t.body, 160)))) : null,
-        done,
-        hasOpenChoice(m) ? h('div.mailopts', null,
-          left != null ? h('div.small.warn-t', { text: left === 0 ? 'Answer this week or it goes quiet.' : `Answer within ${left} ${left === 1 ? 'week' : 'weeks'} or it goes quiet.` }) : null,
-          ...m.options.map((o, i) => h('button.btn.mailopt', { type: 'button', disabled: o.available === false, onclick: () => answer(i) },
-            h('b', { text: o.label }), o.hint ? h('span.small', { text: o.hint }) : null,
-            o.available === false && o.reason ? h('span.small.bad-t', { text: o.reason }) : null))) : null,
-        m.archived ? null : h('div.mailfoot', null, h('button.btn.small', { type: 'button', onclick: () => {
-          if (!ctx.act({ type: 'archiveMail', mailId: m.id }).ok) return;
-          ctx.sfx('click');
-          if (matchMedia?.('(max-width: 600px)').matches) select(null);
-        } }, icon('save.export', { size: 14 }), hasOpenChoice(m) ? ' Archive (ignore)' : ' Archive')),
+        ...letterView(ctx, s, m, { onDone: (kind) => { if (kind === 'archived' && matchMedia?.('(max-width: 600px)').matches) select(null); } }).nodes,
       ];
     });
 
