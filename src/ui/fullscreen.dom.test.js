@@ -50,3 +50,31 @@ describe('full screen', () => {
     expect(fullscreenAvailable()).toBe(false);
   });
 });
+
+describe('after the browser drops full screen', () => {
+  it('offers a way back on a touch device and resizes the page', async () => {
+    vi.useFakeTimers();
+    const { watchFullscreen } = await import('./fullscreen.js');
+    root.requestFullscreen = vi.fn(() => { document.fullscreenElement = root; return Promise.resolve(); });
+    document.exitFullscreen = vi.fn(() => Promise.resolve());
+    window.matchMedia = (q) => ({ matches: q.includes('pointer: coarse') });
+    const layer = document.createElement('div');
+    watchFullscreen(layer);
+    const back = layer.querySelector('.fsback');
+    expect(back.style.display).toBe('none');
+    await toggleFullscreen();
+    document.dispatchEvent(new Event('fullscreenchange'));
+    expect(back.style.display).toBe('none');
+    vi.advanceTimersByTime(800);
+    const resized = vi.fn(); window.addEventListener('resize', resized);
+    delete document.fullscreenElement; // the keyboard opened and the browser left full screen
+    document.dispatchEvent(new Event('fullscreenchange'));
+    expect(back.style.display).toBe('');
+    vi.advanceTimersByTime(800);
+    expect(resized).toHaveBeenCalledTimes(3);
+    back.click(); await Promise.resolve();
+    expect(root.requestFullscreen).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+    delete window.matchMedia;
+  });
+});
