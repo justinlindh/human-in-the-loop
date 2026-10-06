@@ -329,11 +329,11 @@
    ]
   },
   "radio_lofi": {
-   "bpm": 65,
+   "bpm": 78,
    "beds": [
     {
      "id": "a",
-     "bars": 7,
+     "bars": 8,
      "stems": {
       "full": {
        "file": "music/radio_lofi/a_full.ogg",
@@ -345,7 +345,7 @@
     },
     {
      "id": "b",
-     "bars": 13,
+     "bars": 16,
      "stems": {
       "full": {
        "file": "music/radio_lofi/b_full.ogg",
@@ -357,7 +357,7 @@
     },
     {
      "id": "c",
-     "bars": 7,
+     "bars": 8,
      "stems": {
       "full": {
        "file": "music/radio_lofi/c_full.ogg",
@@ -370,7 +370,7 @@
    ]
   },
   "radio_synth88": {
-   "bpm": 115,
+   "bpm": 116,
    "beds": [
     {
      "id": "a",
@@ -411,7 +411,7 @@
    ]
   },
   "radio_polka": {
-   "bpm": 127,
+   "bpm": 126,
    "beds": [
     {
      "id": "a",
