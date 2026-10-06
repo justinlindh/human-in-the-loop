@@ -233,6 +233,24 @@ behind_gh SUCCESS; qrun --timeout 0
 rm -f "$tmp/required" "$tmp/queue/9"
 behind_gh SUCCESS; qrun --timeout 0
 grep -q 'state=ready' "$tmp/queue/9" || fail "with nothing waiting or running the PR is ready: $(cat "$tmp/queue/9" 2>/dev/null)"
+# A queue-first label sorts a PR ahead of unlabelled ones; among labelled ones, first ready goes first.
+rm -f "$tmp/queue/"* "$tmp/merged-after"; echo 'ready_since=1 pr=8 state=ready since=1 prio=0' >"$tmp/queue/8"
+echo '{"labels": [{"name": "queue-first"}]}' >"$tmp/extra.json"
+behind_gh SUCCESS; : >"$tmp/merged-after"; qrun --timeout 1
+[ $rc -eq 0 ] && grep -q 'merged origin/main' "$tmp/out" && ! grep -q 'queued behind' "$tmp/out" \
+  || fail "a queue-first PR goes ahead of an earlier unlabelled one: $rc $(cat "$tmp/out")"
+rm -f "$tmp/queue/"* "$tmp/merged-after"; echo '{}' >"$tmp/extra.json"; echo 'ready_since=9999999999 pr=8 state=ready since=1 prio=1' >"$tmp/queue/8"
+behind_gh SUCCESS; qrun --timeout 0
+[ $rc -eq 124 ] && grep -q 'queued behind #8' "$tmp/out" || fail "an unlabelled PR waits for a queue-first one even if that became ready later: $rc $(cat "$tmp/out")"
+echo '{"labels": [{"name": "queue-first"}]}' >"$tmp/extra.json"; rm -f "$tmp/queue/9"
+echo 'ready_since=1 pr=8 state=ready since=1 prio=1' >"$tmp/queue/8"
+behind_gh SUCCESS; qrun --timeout 0
+[ $rc -eq 124 ] && grep -q 'queued behind #8' "$tmp/out" || fail "among queue-first PRs the earlier one goes first: $rc $(cat "$tmp/out")"
+# A label added after joining changes the entry's priority and keeps its place.
+rm -f "$tmp/queue/"*; echo 'ready_since=5 pr=9 state=ready since=5 prio=0' >"$tmp/queue/9"; echo 'ready_since=1 pr=8 state=ready since=1 prio=1' >"$tmp/queue/8"
+behind_gh SUCCESS; qrun --timeout 0
+grep -q 'ready_since=5 ' "$tmp/queue/9" && grep -q 'prio=1' "$tmp/queue/9" || fail "adding queue-first updates the entry and keeps its ready time: $(cat "$tmp/queue/9" 2>/dev/null)"
+echo '{}' >"$tmp/extra.json"
 rm -f "$tmp/queue/"*; behind_gh SUCCESS; QTEST=false qrun --timeout 1
 [ $rc -eq 5 ] && [ ! -e "$tmp/queue/9" ] || fail "failing tests after merging main free the place: $rc $(cat "$tmp/out")"
 rm -f "$tmp/queue/"*; echo 'ready_since=1 pr=8' >"$tmp/queue/8"

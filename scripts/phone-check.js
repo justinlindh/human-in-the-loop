@@ -28,6 +28,8 @@
 //   yak        Yak expands (by its caret) with its header controls inside it and without covering the
 //              HUD, collapses, and its maximized view opens and closes without leaving anything over
 //              the game
+//   yakdecision  a decision raised with the big Yak open shows on top of it, answering it works, the
+//              clock is released, and the minimize button is at least 44 px
 // Uses CDP Input.dispatchTouchEvent for real multi-touch. GL follows scripts/lib/gl.js, and the run
 // holds the matching render lock.
 import { waitForBoot } from './lib/boot.js';
@@ -99,7 +101,7 @@ async function touchPlacement({ page, tap, touch, vp, shot, n0 }) {
   return fails;
 }
 
-const ALL_CHECKS = ['pinch', 'hud', 'panels', 'decision', 'toasts', 'placement', 'taps', 'audio', 'yak', 'skip'];
+const ALL_CHECKS = ['pinch', 'hud', 'panels', 'decision', 'toasts', 'placement', 'taps', 'audio', 'yak', 'yakdecision', 'skip'];
 const TOUCH_ONLY = new Set(['pinch', 'toasts', 'taps', 'audio']);
 
 const args = parseArgs(process.argv.slice(2));
@@ -404,26 +406,35 @@ const CHECKS = {
     // arriving late would swallow the tap. Clear them all first (the clock is stopped, so no more come).
     const leftCards = await clearCards(page);
     await wait(page, 300);
-    // Held on screen for the check, so a loaded machine cannot time it out before the tap.
-    await page.evaluate((text) => { window.__HITL_UI?.freezeToasts?.(true); window.__HITL.emit([{ type: 'toast', text, tone: 'warn' }]); }, longText); // warn always shows
-    await wait(page, 600);
+    // Toasts queued by the weeks above can still arrive (or push this one out) on a loaded machine,
+    // so first wait until the stack stops changing, then try the long toast up to three times: a toast
+    // that left the screen before the tap is shown again rather than counted as a failure of the tap.
+    const stackSig = () => page.evaluate(() => [...document.querySelectorAll('.toasts .toast, .dtoast')].map((e) => e.textContent.slice(0, 20)).join('|'));
+    for (let still = 0, last = null, i = 0; still < 4 && i < 40; i++) { const s = await stackSig(); still = s === last ? still + 1 : 0; last = s; await wait(page, 150); }
+    const toastState = (sel) => sel.evaluate((e) => { const tt = e.querySelector('.tt'); return { cut: e.classList.contains('cut'), open: e.classList.contains('open'), overflows: tt.scrollWidth > tt.clientWidth + 1 || tt.scrollHeight > tt.clientHeight + 1, fits: tt.scrollWidth <= tt.clientWidth + 1 && tt.scrollHeight <= tt.clientHeight + 1 }; });
     const long = page.locator('.toasts .toast', { hasText: 'A very long message' }).first();
-    if (!(await long.count())) fails.push('the long test toast never showed');
-    else {
-      const { cut, overflows } = await long.evaluate((e) => { const tt = e.querySelector('.tt'); return { cut: e.classList.contains('cut'), overflows: tt.scrollWidth > tt.clientWidth + 1 || tt.scrollHeight > tt.clientHeight + 1 }; });
-      if (overflows && !cut) fails.push('a toast is cut off with no cue and no way to read the rest');
-      if (cut) {
-        await tap(long);
-        // A loaded machine can take a while to lay the opened toast out: poll rather than guess.
-        await page.waitForFunction(() => { const e = [...document.querySelectorAll('.toasts .toast')].find((x) => x.textContent.includes('A very long message')); const tt = e?.querySelector('.tt'); return !!tt && e.classList.contains('open') && tt.scrollWidth <= tt.clientWidth + 1 && tt.scrollHeight <= tt.clientHeight + 1; }, null, { timeout: 4000 }).catch(() => {});
-        const seen = await long.evaluate((e) => { const tt = e.querySelector('.tt'); return { open: e.classList.contains('open'), fits: tt.scrollWidth <= tt.clientWidth + 1 && tt.scrollHeight <= tt.clientHeight + 1 }; }).catch(() => ({ gone: true }));
-        if (!seen.open || !seen.fits) {
-          const why = await page.evaluate(() => ({ popupOpen: document.querySelector('.hitl')?.classList.contains('popup-open'), cards: [...document.querySelectorAll('.announce-back, .modal-back, .decision')].filter((e) => getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().width).map((e) => e.className), toasts: [...document.querySelectorAll('.toasts .toast')].map((t) => t.className + ':' + t.textContent.slice(0, 30)) }));
-          fails.push(`tapping a cut toast does not show it in full (${seen.gone ? 'it was gone after the tap' : seen.open ? 'open but still cut' : 'it did not open'}) ${JSON.stringify({ ...why, cardsLeftBeforeTap: leftCards })}`);
-        }
-        await shot('toast-long');
-      }
+    let outcome = 'never showed';
+    for (let attempt = 0; attempt < 3; attempt++) {
+      // Held on screen for the check, so a loaded machine cannot time it out before the tap.
+      await page.evaluate((text) => { window.__HITL_UI?.freezeToasts?.(true); window.__HITL.emit([{ type: 'toast', text, tone: 'warn' }]); }, longText); // warn always shows
+      await wait(page, 600);
+      if (!(await long.count())) { outcome = 'never showed'; continue; }
+      const st = await toastState(long).catch(() => null);
+      if (!st) { outcome = 'gone before the tap'; continue; }
+      if (st.overflows && !st.cut) { outcome = 'cut with no cue'; break; }
+      if (!st.cut) { outcome = 'fits'; break; }
+      try { await tap(long); } catch { outcome = 'gone before the tap'; continue; }
+      // A loaded machine can take a while to lay the opened toast out: poll rather than guess.
+      await page.waitForFunction(() => { const e = [...document.querySelectorAll('.toasts .toast')].find((x) => x.textContent.includes('A very long message')); const tt = e?.querySelector('.tt'); return !!tt && e.classList.contains('open') && tt.scrollWidth <= tt.clientWidth + 1 && tt.scrollHeight <= tt.clientHeight + 1; }, null, { timeout: 4000 }).catch(() => {});
+      const seen = await toastState(long).catch(() => ({ gone: true }));
+      if (seen.open && seen.fits) { outcome = 'opened'; await shot('toast-long'); break; }
+      const why = await page.evaluate(() => ({ popupOpen: document.querySelector('.hitl')?.classList.contains('popup-open'), cards: [...document.querySelectorAll('.announce-back, .modal-back, .decision')].filter((e) => getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().width).map((e) => e.className), toasts: [...document.querySelectorAll('.toasts .toast')].map((t) => t.className + ':' + t.textContent.slice(0, 30)) }));
+      outcome = `tapping a cut toast does not show it in full (${seen.gone ? 'it was gone after the tap' : seen.open ? 'open but still cut' : 'it did not open'}) ${JSON.stringify({ ...why, cardsLeftBeforeTap: leftCards })}`;
     }
+    if (outcome === 'never showed') fails.push('the long test toast never showed');
+    else if (outcome === 'gone before the tap') fails.push('the long test toast left the screen before every tap (3 tries)');
+    else if (outcome === 'cut with no cue') fails.push('a toast is cut off with no cue and no way to read the rest');
+    else if (outcome.startsWith('tapping')) fails.push(outcome);
     await page.evaluate(() => window.__HITL_UI?.freezeToasts?.(false));
     if (isPhone(vp)) {
       if (most > 2) fails.push(`${most} toasts at once on a phone (at most 2)`);
@@ -551,6 +562,44 @@ const CHECKS = {
     try { await tap(page.locator('.chat.max .ysz.ymax').first()); } catch { fails.push('the big Yak view has no tappable close'); await page.keyboard.press('Escape'); }
     await wait(page, 500);
     if (await yakMaxShown(page)) fails.push('closing the big Yak view left its backdrop over the game');
+    return { fails };
+  },
+
+  async yakdecision({ page, tap, shot, touch }) {
+    const fails = [];
+    await clearDecisions(page);
+    try { await tap(page.locator('.ysz.ymax').first()); } catch { return { fails: ['maximize button not tappable'] }; }
+    await wait(page, 500);
+    if (!(await yakMaxShown(page))) return { fails: ['the big Yak view did not open'] };
+    if (touch) {
+      const size = await page.evaluate(() => { const r = document.querySelector('.chat.max .ysz.ymax')?.getBoundingClientRect(); return r ? { w: r.width, h: r.height } : null; });
+      if (!size || size.w < 44 || size.h < 44) fails.push(`the minimize button is ${size ? `${Math.round(size.w)}x${Math.round(size.h)}` : 'missing'}, under 44 px`);
+    }
+    let found = false;
+    for (let i = 0; i < 200 && !found; i++) {
+      found = await page.evaluate(() => { const h = window.__HITL; if (h.state.cash < 50000) h.state.cash += 200000; if (!h.state.pendingDecision) h.tickN(1); return !!h.state.pendingDecision; });
+    }
+    if (!found) return { fails: ['no decision came up in 200 weeks'] };
+    await wait(page, 900);
+    // Open Yak big again behind the card, as a player could.
+    if (!(await yakMaxShown(page))) await page.evaluate(() => document.querySelector('.ysz.ymax')?.click());
+    await wait(page, 300);
+    const onTop = () => page.evaluate(() => { const c = [...document.querySelectorAll('.modal.decision')].find((e) => e.getBoundingClientRect().width); if (!c) return null; const r = c.getBoundingClientRect(); const e = document.elementFromPoint(r.left + r.width / 2, Math.min(r.bottom - 4, r.top + 40)); return !!e?.closest('.modal.decision'); });
+    const top = await onTop();
+    await shot('yak-decision');
+    if (top === null) return { fails: ['no decision card on screen'] };
+    if (!top) fails.push('the decision card is under the big Yak view');
+    const last = page.locator('.modal.decision button.choice:not(.unavail)').last();
+    try { await last.scrollIntoViewIfNeeded({ timeout: 2000 }); await tap(last); } catch { fails.push('last choice not tappable'); }
+    await wait(page, 500);
+    if (await page.evaluate(() => !!window.__HITL.state.pendingDecision)) fails.push('tapping a choice did not resolve the decision');
+    // Whatever is left open is closed by the player, then the clock must run.
+    if (await yakMaxShown(page)) { try { await tap(page.locator('.chat.max .ysz.ymax').first()); } catch { await page.keyboard.press('Escape'); } await wait(page, 400); }
+    const t0 = await page.evaluate(() => { const H = window.__HITL; H.setSpeed(1); return { week: H.state.week, acc: H.clock.acc }; });
+    await wait(page, 2500);
+    const after = await page.evaluate(() => { const H = window.__HITL; return { week: H.state.week, acc: H.clock.acc, busy: H.clock.busy, pending: !!H.state.pendingDecision }; });
+    if (after.busy) fails.push('the clock is still held after the decision was answered');
+    else if (after.week === t0.week && after.acc === t0.acc && !after.pending) fails.push('the clock did not advance after the decision was answered');
     return { fails };
   },
 

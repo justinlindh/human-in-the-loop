@@ -7,8 +7,9 @@ export const PIN_DIR = 'scripts/trailer/snapshots';
 
 // Page JS: loads the pinned state as a player would load a save, then presents the recent Yak history
 // and closes any card the load left open, as the replay it stands in for did at its end.
-export const LOAD_PIN = (name) => `(async () => {
-  const res = await fetch('/${PIN_DIR}/${name}.snap');
+// `dir` is the snapshot directory under the repo root (a trailer with its own pins passes its own).
+export const LOAD_PIN = (name, dir = PIN_DIR) => `(async () => {
+  const res = await fetch('/${dir}/${name}.snap');
   if (!res.ok) throw new Error('trailer: no pinned state ${name}');
   const state = JSON.parse(await new Response(res.body.pipeThrough(new DecompressionStream('gzip'))).text());
   const { saveGame } = await import('/src/save/save.js');

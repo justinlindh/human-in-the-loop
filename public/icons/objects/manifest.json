@@ -59,6 +59,10 @@
   "file": "objects/item.arcade.png",
   "size": 30
  },
+ "item.boombox": {
+  "file": "objects/item.boombox.png",
+  "size": 30
+ },
  "item.disk_duplicator": {
   "file": "objects/item.disk_duplicator.png",
   "size": 30

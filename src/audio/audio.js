@@ -194,6 +194,7 @@ export function createAudio({ quality = 'high' } = {}) {
     addEventListener('hitl:sfx', (e) => runD(director.cue(e.detail, now())));
     addEventListener('hitl:propUse', (e) => runD(director.prop(e.detail?.itemId, now())));
     addEventListener('hitl:moment', (e) => runD(director.moment(e.detail, now())));
+    addEventListener('hitl:dealBell', (e) => runD(director.dealBell(e.detail, now())));
     addEventListener('hitl:characterClick', (e) => runD(director.poke(e.detail?.staffId, stateNow(), now())));
     addEventListener('hitl:audioSettings', (e) => {
       const d = e.detail ?? {};
