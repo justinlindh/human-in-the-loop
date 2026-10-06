@@ -244,6 +244,7 @@ export const B = {
   pacing: {
     askQueue: false, askExpiry: false, askRealTime: true, momentCap: true, askRates: true, letterMail: true, quietEvents: true,
     quietToasts: true, oneLaunchCard: true, unlockPips: true, advisorGlow: true, quietYak: true, mailArchive: true, deskBubbles: true,
+    shownExpiry: false,
   },
   // The attention clock, in real seconds: `gap` is the least running play between two asks, `quiet` the hush
   // after a modal or beat, `expiry` how long a low-priority ask waits before it resolves to its default, and at
@@ -252,10 +253,11 @@ export const B = {
   // time between two quiet Yak lines. Bot runs have no clock, so they stand in botGapWeeks
   // for the gap (about 90 s at 1x) and botExpiryWeeks for the expiry. A candidate not presented within
   // staleWeeks no longer fits and is dropped. At most queueCap non-emergency asks wait; a new one past that
-  // sends the least pressing, oldest one to its default at once.
+  // sends the least pressing, oldest one to its default at once. Under B.pacing.shownExpiry a Yak prompt or
+  // letter on screen closes after openExpiry seconds of running play (expireOpen).
   attention: {
     gap: 90, quiet: 45, expiry: 180, momentWindow: 300, momentCap: 25, watchWindow: 600, watchStretch: 180, yakGap: 20,
-    botGapWeeks: 11, botExpiryWeeks: 22, staleWeeks: 52, queueCap: 3,
+    botGapWeeks: 11, botExpiryWeeks: 22, staleWeeks: 52, queueCap: 3, openExpiry: 120,
   },
   mail: {
     enabled: true, botLateWeeks: 4, fromWeek: 4, ambientChance: 0.35, actionChance: 0.12, actionOpen: 2, expiryWeeks: 8, kept: 40, templateCooldown: 12,
