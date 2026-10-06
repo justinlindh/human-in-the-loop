@@ -20,7 +20,7 @@ import { incumbentFor } from '../data/incumbents.js';
 import { emitChat } from './chat.js';
 import { eraOnlyAllowsText, eraAtLeast, currentEra, eraIndex } from './eras.js';
 import { openEventPrompt, promptSlotFree } from './prompts.js';
-import { preinternetChoiceReason } from './boxed.js';
+import { preinternetChoiceReason, batchText } from './boxed.js';
 import { periodAllows, periodText } from '../data/period-content.js';
 
 // What attackers ask for: sized to the company's cash and revenue, between a floor and a cap, and never
@@ -74,7 +74,9 @@ export function fillText(state, rng, text, subjectId, vars = null) {
     .replaceAll('{foundationCost}', money(Math.max(0, state.cash) * B.foundationCashShare))
     .replaceAll('{summitSmall}', `$${Math.round(summitCost(state, 'small') / 1000)}k`)
     .replaceAll('{summitBig}', `$${Math.round(summitCost(state, 'big') / 1000)}k`)
-    .replaceAll('{ransom}', `$${Math.round(v.ransom ?? ransomFor(state)).toLocaleString('en-US')}`);
+    .replaceAll('{batchSmall}', () => batchText(state, subjectId, B.preinternet.batches[0]))
+    .replaceAll('{batchLarge}', () => batchText(state, subjectId, B.preinternet.batches[1]))
+    .replaceAll('{ransom}',`$${Math.round(v.ransom ?? ransomFor(state)).toLocaleString('en-US')}`);
 }
 
 // Why a choice cannot be picked right now (its requirement, or a grant that cannot happen), or null.
