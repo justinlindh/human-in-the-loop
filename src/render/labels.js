@@ -38,6 +38,13 @@ function injectStyle() {
     display: block; max-width: min(86vw, 560px); white-space: normal; text-align: center; box-sizing: border-box; }
   .hitl-sign .in { padding: 2px 8px; border-radius: 8px; background: ${P.paper}; color: ${P.ink};
     border: 2px solid ${P.ink}; font: 600 12px Fredoka, sans-serif; }
+  .hitl-note .in { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .hitl-note .in img { width: 18px; height: 18px; flex: none; }
+  .hitl-say.hitl-note .in { padding: 4px 10px 4px 6px; }
+  .hitl-say.hitl-note.icon-only .in { padding: 4px; }
+  .hitl-say.hitl-note.tone-bad .in, .hitl-say.hitl-note.tone-bad .in::after { background: ${P.tone_bad}; color: ${P.paper}; }
+  .hitl-stat.hitl-note .in { background: ${P.gold}; color: ${P.ink}; padding: 4px 14px 4px 8px; border-radius: 10px; }
+  .hitl-stat.hitl-note.icon-only .in { padding: 3px; }
   `;
   document.head.appendChild(css);
 }
@@ -145,6 +152,34 @@ export function createLabels(parent) {
     l.w = null;
     l.inner.style.background = '';
     l.t = 0; l.life = seconds; l.rise = 0; l.follow = follow; l.offsetY = offsetY;
+    l.hold = null; l.holdT = 0; l.fresh = true; l.fadeT = null; l.fadeTo = null;
+    l.jit.set(0, 0, 0);
+    parent.add(l.obj);
+    live.push(l);
+    place(l);
+    return l;
+  }
+
+  // Status news as a small bubble with an icon: over a person it lays out as speech (it stacks with
+  // and counts against speech bubbles); `float` makes it a slow-rising label over a place instead.
+  // `iconOnly` drops the text.
+  function note(text, iconSrc, tone, follow, seconds, { float = false, iconOnly = false, offsetY } = {}) {
+    if (!float) for (const o of live) if (o.kind === 'say' && o.follow === follow) o.t = o.life;
+    const l = acquire();
+    l.kind = float ? 'stat' : 'say';
+    l.moment = false; l.tone = tone; l.num = null;
+    l.speechText = text;
+    l.el.className = `hitl-lbl ${float ? 'hitl-stat' : 'hitl-say'} hitl-note tone-${tone ?? 'info'}${iconOnly ? ' icon-only' : ''}`;
+    l.inner.textContent = '';
+    l.inner.style.background = '';
+    if (iconSrc) {
+      const img = document.createElement('img');
+      img.src = iconSrc; img.alt = '';
+      l.inner.appendChild(img);
+    }
+    if (!iconOnly || !iconSrc) l.inner.appendChild(document.createTextNode(text));
+    l.w = null;
+    l.t = 0; l.life = seconds; l.rise = float ? 0.25 : 0; l.follow = follow; l.offsetY = offsetY ?? (float ? 3 : 1.45);
     l.hold = null; l.holdT = 0; l.fresh = true; l.fadeT = null; l.fadeTo = null;
     l.jit.set(0, 0, 0);
     parent.add(l.obj);
@@ -483,5 +518,5 @@ export function createLabels(parent) {
 
   const speechCount = () => live.filter((l) => l.kind === 'say').length;
   const speaking = (follow) => live.some((l) => l.kind === 'say' && l.follow === follow && l.t < l.life - 0.3);
-  return { stat, banner, say, growth, update, layout, clearFor, clearSpeech, speechCount, speaking, get count() { return live.length; } };
+  return { stat, banner, say, note, growth, update, layout, clearFor, clearSpeech, speechCount, speaking, get count() { return live.length; } };
 }

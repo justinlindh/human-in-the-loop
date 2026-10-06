@@ -21,6 +21,7 @@ import { createGrowthMoments } from './growth-moments.js';
 import { createOfficeGrowth, promotionWeek } from './growth-office.js';
 import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { holdSeconds } from './reading.js';
+import { ambientCarriers, ambientGlyph, ambientListener, ambientSeconds } from './ambient.js';
 import { lookYaw } from './turn.js';
 import { pickSpot, spotDebug, spotRing } from './spots.js';
 import { between, draw, fixed } from './rand.js';
@@ -772,6 +773,35 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
   if (typeof addEventListener === 'function') addEventListener('hitl:voice', onVoice);
 
+  // Status news (ui's 'hitl:ambient'): a bubble over the first carrier in the office who isn't
+  // mid-line, or a floating label over the room for company news. News takes the next speech slot,
+  // so chatter waits for it. Claimed only when drawn; the rest stays a toast.
+  const COMPANY_GAP_S = 2;
+  let companyUntil = 0, ambientT = 0;
+  function ambient(d) {
+    if (!d || !lastState) return false;
+    const seconds = ambientSeconds(d.text, speed);
+    const src = `${import.meta.env?.BASE_URL ?? '/'}icons/glyphs/${ambientGlyph(d.icon, d.tone)}.svg`;
+    const opts = { iconOnly: low() };
+    if (d.subjectKind === 'company') {
+      if (ambientT < companyUntil) return false;
+      const L = office.current?.L;
+      labels.note(d.text, src, d.tone, { x: 0, z: L ? -L.D / 6 : 0 }, seconds, { ...opts, float: true });
+      companyUntil = ambientT + seconds + COMPANY_GAP_S;
+      return true;
+    }
+    for (const id of ambientCarriers(d, lastState)) {
+      const r = recs.get(id);
+      if (!r || r.hidden || r.staff.remote || r.staff.mood === 'away' || labels.speaking(r.char.root)) continue;
+      speech.admit(r.id, seconds, 0, { moment: true });
+      labels.note(d.text, src, d.tone, r.char.root, seconds, opts);
+      return true;
+    }
+    return false;
+  }
+  const onAmbient = ambientListener(ambient);
+  if (typeof addEventListener === 'function') addEventListener('hitl:ambient', onAmbient);
+
   // 'hitl:faceChange' { staffId, name } whenever the expression someone shows changes (a reaction
   // starts or ends, a mood changes), so portraits can follow; blinks, gaze and talk don't count.
   function announceFaces() {
@@ -786,6 +816,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   }
   function updateVoices(dt) {
     voiceT += dt;
+    ambientT += dt;
     for (const r of voices) {
       const v = r.voice;
       if (!v || !recs.has(r.id) || r.hidden) { r.char.setTalk(0); r.voice = null; voices.delete(r); continue; }
@@ -2238,6 +2269,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   function dispose() {
     if (typeof removeEventListener === 'function') removeEventListener('hitl:characterClick', onCharacterClick);
     if (typeof removeEventListener === 'function') removeEventListener('hitl:voice', onVoice);
+    if (typeof removeEventListener === 'function') removeEventListener('hitl:ambient', onAmbient);
     spotlights.clear();
     officeGrowth.dispose();
     growthGlow?.geometry.dispose(); growthGlow?.material.dispose();
