@@ -245,13 +245,17 @@ export const B = {
     askQueue: false, askExpiry: false, askRealTime: true, momentCap: true, askRates: true, letterMail: true, quietEvents: true,
     quietToasts: true, oneLaunchCard: true, unlockPips: true, advisorGlow: true, quietYak: true, mailArchive: true, deskBubbles: true,
   },
-  // The attention clock in real seconds: the least running play between two asks, the quiet after a modal or
-  // beat, how long a low-priority ask waits before it resolves to its default, and at most one staged moment
-  // per momentWindowSeconds holding the clock for momentCapSeconds. Bot runs have no clock, so they stand in
-  // botGapWeeks for the gap (about 90 s at 1x) and botExpiryWeeks for the expiry. A candidate not presented
-  // within staleWeeks no longer fits and is dropped. At most queueCap non-emergency asks wait; a new one past
-  // that sends the least pressing, oldest one to its default at once.
-  attention: { gapSeconds: 90, quietSeconds: 45, expirySeconds: 180, momentWindowSeconds: 300, momentCapSeconds: 25, botGapWeeks: 11, botExpiryWeeks: 22, staleWeeks: 52, queueCap: 3 },
+  // The attention clock, in real seconds: `gap` is the least running play between two asks, `quiet` the hush
+  // after a modal or beat, `expiry` how long a low-priority ask waits before it resolves to its default, and at
+  // most one staged moment per `momentWindow` holds the clock for `momentCap`; every `watchWindow` holds a
+  // stretch of `watchStretch` with no ask and no beat, just watching the office. Bot runs have no clock, so they stand in botGapWeeks
+  // for the gap (about 90 s at 1x) and botExpiryWeeks for the expiry. A candidate not presented within
+  // staleWeeks no longer fits and is dropped. At most queueCap non-emergency asks wait; a new one past that
+  // sends the least pressing, oldest one to its default at once.
+  attention: {
+    gap: 90, quiet: 45, expiry: 180, momentWindow: 300, momentCap: 25, watchWindow: 600, watchStretch: 180,
+    botGapWeeks: 11, botExpiryWeeks: 22, staleWeeks: 52, queueCap: 3,
+  },
   mail: {
     enabled: true, botLateWeeks: 4, fromWeek: 4, ambientChance: 0.35, actionChance: 0.12, actionOpen: 2, expiryWeeks: 8, kept: 40, templateCooldown: 12,
     replyAllChance: 0.02, replyAllCooldown: 26, replyAllWeeks: 3, replyAllOutput: -0.02,
