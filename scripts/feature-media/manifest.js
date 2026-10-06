@@ -720,7 +720,8 @@ export const ITEMS = [
     id: `decision-${id}`, title: `Decision prop: ${id}`, query: 'seed=1&speed=1', moment: query, pre: true, still: true, warmup: 8,
     setup: `(() => { ${CLEAN}; ${NO_CARD}; ${NO_SAY}; })()`,
     // A prop a choice leaves behind exists only after the card is answered (by key, as a player would).
-    actions: [...OPEN(), ...(LEFT_BEHIND.has(id) ? CHOOSE_WHEN(id, LEFT_BEHIND.get(id), 1, 8, 1.5) : []), ...FOLLOW([prop], zoom, 0, LEFT_BEHIND.has(id) ? 20 : 14, 0, center)],
+    // The held props are turned to their clearest view and framed at the office-scaled zoom.
+    actions: [...OPEN(UNREADABLE_DECISIONS.has(id) ? [prop] : undefined), ...(LEFT_BEHIND.has(id) ? CHOOSE_WHEN(id, LEFT_BEHIND.get(id), 1, 8, 1.5) : []), ...FOLLOW([prop], zoom, 0, LEFT_BEHIND.has(id) ? 20 : 14, 0, center, UNREADABLE_DECISIONS.has(id))],
     screenshots: [LEFT_BEHIND.has(id) ? 14 : 5],
     out: [{ path: `decisions/${id}.webp`, size: '1280x720', from: LEFT_BEHIND.has(id) ? 14 : 5 }],
     publish: !UNREADABLE_DECISIONS.has(id),
