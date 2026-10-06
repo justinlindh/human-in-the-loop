@@ -16,8 +16,8 @@ describe('company name suggestions', () => {
     let s = 12345;
     const rnd = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 2 ** 32; };
     for (let i = 0; i < 400; i++) seen.add(suggestCompany('dotcom', rnd));
-    expect(seen.has('Eyeball Express') || seen.has('Synergy.net')).toBe(true);
-    expect([...seen].every((n) => !/^Blogster|Mashup/.test(n))).toBe(true);
+    expect(seen.has('Eyeball Express') || seen.has('Synergy Dot Nada')).toBe(true);
+    expect([...seen].every((n) => !/^Webloggery|Mashup/.test(n))).toBe(true);
   });
 
   it('keeps the built-up names for the rest of the rolls', () => {

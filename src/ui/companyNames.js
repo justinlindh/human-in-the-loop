@@ -11,15 +11,15 @@ const BY_ERA = {
     'Baud & Associates', 'Cartridge Works', 'Mainframe Mutual', 'Punchcard Press',
   ],
   dotcom: [
-    'Pets Dot Everything', 'Eyeball Express', 'Synergy.net', 'Burn Rate Brothers',
-    'Clicks & Mortar', 'Portalicious', 'Zeppelin.com', 'Stock Options Unlimited',
+    'Pets Dot Everything', 'Eyeball Express', 'Synergy Dot Nada', 'Burn Rate Brothers',
+    'Clicks & Mortar', 'Portalicious', 'Blimp Dot Biz', 'Stock Options Unlimited',
   ],
   web2: [
-    'Blogster Beta', 'Mashup Mansion', 'Tagr Labs', 'Rounded Corners Inc',
+    'Webloggery Beta', 'Mashup Mansion', 'Tagr Labs', 'Rounded Corners Inc',
     'Gradient Lab', 'Beta Forever', 'Widgetly', 'Cloudish',
   ],
   chatgbt: ['Prompt & Circumstance', 'Token Economy', 'Wrapper Labs', 'Vibe Check Labs', 'Fine Tune Labs'],
-  agents: ['Context Window Co', 'Stochastic Parrot Co', 'Hallucinate Labs', 'Latent Space Lab', 'Agent Provocateur'],
+  agents: ['Context Window Co', 'Stochastic Parrot Co', 'Hallucinate Labs', 'Latent Space Lab', 'Agentic Hot Takes'],
 };
 const NAME_A = ['Loop', 'Pair', 'Kindly', 'Tiny', 'Candor', 'Hearth', 'Paper', 'Lantern', 'Honest', 'Maple', 'Orbit', 'Quiet'];
 const NAME_B = ['works', 'labs', ' & Co', ' Software', 'craft', ' Systems', 'house', ' Collective', 'forge', ' Studio'];
