@@ -4,7 +4,7 @@ import { pickSpot, spotDebug } from './spots.js';
 import { PALETTE as P } from './palette.js';
 import { createCharacter } from './character.js';
 import { wardrobeEra } from './wardrobe.js';
-import { printerModel, visitorChairModel } from './props.js';
+import { printerModel, visitorChairModel, QUIET_JAM_S } from './props.js';
 import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { between, draw } from './rand.js';
 import { createY2kMoment } from './y2k.js';
@@ -797,7 +797,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     decidedAt.set(e.eventId, ++decisionSeq);
     resolved.set(e.eventId, e.choice ?? null);
     resolvedT.set(e.eventId, 20);
-    if (e.eventId === 'printer_jam' && e.choice === TAKE_IT_OUT) printerDue = 3;
+    // Resolved with no card (quietEvent), the jammed printer is staged first and goes after a beat.
+    if (e.eventId === 'printer_jam' && e.choice === TAKE_IT_OUT) printerDue = 3 + (e.quiet ? QUIET_JAM_S : 0);
   }
 
   // The open decision or Yak prompt that stages `prop`: { eventId, subjectId }, or null. A prompt
