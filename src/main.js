@@ -320,15 +320,17 @@ async function boot() {
   const frameClock = createFrameClock();
   let logic = { menuPause: false, running: false, held: false };
   // Runs the attention clock for one step: opens the ask it picks and expires the ones that waited too long.
-  function runAttention(dt, running, menuPause) {
+  function runAttention(dt, running, held) {
     if (!askQueueOn() || sim.state.gameOver) return;
     const s = sim.state;
     const week = s.week;
     const asks = (s.asks ?? []).filter((a) => a.expiresWeek == null || week <= a.expiresWeek);
     const askOpen = !!s.pendingDecision || (s.chatPrompts ?? []).some((p) => !p.resolved)
       || (s.mail ?? []).some((m) => m.options?.length && !m.resolved && !m.archived);
+    // Only decisions and the game's own cards are beats; the player's own menus pause the clock but do not start a quiet.
     const out = attention.tick(dt, {
-      running, speed, asks, askOpen, modal: !!s.pendingDecision || menuPause,
+      running, held, speed, asks, askOpen, decisionOpen: !!s.pendingDecision,
+      modal: !!s.pendingDecision || !!ui?.beatOpen?.(),
       realTime: B.pacing.askRealTime !== false, expiry: !!B.pacing.askExpiry,
     });
     for (const askId of out.expire) dispatch({ type: 'expireAsk', askId });
@@ -340,7 +342,7 @@ async function boot() {
     const free = playing && !menuPause && !sim.state.pendingDecision && !sim.state.gameOver && !document.hidden;
     const held = spotlightHold(dt, free && speed > 0, playing && (ui?.playerMenu ? ui.playerMenu() : menuPause));
     const running = free && !held;
-    if (playing) runAttention(dt, running, menuPause);
+    if (playing) runAttention(dt, running, held);
     if (pacer.step(dt, { speed, running })) {
       route(pacer.schedule(sim.tick()), sim.state);
       pacer.takeDropped();

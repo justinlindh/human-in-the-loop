@@ -596,6 +596,8 @@ export function createUI({ root, getState, dispatch, controls }) {
     // Whether the player opened something (a panel, a modal, build mode, Settings, the big Yak);
     // the game's own cards (announcements, launch results, the tutorial) don't count.
     playerMenu: playerMenuOpen,
+    // Whether one of the game's own cards is up (announcement, launch, tutorial, popups), whatever the pause setting.
+    beatOpen: () => !!(announcer.open || popups.open || popups.launchOpen || tutorial.open),
     get spacing() { return { wait: spacing.waitMs, play: spacing.playMs }; },
     isBusy,
     update,

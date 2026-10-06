@@ -246,7 +246,7 @@ describe('attention clock', () => {
 
   it('expires a non-emergency ask after 180 s of play and never an emergency', () => {
     const asks = [ask('n'), ask('e', 'emergency')];
-    const { expired } = drive(createAttention(), 400, asks, { askOpen: true });
+    const { expired } = drive(createAttention(), 400, asks, { askOpen: true, decisionOpen: true });
     expect(expired).toEqual([[180, 'n']]);
     expect(asks.map((a) => a.id)).toEqual(['e']);
   });
@@ -272,6 +272,32 @@ describe('attention clock', () => {
     const run = (realTime) => drive(createAttention({ watchWindow: 1e9 }), 600,
       Array.from({ length: 20 }, (_, i) => ask(`a${i}`)), { speed: 4, realTime, expiry: false }).opened.length;
     expect(run(true)).toBeLessThan(run(false));
+  });
+
+  it('does not treat the player\'s own menus as beats', () => {
+    // A menu pauses the clock (running false) without a beat: no quiet follows it.
+    const att = createAttention();
+    att.tick(1, { running: true });
+    for (let i = 0; i < 60; i++) att.tick(1, { running: false, modal: false });
+    expect(drive(att, 5, [ask('a')], { expiry: false }).opened[0][0]).toBe(2);
+  });
+
+  it('lets only an open decision block an emergency', () => {
+    const att = createAttention();
+    const asks = [ask('e', 'emergency')];
+    expect(drive(att, 60, asks.slice(), { askOpen: true, expiry: false }).opened.length).toBe(1);
+    expect(drive(createAttention(), 60, [ask('e', 'emergency')], { askOpen: true, decisionOpen: true, expiry: false }).opened).toEqual([]);
+    expect(drive(createAttention(), 60, [ask('n')], { askOpen: true, expiry: false }).opened).toEqual([]);
+  });
+
+  it('starts a staged moment\'s quiet when the moment begins', () => {
+    const att = createAttention();
+    att.tick(1, { running: true });
+    att.momentBegun();
+    for (let i = 0; i < 25; i++) att.tick(1, { running: false, held: true });
+    // 25 s of hold counted: 20 more seconds of play finishes the 45 s quiet.
+    const { opened } = drive(att, 40, [ask('a')], { expiry: false });
+    expect(opened[0][0] - 1).toBe(45);
   });
 
   it('allows one staged moment per 5 min', () => {

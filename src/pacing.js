@@ -206,15 +206,18 @@ export function createAttention(cfg = {}) {
     get momentCap() { return c.momentCap; },
     // One frame. `dt` real seconds; `running` the clock is running; `speed` the game speed; `realTime`
     // keeps every gap in real seconds at any speed (off, they shrink with speed). `modal` a pausing
-    // popup is up; `askOpen` an ask is still open; `asks` the candidates ({ id, priority }) in sim order;
-    // `expiry` expiry is on.
-    tick(dt, { running = true, speed = 1, realTime = true, modal = false, askOpen = false, asks = [], expiry = true } = {}) {
+    // beat (a decision or one of the game's own cards) is up; the player's own menus are not beats.
+    // `held` a staged moment holds the clock: time passes for the gaps, not for expiry. `askOpen` any ask
+    // is open and `decisionOpen` a decision is; only a decision blocks an emergency. `asks` the
+    // candidates ({ id, priority }) in sim order; `expiry` expiry is on.
+    tick(dt, { running = true, held = false, speed = 1, realTime = true, modal = false, askOpen = false, decisionOpen = false, asks = [], expiry = true } = {}) {
       const step = realTime ? dt : dt * Math.max(speed, 0);
-      if (running) t += step;
+      if (running || held) t += step;
       if (modal && !wasModal) lastEvent = t;
       if (!modal && wasModal) lastClose = t;
       wasModal = modal;
-      if (modal) lastEvent = t;
+      // A held moment is a beat in progress: its quiet began when it did, and it is not a watching stretch.
+      if (modal || held) lastEvent = t;
 
       // The watching stretch: a window rolls over once it has run its length.
       if (stretch() >= c.watchStretch) watched = true;
@@ -229,11 +232,12 @@ export function createAttention(cfg = {}) {
         if (running) waited.set(a.id, waited.get(a.id) + step);
         if (expiry && waited.get(a.id) >= c.expiry) out.expire.push(a.id);
       }
-      if (!running || modal || askOpen || !asks.length || !quietOver()) return out;
+      if (!running || modal || decisionOpen || !asks.length || !quietOver()) return out;
       const head = asks.filter((a) => !out.expire.includes(a.id))
         .sort((a, b) => (RANK[a.priority] ?? 1) - (RANK[b.priority] ?? 1))[0];
       if (!head) return out;
       if (head.priority !== 'emergency') {
+        if (askOpen) return out;
         if (t - lastAsk < c.gap) return out;
         // The end of a window stays clear when it has had no watching stretch yet.
         if (!watched && t - windowStart >= c.watchWindow - c.watchStretch && stretch() < c.watchStretch) return out;
