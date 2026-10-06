@@ -126,7 +126,7 @@ applied=0; feedback=""
 for attempt in 1 2; do
   write_prompt "$feedback"
   say "drafting (attempt $attempt, model $MODEL)"
-  if ! timeout 900 $CLAUDE -p "$(cat "$prompt")" --model "$MODEL" --allowedTools Read --add-dir "$STATE" --add-dir "$site" \
+  if ! timeout 900 $CLAUDE -p "$(cat "$prompt")" --model "$MODEL" --tools Read --permission-mode dontAsk --strict-mcp-config --add-dir "$STATE" --add-dir "$site" \
       --no-session-persistence --max-budget-usd "${CL_BUDGET:-2}" >"$STATE/$day.draft.raw" 2>>"$log" </dev/null; then
     feedback="The drafting run itself failed."; continue
   fi
@@ -151,7 +151,12 @@ fi
 # 5. The commit, the push and the PR.
 git -C "$site" add changelog >>"$log" 2>&1
 git -C "$site" -c user.name="${GIT_AUTHOR_NAME:-changelog-auto}" -c user.email="${GIT_AUTHOR_EMAIL:-changelog-auto@localhost}" commit -q -m "feat(site): changelog for $day" >>"$log" 2>&1 || fail "committing failed"
-git -C "$site" push -q -u origin "$branch" >>"$log" 2>&1 || git -C "$site" push -q --force-with-lease -u origin "$branch" >>"$log" 2>&1 || fail "pushing $branch failed"
+if ! git -C "$site" push -q -u origin "$branch" >>"$log" 2>&1; then
+  # The branch exists with an earlier draft: replace exactly that commit, nothing newer.
+  git -C "$site" fetch -q origin "$branch" >>"$log" 2>&1 || fail "fetching $branch failed"
+  expect="$(git -C "$site" rev-parse "refs/remotes/origin/$branch")"
+  git -C "$site" push -q --force-with-lease="$branch:$expect" -u origin "$branch" >>"$log" 2>&1 || fail "pushing $branch failed"
+fi
 titles="$(jq -r --arg d "$day" '.[]|select(.date==$d)|.items[]|"- \(.area): \(.title)"' "$site/changelog/entries.json")"
 body="$STATE/$day.pr.md"
 {

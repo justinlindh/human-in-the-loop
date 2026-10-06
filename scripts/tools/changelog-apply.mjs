@@ -42,6 +42,7 @@ export function problems(entry, day) {
 // still to fetch, or { drop: reason }.
 export function mediaPlan(src, { exists = () => false } = {}) {
   const s = String(src || '');
+  if (s.includes('..')) return { drop: `${s} has a .. in its path` };
   const feature = new RegExp(`^https://(?:github\\.com/${GAME}/blob|raw\\.githubusercontent\\.com/${GAME})/feature-media/([\\w.-]+)(?:\\?raw=true)?$`).exec(s);
   if (feature) return /\.(webp|png)$/i.test(feature[1]) ? { src: `https://raw.githubusercontent.com/${GAME}/feature-media/${feature[1]}` } : { drop: `${feature[1]} is not a webp or png still` };
   const pr = new RegExp(`^https://(?:github\\.com/${GAME}/blob|raw\\.githubusercontent\\.com/${GAME})/pr-media/(.+?)(?:\\?raw=true)?$`).exec(s);

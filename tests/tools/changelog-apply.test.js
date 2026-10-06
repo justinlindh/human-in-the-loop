@@ -38,6 +38,8 @@ describe('mediaPlan', () => {
   it('turns a feature-media link into its raw link and downloads a PR still', () => {
     expect(mediaPlan(`${FM}/office-box.webp?raw=true`)).toEqual({ src: 'https://raw.githubusercontent.com/justinlindh/human-in-the-loop/feature-media/office-box.webp' });
     expect(mediaPlan(`${FM}/moment-box.mp4?raw=true`).drop).toMatch(/not a webp or png/);
+    expect(mediaPlan('https://github.com/justinlindh/human-in-the-loop/blob/pr-media/pr-12/../../x.png?raw=true').drop).toMatch(/\.\./);
+    expect(mediaPlan('media/../../etc/x.png', { exists: () => true }).drop).toMatch(/\.\./);
     expect(mediaPlan('https://github.com/justinlindh/human-in-the-loop/blob/pr-media/pr-12/shot one.png?raw=true')).toEqual({ download: 'https://raw.githubusercontent.com/justinlindh/human-in-the-loop/pr-media/pr-12/shot one.png', name: 'shot-one.png' });
     expect(mediaPlan('https://github.com/justinlindh/human-in-the-loop/blob/pr-media/pr-12/clip.mp4?raw=true').drop).toMatch(/not a still/);
     expect(mediaPlan('https://example.com/a.png').drop).toMatch(/not a feature-media/);

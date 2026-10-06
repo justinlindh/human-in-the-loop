@@ -43,6 +43,7 @@ EOF
 cat >"$tmp/bin/claude" <<'EOF'
 #!/usr/bin/env bash
 echo "call" >>"$CL_CLAUDE_CALLS"
+echo "$*" >>"$CL_CLAUDE_CALLS.args"
 n="$(wc -l <"$CL_CLAUDE_CALLS")"
 case "${CL_STUB_MODE:-ok}" in
   fail) exit 1 ;;
@@ -87,6 +88,10 @@ rm -f "$CL_PR_OPEN"; git -C "$tmp/site.git" branch -q -D "changelog/$DAY"
 CL_STUB_MODE=retry CL_STUB_HEADLINE="After retry" run "$DAY" --force
 [ $rc -eq 0 ] && [ "$(wc -l <"$CL_CLAUDE_CALLS")" -eq 2 ] && [ "$(site_entry)" = "After retry" ] || fail "a refused draft is retried once: rc=$rc calls=$(wc -l <"$CL_CLAUDE_CALLS") $(cat "$tmp/out")"
 grep -q 'em dash' "$tmp/state/$DAY.prompt.md" || fail "the retry prompt carries the reasons"
+# The drafting run is locked down: only Read, no permission prompts, no MCP servers from config.
+for f in '--tools Read' '--permission-mode dontAsk' '--strict-mcp-config'; do
+  grep -q -- "$f" "$CL_CLAUDE_CALLS.args" || fail "the drafter runs with $f"
+done
 
 # A failure opens a changelog-red issue and no PR; a repeat comments; a pass closes it.
 rm -f "$CL_PR_OPEN"; git -C "$tmp/site.git" branch -q -D "changelog/$DAY"
