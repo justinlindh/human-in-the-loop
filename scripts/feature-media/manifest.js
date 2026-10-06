@@ -361,6 +361,24 @@ export const ITEMS = [
     screenshots: [1, 3, 5, 9],
     out: [LOOP('rotate', 0, 9.5)],
   },
+  // The early-era starts for the landing page's Eras section: a stored game from each era, side panels hidden,
+  // the office as the era dresses it. Each fails its guard when the game is not in the era it was stored in.
+  ...[
+    ['preinternet', 'era-inventory', 'preinternet', 5, 2.1],
+    ['dotcom', 'era-float', 'dotcom', 5, 2.1],
+    ['y2k', 'era-y2k', 'dotcom', 13.5, 2.1],
+    ['people', 'era-y2k', 'dotcom', 13.5, 4.2],
+    ['web2', 'era-web2', 'web2', 5, 1.5],
+  ].map(([name, pin, era, at, zoom]) => ({
+    id: `site-still-era-${name}`, title: `Landing page: ${name} era office`, query: 'seed=7&speed=1&eras', still: true, warmup: 0.5, seconds: at + 1.5,
+    setup: `(async () => { await ${PIN_LOAD(pin)}; ${CLEAN}; if (window.__HITL.state.era.id !== '${era}') console.error('capture: not in the ${era} era'); })()`,
+    actions: [...Array.from({ length: 20 }, (_, i) => ({ at: i + 0.2, js: CLEAR_CARDS })), ...CHOOSE_WHEN(null, 0, 1, 30, 3)],
+    // The camera eases to the middle of the staff, as the game's own moment camera does.
+    camera: [{ at: 0, target: { js: `(() => { let n = 0, x = 0, z = 0; window.__hitlRender.scene.traverse((o) => { if (o.userData.staffId !== undefined) { const v = o.parent.getWorldPosition(new o.parent.position.constructor()); x += v.x; z += v.z; n++; } }); return window.__people ??= (n ? { x: x / n, z: z / n } : null); })()` }, zoom }],
+    screenshots: [at],
+    out: [{ path: `img/eras/${name}.webp`, size: '1600x900', publishAs: `site-still-era-${name}` }],
+    publish: true,
+  })),
   {
     // A real game played by the squads bot (src/sim/bots.js), which forms squads once they unlock
     // and posts them to projects, so cohesion has time to build. Staff opens straight to the tab.

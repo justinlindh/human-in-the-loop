@@ -26,7 +26,8 @@ function click(text) {
   b.click();
 }
 
-function founding(seedText = '1') {
+// Opens New Game at the era step.
+function begin() {
   vi.useFakeTimers();
   const layer = document.createElement('div');
   document.body.append(layer);
@@ -35,18 +36,33 @@ function founding(seedText = '1') {
   const title = createTitle({ layer, controls: { newGame }, onStart, sfx: () => {}, toast: () => {}, openSettings: () => {} });
   title.show();
   click('New Game');
+  return { layer, newGame, onStart };
+}
+
+// From the era step on to Funding.
+function toFunding(seedText = '1') {
+  click('Next: company');
   const seed = document.querySelector('.seed');
   seed.value = seedText;
   seed.dispatchEvent(new Event('input'));
   click('Next: founders');
-  document.querySelectorAll('.fcard')[0].click();
-  document.querySelectorAll('.fcard')[1].click();
+  if (document.querySelectorAll('.fcard.on').length < 2) {
+    document.querySelectorAll('.fcard')[0].click();
+    document.querySelectorAll('.fcard')[1].click();
+  }
   click('Next: funding');
-  return { layer, newGame, onStart };
+}
+
+function founding(seedText = '1', era = null, mode = null) {
+  const r = begin();
+  if (era) document.querySelector(`[data-era="${era}"]`).click();
+  if (mode) document.querySelector(`[data-start-mode="${mode}"]`).click();
+  toFunding(seedText);
+  return r;
 }
 
 it('keeps both modes discoverable and requires garage mode before picking an earlier era', () => {
-  founding();
+  begin();
   const choices = document.querySelector('.takeover-choices');
   expect(choices.hidden).toBe(false);
   expect(choices.querySelector('[data-start-mode="takeover"]').disabled).toBe(true);
@@ -57,7 +73,6 @@ it('keeps both modes discoverable and requires garage mode before picking an ear
     expect(choices.querySelector('[data-start-mode="garage"]').getAttribute('aria-pressed')).toBe('true');
   }
   choices.querySelector('[data-start-mode="takeover"]').click();
-  expect(document.querySelector('.era-start-summary').textContent).toContain('No era kit');
   for (const era of ['preinternet', 'dotcom', 'web2', 'classic']) {
     const card = document.querySelector(`[data-era="${era}"]`);
     expect(card.disabled).toBe(true);
@@ -74,11 +89,9 @@ it('keeps both modes discoverable and requires garage mode before picking an ear
 });
 
 it('keeps a randomly chosen seed from review through play', async () => {
-  const { newGame } = founding('');
+  const { newGame } = founding('', 'chatgbt', 'takeover');
   const random = vi.spyOn(Math, 'random').mockReturnValue(0.25);
   try {
-    document.querySelector('[data-era="chatgbt"]').click();
-    document.querySelector('[data-start-mode="takeover"]').click();
     click('Review the company');
     await vi.runAllTimersAsync();
     expect(document.querySelector('.takeover').textContent).toContain('seed 250000000');
@@ -90,9 +103,7 @@ it('keeps a randomly chosen seed from review through play', async () => {
 });
 
 it('shows a failed predecessor reason without starting play and allows another choice', async () => {
-  const { layer, newGame, onStart } = founding();
-  document.querySelector('[data-era="agents"]').click();
-  document.querySelector('[data-start-mode="takeover"]').click();
+  const { layer, newGame, onStart } = founding('1', 'agents', 'takeover');
   const build = vi.spyOn(sim, 'createGame').mockImplementationOnce(() => { throw new Error('This company did not reach Agents.'); });
   try {
     click('Review the company');
@@ -100,18 +111,17 @@ it('shows a failed predecessor reason without starting play and allows another c
     expect(layer.querySelector('[role="alert"]').textContent).toBe('This company did not reach Agents.');
     expect(newGame).not.toHaveBeenCalled();
     expect(onStart).not.toHaveBeenCalled();
+    click('Change');
     expect(layer.querySelector('[data-start-mode="garage"]').disabled).toBe(false);
   } finally { build.mockRestore(); }
 });
 
 it.each(['chatgbt', 'agents'])('previews the exact %s company before starting and preserves Back choices', async (era) => {
-  const { layer, newGame, onStart } = founding();
+  const { layer, newGame, onStart } = begin();
   document.querySelector(`[data-era="${era}"]`).click();
   const build = vi.spyOn(sim, 'createGame');
   document.querySelector('[data-start-mode="takeover"]').click();
   const share = `${Math.round(B.takeover.scoreShare[era] * 100)}% of Classic`;
-  expect(layer.textContent).toContain(`Expected score ${share}`);
-  expect(layer.textContent).not.toContain('Takeover score x');
   const eraCard = document.querySelector(`[data-era="${era}"]`);
   expect(eraCard.lastElementChild.textContent).toBe(`Existing company · ${share} score`);
   expect(eraCard.children[1].textContent).toContain('built from Classic');
@@ -122,6 +132,9 @@ it.each(['chatgbt', 'agents'])('previews the exact %s company before starting an
   expect(eraCard.lastElementChild.textContent).toContain(`${Math.round(B.eraStarts[era].scoreShare * 100)}% of Classic score`);
   document.querySelector('[data-start-mode="takeover"]').click();
   expect(eraCard.lastElementChild.textContent).toBe(`Existing company · ${share} score`);
+  toFunding();
+  expect(layer.textContent).toContain(`Expected score ${share}`);
+  expect(layer.textContent).not.toContain('Takeover score x');
   document.querySelectorAll('.fund')[2].click();
   expect(document.querySelector('.fund.on .fcash').textContent).toBe('$300K');
   click('Review the company');
@@ -140,7 +153,7 @@ it.each(['chatgbt', 'agents'])('previews the exact %s company before starting an
   expect(document.querySelectorAll('details summary')).toHaveLength(2);
   for (const list of document.querySelectorAll('details ul')) expect(list.tabIndex).toBe(0);
   click('Back');
-  expect(document.querySelector('[data-start-mode="takeover"]').getAttribute('aria-pressed')).toBe('true');
+  expect(document.querySelector('.era-line').textContent).toContain('Take over a');
   expect(document.querySelectorAll('.fund')[2].getAttribute('aria-pressed')).toBe('true');
   click('Review the company');
   await vi.runAllTimersAsync();
@@ -161,9 +174,7 @@ it.each(['chatgbt', 'agents'])('previews the exact %s company before starting an
 });
 
 it('rebuilds the reviewed company after funding changes', async () => {
-  const { newGame } = founding();
-  document.querySelector('[data-era="agents"]').click();
-  document.querySelector('[data-start-mode="takeover"]').click();
+  const { newGame } = founding('1', 'agents', 'takeover');
   const build = vi.spyOn(sim, 'createGame');
   click('Review the company');
   await vi.runAllTimersAsync();
