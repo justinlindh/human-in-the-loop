@@ -3,8 +3,9 @@ import { dispatch } from '../../src/sim/index.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
 import { EVENTS } from '../../src/data/events.js';
+import { EVENT_MAIL, MAIL_TEMPLATES } from '../../src/data/mail.js';
 import { raiseDecision, fireEvent } from '../../src/sim/events.js';
-import { defaultChoiceOf } from '../../src/sim/asks.js';
+import { defaultChoiceOf, queueTemplateLetter } from '../../src/sim/asks.js';
 import { botAsks, runBot } from '../../src/sim/bots.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
 import { game, addStaff, addDesks, addProduct, expectFail } from './helpers.js';
@@ -90,13 +91,27 @@ describe('issue #1646: the ask queue', () => {
     expectFail(expect, dispatch, s, { type: 'expireAsk', askId: s.asks[0].id }, 'Expiry is off');
   });
 
-  it('the cash crisis and legal letters are emergencies too', () => {
+  it('an event or letter marked emergency in its data is an emergency; a legal letter without the mark is not', () => {
     B.pacing.askQueue = true;
     const s = company();
     raise(s, 'bridge_loan');
+    raise(s, 'hearing_summons');
     fire(s, 'app_store_rejection');
-    expect(s.asks.map((x) => [x.ref.eventId, x.kind, x.priority, x.expiresWeek])).toEqual([
-      ['bridge_loan', 'decision', 'emergency', null], ['app_store_rejection', 'letter', 'emergency', null]]);
+    expect(s.asks.map((x) => [x.ref.eventId, x.kind, x.priority, x.expiresWeek === null])).toEqual([
+      ['bridge_loan', 'decision', 'emergency', true], ['hearing_summons', 'decision', 'emergency', true],
+      ['app_store_rejection', 'letter', 'low', false]]);
+    const flagged = Object.keys(EVENTS).filter((id) => EVENTS[id].emergency);
+    expect(flagged.sort()).toEqual(['bridge_loan', 'hearing_summons']);
+    expect(Object.keys(EVENT_MAIL).filter((id) => EVENT_MAIL[id].emergency)).toEqual([]);
+    expect(MAIL_TEMPLATES.filter((t) => t.emergency).map((t) => t.id)).toEqual([]);
+  });
+
+  it('a mail template marked emergency queues as an emergency letter', () => {
+    B.pacing.askQueue = true;
+    const s = company();
+    const ctx = makeCtx(s);
+    expect(queueTemplateLetter(ctx, 'some_template', {}, true).priority).toBe('emergency');
+    expect(queueTemplateLetter(ctx, 'some_template', {}, false).priority).toBe('low');
   });
 
   it('expireAsk applies the default and posts one Yak line; an emergency never expires', () => {

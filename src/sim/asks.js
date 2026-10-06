@@ -16,11 +16,11 @@ import { applyEffects } from './effects.js';
 
 export const askQueueOn = () => !!B.pacing.askQueue;
 
-// What interrupts at once and never expires: incident and cyber decisions, the cash crisis, and legal letters.
+// What interrupts at once and never expires: incident and cyber events, and any event or mail template
+// whose data says `emergency: true`.
 const EMERGENCY_KINDS = new Set(['incident', 'cyber']);
-const EMERGENCY_DECISIONS = new Set(['bridge_loan']);
-const decisionPriority = (ev) => (EMERGENCY_KINDS.has(ev.kind) || EMERGENCY_DECISIONS.has(ev.id) ? 'emergency' : 'normal');
-const letterPriority = (category) => (category === 'legal' ? 'emergency' : 'low');
+const isEmergency = (ev) => EMERGENCY_KINDS.has(ev.kind) || !!ev.emergency || !!EVENT_MAIL[ev.id]?.emergency;
+const decisionPriority = (ev) => (isEmergency(ev) ? 'emergency' : 'normal');
 const RANK = { emergency: 0, normal: 1, low: 2 };
 
 // The choice an unanswered decision falls back to: its own defaultChoice, the one picked for it in
@@ -66,11 +66,11 @@ export function queuePrompt(ctx, ev, subjectId) {
 }
 
 export function queueEventLetter(ctx, ev, subjectId) {
-  return enqueue(ctx, { kind: 'letter', priority: letterPriority(EVENT_MAIL[ev.id]?.category), ref: { eventId: ev.id, subjectId }, defaultChoice: EVENT_MAIL[ev.id]?.ignore ?? null });
+  return enqueue(ctx, { kind: 'letter', priority: isEmergency(ev) ? 'emergency' : 'low', ref: { eventId: ev.id, subjectId }, defaultChoice: EVENT_MAIL[ev.id]?.ignore ?? null });
 }
 
-export function queueTemplateLetter(ctx, templateId, mc, category = null) {
-  return enqueue(ctx, { kind: 'letter', priority: letterPriority(category), ref: { template: templateId, mc }, defaultChoice: null });
+export function queueTemplateLetter(ctx, templateId, mc, emergency = false) {
+  return enqueue(ctx, { kind: 'letter', priority: emergency ? 'emergency' : 'low', ref: { template: templateId, mc }, defaultChoice: null });
 }
 
 // A candidate past its expiresWeek no longer fits: it goes without a default or a word.
