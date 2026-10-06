@@ -236,8 +236,13 @@ run
 for f in "$tmp"/state/jobs/*; do [ -e "$f" ] && read -r p _ <"$f" && kill -KILL -- "-$p" 2>/dev/null; done; sleep 0.3
 rm -rf "$tmp/state/jobs"/*; : >"$tmp/started"
 fixture "$(pr 70 zzz none)"
-( unset AUTO_CI_PR_RUNS; run )
+printf '#!/bin/sh\necho "$1" >>"%s/carried"\n' "$tmp" >"$tmp/carry"; : >"$tmp/carried"
+( unset AUTO_CI_PR_RUNS; export AUTO_CI_CARRY="$tmp/carry"; run; run )
 [ "$(count started)" -eq 0 ] || fail "a PR should start no local CI run unless AUTO_CI_PR_RUNS=1 ($(count started) starts)"
+[ "$(count carried)" -eq 1 ] && has carried 70 || fail "review-carry should run once for a new head ($(count carried) runs)"
+fixture "$(pr 71 yyy none false justinlindh '' SUCCESS)"
+( unset AUTO_CI_PR_RUNS; export AUTO_CI_CARRY="$tmp/carry"; run )
+has carried 71 && fail "a head that already has a review pass needs no carry"
 
 [ $fails -eq 0 ] && echo "auto-ci: all cases pass" || echo "auto-ci: $fails failing"
 [ $fails -eq 0 ]

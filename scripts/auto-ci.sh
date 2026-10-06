@@ -29,6 +29,7 @@ STATE="${AUTO_CI_STATE:-$HOME/.cache/hitl-ci/auto}"
 TREE="${AUTO_CI_TREE:-$(cd "$HERE/.." && pwd)}"
 GH="${AUTO_CI_GH:-gh}"
 CIPR="${AUTO_CI_PR:-$TREE/scripts/ci-pr.sh}"
+CARRY="${AUTO_CI_CARRY:-$TREE/scripts/review-carry.sh}"
 MAX="${AUTO_CI_JOBS:-${HITL_CI_SLOTS:-3}}"
 JOBS="$STATE/jobs"
 mkdir -p "$JOBS" "$STATE/retried" "$STATE/pending"
@@ -138,7 +139,15 @@ for pr in $(order); do
   [ -e "$JOBS/$pr" ] && continue
   # A PR merges on GitHub's smoke check and the review, so no run starts for it here (the auto-merge pass
   # above still does). AUTO_CI_PR_RUNS=1 brings the per-PR local CI back.
-  [ "${AUTO_CI_PR_RUNS:-0}" = 1 ] || continue
+  if [ "${AUTO_CI_PR_RUNS:-0}" != 1 ]; then
+    # What a PR still needs from here is the review carried onto a head that only merges main in:
+    # cheap, runs no tests, once per head.
+    if [ "${review[$pr]}" != SUCCESS ] && [ ! -e "$STATE/carried/${head[$pr]}" ]; then
+      mkdir -p "$STATE/carried"; : >"$STATE/carried/${head[$pr]}"
+      bash "$CARRY" "$pr" >/dev/null 2>&1 || true
+    fi
+    continue
+  fi
   h="${head[$pr]}"; why=""
   if [ "${rerun[$pr]}" = true ]; then why="ci-rerun"
   elif [ "${state[$pr]}" = none ]; then why="new head"
