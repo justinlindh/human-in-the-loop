@@ -4,7 +4,7 @@ import { preinternetEffect } from './boxed.js';
 import { addFinishedCandidate, watchOutcome } from './ai-interviews.js';
 import { applyCompatibility } from './web2.js';
 import { chance, pick } from './rng.js';
-import { clamp, newId, marketYear } from './util.js';
+import { clamp, newId, marketYear, shortText } from './util.js';
 import { sunsetProduct } from './products.js';
 import { findStaff, tryAssign, removeStaff, makeCandidate, staffMods, endMentorshipsOf } from './staff.js';
 import { liveProducts, findProduct } from './projects.js';
@@ -290,7 +290,7 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     const owner = person ?? state.staff.find((p) => !p.founder) ?? state.staff[0];
     if (owner) {
       const pet = adoptPet(state, fx.adoptPet, owner.id, ctx.rng);
-      ctx.emit({ type: 'toast', text: `${pet.name} the ${pet.species} has joined ${state.companyName}.`, tone: 'good' });
+      ctx.emit({ type: 'toast', text: `${pet.name} the ${pet.species} has joined ${state.companyName}.`, tone: 'good', topic: 'pet', subjectId: null, short: shortText(`New ${pet.species}: ${pet.name}`) });
     }
   }
   if (fx.rivalHit && state.rival) state.rival.strength = clamp(state.rival.strength - fx.rivalHit, 0, 100);

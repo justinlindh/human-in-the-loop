@@ -434,7 +434,7 @@ const list = [
     ],
   },
   {
-    id: 'bridge_loan', kind: 'market', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    id: 'bridge_loan', kind: 'market', weight: 0, cooldownWeeks: 0, random: false, subject: null, emergency: true,
     when: () => true,
     stage: { prop: 'screens_red', anchor: 'screens' },
     title: 'The bank account is red',
@@ -971,7 +971,7 @@ const list = [
     ],
   },
   {
-    id: 'hearing_summons', kind: 'world', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    id: 'hearing_summons', kind: 'world', weight: 0, cooldownWeeks: 0, random: false, subject: null, emergency: true,
     when: () => true,
     stage: { prop: 'envelope_thick', anchor: 'subjectDesk' },
     title: 'Invited to testify',

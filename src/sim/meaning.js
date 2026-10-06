@@ -62,9 +62,9 @@ export function meaningSystem(ctx) {
     p.mood = p.meaning < B.burnoutBelow || exhausted ? 'burnout' : p.meaning < B.coastingBelow ? 'coasting' : 'ok';
     p.burnoutWeeks = p.mood === 'burnout' ? p.burnoutWeeks + 1 : 0;
     if (p.mood === 'burnout' && prev !== 'burnout') {
-      ctx.emit({ type: 'toast', text: `${p.name} is running on empty.`, tone: 'warn' });
+      ctx.emit({ type: 'toast', text: `${p.name} is running on empty.`, tone: 'warn', topic: 'mood', subjectId: p.id, short: 'Running on empty' });
     } else if (p.mood === 'coasting' && prev === 'ok') {
-      ctx.emit({ type: 'toast', text: `${p.name} seems checked out lately.`, tone: 'warn' });
+      ctx.emit({ type: 'toast', text: `${p.name} seems checked out lately.`, tone: 'warn', topic: 'mood', subjectId: p.id, short: 'Checked out lately' });
     }
   });
 

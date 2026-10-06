@@ -22,7 +22,7 @@ const REQUIRED_KEYS = [
   'flags', 'stats', 'history', 'gameOver', 'era', 'eraSchedule', 'unlocks', 'goals', 'office', 'founding',
 ];
 
-const STATE_DEFAULTS = () => ({ research: { done: [] }, modifiers: [], scheduled: [], chatLog: [], chatPrompts: [], mail: [], radio: { on: false, station: null }, advisors: { dismissed: {}, pushed: {}, lastPushWeek: null, noticed: {} }, lockdown: null, workPolicy: null, squads: [], pets: [], rival: null, purpose: null,
+const STATE_DEFAULTS = () => ({ research: { done: [] }, modifiers: [], scheduled: [], chatLog: [], chatPrompts: [], mail: [], asks: [], radio: { on: false, station: null }, advisors: { dismissed: {}, pushed: {}, lastPushWeek: null, noticed: {} }, lockdown: null, workPolicy: null, squads: [], pets: [], rival: null, purpose: null,
   debtFlow: { work: 0, automation: 0, products: 0, lowKnowledge: 0, seniors: 0, maintenance: 0, reviews: 0, oneOff: 0, net: 0 } });
 const STAFF_DEFAULTS = () => ({ path: null, pathPending: false, legend: false, record: { mentorWeeks: 0, catches: 0, hardProblemWeeks: 0 }, remote: false, call: null, strain: 0, growth: [] });
 
