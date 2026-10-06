@@ -1,6 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createYakPacer } from '../../src/yak-pacing.js';
 import { B } from '../../src/sim/balance.js';
+
+// These cases time the pacer's base gap; quietYak's longer flavour gap has its own test in src/yak-pacing.test.js.
+let keepQuietYak;
+beforeEach(() => { keepQuietYak = B.pacing.quietYak; B.pacing.quietYak = false; });
+afterEach(() => { B.pacing.quietYak = keepQuietYak; });
 
 const chat = (id, extra = {}) => ({ type: 'chat', id, channel: 'general', from: 'A', fromId: 'p1', text: 'chatter '.repeat(8), replyTo: null, ...extra });
 

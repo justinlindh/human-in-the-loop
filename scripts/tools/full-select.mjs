@@ -56,7 +56,7 @@ const isFile = (p) => { try { return statSync(p).isFile(); } catch { return fals
 
 // What one file names directly: its imports (static, re-exported, literal dynamic), the repo files its
 // string literals name, and the directories its wildcard globs read.
-function direct(abs, root) {
+export function direct(abs, root = ROOT) {
   let text;
   try { text = readFileSync(abs, 'utf8'); } catch { return { names: [], dirs: [] }; }
   const names = [], dirs = [];
