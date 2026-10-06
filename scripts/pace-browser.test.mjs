@@ -162,6 +162,26 @@ describe('browser pacing presentations', () => {
     assert.deepEqual(r.missed.map((m) => m.key), ['yak-prompt:cp1']);
   });
 
+  it('reads a presented letter card as that letter and files its hold under decision', async () => {
+    await fixture('<div class="modal decision letterdecision"><h2>A letter</h2><p>Is Gus open to new roles?</p><button class="mailopt">Let him talk</button><button class="mailopt">Keep him</button></div>');
+    await page.evaluate(() => {
+      const H = window.__HITL;
+      H.state.pendingDecision = null;
+      H.state.mail = [{ id: 'm9', subject: 'Is Gus open to new roles?', body: 'A recruiter writes.', options: [{ label: 'Let him talk' }, { label: 'Keep him' }] }];
+      H.controls = { getSpeed: () => 0 };
+    });
+    const first = await page.evaluate(collectPresentations);
+    // The letter landing and its card on screen: both the letter, neither a decision.
+    assert.deepEqual(first.fresh.map((r) => [r.kind, r.id]), [['mail', 'm9'], ['mail', 'm9']]);
+    assert.ok(first.fresh[1].text.startsWith('A letter'));
+    await page.waitForTimeout(150);
+    const r = await page.evaluate(collectPresentations);
+    assert.ok(r.heldBy.decision > 0, JSON.stringify(r.heldBy));
+    assert.equal(r.heldBy.speed0, undefined);
+    await page.evaluate(() => { window.__HITL.state.mail[0].resolved = { choice: 0 }; document.querySelector('.letterdecision').remove(); });
+    assert.deepEqual((await page.evaluate(collectPresentations)).missed, []);
+  });
+
   it('counts a Yak prompt that ran out of time while on screen as expired, not missed', async () => {
     await fixture('<div class="msg reply" data-id="m1" data-root="m1"><div class="yprompt" data-prompt="cp2"><button class="yp-opt">Sure</button></div></div>');
     await page.evaluate(() => { const s = window.__HITL.state; s.pendingDecision = null; s.chatPrompts = [{ id: 'cp2', chatId: 'm1' }]; });
