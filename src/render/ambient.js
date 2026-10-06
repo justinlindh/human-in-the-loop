@@ -7,7 +7,7 @@ import { holdSeconds } from './reading.js';
 
 // ui's ambient icon ids, as the glyph each one draws with.
 export const AMBIENT_ICON = {
-  progress: 'tray.project', vacation: 'sabbatical', tired: 'battery.low', trend: 'tray.trend',
+  progress: 'tray.project', launch: 'launch', vacation: 'sabbatical', tired: 'battery.low', trend: 'tray.trend',
   shield: 'security', award: 'award', rival: 'react.eyes', pet: 'react.dog', warn: 'warn', check: 'check',
 };
 const TONE_ICON = { info: 'toast.info', good: 'toast.good', warn: 'toast.warn', bad: 'toast.bad' };
