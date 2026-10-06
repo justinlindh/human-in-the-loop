@@ -251,7 +251,8 @@ export function createAttention(cfg = {}) {
       if (!head) return out;
       if (head.priority !== 'emergency') {
         if (askOpen) return out;
-        if (t - lastAsk < c.gap) return out;
+        // Above 1x the gap is gapFast, so the player is not asked as often per play second as the economy runs.
+        if (t - lastAsk < (speed > 1 ? c.gapFast ?? c.gap : c.gap)) return out;
         // The end of a window stays clear when it has had no watching stretch yet.
         if (!watched && t - windowStart >= c.watchWindow - c.watchStretch && stretch() < c.watchStretch) return out;
       }
