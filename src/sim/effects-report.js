@@ -46,11 +46,16 @@ const SPECIAL = {
     : v === 'float' ? `cash +${money(B.dotcom.floatCash)}; dilution score x0.8; public-company bust cost`
     : v === 'private' ? `brand +${B.dotcom.privateBrand}; stay private`
       : `lose ${Math.round((v === 'retain' ? B.dotcom.retainLoss : B.dotcom.preserveLoss) * 100)}% of live-product customers once; ${v === 'retain' ? `retention costs the lesser of ${money(B.dotcom.retainCostCap)} and ${B.dotcom.retainCashShare * 100}% of cash; ` : ''}if public, first pay the lesser of ${money(B.dotcom.floatCostCap)} and ${B.dotcom.floatCashShare * 100}% of cash`,
-  legacyPolish: (v) => `compatible product polish +${v}`,
+  aiInterview: (v) => v === 'hire' ? `hire the candidate at the usual fee; if it was an AI, ${B.aiInterviews.exposeWeeks.join(' to ')} weeks later it leaves with its credentials: brand ${B.aiInterviews.exposeBrand}, cash -the lesser of ${money(B.aiInterviews.exposeCash)} and ${B.aiInterviews.exposeCashShare * 100}% of cash`
+    : v === 'reject' ? `the candidate leaves the pool; an AI caught: brand +${B.aiInterviews.catchBrand}, team meaning +${B.aiInterviews.catchMeaning}; a person turned away: brand ${B.aiInterviews.wrongRejectBrand}`
+      : `a candidate whose own AI did the interview joins the pool, skills listed +${B.aiInterviews.polish} until ${B.aiInterviews.revealWeeks} weeks after hire`,
+  legacyPolish: (v) =>`compatible product polish +${v}`,
   preinternet: (v) => v === 'verify' ? `cash -${money(B.preinternet.verifyCost)}; product reliability and maximum health +${B.preinternet.verifyReliability}`
     : v === 'rush' ? `cash +${money(B.preinternet.rushCash)}; debt +${B.preinternet.rushDebt}`
       : v === 'returns' ? `withdraw unsold stock; pay ${B.preinternet.buybackShare * 100}% of its manufacturing cost, capped at ${money(B.preinternet.buybackCap)}, once per product`
-        : v === 'cd' ? `cash -${money(B.preinternet.cdCost)}; next batch capacity +${B.preinternet.cdCapacity * 100}%, charged per copy` : 'keep disks; no cost',
+        : v === 'cd' ? `cash -${money(B.preinternet.cdCost)}; next batch capacity +${B.preinternet.cdCapacity * 100}%, charged per copy`
+          : v.startsWith('order:') ? `order ${v.slice(6)} copies through the Inventory order: cash -${money(Number(v.slice(6)) * B.preinternet.unitCost)} before discounts, on the shelves in ${B.preinternet.leadWeeks} weeks`
+            : v === 'hold' ? 'no order; no cost' : 'keep disks; no cost',
   assign: (v) => ASSIGN[v.type] ?? `they're assigned to ${v.type}`,
   startCraft: () => 'a craft project starts, if none is running',
   pivot: () => 'your newest product pivots',

@@ -411,19 +411,20 @@ describe('audio director', () => {
     expect(loops(d3.update(state(), 3, { speed: 1, running: true }))).toMatchObject([{ id: 'sfx/sledge_leader', gain: 0 }]);
   });
 
-  it('rings the register for a notable deal in every era, once per cooldown, and stays quiet otherwise', () => {
+  it('rings the handbell only from hitl:dealBell, never from the deal event itself', () => {
     const d = createDirector();
     const plays = (cmds) => cmds.filter((c) => c.op === 'play').map((c) => c.cue);
     const deal = (notable, extra = {}) => ({ type: 'deal', productId: 'p1', week: 1, notable, ...extra });
     for (const [i, era] of ['preinternet', 'dotcom', 'web2', 'classic', 'agents'].entries()) {
       const s = state({ era: { id: era } });
-      expect(plays(d.events([deal(true)], s, 100 + i * 100))).toEqual(['sfx.sales_register']);
+      expect(plays(d.events([deal(true), deal(true, { boxed: true })], s, 100 + i * 100))).toEqual([]);
+      expect(plays(d.dealBell({ staffId: 's1', seconds: 3 }, 100 + i * 100))).toEqual(['sfx.deal_handbell']);
     }
-    const s = state();
-    expect(plays(d.events([deal(false)], s, 1000))).toEqual([]);
-    expect(plays(d.events([deal(true, { boxed: true })], s, 2000))).toEqual(['sfx.sales_register']);
-    expect(plays(d.events([deal(true)], s, 2010))).toEqual([]);
-    expect(CUES['sfx.sales_register']).toMatchObject({ bus: 'sfx', cooldown: 30 });
+    expect(plays(d.dealBell({ staffId: 's1' }, 500.5))).toEqual([]);
+    expect(plays(d.dealBell({ staffId: 's1' }, 520))).toEqual([]);
+    expect(plays(d.dealBell({ staffId: 's1' }, 531))).toEqual(['sfx.deal_handbell']);
+    expect(CUES['sfx.deal_handbell']).toMatchObject({ bus: 'sfx', cooldown: 30 });
+    expect(CUES['sfx.sales_register']).toBeUndefined();
   });
 
   describe('office boombox radio', () => {
