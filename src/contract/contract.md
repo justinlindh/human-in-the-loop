@@ -735,7 +735,7 @@ An Agents-era hiring policy: an AI interviewer screens candidates. Cheaper and f
 - The Hire choice refuses with the usual hiring reasons (no desk, not enough cash, or the candidate gone after a refresh), shown on the choice as `available: false`.
 
 ```js
-{ type: 'watchInterview', candidateId }   // works while paused; refusals: 'AI interviews are off' | 'No such candidate' | 'Already watched' | 'Finish the open decision first' | 'Not right now' (the card cannot open, such as after the game ends)
+{ type: 'watchInterview', candidateId }   // works while paused; refusals: 'AI interviews are off' | 'No such candidate' | 'Already watched' | 'Finish the open decision first' | 'Not right now' (a safeguard when the decision system declines the card; not expected in normal play)
 { type: 'askFollowUp' }                   // works while paused; once per open interview, adds a line to vars.lines; refusals: 'No interview open' | 'Already asked'
 ```
 
