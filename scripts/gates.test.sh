@@ -6,7 +6,7 @@ tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 fails=0
 fail() { echo "FAIL $*"; fails=$((fails + 1)); }
 g() { git -c user.name=t -c user.email=t@t "$@"; }
-export HITL_TIMINGS=off HITL_GATES_ROOT="$tmp/root" HITL_LOCK_DIR="$tmp/locks"
+export HITL_GPU_FREE_MB=0 HITL_TIMINGS=off HITL_GATES_ROOT="$tmp/root" HITL_LOCK_DIR="$tmp/locks"
 r="$tmp/repo"; mkdir -p "$r/scripts/lib" "$r/blender/checks" "$r/node_modules"
 cp "$HERE/gates.sh" "$HERE/with-render-lock.sh" "$HERE/render-lock-held.sh" "$r/scripts/"; cp "$HERE/lib/timing.sh" "$HERE/lib/ci-capacity.sh" "$r/scripts/lib/"
 cat >"$r/package.json" <<'JSON'
