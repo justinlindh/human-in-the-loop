@@ -12,7 +12,7 @@ import { createMenu, MENU } from './menu.js';
 import { PANELS } from './panels/index.js';
 import { forgetOverseers } from './panels/automation.js';
 import { createPopups, launchToastCarded } from './popups.js';
-import { splitUnlocks, pipToast } from './unlockPips.js';
+import { splitUnlocks, pipToast, officePipText } from './unlockPips.js';
 import { bringAsk } from './askPresent.js';
 import { createSpacing } from './spacing.js';
 import { progressBar, goalsDoneText } from './goalProgress.js';
@@ -46,7 +46,7 @@ import { orderGoals } from './goalOrder.js';
 import { dealBeats } from './deals.js';
 import { createMailButton, mailBeats, mailOn } from './mail.js';
 import { cardOptions, showCard } from './cards.js';
-import { GOALS, GOAL, goalReward, SIM_HAS_MEANING_UNLOCK, unlockInfo } from './v2content.js';
+import { GOALS, GOAL, goalReward, SIM_HAS_MEANING_UNLOCK, unlockInfo, CATALOG } from './v2content.js';
 
 // UI sound cues go out as window events so the audio lane needs no reference to the UI.
 export function sfx(name) {
@@ -401,7 +401,16 @@ export function createUI({ root, getState, dispatch, controls }) {
     const now = availableItems(state);
     const fresh = itemsSeen ? now.filter((id) => !itemsSeen.has(id)) : [];
     itemsSeen = new Set(now);
-    if (fresh.length) announcer.items(fresh);
+    if (!fresh.length) return;
+    // Under unlockPips new items are a New pip on Office and one toast, not a card.
+    if (pacingOn('unlockPips')) {
+      const text = officePipText(fresh.map((id) => CATALOG[id]?.name).filter(Boolean));
+      if (!text) return;
+      if (menu.current !== 'office') { newMenus.add('office'); menu.setNew('office', true); }
+      toasts.push(text, 'good', { action: () => menu.open('office', { focus: fresh[0] }) });
+      return;
+    }
+    announcer.items(fresh);
   }
 
   let lastPanelAt = -Infinity;

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { splitUnlocks, pipToast } from './unlockPips.js';
+import { splitUnlocks, pipToast, officePipText } from './unlockPips.js';
 import { B } from '../sim/balance.js';
 
 afterEach(() => { delete B.pacing; });
@@ -25,6 +25,11 @@ describe('unlockPips', () => {
   it('on: an era card keeps everything', () => {
     B.pacing = { unlockPips: true };
     expect(splitUnlocks([item('research')], { eraId: 'chatgbt' }).card).toHaveLength(1);
+  });
+  it('new office items get one toast naming them, or counting them', () => {
+    expect(officePipText([])).toBeNull();
+    expect(officePipText(['Trophy Case'])).toBe('New in the Office: Trophy Case. Look for the New pip.');
+    expect(officePipText(['A', 'B', 'C', 'D'])).toBe('4 new things to place in the Office. Look for the New pip.');
   });
   it('off or no block: every unlock keeps its card', () => {
     const items = [item('paths', 'staff', 'Staff')];
