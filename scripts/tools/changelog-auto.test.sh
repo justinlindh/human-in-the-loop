@@ -11,7 +11,7 @@ DAY=2026-10-05
 # The game origin: only history (the run's scripts are the ones next to it).
 mkdir -p "$tmp/game" && cd "$tmp/game" || exit 1
 echo game >README.md
-git init -q -b main . && g add -A && g commit -q -m base && git clone -q --bare . "$tmp/game.git"
+git init -q -b main . && g add -A && g commit -q -m base && g checkout -q -b feature-media && : >office-box.webp && g add -A && g commit -q -m stills && g checkout -q main && git clone -q --bare . "$tmp/game.git"
 # The site origin: an entries file and a test that fails on a marker word.
 mkdir -p "$tmp/site/changelog" && cd "$tmp/site" || exit 1
 cat >package.json <<'EOF'
@@ -53,7 +53,13 @@ case "${CL_STUB_MODE:-ok}" in
   *) printf 'Here is the entry:\n{"date":"%s","headline":"%s","items":[{"area":"UI","title":"A thing","body":"%s","refs":["#9"],"media":[{"src":"https://github.com/justinlindh/human-in-the-loop/blob/feature-media/office-box.webp?raw=true","kind":"image","caption":"Box"}]}]}\n' "$CL_DAY" "${CL_STUB_HEADLINE:-Good}" "${CL_STUB_BODY:-It works.}" ;;
 esac
 EOF
-chmod +x "$tmp/bin/gh" "$tmp/bin/claude"
+# A stand-in curl: writes the file named by -o, so no still is fetched from the network.
+cat >"$tmp/bin/curl" <<'EOF'
+#!/usr/bin/env bash
+while [ $# -gt 0 ]; do [ "$1" = -o ] && { printf 'still' >"$2"; exit 0; }; shift; done
+exit 1
+EOF
+chmod +x "$tmp/bin/gh" "$tmp/bin/claude" "$tmp/bin/curl"
 export PATH="$tmp/bin:$PATH" GH="$tmp/bin/gh" CL_CLAUDE="$tmp/bin/claude" CL_GAME_ORIGIN="$tmp/game.git" CL_SITE_ORIGIN="$tmp/site.git" CL_SITE_REPO=x/site CL_STATE="$tmp/state"
 export CL_GH_CALLS="$tmp/ghcalls" CL_CLAUDE_CALLS="$tmp/claudecalls" CL_PR_OPEN="$tmp/pr-open" CL_ISSUE_OPEN="$tmp/issue-open" CL_MERGED="$tmp/merged.json" CL_DAY="$DAY"
 cat >"$CL_MERGED" <<EOF
@@ -66,7 +72,9 @@ site_entry() { git -C "$tmp/site.git" show "changelog/$DAY:changelog/entries.jso
 run "$DAY"
 [ $rc -eq 0 ] && [ "$(site_entry)" = "Good" ] && grep -q "^pr create --repo x/site --base main --head changelog/$DAY --title feat(site): changelog for $DAY" "$CL_GH_CALLS" && grep -q '^pr merge .* --auto --merge' "$CL_GH_CALLS" \
   || fail "a player-visible day opens a site PR with the entry: rc=$rc $(cat "$tmp/out") $(cat "$CL_GH_CALLS")"
-git -C "$tmp/site.git" show "changelog/$DAY:changelog/entries.json" | jq -e '.[0].date == "'"$DAY"'" and .[0].items[0].media[0].src == "https://raw.githubusercontent.com/justinlindh/human-in-the-loop/feature-media/office-box.webp"' >/dev/null || fail "the entry is newest first and the still is its raw link"
+git -C "$tmp/site.git" show "changelog/$DAY:changelog/entries.json" | jq -e '.[0].date == "'"$DAY"'" and .[0].items[0].media[0].src == "media/'"$DAY"'/office-box.webp"' >/dev/null || fail "the entry is newest first and the still is copied into the day folder"
+git -C "$tmp/site.git" cat-file -e "changelog/$DAY:changelog/media/$DAY/office-box.webp" || fail "the still file is committed in the day folder"
+grep -q 'office-box.webp' "$tmp/state/$DAY.stills.txt" || fail "the feature-media file list is read for the digest"
 grep -q '/home/\|/tmp/' "$tmp/state/$DAY.pr.md" && fail "the PR body holds a local path"
 grep -q 'Check each number and each claim' "$tmp/state/$DAY.pr.md" || fail "the PR body asks the reviewer to fact-check the text"
 

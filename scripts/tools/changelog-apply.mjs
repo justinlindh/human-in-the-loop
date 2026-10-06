@@ -6,8 +6,8 @@
 // The draft is one entry: { date, headline, items: [{ area, title, body, refs: [], media: [{ src,
 // kind: "image", caption }] }] }. It is checked against the site's own rules (strings present, the date
 // is the day, no em dash, no "startup", stills only) and its media is made shippable: a still on the
-// feature-media branch becomes its raw.githubusercontent link; a still from a PR's media branch is
-// downloaded to changelog/media/<day>/ and linked by that path; clips, GIFs and anything unreachable
+// feature-media branch or from a PR's media branch is downloaded to changelog/media/<day>/ and linked
+// by that path; clips, GIFs and anything unreachable
 // are dropped and reported on stderr. The day's media folder is rebuilt each run, so a file no entry
 // shows never ships. Entries stay newest first. Exit 0 and a one-line summary on stdout; 2 when the
 // draft is unusable (the reasons on stderr), 1 on a read or write failure.
@@ -44,7 +44,7 @@ export function mediaPlan(src, { exists = () => false } = {}) {
   const s = String(src || '');
   if (s.includes('..')) return { drop: `${s} has a .. in its path` };
   const feature = new RegExp(`^https://(?:github\\.com/${GAME}/blob|raw\\.githubusercontent\\.com/${GAME})/feature-media/([\\w.-]+)(?:\\?raw=true)?$`).exec(s);
-  if (feature) return /\.(webp|png)$/i.test(feature[1]) ? { src: `https://raw.githubusercontent.com/${GAME}/feature-media/${feature[1]}` } : { drop: `${feature[1]} is not a webp or png still` };
+  if (feature) return /\.(webp|png)$/i.test(feature[1]) ? { download: `https://raw.githubusercontent.com/${GAME}/feature-media/${feature[1]}`, name: feature[1] } : { drop: `${feature[1]} is not a webp or png still` };
   const pr = new RegExp(`^https://(?:github\\.com/${GAME}/blob|raw\\.githubusercontent\\.com/${GAME})/pr-media/(.+?)(?:\\?raw=true)?$`).exec(s);
   if (pr) {
     const name = basename(pr[1]).replace(/[^\w.-]/g, '-');

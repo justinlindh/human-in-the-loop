@@ -35,8 +35,8 @@ describe('problems', () => {
 });
 
 describe('mediaPlan', () => {
-  it('turns a feature-media link into its raw link and downloads a PR still', () => {
-    expect(mediaPlan(`${FM}/office-box.webp?raw=true`)).toEqual({ src: 'https://raw.githubusercontent.com/justinlindh/human-in-the-loop/feature-media/office-box.webp' });
+  it('downloads a feature-media still and a PR still into the day folder', () => {
+    expect(mediaPlan(`${FM}/office-box.webp?raw=true`)).toEqual({ download: 'https://raw.githubusercontent.com/justinlindh/human-in-the-loop/feature-media/office-box.webp', name: 'office-box.webp' });
     expect(mediaPlan(`${FM}/moment-box.mp4?raw=true`).drop).toMatch(/not a webp or png/);
     expect(mediaPlan('https://github.com/justinlindh/human-in-the-loop/blob/pr-media/pr-12/../../x.png?raw=true').drop).toMatch(/\.\./);
     expect(mediaPlan('media/../../etc/x.png', { exists: () => true }).drop).toMatch(/\.\./);
@@ -70,10 +70,10 @@ describe('apply', () => {
     const r = apply({ site, day: '2026-10-01', draft, fetchFile: fetchOk });
     const item = r.entries.find((e) => e.date === '2026-10-01').items[0];
     expect(item.media).toEqual([
-      { src: 'https://raw.githubusercontent.com/justinlindh/human-in-the-loop/feature-media/office-box.webp', kind: 'image', caption: 'The box' },
+      { src: 'media/2026-10-01/office-box.webp', kind: 'image', caption: 'The box' },
       { src: 'media/2026-10-01/shot.png', kind: 'image' },
     ]);
-    expect(readdirSync(join(site, 'changelog/media/2026-10-01'))).toEqual(['shot.png']);
+    expect(readdirSync(join(site, 'changelog/media/2026-10-01')).sort()).toEqual(['office-box.webp', 'shot.png']);
     expect(r.notes).toHaveLength(1);
   });
 
