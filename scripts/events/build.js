@@ -3,7 +3,7 @@
 //     [--weeks 1040] [--jobs N] [--force] [--profile <file.json>]
 // Completed indexes live at <cache>/<sim hash>/{events.jsonl.gz,meta.json,snapshots/}.
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
-import { mkdirSync, writeFileSync, existsSync, rmSync, readdirSync, statSync, mkdtempSync, renameSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, readdirSync, statSync, mkdtempSync, renameSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { join, resolve } from 'node:path';
 import { availableParallelism } from 'node:os';
@@ -79,6 +79,12 @@ async function build() {
   const hash = simHash(), dir = indexDir(hash);
   mkdirSync(CACHE, { recursive: true });
   reapStaleBuilds();
+  // One build per index at a time: a second build for the same code waits, then finds the index the
+  // first published and keeps it (so a reader never sees it swapped out), unless --force.
+  const release = await lockIndex(hash);
+  try { await publish(); } finally { release(); }
+
+  async function publish() {
   if (existsSync(join(dir, 'events.jsonl.gz')) && !force) {
     console.log(`events: an index for this code (${hash}) already exists at ${dir}; --force rebuilds it`);
     return;
@@ -159,5 +165,28 @@ async function build() {
       process.off('SIGINT', onInt);
       process.off('SIGTERM', onTerm);
     }
+  }
+  }
+}
+
+// Takes <cache>/.lock-<hash> (created exclusively, holding this pid) and returns its release. A lock
+// whose pid is gone is stale and is taken over; a live holder is waited on.
+async function lockIndex(hash) {
+  const lock = join(CACHE, `.lock-${hash}`);
+  let said = false;
+  for (;;) {
+    try {
+      writeFileSync(lock, String(process.pid), { flag: 'wx' });
+      return () => { try { if (readFileSync(lock, 'utf8') === String(process.pid)) rmSync(lock, { force: true }); } catch { /* already gone */ } };
+    } catch (err) {
+      if (err.code !== 'EEXIST') throw err;
+    }
+    let holder = 0;
+    try { holder = Number(readFileSync(lock, 'utf8')); } catch { continue; }
+    let alive = Number.isSafeInteger(holder) && holder > 0;
+    if (alive) { try { process.kill(holder, 0); } catch (err) { alive = err.code !== 'ESRCH'; } }
+    if (!alive) { rmSync(lock, { force: true }); continue; }
+    if (!said) { console.log(`events: another build of this index is running (pid ${holder}); waiting for it`); said = true; }
+    await new Promise((r) => setTimeout(r, 250));
   }
 }

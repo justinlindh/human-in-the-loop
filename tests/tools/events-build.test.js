@@ -8,6 +8,7 @@ import { simHash } from '../../scripts/events/lib.js';
 import { play } from '../../scripts/events/play.js';
 import { referencePlay } from './event-index-reference.js';
 import { build, compareSnapshots, run, shortArgs, shortRun, workspace } from './event-index-fixture.js';
+import { spawnAsync } from './spawn-async.js';
 
 const { directory, cleanup } = workspace();
 afterAll(cleanup);
@@ -110,6 +111,27 @@ describe('event index build failures', () => {
     expect(retry.status, retry.stdout + retry.stderr).toBe(0);
     expect(retry.stdout.includes('already exists')).toBe(force);
   }, 60000);
+
+  it.concurrent('builds a cold index once when two builds start together, and keeps what the first published', async () => {
+    const cache = directory('together');
+    const env = { ...process.env, HITL_EVENTS_DIR: cache };
+    const [a, b] = await Promise.all([0, 1].map(() => spawnAsync(process.execPath, [build, ...shortArgs], { env, timeout: 120000 })));
+    for (const r of [a, b]) expect(r.status, r.stdout + r.stderr).toBe(0);
+    const out = a.stdout + b.stdout;
+    expect(out.match(/rows, \d+ snapshots/g)).toHaveLength(1);
+    expect(out).toMatch(/already exists/);
+    expect(existsSync(join(cache, hash, 'events.jsonl.gz'))).toBe(true);
+    expect(readdirSync(cache).filter((d) => d.startsWith('.lock-') || d.startsWith('.build-'))).toEqual([]);
+  }, 150000);
+
+  it('takes over a lock left by a build that is gone', () => {
+    const cache = directory('stale-lock');
+    mkdirSync(cache, { recursive: true });
+    writeFileSync(join(cache, `.lock-${hash}`), '999999999');
+    const r = run(cache, shortArgs);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(existsSync(join(cache, `.lock-${hash}`))).toBe(false);
+  });
 
   it.concurrent('reaps an aged SIGKILLed build on cache reuse and cold builds, preserving live or recent staging', async () => {
     const cache = directory('reap');
