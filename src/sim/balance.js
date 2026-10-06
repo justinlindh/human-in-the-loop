@@ -244,6 +244,15 @@ export const B = {
     pitchKnowledge: 2, pitchStrain: 3, refund: 1500, refundBrand: 1, fixOutput: -0.03, fixHealth: 6, complaintIgnoredBrand: -1,
     poachTellMeaning: 4, poachRaisePct: 8, poachRaiseMeaning: 2, poachIgnoredStrain: 3, partnerHype: 8, partnerOutput: -0.04,
   },
+  // AI video interviews (#670), a policy from the Agents era: the hire fee times feeMult, the pool refreshing
+  // every refreshWeeks with extraCandidates more, skills rolled spread points wider, a gamerChance that a
+  // candidate's own AI took the interview (skills listed polish points high, the truth out revealWeeks after
+  // hire), brandPerHire, a one-off team meaning hit when it is switched on, the chance a hire is staged
+  // (the first always is), and the weekly chance two AIs interview each other.
+  aiInterviews: {
+    enabled: false, feeMult: 0.5, refreshWeeks: 2, extraCandidates: 1, spread: 15, gamerChance: 0.2, polish: 20, revealWeeks: 4,
+    brandPerHire: -0.5, calibrateMeaning: -2, stageChance: 0.15, loopChance: 0.02, chatterChance: 0.08,
+  },
   chatPromptsEnabled: true, chatPromptsOpen: 1, chatPromptGapWeeks: 1, chatPromptExpiryWeeks: 3, chatPromptsKept: 4, chatPromptChance: 0.6, chatPromptFromWeek: 6,
   prompts: {
     strainAt: 40, lateWeeks: 12, newHireWeeks: 3, supportShortfall: 0.2, lateProgress: 0.6, agentLevel: 0.3,

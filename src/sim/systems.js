@@ -3,6 +3,7 @@
 import './vendors.js';
 import './standup.js';
 import './staff.js';
+import './ai-interviews.js';
 import './progression.js';
 import './work.js';
 import './projects.js';
