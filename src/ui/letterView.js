@@ -8,8 +8,9 @@ const chip = (m) => { const c = categoryOf(m); return h('span.mailchip', { text:
 
 // One letter as nodes: head, body, thread, the reply line, the choices and the archive button. The Mail panel's
 // reading pane and the letter card the attention queue opens share it. `onDone(kind)` runs after an answer
-// ('answered') or an archive ('archived') succeeded, `choiceKeys` numbers the choices for the card.
-export function letterView(ctx, s, m, { onDone = () => {}, choiceKeys = false } = {}) {
+// ('answered') or an archive ('archived') succeeded. `choiceKeys` numbers the choices beside their labels for
+// the card, and `showDeadline` false drops the weeks-to-answer line (the card's expiry runs in play time).
+export function letterView(ctx, s, m, { onDone = () => {}, choiceKeys = false, showDeadline = true } = {}) {
   const left = weeksLeft(m, s.week);
   const thread = threadOf(s, m);
   const answer = (i) => {
@@ -34,11 +35,13 @@ export function letterView(ctx, s, m, { onDone = () => {}, choiceKeys = false } 
         ...thread.map((t) => h('div.mailthreadline', null, h('b', { text: `${t.from?.name ?? ''}:` }), ' ', firstLine(t.body, 160)))) : null,
       done,
       hasOpenChoice(m) ? h('div.mailopts', null,
-        left != null ? h('div.small.warn-t', { text: left === 0 ? 'Answer this week or it goes quiet.' : `Answer within ${left} ${left === 1 ? 'week' : 'weeks'} or it goes quiet.` }) : null,
-        ...m.options.map((o, i) => h('button.btn.mailopt', { type: 'button', disabled: o.available === false, onclick: () => answer(i) },
-          choiceKeys ? h('span.ckey.num', { text: String(i + 1) }) : null,
-          h('b', { text: o.label }), o.hint ? h('span.small', { text: o.hint }) : null,
-          o.available === false && o.reason ? h('span.small.bad-t', { text: o.reason }) : null))) : null,
+        showDeadline && left != null ? h('div.small.warn-t', { text: left === 0 ? 'Answer this week or it goes quiet.' : `Answer within ${left} ${left === 1 ? 'week' : 'weeks'} or it goes quiet.` }) : null,
+        ...m.options.map((o, i) => {
+          const text = [h('b', { text: o.label }), o.hint ? h('span.small', { text: o.hint }) : null,
+            o.available === false && o.reason ? h('span.small.bad-t', { text: o.reason }) : null];
+          return h(`button.btn.mailopt${choiceKeys ? '.keyed' : ''}`, { type: 'button', disabled: o.available === false, onclick: () => answer(i) },
+            ...(choiceKeys ? [h('span.ckey.num', { text: String(i + 1) }), h('span.cbody', null, ...text)] : text));
+        })) : null,
       m.archived ? null : h('div.mailfoot', null, h('button.btn.small', { type: 'button', onclick: () => {
         if (!ctx.act({ type: 'archiveMail', mailId: m.id }).ok) return;
         ctx.sfx('click');

@@ -295,13 +295,12 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
     const prevSpeed = resumeSpeed ?? ctx.controls.getSpeed?.() ?? 1;
     resumeSpeed = null;
     ctx.controls.setSpeed?.(0);
-    const view = letterView(ctx, s, m, { onDone: () => closeLetter(), choiceKeys: true });
+    const view = letterView(ctx, s, m, { onDone: () => closeLetter(), choiceKeys: true, showDeadline: false });
     const dock = h('div.modal-dock');
     backdrop.classList.add('docked');
     backdrop.replaceChildren(h('div.modal.decision.letterdecision', null,
       h('div.mhead', null, icon('mail', { size: 24 }), h('h2', { text: 'A letter' }), h('span.spacer'), h('span.mtag', { text: 'Letter' })),
-      h('div.mbody', null, ...view.nodes,
-        h('div.row.lfoot', null, h('span.spacer'), h('button.btn.small.letterlater', { type: 'button', onclick: () => closeLetter() }, 'Decide later'))),
+      h('div.mbody', null, ...view.nodes),
       dock));
     backdrop.style.display = '';
     toasts.setDock(dock);
@@ -338,8 +337,8 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
     if (letter) {
       const n = Number(e.key);
       e.preventDefault();
-      if (e.key === 'Escape') closeLetter();
-      else if (n >= 1 && n <= letter.options.length && letter.options[n - 1].available !== false) letter.answer(n - 1);
+      // Archive (ignore) is the way to skip a letter; Escape does not close it.
+      if (n >= 1 && n <= letter.options.length && letter.options[n - 1].available !== false) letter.answer(n - 1);
       return true;
     }
     if (launch) {

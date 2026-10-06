@@ -58,16 +58,26 @@ describe('a presented letter card', () => {
     expect(p.letterOpen).toBe(false);
   });
 
-  it('Decide later and Escape close it, leaving the letter in the envelope', () => {
+  it('has no Decide later, no weeks line and no Escape exit; Archive (ignore) is the skip', () => {
     const { layer, p } = setup();
     p.openLetter(state(), 'L1');
-    layer.querySelector('.letterlater').click();
+    expect(layer.querySelector('.letterlater')).toBeNull();
+    expect(layer.textContent).not.toMatch(/Answer within|goes quiet/);
+    p.onKey({ key: 'Escape', preventDefault() {} });
+    expect(p.letterOpen).toBe(true);
+    const archive = [...layer.querySelectorAll('button')].find((b) => b.textContent.includes('Archive (ignore)'));
+    archive.click();
+    expect(acts).toContain('archiveMail');
     expect(p.letterOpen).toBe(false);
     expect(speed).toBe(2);
+  });
+
+  it('puts each choice number beside its label', () => {
+    const { layer, p } = setup();
     p.openLetter(state(), 'L1');
-    p.onKey({ key: 'Escape', preventDefault() {} });
-    expect(p.letterOpen).toBe(false);
-    expect(acts).not.toContain('answerMail');
+    const opt = layer.querySelector('.mailopt.keyed');
+    expect([...opt.children].map((c) => c.className)).toEqual(['ckey num', 'cbody']);
+    expect(opt.querySelector('.cbody').textContent).toContain('Take the meeting');
   });
 
   it('a decision outranks it, and the letter returns once the decision is answered', () => {
