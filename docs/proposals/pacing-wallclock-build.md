@@ -6,7 +6,7 @@ The PR sequence for `pacing-wallclock.md` (issue #1639). Each step names its own
 
 Baseline (main, seed 1, the first 30 min): at 1x, 54% of wall time paused at human timing, a mean of 21 s of play between things needing an answer, and up to 4 open at once. At 4x, 84% paused and 4 s between asks.
 
-## Step 0. Measure at human speed (integrator: `scripts/pace.js`, `scripts/pace-browser.js`)
+## Step 0. Measure at human speed (tools, #1642: `scripts/pace.js`, `scripts/pace-browser.js`)
 
 - `--wpm N --choose S`: the player's dwell on any surface is `words(text) / N * 60 + (actionable ? S : 0)`, replacing the flat 8 s and 6 s.
 - `--visible-asks`: the player leaves Yak prompts and mail on screen and answers them through the UI after their dwell, instead of inside its weekly turn. It opens the inbox when a mail arrives.
