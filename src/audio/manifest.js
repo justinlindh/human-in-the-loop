@@ -141,6 +141,7 @@ export const ON_EVENT = {
   // The AI interview: silent until its sounds are picked.
   aiInterview: null,
   interviewReveal: null,
+  aiHireExposed: null,
   // The boombox: the station itself is read from state.radio by the director, so these are silent here.
   radio: null,
   radioTaste: null,
