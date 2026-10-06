@@ -8,7 +8,10 @@ import { suggestPlacement, footprintCells, frontCells } from '../../src/sim/offi
 import { saveGame, loadGame } from '../../src/save/save.js';
 import { B } from '../../src/sim/balance.js';
 import { EVENTS } from '../../src/data/events.js';
-import { game, passOfficeGates, addStaff } from './helpers.js';
+import { game, passOfficeGates, addStaff, pinPacing } from './helpers.js';
+
+// Staged events as cards; quietEvents' card-less path is covered in pacing-rates.test.js.
+pinPacing({ quietEvents: false });
 
 const floor = (seed = 1) => {
   const s = passOfficeGates(game(seed));

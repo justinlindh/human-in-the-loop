@@ -204,6 +204,9 @@ function fixHurt(state) {
   return out;
 }
 
+// The least severity of an attack that gets a postmortem; quietEvents keeps them for the worst.
+export const postmortemSeverity = () => (B.pacing.quietEvents ? B.postmortemSeverityQuiet : B.postmortemSeverity);
+
 // The incident is over: say what it cost and what helped, and open the postmortem for a severe one.
 // A rogue agent's SEV decision waits for this; an attack had its decision at the alarm and gets a short follow-up.
 function resolveIncident(ctx, r) {
@@ -214,8 +217,9 @@ function resolveIncident(ctx, r) {
   ctx.emit(event);
   const record = { week: state.week, kind: r.kind, productId: r.productId, severity: r.severity, weeks: r.weeks, cost, responderIds: [...r.responderIds] };
   state.flags.lastIncident = record;
-  if (r.severity < 4) return;
-  const eventId = CYBER_KINDS.includes(r.kind) ? 'incident_postmortem' : INCIDENT_EVENT[r.kind];
+  const cyber = CYBER_KINDS.includes(r.kind);
+  if (r.severity < (cyber ? postmortemSeverity() : 4)) return;
+  const eventId = cyber ? 'incident_postmortem' : INCIDENT_EVENT[r.kind];
   // Each postmortem waits with its own incident, so the write-up teaches the right people.
   const waiting = (state.flags.postmortemQueue ??= []);
   waiting.push({ eventId, ...record, helped: [...r.helped], hurt: [...r.hurt] });

@@ -1,4 +1,4 @@
-import { describe, it, expect, onTestFinished } from 'vitest';
+import { describe, it, expect, onTestFinished, beforeEach, afterEach } from 'vitest';
 import { dispatch, tick } from '../../src/sim/index.js';
 import { eventsSystem, eligibleEvents, raiseDecision, resolveSubjects, fillText } from '../../src/sim/events.js';
 import { applyEffects, modifierBonus, processScheduled, expireModifiers } from '../../src/sim/effects.js';
@@ -9,6 +9,11 @@ import { B } from '../../src/sim/balance.js';
 import { EVENTS, INCIDENT_EVENT } from '../../src/data/events.js';
 import { MODIFIER_KEYS } from '../../src/data/modifiers.js';
 import { game, addStaff, addProduct, expectFail } from './helpers.js';
+
+// These cases open every event as a card; quietEvents' card-less path has its own tests in pacing-rates.test.js.
+let keepQuiet;
+beforeEach(() => { keepQuiet = B.pacing.quietEvents; B.pacing.quietEvents = false; });
+afterEach(() => { B.pacing.quietEvents = keepQuiet; });
 
 const ctxOf = (s) => makeCtx(s);
 const raise = (s, id, subjectId = null) => { delete s.flags.lastPauseWeek; const c = ctxOf(s); raiseDecision(c, id, subjectId); return c.events; };

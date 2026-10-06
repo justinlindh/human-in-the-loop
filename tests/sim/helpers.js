@@ -1,9 +1,19 @@
+import { beforeEach, afterEach } from 'vitest';
+import { B } from '../../src/sim/balance.js';
 import { createGame } from '../../src/sim/index.js';
 import { generateStaff } from '../../src/sim/staff.js';
 import { findSpot, assignSeats } from '../../src/sim/office.js';
 import { offerPaths } from '../../src/sim/progression.js';
 import { ANGLES } from '../../src/data/angles.js';
 import { UNLOCK_KEYS } from '../../src/data/unlocks.js';
+
+// Holds the given B.pacing switches for every test in the calling file, restoring them after each, for tests
+// that cover a path a pacing switch replaces.
+export function pinPacing(values) {
+  let keep;
+  beforeEach(() => { keep = { ...B.pacing }; Object.assign(B.pacing, values); });
+  afterEach(() => { Object.assign(B.pacing, keep); });
+}
 
 // A fresh run exactly as a player starts it: Classic era, nothing unlocked.
 export const classicGame = (seed = 1) => createGame({ seed, companyName: 'Loopworks' });

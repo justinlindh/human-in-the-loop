@@ -22,7 +22,7 @@ import { eraOnlyAllowsText, eraAtLeast, currentEra, eraIndex } from './eras.js';
 import { openEventPrompt, promptSlotFree } from './prompts.js';
 import { deliversAsMail, mailSlotFree, openEventMail, mailEventNotice } from './mail.js';
 import { preinternetChoiceReason, batchText } from './boxed.js';
-import { askQueueOn, queueDecision, queuePrompt, queueEventLetter } from './asks.js';
+import { askQueueOn, queueDecision, queuePrompt, queueEventLetter, defaultChoiceOf } from './asks.js';
 import { periodAllows, periodText } from '../data/period-content.js';
 
 // What attackers ask for: sized to the company's cash and revenue, between a floor and a cap, and never
@@ -118,6 +118,8 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false, a
   if (!decisionGateOpen(state, eventId)) return false;
   // A decision with `fits` is dropped, not queued, once it no longer applies (a queued card can come due late).
   if (ev.fits && !ev.fits(state, subjectId)) return false;
+  // Under quietEvents a small event plays out with no card and no ask: its default choice, said in Yak.
+  if (B.pacing.quietEvents && ev.quiet && !asked) return resolveQuietly(ctx, ev, subjectId, own);
   // With the ask queue on, a card the game raises waits there; one the player asked for opens at once.
   if (askQueueOn() && !fromQueue && !asked) {
     queueDecision(ctx, eventId, subjectId, own);
@@ -335,6 +337,30 @@ export function restageSystem(ctx) {
 }
 registerSystem('restage', restageSystem, 99);
 registerSystem('moment-talk', momentTalkSystem, 100);
+
+// A quiet event resolves itself: its ask default (or, for `quiet: 'pick'`, a choice of its own), applied as a
+// resolved card would apply it, with one Yak line saying what happened.
+function resolveQuietly(ctx, ev, subjectId, own = null) {
+  const { state } = ctx;
+  const open = ev.choices.map((c, i) => i).filter((i) => !choiceBlocker(state, ev.choices[i], subjectId));
+  if (!open.length) return false;
+  const preferred = ev.quiet === 'pick' ? pick(ctx.rng, open) : defaultChoiceOf(ev);
+  const choice = open.includes(preferred) ? preferred : open[0];
+  const c = ev.choices[choice];
+  if (ev.marks) state.flags[ev.marks] = state.week;
+  const vars = own ?? decisionVars(state, ctx.rng, subjectId);
+  const fill = (t) => fillText(state, ctx.rng, t, subjectId, vars);
+  const stage = ev.stage ? { ...ev.stage, ...stageTile(state, ev.stage.anchor, subjectId) } : null;
+  applyEffects(ctx, c.effects, subjectId, ev.id, vars);
+  if (c.grant) {
+    placeNow(ctx, c.grant.item, findSpot(layoutOf(state), state.office.placed, c.grant.item));
+    if (c.effects?.cash < 0) state.cash += ITEMS[c.grant.item].costs[0];
+  }
+  if (c.leaves) leaveProp(state, c.leaves, stage, subjectId);
+  ctx.emit({ type: 'quietEvent', eventId: ev.id, subjectId: subjectId ?? null, choice, stage: stage ? { staffId: null, ...stage } : null });
+  emitChat(ctx, { channel: 'general', from: '@officebot', text: `${fill(ev.title)}: "${fill(c.label)}". ${c.outcome ? fill(c.outcome) : ''}`.trim() });
+  return true;
+}
 
 registerAction('resolveDecision', (ctx, { choice }) => {
   const { state } = ctx;

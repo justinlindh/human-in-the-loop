@@ -7,7 +7,10 @@ import { EVENTS } from '../../src/data/events.js';
 import { MOMENT_TALK, CELEBRATION_TALK } from '../../src/data/moment-talk.js';
 import { ALLHANDS_SCREEN, variantText, variantPool } from '../../src/data/moment-variants.js';
 import { emitMomentTalk, momentCast, momentTalkSystem } from '../../src/sim/moment-talk.js';
-import { game, addStaff } from './helpers.js';
+import { game, addStaff, pinPacing } from './helpers.js';
+
+// Moments raised as cards; quietEvents' card-less path is covered in pacing-rates.test.js.
+pinPacing({ quietEvents: false });
 import { B } from '../../src/sim/balance.js';
 
 describe('moment dialogue', () => {

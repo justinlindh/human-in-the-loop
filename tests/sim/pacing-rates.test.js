@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { B } from '../../src/sim/balance.js';
 import { makeCtx } from '../../src/sim/registry.js';
-import { eventChance } from '../../src/sim/events.js';
+import { eventChance, raiseDecision } from '../../src/sim/events.js';
+import { postmortemSeverity } from '../../src/sim/incidents.js';
 import { promptChance } from '../../src/sim/prompts.js';
 import { mailSystem, deliversAsMail } from '../../src/sim/mail.js';
 import { MAIL_TEMPLATES, EVENT_MAIL, AMBIENT } from '../../src/data/mail.js';
@@ -33,6 +34,58 @@ describe('askRates: fewer events and staff prompts come up', () => {
     expect(promptChance()).toBe(B.askRates.chatPromptChance);
     expect(B.askRates.randomEventChance).toBeLessThan(B.randomEventChance);
     expect(B.askRates.chatPromptChance).toBeLessThan(B.chatPromptChance);
+  });
+});
+
+describe('quietEvents: small events play out without a card', () => {
+  const QUIET = ['ai_summit', 'ai_summit_hackathon', 'ai_summit_panel', 'conference_expo', 'music_night_genre', 'pet_mishap', 'ping_pong', 'printer_jam'];
+
+  it('the quiet set is the gags, the annual expo, the summit trio and music night', () => {
+    expect(Object.keys(EVENTS).filter((id) => EVENTS[id].quiet).sort()).toEqual(QUIET);
+  });
+
+  it('on, a quiet event applies its default, says so in Yak, and opens no card or ask', () => {
+    B.pacing.quietEvents = true;
+    B.pacing.askQueue = true;
+    const s = company();
+    s.cash = 100000;
+    const chat = s.chatLog.length;
+    const ctx = makeCtx(s);
+    expect(raiseDecision(ctx, 'conference_expo', null)).toBe(true);
+    expect(s.pendingDecision).toBeNull();
+    expect(s.asks).toEqual([]);
+    expect(s.chatLog.slice(chat).some((m) => m.text.includes(EVENTS.conference_expo.choices[0].outcome ?? EVENTS.conference_expo.title))).toBe(true);
+    expect(ctx.events.some((e) => e.type === 'decision' || e.type === 'askQueued')).toBe(false);
+    const quiet = ctx.events.filter((e) => e.type === 'quietEvent');
+    expect(quiet).toHaveLength(1);
+    expect(quiet[0]).toMatchObject({ eventId: 'conference_expo', subjectId: null, choice: 0, stage: { prop: 'printout', anchor: 'wall' } });
+    expect(Object.keys(quiet[0].stage)).toEqual(expect.arrayContaining(['prop', 'anchor', 'x', 'y', 'staffId']));
+  });
+
+  it('on, music night picks the winner\'s genre itself and the dance break still happens', () => {
+    B.pacing.quietEvents = true;
+    const s = company();
+    const winner = s.staff.find((p) => !p.founder);
+    s.flags.musicNightWinner = winner.id;
+    s.flags.musicNightCount = 0;
+    const ctx = makeCtx(s);
+    raiseDecision(ctx, 'music_night_genre', winner.id);
+    expect(s.pendingDecision).toBeNull();
+    expect(s.chatLog.some((m) => EVENTS.music_night_genre.choices.some((c) => m.text.includes(c.label)))).toBe(true);
+  });
+
+  it('off, a quiet event opens its card as today', () => {
+    B.pacing.quietEvents = false;
+    const s = company();
+    expect(raiseDecision(makeCtx(s), 'conference_expo', null)).toBe(true);
+    expect(s.pendingDecision.eventId).toBe('conference_expo');
+  });
+
+  it('on, a postmortem asks only after a severity 5 incident', () => {
+    B.pacing.quietEvents = true;
+    expect(postmortemSeverity()).toBe(5);
+    B.pacing.quietEvents = false;
+    expect(postmortemSeverity()).toBe(4);
   });
 });
 

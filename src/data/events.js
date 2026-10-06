@@ -810,7 +810,7 @@ const list = [
     ],
   },
   {
-    id: 'pet_mishap', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
+    id: 'pet_mishap', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null, quiet: true,
     when: (s) => s.pets.length > 0,
     stage: { prop: 'cable_chewed', anchor: 'door' },
     title: 'Pet incident',
@@ -943,7 +943,7 @@ const list = [
   },
   // The AI Summit, one of three formats a year in rotation. Costs scale with the era ({summitSmall}, {summitBig}).
   {
-    id: 'ai_summit', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    id: 'ai_summit', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null, quiet: true,
     when: () => true,
     title: 'The AI Summit',
     text: 'The AI Summit is next month. Every company will announce something. Some of them will announce the same thing, in the same font. {incumbent} has booked the main stage.',
@@ -954,7 +954,7 @@ const list = [
     ],
   },
   {
-    id: 'ai_summit_panel', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    id: 'ai_summit_panel', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null, quiet: true,
     when: () => true,
     title: 'The AI Summit: the big panel',
     text: 'This year the AI Summit wants {company} on its headline panel: "Will AI Replace Us?" The other panelists are {incumbent} and a man who only speaks in predictions.',
@@ -965,7 +965,7 @@ const list = [
     ],
   },
   {
-    id: 'ai_summit_hackathon', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    id: 'ai_summit_hackathon', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null, quiet: true,
     when: () => true,
     title: 'The AI Summit: the hackathon',
     text: 'The AI Summit is running a 36-hour hackathon and wants a sponsor. The prize is a giant cheque. The real prize is whatever the teams build on top of your product.',
@@ -1071,7 +1071,7 @@ const list = [
     ],
   },
   {
-    id: 'ping_pong', kind: 'misc', weight: 2, cooldownWeeks: 104, random: true, subject: null, eras: ['classic'],
+    id: 'ping_pong', kind: 'misc', weight: 2, cooldownWeeks: 104, random: true, subject: null, eras: ['classic'], quiet: true,
     when: (s) => s.staff.length >= 3 && s.officeStage >= 1 && !s.office.placed.some((i) => i.itemId === 'ping_pong_table'),
     stage: { prop: 'picture_pingpong', anchor: 'wall' },
     title: 'The ping pong question',
@@ -1145,7 +1145,7 @@ const list = [
   },
   // Music night: the Incentives Program winner picks the genre, then the dance break happens.
   {
-    id: 'music_night_genre', kind: 'staff', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    id: 'music_night_genre', kind: 'staff', weight: 0, cooldownWeeks: 0, random: false, subject: null, quiet: 'pick',
     when: () => true,
     title: 'Pick the genre',
     text: '{name}: "I won music night. Apparently I pick the genre. Nobody should have this much power."',
@@ -1201,7 +1201,7 @@ const list = [
   },
   // Annual calendar (raised by the annual system)
   {
-    id: 'conference_expo', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    id: 'conference_expo', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null, quiet: true,
     when: () => true,
     stage: { prop: 'printout', anchor: 'wall' },
     title: 'SaaSCon is next week',
