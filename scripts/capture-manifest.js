@@ -107,7 +107,9 @@ export const MARK_MOMENTS = `(() => { const t0 = window.__capture.now; window.__
 // `props` is a list of staged prop names, or a JS function source returning the world point to aim at.
 // `center` aims at the middle of the staged prop's bounds, height included, so a sheet on a wall is framed
 // by where it hangs and not by the floor point under it.
-export const AIM = (props, zoom, shift = 0, center = false) => `(() => { const R = window.__hitlRender; dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: false } }));
+// `scaled` multiplies the zoom by the office's own scale and stops at the view's zoom cap, as the game's moment
+// camera does, so a big office frames the prop as a small one does.
+export const AIM = (props, zoom, shift = 0, center = false, scaled = false) => `(() => { const R = window.__hitlRender; dispatchEvent(new CustomEvent('hitl:cameraSettings', { detail: { momentCamera: false } }));
 ${center ? `  const centerOf = (o) => { const V = o.position.constructor, mn = new V(1e9, 1e9, 1e9), mx = new V(-1e9, -1e9, -1e9), q = new V(); o.updateWorldMatrix(true, true);
     o.traverse((m) => { if (!m.isMesh || !m.geometry) return; m.geometry.boundingBox || m.geometry.computeBoundingBox(); const b = m.geometry.boundingBox;
       for (const x of [b.min.x, b.max.x]) for (const y of [b.min.y, b.max.y]) for (const z of [b.min.z, b.max.z]) { q.set(x, y, z).applyMatrix4(m.matrixWorld); mn.min(q); mx.max(q); } });
@@ -116,7 +118,7 @@ ${center ? `  const centerOf = (o) => { const V = o.position.constructor, mn = n
     const pm = R.moments?.printerState; let o = pm?.obj; if (pm && !(o && o.visible)) o = pm.people?.[0]?.char?.root;
     o ??= R.props.current().find((x) => ${JSON.stringify(props)}.includes(x.prop))?.obj; return o ? ${center ? 'centerOf(o)' : 'o.getWorldPosition(new o.position.constructor())'} : null; }`};
   const f = window.__follow ??= { x: null, y: 0.4, z: null, vx: 0, vy: 0, vz: 0, zoom: null, vzoom: 0, last: performance.now() };
-  f.zoomGoal = ${zoom}; f.find = find; f.shift = ${shift};${center ? ' f.useY = true;' : ''} f.on = true;
+  f.zoomGoal = ${scaled ? `Math.min(${zoom} * (R.view().officeScale ?? 1), R.view().zoomMax ?? ${zoom})` : zoom}; f.find = find; f.shift = ${shift};${center ? ' f.useY = true;' : ''} f.on = true;
   if (f.running) return; f.running = true;
   const damp = (x, v, goal, dt) => { const w = 2 / 0.6, k = w * dt, e = 1 / (1 + k + 0.48 * k * k + 0.235 * k * k * k), d = x - goal, t = (v + w * d) * dt; return [goal + (d + t) * e, (v - w * t) * e]; };
   const tick = () => { const now = performance.now(), dt = Math.min(0.1, (now - f.last) / 1000); f.last = now;
@@ -146,7 +148,7 @@ export const BEST_VIEW = (props) => `(() => { const R = window.__hitlRender; if 
   window.__viewPicked = true;
   const best = views.reduce((a, v) => (v.visible > a.visible ? v : a));
   for (let i = 0; i < best.view; i++) dispatchEvent(new KeyboardEvent('keydown', { key: 'e', code: 'KeyE', bubbles: true })); })()`;
-export const FOLLOW = (props, zoom, from, to, shift = 0, center = false) => [{ at: from, js: AIM(props, zoom, shift, center) }, { at: to, js: UNAIM }];
+export const FOLLOW = (props, zoom, from, to, shift = 0, center = false, scaled = false) => [{ at: from, js: AIM(props, zoom, shift, center, scaled) }, { at: to, js: UNAIM }];
 // The nods reel crops a 1280x720 window whose center sits 320 px right of a 1920x1080 frame's.
 const NODS_FOLLOW = (props, zoom, from, to) => FOLLOW(props, zoom, from, to, 320);
 

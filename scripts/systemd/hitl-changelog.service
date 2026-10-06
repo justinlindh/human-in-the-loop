@@ -1,0 +1,12 @@
+# Drafts the site changelog entry for the previous day and opens a site PR (scripts/tools/changelog-auto.sh).
+[Unit]
+Description=Human in the Loop: draft yesterday's changelog entry and open the site PR
+
+[Service]
+Type=oneshot
+Nice=15
+IOSchedulingClass=idle
+TimeoutStartSec=40min
+Environment=HITL_REPO=%h/.cache/hitl-ci/auto/worktree
+Environment=TMPDIR=%h/.cache/hitl-ci/tmp
+ExecStart=/bin/bash -c 'exec bash "$HITL_REPO/scripts/tools/changelog-auto.sh"'
