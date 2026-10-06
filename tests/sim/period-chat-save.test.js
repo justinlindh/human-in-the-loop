@@ -24,6 +24,8 @@ it.each(Object.keys(fixtures))('round trips an existing %s save with open replie
   expect(s.radio).toEqual({ on: false, station: null });
   original.radio ??= { on: false, station: null };
   expect(s.chatLog).toEqual(original.chatLog);
+  // An old save's prompts load unshown (shownWeek null), as the contract asks.
+  for (const p of original.chatPrompts) p.shownWeek ??= null;
   expect(s.chatPrompts).toEqual(original.chatPrompts);
   expect(s.flags.posts).toEqual(original.flags.posts);
   expect(s.founding).toEqual(original.founding);
