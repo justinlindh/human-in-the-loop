@@ -334,6 +334,16 @@ describe('attention clock', () => {
     expect(got).toEqual([]);
   });
 
+  it('gives an item already open after a reload or load its own fresh 120 s', () => {
+    const att = createAttention();
+    const shown = [{ kind: 'letter', id: 'm1' }];
+    for (let i = 0; i < 100; i++) att.tick(1, { shown, openExpiry: true });
+    att.reset();
+    const got = [];
+    for (let i = 1; i <= 130; i++) if (att.tick(1, { shown, openExpiry: true }).expireOpen.length) got.push(i);
+    expect(got[0]).toBe(120);
+  });
+
   it('does not expire open asks while the switch is off', () => {
     const att = createAttention();
     for (let i = 0; i < 300; i++) expect(att.tick(1, { shown: [{ kind: 'letter', id: 'm' }] }).expireOpen).toEqual([]);
