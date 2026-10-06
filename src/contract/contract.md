@@ -768,6 +768,19 @@ state.asks: [{ id, kind, priority, week, expiresWeek, defaultChoice, ref }]
 - The default is the event's own `defaultChoice`, else its entry in `src/data/ask-defaults.js`, else its choice with no effect; every decision that can expire has one. A prompt or letter takes its ignore outcome. The Yak line names what the team picked. Expiring never costs more than answering cautiously.
 - With `B.pacing.askExpiry` on, at most `B.attention.queueCap` non-emergency asks wait. When another arrives, the least pressing, oldest one expires at once and emits `askExpired`. With it off, nothing expires: `expireAsk` refuses with 'Expiry is off', and the queue has no cap.
 
+### Shown prompts and letters
+
+A Yak prompt or letter's lifetime runs in game weeks only until the player sees it; once shown, it runs in real seconds.
+
+```js
+{ type: 'promptShown', promptId }        // ui dispatches when the prompt is on screen; sets the prompt's shownWeek; works while paused; refusals: 'No such prompt'
+{ type: 'expireOpen', kind, id }         // kind: 'prompt' | 'letter'; the presentation clock dispatches after B.attention.openExpiry seconds of running play since it was shown; applies the ignore outcome; refusals: 'No such prompt' | 'No such letter' | 'Already answered'
+```
+
+- A prompt's `chatPromptExpiryWeeks` applies only while it has no `shownWeek`; such a prompt is dropped as stale. A shown prompt never expires by weeks: it closes when answered or through `expireOpen` (or `expireAsk` when it came from the queue).
+- A letter is shown when `readMail` opens it, which sets its `shownWeek`; the same rule applies.
+- Bots never dispatch `promptShown`, so balance runs keep the week-based expiry.
+
 ### Events: Attention queue
 
 ```js
