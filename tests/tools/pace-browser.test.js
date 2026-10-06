@@ -68,7 +68,8 @@ describe.concurrent('observed pacing arguments and metadata', () => {
   });
 
   it('measures the paused share, the answerable series and its gaps in running play', () => {
-    const p = askGaps([{ kind: 'decision', run: 10 }, { kind: 'yak-prompt', run: 40 }, { kind: 'mail', run: 100 }], 300, 120, { openMax: 2, longestQuiet: 54.32 });
+    const p = askGaps([{ kind: 'decision', run: 10 }, { kind: 'yak-prompt', run: 40 }, { kind: 'mail', run: 100 }], 300, 120, { openMax: 2, longestQuiet: 54.32, heldBy: { menu: 80.04, decision: 39.96 } });
+    expect(p.heldBy).toEqual({ menu: 80, decision: 40 });
     expect(p).toMatchObject({ pausedShare: 0.4, heldSeconds: 120, runningSeconds: 180, asks: 3, asksPerRunningMinute: 1,
       byKind: { decision: 1, 'yak-prompt': 1, mail: 1 }, longestWithNothingToAnswer: 54.3, mostOpenAtOnce: 2 });
     expect(p.gaps).toEqual([30, 60]);

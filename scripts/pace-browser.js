@@ -159,7 +159,17 @@ export function collectPresentations() {
   const clock = `${s.week}:${H.clock?.acc ?? ''}`;
   const dt = P.lastT == null ? 0 : t - P.lastT;
   const ran = P.lastClock != null && clock !== P.lastClock;
-  if (P.lastClock != null) { if (ran) P.running = (P.running ?? 0) + dt; else P.held = (P.held ?? 0) + dt; }
+  if (P.lastClock != null) {
+    if (ran) P.running = (P.running ?? 0) + dt;
+    else {
+      P.held = (P.held ?? 0) + dt;
+      // What held it: the first that applies, in the order the game checks them.
+      const c = H.controls, why = s.gameOver ? 'gameOver' : s.pendingDecision ? 'decision'
+        : c?.getSpeed?.() === 0 ? (c.awayPaused ? 'away' : 'speed0') : window.__HITL_UI?.isBusy?.() ? 'menu'
+        : c?.spotlightHeld?.() ? 'spotlight' : document.hidden ? 'hidden' : 'other';
+      P.heldBy ??= {}; P.heldBy[why] = (P.heldBy[why] ?? 0) + dt;
+    }
+  }
   P.lastClock = clock; P.lastT = t;
   const context = { t, run: P.running ?? 0, week: s.week, era: s.era.id, officeStage: s.officeStage };
   // The answerable series, from the game's own state: an open decision, an unanswered Yak prompt, a
@@ -199,18 +209,19 @@ export function collectPresentations() {
     fresh.push({ ...r, ...context, transition: 'hidden', ...(prompt?.resolved ? { resolution: prompt.resolved } : {}) });
   }
   P.active = next;
-  return { ...context, held: P.held ?? 0, asks: P.asks, openMax: P.openMax, longestQuiet: P.longestQuiet ?? 0, fresh, gameOver: s.gameOver, active: [...next.values()] };
+  return { ...context, held: P.held ?? 0, heldBy: P.heldBy ?? {}, task: P.task ?? null, asks: P.asks, openMax: P.openMax, longestQuiet: P.longestQuiet ?? 0, fresh, gameOver: s.gameOver, active: [...next.values()] };
 }
 
 // The paused share of wall time and the answerable series: asks ({ kind, run }, in order), the gaps
 // between them in running-play seconds, the longest running stretch with nothing open to answer, and
 // the most open at once.
-export function askGaps(asks, elapsed, held, { openMax = 0, longestQuiet = 0 } = {}) {
+export function askGaps(asks, elapsed, held, { openMax = 0, longestQuiet = 0, heldBy = {} } = {}) {
   const gaps = asks.slice(1).map((r, i) => +(r.run - asks[i].run).toFixed(1));
   const sorted = [...gaps].sort((a, b) => a - b);
   const runTotal = Math.max(0, elapsed - held);
   return {
     pausedShare: elapsed ? +(held / elapsed).toFixed(3) : 0, heldSeconds: +held.toFixed(1), runningSeconds: +runTotal.toFixed(1),
+    heldBy: Object.fromEntries(Object.entries(heldBy).map(([k, v]) => [k, +v.toFixed(1)])),
     asks: asks.length, asksPerRunningMinute: runTotal ? +(asks.length * 60 / runTotal).toFixed(2) : 0,
     byKind: Object.fromEntries(ASKS.map((k) => [k, asks.filter((r) => r.kind === k).length])),
     gap: gaps.length ? { min: sorted[0], median: sorted[Math.floor(sorted.length / 2)], mean: +(gaps.reduce((a, b) => a + b, 0) / gaps.length).toFixed(1), max: sorted.at(-1) } : null,
@@ -277,6 +288,14 @@ export async function installPlayer(o) {
           .find((x) => x.checkVisibility() && /^(Got it|Onward|Nice!|Later|Skip tour|Close|See the decision)$/.test(x.textContent.trim()));
         if (b) click(b);
       }
+    }
+    // Build mode (a reply that promises an item opens it): read the bar, Place for me, then Done.
+    const bar = document.querySelector('.buildbar');
+    if (P.task?.kind === 'build' && !shown(bar)) P.task = null;
+    else if (!P.task && shown(bar)) P.task = { kind: 'build', due: t + dwell(bar.textContent, true), placed: false };
+    else if (P.task?.kind === 'build' && t >= P.task.due) {
+      if (!P.task.placed) { click(bar.querySelector('button.bauto')); P.task = { ...P.task, placed: true, due: t + 1 }; }
+      else click(bar.querySelector('button.btn.go:not(.bplace)'));
     }
     if (!o.flat) {
       // Yak prompts: bring a waiting one into view with its Reply mark, read it and its post, then reply.
@@ -423,7 +442,7 @@ export async function runBrowserPacing(args) {
       start: args.load ? { load: String(args.load), ...start } : { era: start.era, week: start.week },
       timing: flat ? { flat: true } : { wpm, choose, menuSeconds }, policy,
       elapsedSeconds: result.t, weeks: result.week, gameOver: result.gameOver,
-      pacing: askGaps(result.asks, result.t, result.held, { openMax: result.openMax, longestQuiet: result.longestQuiet }),
+      pacing: askGaps(result.asks, result.t, result.held, { openMax: result.openMax, longestQuiet: result.longestQuiet, heldBy: result.heldBy }),
       stop: errors.length ? 'error' : result.gameOver ? 'gameOver' : result.week >= weeks ? 'weeks' : 'minutes',
       rates: summarize(records, result.t), sample: { from: (sampleMinute - 1) * 60, to: sampleMinute * 60, frames: samples }, records, errors };
     writeFileSync(`${out}/observed.json`, JSON.stringify(report, null, 2) + '\n');
