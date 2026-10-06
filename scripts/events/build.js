@@ -3,7 +3,7 @@
 //     [--weeks 1040] [--jobs N] [--force] [--profile <file.json>]
 // Completed indexes live at <cache>/<sim hash>/{events.jsonl.gz,meta.json,snapshots/}.
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
-import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, readdirSync, statSync, mkdtempSync, renameSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, readdirSync, statSync, mkdtempSync, renameSync, linkSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { join, resolve } from 'node:path';
 import { availableParallelism } from 'node:os';
@@ -169,24 +169,37 @@ async function build() {
   }
 }
 
-// Takes <cache>/.lock-<hash> (created exclusively, holding this pid) and returns its release. A lock
-// whose pid is gone is stale and is taken over; a live holder is waited on.
+// Takes <cache>/.lock-<hash> and returns its release. The lock is linked into place already holding
+// this pid, so no reader ever sees it empty. A lock whose pid is gone (or that is past LOCK_MAX_MS)
+// is stale: one waiter takes it over by renaming it aside, which only one rename can win; a live
+// holder is waited on.
 async function lockIndex(hash) {
-  const lock = join(CACHE, `.lock-${hash}`);
+  // A lock older than LOCK_MAX_MS is stale whatever its pid says (a recycled pid must not hold builds
+  // forever); an unreadable one younger than LOCK_FRESH_MS may still be a builder's own and is waited on.
+  const LOCK_MAX_MS = 60 * 60 * 1000, LOCK_FRESH_MS = 10 * 1000;
+  const lock = join(CACHE, `.lock-${hash}`), mine = String(process.pid);
+  const temp = `${lock}.${mine}.tmp`;
   let said = false;
   for (;;) {
-    try {
-      writeFileSync(lock, String(process.pid), { flag: 'wx' });
-      return () => { try { if (readFileSync(lock, 'utf8') === String(process.pid)) rmSync(lock, { force: true }); } catch { /* already gone */ } };
-    } catch (err) {
-      if (err.code !== 'EEXIST') throw err;
+    writeFileSync(temp, mine);
+    try { linkSync(temp, lock); return () => { try { if (readFileSync(lock, 'utf8') === mine) rmSync(lock, { force: true }); } catch { /* already gone */ } }; }
+    catch (err) { if (err.code !== 'EEXIST') throw err; }
+    finally { rmSync(temp, { force: true }); }
+    let text, age;
+    try { text = readFileSync(lock, 'utf8'); age = Date.now() - statSync(lock).mtimeMs; } catch { continue; }
+    const holder = Number(text);
+    let stale = age > LOCK_MAX_MS;
+    if (!stale && Number.isSafeInteger(holder) && holder > 0) { try { process.kill(holder, 0); } catch (err) { stale = err.code === 'ESRCH'; } }
+    else if (!stale) stale = age > LOCK_FRESH_MS;
+    if (stale) {
+      const aside = `${lock}.stale-${mine}`;
+      try { renameSync(lock, aside); } catch { continue; }
+      // Another waiter may have replaced the stale lock first: put a live one back.
+      if (readFileSync(aside, 'utf8') !== text) { try { linkSync(aside, lock); } catch { /* a newer lock is in place */ } }
+      rmSync(aside, { force: true });
+      continue;
     }
-    let holder = 0;
-    try { holder = Number(readFileSync(lock, 'utf8')); } catch { continue; }
-    let alive = Number.isSafeInteger(holder) && holder > 0;
-    if (alive) { try { process.kill(holder, 0); } catch (err) { alive = err.code !== 'ESRCH'; } }
-    if (!alive) { rmSync(lock, { force: true }); continue; }
-    if (!said) { console.log(`events: another build of this index is running (pid ${holder}); waiting for it`); said = true; }
+    if (!said) { console.log(`events: another build of this index is running (pid ${holder || 'unknown'}); waiting for it`); said = true; }
     await new Promise((r) => setTimeout(r, 250));
   }
 }
