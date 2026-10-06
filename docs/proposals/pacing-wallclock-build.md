@@ -1,6 +1,6 @@
 # Pacing on the wall clock: build plan
 
-The PR sequence for `pacing-wallclock.md` (issue #1639). Each step names its owning lane, what it changes and the measured target it must hit before it merges. Nothing here starts until the owner has answered the decisions in section 6 of the proposal. Every step changes how the game plays, so each PR is a draft with `awaiting-user` until team-lead confirms.
+The PR sequence for `pacing-wallclock.md` (issue #1639). Each step names its owning lane, what it changes and the measured target it must hit before it merges. Nothing here starts until the owner approves the proposal. That approval covers steps 1 to 5, so they ship as normal PRs. A step that departs from the approved budget goes back to the owner as a draft with `awaiting-user`.
 
 "Human policy" below means `scripts/pace.js --browser` with the reading policy from step 0 (`--wpm 200 --choose 4 --menu-seconds 10`, prompts and mail left visible). Until step 0 lands, a step's evidence is the bot run re-timed as in the proposal's section 1, and its PR says so.
 
