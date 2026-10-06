@@ -321,20 +321,23 @@ async function boot() {
   let logic = { menuPause: false, running: false, held: false };
   // Runs the attention clock for one step: opens the ask it picks and expires the ones that waited too long.
   function runAttention(dt, running, held) {
-    if (!askQueueOn() || sim.state.gameOver) return;
     const s = sim.state;
     const week = s.week;
-    const asks = (s.asks ?? []).filter((a) => a.expiresWeek == null || week <= a.expiresWeek);
+    // The clock always runs (staged moments are paced by it); asks reach it only while the queue is on.
+    const queued = askQueueOn() && !s.gameOver;
+    const asks = queued ? (s.asks ?? []).filter((a) => a.expiresWeek == null || week < a.expiresWeek) : [];
     const askOpen = !!s.pendingDecision || (s.chatPrompts ?? []).some((p) => !p.resolved)
       || (s.mail ?? []).some((m) => m.options?.length && !m.resolved && !m.archived);
     // Only decisions and the game's own cards are beats; the player's own menus pause the clock but do not start a quiet.
     const out = attention.tick(dt, {
       running, held, speed, asks, askOpen, decisionOpen: !!s.pendingDecision,
       modal: !!s.pendingDecision || !!ui?.beatOpen?.(),
-      realTime: B.pacing.askRealTime !== false, expiry: !!B.pacing.askExpiry,
+      realTime: B.pacing?.askRealTime !== false, expiry: queued && !!B.pacing?.askExpiry,
     });
-    for (const askId of out.expire) dispatch({ type: 'expireAsk', askId });
-    if (out.present) dispatch({ type: 'presentAsk', askId: out.present });
+    // The clock's own actions are the game's, not the player's: they route as game events.
+    const act = (action) => route(sim.dispatch(action).events, sim.state);
+    for (const askId of out.expire) act({ type: 'expireAsk', askId });
+    if (out.present) act({ type: 'presentAsk', askId: out.present });
   }
   function logicStep(dt) {
     // The UI reports busy while a panel or modal is open (auto-pause for menus).

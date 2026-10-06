@@ -300,6 +300,16 @@ describe('attention clock', () => {
     expect(opened[0][0] - 1).toBe(45);
   });
 
+  it('keeps time for staged moments with no asks queued', () => {
+    const att = createAttention();
+    for (let round = 0; round < 3; round++) {
+      expect(att.momentReady()).toBe(true);
+      att.momentBegun();
+      expect(att.momentReady()).toBe(false);
+      drive(att, 301, [], { asks: [] });
+    }
+  });
+
   it('allows one staged moment per 5 min', () => {
     const att = createAttention();
     expect(att.momentReady()).toBe(true);
