@@ -57,15 +57,23 @@ export function shippedDetail(p, prevScore) {
 }
 
 // A card-less gag (`quietEvent`): a short caption and glyph per event, and a generic one for the rest.
+// Icons are ids the renderer's ambient icon map draws. A trip event words itself by the choice applied:
+// the first choice is always the skip.
 const GAGS = {
-  ping_pong: ['Ping-pong!', 'item.ping_pong_table'],
-  printer_jam: ['Printer jammed', 'warn'],
-  pet_mishap: ['Cable chewed', 'pet'],
-  conference_expo: ['Off to the expo', 'channel.conference'],
-  ai_summit: ['AI summit trip', 'channel.conference'],
+  ping_pong: { text: 'Ping-pong!', icon: 'award' },
+  printer_jam: { text: 'Printer jammed', icon: 'warn' },
+  pet_mishap: { text: 'Cable chewed', icon: 'pet' },
+  conference_expo: { text: 'Off to the expo', skipped: 'Skipped the expo', icon: 'vacation' },
+  ai_summit: { text: 'AI summit trip', skipped: 'Skipped the summit', icon: 'vacation' },
+  ai_summit_panel: { text: 'Off to the panel', skipped: 'Skipped the panel', icon: 'vacation' },
+  ai_summit_hackathon: { text: 'Off to the hackathon', skipped: 'Skipped the hackathon', icon: 'vacation' },
 };
+export const GAG_ICONS = [...new Set([...Object.values(GAGS).map((g) => g.icon), 'check', 'trend'])];
 export function gagDetail(e, state) {
-  const [text, icon] = GAGS[e.eventId] ?? ['Office moment', 'idea'];
+  const g = GAGS[e.eventId];
+  const skipped = !!g?.skipped && e.choice === 0;
+  const text = g ? (skipped ? g.skipped : g.text) : 'Office moment';
+  const icon = !g ? 'trend' : skipped ? 'check' : g.icon;
   const id = e.subjectId ?? null;
   const subjectKind = id == null ? 'company' : (state?.products ?? []).some((p) => p.id === id) ? 'product' : 'staff';
   return { topic: 'gag', subjectId: id, subjectKind, text, icon, tone: 'info' };
