@@ -211,6 +211,53 @@ describe('issue #1646: the ask queue', () => {
     expect(s.pendingDecision.eventId).toBe('agent_db_wipe');
   });
 
+  it('the era beats and mission tests are marked noExpire, and the postmortem is no emergency', () => {
+    const marked = Object.keys(EVENTS).filter((id) => EVENTS[id].noExpire).sort();
+    expect(marked).toEqual(['era_agents', 'era_chatgbt', 'era_consolidation', 'era_plateau', 'mission_test_demo', 'mission_test_support']);
+    B.pacing.askQueue = true;
+    const s = company();
+    raise(s, 'incident_postmortem');
+    expect(s.asks.map((a) => a.priority)).toEqual(['normal']);
+  });
+
+  it('expireAsk refuses a noExpire ask, which still waits its turn by priority', () => {
+    B.pacing.askQueue = true;
+    B.pacing.askExpiry = true;
+    const s = company();
+    raise(s, 'era_chatgbt');
+    raise(s, 'agent_db_wipe');
+    const era = s.asks.find((a) => a.ref.eventId === 'era_chatgbt');
+    expect(era.priority).toBe('normal');
+    expectFail(expect, dispatch, s, { type: 'expireAsk', askId: era.id }, 'This one needs an answer');
+    dispatch(s, { type: 'presentAsk' });
+    expect(s.pendingDecision.eventId).toBe('agent_db_wipe');
+    s.pendingDecision = null;
+    dispatch(s, { type: 'presentAsk' });
+    expect(s.pendingDecision.eventId).toBe('era_chatgbt');
+  });
+
+  it('a noExpire ask is never pushed out by the cap and does not count toward it', () => {
+    B.pacing.askQueue = true;
+    B.pacing.askExpiry = true;
+    const s = company();
+    raise(s, 'era_chatgbt');
+    for (const id of ['acquisition_offer', 'vc_offer', 'remote_debate']) raise(s, id);
+    expect(s.asks.map((a) => a.ref.eventId)).toEqual(['era_chatgbt', 'acquisition_offer', 'vc_offer', 'remote_debate']);
+    raise(s, 'pivot_pitch');
+    expect(s.asks.map((a) => a.ref.eventId)).toEqual(['era_chatgbt', 'vc_offer', 'remote_debate', 'pivot_pitch']);
+  });
+
+  it('bots never let a noExpire ask expire, however long it waits', () => {
+    B.pacing.askQueue = true;
+    B.pacing.askExpiry = true;
+    const s = company();
+    raise(s, 'mission_test_support');
+    s.flags.lastAskWeek = s.week + 10 * B.attention.botExpiryWeeks;
+    s.week += 5 * B.attention.botExpiryWeeks;
+    botAsks(s);
+    expect(s.asks.map((a) => a.ref.eventId)).toEqual(['mission_test_support']);
+  });
+
   it('status-news toasts carry a known topic and a subject id or null; money, staff changes and goals carry none', () => {
     const TOPICS = ['progress', 'timeoff', 'back', 'mood', 'trend', 'blocked', 'reward', 'pet', 'rival', 'incident'];
     const seen = new Set();

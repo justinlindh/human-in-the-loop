@@ -96,6 +96,7 @@ const list = [
     choices: [
       { label: 'Match the offer', hint: '+20% salary', effects: { salaryPct: 20, meaning: 3 }, outcome: '{name} stays and buys a nicer chair.' },
       { label: 'Wish them well', hint: 'They leave', effects: { resign: 'poached' }, outcome: '{name} leaves for {incumbent}. They will be back in #alumni.' },
+      { label: 'Make a small counter-offer', hint: '+8% salary; they stay, for now', effects: { salaryPct: 8, meaning: 1 }, outcome: '{name} stays. They keep the recruiter\'s number in a drawer, next to the good pens.' },
     ],
   },
   {
@@ -222,6 +223,7 @@ const list = [
       { label: 'Respond publicly with real changes', hint: 'Costs cash; brand and team meaning up', effects: { cash: -3000, brand: 2, teamMeaning: 2, meaning: 6 }, outcome: 'Your reply is the second most liked comment. {name} reposts it.' },
       { label: 'Ask them to take it down', hint: 'Brand and their meaning down', effects: { brand: -3, meaning: -10 }, outcome: 'They take it down. Screenshots do not.' },
       { label: 'Ignore it', hint: 'Might blow over, might not', effects: { gamble: { p: 0.5, effects: { brand: -5 } } }, outcome: 'You close the tab. You open the tab again.' },
+      { label: 'Reply politely in private', hint: 'Brand dips a little; they feel brushed off', effects: { brand: -1, meaning: -3 }, outcome: 'A courteous DM. The post stays up, now with "UPDATE: they DMed me" at the bottom.' },
     ],
   },
   {
@@ -232,6 +234,7 @@ const list = [
     choices: [
       { label: 'Fix it across the team', hint: 'A permanent raise for everyone (+8% salaries); team meaning up', effects: { teamSalaryPct: 8, meaning: 10, teamMeaning: 4 }, outcome: 'Everyone gets a letter with a bigger number. Morale improves in real time.' },
       { label: 'Explain the market', hint: 'Free now; it festers, effects later', effects: { meaning: -8, later: [{ inWeeks: 8, effects: { meaning: -6, teamMeaning: -2 } }] }, outcome: '"The market" is a very unsatisfying answer. Everyone knows it.' },
+      { label: 'Promise a review next quarter', hint: 'Their meaning dips; the question waits', effects: { meaning: -4 }, outcome: 'A calendar invite titled "Comp review (real)" appears for next quarter. {name} accepts it, warily.' },
     ],
   },
   {
@@ -267,6 +270,7 @@ const list = [
     choices: [
       { label: 'Keep the bot', hint: 'Some customers leave; brand down', effects: { customersPct: -6, brand: -3 }, outcome: 'The bot keeps saying "Great question!". Fewer people are asking.' },
       { label: 'Bring humans back', hint: 'Costs cash; brand recovers a little', effects: { setAutomation: { support: 0.25 }, cash: -5000, brand: 1 }, outcome: 'Real humans answer the phones. A customer cries with relief.' },
+      { label: 'Add a "talk to a human" button', hint: 'Costs a little; the bot stays, brand dips', effects: { cash: -1500, brand: -1 }, outcome: 'The button works. It routes to the founder\'s phone. The founder has opinions about this.' },
     ],
   },
   {
@@ -503,6 +507,7 @@ const list = [
     choices: [
       { label: 'Ride it out', hint: 'Brand down', effects: { brand: -4 }, outcome: 'It will blow over. It does not blow over quickly.' },
       { label: 'Switch vendors now', hint: 'Every Grokk product needs a migration', effects: { migrateOff: 'grokk', brand: 1 }, outcome: 'Migration tickets appear. Engineers sigh.' },
+      { label: 'Issue a careful statement', hint: 'Costs a little; brand dips', effects: { cash: -1000, brand: -1 }, outcome: 'Legal reviews the statement. Then legal reviews the review. It says "we take this seriously" twice.' },
     ],
   },
   {
@@ -661,7 +666,7 @@ const list = [
     ],
   },
   {
-    id: 'incident_postmortem', kind: 'cyber', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    id: 'incident_postmortem', kind: 'cyber', weight: 0, cooldownWeeks: 0, random: false, subject: null, emergency: false,
     when: () => true,
     title: 'The attack is over',
     text: 'Everything is locked down again. The whiteboard still says "WHO CLICKED IT" in three colors. How much of this do you want to understand?',
@@ -702,7 +707,7 @@ const list = [
 
   // Era arrivals (raised by the calendar when an era begins)
   {
-    id: 'era_chatgbt', kind: 'era', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    id: 'era_chatgbt', kind: 'era', weight: 0, cooldownWeeks: 0, random: false, subject: null, noExpire: true,
     when: () => true,
     title: 'The ChatGBT moment',
     text: 'A chatbot is on the evening news. Your customers want to know your AI strategy. So does your mom. {incumbent} has a banner that says AI in a font normally used for funerals.',
@@ -713,7 +718,7 @@ const list = [
     ],
   },
   {
-    id: 'era_agents', kind: 'era', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    id: 'era_agents', kind: 'era', weight: 0, cooldownWeeks: 0, random: false, subject: null, noExpire: true,
     when: () => true,
     title: 'The agents are here',
     text: 'The models stopped suggesting and started doing. {incumbent} announced an agent that replaces a whole team. The team found out from the press release.',
@@ -724,7 +729,7 @@ const list = [
     ],
   },
   {
-    id: 'era_consolidation', kind: 'era', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    id: 'era_consolidation', kind: 'era', weight: 0, cooldownWeeks: 0, random: false, subject: null, noExpire: true,
     when: () => true,
     title: 'Consolidation',
     text: 'Everyone is buying everyone. Two of your vendors merged, a third is "exploring strategic options", and regulators have discovered AI. There is a hearing. It is on TV.',
@@ -735,7 +740,7 @@ const list = [
     ],
   },
   {
-    id: 'era_plateau', kind: 'era', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    id: 'era_plateau', kind: 'era', weight: 0, cooldownWeeks: 0, random: false, subject: null, noExpire: true,
     when: () => true,
     title: 'The Plateau',
     text: 'Every company has the same agents now. {incumbent} runs its whole support desk with three people and a very tired dashboard. Customers have started asking a new question: "Who actually made this?"',
@@ -916,7 +921,7 @@ const list = [
     ],
   },
   {
-    id: 'mission_test_support', kind: 'leadership', weight: 2, cooldownWeeks: 104, random: true, subject: null, eras: ['agents', 'consolidation', 'plateau'],
+    id: 'mission_test_support', kind: 'leadership', weight: 2, cooldownWeeks: 104, random: true, subject: null, eras: ['agents', 'consolidation', 'plateau'], noExpire: true,
     when: (s) => !!s.purpose && s.staff.some((p) => p.role === 'support'),
     stage: { prop: 'printout', anchor: 'wall' },
     title: 'Humans on the phones?',
@@ -927,7 +932,7 @@ const list = [
     ],
   },
   {
-    id: 'mission_test_demo', kind: 'market', weight: 2, cooldownWeeks: 78, random: true, subject: 'randomProduct', eras: ['agents', 'consolidation', 'plateau'],
+    id: 'mission_test_demo', kind: 'market', weight: 2, cooldownWeeks: 78, random: true, subject: 'randomProduct', eras: ['agents', 'consolidation', 'plateau'], noExpire: true,
     when: (s) => !!s.purpose,
     title: 'Ship it for the demo?',
     text: 'There is a big conference next week. The new {product} feature is half finished. Marketing has already made the slide.',
