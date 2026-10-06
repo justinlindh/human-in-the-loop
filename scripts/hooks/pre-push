@@ -4,8 +4,8 @@
 #   never reach main. Put them on a new branch and open a new PR instead.
 # - runs scripts/check-commits.sh over the commits the push adds beyond origin/main, so a commit that
 #   isn't `type(scope): summary` (a wip: commit) or carries attribution never reaches a PR.
-# - runs `npm run test:push` (the tests related to the changed JS, scripts/test-push.sh; GitHub's
-#   required test check runs the full suite) and refuses the push when it fails. Where package.json
+# - runs `npm run test:push` (the tests related to the changed JS, scripts/test-push.sh; the full
+#   suite runs at release) and refuses the push when it fails. Where package.json
 #   has no test:push it runs `npm run test:fast`. The run is cached per tree (scripts/test-cache.sh),
 #   so a tree that already passed costs well under a second. It tests the checkout as it is,
 #   uncommitted changes included. Skipped in CI, for a push that only touches the pr-media branch
