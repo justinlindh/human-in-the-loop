@@ -17,9 +17,11 @@ describe.each(FUNDING_IDS)('pre-internet opening with %s funding', (funding) => 
 
 describe('pre-internet handoff through the dot-com chapter', () => {
   it.each(['balanced', 'sensible'])('%s reaches Web 2.0 between 1 and 15 points less often than a dot-com founding', (bot) => {
+    // Pooled over 600 seeds, since one 200-seed set swings this shortfall too widely to pin it.
+    const SEEDS = 600;
     let survivors = 0;
     let dotcomSurvivors = 0;
-    for (let seed = 1; seed <= 200; seed++) {
+    for (let seed = 1; seed <= SEEDS; seed++) {
       const run = runBot(bot, seed, B.preinternet.weeks + B.dotcom.weeks + 1, { founding: { startEra: 'preinternet' } });
       const dotcom = runBot(bot, seed, B.dotcom.weeks + 1, { founding: { startEra: 'dotcom' } });
       assertFinite(run.state);
@@ -28,8 +30,8 @@ describe('pre-internet handoff through the dot-com chapter', () => {
       if (dotcom.eras.web2 && !dotcom.state.gameOver) dotcomSurvivors++;
     }
     // A larger payroll makes the inherited dot-com chapter harder without making it a dead end.
-    const shortfall = dotcomSurvivors - survivors;
-    expect(shortfall).toBeGreaterThanOrEqual(2);
-    expect(shortfall).toBeLessThanOrEqual(30);
-  }, 300000);
+    const points = ((dotcomSurvivors - survivors) / SEEDS) * 100;
+    expect(points).toBeGreaterThanOrEqual(1);
+    expect(points).toBeLessThanOrEqual(15);
+  }, 900000);
 });
