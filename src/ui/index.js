@@ -13,6 +13,7 @@ import { PANELS } from './panels/index.js';
 import { forgetOverseers } from './panels/automation.js';
 import { createPopups, launchToastCarded } from './popups.js';
 import { splitUnlocks, pipToast } from './unlockPips.js';
+import { bringAsk } from './askPresent.js';
 import { createSpacing } from './spacing.js';
 import { progressBar, goalsDoneText } from './goalProgress.js';
 import { createGrowth, growthToast } from './growth.js';
@@ -523,12 +524,8 @@ export function createUI({ root, getState, dispatch, controls }) {
           break;
         }
         case 'chat': chat.add(e, e.week ?? state.week); break;
-        // The attention queue opened a letter or a Yak prompt: bring it to the player, since it holds the
-        // other asks back until it is answered or expires.
         case 'askPresented': {
-          if (!pacingOn('askQueue')) break;
-          if (e.kind === 'letter') menu.open('mail', { mailId: e.mailId ?? state.mail?.[0]?.id });
-          else if (e.kind === 'prompt') chat.revealPrompt(e.promptId ?? e.chatId);
+          bringAsk(e, state, { openMail: (arg) => menu.open('mail', arg), revealPrompt: (id) => chat.revealPrompt(id) });
           break;
         }
         case 'say': callGrid.say(e, state); break;
