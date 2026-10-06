@@ -117,12 +117,14 @@ export function createSettings({ layer, controls, sfx, getState = null, toast = 
   function offlineRow(offline, row) {
     const note = h('div.small.muted', { text: '' });
     const btn = h('button.btn.small', { onclick: () => { sfx('click'); offline.start(); } }, 'Download');
-    const mb = (n) => `${Math.max(1, Math.round(n / 1e6))} MB`;
+    const mb = (n) => (n < 1e6 ? `${Math.max(1, Math.round(n / 1e3))} KB` : `${Math.round(n / 1e6)} MB`);
     offlineUnsub?.();
     offlineUnsub = offline.subscribe((s) => {
       const pct = s.total ? Math.min(100, Math.floor((s.done / s.total) * 100)) : 0;
       const size = s.total ? ` (${mb(s.total)})` : '';
-      if (s.state === 'downloading') { btn.style.display = 'none'; setText(note, `Downloading: ${pct}% of ${mb(s.total)}`); }
+      if (s.state === 'downloading') { btn.style.display = 'none'; setText(note, `Downloading: ${pct}% of ${mb(s.needBytes || s.total)}`); }
+      // The data saver held an update back: the player decides.
+      else if (s.state === 'ready' && s.updatePending) { btn.style.display = ''; setText(btn, `Update (${mb(s.needBytes)})`); setText(note, 'Ready to play offline. A new version is available.'); }
       else if (s.state === 'ready') { btn.style.display = 'none'; setText(note, 'Ready to play offline.'); }
       else if (s.state === 'paused' || s.state === 'error') { btn.style.display = ''; setText(btn, 'Retry'); setText(note, s.error); }
       else { btn.style.display = ''; setText(btn, `Download${size}`); setText(note, ''); }

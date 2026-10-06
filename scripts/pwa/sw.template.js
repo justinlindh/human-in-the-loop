@@ -1,19 +1,27 @@
 // Service worker for the installed game. scripts/vite-pwa.mjs fills in the placeholders at build time and
 // writes the result to the build's root as sw.js.
+//
 // The worker does nothing until the page has downloaded a whole build into an offline set (a cache named
 // hitl-set-<build id>, filled by src/dev/pwa.js and marked complete by a last entry). Before that every
 // request goes to the network exactly as without a worker. Once a complete set exists:
-//   - the newest complete set serves everything it holds, pages included, so the game starts without a
-//     network, and a release whose download is still going (or was cut off) has no marker yet, so the
-//     previous complete set keeps serving: the player never sees a half-updated game;
-//   - anything the sets lack goes to the network.
-// Which worker is live does not matter for what is served, so a new build takes over the moment its set is
-// complete, at the next page load; a page already running keeps the files it has. The page asks for the
-// sets older than its own build to be deleted once it is running (prune).
+//   - the ACTIVE set serves everything it holds, pages included, so the game starts without a network.
+//     The first complete set becomes active by itself; a later one becomes active only when the page asks
+//     (the player chose "Restart now"), so a release never takes over silently and a download that is
+//     still going (no marker yet) is never served;
+//   - anything the set lacks goes to the network.
+// A release that cannot start leaves a way out that does not depend on the page: the worker counts the
+// launches of the active set that never reported healthy (the page reports once it has booted). A set
+// whose previous launch did not confirm is suspect, and while it is suspect a launch with a network
+// fetches the page from the network first, so a fixed release can replace a broken one; offline, the
+// cached release is all there is.
 const ID = '__VERSION__';
 const BASE = '__BASE__';
 const PREFIX = 'hitl-set-';
-const MARK = new URL(`${BASE}__complete`, self.location.origin).href;
+const META = 'hitl-meta';
+const ORIGIN = self.location.origin;
+const MARK = new URL(`${BASE}__complete`, ORIGIN).href;
+const ACTIVE = new URL(`${BASE}__active`, ORIGIN).href;
+const NET_WAIT_MS = 5000;
 
 // The complete sets, newest first. A set counts only with its marker, which the page writes last.
 async function completeSets() {
@@ -29,13 +37,30 @@ async function completeSets() {
   return out.sort((a, b) => b.at - a.at);
 }
 
-// undefined until the first look; [] means no complete set, and the worker steps aside.
-let sets;
+async function readActive() {
+  try { return await (await (await caches.open(META)).match(ACTIVE)).json(); } catch { return null; }
+}
+async function writeActive(a) {
+  await (await caches.open(META)).put(ACTIVE, new Response(JSON.stringify(a), { headers: { 'Content-Type': 'application/json' } }));
+}
+
+// The sets in the order they answer: the active one first, then the rest newest first. The first complete
+// set ever downloaded becomes active here.
+let state; // { list, active } once looked at; undefined while looking
 let looking = null;
 function look() {
-  // Until the new look finishes, a request waits for it rather than using the last answer.
-  sets = undefined;
-  looking = completeSets().then((s) => { sets = s; return s; }, () => { sets = []; return sets; });
+  state = undefined;
+  looking = (async () => {
+    const list = await completeSets();
+    let active = await readActive();
+    if (list.length && !list.some((s) => s.id === active?.id)) {
+      const s = list[0];
+      active = { id: s.id, version: s.version, launches: 0, healthy: false };
+      await writeActive(active);
+    }
+    state = { list, active: list.length ? active : null };
+    return state;
+  })().catch(() => { state = { list: [], active: null }; return state; });
   return looking;
 }
 look();
@@ -51,20 +76,25 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('message', (event) => {
-  const type = event.data?.type;
-  if (type === 'skip-waiting') self.skipWaiting();
-  if (type === 'version') event.source?.postMessage({ type: 'version', id: ID });
-  // The page finished a set: look again.
-  if (type === 'refresh') {
-    event.waitUntil(look().then((s) => event.source?.postMessage({ type: 'refreshed', sets: s.map((x) => x.id) })));
-  }
-  // The page is running build <version>: delete the sets older than that build's, if it has a complete one.
-  if (type === 'prune') {
+  const msg = event.data || {};
+  if (msg.type === 'skip-waiting') self.skipWaiting();
+  if (msg.type === 'version') event.source?.postMessage({ type: 'version', id: ID });
+  // The page finished a set.
+  if (msg.type === 'refresh') event.waitUntil(look().then((s) => event.source?.postMessage({ type: 'refreshed', sets: s.list.map((x) => x.id) })));
+  // The player chose a set (a complete one) to run from the next page load.
+  if (msg.type === 'activate') {
     event.waitUntil((async () => {
-      const list = await completeSets();
-      const mine = list.find((s) => s.version === event.data.version);
-      if (mine) for (const o of list) if (o.at < mine.at) await caches.delete(o.name);
-      await look();
+      const s = await look();
+      const set = s.list.find((x) => x.id === msg.id);
+      if (set) { await writeActive({ id: set.id, version: set.version, launches: 0, healthy: false }); await look(); }
+      event.source?.postMessage({ type: 'activated', id: msg.id, ok: !!set });
+    })());
+  }
+  // The page booted: the active set (if it is this build) is healthy.
+  if (msg.type === 'healthy') {
+    event.waitUntil((async () => {
+      const a = await readActive();
+      if (a && a.version === msg.version && !a.healthy) { await writeActive({ ...a, healthy: true, launches: 0 }); await look(); }
     })());
   }
 });
@@ -87,11 +117,32 @@ async function fromRange(request, hit) {
   });
 }
 
+async function fromNetwork(request) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), NET_WAIT_MS);
+  try {
+    const res = await fetch(request, { signal: ctl.signal });
+    return res.ok ? res : null;
+  } catch { return null; } finally { clearTimeout(timer); }
+}
+
 async function serve(request) {
-  const list = sets ?? (await looking);
+  const { list, active } = state ?? (await looking);
+  const navigating = request.mode === 'navigate';
   // A page is the build's index whatever its query (?seed=, ?mock=).
-  const key = request.mode === 'navigate' ? `${self.location.origin}${BASE}index.html` : request.url;
-  for (const s of list) {
+  const key = navigating ? `${ORIGIN}${BASE}index.html` : request.url;
+  if (navigating && active && !active.healthy) {
+    // Another launch of a set whose last launch never reported healthy: look for a fix on the network first.
+    const launched = active.launches > 0;
+    active.launches += 1;
+    await writeActive({ ...active });
+    if (launched) {
+      const fresh = await fromNetwork(request);
+      if (fresh) return fresh;
+    }
+  }
+  const ordered = [...list.filter((s) => s.id === active?.id), ...list.filter((s) => s.id !== active?.id)];
+  for (const s of ordered) {
     const hit = await (await caches.open(s.name)).match(key);
     if (hit) return request.headers.has('range') ? fromRange(request, hit) : hit;
   }
@@ -102,12 +153,12 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin || !url.pathname.startsWith(BASE)) return;
+  if (url.origin !== ORIGIN || !url.pathname.startsWith(BASE)) return;
   const path = url.pathname.slice(BASE.length);
   if (path === 'sw.js' || path === 'pwa-assets.json') return;
   // The page's own downloads of a new build must reach the network, not the old build's copy.
   if (request.headers.has('x-hitl-download')) return;
   // Known to hold no complete set: leave the request to the browser.
-  if (sets && sets.length === 0) return;
+  if (state && state.list.length === 0) return;
   event.respondWith(serve(request));
 });

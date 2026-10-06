@@ -3,8 +3,8 @@
 // build. Build only; the dev server serves no worker.
 //   dist/manifest.webmanifest  name, icons, colours and standalone display, scoped to the build's base
 //   dist/sw.js                 the worker, with this build's id
-//   dist/pwa-assets.json       { id, version, bytes, files: [{ p, s }] }: every file of the build with its size,
-//                              which the page downloads into the offline set (src/dev/pwa.js)
+//   dist/pwa-assets.json       { id, version, bytes, files: [{ p, s, h }] }: every file of the build with its size
+//                              and content hash, which the page downloads into the offline set (src/dev/pwa.js)
 import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -69,11 +69,16 @@ export function pwa({ version = 'dev' } = {}) {
           { src: `${base}pwa/icon-maskable-512.png`, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       }, null, 2)}\n`);
-      const files = walk(outDir, outDir).filter((f) => !SKIP.test(f)).map((p) => ({ p, s: statSync(join(outDir, p)).size }));
+      // Every file with its size and a hash of its content: an update downloads only the files whose hash
+      // changed and copies the rest from the build it replaces.
+      const files = walk(outDir, outDir).filter((f) => !SKIP.test(f)).map((p) => {
+        const bytes = readFileSync(join(outDir, p));
+        return { p, s: bytes.length, h: createHash('sha1').update(bytes).digest('hex').slice(0, 16) };
+      });
       // The build's own version when the release sets one, plus a hash of its files, so two different
       // builds never share an id (and so never share a set).
       const hash = createHash('sha1');
-      for (const f of files) hash.update(`${f.p}:${f.s}\n`);
+      for (const f of files) hash.update(`${f.p}:${f.h}\n`);
       const id = `${version}-${hash.digest('hex').slice(0, 8)}`;
       const template = readFileSync(join(root, 'scripts/pwa/sw.template.js'), 'utf8');
       writeFileSync(join(outDir, 'sw.js'), template

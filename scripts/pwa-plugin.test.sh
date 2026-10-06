@@ -27,7 +27,12 @@ for base in / /sub/; do
     if (!paths.some((f) => f.startsWith("models/")) || !paths.some((f) => /^audio\/music\/.*\.ogg$/.test(f)) || !paths.some((f) => /^audio\/music\/.*\.m4a$/.test(f))) bad.push("list lacks models or both sound formats");
     if (paths.includes("sw.js") || paths.includes("pwa-assets.json") || paths.some((f) => f.endsWith(".md"))) bad.push("list holds the worker, itself or notes");
     if (!assets.files.every((f) => fs.existsSync(out + "/" + f.p) && fs.statSync(out + "/" + f.p).size === f.s)) bad.push("list sizes do not match the files");
-    if (assets.bytes !== assets.files.reduce((n, f) => n + f.s, 0)) bad.push("total bytes");
+    const crypto = require("crypto");
+    const sha = (f) => crypto.createHash("sha1").update(fs.readFileSync(out + "/" + f.p)).digest("hex").slice(0, 16);
+    if (!assets.files.every((f) => f.h === sha(f))) bad.push("a file hash is not its content hash");
+    const idHash = crypto.createHash("sha1"); for (const f of assets.files) idHash.update(f.p + ":" + f.h + "\n");
+    if (assets.id !== "v9.9.9-" + idHash.digest("hex").slice(0, 8)) bad.push("the build id does not follow the file hashes");
+    if (assets.bytes !==assets.files.reduce((n, f) => n + f.s, 0)) bad.push("total bytes");
     if (!html.includes("href=\"" + base + "manifest.webmanifest\"") || !html.includes("theme-color")) bad.push("index.html tags");
     if (bad.length) { console.log(bad.join("; ")); process.exit(1); }
   ' "$out" "$base" || fail "base $base: generated files are wrong"
