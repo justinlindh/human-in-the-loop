@@ -21,5 +21,25 @@ export const LOAD_PIN = (name, dir = PIN_DIR) => `(async () => {
   for (let i = 0; i < 12 && window.__HITL.clock.busy; i++) dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
 })()`;
 
+// Page JS for a pin's source game: plays it with the balanced bot until the next week would raise an event
+// matching `match` (a JS predicate on e), checked on a copy of the state so the game stops the week before.
+// Everyone is staged in the office each week, before the look-ahead, so the live week plays out as the copy did.
+export const BEFORE_EVENT = (match, weeks = 1000) => `(async () => {
+  const sim = await import('/src/sim/index.js');
+  const b = await import('/src/sim/bots.js');
+  const s = window.__HITL.state;
+  const match = ${match};
+  let found = false;
+  for (let i = 0; i < ${weeks} && !s.gameOver; i++) {
+    b.botDecide('balanced', s);
+    b.botTurn('balanced', s);
+    s.lockdown = null; s.workPolicy = 'office'; for (const p of s.staff) { p.remote = false; p.call = null; }
+    const ahead = structuredClone(s);
+    if ((sim.tick(ahead) ?? []).some((e) => match(e, ahead))) { found = true; break; }
+    sim.tick(s);
+  }
+  if (!found) console.error('trailer: the seeded game never reached its event');
+})()`;
+
 // Page JS: hands the live state to the capture index, for pin.mjs to store.
 export const DUMP_STATE = `(window.__captureMarks ??= []).push({ t: 0, label: 'state ' + JSON.stringify(window.__HITL.state) })`;

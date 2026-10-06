@@ -8,6 +8,7 @@ import { liveProducts } from './projects.js';
 import { decisionVars, fillText } from './events.js';
 import { grantBlocker } from './props.js';
 import { askQueueOn, queueTemplateLetter } from './asks.js';
+import { expiresByWeek } from './prompts.js';
 import { AMBIENT, MAIL_TEMPLATES, EVENT_MAIL, REPLY_ALL, typoName } from '../data/mail.js';
 import { EVENTS } from '../data/events.js';
 import { MODELS } from '../data/models.js';
@@ -110,7 +111,7 @@ function addMail(ctx, m) {
     important: m.important ?? importantFor(m.category, options),
     threadId: m.threadId ?? id, inReplyTo: m.inReplyTo ?? null,
     read: null,
-    expiresWeek: options.length ? state.week + (m.expiryWeeks ?? B.mail.expiryWeeks) : null,
+    expiresWeek: options.length ? state.week + (m.expiryWeeks ?? B.mail.expiryWeeks) : null, shownWeek: null,
     options, resolved: null, archived: false,
     subjectId: m.subjectId ?? null,
   };
@@ -327,7 +328,7 @@ export function mailSystem(outer) {
   const ctx = side(outer, 1);
   const { state } = ctx;
   state.mail ??= [];
-  for (const m of state.mail) if (openChoice(m) && state.week >= m.expiresWeek) resolve(ctx, m, null);
+  for (const m of state.mail) if (openChoice(m) && expiresByWeek(m) && state.week >= m.expiresWeek) resolve(ctx, m, null);
   for (const m of state.mail.filter((x) => openChoice(x) && !TEMPLATES[x.kind] && EVENTS[x.kind]?.choices)) {
     const subjectId = state.flags.mailCtx?.[m.id]?.subjectId ?? null;
     EVENTS[m.kind].choices.forEach((c, i) => { const why = eventChoiceBlocker(state, c, subjectId); m.options[i].available = !why; m.options[i].reason = why; });
@@ -376,8 +377,18 @@ registerAction('readMail', (ctx, { mailId }) => {
   const mail = findMail(ctx.state, mailId);
   if (!mail) return { ok: false, reason: 'No such mail' };
   mail.read ??= ctx.state.week;
+  mail.shownWeek ??= ctx.state.week;
   return { ok: true };
 });
+
+// expireOpen for a letter: the presentation clock closes a shown letter with its ignore outcome.
+export function expireLetter(outer, mailId) {
+  const mail = findMail(outer.state, mailId);
+  if (!mail || !mail.options.length) return { ok: false, reason: 'No such letter' };
+  if (mail.resolved) return { ok: false, reason: 'Already answered' };
+  resolve(side(outer, 1000 + Number(mail.id.slice(1)) * 7 + 6), mail, null);
+  return { ok: true };
+}
 
 registerAction('answerMail', (outer, { mailId, choice }) => {
   const { state } = outer;
