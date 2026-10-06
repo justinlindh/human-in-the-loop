@@ -31,8 +31,13 @@ afterEach(() => { Object.assign(B.pacing, keep); });
 describe('issue #1646: the ask queue', () => {
   it('every pacing switch is on, with the attention clock in real seconds', () => {
     for (const k of ['askQueue', 'askExpiry', 'shownExpiry', 'askRealTime', 'momentCap', 'askRates', 'letterMail', 'quietEvents', 'quietToasts', 'oneLaunchCard', 'unlockPips', 'advisorGlow', 'quietYak', 'mailArchive', 'deskBubbles']) expect(B.pacing[k], k).toBe(true);
-    expect(B.attention).toEqual({ gap: 90, quiet: 45, expiry: 180, momentWindow: 300, momentCap: 25, watchWindow: 600, watchStretch: 180, yakGap: 20,
-      botGapWeeks: 11, botExpiryWeeks: 22, staleWeeks: 52, queueCap: 3, openExpiry: 120 });
+    expect(B.attention).toEqual({ gap: 90, gapFast: 150, launchGap: 90, launchGapFast: 150, quiet: 45, expiry: 180, momentWindow: 300, momentCap: 25,
+      watchWindow: 600, watchStretch: 180, yakGap: 20, botGapWeeks: 11, botExpiryWeeks: 22, staleWeeks: 52, queueCap: 3, openExpiry: 120 });
+  });
+
+  it('above 1x, asks and launch cards wait longer than at 1x', () => {
+    expect(B.attention.gapFast).toBeGreaterThan(B.attention.gap);
+    expect(B.attention.launchGapFast).toBeGreaterThan(B.attention.launchGap);
   });
 
   it('off: a decision opens as it always has and the queue stays empty', () => {
