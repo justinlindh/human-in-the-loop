@@ -40,9 +40,9 @@ function enqueue(ctx, { kind, priority, ref, defaultChoice }) {
   };
   state.asks.push(ask);
   ctx.emit({ type: 'askQueued', askId: ask.id, kind, priority });
-  // A full queue lets its least pressing, oldest ask go to its default at once.
+  // With expiry on, a full queue lets its least pressing, oldest ask go to its default at once.
   const waiting = state.asks.filter((a) => a.priority !== 'emergency');
-  if (waiting.length > B.attention.queueCap) {
+  if (B.pacing.askExpiry && waiting.length > B.attention.queueCap) {
     const out = waiting.sort((a, b) => RANK[b.priority] - RANK[a.priority] || a.week - b.week || seqOf(a) - seqOf(b))[0];
     expire(ctx, out);
   }
@@ -136,6 +136,7 @@ function expire(ctx, ask) {
 
 registerAction('expireAsk', (ctx, { askId } = {}) => {
   const { state } = ctx;
+  if (!B.pacing.askExpiry) return { ok: false, reason: 'Expiry is off' };
   const ask = (state.asks ?? []).find((a) => a.id === askId);
   if (!ask) return { ok: false, reason: 'No such ask' };
   if (ask.priority === 'emergency') return { ok: false, reason: 'Emergencies never expire' };

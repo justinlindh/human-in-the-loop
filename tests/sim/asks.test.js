@@ -82,8 +82,17 @@ describe('issue #1646: the ask queue', () => {
     expect(s.mail[0].kind).toBe('vendor_new_version');
   });
 
+  it('with askExpiry off, expireAsk refuses and the queue has no cap', () => {
+    B.pacing.askQueue = true;
+    const s = company();
+    for (const id of ['acquisition_offer', 'vc_offer', 'remote_debate', 'pivot_pitch', 'hackathon_week']) raise(s, id);
+    expect(s.asks).toHaveLength(5);
+    expectFail(expect, dispatch, s, { type: 'expireAsk', askId: s.asks[0].id }, 'Expiry is off');
+  });
+
   it('expireAsk applies the default and posts one Yak line; an emergency never expires', () => {
     B.pacing.askQueue = true;
+    B.pacing.askExpiry = true;
     const s = company();
     raise(s, 'senior_grumble', s.staff[1].id);
     raise(s, 'agent_db_wipe');
@@ -131,8 +140,9 @@ describe('issue #1646: the ask queue', () => {
     expect(missing).toEqual([]);
   });
 
-  it('presents by priority, then age, and a fourth waiting ask sends the least pressing, oldest one to its default', () => {
+  it('presents by priority, then age, and with expiry on a fourth waiting ask sends the least pressing, oldest one to its default', () => {
     B.pacing.askQueue = true;
+    B.pacing.askExpiry = true;
     const s = company();
     fire(s, 'pet_request');
     raise(s, 'acquisition_offer');
