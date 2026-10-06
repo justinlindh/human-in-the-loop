@@ -6,6 +6,8 @@ covers: scripts/trailer/build.js scripts/trailer/assertions.js scripts/trailer/r
 ---
 Builds the trailer from captures, cards and the game's music. See `docs/trailer/README.md`.
 
+`--trailer <name>` picks which trailer to build: `main` (the default, `scripts/trailer/config.js` and `manifest.js`, output `shots/trailer`) or `era` (`scripts/reels/era-trailer/config.js` and `manifest.js`, output `shots/era-trailer`). An unknown name, or a trailer whose two files are missing, exits 1 before anything runs. `--out` still overrides the output directory. The `vo/` tools (`table.mjs`, `screen.py`) read the main config only.
+
 Deferred scenes remain capturable through `DEFERRED_CAPTURES` in the config and are excluded from the cut.
 
 The launch capture selects a seed that reaches a first-version hit on the Office Floor. Both Yak shots use seed 2 with the balanced bot and validate the pre-outage setup. The reaction capture records per-frame camera telemetry for `scripts/reels/camstats.mjs`.
