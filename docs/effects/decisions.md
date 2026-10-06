@@ -1377,6 +1377,15 @@ misc · raised by a rule · cooldown 156 weeks
 | Master a CD release | cash -$4,000; next batch capacity +25%, charged per copy |
 | Keep the disks | keep disks; no cost |
 
+## Interview flagged for review `ai_interview_watch`
+
+misc · raised by a rule
+
+| Choice | Effects |
+|---|---|
+| Hire [name] | hire the candidate at the usual fee; if it was an AI, 8 to 12 weeks later it leaves with its credentials: brand -1, cash -the lesser of $20,000 and 25% of cash |
+| Reject | the candidate leaves the pool; an AI caught: brand +2, team meaning +1; a person turned away: brand -1 |
+
 ## The interview is still going `ai_interview_loop`
 
 misc · raised by a rule

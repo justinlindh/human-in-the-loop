@@ -248,6 +248,12 @@ export const B = {
   aiInterviews: {
     enabled: false, feeMult: 0.5, refreshWeeks: 2, extraCandidates: 1, spread: 15, gamerChance: 0.2, polish: 20, revealWeeks: 4,
     brandPerHire: -0.5, calibrateMeaning: -2, stageChance: 0.15, loopChance: 0.02, chatterChance: 0.08,
+    // Spot the AI: the watched candidate is an AI this often; an AI shows a third tell and a decoy this often.
+    watchAiChance: 0.5, thirdTellChance: 0.3, aiDecoyChance: 0.5,
+    catchBrand: 2, catchMeaning: 1, wrongRejectBrand: -1,
+    // A hired AI walks out with its credentials this many weeks later, costing brand and the smaller of
+    // exposeCash or exposeCashShare of cash in hand.
+    exposeWeeks: [8, 12], exposeCash: 20000, exposeCashShare: 0.25, exposeBrand: -1,
   },
   chatPromptsEnabled: true, chatPromptsOpen: 1, chatPromptGapWeeks: 1, chatPromptExpiryWeeks: 3, chatPromptsKept: 4, chatPromptChance: 0.6, chatPromptFromWeek: 6,
   prompts: {

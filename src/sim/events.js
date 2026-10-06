@@ -4,7 +4,7 @@ import { exitMrr } from './endgame.js';
 import { chance, pick, weighted } from './rng.js';
 import { registerAction, registerSystem, decisionGateOpen } from './registry.js';
 import { newId } from './util.js';
-import { mentorOf } from './staff.js';
+import { mentorOf, hireProblem } from './staff.js';
 import { liveProducts } from './projects.js';
 import { totalMrr } from './products.js';
 import { agentSpend, rivalMergePrice, moonshotWeekly } from './economy.js';
@@ -53,7 +53,7 @@ export function decisionVars(state, rng, subjectId) {
 
 // Resolves the text placeholders for an event against a subject (staff or product id).
 export function fillText(state, rng, text, subjectId, vars = null) {
-  const person = state.staff.find((p) => p.id === subjectId);
+  const person = state.staff.find((p) => p.id === subjectId) ?? state.candidates?.find((c) => c.id === subjectId);
   const product = state.products.find((p) => p.id === subjectId);
   const v = vars ?? decisionVars(state, rng, subjectId);
   return periodText(state, text)
@@ -84,6 +84,10 @@ function choiceBlocker(state, c, subjectId) {
     const reason = preinternetChoiceReason(state, c.effects.preinternet, subjectId);
     if (reason) return reason;
   }
+  if (c.effects?.aiInterview === 'hire') {
+    const reason = hireProblem(state, subjectId);
+    if (reason) return reason;
+  }
   if (c.requires && !checkCondition(state, c.requires, subjectId)) return requireReason(state, c.requires);
   return grantBlocker(state, c);
 }
@@ -100,8 +104,9 @@ export function lastPauseWeek(state) {
 const IMMEDIATE_KINDS = new Set(['incident', 'cyber']);
 
 // Opens a decision popup for a choice event. If one is already pending it returns false, or with
-// { queue: true } schedules this one to be raised as soon as the popup is clear.
-export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } = {}) {
+// { queue: true } schedules this one to be raised as soon as the popup is clear. { asked: true } is a
+// card the player opened, which skips the gap after the last decision; `vars` replaces the card's usual vars.
+export function raiseDecision(ctx, eventId, subjectId = null, { queue = false, asked = false, vars: own = null } = {}) {
   const { state } = ctx;
   const ev = EVENTS[eventId];
   if (!ev || !ev.choices) return false;
@@ -113,7 +118,7 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
     return false;
   }
   // Decisions that are not emergencies wait for a breather after the last one.
-  const spaced = !IMMEDIATE_KINDS.has(ev.kind);
+  const spaced = !IMMEDIATE_KINDS.has(ev.kind) && !asked;
   const last = lastPauseWeek(state);
   if (spaced && last !== undefined && state.week - last < B.decisionGapWeeks) {
     if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: last + B.decisionGapWeeks, kind: 'event', payload: { eventId, subjectId } });
@@ -140,7 +145,7 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
   if (state.flags.deskWait) delete state.flags.deskWait[waitKey];
   if (spaced) state.flags.lastDecisionWeek = state.week;
   if (ev.marks) state.flags[ev.marks] = state.week;
-  const vars = decisionVars(state, ctx.rng, subjectId);
+  const vars = own ?? decisionVars(state, ctx.rng, subjectId);
   // A postmortem carries the incident it is about, taken from the queue of those waiting.
   const waiting = state.flags.postmortemQueue ?? [];
   const at = waiting.findIndex((x) => x.eventId === eventId);
