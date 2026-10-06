@@ -442,9 +442,21 @@ describe('audio director', () => {
     });
 
     it('stays on the era bed with no radio state, an unknown station, or a station with no delivered beds', () => {
-      const d = createDirector({ seed: 3, beds });
-      run(d, state(), 0);
-      for (const [i, s] of [state(), radio('nope'), radio('polka'), radio('lofi', false)].entries()) expect(music(run(d, s, 5 + i))).toEqual([]);
+      const had = ASSETS.music.radio_polka;
+      delete ASSETS.music.radio_polka;
+      try {
+        const d = createDirector({ seed: 3, beds });
+        run(d, state(), 0);
+        for (const [i, s] of [state(), radio('nope'), radio('polka'), radio('lofi', false)].entries()) expect(music(run(d, s, 5 + i))).toEqual([]);
+      } finally { ASSETS.music.radio_polka = had; }
+    });
+
+    it('ships three beds for each of the six stations, every one a delivered file', () => {
+      for (const id of ['lofi', 'synth88', 'polka', 'bossa', 'elevator', 'funk']) {
+        const beds = ASSETS.music[`radio_${id}`]?.beds ?? [];
+        expect(beds.map((b) => b.id), id).toEqual(['a', 'b', 'c']);
+        for (const b of beds) expect(b.stems.full.file, id).toBe(`music/radio_${id}/${b.id}_full.ogg`);
+      }
     });
 
     it('rotates a station beds as a playlist and does not cheer for a station change', () => {
