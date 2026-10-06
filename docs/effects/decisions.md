@@ -1376,3 +1376,23 @@ misc · raised by a rule · cooldown 156 weeks
 |---|---|
 | Master a CD release | cash -$4,000; next batch capacity +25%, charged per copy |
 | Keep the disks | keep disks; no cost |
+
+## Empty shelves `pre_first_order`
+
+misc · raised by a rule · cooldown 156 weeks · about one of your live products
+
+| Choice | Effects |
+|---|---|
+| Order 100 copies | keep disks; no cost |
+| Order 500 copies | keep disks; no cost |
+| Hold off | keep disks; no cost |
+
+## Sold out `pre_sold_out`
+
+misc · raised by a rule · cooldown 156 weeks · about one of your live products
+
+| Choice | Effects |
+|---|---|
+| Order 100 copies | keep disks; no cost |
+| Order 500 copies | keep disks; no cost |
+| Hold off | keep disks; no cost |
