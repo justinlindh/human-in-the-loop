@@ -138,13 +138,19 @@ async function play({ bot: startBot, seed, weeks, where, then, within, branch, s
 }
 
 if (!isMainThread) {
-  play(workerData).then((r) => parentPort.postMessage(r), (err) => parentPort.postMessage({ hits: [], everTrue: [], error: err.message }));
+  // A scan plays with the event index's pacing switches (play.js), so its decisions open on the tick that
+  // raises them, as in the index, and the states it finds play on the same way.
+  import(pathToFileURL(join(ROOT, 'scripts/events/play.js')).href)
+    .then(({ withIndexPacing = (fn) => fn() }) => withIndexPacing(() => play(workerData))).then((r) => parentPort.postMessage(r), (err) => parentPort.postMessage({ hits: [], everTrue: [], error: err.message }));
 }
+
+// play.js holds the pacing pin the runs play under, so a cached answer is keyed by it too.
+const pinText = () => { try { return readFileSync(join(ROOT, 'scripts/events/play.js'), 'utf8'); } catch { return ''; } };
 
 // Matches for a query, from the cache and then from playing more runs. Returns { rows, played, cached,
 // error? } with rows in seed, bot order. `onProgress(done, total)` is called as runs finish.
 export async function scan(hash, { id = null, where, then = '', within = 52, branch = '', rank = '', setup = '', before = '', botJs = '', extra = '', turnWhile = '', filter = {}, seeds, bots, weeks = 1040, limit = 5, perRun = 1, jobs, onProgress }) {
-  const key = createHash('sha256').update(JSON.stringify([id, where, then, within, branch, setup, before, botJs, extra, turnWhile, filter, weeks, perRun, readFileSync(fileURLToPath(import.meta.url), 'utf8')])).digest('hex').slice(0, 16);
+  const key = createHash('sha256').update(JSON.stringify([id, where, then, within, branch, setup, before, botJs, extra, turnWhile, filter, weeks, perRun, readFileSync(fileURLToPath(import.meta.url), 'utf8'), pinText()])).digest('hex').slice(0, 16);
   const dir = join(indexDir(hash), 'scan');
   mkdirSync(join(dir, 'snapshots'), { recursive: true });
   const file = join(dir, `${key}.json`);
