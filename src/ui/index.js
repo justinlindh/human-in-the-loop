@@ -12,6 +12,7 @@ import { createMenu, MENU } from './menu.js';
 import { PANELS } from './panels/index.js';
 import { forgetOverseers } from './panels/automation.js';
 import { createPopups, launchToastCarded } from './popups.js';
+import { splitUnlocks, pipToast } from './unlockPips.js';
 import { createSpacing } from './spacing.js';
 import { progressBar, goalsDoneText } from './goalProgress.js';
 import { createGrowth, growthToast } from './growth.js';
@@ -233,12 +234,19 @@ export function createUI({ root, getState, dispatch, controls }) {
       toasts.push(`${unlockInfo(key).title}. It's in Policies.`, 'good', { action: () => menu.open('policies') });
     }
     keys = keys.filter((k) => !quiet.includes(k));
-    const items = keys.map((key) => {
+    let items = keys.map((key) => {
       const host = hostOf(key);
       if (host && menu.current !== host) { newMenus.add(host); menu.setNew(host, true); }
       const label = host ? (MENU.find((m) => m.id === host)?.label ?? host) : null;
       return { key, menuId: host, menuLabel: label };
     });
+    // Under unlockPips only a whole new system (a menu appearing, Meaning) gets a card without an era;
+    // the rest wait behind the menu's New pip and one toast.
+    const split = splitUnlocks(items, era);
+    const pipped = pipToast(split.pip, (k) => unlockInfo(k).title);
+    if (pipped) toasts.push(pipped.text, 'good', { action: pipped.menuId ? () => menu.open(pipped.menuId) : undefined });
+    items = split.card;
+    keys = keys.filter((k) => items.some((it) => it.key === k));
     // Meaning always gets its own reveal card, after the era card when they arrive together.
     const revealMeaning = keys.includes('meaning') || (era?.eraId === 'chatgbt' && !SIM_HAS_MEANING_UNLOCK);
     if (era) {

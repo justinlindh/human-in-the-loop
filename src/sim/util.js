@@ -2,6 +2,9 @@ import { B } from './balance.js';
 
 export const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
+// A toast's bubble text: 32 characters at most, cut with '...' when longer.
+export const shortText = (s) => (s.length <= 32 ? s : `${s.slice(0, 29).trimEnd()}...`);
+
 export const sum = (arr, fn = (x) => x) => arr.reduce((acc, x) => acc + fn(x), 0);
 
 export const avg = (arr, fn = (x) => x) => (arr.length ? sum(arr, fn) / arr.length : 0);
