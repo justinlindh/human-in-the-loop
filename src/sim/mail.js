@@ -114,6 +114,7 @@ function addMail(ctx, m) {
     subjectId: m.subjectId ?? null,
   };
   state.mail.unshift(mail);
+  if (!mail.inReplyTo) state.flags.mailLastWeek = state.week;
   if (m.mc) (state.flags.mailCtx ??= {})[id] = m.mc;
   ctx.emit({ type: 'mail', mailId: id, week: state.week });
   prune(state);
@@ -147,6 +148,7 @@ function ambient(ctx) {
   const made = compose(ctx, t, mc);
   if (!made) return;
   addMail(ctx, { kind: t.id, category: t.category, ...made });
+  ctx.state.flags.flavourLastWeek = ctx.state.week;
 }
 
 function optionsFor(state, t, mc) {
@@ -315,9 +317,11 @@ export function mailSystem(outer) {
   prune(state);
   if (state.week < B.mail.fromWeek) return;
   if (state.flags.replyAll) growReplyAll(ctx);
-  else if (state.week >= (state.flags.replyAllNext ?? 0) && mailSlotFree(state) && chance(ctx.rng, B.mail.replyAllChance)) startReplyAll(ctx);
-  if (chance(ctx.rng, B.mail.ambientChance)) ambient(ctx);
-  if (mailSlotFree(state) && chance(ctx.rng, B.mail.actionChance)) actionable(ctx);
+  // Unasked mail waits out a quiet spell after the last one, so it never drips.
+  const quiet = () => state.week - (state.flags.mailLastWeek ?? -Infinity) >= B.mail.gapWeeks;
+  if (!state.flags.replyAll && quiet() && state.week >= (state.flags.replyAllNext ?? 0) && mailSlotFree(state) && chance(ctx.rng, B.mail.replyAllChance)) startReplyAll(ctx);
+  if (quiet() && mailSlotFree(state) && chance(ctx.rng, B.mail.actionChance)) actionable(ctx);
+  if (quiet() && state.week - (state.flags.flavourLastWeek ?? -Infinity) >= B.mail.flavourGapWeeks && chance(ctx.rng, B.mail.ambientChance)) ambient(ctx);
 }
 
 registerSystem('mail', mailSystem, 92);

@@ -34,10 +34,11 @@ function runWeeks(s, n) {
   return events;
 }
 const mailOf = (s, kind) => s.mail.find((m) => m.kind === kind);
-// Opens one actionable template mail of this kind by forcing the roll.
+// Opens one actionable template mail of this kind by forcing the roll, past the quiet spell after the last mail.
 function openTemplate(s, kind) {
   const keep = { amb: B.mail.ambientChance, act: B.mail.actionChance, ra: B.mail.replyAllChance };
   Object.assign(B.mail, { ambientChance: 0, actionChance: 1, replyAllChance: 0 });
+  delete s.flags.mailLastWeek;
   try {
     for (const t of MAIL_TEMPLATES) s.flags[`mcd_${t.id}`] = t.id === kind ? 0 : 1e9;
     weekOf(s);
@@ -290,5 +291,28 @@ describe('issue #17: the inbox', () => {
     delete s.mail;
     saveGame(s, storage);
     expect(loadGame(storage).state.mail).toEqual([]);
+  });
+});
+
+describe('issue #1636: mail is rare and never a drip', () => {
+  // New mail nobody asked for: replies to the player's own answers and storm replies are left out.
+  const arrivals = (s, events) => events.filter((e) => e.type === 'mail').map((e) => s.mail.find((m) => m.id === e.mailId))
+    .filter((m) => m && !m.inReplyTo);
+  function forced(s, weeks, rolls) {
+    const keep = { amb: B.mail.ambientChance, act: B.mail.actionChance };
+    Object.assign(B.mail, rolls);
+    try { return arrivals(s, runWeeks(s, weeks)); } finally { Object.assign(B.mail, { ambientChance: keep.amb, actionChance: keep.act }); }
+  }
+
+  it('after any new mail the inbox stays quiet for gapWeeks, even with every roll forced', () => {
+    const got = forced(company(), 80, { ambientChance: 1, actionChance: 1 });
+    expect(got.length).toBeGreaterThan(5);
+    for (let i = 1; i < got.length; i++) expect(got[i].week - got[i - 1].week).toBeGreaterThanOrEqual(B.mail.gapWeeks);
+  });
+
+  it('flavour mail, which asks nothing, is at least flavourGapWeeks apart', () => {
+    const got = forced(company(), 120, { ambientChance: 1, actionChance: 0 }).filter((m) => AMBIENT.some((t) => t.id === m.kind));
+    expect(got.length).toBeGreaterThan(2);
+    for (let i = 1; i < got.length; i++) expect(got[i].week - got[i - 1].week).toBeGreaterThanOrEqual(B.mail.flavourGapWeeks);
   });
 });
