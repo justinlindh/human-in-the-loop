@@ -28,7 +28,13 @@ export function dockTop(live, now) {
   for (const t of live) if (rank(t) >= rank(top)) top = t;
   return top;
 }
-export function createToasts(root, { canShow = () => true } = {}) {
+// Under quietToasts the stack is slower: game-started toasts appear at least this far apart, and news about
+// the same subject folds into the one already waiting or just shown.
+const QUIET_GAP_MS = 30000;
+// An info or good toast still waiting after this long is no longer news and is dropped.
+const QUIET_STALE_MS = 30000;
+const QUIET_QUEUE = 5;
+export function createToasts(root, { canShow = () => true, quiet = () => false } = {}) {
   const el = h('div.toasts', { 'aria-live': 'polite' });
   root.append(el);
   // A toast raised just after the player's own tap or key press answers them (a failed action's
@@ -122,7 +128,7 @@ export function createToasts(root, { canShow = () => true } = {}) {
 
   function refreshMore() {
     const n = held.length;
-    moreChip.style.display = n && !dock ? '' : 'none';
+    moreChip.style.display = n && !dock && !quiet() ? '' : 'none';
     moreChip.textContent = `+${n} more this week`;
     renderDock();
   }
@@ -151,15 +157,50 @@ export function createToasts(root, { canShow = () => true } = {}) {
   // most important first (clickable before plain, good before info), so when the weekly budget
   // runs out it is the minor ones that fold into the "+N more" chip.
   let queue = [], nextAt = 0, qTimer = 0, qSeq = 0;
-  const weight = (q) => (q.opts.always ? 4 : 0) + (q.opts.action ? 2 : 0) + (toneOf(q.tone) === 'good' ? 1 : 0);
+  const isWarn = (q) => q.tone === 'warn' || q.tone === 'bad';
+  // Under quietToasts a warning ranks above everything, so it is shown first and is the last to go.
+  const weight = (q) => (quiet() && isWarn(q) ? 8 : 0) + (q.opts.always ? 4 : 0) + (q.opts.action ? 2 : 0) + (toneOf(q.tone) === 'good' ? 1 : 0);
+  // News about a subject that is already waiting, or was shown a moment ago, replaces that toast's words
+  // instead of adding another.
+  function mergeBySubject(text, tone, opts) {
+    const sub = opts.subject;
+    const t0 = toneOf(tone);
+    const q = queue.find((x) => x.opts.subject === sub);
+    if (q) { q.text = text; if (TONE_RANK[t0] > TONE_RANK[toneOf(q.tone)]) q.tone = t0; q.opts = { ...q.opts, ...opts }; return true; }
+    const t = live.find((x) => x.subject === sub && pnow() - x.at < QUIET_GAP_MS);
+    if (!t) return false;
+    t.text = text;
+    if (TONE_RANK[t0] > TONE_RANK[t.tone]) t.tone = t0;
+    const tt = t.node?.querySelector('.tt');
+    if (tt) tt.textContent = text;
+    if (dock?.firstChild) dock.firstChild.dataset.key = '';
+    arm(t, LIFE[t.tone]);
+    renderDock();
+    return true;
+  }
   function push(text, tone = 'info', opts = {}) {
     const t0 = toneOf(tone);
-    if (!opts.player && playerCaused() && !canShow()) opts = { ...opts, player: true, timed: true };
+    if (!opts.player && playerCaused() && (!canShow() || quiet())) opts = { ...opts, player: true, timed: true };
     if (opts.player && !canShow()) { shownThisWeek++; show(text, tone, opts); return; }
-    if (canShow() && (t0 === 'warn' || t0 === 'bad')) { shownThisWeek++; show(text, tone, opts); return; }
-    queue.push({ text, tone, opts, n: ++qSeq });
-    if (queue.length > 16) { queue.sort((x, y) => weight(y) - weight(x) || x.n - y.n); hold(queue.pop()); }
+    const q = quiet();
+    // The player's own action is answered at once, whatever the spacing.
+    if (q && opts.player) { shownThisWeek++; show(text, tone, opts); return; }
+    if (q && opts.subject && !opts.player && mergeBySubject(text, tone, opts)) return;
+    if (canShow() && (t0 === 'bad' || (t0 === 'warn' && !q))) { shownThisWeek++; showTagged(text, tone, opts); return; }
+    queue.push({ text, tone, opts, n: ++qSeq, at: pnow() });
+    if (queue.length > (q ? QUIET_QUEUE : 16)) {
+      queue.sort((x, y) => weight(y) - weight(x) || x.n - y.n);
+      if (!q) hold(queue.pop());
+      else { const i = queue.findLastIndex((x) => !isWarn(x)); if (i >= 0) queue.splice(i, 1); }
+    }
     if (!qTimer) qTimer = pAfter(nextAt - pnow(), drain);
+  }
+  // Shows a toast and remembers its subject, so later news about the same subject can fold into it.
+  function showTagged(text, tone, opts) {
+    const before = live.length;
+    show(text, tone, opts);
+    const t = live[live.length - 1];
+    if (opts.subject && t && t.text === text && (live.length > before || t.at === pnow())) t.subject = opts.subject;
   }
   function hold(q) {
     if (q.text !== lastText) held.push(q);
@@ -168,12 +209,13 @@ export function createToasts(root, { canShow = () => true } = {}) {
   }
   function drain() {
     qTimer = 0;
+    if (quiet()) queue = queue.filter((x) => isWarn(x) || pnow() - x.at <= QUIET_STALE_MS);
     if (!queue.length) return;
     if (!canShow()) { qTimer = pAfter(GAP_MS, drain); return; }
     queue.sort((x, y) => weight(y) - weight(x) || x.n - y.n);
     const q = queue.shift();
-    if (!['warn', 'bad'].includes(q.tone) && !q.opts.always && !q.released && shownThisWeek >= WEEK_BUDGET) hold(q);
-    else { shownThisWeek++; show(q.text, q.tone, q.opts); nextAt = pnow() + GAP_MS; }
+    if (!quiet() && !['warn', 'bad'].includes(q.tone) && !q.opts.always && !q.released && shownThisWeek >= WEEK_BUDGET) hold(q);
+    else { shownThisWeek++; showTagged(q.text, q.tone, q.opts); nextAt = pnow() + (quiet() ? QUIET_GAP_MS : GAP_MS); }
     if (queue.length) qTimer = pAfter(nextAt - pnow(), drain);
   }
 

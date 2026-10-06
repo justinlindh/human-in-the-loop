@@ -21,6 +21,8 @@ import { roleName } from './content.js';
 import { icon } from './icons.js';
 import { createSettings } from './settings.js';
 import { watchFullscreen } from './fullscreen.js';
+import { pacingOn } from './pacing.js';
+import { createAmbient, incidentDetail } from './ambient.js';
 import { createTitle } from './title.js';
 import { erasPreview } from './eraPreview.js';
 import { createGameOver } from './gameover.js';
@@ -73,7 +75,10 @@ export function createUI({ root, getState, dispatch, controls }) {
   // Cards, launch results, the tutorial and the game's toasts wait while a spotlight holds the clock,
   // and while a scene the player let go by opening a menu still plays behind that menu.
   const holdForMoment = () => spotlightActive() || (playerMenuOpen() && !!(controls.renderer ?? controls.getRenderer?.())?.spotlight?.());
-  const toasts = createToasts(layer, { canShow: () => !holdForMoment() });
+  // Under quietToasts nothing is toasted over an open decision; it waits (a warning stays queued first).
+  let decisionOpen = () => false;
+  const toasts = createToasts(layer, { canShow: () => !holdForMoment() && !(pacingOn('quietToasts') && decisionOpen()), quiet: () => pacingOn('quietToasts') });
+  const ambient = createAmbient();
   let lastSpeed = 1;
 
   const ui = {
@@ -279,6 +284,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   // The tray's outage card brings a hidden incident card back, else opens Ops.
   ui.showIncident = () => { if (incidentCard.hidden) incidentCard.reveal(); else menu.open('ops'); };
   const popups = createPopups({ layer, ctx, toasts, resolutionFor: (d, s) => resolutions.forDecision(d, s), restoreDock: () => toasts.setDock(menu.current ? menu.dockEl : null) });
+  decisionOpen = () => popups.open;
   const gameover = createGameOver({ layer, controls, sfx, act });
   const tutorial = createTutorial({ layer, sfx, controls, ui });
   const settings = createSettings({ layer, controls, sfx, getState, toast: (text, tone) => toasts.push(text, tone) });
@@ -496,20 +502,26 @@ export function createUI({ root, getState, dispatch, controls }) {
           // A new market trend's toast also says what it does to products.
           const trend = e.trendId ?? (/^Trend: /.test(e.text) ? state.market?.trend : null);
           const text = trend && trend !== 'steady' ? `${e.text} ${trendSummary(trend)}` : e.text;
-          toasts.push(text, e.tone, who ? { action: () => menu.open('staff', { staffId: who.id, pickPath: true }) } : undefined);
+          // Status news (progress, time off, moods, trends) goes to the world under quietToasts; a toast without
+          // a topic, or news nothing draws, stays a toast.
+          if (pacingOn('quietToasts') && e.topic && ambient.send(e)) break;
+          const opts = who ? { action: () => menu.open('staff', { staffId: who.id, pickPath: true }) } : {};
+          if (e.subjectId) opts.subject = String(e.subjectId);
+          toasts.push(text, e.tone, opts);
           break;
         }
         case 'chat': chat.add(e, e.week ?? state.week); break;
         case 'say': callGrid.say(e, state); break;
         case 'hire': {
           const p = state.staff.find((s) => s.id === e.staffId);
-          if (p) toasts.push(`${p.name} joined the team!`, 'good');
+          if (p) toasts.push(`${p.name} joined the team!`, 'good', { subject: String(p.id) });
           break;
         }
         case 'incidentResolved': {
           resolutions.add(e);
           // A severe incident's resolution heads the postmortem decision that follows; a minor one gets a toast.
           if (e.severity >= 4) break;
+          if (pacingOn('quietToasts') && ambient.sendDetail(incidentDetail(e))) break;
           toasts.push(`${state.products.find((x) => x.id === e.productId)?.name ?? 'The product'} is back up after ${e.weeks} week${e.weeks === 1 ? '' : 's'}.`, 'good', {
             action: () => {
               let close = null;
@@ -522,6 +534,7 @@ export function createUI({ root, getState, dispatch, controls }) {
         }
         case 'incident': {
           const p = state.products.find((x) => x.id === e.productId);
+          if (pacingOn('quietToasts') && ambient.sendDetail(incidentDetail(e))) break;
           toasts.push(e.caught ? `An overseer caught an incident${p ? ` on ${p.name}` : ''}!` : `Incident${p ? ` on ${p.name}` : ''} (SEV${6 - e.severity})`, e.caught ? 'good' : 'bad');
           break;
         }
