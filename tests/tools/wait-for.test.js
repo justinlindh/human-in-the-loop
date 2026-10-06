@@ -90,7 +90,7 @@ describe('scripts/wait-for.sh', { timeout: 60000 }, () => {
 
   it('merges main into a PR that fell behind with --update, tests, pushes, then waits on the new head', () => {
     advanceMain('c.txt', 'main\n');
-    replies({ ...ready, mergeStateStatus: 'BEHIND' }, green);
+    replies({ ...ready, mergeStateStatus: 'CLEAN' }, green);
     const r = run('7', '--poll', '0', '--update', '--test', 'true');
     expect(r.status).toBe(0);
     expect(git(work, 'log', '-1', '--format=%s')).toMatch(/^Merge/);
@@ -100,7 +100,7 @@ describe('scripts/wait-for.sh', { timeout: 60000 }, () => {
   it('does not push when the tests fail after merging main', () => {
     advanceMain('c.txt', 'main\n');
     const before = git(work, 'rev-parse', 'origin/feature');
-    replies({ ...ready, mergeStateStatus: 'BEHIND' });
+    replies({ ...ready, mergeStateStatus: 'CLEAN' });
     const r = run('7', '--poll', '0', '--update', '--test', 'false');
     expect(r.status).toBe(5);
     git(work, 'fetch', '-q');
@@ -118,7 +118,7 @@ describe('scripts/wait-for.sh', { timeout: 60000 }, () => {
   it('leaves a PR that is only behind main alone: green, and main is not merged in', () => {
     advanceMain('c.txt', 'main\n');
     const before = git(work, 'rev-parse', 'HEAD');
-    replies({ ...ready, mergeStateStatus: 'BEHIND' });
+    replies({ ...ready, mergeStateStatus: 'CLEAN' });
     const r = run('7', '--poll', '0');
     expect(r.status).toBe(0);
     expect(r.stdout).toContain('behind main (merges as it is)');
@@ -132,8 +132,9 @@ describe('scripts/wait-for.sh', { timeout: 60000 }, () => {
   });
 
   it('refuses to update from a worktree that is not on the PR branch', () => {
+    advanceMain('c.txt', 'main\n');
     git(work, 'switch', '-q', 'main');
-    replies({ ...ready, headRefName: 'feature', headRefOid: 'deadbeef', mergeStateStatus: 'BEHIND' });
+    replies({ ...ready, headRefName: 'feature', headRefOid: git(work, 'rev-parse', 'origin/feature'), mergeStateStatus: 'CLEAN' });
     const r = run('7', '--poll', '0', '--update', '--test', 'true');
     expect(r.status).toBe(7);
   });
@@ -187,7 +188,7 @@ describe('scripts/wait-for.sh', { timeout: 60000 }, () => {
     process.env.GIT_WORK_TREE = root;
     try {
       advanceMain('c.txt', 'main\n');
-      replies({ ...ready, mergeStateStatus: 'BEHIND' }, green);
+      replies({ ...ready, mergeStateStatus: 'CLEAN' }, green);
       const r = run('7', '--poll', '0', '--update', '--test', 'true');
       expect(r.status).toBe(0);
       expect(git(work, 'rev-parse', 'origin/feature')).toBe(git(work, 'rev-parse', 'HEAD'));

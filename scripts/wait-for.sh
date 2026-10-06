@@ -186,8 +186,19 @@ pushed_ahead() { # <branch> <head>: prints the pushed sha and returns 0 while Gi
 # the branch lacks (fetches main first).
 can_update_behind() { # <branch> <head>
   [ "$(git branch --show-current 2>/dev/null)" = "$1" ] && [ "$(git rev-parse HEAD 2>/dev/null)" = "$2" ] && [ -z "$(git status --porcelain --untracked-files=no 2>/dev/null)" ] || return 1
-  git fetch -q origin main 2>/dev/null || return 1
-  ! git merge-base --is-ancestor origin/main HEAD 2>/dev/null
+  behind_main "$1" "$2"
+}
+
+# True when origin/main has commits the PR's head lacks. GitHub reports BEHIND only while main requires
+# up-to-date branches, so this asks git. Fetches main at most once a minute; an unknown head is not behind.
+main_fetched=0
+behind_main() { # <branch> <head>
+  local now; now=$(date +%s)
+  if [ $(( now - main_fetched )) -ge 60 ]; then git fetch -q origin main 2>/dev/null && main_fetched=$now; fi
+  git rev-parse -q --verify origin/main >/dev/null 2>&1 || return 1
+  git cat-file -e "$2^{commit}" 2>/dev/null || git fetch -q origin "$1" 2>/dev/null
+  git cat-file -e "$2^{commit}" 2>/dev/null || return 1
+  ! git merge-base --is-ancestor origin/main "$2" 2>/dev/null
 }
 
 last="" seen_head="" head_since=0 warned=0 required="" lag_said="" snap_head="" fix_tried=0
@@ -241,13 +252,14 @@ while :; do
 
   # A conflict with main is tried at once (it fails fast and names the PR for a person). A PR that is only
   # behind main is left alone, since main no longer requires an up-to-date branch, unless --update asks.
-  if [ "$mergeable" = CONFLICTING ] || { [ "$update" = always ] && [ "$merge_state" = BEHIND ]; }; then
+  behind=0; behind_main "$branch" "$head" && behind=1
+  if [ "$mergeable" = CONFLICTING ] || { [ "$update" = always ] && [ "$behind" = 1 ]; }; then
     confirm || continue
     if [ "$update" = never ]; then say "#$pr is ${merge_state,,} (mergeable: ${mergeable,,})"; exit 3; fi
     update_branch "$branch" "$head"
     sleep "$poll"; continue
   fi
-  behind_note=""; [ "$merge_state" = BEHIND ] && behind_note="behind main (merges as it is)"
+  behind_note=""; [ "$behind" = 1 ] && behind_note="behind main (merges as it is)"
 
   if [ -n "$failing" ]; then
     confirm || continue

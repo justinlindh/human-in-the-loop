@@ -78,12 +78,13 @@ git clone -q "$tmp/origin.git" "$tmp/work" 2>/dev/null
 cat >"$tmp/bin/gh" <<F
 #!/usr/bin/env bash
 case "\$*" in
-  "pr view"*) if [ -f "$tmp/looked" ]; then s=MERGED; m=CLEAN; else s=OPEN; m=BEHIND; : >"$tmp/looked"; fi
-    jq -n --arg s "\$s" --arg m "\$m" --arg h "\$(git -C "$tmp/work" rev-parse topic)" '{state: \$s, headRefOid: \$h, headRefName: "topic", baseRefName: "main", mergeStateStatus: \$m, mergeable: "MERGEABLE", labels: [], statusCheckRollup: [{__typename: "StatusContext", context: "review", state: "SUCCESS"}, {__typename: "StatusContext", context: "local-ci", state: "SUCCESS"}]}' ;;
+  "pr view"*) if [ -f "$tmp/looked" ]; then s=MERGED; else s=OPEN; : >"$tmp/looked"; fi
+    jq -n --arg s "\$s" --arg h "\$(git -C "$tmp/work" rev-parse topic)" '{state: \$s, headRefOid: \$h, headRefName: "topic", baseRefName: "main", mergeStateStatus: "CLEAN", mergeable: "MERGEABLE", labels: [], statusCheckRollup: [{__typename: "StatusContext", context: "review", state: "SUCCESS"}, {__typename: "StatusContext", context: "local-ci", state: "SUCCESS"}]}' ;;
   api*/protection*) exit 1 ;;
   *) exit 1 ;;
 esac
 F
+moves() { ( cd "$tmp/work" && g checkout -q main && g commit -q --allow-empty -m "main moves again" && g push -q origin main && g checkout -q topic ); }
 up() { # <test command>: run wait-for --update in the scratch worktree, the PR (ready: review and local-ci passed) behind main
   rm -f "$tmp/looked"; ( cd "$tmp/work" && PATH="$tmp/bin:$PATH" bash "$HERE/wait-for.sh" 9 --update --poll 0 --timeout 1 --test "$1" >"$tmp/out" 2>&1 ); rc=$?
 }
@@ -91,14 +92,13 @@ before="$(git -C "$tmp/origin.git" rev-parse topic)"
 up 'git checkout -q other'
 [ $rc -eq 7 ] && grep -q 'was on topic when the wait began and is on other now; not pushing' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" = "$before" ] \
   || fail "a worktree switched to another branch during the tests is not pushed: $rc $(cat "$tmp/out")"
-( cd "$tmp/work" && g checkout -q topic )
+( cd "$tmp/work" && g checkout -q topic && g reset -q --hard origin/topic )
 before="$(git -C "$tmp/origin.git" rev-parse topic)"
 up 'true'
 [ $rc -eq 0 ] && grep -q 'pushed' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" != "$before" ] \
   || fail "a worktree still on its branch is updated and pushed: $rc $(cat "$tmp/out")"
 
 # A branch with no upstream (pushed without -u) is still updated, and gets its upstream set.
-moves() { ( cd "$tmp/work" && g checkout -q main && g commit -q --allow-empty -m "main moves again" && g push -q origin main && g checkout -q topic ); }
 moves
 ( cd "$tmp/work" && g branch -q --unset-upstream topic )
 before="$(git -C "$tmp/origin.git" rev-parse topic)"
@@ -119,7 +119,7 @@ rm -f "$tmp/origin.git/hooks/pre-receive"
 # Without --test the merge is gated on the related tests (test:push, niced) where package.json has
 # that script, and on npm test where it does not. A stand-in npm records how it was called.
 printf '#!/usr/bin/env bash\necho "$*" >>"%s"\n' "$tmp/npm-calls" >"$tmp/bin/npm"; chmod +x "$tmp/bin/npm"
-deftest() { rm -f "$tmp/looked" "$tmp/npm-calls"; ( cd "$tmp/work" && PATH="$tmp/bin:$PATH" bash "$HERE/wait-for.sh" 9 --update --poll 0 --timeout 1 >"$tmp/out" 2>&1 ); rc=$?; }
+deftest() { moves; rm -f "$tmp/looked" "$tmp/npm-calls"; ( cd "$tmp/work" && PATH="$tmp/bin:$PATH" bash "$HERE/wait-for.sh" 9 --update --poll 0 --timeout 1 >"$tmp/out" 2>&1 ); rc=$?; }
 echo '{"scripts":{"test:push":"true"}}' >"$tmp/work/package.json"
 deftest
 [ $rc -eq 0 ] && grep -q 'running: nice -n 10 npm run test:push' "$tmp/out" && grep -qx 'run test:push' "$tmp/npm-calls" \
@@ -198,8 +198,8 @@ behind_gh() { # <review state, empty for none>: the PR is BEHIND; once $tmp/merg
   cat >"$tmp/bin/gh" <<F
 #!/usr/bin/env bash
 case "\$*" in
-  "pr view"*) if [ -f "$tmp/merged-after" ] && [ -f "$tmp/looked" ]; then s=MERGED; m=CLEAN; else s=OPEN; m=BEHIND; : >"$tmp/looked"; fi
-    jq -n --arg s "\$s" --arg m "\$m" --arg h "\$(git -C "$tmp/work" rev-parse topic)" --slurpfile r "$tmp/rollup.json" '{state: \$s, headRefOid: \$h, headRefName: "topic", baseRefName: "main", mergeStateStatus: \$m, mergeable: "MERGEABLE", labels: [], statusCheckRollup: \$r[0]} + input' "$tmp/extra.json" ;;
+  "pr view"*) if [ -f "$tmp/merged-after" ] && [ -f "$tmp/looked" ]; then s=MERGED; else s=OPEN; : >"$tmp/looked"; fi
+    jq -n --arg s "\$s" --arg m CLEAN --arg h "\$(git -C "$tmp/work" rev-parse topic)" --slurpfile r "$tmp/rollup.json" '{state: \$s, headRefOid: \$h, headRefName: "topic", baseRefName: "main", mergeStateStatus: \$m, mergeable: "MERGEABLE", labels: [], statusCheckRollup: \$r[0]} + input' "$tmp/extra.json" ;;
   api*/protection*) [ -f "$tmp/required" ] && cat "$tmp/required" || exit 1 ;;
   *) exit 1 ;;
 esac
@@ -208,9 +208,10 @@ F
 qrun() { rm -f "$tmp/looked"; ( cd "$tmp/work" && HITL_WAIT_SNAPSHOT=0 PATH="$tmp/bin:$PATH" bash "$HERE/wait-for.sh" 9 --poll 0 "$@" --test "${QTEST:-true}" >"$tmp/out" 2>&1 ); rc=$?; }
 echo '{}' >"$tmp/extra.json"
 rm -f "$tmp/merged-after"
+# The stand-in gh reports CLEAN, as GitHub does with strict mode off; behind is read from git.
 # A PR that is only behind main (strict mode off) waits for its checks and merges as it is: main is not
 # merged in, nothing is pushed, and the status line says so.
-before="$(git -C "$tmp/origin.git" rev-parse topic)"
+moves; before="$(git -C "$tmp/origin.git" rev-parse topic)"
 behind_gh SUCCESS; : >"$tmp/merged-after"; qrun --merged --timeout 1
 [ $rc -eq 0 ] && grep -q 'behind main (merges as it is)' "$tmp/out" && grep -q 'merged' "$tmp/out" && ! grep -q 'merged origin/main' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" = "$before" ] \
   || fail "a behind PR with passing checks merges without an update: $rc $(cat "$tmp/out")"
@@ -238,7 +239,7 @@ fail_gh() { # <extra jq>: a failing local-ci on the head
   cat >"$tmp/bin/gh" <<F
 #!/usr/bin/env bash
 case "\$*" in
-  "pr view"*) jq -n --arg h "\$(git -C "$tmp/work" rev-parse topic)" '{state: "OPEN", headRefOid: \$h, headRefName: "topic", baseRefName: "main", mergeStateStatus: "BEHIND", mergeable: "MERGEABLE", labels: [], statusCheckRollup: [{__typename: "StatusContext", context: "review", state: "SUCCESS"}, {__typename: "StatusContext", context: "local-ci", state: "FAILURE"}]}' ;;
+  "pr view"*) jq -n --arg h "\$(git -C "$tmp/work" rev-parse topic)" '{state: "OPEN", headRefOid: \$h, headRefName: "topic", baseRefName: "main", mergeStateStatus: "CLEAN", mergeable: "MERGEABLE", labels: [], statusCheckRollup: [{__typename: "StatusContext", context: "review", state: "SUCCESS"}, {__typename: "StatusContext", context: "local-ci", state: "FAILURE"}]}' ;;
   "api"*comments*) echo '[]' ;;
   api*/protection*) exit 1 ;;
   *) exit 1 ;;
