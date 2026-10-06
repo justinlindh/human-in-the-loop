@@ -328,7 +328,8 @@ ChatPrompt = {
   chatId,            // the chatLog message the options hang under
   channel, fromId,   // copied from that message; fromId is a staff id, or null for bots
   week,              // week opened
-  expiresWeek,       // resolves as ignored when state.week reaches it
+  expiresWeek,       // resolves as ignored when state.week reaches it, unless shownWeek is set under B.pacing.shownExpiry
+  shownWeek,         // null until the prompt is on screen (promptShown)
   options: [{ label, hint, available, reason, opens? }],   // 2 or 3; hint states the effects, as decision choices do; opens: optional { panel, arg? } as in Advice.target, the menu ui opens after the answer succeeds, e.g. { panel: 'office', arg: 'desk' } to place a desk
   resolved: null | { choice, week, replyId },       // choice: index, or null when ignored; replyId: the founder's chat id, or null
   stage: null | { prop, anchor, x, y, staffId },   // an event delivered as a prompt keeps its staged prop, resolved as for pendingDecision.stage
@@ -639,7 +640,8 @@ Mail = {
   important,     // legal, investor, anything with a deadline
   threadId, inReplyTo,
   read: null | week,
-  expiresWeek: null | week,   // mail with options resolves as ignored when state.week reaches it
+  expiresWeek: null | week,   // mail with options resolves as ignored when state.week reaches it, unless shownWeek is set under B.pacing.shownExpiry
+  shownWeek: null | week,     // set when readMail first opens it
   options: [{ label, hint, available, reason, opens? }],   // 0 to 3; [] for plain mail; hint states effects, as decision choices do
   resolved: null | { choice, week, replyText },   // choice null when ignored (expired or archived)
   archived,      // bool
@@ -752,8 +754,8 @@ state.asks: [{ id, kind, priority, week, expiresWeek, defaultChoice, ref }]
   // ref is sim-only (event id and subject, or mail template and context); ui and render read the other fields
 ```
 
-- With the switch on, `raiseDecision`, `openEventPrompt` and actionable mail append a candidate to `asks` instead of opening it. Era, period and gate checks still apply, but the sim's week-based spacing and slot limits do not: the attention clock in `src/pacing.js` owns cadence, in real seconds.
-- Order: by priority (emergency, then normal, then low; emergencies are `incident` and `cyber` events plus any event or mail template marked `emergency: true` in its data, which covers the cash-crisis `bridge_loan` and the legal `hearing_summons`; `app_store_rejection` is not one), and oldest first within a priority. Only the presentation layer opens an ask, one at a time.
+- With the switch on, `raiseDecision`, `openEventPrompt`, staff Yak prompts (as low-priority asks) and actionable mail append a candidate to `asks` instead of opening it. Era, period and gate checks still apply, but the sim's week-based spacing and slot limits do not: the attention clock in `src/pacing.js` owns cadence, in real seconds.
+- Order: by priority (emergency, then normal, then low; emergencies are `incident` and `cyber` events unless marked `emergency: false` in their data (the postmortem is not one), plus any event or mail template marked `emergency: true`, which covers the cash-crisis `bridge_loan` and the legal `hearing_summons`; `app_store_rejection` is not one), and oldest first within a priority. Only the presentation layer opens an ask, one at a time.
 - `expiresWeek` is the created week plus `B.attention.staleWeeks` for normal and low asks, and null for emergencies. A candidate past it is dropped silently, with no default applied, when an ask is next presented: it no longer fits the game. Readers of `state.asks` ignore any ask past its `expiresWeek`.
 - Bots present the head after `B.attention.botGapWeeks`, and emergencies at once. With `B.pacing.askExpiry` on, a waiting non-emergency ask expires after `B.attention.botExpiryWeeks`. Balance runs never depend on the wall clock.
 - Saves without `asks` load with `asks: []`.
@@ -762,11 +764,26 @@ state.asks: [{ id, kind, priority, week, expiresWeek, defaultChoice, ref }]
 
 ```js
 { type: 'presentAsk', askId? }   // opens the head ask, or the named one, as pendingDecision, a Yak prompt or a letter; works while paused; refusals: 'No asks waiting' | 'No such ask' | 'Finish the open decision first'
-{ type: 'expireAsk', askId }     // behind B.pacing.askExpiry: applies the ask's default and posts one Yak line saying what was chosen; refusals: 'Expiry is off' | 'No such ask' | 'Emergencies never expire'
+{ type: 'expireAsk', askId }     // behind B.pacing.askExpiry: applies the ask's default and posts one Yak line saying what was chosen; refusals: 'Expiry is off' | 'No such ask' | 'Emergencies never expire' | 'This one needs an answer'
 ```
 
 - The default is the event's own `defaultChoice`, else its entry in `src/data/ask-defaults.js`, else its choice with no effect; every decision that can expire has one. A prompt or letter takes its ignore outcome. The Yak line names what the team picked. Expiring never costs more than answering cautiously.
 - With `B.pacing.askExpiry` on, at most `B.attention.queueCap` non-emergency asks wait. When another arrives, the least pressing, oldest one expires at once and emits `askExpired`. With it off, nothing expires: `expireAsk` refuses with 'Expiry is off', and the queue has no cap.
+- An event marked `noExpire: true` in its data (the era decisions and the mission tests: identity choices the player must make) never expires by `expireAsk`, the cap or the bots' expiry, and does not count toward `queueCap`; it still waits its turn by priority. `expireAsk` refuses it with 'This one needs an answer'.
+
+### Shown prompts and letters
+
+Behind `B.pacing.shownExpiry`. With it off, prompts and letters keep today's week expiry whether shown or not. With it on, a Yak prompt or letter's lifetime runs in game weeks only until the player sees it; once shown, it runs in real seconds: `B.attention.openExpiry` (120) seconds of running play.
+
+```js
+{ type: 'promptShown', promptId }        // ui dispatches when the prompt is on screen; sets the prompt's shownWeek; works while paused; refusals: 'No such prompt'
+{ type: 'expireOpen', kind, id }         // kind: 'prompt' | 'letter'; the presentation clock dispatches after B.attention.openExpiry seconds of running play since it was shown; applies the ignore outcome; refusals: 'Expiry is off' (B.pacing.shownExpiry off) | 'No such prompt' | 'No such letter' | 'Already answered'
+```
+
+- With the switch on, `expiresWeek` applies only while `shownWeek` is null, and an unshown prompt or letter that reaches it resolves as ignored, as today. A shown one never expires by weeks: it closes when answered or through `expireOpen` (or `expireAsk` when it came from the queue).
+- A letter is shown when `readMail` first opens it, which sets its `shownWeek`. A letter the queue presents counts as shown only once ui has opened it with `readMail`.
+- Bots never dispatch `promptShown`, so balance runs keep the week-based expiry.
+- Saves without `shownWeek` load with it null.
 
 ### Events: Attention queue
 
