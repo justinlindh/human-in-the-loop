@@ -84,9 +84,8 @@ case "\$*" in
   *) exit 1 ;;
 esac
 F
-export HITL_MERGE_QUEUE="$tmp/queue"
-up() { # <test command>: run wait-for in the scratch worktree, the PR (ready: review and local-ci passed) behind main
-  rm -f "$tmp/looked"; ( cd "$tmp/work" && PATH="$tmp/bin:$PATH" bash "$HERE/wait-for.sh" 9 --poll 0 --timeout 1 --test "$1" >"$tmp/out" 2>&1 ); rc=$?
+up() { # <test command>: run wait-for --update in the scratch worktree, the PR (ready: review and local-ci passed) behind main
+  rm -f "$tmp/looked"; ( cd "$tmp/work" && PATH="$tmp/bin:$PATH" bash "$HERE/wait-for.sh" 9 --update --poll 0 --timeout 1 --test "$1" >"$tmp/out" 2>&1 ); rc=$?
 }
 before="$(git -C "$tmp/origin.git" rev-parse topic)"
 up 'git checkout -q other'
@@ -120,7 +119,7 @@ rm -f "$tmp/origin.git/hooks/pre-receive"
 # Without --test the merge is gated on the related tests (test:push, niced) where package.json has
 # that script, and on npm test where it does not. A stand-in npm records how it was called.
 printf '#!/usr/bin/env bash\necho "$*" >>"%s"\n' "$tmp/npm-calls" >"$tmp/bin/npm"; chmod +x "$tmp/bin/npm"
-deftest() { rm -f "$tmp/looked" "$tmp/npm-calls"; ( cd "$tmp/work" && PATH="$tmp/bin:$PATH" bash "$HERE/wait-for.sh" 9 --poll 0 --timeout 1 >"$tmp/out" 2>&1 ); rc=$?; }
+deftest() { rm -f "$tmp/looked" "$tmp/npm-calls"; ( cd "$tmp/work" && PATH="$tmp/bin:$PATH" bash "$HERE/wait-for.sh" 9 --update --poll 0 --timeout 1 >"$tmp/out" 2>&1 ); rc=$?; }
 echo '{"scripts":{"test:push":"true"}}' >"$tmp/work/package.json"
 deftest
 [ $rc -eq 0 ] && grep -q 'running: nice -n 10 npm run test:push' "$tmp/out" && grep -qx 'run test:push' "$tmp/npm-calls" \
@@ -191,10 +190,8 @@ cw; [ $rc -eq 2 ] && grep -q 'test=failure' "$tmp/out" && ! grep -q '^run rerun'
 cpr 'test=CANCELLED@'; runs '101=completed'
 cw; [ $rc -eq 2 ] || fail "a cancelled check whose run can't be placed fails: $rc $(cat "$tmp/out")"
 
-# The update queue (q_state in wait-for.sh): a PR that is only behind main merges it in when it is ready
-# (review and local-ci passed) and first in line by the time it became ready; otherwise it waits and says
-# why. An entry is kept on a timeout, and removed on a failure, changes requested or a merge.
-rm -rf "$tmp/queue"; mkdir -p "$tmp/queue"
+# Main does not require an up-to-date branch: a PR that is only behind main merges as it is. Main goes in
+# on a conflict, once on a failure while behind, and always under --update.
 behind_gh() { # <review state, empty for none>: the PR is BEHIND; once $tmp/merged-after exists it is MERGED on the next look
   if [ -z "$1" ]; then echo '[]' >"$tmp/rollup.json"
   else jq -n --arg r "$1" '[{__typename: "StatusContext", context: "review", state: $r}, {__typename: "StatusContext", context: "local-ci", state: "SUCCESS"}]' >"$tmp/rollup.json"; fi
@@ -211,70 +208,54 @@ F
 qrun() { rm -f "$tmp/looked"; ( cd "$tmp/work" && HITL_WAIT_SNAPSHOT=0 PATH="$tmp/bin:$PATH" bash "$HERE/wait-for.sh" 9 --poll 0 "$@" --test "${QTEST:-true}" >"$tmp/out" 2>&1 ); rc=$?; }
 echo '{}' >"$tmp/extra.json"
 rm -f "$tmp/merged-after"
-behind_gh ''; qrun --timeout 0
-[ $rc -eq 124 ] && grep -q 'behind main, not ready yet' "$tmp/out" && ! grep -q 'merged origin/main' "$tmp/out" && [ ! -e "$tmp/queue/9" ] \
-  || fail "a behind PR that is not ready waits and does not queue: $rc $(cat "$tmp/out")"
-echo 'ready_since=1 pr=8' >"$tmp/queue/8"
-behind_gh SUCCESS; qrun --timeout 0
-[ $rc -eq 124 ] && grep -q 'behind main, queued behind #8' "$tmp/out" && ! grep -q 'merged origin/main' "$tmp/out" && [ -f "$tmp/queue/9" ] \
-  || fail "a ready PR behind an earlier one waits for it, and its place survives a timeout: $rc $(cat "$tmp/out")"
-touch -d '1 hour ago' "$tmp/queue/8"; : >"$tmp/merged-after"
-qrun --timeout 1
-[ $rc -eq 0 ] && grep -q 'merged origin/main' "$tmp/out" && grep -q 'pushed' "$tmp/out" && [ ! -e "$tmp/queue/9" ] \
-  || fail "an earlier entry whose watcher is gone does not hold the line, and a merge frees the place: $rc $(cat "$tmp/out")"
-rm -f "$tmp/queue/"* "$tmp/merged-after"; echo 'ready_since=9999999999 pr=10' >"$tmp/queue/10"
-behind_gh SUCCESS; : >"$tmp/merged-after"; qrun --timeout 1
-[ $rc -eq 0 ] && grep -q 'merged origin/main' "$tmp/out" && [ -f "$tmp/queue/10" ] \
-  || fail "a PR ahead of a later one merges main first: $rc $(cat "$tmp/out")"
-rm -f "$tmp/queue/"* "$tmp/merged-after"; echo 'ready_since=1 pr=9' >"$tmp/queue/9"
-behind_gh FAILURE; qrun --timeout 0
-[ $rc -eq 2 ] && [ ! -e "$tmp/queue/9" ] || fail "changes requested drops the place: $rc $(cat "$tmp/out")"
-# An entry whose PR is not ready holds the line only for HITL_QUEUE_PENDING seconds.
-rm -f "$tmp/queue/"* "$tmp/merged-after"; echo "ready_since=1 pr=8 state=pending since=$(( $(date +%s) - 60 ))" >"$tmp/queue/8"
-behind_gh SUCCESS; qrun --timeout 0
-[ $rc -eq 124 ] && grep -q 'queued behind #8' "$tmp/out" || fail "an entry pending for a minute still holds the line: $rc $(cat "$tmp/out")"
-echo "ready_since=1 pr=8 state=pending since=$(( $(date +%s) - 3000 ))" >"$tmp/queue/8"; rm -f "$tmp/queue/9"; : >"$tmp/merged-after"
-behind_gh SUCCESS; qrun --timeout 1
-[ $rc -eq 0 ] && grep -q 'merged origin/main' "$tmp/out" || fail "an entry pending past the bound does not hold the line: $rc $(cat "$tmp/out")"
-# A PR held on purpose (draft, awaiting-user, auto-merge off) leaves the queue; one that ends in an error does too.
-rm -f "$tmp/queue/"* "$tmp/merged-after"
-for extra in '{"isDraft": true}' '{"labels": [{"name": "awaiting-user"}]}' '{"autoMergeRequest": null}'; do
-  echo 'ready_since=1 pr=9 state=ready since=1' >"$tmp/queue/9"; echo "$extra" >"$tmp/extra.json"
-  behind_gh SUCCESS; qrun --timeout 0
-  [ $rc -eq 124 ] && [ ! -e "$tmp/queue/9" ] && grep -q 'not ready yet' "$tmp/out" || fail "a PR with $extra leaves the queue and waits: $rc $(cat "$tmp/out")"
-done
+# A PR that is only behind main (strict mode off) waits for its checks and merges as it is: main is not
+# merged in, nothing is pushed, and the status line says so.
+before="$(git -C "$tmp/origin.git" rev-parse topic)"
+behind_gh SUCCESS; : >"$tmp/merged-after"; qrun --merged --timeout 1
+[ $rc -eq 0 ] && grep -q 'behind main (merges as it is)' "$tmp/out" && grep -q 'merged' "$tmp/out" && ! grep -q 'merged origin/main' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" = "$before" ] \
+  || fail "a behind PR with passing checks merges without an update: $rc $(cat "$tmp/out")"
+behind_gh SUCCESS; rm -f "$tmp/merged-after"; qrun --timeout 0
+[ $rc -eq 0 ] && grep -q 'passed' "$tmp/out" && ! grep -q 'merged origin/main' "$tmp/out" || fail "a behind PR with passing checks is green without an update: $rc $(cat "$tmp/out")"
+# --update merges main in whenever the PR is behind.
+moves; before="$(git -C "$tmp/origin.git" rev-parse topic)"
+behind_gh SUCCESS; : >"$tmp/merged-after"; qrun --update --timeout 1
+[ $rc -eq 0 ] && grep -q 'merged origin/main' "$tmp/out" && grep -q 'pushed' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" != "$before" ] \
+  || fail "--update merges main into a behind PR: $rc $(cat "$tmp/out")"
+( cd "$tmp/work" && git reset -q --hard "origin/topic" ); moves
+# A conflict is tried at once and, when main conflicts, exits 4 and names the PR; --no-update reports it (3).
+printf 'topic\n' >"$tmp/work/clash.txt"; ( cd "$tmp/work" && g add clash.txt && g commit -q -m "topic clash" && g push -q origin topic && g checkout -q main && printf 'main\n' >clash.txt && g add clash.txt && g commit -q -m "main clash" && g push -q origin main && g checkout -q topic )
+echo '{"mergeable": "CONFLICTING", "mergeStateStatus": "DIRTY"}' >"$tmp/extra.json"
+behind_gh SUCCESS; rm -f "$tmp/merged-after"; qrun --timeout 0
+[ $rc -eq 4 ] && grep -q 'conflicts' "$tmp/out" || fail "a conflicting PR tries main at once and exits 4: $rc $(cat "$tmp/out")"
+behind_gh SUCCESS; qrun --no-update --timeout 0
+[ $rc -eq 3 ] && ! grep -q 'merged origin/main' "$tmp/out" || fail "--no-update reports a conflicting PR: $rc $(cat "$tmp/out")"
+( cd "$tmp/work" && g status --porcelain | grep -q . && fail "a conflict leaves the worktree clean" ); ( cd "$tmp/work" && g reset -q --hard origin/topic )
 echo '{}' >"$tmp/extra.json"
-# review and local-ci passed but a required GitHub check has not reported: the PR joins as pending, so it
-# cannot hold the line for ever; with that check green it is ready.
-rm -f "$tmp/queue/"*; echo 'ready_since=1 pr=8' >"$tmp/queue/8"; echo '{"required_status_checks": {"contexts": ["local-ci", "test", "review"]}}' >"$tmp/required"
-behind_gh SUCCESS; qrun --timeout 0
-[ $rc -eq 124 ] && grep -q 'state=pending' "$tmp/queue/9" || fail "a PR with a required check not yet reported is pending: $rc $(cat "$tmp/queue/9" 2>/dev/null) $(cat "$tmp/out")"
-rm -f "$tmp/required" "$tmp/queue/9"
-behind_gh SUCCESS; qrun --timeout 0
-grep -q 'state=ready' "$tmp/queue/9" || fail "with nothing waiting or running the PR is ready: $(cat "$tmp/queue/9" 2>/dev/null)"
-# A queue-first label sorts a PR ahead of unlabelled ones; among labelled ones, first ready goes first.
-rm -f "$tmp/queue/"* "$tmp/merged-after"; echo 'ready_since=1 pr=8 state=ready since=1 prio=0' >"$tmp/queue/8"
-echo '{"labels": [{"name": "queue-first"}]}' >"$tmp/extra.json"
-behind_gh SUCCESS; : >"$tmp/merged-after"; qrun --timeout 1
-[ $rc -eq 0 ] && grep -q 'merged origin/main' "$tmp/out" && ! grep -q 'queued behind' "$tmp/out" \
-  || fail "a queue-first PR goes ahead of an earlier unlabelled one: $rc $(cat "$tmp/out")"
-rm -f "$tmp/queue/"* "$tmp/merged-after"; echo '{}' >"$tmp/extra.json"; echo 'ready_since=9999999999 pr=8 state=ready since=1 prio=1' >"$tmp/queue/8"
-behind_gh SUCCESS; qrun --timeout 0
-[ $rc -eq 124 ] && grep -q 'queued behind #8' "$tmp/out" || fail "an unlabelled PR waits for a queue-first one even if that became ready later: $rc $(cat "$tmp/out")"
-echo '{"labels": [{"name": "queue-first"}]}' >"$tmp/extra.json"; rm -f "$tmp/queue/9"
-echo 'ready_since=1 pr=8 state=ready since=1 prio=1' >"$tmp/queue/8"
-behind_gh SUCCESS; qrun --timeout 0
-[ $rc -eq 124 ] && grep -q 'queued behind #8' "$tmp/out" || fail "among queue-first PRs the earlier one goes first: $rc $(cat "$tmp/out")"
-# A label added after joining changes the entry's priority and keeps its place.
-rm -f "$tmp/queue/"*; echo 'ready_since=5 pr=9 state=ready since=5 prio=0' >"$tmp/queue/9"; echo 'ready_since=1 pr=8 state=ready since=1 prio=1' >"$tmp/queue/8"
-behind_gh SUCCESS; qrun --timeout 0
-grep -q 'ready_since=5 ' "$tmp/queue/9" && grep -q 'prio=1' "$tmp/queue/9" || fail "adding queue-first updates the entry and keeps its ready time: $(cat "$tmp/queue/9" 2>/dev/null)"
-echo '{}' >"$tmp/extra.json"
-rm -f "$tmp/queue/"*; behind_gh SUCCESS; QTEST=false qrun --timeout 1
-[ $rc -eq 5 ] && [ ! -e "$tmp/queue/9" ] || fail "failing tests after merging main free the place: $rc $(cat "$tmp/out")"
-rm -f "$tmp/queue/"*; echo 'ready_since=1 pr=8' >"$tmp/queue/8"
-behind_gh SUCCESS; ( cd "$tmp/work" && HITL_WAIT_SNAPSHOT=0 PATH="$tmp/bin:$PATH" bash "$HERE/wait-for.sh" 9 --no-update --poll 0 --timeout 0 >"$tmp/out" 2>&1 ); rc=$?
-[ $rc -eq 3 ] && [ ! -e "$tmp/queue/9" ] || fail "--no-update reports a behind PR and never queues: $rc $(cat "$tmp/out")"
+# A check that fails while the branch is behind main: main goes in once, in case that fixes it; the failure
+# then stands. An up-to-date branch fails at once, and --no-update never merges.
+( cd "$tmp/work" && g fetch -q origin && g reset -q --hard origin/topic && g merge -q --no-edit -X ours origin/main >/dev/null 2>&1; g push -q origin topic ); moves
+fail_gh() { # <extra jq>: a failing local-ci on the head
+  cat >"$tmp/bin/gh" <<F
+#!/usr/bin/env bash
+case "\$*" in
+  "pr view"*) jq -n --arg h "\$(git -C "$tmp/work" rev-parse topic)" '{state: "OPEN", headRefOid: \$h, headRefName: "topic", baseRefName: "main", mergeStateStatus: "BEHIND", mergeable: "MERGEABLE", labels: [], statusCheckRollup: [{__typename: "StatusContext", context: "review", state: "SUCCESS"}, {__typename: "StatusContext", context: "local-ci", state: "FAILURE"}]}' ;;
+  "api"*comments*) echo '[]' ;;
+  api*/protection*) exit 1 ;;
+  *) exit 1 ;;
+esac
+F
+}
+before="$(git -C "$tmp/origin.git" rev-parse topic)"
+fail_gh; qrun --timeout 1
+[ $rc -eq 2 ] && grep -q 'merging it in once' "$tmp/out" && grep -q 'merged origin/main' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" != "$before" ] && [ "$(grep -c 'failing: ' "$tmp/out")" -ge 2 ] \
+  || fail "a failing check on a behind branch merges main once, then stands: $rc $(cat "$tmp/out")"
+fail_gh; qrun --timeout 1
+[ $rc -eq 2 ] && ! grep -q 'merging it in once' "$tmp/out" || fail "a failing check on an up-to-date branch fails at once: $rc $(cat "$tmp/out")"
+moves; before="$(git -C "$tmp/origin.git" rev-parse topic)"
+fail_gh; qrun --no-update --timeout 1
+[ $rc -eq 2 ] && ! grep -q 'merged origin/main' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" = "$before" ] || fail "--no-update never merges main in, even for a failure: $rc $(cat "$tmp/out")"
+behind_gh SUCCESS; : >"$tmp/merged-after"; QTEST=false qrun --update --timeout 1
+[ $rc -eq 5 ] || fail "failing tests after merging main exit 5: $rc $(cat "$tmp/out")"
 
 [ $fails -eq 0 ] && echo "wait-for: all cases pass"
 exit $fails

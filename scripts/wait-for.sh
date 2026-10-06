@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 # Waits on a pull request after a push, from GitHub state only: it never starts local CI (the auto-CI
-# timer does). When the PR falls behind main or conflicts, it merges origin/main into the PR's branch in
-# this worktree (merge, never rebase), runs the tests, pushes, and waits on the new head. Only a ready PR
-# (review and local-ci passed) that is first in line by ready time does that; the others wait their turn
-# (see the update queue below), so a landing PR doesn't make every other PR rerun its checks for nothing.
+# timer does). Main does not require a branch to be up to date, so a PR that is only behind main waits
+# for its checks and merges as it is. It merges origin/main into the PR's branch in this worktree (merge,
+# never rebase), runs the tests, pushes, and waits on the new head in two cases only: the PR conflicts
+# with main, or a check failed while the branch is behind main (once, in case main fixes it). --update
+# merges main in whenever the PR is behind.
 #
-# Usage: scripts/wait-for.sh <pr> [--merged] [--no-update] [--test "<cmd>"] [--poll <s>]
+# Usage: scripts/wait-for.sh <pr> [--merged] [--update | --no-update] [--test "<cmd>"] [--poll <s>]
 #                                  [--pickup <min>] [--timeout <min>]
 #        scripts/wait-for.sh --issue <n> [--poll <s>] [--timeout <min>]
 #   --repo       the PR's or issue's repository (owner/name), for the site repository; run it from a
 #                checkout of that repository
 #   --merged     keep waiting after the checks pass, until the PR merges
-#   --no-update  report a PR that is behind or conflicting instead of merging main into it
+#   --update     merge main into the branch whenever the PR is behind it, not only on a conflict
+#   --no-update  never merge main in: report a conflicting PR (exit 3) and a failing check as they are
 #   --test       the test command gating the push (default: `nice -n 10 npm run test:push`, the tests
 #                related to the branch's changes, where package.json has that script, else npm test;
 #                the PR's required GitHub test check runs the whole suite on the pushed head)
@@ -19,17 +21,18 @@
 #   --issue      wait until an issue closes (or, given a pull request number, until it merges or closes)
 # Green means every status the base branch requires (branch protection, less review) passed and no
 # GitHub check is still running; without access to the protection rules, local-ci stands in.
-# Exit: 0 green (or merged, or the issue closed); 2 a check failed; 3 behind or conflicting with
+# Exit: 0 green (or merged, or the issue closed); 2 a check failed; 3 conflicting with main under
 # --no-update; 4 merging main conflicts; 5 the tests failed after merging main; 6 the PR was closed;
 # 7 this worktree isn't on the PR's branch at its head, or is no longer on the branch the wait started on when a
 #   merge or push is due; 8 pushing the merge of main failed; 124 timed out.
 set -uo pipefail
 
-pr="" issue="" repo="" merged=0 update=1 test_cmd="" poll=60 pickup=15 timeout=240
+pr="" issue="" repo="" merged=0 update=auto test_cmd="" poll=60 pickup=15 timeout=240
 while [ $# -gt 0 ]; do
   case "$1" in
     --merged) merged=1 ;;
-    --no-update) update=0 ;;
+    --update) update=always ;;
+    --no-update) update=never ;;
     --test) test_cmd="$2"; shift ;;
     --poll) poll="$2"; shift ;;
     --pickup) pickup="$2"; shift ;;
@@ -57,60 +60,6 @@ still_on_branch() { # <what>: exits 7 naming both branches when the worktree has
   exit 7
 }
 timed_out() { [ $(( $(date +%s) - start )) -ge $(( timeout * 60 )) ]; }
-
-# The update queue. With main strict, every merge makes every other PR behind, and each one that merges
-# main in reruns its checks for nothing when another PR lands first. So a PR merges main in only when it
-# is ready (review passed and local-ci passed on its head) and first in line by when it became ready;
-# the others wait. An entry is a file per PR in the queue directory, kept alive by the watcher's heartbeat
-# (a timed-out watcher re-armed within the grace keeps its place). It is removed when the PR fails, gets
-# changes requested, goes draft or awaiting-user, loses its auto-merge request, closes or merges, and when
-# the watcher exits for any reason but a timeout, a signal or a green exit without --merged.
-qdir="${HITL_MERGE_QUEUE:-$HOME/.cache/hitl-ci/merge-queue}"
-[ -n "$repo" ] && qdir="$qdir/${repo//\//_}"
-qgrace="${HITL_QUEUE_GRACE:-600}"
-qfile="$qdir/${pr:-0}"
-q_fresh() { [ $(( $(date +%s) - $(stat -c %Y "$1" 2>/dev/null || echo 0) )) -lt "$qgrace" ]; }
-q_since() { sed -n 's/^ready_since=\([0-9][0-9]*\).*/\1/p' "$1" 2>/dev/null; }
-q_get() { sed -n "s/^.*$2=\([a-z0-9]*\).*/\1/p" "$1" 2>/dev/null | head -n 1; } # <file> <key>
-q_write() { # <ready_since> <state> <since>: replaces the entry whole, so a reader never sees it half written
-  local t; mkdir -p "$qdir" && t="$(mktemp "$qdir/.tmp.XXXXXX")" \
-    && printf 'ready_since=%s pr=%s state=%s since=%s prio=%s\n' "$1" "$pr" "$2" "$3" "${qprio:-0}" >"$t" && mv -f "$t" "$qfile"
-}
-# q_state <ready|pending> [join]: records a change of state with its time; with `join`, also enters the
-# queue when not in it. An entry pending (its PR not fully green) longer than HITL_QUEUE_PENDING seconds
-# (default 1200, a CI cycle plus runner queueing) no longer holds the line, and gets its place back when
-# the PR is ready again.
-q_state() {
-  local now cur; now="$(date +%s)"
-  if [ ! -f "$qfile" ]; then
-    [ "${2:-}" = join ] && q_write "$now" "$1" "$now" && say "#$pr is in the update queue ($1)"
-    return 0
-  fi
-  cur="$(q_get "$qfile" state)"
-  if [ "$cur" != "$1" ]; then q_write "$(q_since "$qfile")" "$1" "$now"
-  # A queue-first label added or removed after joining changes the entry's priority, not its place.
-  elif [ "$(q_get "$qfile" prio)" != "${qprio:-0}" ] && [ -n "$(q_get "$qfile" since)" ]; then q_write "$(q_since "$qfile")" "$1" "$(q_get "$qfile" since)"
-  fi
-}
-q_leave() { rm -f "$qfile"; }
-q_beat() { [ -f "$qfile" ] && touch "$qfile"; return 0; }
-q_ahead() { # prints the PR number of a fresh entry ahead of this one; fails when this PR is first (or not queued)
-  [ -f "$qfile" ] || return 1
-  local mine f p t st sn fp; mine="$(q_since "$qfile")"; [ -n "$mine" ] || return 1
-  for f in "$qdir"/*; do
-    [ -f "$f" ] || continue; p="${f##*/}"
-    case "$p" in ''|*[!0-9]*) continue ;; esac
-    [ "$p" = "$pr" ] && continue
-    q_fresh "$f" || continue
-    st="$(q_get "$f" state)"; sn="$(q_get "$f" since)"
-    [ "$st" = pending ] && [ -n "$sn" ] && [ $(( $(date +%s) - sn )) -ge "${HITL_QUEUE_PENDING:-1200}" ] && continue
-    t="$(q_since "$f")"; [ -n "$t" ] || continue
-    # A queue-first entry goes ahead of every other one; within a priority, first ready, then lowest number.
-    fp="$(q_get "$f" prio)"; fp="${fp:-0}"
-    if [ "$fp" -gt "${qprio:-0}" ] || { [ "$fp" -eq "${qprio:-0}" ] && { [ "$t" -lt "$mine" ] || { [ "$t" -eq "$mine" ] && [ "$p" -lt "$pr" ]; }; }; }; then echo "$p"; return 0; fi
-  done
-  return 1
-}
 
 if [ -n "$issue" ]; then
   while :; do
@@ -233,11 +182,15 @@ pushed_ahead() { # <branch> <head>: prints the pushed sha and returns 0 while Gi
   [ -n "$p" ] && [ "$p" != "$2" ] && git merge-base --is-ancestor "$2" "$p" 2>/dev/null && echo "$p"
 }
 
-last="" seen_head="" head_since=0 warned=0 required="" lag_said="" snap_head=""
-# Whatever ends the watcher (a conflict, failing tests, a moved worktree, a failed check) frees its place in
-# the queue, except a timeout, a signal and a green exit without --merged, which keep it for a re-arm.
-q_exit() { local rc=$?; if [ "$rc" != 124 ] && [ "$rc" -le 128 ] && { [ "$rc" != 0 ] || [ "$merged" = 1 ]; }; then q_leave; fi; }
-[ "$update" = 1 ] && trap q_exit EXIT
+# True when this worktree is a clean checkout of the PR's branch at its head and origin/main has commits
+# the branch lacks (fetches main first).
+can_update_behind() { # <branch> <head>
+  [ "$(git branch --show-current 2>/dev/null)" = "$1" ] && [ "$(git rev-parse HEAD 2>/dev/null)" = "$2" ] && [ -z "$(git status --porcelain --untracked-files=no 2>/dev/null)" ] || return 1
+  git fetch -q origin main 2>/dev/null || return 1
+  ! git merge-base --is-ancestor origin/main HEAD 2>/dev/null
+}
+
+last="" seen_head="" head_since=0 warned=0 required="" lag_said="" snap_head="" fix_tried=0
 while :; do
   read_pr || { live=0; sleep "$poll"; continue; }
   live=0
@@ -257,8 +210,8 @@ while :; do
   branch="$(jq -r .headRefName <<<"$json")"
   merge_state="$(jq -r .mergeStateStatus <<<"$json")"
   mergeable="$(jq -r .mergeable <<<"$json")"
-  [ "$state" = MERGED ] && { q_leave; say "#$pr merged"; exit 0; }
-  [ "$state" = CLOSED ] && { q_leave; say "#$pr was closed without merging"; exit 6; }
+  [ "$state" = MERGED ] && { say "#$pr merged"; exit 0; }
+  [ "$state" = CLOSED ] && { say "#$pr was closed without merging"; exit 6; }
   if pushed_ahead "$branch" "$head" >/dev/null; then
     confirm || continue
     # The ref is refetched, since a force push can leave it ahead of what the remote really holds.
@@ -281,46 +234,20 @@ while :; do
   pending="$(jq -r '[.statusCheckRollup[]? | select(.__typename == "CheckRun" and (.status != "COMPLETED")) | .name] | join(" ")' <<<"$json")"
   review="$(jq -r '[.statusCheckRollup[]? | select(.__typename == "StatusContext" and .context == "review") | .state] | first // "NONE"' <<<"$json")"
 
-  # The update queue (see q_state): ready means review and local-ci passed on this head with nothing failing.
-  # A PR that is only pending after its own merge of main keeps its place.
   # Required statuses not yet passing, by name (a status or a check run). A skipped or neutral check
   # run satisfies a required check, as GitHub counts it.
   waiting="$(jq -r --arg req "$required" '($req | split(" ")) as $r | [.statusCheckRollup[]? | {n: (.context // .name), s: ((.state // .conclusion // "") | ascii_upcase)}] as $all
     | [$r[] | . as $name | select([$all[] | select(.n == $name and (.s == "SUCCESS" or .s == "SKIPPED" or .s == "NEUTRAL"))] | length == 0)] | join(" ")' <<<"$json")"
 
-  # A PR held on purpose (draft, awaiting-user, auto-merge off) is never ready and leaves the queue. A PR
-  # joins on review and local-ci passing (that fixes its place), but counts as ready only when every
-  # required status and GitHub check is green; otherwise it is pending, and a PR pending too long stops
-  # holding the line (see q_state).
-  if [ "$update" = 1 ]; then
-    qprio="$(jq -r 'if ([.labels[]?.name] | index("queue-first")) != null then 1 else 0 end' <<<"$json")"
-    on_hold="$(jq -r '(.isDraft == true) or ([.labels[]?.name] | index("awaiting-user") != null) or (has("autoMergeRequest") and .autoMergeRequest == null)' <<<"$json")"
-    if [ "$on_hold" = true ]; then q_leave
-    elif [ "$review" = SUCCESS ] && [ "$local_ci" = SUCCESS ] && [ -z "$failing" ]; then
-      if [ -z "$waiting" ] && [ -z "$pending" ]; then q_state ready join; else q_state pending join; fi
-    else q_state pending; fi
-    case "$review" in FAILURE|ERROR) q_leave ;; esac
-    if [ -n "$failing" ] && tr ' ' '\n' <<<"$failing" | grep -qv '=cancelled$'; then q_leave; fi
-    q_beat
-  fi
-
-  # Behind main or conflicting. A conflict is tried at once (it fails fast and names the PR for a person);
-  # a PR that is only behind merges main in when it is ready and first in line, else it waits (held).
-  held=""
-  if [ "$merge_state" = BEHIND ] || [ "$mergeable" = CONFLICTING ]; then
+  # A conflict with main is tried at once (it fails fast and names the PR for a person). A PR that is only
+  # behind main is left alone, since main no longer requires an up-to-date branch, unless --update asks.
+  if [ "$mergeable" = CONFLICTING ] || { [ "$update" = always ] && [ "$merge_state" = BEHIND ]; }; then
     confirm || continue
-    if [ "$update" = 0 ]; then say "#$pr is ${merge_state,,} (mergeable: ${mergeable,,})"; exit 3; fi
-    ahead=""
-    if [ "$mergeable" != CONFLICTING ]; then
-      if [ ! -f "$qfile" ]; then held="behind main, not ready yet; main goes in when it is ready and first in line"
-      elif ahead="$(q_ahead)"; then held="behind main, queued behind #$ahead"
-      fi
-    fi
-    if [ -z "$held" ]; then
-      q_beat; update_branch "$branch" "$head"; q_beat
-      sleep "$poll"; continue
-    fi
+    if [ "$update" = never ]; then say "#$pr is ${merge_state,,} (mergeable: ${mergeable,,})"; exit 3; fi
+    update_branch "$branch" "$head"
+    sleep "$poll"; continue
   fi
+  behind_note=""; [ "$merge_state" = BEHIND ] && behind_note="behind main (merges as it is)"
 
   if [ -n "$failing" ]; then
     confirm || continue
@@ -331,16 +258,22 @@ while :; do
     fi
     say "#$pr at ${head:0:8}: failing: $failing"
     link="$(local_ci_link)"; [ -n "$link" ] && say "Local CI: $link"
-    q_leave
+    # A failure a merge of main could fix: the branch lacks commits main has. Main goes in once, here.
+    if [ "$update" != never ] && [ "$fix_tried" = 0 ] && can_update_behind "$branch" "$head"; then
+      fix_tried=1
+      say "#$pr is behind main; merging it in once, in case that fixes the failure"
+      update_branch "$branch" "$head"
+      sleep "$poll"; continue
+    fi
     exit 2
   fi
-  now="waiting on: ${waiting:-nothing}, review ${review,,}, running: ${pending:-none}$([ "$rerun" = true ] && echo ", local-ci rerun asked")${held:+, $held}"
+  now="waiting on: ${waiting:-nothing}, review ${review,,}, running: ${pending:-none}$([ "$rerun" = true ] && echo ", local-ci rerun asked")${behind_note:+, $behind_note}"
   [ "$now" != "$last" ] && { say "#$pr at ${head:0:8}: $now"; last="$now"; }
   if [[ " $required " == *" local-ci "* ]] && [ "$local_ci" = NONE ] && [ "$warned" = 0 ] && [ $(( $(date +%s) - head_since )) -ge $(( pickup * 60 )) ]; then
     say "auto-CI hasn't reported on ${head:0:8} after ${pickup} min; check the timer"
     warned=1
   fi
-  if [ -z "$waiting" ] && [ -z "$pending" ] && [ -z "$held" ] && [ "$merged" = 0 ]; then
+  if [ -z "$waiting" ] && [ -z "$pending" ] && [ "$merged" = 0 ]; then
     confirm || continue
     say "#$pr at ${head:0:8}: $required and every GitHub check passed"
     exit 0

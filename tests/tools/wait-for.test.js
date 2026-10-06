@@ -33,11 +33,11 @@ const green = { state: 'OPEN', headRefOid: 'HEAD_SHA', headRefName: 'feature', m
   { __typename: 'StatusContext', context: 'local-ci', state: 'SUCCESS' },
   { __typename: 'CheckRun', name: 'test', status: 'COMPLETED', conclusion: 'SUCCESS' },
 ] };
-// A PR the update queue lets merge main in: review and local-ci passed on its head.
+// A PR with review and local-ci passed on its head.
 const ready = { ...green, statusCheckRollup: [...green.statusCheckRollup, { __typename: 'StatusContext', context: 'review', state: 'SUCCESS' }] };
 const replies = (...list) => list.forEach((r, i) => writeFileSync(join(ghDir, `pr-${i}.json`), JSON.stringify(r)));
 const run = (...args) => spawnSync('bash', [SCRIPT, ...args], { cwd: work, encoding: 'utf8', timeout: 60000,
-  env: cleanEnv({ PATH: `${bin}:${process.env.PATH}`, FAKE_GH_DIR: ghDir, WORK: work, HITL_MERGE_QUEUE: join(root, 'queue') }) });
+  env: cleanEnv({ PATH: `${bin}:${process.env.PATH}`, FAKE_GH_DIR: ghDir, WORK: work }) });
 
 // The origin and the work clone are built once and copied per case; only the clone's remote URL
 // has to follow the copy.
@@ -88,10 +88,10 @@ describe('scripts/wait-for.sh', { timeout: 60000 }, () => {
     expect(r.stdout).toContain('https://example.test/c/1');
   });
 
-  it('merges main into a PR that fell behind, tests, pushes, then waits on the new head', () => {
+  it('merges main into a PR that fell behind with --update, tests, pushes, then waits on the new head', () => {
     advanceMain('c.txt', 'main\n');
     replies({ ...ready, mergeStateStatus: 'BEHIND' }, green);
-    const r = run('7', '--poll', '0', '--test', 'true');
+    const r = run('7', '--poll', '0', '--update', '--test', 'true');
     expect(r.status).toBe(0);
     expect(git(work, 'log', '-1', '--format=%s')).toMatch(/^Merge/);
     expect(git(work, 'rev-parse', 'origin/feature')).toBe(git(work, 'rev-parse', 'HEAD'));
@@ -101,7 +101,7 @@ describe('scripts/wait-for.sh', { timeout: 60000 }, () => {
     advanceMain('c.txt', 'main\n');
     const before = git(work, 'rev-parse', 'origin/feature');
     replies({ ...ready, mergeStateStatus: 'BEHIND' });
-    const r = run('7', '--poll', '0', '--test', 'false');
+    const r = run('7', '--poll', '0', '--update', '--test', 'false');
     expect(r.status).toBe(5);
     git(work, 'fetch', '-q');
     expect(git(work, 'rev-parse', 'origin/feature')).toBe(before);
@@ -115,8 +115,18 @@ describe('scripts/wait-for.sh', { timeout: 60000 }, () => {
     expect(git(work, 'status', '--porcelain')).toBe('');
   });
 
-  it('only reports a PR that is behind with --no-update', () => {
-    replies({ ...green, mergeStateStatus: 'BEHIND' });
+  it('leaves a PR that is only behind main alone: green, and main is not merged in', () => {
+    advanceMain('c.txt', 'main\n');
+    const before = git(work, 'rev-parse', 'HEAD');
+    replies({ ...ready, mergeStateStatus: 'BEHIND' });
+    const r = run('7', '--poll', '0');
+    expect(r.status).toBe(0);
+    expect(r.stdout).toContain('behind main (merges as it is)');
+    expect(git(work, 'rev-parse', 'HEAD')).toBe(before);
+  });
+
+  it('only reports a conflicting PR with --no-update', () => {
+    replies({ ...green, mergeable: 'CONFLICTING', mergeStateStatus: 'DIRTY' });
     const r = run('7', '--poll', '0', '--no-update');
     expect(r.status).toBe(3);
   });
@@ -124,7 +134,7 @@ describe('scripts/wait-for.sh', { timeout: 60000 }, () => {
   it('refuses to update from a worktree that is not on the PR branch', () => {
     git(work, 'switch', '-q', 'main');
     replies({ ...ready, headRefName: 'feature', headRefOid: 'deadbeef', mergeStateStatus: 'BEHIND' });
-    const r = run('7', '--poll', '0', '--test', 'true');
+    const r = run('7', '--poll', '0', '--update', '--test', 'true');
     expect(r.status).toBe(7);
   });
 
@@ -178,7 +188,7 @@ describe('scripts/wait-for.sh', { timeout: 60000 }, () => {
     try {
       advanceMain('c.txt', 'main\n');
       replies({ ...ready, mergeStateStatus: 'BEHIND' }, green);
-      const r = run('7', '--poll', '0', '--test', 'true');
+      const r = run('7', '--poll', '0', '--update', '--test', 'true');
       expect(r.status).toBe(0);
       expect(git(work, 'rev-parse', 'origin/feature')).toBe(git(work, 'rev-parse', 'HEAD'));
     } finally {
