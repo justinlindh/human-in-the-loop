@@ -1,7 +1,8 @@
 import { pacingOn } from './pacing.js';
 
-// A whole new system: a menu appearing, or the Meaning reveal. Only these get a card without an era.
-export const PIP_SYSTEMS = new Set(['meaning', 'marketing', 'ops', 'models', 'automation']);
+// A whole new system: a menu appearing, the Meaning reveal, the first Research, Ops or Standups (Standups
+// also brings in the Policies menu). Only these get a card without an era.
+export const PIP_SYSTEMS = new Set(['meaning', 'marketing', 'ops', 'models', 'automation', 'research', 'standups']);
 
 // Splits a tick's unlock items ({ key, menuId, menuLabel }) into the ones that keep a card and the ones
 // that get a New pip and one toast. An era card lists its own unlocks, so with one nothing is split.
