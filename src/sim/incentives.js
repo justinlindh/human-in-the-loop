@@ -51,7 +51,7 @@ export function incentivesSystem(ctx) {
   }
   award(ctx, winner, reward, count);
   ctx.emit({ type: 'incentive', staffId: winner.id, reward: reward.id });
-  ctx.emit({ type: 'toast', text: `Incentives Program: ${winner.name} wins ${reward.name}.`, tone: 'good' });
+  ctx.emit({ type: 'toast', text: `Incentives Program: ${winner.name} wins ${reward.name}.`, tone: 'good', topic: 'reward', subjectId: winner.id });
   stageTalk(ctx, winner, reward);
 }
 

@@ -90,7 +90,7 @@ function trendStep(ctx) {
   m.trend = next;
   m.trendWeeksLeft = TRENDS[next].weeks;
   const copy = periodCopy(ctx.state, 'trends', TRENDS[next]);
-  ctx.emit({ type: 'toast', text: `Trend: ${copy.name}. ${copy.text}`, tone: 'info', trendId: next });
+  ctx.emit({ type: 'toast', text: `Trend: ${copy.name}. ${copy.text}`, tone: 'info', trendId: next, topic: 'trend', subjectId: null });
 }
 
 function vendorRelease(ctx) {

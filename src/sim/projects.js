@@ -318,7 +318,7 @@ function openingBeats(ctx, j) {
   if (!beat || j.progress / j.pointsNeeded < beat.at) return;
   state.flags.openingBeats = done + 1;
   if (beat.decision) { raiseDecision(ctx, beat.decision, null, { queue: true }); return; }
-  ctx.emit({ type: 'toast', text: beat.toast.replace('{project}', j.name), tone: 'good' });
+  ctx.emit({ type: 'toast', text: beat.toast.replace('{project}', j.name), tone: 'good', topic: 'progress', subjectId: j.id });
   const team = state.staff.filter((p) => p.assignment.type === 'project' && p.assignment.targetId === j.id);
   const speaker = team.find((p) => p.founder) ?? team[0];
   if (speaker) ctx.emit({ type: 'say', id: newId(state, 'v'), week: state.week, staffId: speaker.id, text: beat.say[state.week % beat.say.length], toId: null, replyTo: null });

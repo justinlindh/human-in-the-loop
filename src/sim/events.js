@@ -22,6 +22,7 @@ import { eraOnlyAllowsText, eraAtLeast, currentEra, eraIndex } from './eras.js';
 import { openEventPrompt, promptSlotFree } from './prompts.js';
 import { deliversAsMail, mailSlotFree, openEventMail, mailEventNotice } from './mail.js';
 import { preinternetChoiceReason, batchText } from './boxed.js';
+import { askQueueOn, queueDecision, queuePrompt, queueEventLetter } from './asks.js';
 import { periodAllows, periodText } from '../data/period-content.js';
 
 // What attackers ask for: sized to the company's cash and revenue, between a floor and a cap, and never
@@ -108,7 +109,7 @@ const IMMEDIATE_KINDS = new Set(['incident', 'cyber']);
 // Opens a decision popup for a choice event. If one is already pending it returns false, or with
 // { queue: true } schedules this one to be raised as soon as the popup is clear. { asked: true } is a
 // card the player opened, which skips the gap after the last decision; `vars` replaces the card's usual vars.
-export function raiseDecision(ctx, eventId, subjectId = null, { queue = false, asked = false, vars: own = null } = {}) {
+export function raiseDecision(ctx, eventId, subjectId = null, { queue = false, asked = false, fromQueue = false, vars: own = null } = {}) {
   const { state } = ctx;
   const ev = EVENTS[eventId];
   if (!ev || !ev.choices) return false;
@@ -117,6 +118,11 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false, a
   if (!decisionGateOpen(state, eventId)) return false;
   // A decision with `fits` is dropped, not queued, once it no longer applies (a queued card can come due late).
   if (ev.fits && !ev.fits(state, subjectId)) return false;
+  // With the ask queue on, a card the game raises waits there; one the player asked for opens at once.
+  if (askQueueOn() && !fromQueue && !asked) {
+    queueDecision(ctx, eventId, subjectId, own);
+    return true;
+  }
   if (state.pendingDecision) {
     if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: state.week, kind: 'event', payload: { eventId, subjectId } });
     return false;
@@ -240,7 +246,13 @@ export function fireEvent(ctx, ev, subjectId) {
   // how often every other event comes up is unchanged.
   // With the inbox on, letter-like events arrive as mail instead: a choice event waits for a free mail slot
   // the way a Yak one waits for a prompt slot; a notice keeps its effects and arrives instead of its toast.
+  // With the ask queue on, both wait in the queue instead, with no slot or week gap of their own.
   if (deliversAsMail(ev) && ev.choices) {
+    if (askQueueOn()) {
+      state.flags[`cd_${ev.id}`] = state.week + ev.cooldownWeeks;
+      queueEventLetter(ctx, ev, subjectId);
+      return true;
+    }
     if (!mailSlotFree(state)) return false;
     state.flags[`cd_${ev.id}`] = state.week + ev.cooldownWeeks;
     state.flags.lastDecisionWeek = state.week;
@@ -248,6 +260,11 @@ export function fireEvent(ctx, ev, subjectId) {
     return true;
   }
   if (ev.yak && ev.choices && B.chatPromptsEnabled) {
+    if (askQueueOn()) {
+      state.flags[`cd_${ev.id}`] = state.week + ev.cooldownWeeks;
+      queuePrompt(ctx, ev, subjectId);
+      return true;
+    }
     if (!promptSlotFree(state)) return false;
     state.flags[`cd_${ev.id}`] = state.week + ev.cooldownWeeks;
     state.flags.lastDecisionWeek = state.week;

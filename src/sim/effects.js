@@ -290,7 +290,7 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     const owner = person ?? state.staff.find((p) => !p.founder) ?? state.staff[0];
     if (owner) {
       const pet = adoptPet(state, fx.adoptPet, owner.id, ctx.rng);
-      ctx.emit({ type: 'toast', text: `${pet.name} the ${pet.species} has joined ${state.companyName}.`, tone: 'good' });
+      ctx.emit({ type: 'toast', text: `${pet.name} the ${pet.species} has joined ${state.companyName}.`, tone: 'good', topic: 'pet', subjectId: null });
     }
   }
   if (fx.rivalHit && state.rival) state.rival.strength = clamp(state.rival.strength - fx.rivalHit, 0, 100);
