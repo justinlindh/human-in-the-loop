@@ -151,7 +151,6 @@ describe('browser pacing presentations', () => {
     for (const file of ['dom', 'toasts', 'chat', 'hud', 'advisor', 'incident']) {
       assert(plugin.transform(readFileSync(`src/ui/${file}.js`, 'utf8'), `/src/ui/${file}.js`).code);
     }
-    assert(plugin.transform(readFileSync('src/main.js', 'utf8'), '/src/main.js').code);
     assert.throws(() => plugin.transform('', '/src/ui/toasts.js'), /metadata hook missing/);
   });
 

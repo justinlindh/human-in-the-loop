@@ -41,11 +41,6 @@ export function presentationMetadata() {
       ['function showPeek(e) {', "function showPeek(e) { peek.dataset.paceId = e.key; peek.__paceOrigin = 'game';"],
       ['h(`div.advitem.sev-${sev(item.severity)}`, null,', 'h(`div.advitem.sev-${sev(item.severity)}`, { dataset: { paceId: item.key } },'],
     ],
-    '/src/main.js': [
-      ['const route = (events, state, direct = false)', "const route = (events, state, direct = window.__pace?.origin === 'player')"],
-      ['route(res.events, sim.state, true);', "window.__pace?.tag(res.events, 'player'); route(res.events, sim.state, true);"],
-      ['ui?.handleEvents(events, state);', "if (window.__pace) window.__pace.present(events, state, ui); else ui?.handleEvents(events, state);"],
-    ],
   };
   return { name: 'pace-presentation-metadata', enforce: 'pre', transform(code, id) {
     const entries = Object.entries(rules).find(([suffix]) => id.split('?')[0].endsWith(suffix))?.[1];
@@ -79,6 +74,12 @@ export function installObservation() {
       P.origin = events.every(e => e.__paceOrigin === 'player') ? 'player' : 'game';
       try { ui?.handleEvents(events, state); } finally { P.origin = before; }
     },
+  };
+  // The page's own hooks (src/main.js) call into the observer.
+  window.__hitlHooks = {
+    origin: () => P.origin,
+    playerEvents: (events) => P.tag(events, 'player'),
+    uiEvents: (events, state, ui) => P.present(events, state, ui),
   };
 }
 
