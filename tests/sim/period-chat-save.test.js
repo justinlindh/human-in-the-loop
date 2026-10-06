@@ -19,6 +19,8 @@ it.each(Object.keys(fixtures))('round trips an existing %s save with open replie
   // plays on exactly as saved.
   expect(s.mail).toEqual([]);
   original.mail ??= [];
+  expect(s.asks).toEqual([]);
+  original.asks ??= [];
   expect(s.radio).toEqual({ on: false, station: null });
   original.radio ??= { on: false, station: null };
   expect(s.chatLog).toEqual(original.chatLog);

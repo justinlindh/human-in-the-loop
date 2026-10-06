@@ -7,6 +7,7 @@ import { eraAllowsText, currentEra } from './eras.js';
 import { liveProducts } from './projects.js';
 import { decisionVars, fillText } from './events.js';
 import { grantBlocker } from './props.js';
+import { askQueueOn, queueTemplateLetter } from './asks.js';
 import { AMBIENT, MAIL_TEMPLATES, EVENT_MAIL, REPLY_ALL, typoName } from '../data/mail.js';
 import { EVENTS } from '../data/events.js';
 import { MODELS } from '../data/models.js';
@@ -159,17 +160,36 @@ function actionable(ctx) {
     .map((t) => ({ t, mc: contextFor(ctx, t) })).filter((x) => x.mc);
   if (!fits.length) return;
   const { t, mc } = pick(ctx.rng, fits);
+  if (askQueueOn()) {
+    state.flags[`mcd_${t.id}`] = state.week + B.mail.templateCooldown;
+    queueTemplateLetter(ctx, t.id, mc, !!t.emergency);
+    return;
+  }
+  sendTemplate(ctx, t.id, mc);
+}
+
+// Writes and delivers a template letter for its context; false when it no longer fits.
+export function sendTemplate(ctx, templateId, mc) {
+  const { state } = ctx;
+  const t = TEMPLATES[templateId];
   const made = compose(ctx, t, mc);
-  if (!made) return;
+  if (!made) return false;
   state.flags[`mcd_${t.id}`] = state.week + B.mail.templateCooldown;
   addMail(ctx, { kind: t.id, category: t.category, important: t.important, ...made, options: optionsFor(state, t, mc), mc,
     subjectId: t.about === 'staff' ? mc.staffId : null });
+  return true;
+}
+
+// A template letter nobody opened: its ignore outcome.
+export function expireTemplate(ctx, templateId, mc) {
+  const t = TEMPLATES[templateId];
+  applyEffects(ctx, t.ignored.effects, aboutId(t, mc), `mail:${t.id}`);
 }
 
 // Events delivered as mail. A choice event becomes answerable mail (its mildest choice, EVENT_MAIL.ignore,
 // applies when nobody answers); a notice keeps its effects and the stream it drew them from, and becomes
 // read-only mail instead of a toast.
-const eventChoiceBlocker = (state, c, subjectId) =>
+export const eventChoiceBlocker = (state, c, subjectId) =>
   (c.requires && !checkCondition(state, c.requires, subjectId) ? requireReason(state, c.requires) : grantBlocker(state, c));
 
 export const deliversAsMail = (ev) => B.mail.enabled && !!EVENT_MAIL[ev.id] && !ev.stage;

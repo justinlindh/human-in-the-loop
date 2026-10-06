@@ -1,6 +1,6 @@
 import { B } from './balance.js';
 import { chance } from './rng.js';
-import { marketYear } from './util.js';
+import { marketYear, shortText } from './util.js';
 import { registerSystem } from './registry.js';
 import { emitChat } from './chat.js';
 import { liveProducts } from './projects.js';
@@ -42,7 +42,8 @@ export function marketSystem(ctx) {
     pr.novelty *= B.copyNoveltyMult;
     state.market.categories[pr.category].incumbentStrength *= B.copyIncumbentMult;
     pr.copied = true;
-    ctx.emit({ type: 'toast', text: `${incumbentFor(pr.category, state).name} announces ${ANGLES[pr.angle].name} features. Sounds familiar.`, tone: 'warn' });
+    ctx.emit({ type: 'toast', text: `${incumbentFor(pr.category, state).name} announces ${ANGLES[pr.angle].name} features. Sounds familiar.`, tone: 'warn', topic: 'rival', subjectId: null,
+      short: shortText(`Copycat: ${incumbentFor(pr.category, state).name}`) });
   }
 }
 

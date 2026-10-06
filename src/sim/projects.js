@@ -1,7 +1,7 @@
 import { addToRecord } from './record.js';
 import { B } from './balance.js';
 import { int, range, pick, createRng } from './rng.js';
-import { clamp, round, sum, newId, marketYear } from './util.js';
+import { clamp, round, sum, newId, marketYear, shortText } from './util.js';
 import { registerAction, registerSystem } from './registry.js';
 import { STATS, defaultAssignment } from './staff.js';
 import { zeroPoints } from './work.js';
@@ -318,7 +318,8 @@ function openingBeats(ctx, j) {
   if (!beat || j.progress / j.pointsNeeded < beat.at) return;
   state.flags.openingBeats = done + 1;
   if (beat.decision) { raiseDecision(ctx, beat.decision, null, { queue: true }); return; }
-  ctx.emit({ type: 'toast', text: beat.toast.replace('{project}', j.name), tone: 'good' });
+  ctx.emit({ type: 'toast', text: beat.toast.replace('{project}', j.name), tone: 'good', topic: 'progress', subjectId: j.id,
+    short: shortText(`${j.name}: ${Math.round(beat.at * 100)}% done`) });
   const team = state.staff.filter((p) => p.assignment.type === 'project' && p.assignment.targetId === j.id);
   const speaker = team.find((p) => p.founder) ?? team[0];
   if (speaker) ctx.emit({ type: 'say', id: newId(state, 'v'), week: state.week, staffId: speaker.id, text: beat.say[state.week % beat.say.length], toId: null, replyTo: null });
