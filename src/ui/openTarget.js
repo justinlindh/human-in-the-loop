@@ -32,7 +32,7 @@ export function startPlacing(ctx, itemId) {
   return true;
 }
 
-const ARG_KEY = { staff: 'staffId', policies: 'policyId', reports: 'productId', marketing: 'productId', build: 'productId' };
+const ARG_KEY = { staff: 'staffId', policies: 'policyId', reports: 'productId', marketing: 'productId', build: 'productId', mail: 'mailId' };
 
 export function openTarget(ctx, target) {
   const panel = target?.panel;

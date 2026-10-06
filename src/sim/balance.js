@@ -174,7 +174,7 @@ export const B = {
   // scoreShare: a start's pooled median final score (six bots, seeds 1 to 200) as a share of Classic's,
   // for the founding screen. Retuning scoreMult means re-measuring that share against the target.
   eraStarts: {
-    preinternet: { cash: 240000, officeStage: 0, desks: 3, scoreMult: 0.72, scoreShare: 0.95, exitMrrMult: 1.3 },
+    preinternet: { cash: 240000, officeStage: 0, desks: 3, scoreMult: 0.67, scoreShare: 0.95, exitMrrMult: 1.3 },
     web2: { cash: 90000, officeStage: 0, desks: 3, scoreMult: 0.56, scoreShare: 0.75, exitMrrMult: 1.2 },
     dotcom: { cash: 140000, officeStage: 0, desks: 4, scoreMult: 0.61, scoreShare: 0.9, exitMrrMult: 1.35 },
     classic: { cash: 0, officeStage: 0, desks: 2, scoreMult: 1, scoreShare: 1, exitMrrMult: 1 },
@@ -230,6 +230,15 @@ export const B = {
   posts: {
     cooldownWeeks: 2, repeatWeeks: 8, newsWeeks: 2, replyWeeks: 2, lowMorale: 30, pizzaPerHead: 25,
     pepTalk: 2, meme: 2, pizza: 3, pizzaStamina: 10, news: 3, backfire: 1, scare: 2, memeBackfire: 3, blame: 1, fixHealth: 3,
+  },
+  // The inbox: one ambient roll and one actionable roll a week, at most actionOpen mails with an open choice,
+  // each open for expiryWeeks; at most kept mails in all, oldest settled first. A reply-all storm grows for
+  // up to replyAllWeeks. The rest are the actionable templates' effect sizes.
+  mail: {
+    enabled: false, fromWeek: 4, ambientChance: 0.35, actionChance: 0.12, actionOpen: 2, expiryWeeks: 8, kept: 40, templateCooldown: 12,
+    replyAllChance: 0.02, replyAllCooldown: 26, replyAllWeeks: 3, replyAllOutput: -0.02,
+    pitchKnowledge: 2, pitchStrain: 3, refund: 1500, refundBrand: 1, fixOutput: -0.03, fixHealth: 6, complaintIgnoredBrand: -1,
+    poachTellMeaning: 4, poachRaisePct: 8, poachRaiseMeaning: 2, poachIgnoredStrain: 3, partnerHype: 8, partnerOutput: -0.04,
   },
   chatPromptsEnabled: true, chatPromptsOpen: 1, chatPromptGapWeeks: 1, chatPromptExpiryWeeks: 3, chatPromptsKept: 4, chatPromptChance: 0.6, chatPromptFromWeek: 6,
   prompts: {

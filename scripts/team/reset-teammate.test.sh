@@ -44,6 +44,15 @@ STICK=1 run sim compact 1
 PANE_TEXT='ready\n  @other' run sim compact 1
 [ $rc -eq 1 ] && grep -q 'no pane shows @sim' <<<"$out" || fail "no pane for the name: rc $rc: $out"
 
+# Real transcripts' first lines run past a pipe's buffer: the brief is still found every time.
+{ echo '{"type":"user","message":"You are `big`, on the team."}'; head -c 300000 /dev/zero | tr '\0' x; echo; printf '{"type":"assistant","message":{%s}}\n' "$usage"; } >"$proj/big1.jsonl"
+missed=0
+for _ in $(seq 1 20); do
+  : >"$SENT"; TRANSCRIPT="$proj/big1.jsonl" PANE_TEXT='ready\n  @big' run big compact 5
+  [ $rc -eq 0 ] || missed=$((missed + 1))
+done
+[ $missed -eq 0 ] || fail "a brief before a large line is found every time: missed $missed of 20: $out"
+
 run nobody compact 1
 [ $rc -eq 1 ] || fail "a teammate with no brief in a transcript is refused: rc $rc: $out"
 
