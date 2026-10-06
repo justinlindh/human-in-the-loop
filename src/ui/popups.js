@@ -8,6 +8,7 @@ import { pressOutlet } from './press.js';
 import { portrait, portraitLive, roleChip } from './widgets.js';
 import { resolutionBlock, backUpTitle } from './incident.js';
 import { pacingOn } from './pacing.js';
+import { B } from '../sim/balance.js';
 import { letterView } from './letterView.js';
 import { hasOpenChoice } from './mail.js';
 
@@ -19,7 +20,10 @@ const isLeadership = (d) => EVENTS[d.eventId]?.kind === 'leadership' || LEADERSH
 
 // Under oneLaunchCard a new product's card comes after at least this much running play since the last one
 // closed; launches in between wait and join the next card.
+// The sim's `B.attention.launchGap` at 1x and `launchGapFast` above it, in seconds.
 export const LAUNCH_GAP_MS = 90000;
+export const LAUNCH_GAP_FAST_MS = 150000;
+export const launchGapMs = (fast) => (B.attention?.[fast ? 'launchGapFast' : 'launchGap'] ?? (fast ? LAUNCH_GAP_FAST_MS : LAUNCH_GAP_MS) / 1000) * 1000;
 
 // True for the sim's "<name> launched!" toast when a launch card already tells that news.
 export const launchToastCarded = (names, text) => pacingOn('oneLaunchCard') && names.some((n) => String(text).startsWith(`${n} launched!`));
@@ -256,9 +260,10 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
   // game) forgets the old close.
   function launchGapOver() {
     const clock = ctx.controls.attention;
-    if (!clock) return playSinceCard >= LAUNCH_GAP_MS;
+    const need = launchGapMs((ctx.controls.getSpeed?.() ?? 1) > 1);
+    if (!clock) return playSinceCard >= need;
     if (clock.playSeconds < cardClosedAt) cardClosedAt = -Infinity;
-    return clock.playSeconds - cardClosedAt >= (clock.config?.gap ?? LAUNCH_GAP_MS / 1000);
+    return clock.playSeconds - cardClosedAt >= need / 1000;
   }
 
   function update(s, { holdLaunch = false } = {}) {
