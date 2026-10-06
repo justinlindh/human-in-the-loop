@@ -1,6 +1,6 @@
 import { YAK_HELPERS, YAK_CHECK } from '../feature-media/yak.js';
 import { LOAD_PIN } from './pins.js';
-import { GROW, RUNAWAY, EMPTY_DESKS } from '../feature-media/manifest.js';
+import { GROW, EMPTY_DESKS } from '../feature-media/manifest.js';
 import { PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY, CAMLOG, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK_SEL, STAGE_ONLY, CLEAR_CARDS } from '../capture-manifest.js';
 // A player closes any launch or unlock card that turns up while the Yak thread plays out; a modal card holds the clock.
 const CARDS_EVERY = (from, to, step) => Array.from({ length: Math.floor((to - from) / step) + 1 }, (_, i) => ({ at: from + i * step, js: CLEAR_CARDS }));
@@ -177,11 +177,12 @@ export const VO = {
 
 // The games the pinned states come from (node scripts/trailer/pin.mjs): each replays a bot game to the week
 // before its beat's subject. The printer pin is an indexed moment (scripts/events/find.js), copied as it is.
+// The cloud pin has no source game to replay: its stored snapshot is used as it is and pin.mjs leaves it alone.
 export const PIN_SOURCES = {
   outage: { query: 'seed=13&speed=1', setup: `(async () => { await ${PRE_UNTIL(OUTAGE_PLAY)}; })()` },
   meme: { query: 'seed=62&speed=1', setup: `(async () => { await ${PRE_UNTIL(MEME_PLAY)}; })()` },
   garage: { query: 'seed=5&speed=1&time=day', setup: GROW(4) },
-  cloud: { query: 'seed=6&speed=1', setup: RUNAWAY },
+  cloud: { query: 'seed=6&speed=1' },
   plateau: { query: 'seed=3&speed=1&time=day', setup: GROW(800, { lateHires: false }) },
   printer: { moment: 'printer_jam --stage floor --choice 0' },
 };
