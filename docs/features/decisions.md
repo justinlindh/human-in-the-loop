@@ -1,6 +1,6 @@
 # Decisions that show up in the office
 
-Props appear on the desk, wall, floor, kitchen or door while a decision is open; some choices leave a prop behind.
+Props appear on the desk, wall, floor, kitchen or door while a decision is open; some choices leave a prop behind. A desk prop takes a spot the default camera sees past the monitor and the person at the desk when the desk has one, and one meant for everyone (gift cards) goes to the nearest desk that has.
 
 - **Events with no card**: with quiet events on (`B.pacing.quietEvents`), the office gags and the conference and AI-summit events resolve on their own. Their prop still shows for 15 s of running play (time paused or in a menu doesn't count), and a moment the answer plays (the printer carried out back) still plays: the jammed printer shows for a beat, then the carry starts. A clip case covers it (`clip.mjs --only=moment:quiet`).
 
