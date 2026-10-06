@@ -21,7 +21,7 @@ import { emitChat } from './chat.js';
 import { eraOnlyAllowsText, eraAtLeast, currentEra, eraIndex } from './eras.js';
 import { openEventPrompt, promptSlotFree } from './prompts.js';
 import { deliversAsMail, mailSlotFree, openEventMail, mailEventNotice } from './mail.js';
-import { preinternetChoiceReason } from './boxed.js';
+import { preinternetChoiceReason, batchText } from './boxed.js';
 import { periodAllows, periodText } from '../data/period-content.js';
 
 // What attackers ask for: sized to the company's cash and revenue, between a floor and a cap, and never
@@ -75,6 +75,8 @@ export function fillText(state, rng, text, subjectId, vars = null) {
     .replaceAll('{foundationCost}', money(Math.max(0, state.cash) * B.foundationCashShare))
     .replaceAll('{summitSmall}', `$${Math.round(summitCost(state, 'small') / 1000)}k`)
     .replaceAll('{summitBig}', `$${Math.round(summitCost(state, 'big') / 1000)}k`)
+    .replaceAll('{batchSmall}', () => batchText(state, subjectId, B.preinternet.batches[0]))
+    .replaceAll('{batchLarge}', () => batchText(state, subjectId, B.preinternet.batches[1]))
     .replaceAll('{ransom}', `$${Math.round(v.ransom ?? ransomFor(state)).toLocaleString('en-US')}`);
 }
 
@@ -113,6 +115,8 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false, a
   if (!periodAllows(state, 'events', eventId)) return false;
   if (ev.eras && !ev.eras.includes(currentEra(state).id)) return false;
   if (!decisionGateOpen(state, eventId)) return false;
+  // A decision with `fits` is dropped, not queued, once it no longer applies (a queued card can come due late).
+  if (ev.fits && !ev.fits(state, subjectId)) return false;
   if (state.pendingDecision) {
     if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: state.week, kind: 'event', payload: { eventId, subjectId } });
     return false;
