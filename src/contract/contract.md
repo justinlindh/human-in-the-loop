@@ -773,4 +773,5 @@ state.asks: [{ id, kind, priority, week, expiresWeek, defaultChoice, ref }]
 ```js
 { type: 'askQueued', askId, kind, priority }
 { type: 'askExpired', askId, kind }
+{ type: 'askPresented', askId, kind, priority, mailId, promptId }   // presentAsk opened it; mailId set for a letter, promptId for a prompt, both null for a decision (it is pendingDecision). ui brings a presented letter or prompt in front of the player
 ```
