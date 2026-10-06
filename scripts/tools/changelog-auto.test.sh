@@ -2,7 +2,7 @@
 # Cases for scripts/tools/changelog-auto.sh with scratch game and site origins and stand-in gh and claude.
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
-tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+mkdir -p "${HITL_TMP:=$HOME/.cache/hitl-ci/tmp}"; tmp="$(mktemp -d -p "$HITL_TMP")"; trap 'rm -rf "$tmp"' EXIT
 export TMPDIR="$tmp" TZ=UTC
 fails=0; fail() { echo "FAIL $*"; fails=$((fails + 1)); }
 g() { git -c user.name=t -c user.email=t@t "$@"; }
