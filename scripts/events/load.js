@@ -57,6 +57,8 @@ export async function snapshotEntries(file) {
 // picking a different save from the title screen mid-session.
 export async function applySnapshot(page, file) {
   const items = await snapshotEntries(file);
+  // The game plays on from the snapshot with the pacing switches the index was built with.
+  await (await import('./play.js')).pinIndexPacing?.(page);
   const res = await page.evaluate((list) => {
     for (const [k, v] of list) localStorage.setItem(k, v);
     const r = window.__HITL.controls.continueGame();
