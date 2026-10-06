@@ -7,12 +7,16 @@ import { icon } from './icons.js';
 import { pressOutlet } from './press.js';
 import { portrait, portraitLive, roleChip } from './widgets.js';
 import { resolutionBlock, backUpTitle } from './incident.js';
+import { pacingOn } from './pacing.js';
 
 const LEADERSHIP_IDS = new Set(['ceo_replace_support', 'four_day_week', 'ai_first_mandate', 'rebrand', 'pivot_pitch', 'open_plan_office',
   'hackathon_week', 'founder_burnout', 'ceo_support_fallout', 'four_day_week_review', 'ai_first_review']);
 const DELAYED = /later|week/i;
 
 const isLeadership = (d) => EVENTS[d.eventId]?.kind === 'leadership' || LEADERSHIP_IDS.has(d.eventId);
+
+// True for the sim's "<name> launched!" toast when a launch card already tells that news.
+export const launchToastCarded = (names, text) => pacingOn('oneLaunchCard') && names.some((n) => String(text).startsWith(`${n} launched!`));
 
 // Modal layer for decisions and launch results. While a modal is open,
 // toasts dock in its strip so a refused choice's reason shows right under the choices.
@@ -247,6 +251,15 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
     // A postmortem's resolution can arrive after its decision; redraw with the full summary.
     if (d && d === shown && shownRes && resolutionFor(d, s) !== shownRes) { renderDecision(s, d); return; }
     if (!d && shown) hide();
+    // Under oneLaunchCard a launch that lands while a launch card is open joins that card.
+    if (launch && queue.length && !shown && !holdLaunch && pacingOn('oneLaunchCard')) {
+      const ids = [...new Set([...[].concat(launch.productId), ...queue.splice(0)])];
+      launch.timers.forEach(pClear);
+      resumeSpeed = launch.prevSpeed;
+      launch = null;
+      showBatch(s, ids);
+      return;
+    }
     if (!holdLaunch && !shown && !launch && queue.length && !s.gameOver && (ctx.spacing?.ready() ?? true)) {
       if (queue.length > 1) { const ids = queue.splice(0); if (!showBatch(s, ids)) queue.length = 0; }
       else while (queue.length && !showLaunch(s, queue.shift()));

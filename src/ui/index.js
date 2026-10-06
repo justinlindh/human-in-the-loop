@@ -11,7 +11,7 @@ import { createChat } from './chat.js';
 import { createMenu, MENU } from './menu.js';
 import { PANELS } from './panels/index.js';
 import { forgetOverseers } from './panels/automation.js';
-import { createPopups } from './popups.js';
+import { createPopups, launchToastCarded } from './popups.js';
 import { createSpacing } from './spacing.js';
 import { progressBar, goalsDoneText } from './goalProgress.js';
 import { createGrowth, growthToast } from './growth.js';
@@ -481,6 +481,9 @@ export function createUI({ root, getState, dispatch, controls }) {
       toasts.push('Squads are here: group people into teams that work as a unit. They are in Staff.', 'good', { action: () => menu.open('staff', { tab: 'squads' }) });
       if (menu.current !== 'staff') { newMenus.add('staff'); menu.setNew('staff', true); }
     }
+    // Under oneLaunchCard the launch card carries the news, so the sim's "<name> launched!" toast is dropped
+    // for a product the card is about.
+    const carded = [];
     for (const e of events) {
       switch (e.type) {
         case 'squadFreed': {
@@ -505,6 +508,7 @@ export function createUI({ root, getState, dispatch, controls }) {
           // Status news (progress, time off, moods, trends) goes to the world under quietToasts; a toast without
           // a topic, or news nothing draws, stays a toast.
           if (pacingOn('quietToasts') && e.topic && ambient.send(e)) break;
+          if (launchToastCarded(carded, e.text)) break;
           const opts = who ? { action: () => menu.open('staff', { staffId: who.id, pickPath: true }) } : {};
           if (e.subjectId) opts.subject = String(e.subjectId);
           toasts.push(text, e.tone, opts);
@@ -544,7 +548,10 @@ export function createUI({ root, getState, dispatch, controls }) {
           const p = state.products.find((x) => x.id === e.productId);
           const prev = launchScores.get(e.productId);
           if (p) launchScores.set(e.productId, p.score);
-          if (!p || p.version <= 1 || prev === undefined || Math.abs(p.score - prev) > 0.5) popups.queueLaunch(e.productId);
+          if (!p || p.version <= 1 || prev === undefined || Math.abs(p.score - prev) > 0.5) {
+            popups.queueLaunch(e.productId);
+            if (p) carded.push(p.name);
+          }
           break;
         }
         case 'goal': {
