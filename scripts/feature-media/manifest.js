@@ -128,9 +128,10 @@ const MOMENTS = [
 // Moments the event index reaches in too few games to rely on: each is staged from a real game by scheduling its
 // decision for the next week, so the game's own tick raises it with its card, freeze and staging.
 const SCHEDULED = (eventId, weeks) => `${PLAY({ weeks, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE} s.scheduled.push({ id: 'sch_pin', week: s.week + 1, kind: 'event', payload: { eventId: '${eventId}', subjectId: null } });` })}; await ${PRE_DECISION(eventId, 12)}`;
-// Notes the pinned decision when it is on screen, and fails the item at `at` if it never was.
+// Notes the pinned decision when it is on screen, and fails the item at `at` if it never was. Once it is up,
+// every entry still scheduled for it goes, so a second copy never raises it again after the card is answered.
 const SEEN_GUARD = (eventId, length) => [
-  ...Array.from({ length: 2 * length - 4 }, (_, i) => ({ at: 0.5 + i / 2, js: `(() => { if (window.__HITL.state.pendingDecision?.eventId === '${eventId}') window.__pinSeen = true; })()` })),
+  ...Array.from({ length: 2 * length - 4 }, (_, i) => ({ at: 0.5 + i / 2, js: `(() => { const s = window.__HITL.state; if (s.pendingDecision?.eventId === '${eventId}') { window.__pinSeen = true; s.scheduled = (s.scheduled ?? []).filter((x) => x.payload?.eventId !== '${eventId}'); } })()` })),
   { at: length - 1.5, js: `(() => { if (!window.__pinSeen) console.error('capture: the ${eventId} decision never opened'); })()` },
 ];
 // Yak prompts the index reaches too rarely: a real game played into the situation that raises them (the weeks of
@@ -147,7 +148,7 @@ const PIN_LOAD = (name, event) => `(async () => {
   const res = await fetch('/scripts/feature-media/pins/${name}.snap');
   if (!res.ok) throw new Error('feature-media: no pinned game ${name}');
   const state = JSON.parse(await new Response(res.body.pipeThrough(new DecompressionStream('gzip'))).text());
-  ${event ? `state.scheduled = [...(state.scheduled ?? []).filter((x) => x.id !== 'sch_pin'), { id: 'sch_pin', week: state.week + 1, kind: 'event', payload: { eventId: '${event.eventId}', subjectId: ${JSON.stringify(event.subjectId)} } }];` : ''}
+  ${event ? `if (!(state.scheduled ?? []).some((x) => x.payload?.eventId === '${event.eventId}')) state.scheduled = [...(state.scheduled ?? []), { id: 'sch_pin', week: state.week + 1, kind: 'event', payload: { eventId: '${event.eventId}', subjectId: ${JSON.stringify(event.subjectId)} } }];` : ''}
   const { saveGame } = await import('/src/save/save.js');
   if (!saveGame(state, localStorage)) throw new Error('feature-media: could not save pinned game ${name}');
   const r = window.__HITL.controls.continueGame();
