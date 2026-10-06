@@ -42,7 +42,8 @@ function runSeeds(name, seeds, startEra, startMode) {
       peakMrr: r.peakMrr, maxStage: r.maxStage, firstLaunch: r.firstLaunch, stageWeeks: r.stageWeeks, eras: r.eras,
       resignations: r.resignations, incidents: r.incidents, crises: r.crises,
       caught: r.state.stats.caught, breaches: r.state.stats.breaches,
-      hash: createHash('sha256').update(JSON.stringify(r.state)).digest('hex'),
+      // The run's identity, as pair.js has it: a new state field changes no ending, weeks, score or rng.
+      hash: [r.reason, r.weeks, r.score, r.state.rng?.s].join('|'),
     });
   }
   return out;
