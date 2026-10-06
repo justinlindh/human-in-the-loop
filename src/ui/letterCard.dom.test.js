@@ -91,6 +91,29 @@ describe('a presented letter card', () => {
     expect(p.letterOpen).toBe(true);
   });
 
+  it('skips a letter that was answered or expired while it waited behind a decision, and returns the speed', () => {
+    const { layer, p } = setup();
+    p.openLetter(state(), 'L1');
+    const d = { eventId: 'x', title: 'Pick one', text: 'Hmm.', choices: [{ label: 'A' }], subjectId: null };
+    p.update(state({ pendingDecision: d }));
+    // The decision is answered, and the letter was resolved in the meantime.
+    p.update(state({ mail: [{ ...letter(), resolved: { choice: 0, week: 4 } }] }));
+    expect(p.letterOpen).toBe(false);
+    expect(layer.querySelector('.letterdecision')).toBeNull();
+    expect(speed).toBe(2);
+    // Nothing is left waiting to show later.
+    p.update(state());
+    expect(p.letterOpen).toBe(false);
+  });
+
+  it('does not open a card for a letter with no open choice', () => {
+    const { layer, p } = setup();
+    p.openLetter(state({ mail: [{ ...letter(), archived: true }] }), 'L1');
+    expect(p.letterOpen).toBe(false);
+    expect(layer.querySelector('.letterdecision')).toBeNull();
+    expect(speed).toBe(2);
+  });
+
   it('closes itself when the letter was answered or expired elsewhere', () => {
     const { p } = setup();
     p.openLetter(state(), 'L1');
