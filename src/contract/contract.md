@@ -705,3 +705,21 @@ person.taste                    // a STATIONS id
 - Taste reactions and the occasional argument carry no stat penalty either way.
 - A music night overrides the radio in audio while it runs; the sim state is unchanged.
 - Boombox randomness comes from its own stream, so with `B.boombox.enabled` false a seeded game matches one without the feature.
+
+## AI job interviews (#670)
+
+An Agents-era hiring policy: an AI interviewer screens candidates. Cheaper and faster, with wider-spread candidates, and some candidates game it with their own AI. The whole feature sits behind `B.aiInterviews.enabled`.
+
+- Policy `ai_interviews`, unlocked in the Agents era. While on: hiring costs and the candidate refresh interval follow `B.aiInterviews`, candidates' skills spread wider, and a share of candidates carry inflated listed skills. Turning it on costs team meaning once.
+- A hire whose interview was gamed shows its real skills `B.aiInterviews.revealWeeks` after hire, and costs a little brand.
+- State lives in `flags` only: `aiPolish`, `aiSeq`, `aiCalibrated`, `aiInterviewHires`.
+
+### Events: AI interviews
+
+```js
+{ type: 'aiInterview', candidateId, staffId, staged }  // a hire made under the policy, in the same tick as its hire event; staged: render plays the interview moment for this hire
+{ type: 'interviewReveal', staffId, drop }             // a gamed hire's real skills show; drop: how far the listed skills fall
+```
+
+- Decision `ai_interview_loop` ("our AI and their AI have been interviewing each other for 40 minutes") is raised through the usual decision system, rarely, while the policy is on.
+- AI-interview randomness comes from its own stream, so with `B.aiInterviews.enabled` false a seeded game matches one without the feature.
