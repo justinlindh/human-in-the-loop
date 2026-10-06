@@ -723,3 +723,17 @@ An Agents-era hiring policy: an AI interviewer screens candidates. Cheaper and f
 
 - Decision `ai_interview_loop` ("our AI and their AI have been interviewing each other for 40 minutes") is raised through the usual decision system, rarely, while the policy is on.
 - AI-interview randomness comes from its own stream, so with `B.aiInterviews.enabled` false a seeded game matches one without the feature.
+
+### Watching an interview
+
+- Decision `ai_interview_watch`, about one candidate, with `vars: { candidateId, tells: [], decoy, lines: [{ who, text }] }`. `tells` and `decoy` drive render's interview feed; `lines` is the transcript ui shows in order. Whether the candidate is an AI lives in `flags`, never in the card. It arrives on its own once, at the first candidate refresh after the policy turns on; after that the player opens it from a candidate.
+- A candidate carries `watched` (missing means false).
+- Watching pays nothing by itself: only the choice does. Catching an AI and rejecting a person move brand and meaning; hiring an AI plants an incident `B.aiInterviews` weeks later that never ends the game.
+
+```js
+{ type: 'watchInterview', candidateId }   // works while paused; refusals: 'AI interviews are off' | 'No such candidate' | 'Already watched' | 'Finish the open decision first'
+{ type: 'askFollowUp' }                   // once per open interview, adds a line to vars.lines; refusals: 'No interview open' | 'Already asked'
+{ type: 'aiHireExposed', staffId }        // event: the planted incident fires for a hired AI
+```
+
+- A player-opened `ai_interview_watch` skips the usual gap between decisions.
