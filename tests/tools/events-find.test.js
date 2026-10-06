@@ -200,3 +200,25 @@ describe('find.js --branch', () => {
   });
 });
 
+describe('load.js resolveTarget', () => {
+  it('finds the index row for a pre-tick snapshot as well as the decision-open one', () => {
+    const cache = mkdtempSync(join(toolTmp(), 'events-load-'));
+    try {
+      const idx = join(cache, simHash());
+      mkdirSync(join(idx, 'snapshots'), { recursive: true });
+      const row = { seed: 3, bot: 'balanced', week: 9, type: 'decision', id: 'printer_jam', preTick: '3-balanced-w8-printer_jam-pre.json.gz', snapshot: '3-balanced-w9-printer_jam.json.gz' };
+      writeFileSync(join(idx, 'events.jsonl.gz'), gzipSync(JSON.stringify(row) + '\n'));
+      writeFileSync(join(idx, 'meta.json'), JSON.stringify({ bots: ['balanced'], seeds: [3], rows: 1 }));
+      for (const name of [row.preTick, row.snapshot]) {
+        const file = join(idx, 'snapshots', name);
+        writeFileSync(file, gzipSync('{}'));
+        const r = spawnSync(process.execPath, ['--input-type=module', '-e',
+          `const { resolveTarget } = await import(${JSON.stringify(resolve('scripts/events/load.js'))}); console.log(JSON.stringify(resolveTarget({ snapshot: ${JSON.stringify(file)} }).row));`],
+        { encoding: 'utf8', env: { ...process.env, HITL_EVENTS_DIR: cache }, timeout: 60000 });
+        expect(r.stderr, name).not.toMatch(/not in the index/);
+        expect(JSON.parse(r.stdout.trim().split('\n').at(-1)).id).toBe('printer_jam');
+      }
+    } finally { rmSync(cache, { recursive: true, force: true }); }
+  });
+});
+

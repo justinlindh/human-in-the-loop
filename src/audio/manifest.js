@@ -87,7 +87,7 @@ export const CUES = {
   'sfx.retail_box': { bus: 'sfx', files: ['sfx/retail_box'], cooldown: 30, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
   'sfx.dotcom_bell': { bus: 'sfx', files: ['sfx/dotcom_bell'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
   // The seller's two-shake handbell on a notable closed deal (hitl:dealBell from the renderer), in every era.
-  'sfx.deal_handbell': { bus: 'sfx', files: ['sfx/deal_handbell'], cooldown: 2, priority: 3, gain: 0.8, delivered: true },
+  'sfx.deal_handbell': { bus: 'sfx', files: ['sfx/deal_handbell'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
   // The sledgehammer moment's 1984 parody: a rising sting under the run-in and the screen's smash.
   'moment.sledge_run': { bus: 'sfx', files: ['sfx/sledge_run'], cooldown: 1, priority: 6, gain: 0.8, delivered: true },
   'moment.sledge_shatter': { bus: 'sfx', files: ['sfx/sledge_shatter'], cooldown: 1, priority: 9, gain: 0.9, delivered: true },
@@ -138,6 +138,10 @@ export const ON_EVENT = {
   // The inbox: silent until the arrival ping is picked for it (ui asks for a soft, rare one).
   mail: null,
   mailResolved: null,
+  // The AI interview: silent until its sounds are picked.
+  aiInterview: null,
+  interviewReveal: null,
+  aiHireExposed: null,
   // The boombox: the station itself is read from state.radio by the director, so these are silent here.
   radio: null,
   radioTaste: null,

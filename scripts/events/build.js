@@ -3,7 +3,7 @@
 //     [--weeks 1040] [--jobs N] [--force] [--profile <file.json>]
 // Completed indexes live at <cache>/<sim hash>/{events.jsonl.gz,meta.json,snapshots/}.
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
-import { mkdirSync, writeFileSync, existsSync, rmSync, readdirSync, statSync, mkdtempSync, renameSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, readdirSync, statSync, mkdtempSync, renameSync, linkSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { join, resolve } from 'node:path';
 import { availableParallelism } from 'node:os';
@@ -79,6 +79,12 @@ async function build() {
   const hash = simHash(), dir = indexDir(hash);
   mkdirSync(CACHE, { recursive: true });
   reapStaleBuilds();
+  // One build per index at a time: a second build for the same code waits, then finds the index the
+  // first published and keeps it (so a reader never sees it swapped out), unless --force.
+  const release = await lockIndex(hash);
+  try { await publish(); } finally { release(); }
+
+  async function publish() {
   if (existsSync(join(dir, 'events.jsonl.gz')) && !force) {
     console.log(`events: an index for this code (${hash}) already exists at ${dir}; --force rebuilds it`);
     return;
@@ -159,5 +165,41 @@ async function build() {
       process.off('SIGINT', onInt);
       process.off('SIGTERM', onTerm);
     }
+  }
+  }
+}
+
+// Takes <cache>/.lock-<hash> and returns its release. The lock is linked into place already holding
+// this pid, so no reader ever sees it empty. A lock whose pid is gone (or that is past LOCK_MAX_MS)
+// is stale: one waiter takes it over by renaming it aside, which only one rename can win; a live
+// holder is waited on.
+async function lockIndex(hash) {
+  // A lock older than LOCK_MAX_MS is stale whatever its pid says (a recycled pid must not hold builds
+  // forever); an unreadable one younger than LOCK_FRESH_MS may still be a builder's own and is waited on.
+  const LOCK_MAX_MS = 60 * 60 * 1000, LOCK_FRESH_MS = 10 * 1000;
+  const lock = join(CACHE, `.lock-${hash}`), mine = String(process.pid);
+  const temp = `${lock}.${mine}.tmp`;
+  let said = false;
+  for (;;) {
+    writeFileSync(temp, mine);
+    try { linkSync(temp, lock); return () => { try { if (readFileSync(lock, 'utf8') === mine) rmSync(lock, { force: true }); } catch { /* already gone */ } }; }
+    catch (err) { if (err.code !== 'EEXIST') throw err; }
+    finally { rmSync(temp, { force: true }); }
+    let text, age;
+    try { text = readFileSync(lock, 'utf8'); age = Date.now() - statSync(lock).mtimeMs; } catch { continue; }
+    const holder = Number(text);
+    let stale = age > LOCK_MAX_MS;
+    if (!stale && Number.isSafeInteger(holder) && holder > 0) { try { process.kill(holder, 0); } catch (err) { stale = err.code === 'ESRCH'; } }
+    else if (!stale) stale = age > LOCK_FRESH_MS;
+    if (stale) {
+      const aside = `${lock}.stale-${mine}`;
+      try { renameSync(lock, aside); } catch { continue; }
+      // Another waiter may have replaced the stale lock first: put a live one back.
+      if (readFileSync(aside, 'utf8') !== text) { try { linkSync(aside, lock); } catch { /* a newer lock is in place */ } }
+      rmSync(aside, { force: true });
+      continue;
+    }
+    if (!said) { console.log(`events: another build of this index is running (pid ${holder || 'unknown'}); waiting for it`); said = true; }
+    await new Promise((r) => setTimeout(r, 250));
   }
 }

@@ -253,6 +253,8 @@ function automateAll(s) {
   act(s, FUNCTIONS.filter((fn) => fn === 'engineering' || live)
     .filter((fn) => s.automation[fn].level !== 1 || s.automation[fn].model !== model)
     .map((fn) => ({ type: 'setAutomation', fn, level: 1, model })));
+  // It hires through the interview bot as soon as it can.
+  if (!s.policies.ai_interviews && POLICIES.ai_interviews.unlock(s)) dispatch(s, { type: 'setPolicy', id: 'ai_interviews', on: true });
   if (canAffordHire(s, 2600) && s.staff.length < capacity(s)) act(s, hireBest(s, (c) => c.seniority === 'senior' && c.role === 'engineer', (a, b) => skillSum(b) - skillSum(a)));
   if (!s.projects.some((j) => j.kind === 'new')) {
     const res = dispatch(s, startNew(s, 'medium', model));

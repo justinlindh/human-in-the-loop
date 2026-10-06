@@ -21,7 +21,8 @@ export function resolveTarget({ snapshot, event }) {
   if (snapshot) {
     if (!existsSync(snapshot)) throw new Error(`no snapshot at ${snapshot}`);
     const idx = readIndex(hash);
-    const row = idx?.rows.find((r) => r.snapshot === basename(snapshot)) ?? null;
+    // A row names its decision-open state (snapshot) and the state before its tick (preTick).
+    const row = idx?.rows.find((r) => r.snapshot === basename(snapshot) || r.preTick === basename(snapshot)) ?? null;
     if (!row) console.warn(`events: ${basename(snapshot)} is not in the index for this sim code (${hash}); it may come from older code`);
     return { file: snapshot, row };
   }
