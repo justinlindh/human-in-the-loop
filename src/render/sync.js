@@ -784,13 +784,15 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   const glyphSrc = (name) => `${import.meta.env?.BASE_URL ?? '/'}icons/glyphs/${name}.svg`;
   const present = (r) => r && !r.hidden && !r.staff.remote && r.staff.mood !== 'away';
   function showAmbient(d) {
-    const seconds = ambientSeconds(d.text, speed, d.icon);
+    const text = d.short || d.text || '';
+    const seconds = ambientSeconds(text, speed, d.icon);
     const src = glyphSrc(ambientGlyph(d.icon, d.tone));
     const opts = { iconOnly: low(), icon: /^[a-z]+$/.test(d.icon ?? '') ? d.icon : '' };
     if (d.subjectKind === 'company' || !d.subjectId) {
       if (ambientT < companyUntil) return false;
       const L = office.current?.L;
-      labels.note(d.text, src, d.tone, { x: 0, z: L ? -L.D / 6 : 0 }, seconds, { ...opts, float: true });
+      // Company news has no person to say whose it is, so its banner keeps its words on Low too.
+      labels.note(text, src, d.tone, { x: 0, z: L ? -L.D / 6 : 0 }, seconds, { ...opts, iconOnly: false, float: true });
       companyUntil = ambientT + seconds + COMPANY_GAP_S;
       return true;
     }
@@ -798,7 +800,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       const r = recs.get(id);
       if (!present(r) || labels.speaking(r.char.root)) continue;
       speech.admit(r.id, seconds, 0, { moment: true });
-      labels.note(d.text, src, d.tone, r.char.root, seconds, opts);
+      labels.note(text, src, d.tone, r.char.root, seconds, opts);
       return true;
     }
     return false;

@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterAll, afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { createChat } from './chat.js';
+import { B } from '../sim/balance.js';
 
 // The icon manifest is a network asset; the real icon code can use its built-in glyphs.
 vi.hoisted(() => vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({}) }))));
@@ -57,4 +58,19 @@ it('counts a priority reply in the collapsed Yak badge at Important and clears i
   expect(channelBadge.textContent).toBe('');
   head.click();
   expect(badge.classList.contains('show')).toBe(false);
+});
+
+it.each([[true, ''], [false, '1']])('quietYak %s: flavour at the All level leaves the collapsed badge as "%s"', (on, shown) => {
+  B.pacing = { quietYak: on };
+  const root = document.createElement('div');
+  document.body.append(root);
+  const chat = createChat(root);
+  const head = root.querySelector('.chat-head');
+  head.click();
+  expect(chat.el.classList.contains('collapsed')).toBe(true);
+  chat.add({ type: 'chat', channel: 'general', from: 'Sam', text: 'Lunch?', id: 'a' }, 1);
+  expect(head.querySelector('.count').textContent).toBe(shown);
+  chat.add({ type: 'chat', channel: 'incidents', from: '@oncall', text: 'Paged.', id: 'b' }, 1);
+  expect(head.querySelector('.count').textContent).toBe(on ? '1' : '2');
+  delete B.pacing;
 });
