@@ -153,7 +153,7 @@ describe('askRates: fewer events and staff prompts come up', () => {
     expect(founderCall(s, { effects: { teamMeaning: 1 } }, null)).toBe(false);
   });
 
-  it('the office never makes a founder call on any quiet-eligible random event, unless it is the event\'s own default', () => {
+  it('the office never makes a founder call on any quiet-eligible random event, unless every choice is one and it is the default', () => {
     const states = [100000, 2e6].map((cash) => { const s = company(); s.cash = cash; return s; });
     const eligible = Object.values(EVENTS).filter((ev) => ev.random && ev.choices && !ev.quiet && !ev.noExpire && !ev.scripted && cardChance(states[0], ev) < 1);
     expect(eligible.length).toBeGreaterThan(20);
@@ -163,7 +163,8 @@ describe('askRates: fewer events and staff prompts come up', () => {
       for (const subjectId of subjects.length ? subjects.map((p) => p.id) : [null]) {
         const open = ev.choices.map((c, i) => i);
         const pick = carefulChoice(s, ev, open, subjectId);
-        if (pick !== defaultChoiceOf(ev) && founderCall(s, ev.choices[pick], subjectId)) wrong.push(`${ev.id}#${pick}`);
+        const anySafe = open.some((i) => !founderCall(s, ev.choices[i], subjectId));
+        if (founderCall(s, ev.choices[pick], subjectId) && (anySafe || pick !== defaultChoiceOf(ev))) wrong.push(`${ev.id}#${pick}`);
       }
     }
     expect(wrong).toEqual([]);
@@ -187,15 +188,24 @@ describe('askRates: fewer events and staff prompts come up', () => {
     expect(s.chatLog.at(-1).text).toBe('Test card: "Big thing".');
   });
 
-  it('when the best choice is structural, the quiet event takes the ask default instead', () => {
+  it('when the best choice is a founder call, the quiet event takes the best choice that is not, and names it in Yak', () => {
     B.pacing.quietEvents = true;
     const s = company();
     s.cash = 100000;
     EVENTS.__test_best = { id: '__test_best', kind: 'staff', title: 'Test card', subject: null, defaultChoice: 1,
-      choices: [{ label: 'Pivot', effects: { brand: 5, pivot: true } }, { label: 'Nothing', effects: {} }, { label: 'Spend', effects: { brand: 4, cash: -50000 } }] };
+      choices: [{ label: 'Pivot', effects: { brand: 5, pivot: true } }, { label: 'Sulk', effects: { teamMeaning: -2 } },
+        { label: 'Spend', effects: { brand: 4, cash: -50000 } }, { label: 'Shrug', effects: {} }] };
     const ctx = makeCtx(s);
     try { raiseDecision(ctx, '__test_best', null, { quiet: true }); } finally { delete EVENTS.__test_best; }
-    expect(ctx.events).toContainEqual(expect.objectContaining({ type: 'quietEvent', choice: 1 }));
+    expect(ctx.events).toContainEqual(expect.objectContaining({ type: 'quietEvent', choice: 3 }));
+    expect(s.chatLog.at(-1).text).toBe('Test card: "Shrug".');
+  });
+
+  it('when every choice is a founder call, the quiet event takes the ask default', () => {
+    const s = company();
+    s.cash = 100000;
+    const ev = { id: '__test_all', defaultChoice: 1, choices: [{ effects: { pivot: true } }, { effects: { adoptPet: 'dog' } }, { effects: { buyItem: 'espresso' } }] };
+    expect(carefulChoice(s, ev, [0, 1, 2])).toBe(1);
   });
 
   it('off, a rolled event opens its card as today', () => {

@@ -390,11 +390,12 @@ export function restageSystem(ctx) {
 registerSystem('restage', restageSystem, 99);
 registerSystem('moment-talk', momentTalkSystem, 100);
 
-// What the office does with an event nobody saw: the open choice a careful player values most, unless that
-// choice is structural, which the office leaves to the founder by taking the ask default instead.
+// What the office does with an event nobody saw: of the open choices that are not the founder's call, the one
+// a careful player values most. When every choice is the founder's call, it takes the ask default.
 export function carefulChoice(state, ev, open, subjectId = null) {
-  const best = open.reduce((a, i) => (sensibleValue(state, ev.choices[i].effects) > sensibleValue(state, ev.choices[a].effects) ? i : a), open[0]);
-  return founderCall(state, ev.choices[best], subjectId) ? defaultChoiceOf(ev) : best;
+  const safe = open.filter((i) => !founderCall(state, ev.choices[i], subjectId));
+  if (!safe.length) return defaultChoiceOf(ev);
+  return safe.reduce((a, i) => (sensibleValue(state, ev.choices[i].effects) > sensibleValue(state, ev.choices[a].effects) ? i : a), safe[0]);
 }
 
 // A quiet event resolves itself, applied as a resolved card would apply it, with one Yak line saying what
