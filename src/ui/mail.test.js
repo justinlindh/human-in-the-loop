@@ -1,6 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { folderOf, unreadCount, hasOpenChoice, ageText, firstLine, threadOf, weeksLeft, mailBeats, mailOn } from './mail.js';
 import { B } from '../sim/balance.js';
+
+// These cases are the ordinary inbox: every pacing switch off.
+const real = B.pacing;
+beforeEach(() => { B.pacing = {}; });
+afterEach(() => { B.pacing = real; });
 
 // Runs fn with the inbox flag set to `on`, then puts it back.
 const withFlag = (on, fn) => {

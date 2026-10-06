@@ -1,8 +1,11 @@
-import { afterEach, describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect } from 'vitest';
 import { countsAsNew } from './yakCount.js';
 import { B } from '../sim/balance.js';
 
-afterEach(() => { delete B.pacing; });
+// Every switch is off unless a test turns it on.
+const real = B.pacing;
+beforeEach(() => { B.pacing = {}; });
+afterEach(() => { B.pacing = real; });
 
 const chatter = { from: 'Sam', text: 'lunch?' };
 const reply = { ...chatter, replyTo: 'c1', priority: true };

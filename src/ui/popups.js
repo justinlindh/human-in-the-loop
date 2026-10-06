@@ -1,4 +1,4 @@
-import { pAfter, pClear } from './pclock.js';
+import { pAfter, pClear, pnow } from './pclock.js';
 import { h, fmtMoney } from './dom.js';
 import { CHANNEL } from './content.js';
 import { SIMX } from './simapi.js';
@@ -7,6 +7,7 @@ import { icon } from './icons.js';
 import { pressOutlet } from './press.js';
 import { portrait, portraitLive, roleChip } from './widgets.js';
 import { resolutionBlock, backUpTitle } from './incident.js';
+import { pacingOn } from './pacing.js';
 
 const LEADERSHIP_IDS = new Set(['ceo_replace_support', 'four_day_week', 'ai_first_mandate', 'rebrand', 'pivot_pitch', 'open_plan_office',
   'hackathon_week', 'founder_burnout', 'ceo_support_fallout', 'four_day_week_review', 'ai_first_review']);
@@ -14,10 +15,19 @@ const DELAYED = /later|week/i;
 
 const isLeadership = (d) => EVENTS[d.eventId]?.kind === 'leadership' || LEADERSHIP_IDS.has(d.eventId);
 
+// Under oneLaunchCard a new product's card comes after at least this much running play since the last one
+// closed; launches in between wait and join the next card.
+export const LAUNCH_GAP_MS = 90000;
+
+// True for the sim's "<name> launched!" toast when a launch card already tells that news.
+export const launchToastCarded = (names, text) => pacingOn('oneLaunchCard') && names.some((n) => String(text).startsWith(`${n} launched!`));
+
 // Modal layer for decisions and launch results. While a modal is open,
 // toasts dock in its strip so a refused choice's reason shows right under the choices.
 export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = () => null }) {
   const queue = []; // launch results waiting for the screen
+  let playSinceCard = Infinity; // ms of running play since the last launch card closed, for the oneLaunchCard gap
+  let lastT = pnow();
   let launch = null; // { productId, prevSpeed, timers }
   let resumeSpeed = null; // speed to restore after a launch popup that a decision interrupted
   // Above the big Yak overlay, so a card raised while Yak is open can be answered.
@@ -228,6 +238,7 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
     launch.timers.forEach(pClear);
     if ((ctx.controls.getSpeed?.() ?? 0) === 0) ctx.controls.setSpeed?.(launch.prevSpeed);
     launch = null;
+    playSinceCard = 0;
     backdrop.style.display = 'none';
     backdrop.replaceChildren();
     restoreDock();
@@ -235,6 +246,10 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
   }
 
   function update(s, { holdLaunch = false } = {}) {
+    // Running play since the last launch card closed: paused time and time under a card or decision don't count.
+    const t = pnow();
+    if (t > lastT && !shown && !launch && !s.pendingDecision && (ctx.controls.getSpeed?.() ?? 0) > 0) playSinceCard += t - lastT;
+    lastT = t;
     remember(s);
     const d = s.pendingDecision;
     if (d && d !== shown) {
@@ -247,7 +262,17 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
     // A postmortem's resolution can arrive after its decision; redraw with the full summary.
     if (d && d === shown && shownRes && resolutionFor(d, s) !== shownRes) { renderDecision(s, d); return; }
     if (!d && shown) hide();
-    if (!holdLaunch && !shown && !launch && queue.length && !s.gameOver && (ctx.spacing?.ready() ?? true)) {
+    // Under oneLaunchCard a launch that lands while a launch card is open joins that card.
+    if (launch && queue.length && !shown && !holdLaunch && pacingOn('oneLaunchCard')) {
+      const ids = [...new Set([...[].concat(launch.productId), ...queue.splice(0)])];
+      launch.timers.forEach(pClear);
+      resumeSpeed = launch.prevSpeed;
+      launch = null;
+      showBatch(s, ids);
+      return;
+    }
+    const spaced = !pacingOn('oneLaunchCard') || playSinceCard >= LAUNCH_GAP_MS;
+    if (!holdLaunch && !shown && !launch && queue.length && !s.gameOver && spaced && (ctx.spacing?.ready() ?? true)) {
       if (queue.length > 1) { const ids = queue.splice(0); if (!showBatch(s, ids)) queue.length = 0; }
       else while (queue.length && !showLaunch(s, queue.shift()));
     }
