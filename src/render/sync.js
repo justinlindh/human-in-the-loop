@@ -418,11 +418,11 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     }
     // Leaving a desk seat: the route starts from the nearest free cell, which can lie beside the chair
     // in the gap to the next desk. When that first leg would brush other furniture, back out behind
-    // the chair first instead; any other exit keeps its route.
+    // the chair first instead, when the way back is itself clear; any other exit keeps its route.
     else if (from && from !== goal && from.seated && !from.uses && r.path.length && Math.hypot(r.pos.x - from.x, r.pos.z - from.z) < 0.3
       && brushesOther(from, r.pos, r.path[0])) {
       const back = seatApproach(from);
-      r.path = [back, ...walkPath(nav, back, { x: to.x, z: to.z }).slice(1)];
+      if (!nav.isBlocked(back.x, back.z) && !brushesOther(from, r.pos, back)) r.path = [back, ...walkPath(nav, back, { x: to.x, z: to.z }).slice(1)];
     }
     // Starting inside furniture (an item placed where they stood) finds no path: out to the nearest
     // clear point first, then on from there.
