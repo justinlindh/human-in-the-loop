@@ -1,6 +1,7 @@
 import { createYakPacer } from './yak-pacing.js';
 import { createMockSim } from './dev/mockSim.js';
-import { createPacer, createFrameClock, MAX_CATCHUP, MAX_STEP } from './pacing.js';
+import { createPacer, createFrameClock, createAttention, MAX_CATCHUP, MAX_STEP } from './pacing.js';
+import { B } from './sim/balance.js';
 import { autoQuality, deviceTraits, glRendererName } from './quality.js';
 import { registerPwa } from './dev/pwa.js';
 
@@ -98,6 +99,9 @@ async function boot() {
 
   // A tick's non-urgent events trickle out over the week instead of arriving in one frame.
   const pacer = createPacer();
+  // The attention clock: when the sim's queued asks reach the player, and when staged moments may hold the clock.
+  const attention = createAttention(B.attention);
+  const askQueueOn = () => !!B.pacing?.askQueue;
   const dispatch = (action) => {
     const res = sim.dispatch(action);
     window.__hitlHooks?.playerEvents?.(res.events);
@@ -119,6 +123,7 @@ async function boot() {
   let ui = null;
   function startPlaying(state) {
     pacer.reset();
+    attention.reset();
     yakPacer.reset();
     if (realSim) useState(state);
     playing = true;
@@ -129,6 +134,7 @@ async function boot() {
   function showTitle() {
     playing = false;
     pacer.reset();
+    attention.reset();
     yakPacer.reset();
     if (realSim) useState(simMod.createGame({ seed: randomSeed() }));
     ui?.showTitle();
@@ -139,6 +145,8 @@ async function boot() {
     getSpeed: () => speed,
     // True while a spotlight holds the clock (the UI holds its toasts and cards with it).
     spotlightHeld: () => !!spot,
+    // The attention clock while asks are queued (null otherwise): the UI spaces its cards by it.
+    get attention() { return askQueueOn() ? attention : null; },
     // Auto-pause when focus leaves the page (a setting; ui stores it and calls setAutoPause).
     setAutoPause: (on) => { autoPause = on !== false; },
     getAutoPause: () => autoPause,
@@ -287,12 +295,19 @@ async function boot() {
     if (!s || s.key === spotStuck) { spot = null; if (!s) spotStuck = null; return false; }
     // The player opened a menu: the moment plays on, but it no longer holds the clock.
     if (menuOpen) { spotStuck = s.key; spot = null; return false; }
+    const capped = !!B.pacing?.momentCap;
+    // Under the moment cap a moment holds the clock only when the 5 min window allows one, and music
+    // night never holds it; the rest of the moment plays without stopping play.
+    if (capped && spot?.key !== s.key) {
+      if (s.kind === 'music_night' || !attention.momentReady()) { spotStuck = s.key; spot = null; return false; }
+      attention.momentBegun();
+    }
     const add = alone ? dt : 0;
     if (spot?.key !== s.key && Number(s.expectedSeconds) * SPOTLIGHT_SLACK + SPOTLIGHT_EXTRA_S > SPOTLIGHT_CEILING_S) {
       console.warn(`[hitl] spotlight ${s.kind ?? ''} ${s.key} expects ${s.expectedSeconds}s; holding the clock ${SPOTLIGHT_CEILING_S}s at most`);
     }
     spot = spot?.key === s.key ? { ...spot, heldFor: spot.heldFor + add } : { key: s.key, kind: s.kind, heldFor: add };
-    const cap = spotlightCap(s);
+    const cap = capped ? Math.min(spotlightCap(s), attention.momentCap) : spotlightCap(s);
     if (spot.heldFor > cap) {
       console.warn(`[hitl] spotlight ${s.kind ?? ''} ${s.key} held the clock over ${cap}s; letting go`);
       spotStuck = s.key; spot = null; return false;
@@ -304,12 +319,33 @@ async function boot() {
   // Everything that reads the clock lives in logicStep; a frame draws once with its real elapsed time.
   const frameClock = createFrameClock();
   let logic = { menuPause: false, running: false, held: false };
+  // Runs the attention clock for one step: opens the ask it picks and expires the ones that waited too long.
+  function runAttention(dt, running, held) {
+    const s = sim.state;
+    const week = s.week;
+    // The clock always runs (staged moments are paced by it); asks reach it only while the queue is on.
+    const queued = askQueueOn() && !s.gameOver;
+    const asks = queued ? (s.asks ?? []).filter((a) => a.expiresWeek == null || week < a.expiresWeek) : [];
+    const askOpen = !!s.pendingDecision || (s.chatPrompts ?? []).some((p) => !p.resolved)
+      || (s.mail ?? []).some((m) => m.options?.length && !m.resolved && !m.archived);
+    // Only decisions and the game's own cards are beats; the player's own menus pause the clock but do not start a quiet.
+    const out = attention.tick(dt, {
+      running, held, speed, asks, askOpen, decisionOpen: !!s.pendingDecision,
+      modal: !!s.pendingDecision || !!ui?.beatOpen?.(),
+      realTime: B.pacing?.askRealTime !== false, expiry: queued && !!B.pacing?.askExpiry,
+    });
+    // The clock's own actions are the game's, not the player's: they route as game events.
+    const act = (action) => route(sim.dispatch(action).events, sim.state);
+    for (const askId of out.expire) act({ type: 'expireAsk', askId });
+    if (out.present) act({ type: 'presentAsk', askId: out.present });
+  }
   function logicStep(dt) {
     // The UI reports busy while a panel or modal is open (auto-pause for menus).
     const menuPause = ui?.isBusy?.() === true;
     const free = playing && !menuPause && !sim.state.pendingDecision && !sim.state.gameOver && !document.hidden;
     const held = spotlightHold(dt, free && speed > 0, playing && (ui?.playerMenu ? ui.playerMenu() : menuPause));
     const running = free && !held;
+    if (playing) runAttention(dt, running, held);
     if (pacer.step(dt, { speed, running })) {
       route(pacer.schedule(sim.tick()), sim.state);
       pacer.takeDropped();

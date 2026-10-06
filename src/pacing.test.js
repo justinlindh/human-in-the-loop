@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createPacer, createFrameClock, LOGIC_STEP, MAX_CATCHUP, WEEK_SECONDS, MAX_STEP, readSeconds } from './pacing.js';
+import { createPacer, createFrameClock, LOGIC_STEP, MAX_CATCHUP, WEEK_SECONDS, MAX_STEP, readSeconds, createAttention } from './pacing.js';
 import { B } from './sim/balance.js';
 
 const say = (id, staffId, text, replyTo = null) => ({ type: 'say', id, week: 0, staffId, text, toId: null, replyTo });
@@ -191,5 +191,141 @@ describe('fixed-step game loop', () => {
     expect(c.pending).toBeGreaterThan(0);
     c.reset();
     expect(c.pending).toBe(0);
+  });
+});
+
+// Runs the attention clock in one-second frames, answering each ask the moment it opens.
+function drive(att, seconds, asks, opts = {}) {
+  const opened = [];
+  const expired = [];
+  for (let i = 0; i < seconds; i++) {
+    const r = att.tick(1, { asks: asks.slice(), ...opts });
+    for (const id of r.expire) { expired.push([att.playSeconds, id]); asks.splice(asks.findIndex((a) => a.id === id), 1); }
+    if (r.present) { opened.push([att.playSeconds, r.present]); asks.splice(asks.findIndex((a) => a.id === r.present), 1); }
+  }
+  return { opened, expired };
+}
+const ask = (id, priority = 'normal') => ({ id, priority });
+
+describe('attention clock', () => {
+  it('keeps asks at least 90 s apart and opens one at a time', () => {
+    const att = createAttention({ watchWindow: 1e9 });
+    const { opened } = drive(att, 400, [ask('a'), ask('b'), ask('c')], { expiry: false });
+    expect(opened.map((o) => o[1])).toEqual(['a', 'b', 'c']);
+    expect(opened[1][0] - opened[0][0]).toBeGreaterThanOrEqual(90);
+    expect(opened[2][0] - opened[1][0]).toBeGreaterThanOrEqual(90);
+  });
+
+  it('does not open an ask while one is open or a modal is up', () => {
+    expect(drive(createAttention(), 200, [ask('a')], { askOpen: true, expiry: false }).opened).toEqual([]);
+    expect(drive(createAttention(), 200, [ask('a')], { modal: true, expiry: false }).opened).toEqual([]);
+  });
+
+  it('waits 45 s after a modal closes', () => {
+    const att = createAttention();
+    att.tick(1, { modal: true });
+    const { opened } = drive(att, 100, [ask('a')]);
+    expect(opened[0][0]).toBeGreaterThanOrEqual(46);
+  });
+
+  it('spends nothing while the game is not running', () => {
+    const att = createAttention();
+    drive(att, 500, [ask('a')], { running: false });
+    expect(att.playSeconds).toBe(0);
+  });
+
+  it('opens an emergency first, but only after the quiet', () => {
+    const att = createAttention();
+    att.tick(1, { modal: true });
+    att.tick(1, { modal: false });
+    const { opened } = drive(att, 60, [ask('n'), ask('e', 'emergency')], { expiry: false });
+    expect(opened[0][1]).toBe('e');
+    expect(opened[0][0]).toBeGreaterThanOrEqual(46);
+    expect(opened.length).toBe(1);
+  });
+
+  it('expires a non-emergency ask after 180 s of play and never an emergency', () => {
+    const asks = [ask('n'), ask('e', 'emergency')];
+    const { expired } = drive(createAttention(), 400, asks, { askOpen: true, decisionOpen: true });
+    expect(expired).toEqual([[180, 'n']]);
+    expect(asks.map((a) => a.id)).toEqual(['e']);
+  });
+
+  it('does not expire when expiry is off', () => {
+    expect(drive(createAttention(), 400, [ask('n')], { askOpen: true, expiry: false }).expired).toEqual([]);
+  });
+
+  it('keeps a 180 s stretch with no ask in every 10 min', () => {
+    const att = createAttention();
+    const asks = Array.from({ length: 60 }, (_, i) => ask(`a${i}`));
+    const { opened } = drive(att, 3000, asks, { expiry: false });
+    const times = opened.map((o) => o[0]);
+    for (let w = 0; w + 600 <= 3000; w += 600) {
+      const edges = [w, ...times.filter((x) => x >= w && x <= w + 600), w + 600];
+      let best = 0;
+      for (let i = 1; i < edges.length; i++) best = Math.max(best, edges[i] - edges[i - 1]);
+      expect(best).toBeGreaterThanOrEqual(180);
+    }
+  });
+
+  it('shrinks gaps with speed when real time is off, and holds them when it is on', () => {
+    const run = (realTime) => drive(createAttention({ watchWindow: 1e9 }), 600,
+      Array.from({ length: 20 }, (_, i) => ask(`a${i}`)), { speed: 4, realTime, expiry: false }).opened.length;
+    expect(run(true)).toBeLessThan(run(false));
+  });
+
+  it('does not treat the player\'s own menus as beats', () => {
+    // A menu pauses the clock (running false) without a beat: no quiet follows it.
+    const att = createAttention();
+    att.tick(1, { running: true });
+    for (let i = 0; i < 60; i++) att.tick(1, { running: false, modal: false });
+    expect(drive(att, 5, [ask('a')], { expiry: false }).opened[0][0]).toBe(2);
+  });
+
+  it('lets only an open decision block an emergency', () => {
+    const att = createAttention();
+    const asks = [ask('e', 'emergency')];
+    expect(drive(att, 60, asks.slice(), { askOpen: true, expiry: false }).opened.length).toBe(1);
+    expect(drive(createAttention(), 60, [ask('e', 'emergency')], { askOpen: true, decisionOpen: true, expiry: false }).opened).toEqual([]);
+    expect(drive(createAttention(), 60, [ask('n')], { askOpen: true, expiry: false }).opened).toEqual([]);
+  });
+
+  it('runs a staged moment\'s quiet from the end of its hold', () => {
+    const att = createAttention();
+    att.tick(1, { running: true });
+    att.momentBegun();
+    for (let i = 0; i < 25; i++) att.tick(1, { running: false, held: true });
+    const end = att.playSeconds;
+    const { opened } = drive(att, 60, [ask('a')], { expiry: false });
+    expect(opened[0][0] - end).toBe(45);
+  });
+
+  it('runs the quiet from the moment\'s start when it holds nothing', () => {
+    const att = createAttention();
+    att.tick(1, { running: true });
+    att.momentBegun();
+    const { opened } = drive(att, 60, [ask('a')], { expiry: false });
+    expect(opened[0][0] - 1).toBe(45);
+  });
+
+  it('keeps time for staged moments with no asks queued', () => {
+    const att = createAttention();
+    for (let round = 0; round < 3; round++) {
+      expect(att.momentReady()).toBe(true);
+      att.momentBegun();
+      expect(att.momentReady()).toBe(false);
+      drive(att, 301, [], { asks: [] });
+    }
+  });
+
+  it('allows one staged moment per 5 min', () => {
+    const att = createAttention();
+    expect(att.momentReady()).toBe(true);
+    att.momentBegun();
+    drive(att, 200, []);
+    expect(att.momentReady()).toBe(false);
+    drive(att, 101, []);
+    expect(att.momentReady()).toBe(true);
+    expect(att.momentCap).toBe(25);
   });
 });

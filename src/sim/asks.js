@@ -109,8 +109,17 @@ registerAction('presentAsk', (ctx, { askId } = {}) => {
   if (ask.kind === 'decision' && state.pendingDecision) return { ok: false, reason: 'Finish the open decision first' };
   removeAsk(state, ask.id);
   state.flags.lastAskWeek = state.week;
+  const mailSeq = state.flags.mailSeq ?? 0;
+  const promptSeq = state.flags.promptSeq ?? 0;
   // A candidate whose moment has passed (its subject left, its era ended) opens nothing.
-  return { ok: true, opened: !!open(ctx, ask) };
+  const opened = !!open(ctx, ask);
+  if (opened) {
+    // New mail goes to the front of the inbox; new prompts go to the end of the list.
+    const mailId = ask.kind === 'letter' && (state.flags.mailSeq ?? 0) > mailSeq ? state.mail[0]?.id ?? null : null;
+    const promptId = ask.kind === 'prompt' && (state.flags.promptSeq ?? 0) > promptSeq ? state.chatPrompts.at(-1)?.id ?? null : null;
+    ctx.emit({ type: 'askPresented', askId: ask.id, kind: ask.kind, priority: ask.priority, mailId, promptId });
+  }
+  return { ok: true, opened };
 });
 
 // What an unanswered ask does: its default choice, or a letter's ignore outcome. Returns the title and
