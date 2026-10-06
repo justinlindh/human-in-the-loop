@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { folderOf, unreadCount, hasOpenChoice, ageText, firstLine, threadOf, weeksLeft, mailBeats, mailOn } from './mail.js';
+import { B } from '../sim/balance.js';
+
+// Runs fn with the inbox flag set to `on`, then puts it back.
+const withFlag = (on, fn) => {
+  const had = Object.hasOwn(B.mail ?? {}, 'enabled');
+  const prev = B.mail?.enabled;
+  B.mail = { ...(B.mail ?? {}), enabled: on };
+  try { fn(); } finally { if (had) B.mail.enabled = prev; else delete B.mail.enabled; }
+};
 
 const mail = (o = {}) => ({ id: 'm1', kind: 'k', week: 10, from: { name: 'A', org: 'B' }, category: 'vendor', subject: 'Hi', body: 'One.\n\nTwo.', read: null, options: [], expiresWeek: null, resolved: null, archived: false, ...o });
 const state = (...m) => ({ week: 12, mail: m });
@@ -18,9 +27,17 @@ describe('folders and the badge', () => {
     expect(unreadCount({ week: 1 })).toBe(0);
   });
 
-  it('shows the envelope once a game holds mail', () => {
-    expect(mailOn({ mail: [] })).toBe(false);
-    expect(mailOn(state(mail()))).toBe(true);
+  it('shows the envelope once a game holds mail while the inbox is off', () => {
+    withFlag(false, () => {
+      expect(mailOn({ mail: [] })).toBe(false);
+      expect(mailOn(state(mail()))).toBe(true);
+    });
+  });
+
+  it('shows the envelope in every game while the inbox is on', () => {
+    withFlag(true, () => {
+      expect(mailOn({ mail: [] })).toBe(true);
+    });
   });
 });
 
