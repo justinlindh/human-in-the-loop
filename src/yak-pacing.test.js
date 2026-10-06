@@ -108,6 +108,21 @@ it.each([1, 2, 4])('uses the weekly pacer clock and freezes queue age on pause a
   expect(p.queued).toBe(0);
 });
 
+it('keeps flavour posts 20 s apart under quietYak and as today with it off', () => {
+  const saved = B.pacing;
+  const second = (on) => {
+    B.pacing = { ...saved, quietYak: on };
+    const p = createYakPacer(); p.enqueue([msg('a'), msg('b')]);
+    p.step(0, true);
+    for (let t = 1; t <= 40; t++) if (p.step(1, true).length) return t;
+    return null;
+  };
+  try {
+    expect(second(false)).toBeLessThan(10);
+    expect(second(true)).toBe(20);
+  } finally { B.pacing = saved; }
+});
+
 it('paces Yak chats through the Yak pacer, as the game does', () => {
   const frame = 0.1;
   const { metrics, timeline } = simulatePacing({ seed: 3, minutes: 12, frame });

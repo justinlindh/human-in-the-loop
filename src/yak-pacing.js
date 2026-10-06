@@ -24,7 +24,9 @@ export function createYakPacer() {
   const omit = (e) => { if (e.id) omitted.set(e.id, now); };
   function reserve(e) {
     const words = String(e.text ?? '').trim().split(/\s+/).filter(Boolean).length;
-    free = now + Math.max(B.yakMinGapSeconds, words * B.readSecondsPerWord + B.yakReadingGapSeconds);
+    // Under quietYak a flavour post keeps the next one back for B.attention.yakGap (20 s when unset).
+    const gap = B.pacing?.quietYak && !pri(e) ? Math.max(B.yakMinGapSeconds, B.attention?.yakGap ?? 20) : B.yakMinGapSeconds;
+    free = now + Math.max(gap,words * B.readSecondsPerWord + B.yakReadingGapSeconds);
   }
   function prune(state) {
     const parents = new Set();
