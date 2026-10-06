@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { B } from '../../src/sim/balance.js';
 import { makeCtx } from '../../src/sim/registry.js';
+import { dispatch } from '../../src/sim/index.js';
 import { eventChance, raiseDecision, eligibleEvents, eventsSystem, hasStakes, cardChance } from '../../src/sim/events.js';
 import { postmortemSeverity } from '../../src/sim/incidents.js';
 import { moonshotSystem } from '../../src/sim/moonshot.js';
@@ -28,7 +29,11 @@ let keepPacing;
 let keepMail;
 let keepScripted;
 let keepRates;
-beforeEach(() => { keepPacing = { ...B.pacing }; keepMail = { ...B.mail }; keepScripted = { ...B.askRates.scriptedChance }; keepRates = { ...B.askRates }; });
+// These tests read decisions and mail straight off the tick, so the ask queue is off unless a test turns it on.
+beforeEach(() => {
+  keepPacing = { ...B.pacing }; keepMail = { ...B.mail }; keepScripted = { ...B.askRates.scriptedChance }; keepRates = { ...B.askRates };
+  Object.assign(B.pacing, { askQueue: false, askExpiry: false });
+});
 afterEach(() => {
   Object.assign(B.pacing, keepPacing); Object.assign(B.mail, keepMail); Object.assign(B.askRates, keepRates);
   B.askRates.scriptedChance = Object.assign(keepRates.scriptedChance, keepScripted);
@@ -378,6 +383,36 @@ describe('askRates: the acquisition offer is a scripted beat', () => {
     delete s.flags.lastDecisionWeek;
     eventsSystem(makeCtx(s));
     expect(s.pendingDecision?.eventId).not.toBe('acquisition_offer');
+  });
+
+  it('with the queue on, no new offer rolls while one is waiting', () => {
+    B.pacing.askRates = true;
+    B.pacing.askQueue = true;
+    B.askRates.scriptedChance.acquisition_offer = 1;
+    const s = ready();
+    eventsSystem(makeCtx(s));
+    const offers = () => s.asks.filter((a) => a.ref?.eventId === 'acquisition_offer').length;
+    expect(offers()).toBe(1);
+    delete s.flags.cd_acquisition_offer;
+    s.week += 60;
+    delete s.flags.lastPauseWeek;
+    delete s.flags.lastDecisionWeek;
+    eventsSystem(makeCtx(s));
+    expect(offers()).toBe(1);
+  });
+
+  it('with the queue on, a waiting offer opens nothing once the company no longer qualifies', () => {
+    B.pacing.askRates = true;
+    B.pacing.askQueue = true;
+    B.askRates.scriptedChance.acquisition_offer = 1;
+    const s = ready();
+    eventsSystem(makeCtx(s));
+    const ask = s.asks.find((a) => a.ref?.eventId === 'acquisition_offer');
+    s.products[0].mrr = 0;
+    const r = dispatch(s, { type: 'presentAsk', askId: ask.id });
+    expect(r).toMatchObject({ ok: true, opened: false });
+    expect(s.pendingDecision).toBe(null);
+    expect(s.asks.some((a) => a.id === ask.id)).toBe(false);
   });
 
   it('off, the offer stays a random event', () => {

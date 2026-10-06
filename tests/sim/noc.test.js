@@ -8,7 +8,9 @@ import { purchaseProblem, upgradeProblem, autoArrange, frontCells, footprintCell
 import { catchChance, fixCapacity, landIncident, incidentsSystem } from '../../src/sim/incidents.js';
 import { nocCatch, nocSystem } from '../../src/sim/noc.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
-import { game, addStaff, addProduct, withItem, expectFail, placeAction } from './helpers.js';
+import { game, addStaff, addProduct, withItem, expectFail, placeAction, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 const fakeStorage = () => {
   const m = new Map();

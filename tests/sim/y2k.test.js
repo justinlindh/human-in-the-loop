@@ -7,6 +7,9 @@ import { B } from '../../src/sim/balance.js';
 import { raiseDecision } from '../../src/sim/events.js';
 import { dotcomEffect } from '../../src/sim/dotcom.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
+import { pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 const game = () => createGame({ seed: 17, startEra: 'dotcom' });
 const at = (s, year) => { while (calendarDate(s).year < year) s.week++; return s; };

@@ -11,7 +11,7 @@ import { saveGame, loadGame } from '../../src/save/save.js';
 import { game, addStaff, addProduct, pinPacing } from './helpers.js';
 
 // Postmortems from severity 4; quietEvents' severity-5 threshold is covered in pacing-rates.test.js.
-pinPacing({ quietEvents: false });
+pinPacing({ quietEvents: false, askQueue: false, askExpiry: false });
 
 const step = (s, n = 1) => { const ev = []; for (let i = 0; i < n; i++) { const c = makeCtx(s); incidentsSystem(c); ev.push(...c.events); s.week++; } return ev; };
 const quiet = (s) => { for (const fn of Object.keys(s.automation)) s.automation[fn].level = 0; return s; };

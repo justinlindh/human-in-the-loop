@@ -11,7 +11,7 @@ import { OFFICE_NODS, cuttable, consultantRating } from '../../src/data/office-n
 import { game, passOfficeGates, addStaff, pinPacing } from './helpers.js';
 
 // The office classics as cards; quietEvents' card-less printer is covered in pacing-rates.test.js.
-pinPacing({ quietEvents: false });
+pinPacing({ quietEvents: false, askQueue: false, askExpiry: false });
 
 const N = B.nods;
 const IDS = OFFICE_NODS.map((e) => e.id);

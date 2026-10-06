@@ -8,7 +8,9 @@ import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
 import { EVENTS, INCIDENT_EVENT } from '../../src/data/events.js';
 import { MODIFIER_KEYS } from '../../src/data/modifiers.js';
-import { game, addStaff, addProduct, expectFail } from './helpers.js';
+import { game, addStaff, addProduct, expectFail, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 // These cases open every event as a card; quietEvents' card-less path has its own tests in pacing-rates.test.js.
 let keepQuiet;

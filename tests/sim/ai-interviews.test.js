@@ -9,7 +9,9 @@ import { refreshCandidates, STATS } from '../../src/sim/staff.js';
 import { aiInterviewSystem } from '../../src/sim/ai-interviews.js';
 import { raiseDecision } from '../../src/sim/events.js';
 import { staffUpkeep } from '../../src/sim/staff.js';
-import { addDesks, addStaff, expectFail } from './helpers.js';
+import { addDesks, addStaff, expectFail, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 // An Agents-era company with desks free, cash in hand and the policy unlocked.
 function company(seed = 3) {

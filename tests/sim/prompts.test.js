@@ -9,7 +9,9 @@ import { PROMPTS } from '../../src/data/prompts.js';
 import { eraAllowsText } from '../../src/sim/eras.js';
 import { EVENTS } from '../../src/data/events.js';
 import { fireEvent, resolveSubjects } from '../../src/sim/events.js';
-import { game, addStaff, addDesks, addProduct } from './helpers.js';
+import { game, addStaff, addDesks, addProduct, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 // These cases cover the prompt roll at its full rate; askRates' cut has its own test in pacing-rates.test.js.
 let keepAskRates;

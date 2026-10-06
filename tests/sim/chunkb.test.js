@@ -11,7 +11,9 @@ import { productAppeal } from '../../src/sim/products.js';
 import { B } from '../../src/sim/balance.js';
 import { EVENTS } from '../../src/data/events.js';
 import { INCENTIVES } from '../../src/data/incentives.js';
-import { game, classicGame, addStaff, addProduct, addDesks, expectFail } from './helpers.js';
+import { game, classicGame, addStaff, addProduct, addDesks, expectFail, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 const run = (s, sys) => { const c = makeCtx(s); sys(c); return c.events; };
 const choose = (s, label) => {

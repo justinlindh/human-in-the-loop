@@ -6,7 +6,9 @@ import { projectsSystem } from '../../src/sim/projects.js';
 import { newInventory, sellBoxes, batchQuote } from '../../src/sim/boxed.js';
 import { raiseDecision } from '../../src/sim/events.js';
 import { EVENTS } from '../../src/data/events.js';
-import { addProduct } from './helpers.js';
+import { addProduct, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 const game = () => createGame({ seed: 17, startEra: 'preinternet' });
 const product = (s) => {

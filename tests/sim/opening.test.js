@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { createGame, dispatch, tick } from '../../src/sim/index.js';
 import { EVENTS } from '../../src/data/events.js';
 import { OPENING_BEATS } from '../../src/sim/projects.js';
+import { pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 const isBeat = (e) => e.type === 'say' && OPENING_BEATS.some((b) => b.say?.includes(e.text));
 

@@ -12,7 +12,9 @@ import { checkGoals } from '../../src/sim/goals.js';
 import { EVENTS } from '../../src/data/events.js';
 import { chatAppName } from '../../src/data/early-eras.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
-import { addProduct } from './helpers.js';
+import { addProduct, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 const game = () => createGame({ seed: 17, startEra: 'web2' });
 const start = (s, angle = 'web') => {

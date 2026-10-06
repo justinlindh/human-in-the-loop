@@ -5,7 +5,9 @@ import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
 import { processScheduled } from '../../src/sim/effects.js';
 import { INCIDENT_EVENT } from '../../src/data/events.js';
-import { game, addStaff, addProduct, expectFail } from './helpers.js';
+import { game, addStaff, addProduct, expectFail, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 const run = (s, n = 1) => { const ev = []; for (let i = 0; i < n; i++) { const c = makeCtx(s); incidentsSystem(c); ev.push(...c.events); s.week++; } return ev; };
 

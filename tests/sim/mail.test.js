@@ -9,7 +9,9 @@ import { EVENTS } from '../../src/data/events.js';
 import { AMBIENT, MAIL_TEMPLATES, EVENT_MAIL, REPLY_ALL } from '../../src/data/mail.js';
 import { eraAllowsText } from '../../src/sim/eras.js';
 import { botTurn } from '../../src/sim/bots.js';
-import { game, addStaff, addDesks, addProduct, expectFail } from './helpers.js';
+import { game, addStaff, addDesks, addProduct, expectFail, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 // These cases cover the full inbox; letterMail's letters-only inbox has its own tests in pacing-rates.test.js.
 let keepLetterMail;

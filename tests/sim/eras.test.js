@@ -11,7 +11,9 @@ import { ERAS } from '../../src/data/eras.js';
 import { EVENTS } from '../../src/data/events.js';
 import { comboFit } from '../../src/data/combos.js';
 import { B } from '../../src/sim/balance.js';
-import { classicGame as game, addProduct } from './helpers.js';
+import { classicGame as game, addProduct, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 const toWeek = (s, w) => { for (const c of [calendarStart]) { while (s.week < w) { s.week++; c(makeCtx(s)); } } return s; };
 

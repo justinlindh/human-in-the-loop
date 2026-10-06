@@ -12,7 +12,9 @@ import { generateStaff } from '../../src/sim/staff.js';
 import { robotSystem, robotResentment, robotRefusal, automationShare, calmRobot } from '../../src/sim/robot.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
 import { FUNCTIONS } from '../../src/sim/state.js';
-import { game, classicGame, addStaff, placeAction, withItem } from './helpers.js';
+import { game, classicGame, addStaff, placeAction, withItem, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 const R = B.robot;
 const withRobotB = (over, fn) => {

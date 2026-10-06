@@ -9,7 +9,7 @@ import { EVENTS } from '../../src/data/events.js';
 import { game, classicGame, addStaff, addProduct, pinPacing } from './helpers.js';
 
 // The summit as a card; quietEvents' card-less summit is covered in pacing-rates.test.js.
-pinPacing({ quietEvents: false });
+pinPacing({ quietEvents: false, askQueue: false, askExpiry: false });
 
 const run = (s) => { const c = makeCtx(s); annualSystem(c); return c.events; };
 const atWeekOfYear = (s, year, w) => { s.week = year * 52 + w - 1; };

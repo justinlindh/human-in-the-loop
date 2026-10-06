@@ -8,12 +8,14 @@ import { calendarStart } from '../../src/sim/vendors.js';
 import { newInventory, sellBoxes, batchQuote, patchQuote, preinternetEffect, preinternetStep, ageInstalls } from '../../src/sim/boxed.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
 import { FUNDING_IDS } from '../../src/data/funding.js';
-import { addProduct } from './helpers.js';
+import { addProduct, pinPacing } from './helpers.js';
 import { economySystem, weeklyCosts, weeklyRevenue, recurringRevenue } from '../../src/sim/economy.js';
 import { dotcomStep, dotcomDecisionOpen } from '../../src/sim/dotcom.js';
 import { assertFinite } from '../../src/sim/bots.js';
 import { raiseDecision } from '../../src/sim/events.js';
 import { scoreRun } from '../../src/sim/endgame.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 const game = () => createGame({ seed: 17, startEra: 'preinternet' });
 const product = (s) => {

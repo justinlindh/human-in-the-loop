@@ -13,7 +13,7 @@ import { CATEGORIES } from '../../src/data/categories.js';
 import { pinPacing } from './helpers.js';
 
 // Conference invitations as cards; quietEvents' card-less expo is covered in pacing-rates.test.js.
-pinPacing({ quietEvents: false });
+pinPacing({ quietEvents: false, askQueue: false, askExpiry: false });
 
 const storage = () => {
   const data = new Map();

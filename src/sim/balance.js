@@ -242,7 +242,7 @@ export const B = {
   // Pacing on the wall clock (#1639): one revert switch per part. true is the new behaviour, false restores
   // the old one for that part alone; a switch whose part has not been built yet does nothing.
   pacing: {
-    askQueue: false, askExpiry: false, askRealTime: true, momentCap: true, askRates: true, letterMail: true, quietEvents: true,
+    askQueue: true, askExpiry: true, askRealTime: true, momentCap: true, askRates: true, letterMail: true, quietEvents: true,
     quietToasts: true, oneLaunchCard: true, unlockPips: true, advisorGlow: true, quietYak: true, mailArchive: true, deskBubbles: true,
     shownExpiry: true,
   },
@@ -268,7 +268,7 @@ export const B = {
   // A random event that plays out quietly takes the careful player's best choice unless that choice is
   // structural (src/sim/value.js), which includes a modifier over structuralWeeks or a cash swing over
   // structuralCashShare of the cash in hand; then it takes the ask default.
-  askRates: { chatPromptChance: 0.0029, cardChance: 0.006, stakesCardMult: 3, stakesValue: 1, scriptedChance: { acquisition_offer: 0.016 },
+  askRates: { chatPromptChance: 0.0029, cardChance: 0.006, stakesCardMult: 3, stakesValue: 1, scriptedChance: { acquisition_offer: 0.012 },
     structuralWeeks: 13, structuralCashShare: 0.1 },
   // letterChance: the weekly roll for an outside letter under B.pacing.letterMail, in place of actionChance.
   mail: {

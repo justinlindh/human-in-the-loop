@@ -6,7 +6,9 @@ import { EVENTS } from '../../src/data/events.js';
 import { checkUnlocks } from '../../src/sim/unlocks.js';
 import { refreshCandidates, capacity } from '../../src/sim/staff.js';
 import { aiInterviewSystem, TELLS, DECOYS } from '../../src/sim/ai-interviews.js';
-import { addDesks, addStaff, expectFail } from './helpers.js';
+import { addDesks, addStaff, expectFail, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 // An Agents-era company with the policy on and calibrated, desks free and cash in hand.
 function company(seed = 3) {

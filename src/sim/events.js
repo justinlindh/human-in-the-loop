@@ -256,6 +256,8 @@ function scriptedEvents(ctx) {
   const h = helpers(state);
   for (const ev of Object.values(EVENTS)) {
     if (!ev.scripted || (state.flags[`cd_${ev.id}`] ?? -1) > state.week || !eventFitsEra(state, ev) || !ev.when(state, h)) continue;
+    // One of each at a time: no new roll while the last one still waits in the ask queue.
+    if (state.asks?.some((a) => a.ref?.eventId === ev.id)) continue;
     if (!chance(ctx.rng, B.askRates.scriptedChance[ev.id] ?? 1)) continue;
     const subjects = resolveSubjects(state, ev);
     if (ev.subject !== null && !subjects.length) continue;
