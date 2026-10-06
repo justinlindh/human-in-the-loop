@@ -21,7 +21,7 @@ import { createGrowthMoments } from './growth-moments.js';
 import { createOfficeGrowth, promotionWeek } from './growth-office.js';
 import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { holdSeconds } from './reading.js';
-import { ambientCarriers, ambientGlyph, ambientListener, ambientSeconds } from './ambient.js';
+import { REPLY_ALL, ambientCarriers, ambientGlyph, ambientListener, ambientSeconds, createAmbientQueue } from './ambient.js';
 import { lookYaw } from './turn.js';
 import { pickSpot, spotDebug, spotRing } from './spots.js';
 import { between, draw, fixed } from './rand.js';
@@ -775,15 +775,19 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
 
   // Status news (ui's 'hitl:ambient'): a bubble over the first carrier in the office who isn't
   // mid-line, or a floating label over the room for company news. News takes the next speech slot,
-  // so chatter waits for it. Claimed only when drawn; the rest stays a toast.
+  // so chatter waits for it. News whose carrier is busy, or that meets a company banner already up,
+  // is claimed and waits in `waiting` for a free slot. Only news with nobody in the office to carry
+  // it stays a toast. A reply-all storm is a quick run of envelopes over different desks.
   const COMPANY_GAP_S = 2;
   let companyUntil = 0, ambientT = 0;
-  function ambient(d) {
-    if (!d || !lastState) return false;
+  const waiting = createAmbientQueue();
+  const glyphSrc = (name) => `${import.meta.env?.BASE_URL ?? '/'}icons/glyphs/${name}.svg`;
+  const present = (r) => r && !r.hidden && !r.staff.remote && r.staff.mood !== 'away';
+  function showAmbient(d) {
     const seconds = ambientSeconds(d.text, speed, d.icon);
-    const src = `${import.meta.env?.BASE_URL ?? '/'}icons/glyphs/${ambientGlyph(d.icon, d.tone)}.svg`;
+    const src = glyphSrc(ambientGlyph(d.icon, d.tone));
     const opts = { iconOnly: low(), icon: /^[a-z]+$/.test(d.icon ?? '') ? d.icon : '' };
-    if (d.subjectKind === 'company') {
+    if (d.subjectKind === 'company' || !d.subjectId) {
       if (ambientT < companyUntil) return false;
       const L = office.current?.L;
       labels.note(d.text, src, d.tone, { x: 0, z: L ? -L.D / 6 : 0 }, seconds, { ...opts, float: true });
@@ -792,12 +796,38 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     }
     for (const id of ambientCarriers(d, lastState)) {
       const r = recs.get(id);
-      if (!r || r.hidden || r.staff.remote || r.staff.mood === 'away' || labels.speaking(r.char.root)) continue;
+      if (!present(r) || labels.speaking(r.char.root)) continue;
       speech.admit(r.id, seconds, 0, { moment: true });
       labels.note(d.text, src, d.tone, r.char.root, seconds, opts);
       return true;
     }
     return false;
+  }
+  function replyAll() {
+    const seated = [...recs.values()].filter((r) => present(r) && r.char.seated)
+      .map((r) => [between(0, 1, 'fx'), r]).sort((a, b) => a[0] - b[0]).map(([, r]) => r);
+    if (!seated.length) return false;
+    seated.slice(0, REPLY_ALL.count).forEach((r, i) => {
+      const at = ambientT + i * REPLY_ALL.gapS;
+      waiting.push({ envelope: r, at }, at);
+    });
+    return true;
+  }
+  function showWaiting(item) {
+    if (!item.envelope) return showAmbient(item);
+    const r = item.envelope;
+    if (ambientT < item.at) return false;
+    if (present(r) && !labels.speaking(r.char.root)) labels.note('', glyphSrc('mail'), 'info', r.char.root, REPLY_ALL.holdS, { iconOnly: true, icon: 'mail' });
+    return true;
+  }
+  function ambient(d) {
+    if (!d || !lastState) return false;
+    if (d.topic === 'replyall') return replyAll();
+    if (showAmbient(d)) return true;
+    const company = d.subjectKind === 'company' || !d.subjectId;
+    if (!company && !ambientCarriers(d, lastState).some((id) => present(recs.get(id)))) return false;
+    waiting.push(d, ambientT);
+    return true;
   }
   const onAmbient = ambientListener(ambient);
   if (typeof addEventListener === 'function') addEventListener('hitl:ambient', onAmbient);
@@ -817,6 +847,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   function updateVoices(dt) {
     voiceT += dt;
     ambientT += dt;
+    if (waiting.size && lastState) waiting.drain(ambientT, showWaiting);
     for (const r of voices) {
       const v = r.voice;
       if (!v || !recs.has(r.id) || r.hidden) { r.char.setTalk(0); r.voice = null; voices.delete(r); continue; }

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { existsSync } from 'node:fs';
-import { AMBIENT_ICON, CHECK_S, ambientCarriers, ambientGlyph, ambientListener, ambientSeconds, deskBubblesOn } from './ambient.js';
+import { AMBIENT_ICON, CHECK_S, REPLY_ALL, WAIT_S, ambientCarriers, ambientGlyph, ambientListener, ambientSeconds, createAmbientQueue, deskBubblesOn } from './ambient.js';
 
 const event = (detail) => ({ detail, preventDefault: vi.fn() });
 
@@ -44,6 +44,33 @@ describe('ambient status news', () => {
     for (const glyph of Object.values(AMBIENT_ICON)) expect(existsSync(`public/icons/glyphs/${glyph}.svg`), glyph).toBe(true);
     expect(ambientGlyph('nope', 'bad')).toBe('toast.bad');
     expect(existsSync('public/icons/glyphs/toast.bad.svg')).toBe(true);
+  });
+
+  it('keeps waiting news until a slot frees, oldest first, and drops it after WAIT_S', () => {
+    const q = createAmbientQueue();
+    q.push('a', 0); q.push('b', 1);
+    const shown = [];
+    let free = false;
+    const show = (x) => { if (!free) return false; shown.push(x); return true; };
+    q.drain(3, show);
+    expect(q.size).toBe(2);
+    free = true;
+    q.drain(4, show);
+    expect(shown).toEqual(['a', 'b']);
+    expect(q.size).toBe(0);
+    q.push('late', 10);
+    free = false;
+    q.drain(10 + WAIT_S + 0.1, show);
+    expect(q.size).toBe(0);
+    expect(shown).toEqual(['a', 'b']);
+  });
+
+  it('runs a reply-all storm as a few quick envelopes, about four seconds in all', () => {
+    const total = (REPLY_ALL.count - 1) * REPLY_ALL.gapS + REPLY_ALL.holdS;
+    expect(REPLY_ALL.count).toBeGreaterThanOrEqual(3);
+    expect(total).toBeGreaterThan(3);
+    expect(total).toBeLessThan(5);
+    expect(existsSync('public/icons/glyphs/mail.svg')).toBe(true);
   });
 
   it('holds an all-clear check briefly and other news for its reading time', () => {
