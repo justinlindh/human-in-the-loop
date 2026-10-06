@@ -7,6 +7,7 @@ import { B } from './balance.js';
 import { adjacencyLinks, itemBonus } from './bonus.js';
 import { eraAtLeast } from './eras.js';
 import { newRobot } from './state.js';
+import { boomboxPlaced, boomboxSold } from './radio.js';
 
 const key = (x, y) => `${x},${y}`;
 
@@ -372,6 +373,7 @@ export function placeNow(ctx, itemId, spot) {
   state.flags.lastItemId = itemId;
   if (itemId === 'desk') assignSeats(state);
   if (itemId === 'office_robot') state.robot ??= newRobot();
+  if (itemId === 'boombox') boomboxPlaced(ctx);
   if (it.kind === 'shop') {
     ctx.emit({ type: 'toast', text: `New in the office: ${it.name}.`, tone: 'good' });
     emitChat(ctx, { channel: 'random', from: '@officebot', text: `The new ${it.name} has arrived. Please be nice to it.` });
@@ -435,6 +437,7 @@ registerAction('sellItem', (ctx, { id }) => {
   state.office.placed = state.office.placed.filter((p) => p !== placed);
   if (placed.itemId === 'desk') assignSeats(state);
   if (placed.itemId === 'office_robot') state.robot = null;
+  if (placed.itemId === 'boombox') boomboxSold(ctx);
   ctx.emit({ type: 'toast', text: `Sold the ${it.name} for $${refund.toLocaleString('en-US')}.`, tone: 'info' });
   return { ok: true };
 });

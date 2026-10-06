@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`keeps the default founding flow and complete state for bootstrapped > state 1`] = `"8cfd57c6c61e9b29cb9233efc0b2a8bfe360a988c2693eb2a30157b7ea24dc3f"`;
+exports[`keeps the default founding flow and complete state for bootstrapped > state 1`] = `"d8aa626b2a0b608848e20c6187ce24d7a83ddb77c0d2329d9f6a8ad94dbfa63e"`;
 
 exports[`keeps the default founding flow and complete state for bootstrapped 1`] = `
 {
@@ -207,7 +207,7 @@ exports[`keeps the default founding flow and complete state for bootstrapped 1`]
 }
 `;
 
-exports[`keeps the default founding flow and complete state for family > state 1`] = `"f3a6cefc3a6e2c15d948bf9a0f6995c0df0f5a8de929617c1e04950cfb681982"`;
+exports[`keeps the default founding flow and complete state for family > state 1`] = `"2efa326ef21ba8ae0f43f70c471aa64c03f8b9a6d77f99a42a5f301d15e5efbf"`;
 
 exports[`keeps the default founding flow and complete state for family 1`] = `
 {
@@ -414,7 +414,7 @@ exports[`keeps the default founding flow and complete state for family 1`] = `
 }
 `;
 
-exports[`keeps the default founding flow and complete state for preseed > state 1`] = `"a4b5ead1cf6c8a886e0b2f1e2eca55909bba841b4b7bf988d937fd2ed2df668f"`;
+exports[`keeps the default founding flow and complete state for preseed > state 1`] = `"0e0b438151dda1c5c1cd5068f00e777165d2c80e4f83a0c62599b2f5ac8d1142"`;
 
 exports[`keeps the default founding flow and complete state for preseed 1`] = `
 {

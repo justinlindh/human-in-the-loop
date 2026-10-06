@@ -404,7 +404,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     get spotlights() { return staff?.spotlights ?? null; },
     endSpotlight() { return staff?.endSpotlight() ?? false; },
     // Where the camera looks now, and its zoom.
-    view() { const t = rig.target; return { x: t.x, y: t.y, z: t.z, zoom: rig.zoom }; },
+    // officeScale: how much wider a zoom-1 view is than the Office Floor's, so a close shot asks for
+    // zoom * officeScale (capped at zoomMax), as the moment camera does.
+    view() { const t = rig.target; return { x: t.x, y: t.y, z: t.z, zoom: rig.zoom, officeScale: rig.officeScale, zoomMax: rig.zoomMax }; },
     focusStaff(id) {
       const p = staff?.positionOf(id);
       if (p) rig.focus({ x: p.x, y: 0.6, z: p.z }, 1.9);
