@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Writes the trailer's pinned game states (scripts/trailer/pins.js) into scripts/trailer/snapshots/.
-// Replays each source game under capture, gzips the state it ends on, and records where it came from
+// Writes a trailer's pinned game states into its PIN_DIR (scripts/trailer/snapshots/ for the main trailer, from
+// scripts/trailer/pins.js). Replays each source game under capture, gzips the state it ends on, and records where it came from
 // in pins.json. Run it when a sim change moves a beat's subject, then rebuild the trailer.
 //
 //   node scripts/trailer/pin.mjs [--trailer main|era] [name ...]
@@ -23,8 +23,14 @@ const TRAILERS = { main: 'scripts/trailer', era: 'scripts/reels/era-trailer' };
 if (!TRAILERS[trailer]) { console.error(`pin: unknown --trailer ${trailer} (one of ${Object.keys(TRAILERS).join(', ')})`); process.exit(1); }
 const configPath = join(root, TRAILERS[trailer], 'config.js');
 if (!existsSync(configPath)) { console.error(`pin: ${TRAILERS[trailer]}/config.js does not exist`); process.exit(1); }
-const { PIN_SOURCES, PIN_DIR = DEFAULT_PIN_DIR } = await import(pathToFileURL(configPath).href);
+const config = await import(pathToFileURL(configPath).href);
+const { PIN_SOURCES } = config;
 if (!PIN_SOURCES) { console.error(`pin: ${TRAILERS[trailer]}/config.js exports no PIN_SOURCES`); process.exit(1); }
+// Another trailer must name its own directory: a missing or shared one would overwrite the main trailer's pins.
+const PIN_DIR = trailer === 'main' ? DEFAULT_PIN_DIR : config.PIN_DIR;
+if (trailer !== 'main' && (typeof PIN_DIR !== 'string' || PIN_DIR === DEFAULT_PIN_DIR)) {
+  console.error(`pin: ${TRAILERS[trailer]}/config.js must export its own PIN_DIR (not ${DEFAULT_PIN_DIR})`); process.exit(1);
+}
 const dir = join(root, PIN_DIR);
 const pinManifest = join(root, TRAILERS[trailer], 'pin-manifest.js');
 const want = argv;
@@ -35,6 +41,7 @@ try { log = JSON.parse(readFileSync(join(dir, 'pins.json'), 'utf8')); } catch { 
 
 const replays = names.filter((n) => PIN_SOURCES[n].setup);
 if (replays.length) {
+  if (!existsSync(pinManifest)) { console.error(`pin: ${TRAILERS[trailer]}/pin-manifest.js does not exist (it exports ITEMS = pinItems(PIN_SOURCES))`); process.exit(1); }
   const out = mkdtempSync(join(tmpdir(), 'trailer-pin-'));
   const r = spawnSync(join(root, 'scripts/with-render-lock.sh'), ['--gpu', 'node', join(root, 'scripts/capture.js'), '--manifest', pinManifest, '--out', out, '--only', replays.map((n) => `pin-${n}`).join(',')], { cwd: root, stdio: 'inherit' });
   if (r.status !== 0) { console.error('pin: the capture failed'); process.exit(1); }
