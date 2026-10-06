@@ -5,6 +5,7 @@ import { h, toggleClass, setText } from './dom.js';
 import { icon } from './icons.js';
 import { B } from '../sim/balance.js';
 import { EVENTS } from '../data/events.js';
+import { pacingOn } from './pacing.js';
 
 // Category chips: a short name and an accent, so a sender reads at a glance.
 export const MAIL_CATEGORY = {
@@ -35,11 +36,12 @@ export function folderOf(m) {
   return m.category === 'spam' ? 'spam' : 'inbox';
 }
 
-// Unread inbox mail: spam never counts.
-export const unreadCount = (s) => inboxOf(s).filter((m) => m.read == null && folderOf(m) === 'inbox').length;
-
 // Mail that is waiting on an answer.
 export const hasOpenChoice = (m) => !!m.options?.length && !m.resolved && !m.archived;
+
+// Unread inbox mail: spam never counts. Under mailArchive the envelope is an archive, so only an unread
+// letter that waits on an answer counts; everything else is read at leisure with no count.
+export const unreadCount = (s) => inboxOf(s).filter((m) => m.read == null && folderOf(m) === 'inbox' && (!pacingOn('mailArchive') || hasOpenChoice(m))).length;
 
 export const ageText = (week, now) => {
   const d = Math.max(0, Math.floor(now - week));
@@ -73,6 +75,9 @@ export function mailBeats(events, s) {
     if (e.type !== 'mail') continue;
     const m = inboxOf(s).find((x) => x.id === e.mailId);
     if (!m || m.category === 'spam') continue;
+    // Under mailArchive only a letter that waits on an answer makes a sound (the envelope pulses and the
+    // letter has its own card in the panel); no toast, and the rest sits quietly in the archive.
+    if (pacingOn('mailArchive')) { if (hasOpenChoice(m)) out.ping = true; continue; }
     out.ping = true;
     const asks = hasOpenChoice(m) || (m.important && !isEventMail(m));
     if (asks) out.toasts.push({ text: `Mail from ${m.from?.name ?? 'someone'}: ${m.subject}`, mailId: m.id });
@@ -98,6 +103,7 @@ export function createMailButton({ open }) {
       }
       const n = unreadCount(s);
       toggleClass(pip, 'show', n > 0);
+      toggleClass(el, 'pulse', n > 0 && pacingOn('mailArchive'));
       setText(pip, n > 9 ? '9+' : String(n || ''));
       el.setAttribute('aria-label', n > 0 ? `Mail, ${n} unread` : 'Mail');
     },
