@@ -25,7 +25,7 @@ export const STATIONS = [
 export const STATION_IDS = STATIONS.map((s) => s.id);
 export const stationName = (id) => STATIONS.find((s) => s.id === id)?.name ?? id;
 
-// Someone changed the station while you were out: what they say about it.
+// Someone switched the station to theirs: what they say about it.
 export const STATION_SWAP_LINES = [
   'I changed the station. Nobody was using the old one. Spiritually.',
   'Switched it to {station}. Think of it as a team-building exercise.',

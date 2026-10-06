@@ -37,9 +37,11 @@ export function pwa({ version = 'dev' } = {}) {
       root = config.root;
     },
     transformIndexHtml() {
+      const watchdog = readFileSync(join(root, 'scripts/pwa/boot-watchdog.js'), 'utf8').replace(/^\/\/.*\n/gm, '');
       const link = (attrs) => ({ tag: 'link', attrs, injectTo: 'head' });
       const meta = (name, content) => ({ tag: 'meta', attrs: { name, content }, injectTo: 'head' });
       return [
+        { tag: 'script', children: watchdog, injectTo: 'head-prepend' },
         link({ rel: 'manifest', href: `${base}manifest.webmanifest` }),
         link({ rel: 'apple-touch-icon', href: `${base}pwa/apple-touch-icon.png` }),
         meta('theme-color', THEME),

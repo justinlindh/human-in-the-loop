@@ -8,6 +8,7 @@ import { B } from '../../src/sim/balance.js';
 import { EVENTS } from '../../src/data/events.js';
 import { AMBIENT, MAIL_TEMPLATES, EVENT_MAIL, REPLY_ALL } from '../../src/data/mail.js';
 import { eraAllowsText } from '../../src/sim/eras.js';
+import { botTurn } from '../../src/sim/bots.js';
 import { game, addStaff, addDesks, addProduct, expectFail } from './helpers.js';
 
 const CATEGORIES = ['applicant', 'partner', 'customer', 'vendor', 'recruiter', 'investor', 'invite', 'legal', 'rival', 'staff', 'spam'];
@@ -51,9 +52,9 @@ beforeEach(() => { enabled = B.mail.enabled; B.mail.enabled = true; });
 afterEach(() => { B.mail.enabled = enabled; });
 
 describe('issue #17: the inbox', () => {
-  it('is off by default, and while off nothing arrives and the moved events behave as before', () => {
-    B.mail.enabled = enabled;
-    expect(B.mail.enabled).toBe(false);
+  it('is on by default, and while off nothing arrives and the moved events behave as before', () => {
+    expect(enabled).toBe(true);
+    B.mail.enabled = false;
     const s = company();
     expect(runWeeks(s, 60).filter((e) => e.type === 'mail')).toEqual([]);
     expect(s.mail).toEqual([]);
@@ -249,6 +250,34 @@ describe('issue #17: the inbox', () => {
     t.week++;
     weekOf(t);
     expect(t.flags.replyAll).toBeUndefined();
+  });
+
+  it('mail kinds of its own never reuse an event id, since event mail is known by its kind', () => {
+    const own = [...AMBIENT, ...MAIL_TEMPLATES].map((t) => t.id).concat('reply_all', 'reply_all_reply', ...Object.keys(EVENT_MAIL).map((id) => `${id}_outcome`));
+    for (const id of own) expect(EVENTS[id], id).toBeUndefined();
+    expect(new Set(own).size).toBe(own.length);
+    for (const id of Object.keys(EVENT_MAIL)) expect(EVENTS[id], id).toBeDefined();
+  });
+
+  it('bots keep different inbox habits: some answer at once, one answers late, one never does', () => {
+    const habit = (name) => {
+      const s = company();
+      const m = openTemplate(s, 'vendor_pitch');
+      const answeredAt = [];
+      for (let i = 0; i < B.mail.expiryWeeks + 1 && !m.resolved; i++) {
+        botTurn(name, s);
+        if (m.resolved) answeredAt.push(s.week - m.week);
+        s.week++;
+        if (!m.resolved) { const ctx = makeCtx(s); mailSystem(ctx); }
+      }
+      return { resolved: m.resolved, after: answeredAt[0] };
+    };
+    expect(habit('sensible')).toMatchObject({ after: 0 });
+    expect(habit('sensible').resolved.choice).not.toBeNull();
+    expect(habit('automateAll').after).toBe(B.mail.botLateWeeks);
+    const never = habit('recklessHumans');
+    expect(never.after).toBeUndefined();
+    expect(never.resolved.choice).toBeNull();
   });
 
   it('saves and loads the inbox, and an old save without one loads with an empty inbox', () => {
