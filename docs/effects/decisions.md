@@ -1376,3 +1376,13 @@ misc · raised by a rule · cooldown 156 weeks
 |---|---|
 | Master a CD release | cash -$4,000; next batch capacity +25%, charged per copy |
 | Keep the disks | keep disks; no cost |
+
+## The interview is still going `ai_interview_loop`
+
+misc · raised by a rule
+
+| Choice | Effects |
+|---|---|
+| Let them finish | a candidate whose own AI did the interview joins the pool, skills listed +20 until 4 weeks after hire |
+| Pull the plug | brand -1 |
+| Hire the AI | team meaning -1; automation level +1 (0.05) |
