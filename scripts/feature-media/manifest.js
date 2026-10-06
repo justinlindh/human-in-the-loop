@@ -141,11 +141,13 @@ const PINNED_PROMPTS = {
 const PINNED_EVENT = { 'bridge-loan': 'bridge_loan', fumes: 'coffee_machine_broke', consultants: 'efficiency_consultants', letter: 'hearing_summons', hammer: 'open_plan_office', ransomware: 'ransomware' };
 // A game stored under scripts/feature-media/pins/, the state the week before the decision (fumes: with its card
 // open), loaded through the game's own save. The clip's framing is written for that office, so the game is kept
-// exactly as it was rather than replayed by a bot.
-const PIN_LOAD = (name) => `(async () => {
+// exactly as it was rather than replayed by a bot. `event` ({ eventId, subjectId }) schedules the decision for
+// the next week with the subject it had, so the game's own tick raises it whatever the event roll does.
+const PIN_LOAD = (name, event) => `(async () => {
   const res = await fetch('/scripts/feature-media/pins/${name}.snap');
   if (!res.ok) throw new Error('feature-media: no pinned game ${name}');
   const state = JSON.parse(await new Response(res.body.pipeThrough(new DecompressionStream('gzip'))).text());
+  ${event ? `state.scheduled = [...(state.scheduled ?? []).filter((x) => x.id !== 'sch_pin'), { id: 'sch_pin', week: state.week + 1, kind: 'event', payload: { eventId: '${event.eventId}', subjectId: ${JSON.stringify(event.subjectId)} } }];` : ''}
   const { saveGame } = await import('/src/save/save.js');
   if (!saveGame(state, localStorage)) throw new Error('feature-media: could not save pinned game ${name}');
   const r = window.__HITL.controls.continueGame();
@@ -155,10 +157,10 @@ const PIN_LOAD = (name) => `(async () => {
 const PINNED_MOMENTS = {
   'bridge-loan': SCHEDULED('bridge_loan', 176),
   fumes: PIN_LOAD('fumes'),
-  consultants: PIN_LOAD('consultants'),
-  letter: PIN_LOAD('letter'),
-  hammer: PIN_LOAD('hammer'),
-  ransomware: PIN_LOAD('ransomware-garage'),
+  consultants: PIN_LOAD('consultants', { eventId: 'efficiency_consultants', subjectId: null }),
+  letter: PIN_LOAD('letter', { eventId: 'hearing_summons', subjectId: null }),
+  hammer: PIN_LOAD('hammer', { eventId: 'open_plan_office', subjectId: 's2' }),
+  ransomware: PIN_LOAD('ransomware-garage', { eventId: 'ransomware', subjectId: 'p72' }),
 };
 
 // [event id, find.js query, staged prop, follow zoom]: the staged decisions of docs/features/decisions.md.
@@ -340,7 +342,7 @@ export const ITEMS = [
     // Every monitor shows the ransom skull while the decision is open; the office holds still under
     // the card, so the camera sits on one person at their desk. The window keeps the card out.
     id: 'site-loop-ransomware', title: 'Landing page loop: ransomware on every screen', query: 'seed=9&speed=1', seconds: 14, warmup: 6.5,
-    setup: `(async () => { await ${PIN_LOAD('ransomware-floor')}; ${BARE}; })()`, actions: [{ at: 0, js: NO_SAY }, ...FOLLOW(SEATED, 3.2, 0, 14, -320), ...CAMLOG(14)], screenshots: [3, 6, 9],
+    setup: `(async () => { await ${PIN_LOAD('ransomware-floor', { eventId: 'ransomware', subjectId: 'p169' })}; ${BARE}; })()`, actions: [{ at: 0, js: NO_SAY }, ...FOLLOW(SEATED, 3.2, 0, 14, -320), ...CAMLOG(14)], screenshots: [3, 6, 9],
     out: [LOOP('ransomware', 5, 4.2, { x: 0, y: 1 / 6, w: 2 / 3, h: 2 / 3 }, 27)],
   },
   {
