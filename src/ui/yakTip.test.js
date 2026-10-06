@@ -1,9 +1,11 @@
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { YAK_LEVELS } from './settings.js';
 import { B } from '../sim/balance.js';
 
 vi.hoisted(() => vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({}) }))));
-afterEach(() => { delete B.pacing; });
+const real = B.pacing;
+beforeEach(() => { B.pacing = {}; });
+afterEach(() => { B.pacing = real; });
 
 const tip = () => YAK_LEVELS.find((l) => l.v === 'all').tip;
 

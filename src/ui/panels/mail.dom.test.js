@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { B } from '../../sim/balance.js';
 
 vi.mock('../openTarget.js', () => ({ openTarget: vi.fn() }));
 const { mailPanel } = await import('./mail.js');
@@ -22,7 +23,9 @@ function setup(mails, arg) {
   inst.update(s, true);
   return { s, ctx, inst };
 }
-afterEach(() => document.body.replaceChildren());
+const real = B.pacing;
+beforeEach(() => { B.pacing = {}; });
+afterEach(() => { B.pacing = real; document.body.replaceChildren(); });
 
 describe('mail panel', () => {
   it('lists the inbox with unread rows, and spam only in its tab', () => {

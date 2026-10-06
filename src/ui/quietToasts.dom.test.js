@@ -213,4 +213,14 @@ describe('the switch', () => {
     B.pacing.quietToasts = false;
     expect(pacingOn('quietToasts')).toBe(false);
   });
+
+  it('treats a missing key as off, and only true as on', () => {
+    B.pacing = { other: true };
+    expect(pacingOn('quietToasts')).toBe(false);
+    B.pacing = { quietToasts: 1 };
+    expect(pacingOn('quietToasts')).toBe(false);
+    B.pacing = { quietToasts: true };
+    expect(pacingOn('quietToasts')).toBe(true);
+    expect(pacingOn('oneLaunchCard')).toBe(false);
+  });
 });

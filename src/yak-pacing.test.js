@@ -1,8 +1,12 @@
-import { it, expect } from 'vitest';
+import { it, expect, beforeEach, afterEach } from 'vitest';
 import { simulatePacing } from '../scripts/pace.js';
 import { createYakPacer, importantChat, MAX_TRACKED_POST_IDS } from './yak-pacing.js';
 import { B } from './sim/balance.js';
 import { createPacer } from './pacing.js';
+// The cases below measure the pacer's own reading gaps; the quietYak gap has its own case.
+let savedPacing;
+beforeEach(() => { savedPacing = B.pacing; B.pacing = { ...savedPacing, quietYak: false }; });
+afterEach(() => { B.pacing = savedPacing; });
 const msg = (id, extra = {}) => ({ type: 'chat', id, text: 'A short message', fromId: 'a', channel: 'general', ...extra });
 it('paces a burst by reading time and stops the clock while paused', () => {
   const p = createYakPacer(); p.enqueue([msg('a'), msg('b')]);
