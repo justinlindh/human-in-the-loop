@@ -2,6 +2,7 @@ import { h, setText, toggleClass } from './dom.js';
 import { icon } from './icons.js';
 import { SAVE_NOTE } from './saveNote.js';
 import { downloadSave } from './saveFiles.js';
+import { fullscreenAvailable, fullscreenActive, toggleFullscreen, onFullscreenChange } from './fullscreen.js';
 
 const KEY = 'hitl.settings';
 // Audio buses the engine mixes; 'volume' is the master level.
@@ -111,6 +112,45 @@ export function createSettings({ layer, controls, sfx, getState = null, toast = 
     return h('div.row.levelrow', null, input, val);
   }
 
+  // Offline play (the public build only; window.__HITL_OFFLINE comes from src/dev/pwa.js): the control
+  // starts the download of the whole game and shows its progress and size.
+  let offlineUnsub = null;
+  function offlineRow(offline, row) {
+    const note = h('div.small.muted', { text: '' });
+    const btn = h('button.btn.small', { onclick: () => { sfx('click'); offline.start(); } }, 'Download');
+    const mb = (n) => (n < 1e6 ? `${Math.max(1, Math.round(n / 1e3))} KB` : `${Math.round(n / 1e6)} MB`);
+    offlineUnsub?.();
+    offlineUnsub = offline.subscribe((s) => {
+      const pct = s.total ? Math.min(100, Math.floor((s.done / s.total) * 100)) : 0;
+      const size = s.total ? ` (${mb(s.total)})` : '';
+      if (s.state === 'downloading') { btn.style.display = 'none'; setText(note, `Downloading: ${pct}% of ${mb(s.needBytes || s.total)}`); }
+      // The data saver held an update back: the player decides.
+      else if (s.state === 'ready' && s.updatePending) { btn.style.display = ''; setText(btn, `Update (${mb(s.needBytes)})`); setText(note, 'Ready to play offline. A new version is available.'); }
+      else if (s.state === 'ready') { btn.style.display = 'none'; setText(note, 'Ready to play offline.'); }
+      else if (s.state === 'paused' || s.state === 'error') { btn.style.display = ''; setText(btn, 'Retry'); setText(note, s.error); }
+      else { btn.style.display = ''; setText(btn, `Download${size}`); setText(note, ''); }
+    });
+    // The size comes from the build's file list, fetched only now that the player is looking.
+    if (offline.state.state === 'off') offline.peek?.();
+    return row('Play offline', 'Downloads the whole game, music included, so it plays without a network.', h('div', null, btn, note));
+  }
+
+  // Full screen: only where the browser offers it and the game isn't already installed. The label follows
+  // the real state, since Esc or a system gesture can leave it too.
+  let fsUnsub = null;
+  function fullscreenRow(row) {
+    const label = () => (fullscreenActive() ? 'Exit full screen' : 'Full screen');
+    const btn = h('button.btn.small.fsbtn', {
+      onclick: async () => {
+        const err = await toggleFullscreen();
+        if (err) { toast?.(err, 'warn'); sfx('error'); } else sfx('click');
+      },
+    }, label());
+    fsUnsub?.();
+    fsUnsub = onFullscreenChange(() => setText(btn, label()));
+    return row('Full screen', 'Hides the browser bars so the office has the whole screen.', btn);
+  }
+
   function render() {
     const setBus = (id, v) => { settings.bus = { ...settings.bus, [id]: v }; saveSettings(settings); applySettings(controls, settings); };
     const mute = h('button.switch', { onclick: () => { set('muted', !settings.muted); toggleClass(mute, 'on', settings.muted); } }, h('span.knob'));
@@ -151,6 +191,9 @@ export function createSettings({ layer, controls, sfx, getState = null, toast = 
         row('Advisors', 'Quiet keeps them to the lightbulb and its dot; Off hides the lightbulb.',
           seg(ADVISOR_LEVELS, advisorLevel(), (v) => setAdvisorLevel(v))),
         row('Default speed', 'Speed the game starts at.', seg([{ v: 1, label: '1x' }, { v: 2, label: '2x' }, { v: 4, label: '4x' }], settings.speed, (v) => set('speed', v))),
+        fullscreenAvailable() ? fullscreenRow(row) : null,
+        window.__HITL_OFFLINE && window.__HITL_OFFLINE.state.state !== 'unsupported' ? h('h3.sethead', { text: 'Offline' }) : null,
+        window.__HITL_OFFLINE && window.__HITL_OFFLINE.state.state !== 'unsupported' ? offlineRow(window.__HITL_OFFLINE, row) : null,
         h('h3.sethead', { text: 'Saving' }),
         h('div.small.muted.setnote', { text: SAVE_NOTE }),
         canExport() ? row('Export a copy', 'Saves this company as a file. Import it on the title screen in another browser or device.',
@@ -172,7 +215,7 @@ export function createSettings({ layer, controls, sfx, getState = null, toast = 
   }
 
   function open() { render(); back.style.display = ''; sfx('open'); }
-  function close() { if (back.style.display === 'none') return false; back.style.display = 'none'; sfx('close'); return true; }
+  function close() { if (back.style.display === 'none') return false; back.style.display = 'none'; offlineUnsub?.(); offlineUnsub = null; fsUnsub?.(); fsUnsub = null; sfx('close'); return true; }
 
   // The HUD's quick mute: muted, or master volume at zero, counts as muted; unmuting from zero
   // brings the volume back to its default so the button always makes sound audible again.
