@@ -2,7 +2,7 @@ import { YAK_HELPERS, YAK_CHECK } from './yak.js';
 import {
   PLAY, PRE_UNTIL, PRE_DECISION, IN_OFFICE, DROP_UNSTAFFED, STAFF_IDLE, INCIDENT_ON_FLOOR, CHAT_HISTORY,
   BARE, CLEAN, STAGE_ONLY, YAK_ONLY, NO_CARD, CLEAR_CARDS, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK, CLICK_SEL, CLICK_STARTS, KEY,
-  FOLLOW, SEATED, BEST_VIEW, CAMLOG, WAFFLE_SETUP, WAFFLE_ACTIONS, MARK_MOMENTS, NO_SAY,
+  FOLLOW, SEATED, BEST_VIEW, CAMLOG, WAFFLE_SETUP, WAFFLE_ACTIONS, MARK_MOMENTS, NO_SAY, PIN_PACING,
 } from '../capture-manifest.js';
 
 // Feature media: capture.js items (see scripts/capture-manifest.js for the item fields) with the files
@@ -76,6 +76,7 @@ export const GROW = (week, { lateHires = true } = {}) => `(async () => {
 // A seeded game grown by the balanced bot until the Agents era at the Office Floor or HQ, then run by the
 // automate-everything bot; stops the week before the runaway cloud bill (tested on a copy ticked ahead).
 export const RUNAWAY = `(async () => {
+  ${PIN_PACING}
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
   const s = window.__HITL.state;
@@ -145,6 +146,7 @@ const PINNED_EVENT = { 'bridge-loan': 'bridge_loan', fumes: 'coffee_machine_brok
 // exactly as it was rather than replayed by a bot. `event` ({ eventId, subjectId }) schedules the decision for
 // the next week with the subject it had, so the game's own tick raises it whatever the event roll does.
 const PIN_LOAD = (name, event) => `(async () => {
+  ${PIN_PACING}
   const res = await fetch('/scripts/feature-media/pins/${name}.snap');
   if (!res.ok) throw new Error('feature-media: no pinned game ${name}');
   const state = JSON.parse(await new Response(res.body.pipeThrough(new DecompressionStream('gzip'))).text());

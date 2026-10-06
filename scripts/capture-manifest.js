@@ -11,6 +11,8 @@
 // Page JS has window.__HITL (state, dispatch, tickN, emit, controls), window.__HITL_UI (dev only),
 // and window.__capture. Setups change state directly to stage a moment; that is fine for capture.
 
+import { INDEX_PACING } from './events/play.js';
+
 // Clicks the visible button with this label (a player pressing it).
 export const CLICK = (label) => `[...document.querySelectorAll('button')].find((b) => b.getClientRects().length && b.textContent.trim() === ${JSON.stringify(label)})?.click()`;
 // Clicks the nth visible element matching a CSS selector.
@@ -36,10 +38,15 @@ const TYPE = (text, n = 0) => `(() => { const el = [...document.querySelectorAll
 // The first person in the office (present, not remote or away).
 const PICK = `(() => { const s = window.__HITL.state; return s.staff.find((p) => p.mood !== 'away' && !p.remote && p.assignment?.type !== 'sabbatical'); })()`;
 
+// Page JS: the pacing switches the event index plays with (scripts/events/play.js INDEX_PACING), so a decision
+// opens on the tick that raises it instead of queueing, for any helper that plays or looks ahead for one.
+export const PIN_PACING = `Object.assign((await import('/src/sim/balance.js')).B.pacing, ${JSON.stringify(INDEX_PACING)});`;
+
 // Fast-forwards a real game with a bot, straight through the sim (no presentation), until `until`
 // (a JS condition on s) holds or `weeks` pass. With keepDecision it stops at the first decision
 // raised after minWeeks.
 export const PLAY = ({ weeks, bot = 'balanced', until = 'false', keepDecision = false, minWeeks = 0, after = '' }) => `(async () => {
+  ${PIN_PACING}
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
   const s = window.__HITL.state;
@@ -55,11 +62,6 @@ export const PLAY = ({ weeks, bot = 'balanced', until = 'false', keepDecision = 
   ${IDLE};
 })()`;
 
-// Office Space nods (group 'nods', #383): each opens at an indexed moment (the event index follows
-// the sim code, so a history that shifts still finds one) and plays the week into its decision; the
-// card shows, a choice is made, and the camera frames what it stages. A nod that stages nothing has no
-// snapshot in the index, so it fast-forwards seed 1 with the allHumans bot to its decision instead.
-const NOD = (eventId, weeks) => PLAY({ weeks, bot: 'allHumans', until: `s.pendingDecision?.eventId === '${eventId}'`, keepDecision: true, minWeeks: 1e9 });
 // A bare frame for the reel: the side overlays (top bar, tray, Yak, menu, toasts) hidden, so the
 // office and the beat fill the frame; the decision card and the moment caption stay. YAK brings Yak
 // back, at the right where the reel's crop keeps it, for a beat whose payoff is a message.
@@ -159,6 +161,7 @@ const NODS_FOLLOW = (props, zoom, from, to) => FOLLOW(props, zoom, from, to, 320
 // look-ahead (so the live week matches it); `after` only presents (it must not change state).
 // `turn` controls whether the bot manages projects and expansion that week.
 export const PRE_UNTIL = ({ weeks, hit, bot = 'allHumans', prep = '', after = '', turn = 'true' }) => `(async () => {
+  ${PIN_PACING}
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
   const s = window.__HITL.state;
