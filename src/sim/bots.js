@@ -574,6 +574,22 @@ function answerPrompts(name, s) {
   }
 }
 
+// Bots answer mail the week it arrives: an event delivered as mail the way they answer it as a popup, a
+// reply-all storm by muting it, and any other mail with its first available reply.
+function answerMail(name, s) {
+  for (const m of (s.mail ?? []).filter((x) => x.options.length && !x.resolved)) {
+    const open = m.options.map((o, i) => (o.available ? i : -1)).filter((i) => i >= 0);
+    if (!open.length) continue;
+    let choice = open[0];
+    if (m.kind === 'reply_all' && open.includes(1)) choice = 1;
+    else if (EVENTS[m.kind]?.choices) {
+      const d = { eventId: m.kind, subjectId: s.flags.mailCtx?.[m.id]?.subjectId ?? null, choices: m.options };
+      choice = pickDecision(s, CHOOSERS[name], d);
+    }
+    dispatch(s, { type: 'answerMail', mailId: m.id, choice });
+  }
+}
+
 export function botTurn(name, s, { onEvents = null } = {}) {
   const prev = sink;
   sink = onEvents;
@@ -583,6 +599,7 @@ export function botTurn(name, s, { onEvents = null } = {}) {
     if (NOC_BOTS.has(name)) runNoc(s);
     if (ROBOT_BOTS.has(name)) runRobot(s);
     answerPrompts(name, s);
+    answerMail(name, s);
     for (const a of BOTS[name](s)) dispatch(s, a);
     for (const p of liveProducts(s).filter((p) => p.boxed)) {
       if (!p.boxed.deliveries.length && p.boxed.stock <= B.preinternet.batches[0]) {
