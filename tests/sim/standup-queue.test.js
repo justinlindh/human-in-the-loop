@@ -1,10 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createYakPacer } from '../../src/yak-pacing.js';
 import { B } from '../../src/sim/balance.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { startOutage, clearOutage } from '../../src/sim/incidents.js';
 import { standupSystem } from '../../src/sim/standup.js';
 import { game, addProduct } from './helpers.js';
+
+// These cases time the pacer's base gap; quietYak's longer flavour gap has its own test in src/yak-pacing.test.js.
+let keepQuietYak;
+beforeEach(() => { keepQuietYak = B.pacing.quietYak; B.pacing.quietYak = false; });
+afterEach(() => { B.pacing.quietYak = keepQuietYak; });
 
 function office() {
   const state = game(1);
