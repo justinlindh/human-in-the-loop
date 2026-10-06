@@ -762,11 +762,12 @@ state.asks: [{ id, kind, priority, week, expiresWeek, defaultChoice, ref }]
 
 ```js
 { type: 'presentAsk', askId? }   // opens the head ask, or the named one, as pendingDecision, a Yak prompt or a letter; works while paused; refusals: 'No asks waiting' | 'No such ask' | 'Finish the open decision first'
-{ type: 'expireAsk', askId }     // behind B.pacing.askExpiry: applies the ask's default and posts one Yak line saying what was chosen; refusals: 'Expiry is off' | 'No such ask' | 'Emergencies never expire'
+{ type: 'expireAsk', askId }     // behind B.pacing.askExpiry: applies the ask's default and posts one Yak line saying what was chosen; refusals: 'Expiry is off' | 'No such ask' | 'Emergencies never expire' | 'This one needs an answer'
 ```
 
 - The default is the event's own `defaultChoice`, else its entry in `src/data/ask-defaults.js`, else its choice with no effect; every decision that can expire has one. A prompt or letter takes its ignore outcome. The Yak line names what the team picked. Expiring never costs more than answering cautiously.
 - With `B.pacing.askExpiry` on, at most `B.attention.queueCap` non-emergency asks wait. When another arrives, the least pressing, oldest one expires at once and emits `askExpired`. With it off, nothing expires: `expireAsk` refuses with 'Expiry is off', and the queue has no cap.
+- An event marked `noExpire: true` in its data (the era decisions and the mission tests: identity choices the player must make) never expires by `expireAsk`, the cap or the bots' expiry, and does not count toward `queueCap`; it still waits its turn by priority. `expireAsk` refuses it with 'This one needs an answer'.
 
 ### Shown prompts and letters
 
