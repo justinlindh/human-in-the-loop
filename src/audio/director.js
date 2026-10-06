@@ -80,7 +80,7 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
   let hadOutage = null;
   let nextPet = null, nextCoffee = null;
   let typing = 0;
-  const music = { era: null, bed: null, pendingEra: null, level: null, lowpass: undefined, paused: null, title: null, dancePaused: false, preloaded: false, lastBed: {} };
+  const music = { era: null, eraSeen: null, bed: null, pendingEra: null, level: null, lowpass: undefined, paused: null, title: null, dancePaused: false, preloaded: false, lastBed: {} };
 
   const pick = (arr) => arr[Math.floor(rng() * arr.length) % arr.length];
   // Office props seen last update, by prop name, and each loop's level.
@@ -342,13 +342,21 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
           const tune = isRadioKey(want) && isRadioKey(music.era) ? 'sfx.radio_tune' : 'sfx.radio_click';
           if (CUES[tune]) out.push(...playCue(tune, t));
         }
-        // The market turning is marked once, when it happens in play (not when a save loads into it).
-        if (want === 'dotcom_bust' && music.era === 'dotcom') out.push(...playCue('stinger.dotcom_bust', t, { speed: speedNow }));
         music.era = want; music.bed = bed; music.lastBed[want] = bed; music.bedAt = ta; music.heard = 0;
         out.push({ op: 'music', era: want, bed, at: ta, fade: first ? 1.5 : CROSSFADE_BARS * barLen });
         out.push(...pickNext(list));
-        // Only a real era arrival cheers: not the first bed, and not starting or loading from the title.
-        if (want !== 'title' && want !== 'dotcom_bust' && !first && !fromTitle && !radioMove && voiceMomentOk(t)) out.push(...cheer('era', state, t + CROSSFADE_BARS * barLen));
+      }
+      // The era itself, whatever bed plays (a radio station keeps playing through it): a real arrival cheers, and the
+      // market turning is marked once when it happens in play. Neither fires for the first era seen, a load from the
+      // title, or an era card still waiting to be dismissed; turning the radio off replays nothing.
+      if (ctx.title) music.eraSeen = null;
+      const eraNow = ctx.title ? null : music.pendingEra && hold ? music.eraSeen : musicKey(state);
+      if (eraNow) {
+        if (music.eraSeen && eraNow !== music.eraSeen) {
+          if (eraNow === 'dotcom_bust') { if (music.eraSeen === 'dotcom') out.push(...playCue('stinger.dotcom_bust', t, { speed: speedNow })); }
+          else if (voiceMomentOk(t)) out.push(...cheer('era', state, t + CROSSFADE_BARS * (60 / (MUSIC[music.era]?.bpm ?? 100)) * 4));
+        }
+        music.eraSeen = eraNow;
       }
       // Level and filter: paused holds get a lowpass and -6 dB; otherwise the state's mood rule.
       const rule = MOOD.find((r) => r.when(state ?? {}))?.music ?? { level: 1, lowpass: null };

@@ -135,6 +135,12 @@ export const ON_EVENT = {
   chatPromptResolved: null,
   // Silent here: the Quiet advice setting lives in ui's settings store, so any sound belongs with ui's tray card.
   advice: null,
+  // The inbox: silent until the arrival ping is picked for it (ui asks for a soft, rare one).
+  mail: null,
+  mailResolved: null,
+  // The boombox: the station itself is read from state.radio by the director, so these are silent here.
+  radio: null,
+  radioTaste: null,
   // Only a notable deal rings the register (the same sound boxed or not).
   deal: (e) => (e.notable ? 'sfx.sales_register' : null),
   // The founder's quick post: a small cheer when it lands, a wince when it backfires, nothing when flat.
@@ -185,7 +191,7 @@ export function musicKey(state) {
 // The picked station is state.radio = { on, station }; a station with no delivered beds is never chosen.
 export const RADIO_STATIONS = {
   lofi: { bpm: 78, key: 'Eb', mode: 'major' },
-  synth: { bpm: 116, key: 'A', mode: 'minor' },
+  synth88: { bpm: 116, key: 'A', mode: 'minor' },
   polka: { bpm: 126, key: 'F', mode: 'major' },
   bossa: { bpm: 124, key: 'D', mode: 'minor' },
   elevator: { bpm: 92, key: 'C', mode: 'major' },
