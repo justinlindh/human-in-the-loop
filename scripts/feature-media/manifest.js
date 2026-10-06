@@ -146,6 +146,7 @@ const PINNED_EVENT = { 'bridge-loan': 'bridge_loan', fumes: 'coffee_machine_brok
 // exactly as it was rather than replayed by a bot. `event` ({ eventId, subjectId }) schedules the decision for
 // the next week with the subject it had, so the game's own tick raises it whatever the event roll does.
 const PIN_LOAD = (name, event) => `(async () => {
+  ${PIN_PACING}
   const res = await fetch('/scripts/feature-media/pins/${name}.snap');
   if (!res.ok) throw new Error('feature-media: no pinned game ${name}');
   const state = JSON.parse(await new Response(res.body.pipeThrough(new DecompressionStream('gzip'))).text());
