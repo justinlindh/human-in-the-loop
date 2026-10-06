@@ -74,6 +74,7 @@ export function createLabels(parent) {
       l = { el, inner, obj, t: 0, life: 1, kind: '', follow: null, jit: new THREE.Vector3(), rise: 0, dx: 0, dy: 0 };
     }
     l.growthOwner = null;
+    l.retiring = false;
     l.dx = l.dy = 0;
     l.px = 0; l.hideK = 1;
     return l;
@@ -164,8 +165,15 @@ export function createLabels(parent) {
   // Status news as a small bubble with an icon: over a person it lays out as speech (it stacks with
   // and counts against speech bubbles); `float` makes it a slow-rising label over a place instead.
   // `iconOnly` drops the text.
+  // On a narrow window (a phone) a new note shows alone: it fades the ordinary bubbles already up,
+  // so a stack never climbs into the HUD.
+  const NARROW_W = 700, NARROW_BUBBLES = 1;
   function note(text, iconSrc, tone, follow, seconds, { float = false, iconOnly = false, offsetY, icon = '' } = {}) {
     if (!float) for (const o of live) if (o.kind === 'say' && o.follow === follow) o.t = o.life;
+    if (!float && typeof innerWidth === 'number' && innerWidth < NARROW_W) {
+      const others = live.filter((o) => o.kind === 'say' && !o.moment && o.t < o.life - 0.35).sort((a, b) => b.t - a.t);
+      for (const o of others.slice(0, Math.max(0, others.length - (NARROW_BUBBLES - 1)))) { o.t = o.life - 0.35; o.retiring = true; }
+    }
     const l = acquire();
     l.kind = float ? 'stat' : 'say';
     l.moment = false; l.tone = tone; l.num = null;
@@ -383,15 +391,19 @@ export function createLabels(parent) {
   };
   function clearOfPanels(l, box, anchor, w, h, k) {
     const off = anchor.x < 0 || anchor.y < 0 || anchor.x > w || anchor.y > h;
-    let dx = 0, hidden = false;
+    // Inside the window's sides first, then off any panel; a bubble that can't be both hides.
+    let dx = off ? 0 : onScreenDx(box, 0, w), hidden = false;
+    const at = () => ({ left: box.left + dx, right: box.right + dx, top: box.top, bottom: box.bottom });
     for (let pass = 0; pass < 3; pass++) {
-      const at = { left: box.left + dx, right: box.right + dx, top: box.top, bottom: box.bottom };
-      const o = occluders.find((r) => hits(at, r));
+      const o = occluders.find((r) => hits(at(), r));
       if (!o) break;
       if (off || inRect(anchor.x, anchor.y, o)) { hidden = true; break; }
-      dx += anchor.x < (o.left + o.right) / 2 ? o.left - GAP - at.right : o.right + GAP - at.left;
+      dx += anchor.x < (o.left + o.right) / 2 ? o.left - GAP - at().right : o.right + GAP - at().left;
     }
-    if (!off && !hidden) dx = onScreenDx(box, dx, w);
+    if (!hidden && !off) {
+      const a = at();
+      if (occluders.some((r) => hits(a, r)) || onScreenDx(a, 0, w) !== 0) hidden = true;
+    }
     l.px = (l.px ?? 0) + (dx - (l.px ?? 0)) * k;
     l.hideK = (l.hideK ?? 1) + ((hidden ? 0 : 1) - (l.hideK ?? 1)) * k;
   }
@@ -429,7 +441,8 @@ export function createLabels(parent) {
     const stats = [];
     for (const l of live) {
       if (l.el.style.display === 'none') continue;
-      if (l.kind === 'say') says.push(l);
+      // A bubble retired to make room fades where it is and no longer takes a place in the stack.
+      if (l.kind === 'say') { if (!l.retiring) says.push(l); }
       else if (l.kind === 'stat') stats.push(l);
     }
     const k = 1 - Math.exp(-dt * 14);
