@@ -152,11 +152,17 @@ export function createOffline({ win = globalThis, nav = globalThis.navigator, do
     return true;
   }
 
-  // Deletes every set that is neither the build running nor the newest published one: partial downloads of
-  // releases that were superseded, and complete sets of builds already replaced.
+  // Deletes every set that is neither the build running, the one the worker serves, nor the newest
+  // published one (the one being downloaded, or whole): partial downloads of releases that were superseded
+  // and complete sets of builds already replaced. It runs before a download too, so storage never holds
+  // more than the running set, one pending update and nothing older.
   async function cleanup(m) {
     try {
       const keep = new Set([m.id]);
+      try {
+        const a = await (await (await win.caches.open('hitl-meta')).match(new URL(`${BASE}__active`, win.location.origin).href))?.json();
+        if (a?.id) keep.add(a.id);
+      } catch { /* no pointer yet */ }
       for (const s of await allSets()) if (s.complete && s.version === build) keep.add(s.id);
       for (const s of await allSets()) if (!keep.has(s.id)) await win.caches.delete(s.name);
     } catch { /* storage trouble must not stop the game */ }
@@ -194,6 +200,7 @@ export function createOffline({ win = globalThis, nav = globalThis.navigator, do
           if (est?.quota && est.quota - (est.usage || 0) < p.needBytes * 1.1) { set({ state: 'error', error: 'Not enough storage on this device to play offline.' }); return; }
         } catch { /* no estimate: try anyway */ }
         try { await nav.storage?.persist?.(); } catch { /* best effort */ }
+        await cleanup(m);
         if (!(await download(m, want, p))) return;
         if (!outdated) {
           // This page already runs the build whose set just completed: make it the active one, healthy.

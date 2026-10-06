@@ -239,6 +239,8 @@ tool_step heavy bash "$SELF/heavy.test.sh"
 tool_step ci-merge-only bash "$SELF/ci-merge-only.test.sh"
 tool_step nice10 bash "$SELF/nice10.test.sh"
 tool_step pwa-plugin bash "$SELF/pwa-plugin.test.sh"
+# Install, update, kill and relaunch in WebKit (about two minutes): the main guard's full run only.
+if [ "${CI_FULL:-}" = 1 ]; then step pwa-webkit node "$SELF/pwa-webkit.js"; fi
 tool_step test-push bash "$SELF/test-push.test.sh"
 tool_step ci-pr-trust bash "$SELF/ci-pr-trust.test.sh"
 tool_step drive bash "$SELF/tools/drive.test.sh"

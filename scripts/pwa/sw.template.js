@@ -9,11 +9,11 @@
 //     (the player chose "Restart now"), so a release never takes over silently and a download that is
 //     still going (no marker yet) is never served;
 //   - anything the set lacks goes to the network.
-// A release that cannot start leaves a way out that does not depend on the page: the worker counts the
-// launches of the active set that never reported healthy (the page reports once it has booted). A set
-// whose previous launch did not confirm is suspect, and while it is suspect a launch with a network
-// fetches the page from the network first, so a fixed release can replace a broken one; offline, the
-// cached release is all there is.
+// A launch that cannot start leaves a way out that does not depend on the page: the worker counts the
+// launches in a row that never reported healthy (the page reports once it has booted). After one such
+// launch the next one fetches the page from the network first (so a fixed release replaces a broken
+// one); after two, the previous complete set becomes the active one.
+// A cache that does not answer in time is treated as absent, so a launch never waits on storage.
 const ID = '__VERSION__';
 const BASE = '__BASE__';
 const PREFIX = 'hitl-set-';
@@ -22,6 +22,13 @@ const ORIGIN = self.location.origin;
 const MARK = new URL(`${BASE}__complete`, ORIGIN).href;
 const ACTIVE = new URL(`${BASE}__active`, ORIGIN).href;
 const NET_WAIT_MS = 5000;
+const CACHE_WAIT_MS = 4000;
+const LAUNCH_GRACE_MS = 6000;
+
+// The promise's value, or undefined when it has not settled in time.
+function within(promise, ms) {
+  return Promise.race([promise, new Promise((r) => setTimeout(r, ms))]);
+}
 
 // The complete sets, newest first. A set counts only with its marker, which the page writes last.
 async function completeSets() {
@@ -55,7 +62,7 @@ function look() {
     let active = await readActive();
     if (list.length && !list.some((s) => s.id === active?.id)) {
       const s = list[0];
-      active = { id: s.id, version: s.version, launches: 0, healthy: false };
+      active = { id: s.id, version: s.version, tries: 0 };
       await writeActive(active);
     }
     state = { list, active: list.length ? active : null };
@@ -71,7 +78,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const pending = look();
     await self.clients.claim();
-    await pending;
+    await within(pending, CACHE_WAIT_MS);
   })());
 });
 
@@ -86,15 +93,15 @@ self.addEventListener('message', (event) => {
     event.waitUntil((async () => {
       const s = await look();
       const set = s.list.find((x) => x.id === msg.id);
-      if (set) { await writeActive({ id: set.id, version: set.version, launches: 0, healthy: false }); await look(); }
+      if (set) { await writeActive({ id: set.id, version: set.version, tries: 0 }); await look(); }
       event.source?.postMessage({ type: 'activated', id: msg.id, ok: !!set });
     })());
   }
-  // The page booted: the active set (if it is this build) is healthy.
+  // The page booted: the launch counts as confirmed.
   if (msg.type === 'healthy') {
     event.waitUntil((async () => {
       const a = await readActive();
-      if (a && a.version === msg.version && !a.healthy) { await writeActive({ ...a, healthy: true, launches: 0 }); await look(); }
+      if (a && a.tries) { await writeActive({ ...a, tries: 0 }); await look(); }
     })());
   }
 });
@@ -126,27 +133,58 @@ async function fromNetwork(request) {
   } catch { return null; } finally { clearTimeout(timer); }
 }
 
-async function serve(request) {
-  const { list, active } = state ?? (await looking);
-  const navigating = request.mode === 'navigate';
-  // A page is the build's index whatever its query (?seed=, ?mock=).
-  const key = navigating ? `${ORIGIN}${BASE}index.html` : request.url;
-  if (navigating && active && !active.healthy) {
-    // Another launch of a set whose last launch never reported healthy: look for a fix on the network first.
-    const launched = active.launches > 0;
-    active.launches += 1;
-    await writeActive({ ...active });
-    if (launched) {
-      const fresh = await fromNetwork(request);
-      if (fresh) return fresh;
-    }
+// The newest complete set other than the active one that holds the page.
+async function previousSet(list, active, key) {
+  for (const s of list) {
+    if (s.id === active.id) continue;
+    if (await (await caches.open(s.name)).match(key)) return s;
   }
+  return null;
+}
+
+async function fromSets(request, list, active, key) {
   const ordered = [...list.filter((s) => s.id === active?.id), ...list.filter((s) => s.id !== active?.id)];
   for (const s of ordered) {
     const hit = await (await caches.open(s.name)).match(key);
     if (hit) return request.headers.has('range') ? fromRange(request, hit) : hit;
   }
-  return fetch(request);
+  return null;
+}
+
+async function serve(request) {
+  const seen = await within(state ?? looking, CACHE_WAIT_MS);
+  if (!seen) return fetch(request);
+  const { list, active } = seen;
+  const navigating = request.mode === 'navigate';
+  // A page is the build's index whatever its query (?seed=, ?mock=).
+  const key = navigating ? `${ORIGIN}${BASE}index.html` : request.url;
+  const answer = async () => {
+    // A reload soon after a launch is still that launch: the page has had no time to confirm.
+    const recent = !!active?.tries && Date.now() - (active.at || 0) < LAUNCH_GRACE_MS;
+    if (navigating && active && !recent) {
+      // Each launch counts until the page confirms it booted.
+      const tries = active.tries || 0;
+      active.tries = tries + 1;
+      active.at = Date.now();
+      await writeActive({ ...active });
+      if (tries >= 2) {
+        const prev = await previousSet(list, active, key);
+        if (prev) {
+          const next = { id: prev.id, version: prev.version, tries: 1 };
+          await writeActive(next);
+          state = { list, active: next };
+          return fromSets(request, list, next, key);
+        }
+      }
+      if (tries >= 1) {
+        const fresh = await fromNetwork(request);
+        if (fresh) return fresh;
+      }
+    }
+    return fromSets(request, list, active, key);
+  };
+  const res = await within(answer(), navigating ? NET_WAIT_MS + CACHE_WAIT_MS * 2 : CACHE_WAIT_MS);
+  return res || fetch(request);
 }
 
 self.addEventListener('fetch', (event) => {
