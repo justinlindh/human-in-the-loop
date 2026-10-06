@@ -38,6 +38,14 @@ function injectStyle() {
     display: block; max-width: min(86vw, 560px); white-space: normal; text-align: center; box-sizing: border-box; }
   .hitl-sign .in { padding: 2px 8px; border-radius: 8px; background: ${P.paper}; color: ${P.ink};
     border: 2px solid ${P.ink}; font: 600 12px Fredoka, sans-serif; }
+  .hitl-note .in { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .hitl-note .in img { width: 18px; height: 18px; flex: none; }
+  .hitl-say.hitl-note .in { padding: 4px 10px 4px 6px; }
+  .hitl-say.hitl-note.icon-only .in { padding: 4px; }
+  .hitl-say.hitl-note.tone-bad .in, .hitl-say.hitl-note.tone-bad .in::after { background: ${P.tone_bad}; color: ${P.paper}; }
+  .hitl-say.hitl-note.tone-good.icon-check .in, .hitl-say.hitl-note.tone-good.icon-check .in::after { background: ${P.tone_good}; color: ${P.paper}; }
+  .hitl-stat.hitl-note .in { background: ${P.gold}; color: ${P.ink}; padding: 4px 14px 4px 8px; border-radius: 10px; }
+  .hitl-stat.hitl-note.icon-only .in { padding: 3px; }
   `;
   document.head.appendChild(css);
 }
@@ -66,6 +74,7 @@ export function createLabels(parent) {
       l = { el, inner, obj, t: 0, life: 1, kind: '', follow: null, jit: new THREE.Vector3(), rise: 0, dx: 0, dy: 0 };
     }
     l.growthOwner = null;
+    l.retiring = false;
     l.dx = l.dy = 0;
     l.px = 0; l.hideK = 1;
     return l;
@@ -145,6 +154,41 @@ export function createLabels(parent) {
     l.w = null;
     l.inner.style.background = '';
     l.t = 0; l.life = seconds; l.rise = 0; l.follow = follow; l.offsetY = offsetY;
+    l.hold = null; l.holdT = 0; l.fresh = true; l.fadeT = null; l.fadeTo = null;
+    l.jit.set(0, 0, 0);
+    parent.add(l.obj);
+    live.push(l);
+    place(l);
+    return l;
+  }
+
+  // Status news as a small bubble with an icon: over a person it lays out as speech (it stacks with
+  // and counts against speech bubbles); `float` makes it a slow-rising label over a place instead.
+  // `iconOnly` drops the text.
+  // On a narrow window (a phone) a new note shows alone: it fades the ordinary bubbles already up,
+  // so a stack never climbs into the HUD.
+  const NARROW_W = 700, NARROW_BUBBLES = 1;
+  function note(text, iconSrc, tone, follow, seconds, { float = false, iconOnly = false, offsetY, icon = '' } = {}) {
+    if (!float) for (const o of live) if (o.kind === 'say' && o.follow === follow) o.t = o.life;
+    if (!float && typeof innerWidth === 'number' && innerWidth < NARROW_W) {
+      const others = live.filter((o) => o.kind === 'say' && !o.moment && o.t < o.life - 0.35).sort((a, b) => b.t - a.t);
+      for (const o of others.slice(0, Math.max(0, others.length - (NARROW_BUBBLES - 1)))) { o.t = o.life - 0.35; o.retiring = true; }
+    }
+    const l = acquire();
+    l.kind = float ? 'stat' : 'say';
+    l.moment = false; l.tone = tone; l.num = null;
+    l.speechText = text;
+    l.el.className = `hitl-lbl ${float ? 'hitl-stat' : 'hitl-say'} hitl-note tone-${tone ?? 'info'}${icon ? ` icon-${icon}` : ''}${iconOnly ? ' icon-only' : ''}`;
+    l.inner.textContent = '';
+    l.inner.style.background = '';
+    if (iconSrc) {
+      const img = document.createElement('img');
+      img.src = iconSrc; img.alt = '';
+      l.inner.appendChild(img);
+    }
+    if (!iconOnly || !iconSrc) l.inner.appendChild(document.createTextNode(text));
+    l.w = null;
+    l.t = 0; l.life = seconds; l.rise = float ? 0.25 : 0; l.follow = follow; l.offsetY = offsetY ?? (float ? 3 : 1.45);
     l.hold = null; l.holdT = 0; l.fresh = true; l.fadeT = null; l.fadeTo = null;
     l.jit.set(0, 0, 0);
     parent.add(l.obj);
@@ -338,15 +382,27 @@ export function createLabels(parent) {
       .map((r) => ({ left: r.left - base.left, right: r.right - base.left, top: r.top - base.top, bottom: r.bottom - base.top }));
   }
   const inRect = (x, y, r) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  // The shift that keeps a box inside the window's sides (none for a box wider than the window).
+  const onScreenDx = (box, dx, w) => {
+    if (box.right - box.left > w - 2 * GAP) return dx;
+    if (box.right + dx > w - GAP) return w - GAP - box.right;
+    if (box.left + dx < GAP) return GAP - box.left;
+    return dx;
+  };
   function clearOfPanels(l, box, anchor, w, h, k) {
     const off = anchor.x < 0 || anchor.y < 0 || anchor.x > w || anchor.y > h;
-    let dx = 0, hidden = false;
+    // Inside the window's sides first, then off any panel; a bubble that can't be both hides.
+    let dx = off ? 0 : onScreenDx(box, 0, w), hidden = false;
+    const at = () => ({ left: box.left + dx, right: box.right + dx, top: box.top, bottom: box.bottom });
     for (let pass = 0; pass < 3; pass++) {
-      const at = { left: box.left + dx, right: box.right + dx, top: box.top, bottom: box.bottom };
-      const o = occluders.find((r) => hits(at, r));
+      const o = occluders.find((r) => hits(at(), r));
       if (!o) break;
       if (off || inRect(anchor.x, anchor.y, o)) { hidden = true; break; }
-      dx += anchor.x < (o.left + o.right) / 2 ? o.left - GAP - at.right : o.right + GAP - at.left;
+      dx += anchor.x < (o.left + o.right) / 2 ? o.left - GAP - at().right : o.right + GAP - at().left;
+    }
+    if (!hidden && !off) {
+      const a = at();
+      if (occluders.some((r) => hits(a, r)) || onScreenDx(a, 0, w) !== 0) hidden = true;
     }
     l.px = (l.px ?? 0) + (dx - (l.px ?? 0)) * k;
     l.hideK = (l.hideK ?? 1) + ((hidden ? 0 : 1) - (l.hideK ?? 1)) * k;
@@ -385,12 +441,16 @@ export function createLabels(parent) {
     const stats = [];
     for (const l of live) {
       if (l.el.style.display === 'none') continue;
-      if (l.kind === 'say') says.push(l);
+      // A bubble retired to make room fades where it is and no longer takes a place in the stack.
+      if (l.kind === 'say') { if (!l.retiring) says.push(l); }
       else if (l.kind === 'stat') stats.push(l);
     }
     const k = 1 - Math.exp(-dt * 14);
     if (!says.length) {
-      for (const l of stats) l.dx += (0 - l.dx) * k;
+      for (const l of stats) {
+        if (!l.w) { l.w = l.el.offsetWidth; l.h = l.el.offsetHeight; }
+        l.dx += (onScreenDx(rectOf(l, camera, w, h), 0, w) - l.dx) * k;
+      }
       layoutGrowth(camera, w, h);
       drawLeads(segs, overlay);
       return;
@@ -468,7 +528,7 @@ export function createLabels(parent) {
         const mid = (at.left + at.right) / 2;
         dx += mid < (p.left + p.right) / 2 ? p.left - GAP * 2 - at.right : p.right + GAP * 2 - at.left;
       }
-      l.dx += (dx - l.dx) * k;
+      l.dx += (onScreenDx(r, dx, w) - l.dx) * k;
     }
     layoutGrowth(camera, w, h);
     drawLeads(segs, overlay);
@@ -483,5 +543,5 @@ export function createLabels(parent) {
 
   const speechCount = () => live.filter((l) => l.kind === 'say').length;
   const speaking = (follow) => live.some((l) => l.kind === 'say' && l.follow === follow && l.t < l.life - 0.3);
-  return { stat, banner, say, growth, update, layout, clearFor, clearSpeech, speechCount, speaking, get count() { return live.length; } };
+  return { stat, banner, say, note, growth, update, layout, clearFor, clearSpeech, speechCount, speaking, get count() { return live.length; } };
 }
