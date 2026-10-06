@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { spawnAsync } from './spawn-async.js';
 import { readFileSync } from 'node:fs';
-import { summarize, presentationMetadata, dwellSeconds, askGaps } from '../../scripts/pace-browser.js';
+import { summarize, HOOK_SITES, missingHooks, dwellSeconds, askGaps } from '../../scripts/pace-browser.js';
 
 describe.concurrent('observed pacing arguments and metadata', () => {
   it.each([
@@ -22,23 +22,17 @@ describe.concurrent('observed pacing arguments and metadata', () => {
     expect(result.stderr).toContain(message);
   });
 
-  it('keeps all source metadata hooks explicit and fails on drift', () => {
-    const plugin = presentationMetadata();
-    for (const file of ['src/main.js', ...['dom', 'toasts', 'chat', 'hud', 'advisor', 'incident'].map(x => `src/ui/${x}.js`)]) {
-      expect(plugin.transform(readFileSync(file, 'utf8'), `/${file}`).code).toBeTruthy();
-    }
-    expect(() => plugin.transform('', '/src/ui/toasts.js')).toThrow('metadata hook missing');
+  it('finds every measurement hook it relies on in the game source', () => {
+    expect(missingHooks()).toEqual([]);
+    expect(Object.keys(HOOK_SITES).sort()).toEqual(['src/main.js', ...['advisor', 'chat', 'dom', 'hud', 'incident', 'toasts'].map((x) => `src/ui/${x}.js`)]);
   });
 
-  it('names the source line and repair location when one hook is removed', () => {
-    const file = '/src/ui/toasts.js';
-    const line = '{ action, glyph, person, player, timed } = {}';
-    const source = readFileSync(file.slice(1), 'utf8');
-    expect(source).toContain(line);
-    const withoutHook = source.replace(line, 'opts = {}');
-    expect(() => presentationMetadata().transform(withoutHook, file)).toThrow(
-      `pace: metadata hook missing in ${file}. Expected source line: ${line}. Update scripts/pace-browser.js to match the UI source.`,
-    );
+  it('names the file and the missing hook when one is removed', () => {
+    const file = 'src/ui/dom.js', hook = '__hitlHooks?.created?.(el)';
+    const read = (f) => (f === file ? readFileSync(f, 'utf8').replace(hook, '') : readFileSync(f, 'utf8'));
+    expect(missingHooks(read)).toEqual([
+      `pace: measurement hook missing in ${file}: expected ${hook}. The game's hooks and scripts/pace-browser.js must match (see docs/toolkit/pace.md).`,
+    ]);
   });
 
   it('does not count closing or actionability updates as new attention', () => {

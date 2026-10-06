@@ -2,7 +2,7 @@
 // records come from visible DOM surfaces, never from event delivery counts.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { glMode, holdRenderLock, launchChromium } from './lib/gl.js';
 import { waitForBoot } from './lib/boot.js';
@@ -13,51 +13,28 @@ export const KINDS = ['decision', 'toast', 'yak', 'yak-prompt', 'mail', 'advisor
 // What asks the player for an answer: a gap between two of these, in running play, is the "ask gap".
 export const ASKS = ['decision', 'yak-prompt', 'mail'];
 
-// Fail on a moved hook instead of silently measuring an uninstrumented surface.
-export function presentationMetadata() {
-  const rules = {
-    '/src/ui/dom.js': [
-      ["const el = document.createElement(name || 'div');", "const el = document.createElement(name || 'div'); el.__paceOrigin = window.__pace?.origin ?? 'game';"],
-      ['el.addEventListener(k.slice(2).toLowerCase(), v);', "el.addEventListener(k.slice(2).toLowerCase(), function (...args) { return window.__pace ? window.__pace.player(() => v.apply(this, args)) : v.apply(this, args); });"],
-    ],
-    '/src/ui/toasts.js': [
-      ["function push(text, tone = 'info', opts = {}) {", "function push(text, tone = 'info', opts = {}) { opts = { ...opts, paceOrigin: opts.paceOrigin ?? window.__pace?.origin ?? 'game' };"],
-      ['{ action, glyph, person, player, timed } = {}', "{ action, glyph, person, player, timed, paceOrigin = window.__pace?.origin ?? 'game' } = {}"],
-      ['node: null, action, glyph, person, at,', 'node: null, action, glyph, person, paceOrigin, at,'],
-      ["dataset: { occludes: '' }, onclick: (e)", "dataset: { occludes: '', paceId: String(t.id), paceOrigin: t.paceOrigin }, onclick: (e)"],
-      ['{ action, glyph, person }); return;', '{ action, glyph, person, paceOrigin }); return;'],
-      ['opts: { action, glyph, person }, at', 'opts: { action, glyph, person, paceOrigin }, at'],
-      ['person: t.person }, at: t.at', 'person: t.person, paceOrigin: t.paceOrigin }, at: t.at'],
-    ],
-    '/src/ui/chat.js': [
-      ["root: m.replyTo ?? m.id ?? ''", "root: m.replyTo ?? m.id ?? '', paceOrigin: window.__pace?.chatOrigins.get(m.id) ?? 'game'"],
-      ["el.classList.toggle('max', on);", "el.__paceOrigin = window.__pace?.origin ?? 'game'; el.classList.toggle('max', on);"],
-    ],
-    '/src/ui/incident.js': [
-      ["shown = on;", "shown = on; el.__paceOrigin = window.__pace?.origin ?? 'game';"],
-    ],
-    '/src/ui/hud.js': [
-      ["h('div.needrow', null,", "h('div.needrow', { dataset: { paceId: n.key ?? '' } },"],
-    ],
-    '/src/ui/advisor.js': [
-      ['function showPeek(e) {', "function showPeek(e) { peek.dataset.paceId = e.key; peek.__paceOrigin = 'game';"],
-      ['h(`div.advitem.sev-${sev(item.severity)}`, null,', 'h(`div.advitem.sev-${sev(item.severity)}`, { dataset: { paceId: item.key } },'],
-    ],
-    '/src/main.js': [
-      ['const route = (events, state, direct = false)', "const route = (events, state, direct = window.__pace?.origin === 'player')"],
-      ['route(res.events, sim.state, true);', "window.__pace?.tag(res.events, 'player'); route(res.events, sim.state, true);"],
-      ['ui?.handleEvents(events, state);', "if (window.__pace) window.__pace.present(events, state, ui); else ui?.handleEvents(events, state);"],
-    ],
-  };
-  return { name: 'pace-presentation-metadata', enforce: 'pre', transform(code, id) {
-    const entries = Object.entries(rules).find(([suffix]) => id.split('?')[0].endsWith(suffix))?.[1];
-    if (!entries) return;
-    for (const [from, to] of entries) {
-      if (!code.includes(from)) throw new Error(`pace: metadata hook missing in ${id}. Expected source line: ${from}. Update scripts/pace-browser.js to match the UI source.`);
-      code = code.replace(from, to);
-    }
-    return { code, map: null };
-  } };
+// The game's measurement hooks (window.__hitlHooks, set by installObservation) and data attributes this
+// tool reads, by the file that provides each. A run refuses to start when one is gone, instead of
+// silently measuring an uninstrumented surface.
+export const HOOK_SITES = {
+  'src/main.js': ['__hitlHooks?.uiEvents', "__hitlHooks?.origin?.() === 'player'", '__hitlHooks?.playerEvents?.('],
+  'src/ui/dom.js': ['__hitlHooks?.created?.(el)', '__hitlHooks?.listener'],
+  'src/ui/toasts.js': ['__hitlHooks?.origin?.()', 'dataset.toastId', 'dataset.toastTag'],
+  'src/ui/chat.js': ['__hitlHooks?.chatTag?.(m.id)', '__hitlHooks?.opened?.(el)'],
+  'src/ui/incident.js': ['__hitlHooks?.opened?.(el)'],
+  'src/ui/hud.js': ['dataset.needKey'],
+  'src/ui/advisor.js': ['el.dataset.adviceKey', 'peek.dataset.adviceKey'],
+};
+
+// The hook sites missing from the source, as messages (none when all are there).
+export function missingHooks(read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8')) {
+  const out = [];
+  for (const [file, needles] of Object.entries(HOOK_SITES)) {
+    let src = '';
+    try { src = read(file); } catch { out.push(`pace: ${file} is missing`); continue; }
+    for (const n of needles) if (!src.includes(n)) out.push(`pace: measurement hook missing in ${file}: expected ${n}. The game's hooks and scripts/pace-browser.js must match (see docs/toolkit/pace.md).`);
+  }
+  return out;
 }
 
 // A stored game (an event-index snapshot, .json.gz, or a state .json) as the localStorage entries the
@@ -99,6 +76,16 @@ export function installObservation() {
       try { ui?.handleEvents(events, state); } finally { P.origin = before; }
     },
   };
+  // The game calls these where it creates surfaces, handles clicks and routes events (HOOK_SITES).
+  window.__hitlHooks = {
+    origin: () => P.origin,
+    created: (el) => { el.__paceOrigin = P.origin; },
+    opened: (el) => { el.__paceOrigin = P.origin; },
+    listener: (fn) => function (...args) { return P.player(() => fn.apply(this, args)); },
+    chatTag: (id) => P.chatOrigins.get(id) ?? 'game',
+    playerEvents: (events) => P.tag(events, 'player'),
+    uiEvents: (events, state, ui) => P.present(events, state, ui),
+  };
 }
 
 // Kept serializable so the same reader is exercised against browser fixtures.
@@ -125,7 +112,7 @@ export function readPresentations() {
     // words is the whole surface's, for reading time; text is cut for the report.
     rows.push({ kind, id: String(id), text: full.slice(0, 500), words: full ? full.split(' ').length : 0,
       actionable: actions.length > 0 || el.matches('button,.clickable'), actions,
-      origin: el.dataset.paceOrigin ?? el.__paceOrigin ?? 'game', ...extra });
+      origin: el.dataset.toastTag || el.dataset.tag || el.__paceOrigin || 'game', ...extra });
   };
   for (const el of document.querySelectorAll('.modal,.announce,.panel,.coach,.inccard,.callgrid,.go-card,.chat.max')) {
     const title = el.matches('.inccard') ? `incident:${s.outage?.productId}:${s.outage?.kind}`
@@ -137,8 +124,8 @@ export function readPresentations() {
       decision ? { eventId: s.pendingDecision?.eventId } : {});
   }
   for (const el of document.querySelectorAll('.toast:not(.out),.dtoast')) {
-    if (!el.dataset.paceId) throw new Error('pace: toast metadata is missing');
-    add(el, 'toast', el.dataset.paceId);
+    if (!el.dataset.toastId) throw new Error('pace: toast metadata is missing');
+    add(el, 'toast', el.dataset.toastId);
   }
   for (const el of document.querySelectorAll('.msg[data-id]')) {
     const prompt = el.querySelector('.yprompt:not(.done)');
@@ -149,8 +136,8 @@ export function readPresentations() {
       actionable: canReply || canReact, opportunity: canReply ? 'reply' : canReact ? 'reaction' : null });
   }
   for (const el of document.querySelectorAll('.yprompt:not(.done)')) add(el, 'yak-prompt', el.dataset.prompt, { chatId: el.closest('.msg')?.dataset.id });
-  for (const el of document.querySelectorAll('.advpeek.show,.advitem')) add(el, 'advisor-prompt', el.dataset.paceId);
-  for (const el of document.querySelectorAll('.needrow[data-pace-id^="office-move-"]')) add(el, 'office-prompt', el.dataset.paceId);
+  for (const el of document.querySelectorAll('.advpeek.show,.advitem')) add(el, 'advisor-prompt', el.dataset.adviceKey);
+  for (const el of document.querySelectorAll('.needrow[data-need-key^="office-move-"]')) add(el, 'office-prompt', el.dataset.needKey);
   return rows;
 }
 
@@ -412,8 +399,10 @@ export async function runBrowserPacing(args) {
   }
   const out = resolve(String(args.out ?? 'shots/pace-browser'));
   mkdirSync(out, { recursive: true });
+  const missing = missingHooks();
+  if (missing.length) throw new Error(missing.join('\n'));
   const mode = glMode(); holdRenderLock(mode);
-  const server = await createServer({ plugins: [presentationMetadata()], server: { port: 0 }, logLevel: 'error' });
+  const server = await createServer({ server: { port: 0 }, logLevel: 'error' });
   let browser;
   try {
     await server.listen();
