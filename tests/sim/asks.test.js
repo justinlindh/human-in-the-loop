@@ -117,7 +117,7 @@ describe('issue #1646: the ask queue', () => {
   it('with askExpiry off, expireAsk refuses and the queue has no cap', () => {
     B.pacing.askQueue = true;
     const s = company();
-    for (const id of ['team_offsite', 'vc_offer', 'remote_debate', 'pivot_pitch', 'hackathon_week']) raise(s, id);
+    for (const id of ['team_offsite', 'open_plan_office', 'remote_debate', 'pivot_pitch', 'hackathon_week']) raise(s, id);
     expect(s.asks).toHaveLength(5);
     expectFail(expect, dispatch, s, { type: 'expireAsk', askId: s.asks[0].id }, 'Expiry is off');
   });
@@ -202,17 +202,17 @@ describe('issue #1646: the ask queue', () => {
     fire(s, 'pet_request');
     raise(s, 'team_offsite');
     raise(s, 'agent_db_wipe');
-    raise(s, 'vc_offer');
-    expect(s.asks.map((x) => x.ref.eventId)).toEqual(['pet_request', 'team_offsite', 'agent_db_wipe', 'vc_offer']);
+    raise(s, 'open_plan_office');
+    expect(s.asks.map((x) => x.ref.eventId)).toEqual(['pet_request', 'team_offsite', 'agent_db_wipe', 'open_plan_office']);
     const chat = s.chatLog.length;
     const ev = makeCtx(s);
     raiseDecision(ev, 'remote_debate');
     expect(ev.events).toContainEqual(expect.objectContaining({ type: 'askExpired', kind: 'prompt' }));
     expect(s.chatLog.slice(chat).some((m) => m.text.includes('"Not in the office"'))).toBe(true);
-    expect(s.asks.map((x) => x.ref.eventId)).toEqual(['team_offsite', 'agent_db_wipe', 'vc_offer', 'remote_debate']);
+    expect(s.asks.map((x) => x.ref.eventId)).toEqual(['team_offsite', 'agent_db_wipe', 'open_plan_office', 'remote_debate']);
     const order = [];
     while (s.asks.length) { dispatch(s, { type: 'presentAsk' }); order.push(s.pendingDecision.eventId); s.pendingDecision = null; }
-    expect(order).toEqual(['agent_db_wipe', 'team_offsite', 'vc_offer', 'remote_debate']);
+    expect(order).toEqual(['agent_db_wipe', 'team_offsite', 'open_plan_office', 'remote_debate']);
   });
 
   it('bots present an emergency at once and anything else after botGapWeeks, and let low asks expire with askExpiry on', () => {
@@ -232,7 +232,7 @@ describe('issue #1646: the ask queue', () => {
     expect(s.pendingDecision.eventId).toBe('team_offsite');
     s.pendingDecision = null;
     fire(s, 'pet_request');
-    raise(s, 'vc_offer');
+    raise(s, 'open_plan_office');
     raise(s, 'agent_db_wipe');
     s.flags.lastAskWeek = s.week + B.attention.botExpiryWeeks;
     s.week += B.attention.botExpiryWeeks;
@@ -275,7 +275,7 @@ describe('issue #1646: the ask queue', () => {
 
   it('the era beats and mission tests are marked noExpire, and the postmortem is no emergency', () => {
     const marked = Object.keys(EVENTS).filter((id) => EVENTS[id].noExpire).sort();
-    expect(marked).toEqual(['acquisition_offer', 'era_agents', 'era_chatgbt', 'era_consolidation', 'era_plateau', 'mission_test_demo', 'mission_test_support']);
+    expect(marked).toEqual(['acquisition_offer', 'era_agents', 'era_chatgbt', 'era_consolidation', 'era_plateau', 'mission_test_demo', 'mission_test_support', 'vc_offer']);
     B.pacing.askQueue = true;
     B.pacing.quietEvents = false;
     const s = company();
@@ -318,10 +318,10 @@ describe('issue #1646: the ask queue', () => {
     B.pacing.askExpiry = true;
     const s = company();
     raise(s, 'era_chatgbt');
-    for (const id of ['team_offsite', 'vc_offer', 'remote_debate']) raise(s, id);
-    expect(s.asks.map((a) => a.ref.eventId)).toEqual(['era_chatgbt', 'team_offsite', 'vc_offer', 'remote_debate']);
+    for (const id of ['team_offsite', 'open_plan_office', 'remote_debate']) raise(s, id);
+    expect(s.asks.map((a) => a.ref.eventId)).toEqual(['era_chatgbt', 'team_offsite', 'open_plan_office', 'remote_debate']);
     raise(s, 'pivot_pitch');
-    expect(s.asks.map((a) => a.ref.eventId)).toEqual(['era_chatgbt', 'vc_offer', 'remote_debate', 'pivot_pitch']);
+    expect(s.asks.map((a) => a.ref.eventId)).toEqual(['era_chatgbt', 'open_plan_office', 'remote_debate', 'pivot_pitch']);
   });
 
   it('bots never let a noExpire ask expire, however long it waits', () => {

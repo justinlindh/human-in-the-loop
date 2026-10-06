@@ -454,7 +454,7 @@ const list = [
     ],
   },
   {
-    id: 'vc_offer', kind: 'market', weight: 3, cooldownWeeks: ONCE, random: true, subject: null, funding: 'bootstrapped',
+    id: 'vc_offer', kind: 'market', weight: 3, cooldownWeeks: ONCE, random: true, subject: null, funding: 'bootstrapped', noExpire: true,
     when: (s) => !s.flags.diluted && (s.week >= 26 || s.cash < 20000),
     title: 'A venture capitalist calls',
     text: 'A VC in a vest wants to give {company} half a million dollars. They say "AI-native" four times.',

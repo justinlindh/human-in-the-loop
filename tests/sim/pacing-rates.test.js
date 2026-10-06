@@ -119,8 +119,12 @@ describe('askRates: fewer events and staff prompts come up', () => {
     const s = company();
     s.cash = 100000;
     for (const k of STRUCTURAL_KEYS) expect(structural(s, { [k]: 1 }), k).toBe(true);
-    for (const k of ['setAutomation', 'automationBump', 'migrateOff', 'modelBoost', 'workPolicy', 'flag', 'nocMode', 'pivot', 'resign',
+    for (const k of ['setAutomation', 'automationBump', 'migrateOff', 'modelBoost', 'workPolicy', 'nocMode', 'pivot', 'resign',
       'efficiencyCuts', 'candidates', 'aiInterview', 'win', 'openOffer', 'mission', 'purpose', 'moonshot']) expect(STRUCTURAL_KEYS, k).toContain(k);
+    expect(structural(s, { flag: { name: 'diluted', value: true } })).toBe(true);
+    expect(structural(s, { flag: { name: 'incubatorCut', value: true } })).toBe(true);
+    expect(structural(s, { meaning: 6, flag: { name: 'heardSkeptic', value: true } })).toBe(false);
+    expect(structural(s, { startCraft: true, meaning: 5 })).toBe(false);
     expect(structural(s, { modifier: { key: 'output', value: 0.1, weeks: 14 } })).toBe(true);
     expect(structural(s, { modifier: { key: 'output', value: 0.1, weeks: 13 } })).toBe(false);
     expect(structural(s, { cash: -11000 })).toBe(true);

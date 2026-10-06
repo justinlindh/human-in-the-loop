@@ -266,7 +266,7 @@ export const B = {
   // A random event that plays out quietly takes the careful player's best choice unless that choice is
   // structural (src/sim/value.js), which includes a modifier over structuralWeeks or a cash swing over
   // structuralCashShare of the cash in hand; then it takes the ask default.
-  askRates: { chatPromptChance: 0.0041, cardChance: 0.0075, stakesCardMult: 3, stakesValue: 1, scriptedChance: { acquisition_offer: 0.012 },
+  askRates: { chatPromptChance: 0.0029, cardChance: 0.006, stakesCardMult: 3, stakesValue: 1, scriptedChance: { acquisition_offer: 0.012 },
     structuralWeeks: 13, structuralCashShare: 0.1 },
   // letterChance: the weekly roll for an outside letter under B.pacing.letterMail, in place of actionChance.
   mail: {

@@ -2,15 +2,18 @@ import { B } from './balance.js';
 
 // Effects that make a structural or identity call: automation and models, policies, the NOC, pivots and
 // product or market switches, people joining or leaving, exits, era bets, the mission and the moonshot.
-export const STRUCTURAL_KEYS = ['setAutomation', 'automationBump', 'migrateOff', 'modelBoost', 'agentCap', 'workPolicy', 'flag',
-  'efficiencyCuts', 'nocMode', 'pivot', 'startCraft', 'rivalMerge', 'acquireBest', 'expandNow', 'preinternet', 'dotcom',
+export const STRUCTURAL_KEYS = ['setAutomation', 'automationBump', 'migrateOff', 'modelBoost', 'agentCap', 'workPolicy',
+  'efficiencyCuts', 'nocMode', 'pivot', 'rivalMerge', 'acquireBest', 'expandNow', 'preinternet', 'dotcom',
   'resign', 'candidates', 'aiInterview', 'win', 'openOffer', 'mission', 'purpose', 'moonshot', 'lastBet'];
+// Story flags that give away part of the company; other flags only remember what happened.
+export const EQUITY_FLAGS = ['diluted', 'incubatorCut'];
 
 // Whether effects make a structural call, or commit to a modifier over B.askRates.structuralWeeks or a
 // cash swing over B.askRates.structuralCashShare of the cash in hand.
 export function structural(s, fx, depth = 0) {
   if (!fx || depth > 3) return false;
   if (STRUCTURAL_KEYS.some((k) => fx[k] !== undefined && fx[k] !== null && fx[k] !== false)) return true;
+  if (EQUITY_FLAGS.includes(fx.flag?.name)) return true;
   if (fx.cash && Math.abs(fx.cash) > Math.max(0, s.cash) * B.askRates.structuralCashShare) return true;
   if ([fx.modifier].flat().some((m) => m && m.weeks > B.askRates.structuralWeeks)) return true;
   const nested = [fx.cond?.then, fx.cond?.else, fx.gamble?.effects, fx.gamble?.else, ...(fx.later ?? []).map((l) => l.effects)];
