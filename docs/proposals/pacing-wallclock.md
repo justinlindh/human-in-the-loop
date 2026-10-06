@@ -193,7 +193,16 @@ The sim is deterministic and counts weeks, and it must stay that way (no `Date.n
 
 So at 4x the player sees the same Asks per real minute as at 1x, and **fewer Asks per game year**: the extra candidates expire to their defaults. That is the point of 4x. It is "let me watch it build", not "give me four times the paperwork". At 4x, staged moments are skipped (they are already counted as skipped at 4x).
 
-**Rate retune.** The candidate rate should roughly match the budget at 1x, so few expire at 1x: about 0.5 to 0.7 candidates per running minute in all, against 3.4 now. That is a cut of about 5x, mostly from prompts and mail.
+**Rate retune.** The candidate rate should roughly match the budget at 1x, so few expire at 1x: about 0.4 to 0.5 candidates per running minute in all, against 3.4 now. That is a cut of about 7x, mostly from prompts and mail. A queue model (at most one ask every 90 s, a 180 s expiry, at most 3 waiting) shows why this is the right band:
+
+| Candidates per running min | Presented | Expired | Mean gap between asks |
+|---|---|---|---|
+| 3.4 | 19% | 81% | 90 s |
+| 0.7 | 80% | 20% | 106 s |
+| 0.5 | 91% | 9% | 130 s |
+| 0.4 | 95% | 4% | 157 s |
+
+So the queue must never run at today's rate.
 
 ## 6. Decisions for the owner
 
