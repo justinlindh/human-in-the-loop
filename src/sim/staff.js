@@ -290,7 +290,6 @@ export function hireCandidate(ctx, candidateId) {
     if (recent.length > B.helloMemory) recent.splice(0, recent.length - B.helloMemory);
     emitChat(ctx, { person: c, text: line });
   }
-  return c;
 }
 
 registerAction('fire', (ctx, { staffId }) => {

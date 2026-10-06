@@ -135,7 +135,8 @@ registerAction('watchInterview', (ctx, { candidateId }) => {
   if (!c) return { ok: false, reason: 'No such candidate' };
   if (c.watched) return { ok: false, reason: 'Already watched' };
   if (state.pendingDecision) return { ok: false, reason: 'Finish the open decision first' };
-  if (!openWatch(ctx, c, { asked: true })) return { ok: false, reason: 'Not right now' };
+  // The policy only runs in eras the card is allowed in, so a declined card means the feature is off here.
+  if (!openWatch(ctx, c, { asked: true })) return { ok: false, reason: 'AI interviews are off' };
   return { ok: true };
 });
 
@@ -185,6 +186,8 @@ function expose(ctx, p) {
   removeStaff(state, p);
   state.cash -= Math.min(B.aiInterviews.exposeCash, Math.max(0, state.cash) * B.aiInterviews.exposeCashShare);
   state.brand = clamp100(state.brand + B.aiInterviews.exposeBrand);
+  // It walks out like anyone leaving; an agent leaving is not counted as a resignation.
+  ctx.emit({ type: 'resign', staffId: p.id, name: p.name, fired: false, reason: 'exposed' });
   ctx.emit({ type: 'aiHireExposed', staffId: p.id });
   const text = pick(sideRng(state, 7), EXPOSED_LINES).replaceAll('{name}', p.name);
   const who = others(state, null);

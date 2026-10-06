@@ -145,9 +145,14 @@ describe('issue #670: spot the AI', () => {
     expect(s.staff.some((p) => p.id === id)).toBe(true);
     const [lo, hi] = B.aiInterviews.exposeWeeks;
     s.cash = 1000;
-    let exposed = null, weeks = 0;
-    while (!exposed && weeks <= hi) { s.week++; weeks++; exposed = weekOf(s).find((e) => e.type === 'aiHireExposed'); }
+    const resignations = s.stats.resignations;
+    const name = s.staff.find((p) => p.id === id).name;
+    let exposed = null, weeks = 0, ev = [];
+    while (!exposed && weeks <= hi) { s.week++; weeks++; ev = weekOf(s); exposed = ev.find((e) => e.type === 'aiHireExposed'); }
     expect(exposed).toEqual({ type: 'aiHireExposed', staffId: id });
+    // It walks out like anyone leaving, but an agent leaving is not a person resigning.
+    expect(ev.find((e) => e.type === 'resign')).toEqual({ type: 'resign', staffId: id, name, fired: false, reason: 'exposed' });
+    expect(s.stats.resignations).toBe(resignations);
     expect(weeks).toBeGreaterThanOrEqual(lo);
     expect(weeks).toBeLessThanOrEqual(hi);
     expect(s.staff.some((p) => p.id === id)).toBe(false);
