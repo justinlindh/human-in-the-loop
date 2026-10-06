@@ -27,7 +27,7 @@ export const SUBJECTS = [
 export const EVENT_KINDS = ['staff', 'leadership', 'market', 'vendor', 'incident', 'cyber', 'annual', 'misc', 'era', 'world'];
 
 export const EFFECT_KEYS = [
-  'preinternet',
+  'preinternet', 'aiInterview',
   'legacyPolish',
   'dotcom', 'cash', 'summit', 'musicNight', 'moonshot', 'lastBet', 'fame', 'agentAudit', 'agentCap', 'agentInvoice', 'rivalMerge', 'acquireBest', 'expandNow', 'brand', 'debt', 'ik', 'hype', 'customersPct', 'health', 'meaning', 'knowledge', 'teamMeaning',
   'resign', 'assign', 'candidates', 'flag', 'win', 'salaryPct', 'startCraft', 'gpuShortageWeeks',

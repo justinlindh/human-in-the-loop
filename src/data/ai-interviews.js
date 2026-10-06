@@ -24,6 +24,7 @@ export const REVEAL_LINES = [
 export const AI_INTERVIEW_EVENTS = [
   {
     id: 'ai_interview_loop', kind: 'misc', weight: 0, cooldownWeeks: 0, random: false, subject: null, eras: ['agents', 'consolidation', 'plateau'],
+    when: () => true,
     title: 'The interview is still going',
     text: 'The candidate\'s AI and our AI have been interviewing each other for 40 minutes. They have moved on to salary expectations. Both are very flexible.',
     choices: [
