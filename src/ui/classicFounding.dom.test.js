@@ -4,6 +4,8 @@ import { afterAll, afterEach, expect, it, vi } from 'vitest';
 import { createTitle } from './title.js';
 import { createGame } from '../sim/state.js';
 
+// The opt-out path (`?eras=0`): the original founding flow, unchanged.
+vi.mock('./eraPreview.js', () => ({ erasPreview: false }));
 vi.hoisted(() => vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({}) }))));
 afterAll(() => vi.unstubAllGlobals());
 afterEach(() => { document.body.replaceChildren(); vi.clearAllTimers(); vi.useRealTimers(); vi.restoreAllMocks(); });
