@@ -350,6 +350,12 @@ function text(ctx, t, x, y, px, col, wt = 700, align = 'center') {
   ctx.fillStyle = col; ctx.font = `${wt} ${px}px Fredoka, sans-serif`; ctx.textAlign = align; ctx.textBaseline = 'middle';
   ctx.fillText(t, x, y);
 }
+// The largest size up to `px` at which `t` fits in `maxW`.
+function fitPx(ctx, t, px, maxW, wt = 700) {
+  ctx.font = `${wt} ${px}px Fredoka, sans-serif`;
+  const w = ctx.measureText(t).width;
+  return w > maxW ? Math.max(12, Math.floor(px * maxW / w)) : px;
+}
 function lines(ctx, x, y, w, n, gap, col = P.metal_soft) {
   ctx.fillStyle = col;
   for (let i = 0; i < n; i++) ctx.fillRect(x, y + i * gap, w * (i % 3 === 2 ? 0.6 : 1), 7);
@@ -410,25 +416,25 @@ const invoice = () => canvasTex('invoice', 384, 512, (ctx, W, H) => {
 });
 // The pre-rebrand sign: the company name in its own colour, kept for posterity.
 const oldSign = (state) => {
-  const name = String(state?.companyName ?? 'Our Company').slice(0, 18);
+  const name = String(state?.companyName ?? 'Our Company').slice(0, 24);
   const col = state?.logoColor ?? P.role_engineer;
   return canvasTex(`old_sign|${name}|${col}`, 512, 256, (ctx, W, H) => {
     ctx.fillStyle = P.paper; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(24, 24, W - 48, 150, 20); ctx.fill();
-    const px = Math.min(72, Math.floor(880 / Math.max(6, name.length)));
-    text(ctx, name.toUpperCase(), W / 2, 100, px, P.paper);
+    const label = name.toUpperCase();
+    text(ctx, label, W / 2, 100, fitPx(ctx, label, 72, W - 48 - 56), P.paper);
     text(ctx, 'the old logo. we miss it.', W / 2, 212, 28, P.ink, 600);
   });
 };
 // #163: the rival keeps copying you, and someone keeps count.
 const rivalCopied = (state) => {
-  const name = String(state?.rival?.name ?? 'The Rival').slice(0, 16);
+  const name = String(state?.rival?.name ?? 'The Rival').slice(0, 24);
   const col = state?.rival?.logoColor ?? P.fabric_slate;
   return canvasTex(`rival_copied|${name}|${col}`, 512, 384, (ctx, W, H) => {
     ctx.fillStyle = P.paper; ctx.fillRect(0, 0, W, H);
     text(ctx, 'DAYS SINCE', W / 2, 56, 50, P.ink);
-    const px = Math.min(54, Math.floor(820 / Math.max(6, name.length)));
-    text(ctx, name.toUpperCase(), W / 2, 116, px, col);
+    const label = name.toUpperCase();
+    text(ctx, label, W / 2, 116, fitPx(ctx, label, 54, W - 48), col);
     text(ctx, 'COPIED US:', W / 2, 176, 50, P.ink);
     // The flip counter.
     for (const [i, d] of [[0, '0']]) {

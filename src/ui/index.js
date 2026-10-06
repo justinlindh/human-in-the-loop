@@ -13,6 +13,7 @@ import { PANELS } from './panels/index.js';
 import { forgetOverseers } from './panels/automation.js';
 import { createPopups, launchToastCarded } from './popups.js';
 import { splitUnlocks, pipToast } from './unlockPips.js';
+import { bringAsk } from './askPresent.js';
 import { createSpacing } from './spacing.js';
 import { progressBar, goalsDoneText } from './goalProgress.js';
 import { createGrowth, growthToast } from './growth.js';
@@ -181,6 +182,8 @@ export function createUI({ root, getState, dispatch, controls }) {
       if (opens) openTarget(ctx, opens);
     },
     onPost: (id) => { const r = act({ type: 'postMessage', id }); if (r.ok) sfx('confirm'); return r; },
+    // The first time a reply prompt is actually on screen its expiry may start (shownExpiry, with or without the queue).
+    onShown: (promptId) => { if (pacingOn('shownExpiry')) act({ type: 'promptShown', promptId }); },
   });
   const menu = createMenu({
     bottom, panelRoot: layer, panels: PANELS, ctx,
@@ -523,6 +526,10 @@ export function createUI({ root, getState, dispatch, controls }) {
           break;
         }
         case 'chat': chat.add(e, e.week ?? state.week); break;
+        case 'askPresented': {
+          bringAsk(e, state, { openMail: ({ mailId }) => popups.openLetter(state, mailId), revealPrompt: (id) => chat.revealPrompt(id) });
+          break;
+        }
         case 'say': callGrid.say(e, state); break;
         case 'hire': {
           const p = state.staff.find((s) => s.id === e.staffId);
@@ -609,7 +616,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   // not the decision popup (the sim already waits for decisions).
   function isBusy() {
     if (settings.values.pauseMenus === false) return false;
-    return !!(menu.current || ctx.modal || buildMode.on || announcer.open || popups.launchOpen || settings.isOpen || tutorial.open || chat.maximized);
+    return !!(menu.current || ctx.modal || buildMode.on || announcer.open || popups.launchOpen || popups.letterOpen || settings.isOpen || tutorial.open || chat.maximized);
   }
   ui.isBusy = isBusy;
 
