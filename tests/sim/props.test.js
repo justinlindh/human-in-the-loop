@@ -11,7 +11,7 @@ import { EVENTS } from '../../src/data/events.js';
 import { game, passOfficeGates, addStaff, pinPacing } from './helpers.js';
 
 // Staged events as cards; quietEvents' card-less path is covered in pacing-rates.test.js.
-pinPacing({ quietEvents: false });
+pinPacing({ quietEvents: false, askQueue: false, askExpiry: false });
 
 const floor = (seed = 1) => {
   const s = passOfficeGates(game(seed));

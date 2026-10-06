@@ -7,6 +7,9 @@ import { dotcomStep, dotcomAcquisition, dotcomEffect } from '../../src/sim/dotco
 import { web2Step } from '../../src/sim/web2.js';
 import { chapterStart } from '../../src/sim/util.js';
 import { EVENTS } from '../../src/data/events.js';
+import { pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 const fresh = (s) => { s.pendingDecision = null; s.scheduled = []; delete s.flags.lastDecisionWeek; return s; };
 

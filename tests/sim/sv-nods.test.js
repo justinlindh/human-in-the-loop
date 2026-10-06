@@ -10,7 +10,9 @@ import { EVENTS } from '../../src/data/events.js';
 import { SV_NODS } from '../../src/data/sv-nods.js';
 import { RESEARCH, RESEARCH_ANNOUNCE } from '../../src/data/research.js';
 import { RUNNING_JOKES } from '../../src/data/talk.js';
-import { classicGame, game, addStaff, addProduct } from './helpers.js';
+import { classicGame, game, addStaff, addProduct, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 const N = B.svNods;
 const raise = (s, id, subjectId = null) => { delete s.flags.lastDecisionWeek; delete s.flags.lastPauseWeek; s.pendingDecision = null; raiseDecision(makeCtx(s), id, subjectId); };

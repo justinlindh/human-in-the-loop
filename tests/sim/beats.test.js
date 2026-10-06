@@ -9,7 +9,9 @@ import { runBot } from '../../src/sim/bots.js';
 import { B } from '../../src/sim/balance.js';
 import { EVENTS } from '../../src/data/events.js';
 import { OFFICE_STAGES } from '../../src/data/office.js';
-import { game, addStaff, addProduct, addDesks, passOfficeGates, expectFail } from './helpers.js';
+import { game, addStaff, addProduct, addDesks, passOfficeGates, expectFail, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 const run = (s) => { const c = makeCtx(s); beatsSystem(c); return c.events; };
 const choose = (s, label) => dispatch(s, { type: 'resolveDecision', choice: EVENTS[s.pendingDecision.eventId].choices.findIndex((c) => c.label === label) });

@@ -10,7 +10,9 @@ import { endgameSystem } from '../../src/sim/endgame.js';
 import { raiseDecision } from '../../src/sim/events.js';
 import { purchaseProblem } from '../../src/sim/office.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
-import { addProduct } from './helpers.js';
+import { addProduct, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 const game = () => createGame({ seed: 17, startEra: 'dotcom' });
 const at = (s, week) => { s.week = week; s.pendingDecision = null; delete s.flags.lastDecisionWeek; const ctx = makeCtx(s); dotcomStep(ctx); return ctx; };

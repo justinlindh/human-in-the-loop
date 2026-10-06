@@ -10,7 +10,7 @@ import { EVENTS } from '../../src/data/events.js';
 import { game, addStaff, addProduct, pinPacing } from './helpers.js';
 
 // Choice availability on cards; quietEvents' card-less path is covered in pacing-rates.test.js.
-pinPacing({ quietEvents: false });
+pinPacing({ quietEvents: false, askQueue: false, askExpiry: false });
 
 const econ = (s) => { const c = makeCtx(s); economySystem(c); s.week++; return c.events; };
 

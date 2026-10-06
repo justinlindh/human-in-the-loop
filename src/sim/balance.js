@@ -242,7 +242,7 @@ export const B = {
   // Pacing on the wall clock (#1639): one revert switch per part. true is the new behaviour, false restores
   // the old one for that part alone; a switch whose part has not been built yet does nothing.
   pacing: {
-    askQueue: false, askExpiry: false, askRealTime: true, momentCap: true, askRates: true, letterMail: true, quietEvents: true,
+    askQueue: true, askExpiry: true, askRealTime: true, momentCap: true, askRates: true, letterMail: true, quietEvents: true,
     quietToasts: true, oneLaunchCard: true, unlockPips: true, advisorGlow: true, quietYak: true, mailArchive: true, deskBubbles: true,
     shownExpiry: true,
   },

@@ -5,7 +5,9 @@ import { raiseDecision } from '../../src/sim/events.js';
 import { propsSystem } from '../../src/sim/props.js';
 import { ladderSystem } from '../../src/sim/ladder.js';
 import { EVENTS } from '../../src/data/events.js';
-import { game, addStaff, addProduct, passOfficeGates } from './helpers.js';
+import { game, addStaff, addProduct, passOfficeGates, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 // Prop ids art has shipped; the sim uses no others.
 const SHIPPED = new Set(['picture_pingpong', 'picture_pingpong_ball', 'brochure', 'photo_lake', 'invoice', 'old_sign', 'sign_rival_copied',

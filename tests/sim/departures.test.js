@@ -3,7 +3,9 @@ import { dispatch } from '../../src/sim/index.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { raiseDecision } from '../../src/sim/events.js';
 import { EVENTS } from '../../src/data/events.js';
-import { game, addStaff } from './helpers.js';
+import { game, addStaff, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 describe('resign events say why someone left', () => {
   it('fired, poached, and burnout each carry their reason', () => {

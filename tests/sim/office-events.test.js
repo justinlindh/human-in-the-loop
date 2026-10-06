@@ -10,7 +10,7 @@ import { ITEMS } from '../../src/data/items.js';
 import { game, addProduct, placeAction, setItems, pinPacing } from './helpers.js';
 
 // Office events raised as cards; quietEvents' card-less path is covered in pacing-rates.test.js.
-pinPacing({ quietEvents: false });
+pinPacing({ quietEvents: false, askQueue: false, askExpiry: false });
 import { OFFICE_STAGES } from '../../src/data/office.js';
 
 const eventText = (e) => [e.title, e.text, e.chat ?? '', ...(e.choices ?? []).flatMap((c) => [c.label, c.hint, c.outcome ?? ''])].join(' ');

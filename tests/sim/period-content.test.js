@@ -27,6 +27,9 @@ import { makeCtx } from '../../src/sim/registry.js';
 import { TALK, SAY_SOLO, RUNNING_JOKES } from '../../src/data/talk.js';
 import { PROMPTS } from '../../src/data/prompts.js';
 import { periodAllows } from '../../src/data/period-content.js';
+import { pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 // Seeded play through each early era is checked in period-content.full.test.js.
 const stringPools = (obj) => Object.values(obj).filter((a) => Array.isArray(a) && a.every((v) => typeof v === 'string'));

@@ -11,7 +11,12 @@ describe('issue #757: which bot posts are important', () => {
     const keep = B.pacing.askRates;
     B.pacing.askRates = false;
     try {
-      for (const seed of [1, 2, 3]) runBot('balanced', seed, 520, { onWeek: (s, ev) => { for (const e of ev) if (e.type === 'chat' && e.fromId === null) posts.push({ ...e, prompts: s.chatPrompts }); } });
+      // Posts come from the weekly tick and from the bot's own actions, which present queued asks.
+      for (const seed of [1, 2, 3]) {
+        let state = null;
+        const take = (ev) => { for (const e of ev) if (e.type === 'chat' && e.fromId === null) posts.push({ ...e, prompts: state.chatPrompts }); };
+        runBot('balanced', seed, 520, { setup: (s) => { state = s; }, onWeek: (s, ev) => take(ev), onEvents: take });
+      }
     } finally {
       B.pacing.askRates = keep;
     }

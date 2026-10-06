@@ -8,7 +8,7 @@ import { POLICIES } from '../../src/data/policies.js';
 import { game, addProduct, pinPacing } from './helpers.js';
 
 // Cards wait out the gap; quietEvents' card-less path is covered in pacing-rates.test.js.
-pinPacing({ quietEvents: false });
+pinPacing({ quietEvents: false, askQueue: false, askExpiry: false });
 
 // A settled company with a product, past the opening grace, with nothing recent.
 function settled(seed = 1) {

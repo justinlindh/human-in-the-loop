@@ -5,7 +5,9 @@ import { raiseDecision } from '../../src/sim/events.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
 import { CATEGORIES } from '../../src/data/categories.js';
-import { game, addStaff, addProduct, expectFail } from './helpers.js';
+import { game, addStaff, addProduct, expectFail, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 const check = (s) => { const c = makeCtx(s); endgameSystem(c); return c.events; };
 

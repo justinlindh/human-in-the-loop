@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { replayBeat } from './trailer-beats/replay.mjs';
 import { PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY, CLEAN } from '../../scripts/capture-manifest.js';
 import { LOAD_PIN } from '../../scripts/trailer/pins.js';
+import { pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 // Loading the capture manifests is slow while the rest of the suite runs alongside.
 describe('trailer and landing beat replay (#1175)', { timeout: 60000 }, () => {

@@ -9,7 +9,9 @@ import { B } from '../../src/sim/balance.js';
 import { EVENTS } from '../../src/data/events.js';
 import { staffUpkeep } from '../../src/sim/staff.js';
 import { knowledgeSystem } from '../../src/sim/knowledge.js';
-import { classicGame, addStaff, addProduct, addDesks } from './helpers.js';
+import { classicGame, addStaff, addProduct, addDesks, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 const step = (s) => { const c = makeCtx(s); ladderSystem(c); return c.events; };
 const choose = (s, label) => {

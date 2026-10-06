@@ -10,7 +10,7 @@ import { emitMomentTalk, momentCast, momentTalkSystem } from '../../src/sim/mome
 import { game, addStaff, pinPacing } from './helpers.js';
 
 // Moments raised as cards; quietEvents' card-less path is covered in pacing-rates.test.js.
-pinPacing({ quietEvents: false });
+pinPacing({ quietEvents: false, askQueue: false, askExpiry: false });
 import { B } from '../../src/sim/balance.js';
 
 describe('moment dialogue', () => {

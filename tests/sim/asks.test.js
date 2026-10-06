@@ -29,15 +29,14 @@ beforeEach(() => { keep = { ...B.pacing }; });
 afterEach(() => { Object.assign(B.pacing, keep); });
 
 describe('issue #1646: the ask queue', () => {
-  it('lands off, with every other pacing switch on and the attention clock in real seconds', () => {
-    expect(B.pacing.askQueue).toBe(false);
-    expect(B.pacing.askExpiry).toBe(false);
-    for (const k of ['askRealTime', 'momentCap', 'askRates', 'letterMail', 'quietEvents', 'quietToasts', 'oneLaunchCard', 'unlockPips', 'advisorGlow', 'quietYak', 'mailArchive', 'deskBubbles']) expect(B.pacing[k], k).toBe(true);
+  it('every pacing switch is on, with the attention clock in real seconds', () => {
+    for (const k of ['askQueue', 'askExpiry', 'shownExpiry', 'askRealTime', 'momentCap', 'askRates', 'letterMail', 'quietEvents', 'quietToasts', 'oneLaunchCard', 'unlockPips', 'advisorGlow', 'quietYak', 'mailArchive', 'deskBubbles']) expect(B.pacing[k], k).toBe(true);
     expect(B.attention).toEqual({ gap: 90, quiet: 45, expiry: 180, momentWindow: 300, momentCap: 25, watchWindow: 600, watchStretch: 180, yakGap: 20,
       botGapWeeks: 11, botExpiryWeeks: 22, staleWeeks: 52, queueCap: 3, openExpiry: 120 });
   });
 
   it('off: a decision opens as it always has and the queue stays empty', () => {
+    B.pacing.askQueue = false;
     const s = company();
     expect(raise(s, 'team_offsite').ok).toBe(true);
     expect(s.pendingDecision.eventId).toBe('team_offsite');
@@ -45,7 +44,8 @@ describe('issue #1646: the ask queue', () => {
   });
 
   it('off: a whole bot game never touches the queue', () => {
-    const r = runBot('balanced', 3, 300, { onWeek: (s, events) => { expect(events.some((e) => e.type === 'askQueued')).toBe(false); } });
+    B.pacing.askQueue = false;
+    const r =runBot('balanced', 3, 300, { onWeek: (s, events) => { expect(events.some((e) => e.type === 'askQueued')).toBe(false); } });
     expect(r.state.asks).toEqual([]);
   });
 
@@ -116,6 +116,7 @@ describe('issue #1646: the ask queue', () => {
 
   it('with askExpiry off, expireAsk refuses and the queue has no cap', () => {
     B.pacing.askQueue = true;
+    B.pacing.askExpiry = false;
     const s = company();
     for (const id of ['team_offsite', 'open_plan_office', 'remote_debate', 'pivot_pitch', 'hackathon_week']) raise(s, id);
     expect(s.asks).toHaveLength(5);

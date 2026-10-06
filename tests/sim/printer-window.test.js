@@ -8,7 +8,7 @@ import { runBot } from '../../src/sim/bots.js';
 import { game, addStaff, pinPacing } from './helpers.js';
 
 // The printer jam as a card; quietEvents' card-less printer is covered in pacing-rates.test.js.
-pinPacing({ quietEvents: false });
+pinPacing({ quietEvents: false, askQueue: false, askExpiry: false });
 
 const N = B.nods;
 

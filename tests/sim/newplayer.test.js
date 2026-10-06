@@ -11,7 +11,9 @@ import { saveGame, loadGame } from '../../src/save/save.js';
 import { EVENTS } from '../../src/data/events.js';
 import { B } from '../../src/sim/balance.js';
 import { MODELS } from '../../src/data/models.js';
-import { game, addStaff, addProduct } from './helpers.js';
+import { game, addStaff, addProduct, pinPacing } from './helpers.js';
+
+pinPacing({ askQueue: false, askExpiry: false });
 
 describe('a new player gets a fair opening', () => {
   it('two founders on a small project launch by about week 14 with 8+ weeks of runway', () => {

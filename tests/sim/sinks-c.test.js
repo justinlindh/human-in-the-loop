@@ -12,7 +12,7 @@ import { EVENTS } from '../../src/data/events.js';
 import { game, addStaff, passOfficeGates, expectFail, pinPacing } from './helpers.js';
 
 // Every moonshot check-in as a card; quietEvents' quiet later check-ins are covered in pacing-rates.test.js.
-pinPacing({ quietEvents: false });
+pinPacing({ quietEvents: false, askQueue: false, askExpiry: false });
 
 const rich = (seed = 1) => {
   const s = passOfficeGates(game(seed));

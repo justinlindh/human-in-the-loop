@@ -28,7 +28,11 @@ let keepPacing;
 let keepMail;
 let keepScripted;
 let keepRates;
-beforeEach(() => { keepPacing = { ...B.pacing }; keepMail = { ...B.mail }; keepScripted = { ...B.askRates.scriptedChance }; keepRates = { ...B.askRates }; });
+// These tests read decisions and mail straight off the tick, so the ask queue is off unless a test turns it on.
+beforeEach(() => {
+  keepPacing = { ...B.pacing }; keepMail = { ...B.mail }; keepScripted = { ...B.askRates.scriptedChance }; keepRates = { ...B.askRates };
+  Object.assign(B.pacing, { askQueue: false, askExpiry: false });
+});
 afterEach(() => {
   Object.assign(B.pacing, keepPacing); Object.assign(B.mail, keepMail); Object.assign(B.askRates, keepRates);
   B.askRates.scriptedChance = Object.assign(keepRates.scriptedChance, keepScripted);
