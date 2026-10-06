@@ -22,7 +22,7 @@
 # Exit: 0 green (or merged, or the issue closed); 2 a check failed; 3 behind or conflicting with
 # --no-update; 4 merging main conflicts; 5 the tests failed after merging main; 6 the PR was closed;
 # 7 this worktree isn't on the PR's branch at its head, or is no longer on the branch the wait started on when a
-#   merge or push is due; 124 timed out.
+#   merge or push is due; 8 the push of the merged branch failed; 124 timed out.
 set -uo pipefail
 
 pr="" issue="" repo="" merged=0 update=1 test_cmd="" poll=60 pickup=15 timeout=240
@@ -150,7 +150,13 @@ update_branch() {
   fi
   rm -f "$log"
   still_on_branch "pushing (the merge stays committed on $started_on)"
-  git push -q
+  # Named explicitly, so a branch pushed without tracking still pushes (and gains it).
+  local err
+  if ! err="$(git push -q -u origin "$branch" 2>&1)"; then
+    printf '%s\n' "$err" >&2
+    say "pushing $branch failed (git's error above); the merge is committed locally but not pushed"
+    exit 8
+  fi
   say "pushed $(git rev-parse --short HEAD)"
 }
 

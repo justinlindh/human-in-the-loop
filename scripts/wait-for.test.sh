@@ -97,6 +97,22 @@ before="$(git -C "$tmp/origin.git" rev-parse topic)"
 up 'true'
 [ $rc -eq 0 ] && grep -q 'pushed' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" != "$before" ] \
   || fail "a worktree still on its branch is updated and pushed: $rc $(cat "$tmp/out")"
+# A branch pushed without tracking (git push origin topic) is still pushed, by name, and gains tracking.
+mainmoves() { ( cd "$tmp/work" && g checkout -q main && g pull -q origin main && g commit -q --allow-empty -m "main moves again" && g push -q origin main && g checkout -q topic ); }
+mainmoves; ( cd "$tmp/work" && g branch -q --unset-upstream )
+before="$(git -C "$tmp/origin.git" rev-parse topic)"
+up 'true'
+[ $rc -eq 0 ] && grep -q 'pushed' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" != "$before" ] \
+  && [ "$(git -C "$tmp/work" rev-parse --abbrev-ref topic@{upstream})" = origin/topic ] \
+  || fail "a branch with no upstream is pushed by name and gains one: $rc $(cat "$tmp/out")"
+# A rejected push exits 8 with git's error, and is never reported as pushed.
+mainmoves; printf '#!/bin/sh\necho "refused by the test hook" >&2\nexit 1\n' >"$tmp/origin.git/hooks/pre-receive"; chmod +x "$tmp/origin.git/hooks/pre-receive"
+before="$(git -C "$tmp/origin.git" rev-parse topic)"
+up 'true'
+[ $rc -eq 8 ] && grep -q 'refused by the test hook' "$tmp/out" && grep -q 'pushing topic failed' "$tmp/out" && ! grep -q '] pushed' "$tmp/out" \
+  && [ "$(git -C "$tmp/origin.git" rev-parse topic)" = "$before" ] \
+  || fail "a failed push exits 8 with git's error and is not reported as pushed: $rc $(cat "$tmp/out")"
+rm -f "$tmp/origin.git/hooks/pre-receive"; ( cd "$tmp/work" && g reset -q --hard origin/topic )
 
 # Without --test the merge is gated on the related tests (test:push, niced) where package.json has
 # that script, and on npm test where it does not. A stand-in npm records how it was called.
