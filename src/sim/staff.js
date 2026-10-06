@@ -22,6 +22,7 @@ import { eraLines, eraOnlyAllowsText, eraAtLeast } from './eras.js';
 import { remoteLearning } from './ladder.js';
 import { purposeLift } from './purpose.js';
 import { squadOutputBonus } from './squads.js';
+import { tasteFor } from './radio.js';
 import { interviewsOn, shapeCandidate, hireFeeMult, onInterviewHire } from './ai-interviews.js';
 
 export const STATS = ['features', 'polish', 'reliability', 'novelty'];
@@ -243,17 +244,35 @@ export function removeStaff(state, person) {
   onDeparture(state, person);
 }
 
+// Famous companies hire for less: people apply instead of being recruited.
+const hireFee = (state, c) => c.salary * B.hireFeeWeeks * (1 - B.fameHireRelief * (state.fame ?? 0) / 100) * hireFeeMult(state);
+
+// Why this candidate can't be hired right now, or null.
+export function hireProblem(state, candidateId) {
+  const c = state.candidates.find((x) => x.id === candidateId);
+  if (!c) return 'No such candidate';
+  if (state.staff.length >= deskCapacity(state)) return 'No free desk';
+  if (state.cash < hireFee(state, c)) return 'Not enough cash';
+  return null;
+}
+
 registerAction('hire', (ctx, { candidateId }) => {
+  const why = hireProblem(ctx.state, candidateId);
+  if (why) return { ok: false, reason: why };
+  hireCandidate(ctx, candidateId);
+  return { ok: true };
+});
+
+// Hires a candidate that hireProblem has cleared.
+export function hireCandidate(ctx, candidateId) {
   const { state } = ctx;
   const c = state.candidates.find((x) => x.id === candidateId);
-  if (!c) return { ok: false, reason: 'No such candidate' };
-  if (state.staff.length >= deskCapacity(state)) return { ok: false, reason: 'No free desk' };
-  // Famous companies hire for less: people apply instead of being recruited.
-  const fee = c.salary * B.hireFeeWeeks * (1 - B.fameHireRelief * (state.fame ?? 0) / 100) * hireFeeMult(state);
-  if (state.cash < fee) return { ok: false, reason: 'Not enough cash' };
+  const fee = hireFee(state, c);
   state.candidates = state.candidates.filter((x) => x.id !== c.id);
   c.hiredWeek = state.week;
+  delete c.watched;
   c.knowledge = Math.min(100, c.knowledge + researchBonus(state, 'newHireKnowledge'));
+  if (B.boombox.enabled) c.taste ??= tasteFor(state, c.id);
   state.staff.push(c);
   assignSeats(state);
   state.cash -= fee;
@@ -273,8 +292,7 @@ registerAction('hire', (ctx, { candidateId }) => {
     if (recent.length > B.helloMemory) recent.splice(0, recent.length - B.helloMemory);
     emitChat(ctx, { person: c, text: line });
   }
-  return { ok: true };
-});
+}
 
 registerAction('fire', (ctx, { staffId }) => {
   const { state } = ctx;
