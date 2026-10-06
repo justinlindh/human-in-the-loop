@@ -157,7 +157,7 @@ function optionsFor(state, t, mc) {
 
 function actionable(ctx) {
   const { state } = ctx;
-  const fits = MAIL_TEMPLATES.filter((t) => (state.flags[`mcd_${t.id}`] ?? -1) <= state.week)
+  const fits = MAIL_TEMPLATES.filter((t) => (state.flags[`mcd_${t.id}`] ?? -1) <= state.week && (t.letter || !B.pacing.letterMail))
     .map((t) => ({ t, mc: contextFor(ctx, t) })).filter((x) => x.mc);
   if (!fits.length) return;
   const { t, mc } = pick(ctx.rng, fits);
@@ -193,7 +193,7 @@ export function expireTemplate(ctx, templateId, mc) {
 export const eventChoiceBlocker = (state, c, subjectId) =>
   (c.requires && !checkCondition(state, c.requires, subjectId) ? requireReason(state, c.requires) : grantBlocker(state, c));
 
-export const deliversAsMail = (ev) => B.mail.enabled && !!EVENT_MAIL[ev.id] && !ev.stage;
+export const deliversAsMail = (ev) => B.mail.enabled && !!EVENT_MAIL[ev.id] && !ev.stage && (!B.pacing.letterMail || !!EVENT_MAIL[ev.id].letter);
 
 // A notice's title and text are filled by the caller exactly as its toast would have been.
 export function mailEventNotice(ctx, ev, title, text, subjectId) {
@@ -335,10 +335,38 @@ export function mailSystem(outer) {
   }
   prune(state);
   if (state.week < B.mail.fromWeek) return;
-  if (state.flags.replyAll) growReplyAll(ctx);
-  else if (state.week >= (state.flags.replyAllNext ?? 0) && mailSlotFree(state) && chance(ctx.rng, B.mail.replyAllChance)) startReplyAll(ctx);
-  if (chance(ctx.rng, B.mail.ambientChance)) ambient(ctx);
-  if (mailSlotFree(state) && chance(ctx.rng, B.mail.actionChance)) actionable(ctx);
+  // Under letterMail the inbox holds only outside letters: no flavour mail, and a reply-all storm plays in Yak.
+  const letters = !!B.pacing.letterMail;
+  if (state.flags.replyAll) (letters ? growYakStorm : growReplyAll)(ctx);
+  else if (state.week >= (state.flags.replyAllNext ?? 0) && (letters || mailSlotFree(state)) && chance(ctx.rng, B.mail.replyAllChance)) (letters ? startYakStorm : startReplyAll)(ctx);
+  if (!letters && chance(ctx.rng, B.mail.ambientChance)) ambient(ctx);
+  if (mailSlotFree(state) && chance(ctx.rng, letters ? B.mail.letterChance : B.mail.actionChance)) actionable(ctx);
+}
+
+// The reply-all storm as a Yak gag: one toast for the ambient layer, the opening line, then a line or two a
+// week from whoever cannot help themselves.
+function startYakStorm(ctx) {
+  const { state } = ctx;
+  const staff = present(state).filter((p) => !p.founder);
+  if (staff.length < 3) return;
+  const agents = ['agents', 'consolidation', 'plateau'].includes(currentEra(state).id) && (state.automation?.engineering?.level ?? 0) > 0;
+  const subjectLine = pick(ctx.rng, agents ? REPLY_ALL.agentSubjects : REPLY_ALL.subjects);
+  const starter = pick(ctx.rng, staff);
+  state.flags.replyAll = { yak: true, until: state.week + B.mail.replyAllWeeks, agents };
+  state.flags.replyAllNext = state.week + B.mail.replyAllCooldown;
+  ctx.emit({ type: 'toast', text: 'Reply-all storm', tone: 'info', topic: 'replyall', subjectId: null, short: 'Reply-all storm' });
+  emitChat(ctx, { channel: 'random', person: starter, text: fill(state, pick(ctx.rng, REPLY_ALL.root), { subjectLine }) });
+}
+
+function growYakStorm(ctx) {
+  const { state } = ctx;
+  const storm = state.flags.replyAll;
+  if (state.week >= storm.until) { delete state.flags.replyAll; return; }
+  const staff = present(state).filter((p) => !p.founder);
+  for (let i = int(ctx.rng, 1, 2); i > 0 && staff.length; i--) {
+    const lines = storm.agents && chance(ctx.rng, 0.3) ? REPLY_ALL.agentReplies : REPLY_ALL.replies;
+    emitChat(ctx, { channel: 'random', person: pick(ctx.rng, staff), text: pick(ctx.rng, lines) });
+  }
 }
 
 registerSystem('mail', mailSystem, 92);

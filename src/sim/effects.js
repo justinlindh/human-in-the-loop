@@ -21,7 +21,7 @@ import { MODIFIER_KEYS } from '../data/modifiers.js';
 import { cuttable, consultantRating } from '../data/office-nods.js';
 import { emitChat } from './chat.js';
 import { bumpDebt } from './debt.js';
-import { raiseDecision, ransomFor, summitCost } from './events.js';
+import { raiseDecision, ransomFor, summitCost, cardChance } from './events.js';
 import { agentSpend, rivalMergePrice } from './economy.js';
 import { acquireCompany, bestDeal, dealBlocker } from './acquire.js';
 import { moonshotEffect, lastBetEffect } from './moonshot.js';
@@ -339,7 +339,9 @@ export function processScheduled(ctx) {
       applyEffects(ctx, x.payload.effects, x.payload.subjectId, x.payload.source);
     } else if (x.kind === 'event' && !state.pendingDecision && EVENTS[x.payload.eventId]) {
       state.scheduled = state.scheduled.filter((y) => y !== x);
-      raiseDecision(ctx, x.payload.eventId, x.payload.subjectId, { queue: true });
+      const ev = EVENTS[x.payload.eventId];
+      const quiet = !!x.payload.quiet && !chance(ctx.rng, cardChance(state, ev));
+      raiseDecision(ctx, x.payload.eventId, x.payload.subjectId, { queue: true, quiet });
     }
   }
 }

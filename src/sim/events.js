@@ -22,7 +22,8 @@ import { eraOnlyAllowsText, eraAtLeast, currentEra, eraIndex } from './eras.js';
 import { openEventPrompt, promptSlotFree } from './prompts.js';
 import { deliversAsMail, mailSlotFree, openEventMail, mailEventNotice } from './mail.js';
 import { preinternetChoiceReason, batchText } from './boxed.js';
-import { askQueueOn, queueDecision, queuePrompt, queueEventLetter } from './asks.js';
+import { askQueueOn, queueDecision, queuePrompt, queueEventLetter, defaultChoiceOf, isEmergency } from './asks.js';
+import { sensibleValue, founderCall } from './value.js';
 import { periodAllows, periodText } from '../data/period-content.js';
 
 // What attackers ask for: sized to the company's cash and revenue, between a floor and a cap, and never
@@ -109,7 +110,20 @@ const IMMEDIATE_KINDS = new Set(['incident', 'cyber']);
 // Opens a decision popup for a choice event. If one is already pending it returns false, or with
 // { queue: true } schedules this one to be raised as soon as the popup is clear. { asked: true } is a
 // card the player opened, which skips the gap after the last decision; `vars` replaces the card's usual vars.
-export function raiseDecision(ctx, eventId, subjectId = null, { queue = false, asked = false, fromQueue = false, vars: own = null } = {}) {
+// quiet: this raise plays out with no card under quietEvents, as an event marked quiet does.
+// A postmortem carries the incident it is about, taken from the queue of those waiting into its vars.
+// Returns that incident, or null.
+function takeIncident(state, eventId, vars) {
+  const waiting = state.flags.postmortemQueue ?? [];
+  const at = waiting.findIndex((x) => x.eventId === eventId);
+  if (at < 0) return null;
+  const inc = waiting.splice(at, 1)[0];
+  Object.assign(vars, { incidentWeeks: inc.weeks, incidentCost: { ...inc.cost }, incidentResponders: [...inc.responderIds],
+    incidentHelped: [...inc.helped], incidentHurt: [...inc.hurt] });
+  return inc;
+}
+
+export function raiseDecision(ctx, eventId, subjectId = null, { queue = false, asked = false, fromQueue = false, vars: own = null, quiet = false } = {}) {
   const { state } = ctx;
   const ev = EVENTS[eventId];
   if (!ev || !ev.choices) return false;
@@ -118,6 +132,8 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false, a
   if (!decisionGateOpen(state, eventId)) return false;
   // A decision with `fits` is dropped, not queued, once it no longer applies (a queued card can come due late).
   if (ev.fits && !ev.fits(state, subjectId)) return false;
+  // Under quietEvents a small event plays out with no card and no ask: its default choice, said in Yak.
+  if (B.pacing.quietEvents && (ev.quiet || quiet) && !asked) return resolveQuietly(ctx, ev, subjectId, own);
   // With the ask queue on, a card the game raises waits there; one the player asked for opens at once.
   if (askQueueOn() && !fromQueue && !asked) {
     queueDecision(ctx, eventId, subjectId, own);
@@ -156,14 +172,7 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false, a
   if (spaced) state.flags.lastDecisionWeek = state.week;
   if (ev.marks) state.flags[ev.marks] = state.week;
   const vars = own ?? decisionVars(state, ctx.rng, subjectId);
-  // A postmortem carries the incident it is about, taken from the queue of those waiting.
-  const waiting = state.flags.postmortemQueue ?? [];
-  const at = waiting.findIndex((x) => x.eventId === eventId);
-  if (at >= 0) {
-    const inc = waiting.splice(at, 1)[0];
-    Object.assign(vars, { incidentWeeks: inc.weeks, incidentCost: { ...inc.cost }, incidentResponders: [...inc.responderIds],
-      incidentHelped: [...inc.helped], incidentHurt: [...inc.hurt] });
-  }
+  takeIncident(state, eventId, vars);
   const fill = (t) => fillText(state, ctx.rng, t, subjectId, vars);
   state.pendingDecision = {
     eventId, subjectId, vars,
@@ -236,7 +245,23 @@ export function eligibleEvents(state) {
     && eventFitsEra(state, ev)
     && (!ev.funding || ev.funding === (state.founding?.funding ?? 'bootstrapped'))
     && ev.when(state, h)
-    && (ev.subject === null || resolveSubjects(state, ev).length > 0));
+    && (ev.subject === null || resolveSubjects(state, ev).length > 0)
+    && !(ev.scripted && B.pacing.askRates));
+}
+
+// Under askRates a ready scripted event rolls its own weekly chance (B.askRates.scriptedChance), rather than
+// riding the cut random roll.
+function scriptedEvents(ctx) {
+  const { state } = ctx;
+  const h = helpers(state);
+  for (const ev of Object.values(EVENTS)) {
+    if (!ev.scripted || (state.flags[`cd_${ev.id}`] ?? -1) > state.week || !eventFitsEra(state, ev) || !ev.when(state, h)) continue;
+    if (!chance(ctx.rng, B.askRates.scriptedChance[ev.id] ?? 1)) continue;
+    const subjects = resolveSubjects(state, ev);
+    if (ev.subject !== null && !subjects.length) continue;
+    if (fireEvent(ctx, ev, subjects.length ? pick(ctx.rng, subjects).id : null)) return true;
+  }
+  return false;
 }
 
 export function fireEvent(ctx, ev, subjectId) {
@@ -291,10 +316,38 @@ function launchPause(state) {
   return recent(p) && !recent(d);
 }
 
+export const eventChance = () => B.randomEventChance;
+
+// Whether any choice is worth more than B.askRates.stakesValue either way to a careful player.
+// A founder's call gives stakes as well.
+export const hasStakes = (state, ev) => (ev.choices ?? []).some((c) => Math.abs(sensibleValue(state, c.effects)) > B.askRates.stakesValue
+  || founderCall(state, c));
+
+// The chance a rolled event becomes a card under askRates rather than playing out quietly. Emergencies and
+// events that need an answer always do.
+export function cardChance(state, ev) {
+  if (!B.pacing.askRates || !ev.choices || isEmergency(ev) || ev.noExpire) return 1;
+  return Math.min(1, B.askRates.cardChance * (hasStakes(state, ev) ? B.askRates.stakesCardMult : 1));
+}
+
+// A rolled event that does not become a card plays out with its ask default, as a quiet event does. It keeps
+// the card's place in the decision cadence, gap included, so as many events happen as when all were cards.
+function fireQuietly(ctx, ev, subjectId) {
+  const { state } = ctx;
+  if (!B.pacing.quietEvents) return false;
+  state.flags[`cd_${ev.id}`] = state.week + ev.cooldownWeeks;
+  const last = lastPauseWeek(state);
+  if (!IMMEDIATE_KINDS.has(ev.kind) && last !== undefined && state.week - last < B.decisionGapWeeks) return false;
+  if (!raiseDecision(ctx, ev.id, subjectId, { quiet: true })) return false;
+  if (!IMMEDIATE_KINDS.has(ev.kind)) state.flags.lastDecisionWeek = state.week;
+  return true;
+}
+
 export function eventsSystem(ctx) {
   const { state } = ctx;
   if (state.pendingDecision) return;
-  const rolled = chance(ctx.rng, B.randomEventChance);
+  if (B.pacing.askRates && !launchPause(state) && scriptedEvents(ctx)) return;
+  const rolled = chance(ctx.rng, eventChance());
   const held = state.flags.heldRolls ?? 0;
   // A roll that lands while a launch or unlock is keeping decisions waiting is held (up to heldRollsMax) and
   // spent once the gap clears, so the spacing never lowers how often events come up.
@@ -310,7 +363,10 @@ export function eventsSystem(ctx) {
   if (!pool.length) return;
   const ev = weighted(ctx.rng, pool, (e) => e.weight);
   const subjects = resolveSubjects(state, ev);
-  fireEvent(ctx, ev, subjects.length ? pick(ctx.rng, subjects).id : null);
+  const subjectId = subjects.length ? pick(ctx.rng, subjects).id : null;
+  const p = cardChance(state, ev);
+  if (p < 1 && !chance(ctx.rng, p)) fireQuietly(ctx, ev, subjectId);
+  else fireEvent(ctx, ev, subjectId);
 }
 
 registerSystem('events', eventsSystem, 70);
@@ -333,6 +389,56 @@ export function restageSystem(ctx) {
 }
 registerSystem('restage', restageSystem, 99);
 registerSystem('moment-talk', momentTalkSystem, 100);
+
+// What the office does with an event nobody saw: of the open choices that are not the founder's call, the one
+// a careful player values most. When every choice is the founder's call, it takes the ask default.
+export function carefulChoice(state, ev, open, subjectId = null) {
+  const safe = open.filter((i) => !founderCall(state, ev.choices[i], subjectId));
+  if (!safe.length) return defaultChoiceOf(ev);
+  return safe.reduce((a, i) => (sensibleValue(state, ev.choices[i].effects) > sensibleValue(state, ev.choices[a].effects) ? i : a), safe[0]);
+}
+
+// A quiet event resolves itself, applied as a resolved card would apply it, with one Yak line saying what
+// happened. A gag or a postmortem (`quiet` in its data) takes its ask default, or with `quiet: 'pick'` a
+// choice of its own; anything else played quietly takes carefulChoice.
+function resolveQuietly(ctx, ev, subjectId, own = null) {
+  const { state } = ctx;
+  const open = ev.choices.map((c, i) => i).filter((i) => !choiceBlocker(state, ev.choices[i], subjectId));
+  if (!open.length) return false;
+  const preferred = ev.quiet === 'pick' ? pick(ctx.rng, open) : ev.quiet ? defaultChoiceOf(ev) : carefulChoice(state, ev, open, subjectId);
+  const choice = open.includes(preferred) ? preferred : open[0];
+  const c = ev.choices[choice];
+  if (ev.marks) state.flags[ev.marks] = state.week;
+  const vars = own ?? decisionVars(state, ctx.rng, subjectId);
+  const incident = takeIncident(state, ev.id, vars);
+  const fill = (t) => fillText(state, ctx.rng, t, subjectId, vars).replaceAll('{incident}', incident?.label ?? 'the incident');
+  const stage = ev.stage ? { ...ev.stage, ...stageTile(state, ev.stage.anchor, subjectId) } : null;
+  const scheduled = state.scheduled.length;
+  applyEffects(ctx, c.quietEffects ?? c.effects, subjectId, ev.id, vars);
+  // A follow-up of an event nobody saw rolls the card share again when it comes due (processScheduled).
+  for (const x of state.scheduled.slice(scheduled)) if (x.kind === 'event') x.payload.quiet = true;
+  if (c.grant) {
+    placeNow(ctx, c.grant.item, findSpot(layoutOf(state), state.office.placed, c.grant.item));
+    if (c.effects?.cash < 0) state.cash += ITEMS[c.grant.item].costs[0];
+  }
+  if (c.leaves) leaveProp(state, c.leaves, stage, subjectId);
+  ctx.emit({ type: 'quietEvent', eventId: ev.id, subjectId: subjectId ?? null, choice, stage: stage ? { staffId: null, ...stage } : null });
+  const line = ev.quietLine
+    ? { channel: ev.quietLine.channel, text: fill(ev.quietLine.text) }
+    : { channel: 'general', text: `${fill(ev.title)}: "${fill(c.label)}". ${c.outcome ? fill(c.outcome) : ''}`.trim() };
+  const raise = raiseLine(state, c.quietEffects ?? c.effects, subjectId);
+  emitChat(ctx, raise ? { channel: 'general', text: `${line.text} ${raise}`, important: true, from: '@officebot' } : { ...line, from: '@officebot' });
+  return true;
+}
+
+// The payroll note on a raise the office gave without asking, so the player sees where the money went.
+function raiseLine(state, fx, subjectId) {
+  const who = state.staff.find((p) => p.id === subjectId);
+  const parts = [];
+  if (fx?.salaryPct > 0 && who) parts.push(`${who.name} got a raise (+${fx.salaryPct}%)`);
+  if (fx?.teamSalaryPct > 0) parts.push(`the team got a raise (+${fx.teamSalaryPct}%)`);
+  return parts.length ? `Payroll: ${parts.join(', ')}.` : null;
+}
 
 registerAction('resolveDecision', (ctx, { choice }) => {
   const { state } = ctx;

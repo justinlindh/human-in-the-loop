@@ -10,6 +10,10 @@ import { seatOf } from '../../src/sim/office.js';
 import { saveGame, loadGame, saveMeta } from '../../src/save/save.js';
 import { MODELS } from '../../src/data/models.js';
 import { CATEGORIES } from '../../src/data/categories.js';
+import { pinPacing } from './helpers.js';
+
+// Conference invitations as cards; quietEvents' card-less expo is covered in pacing-rates.test.js.
+pinPacing({ quietEvents: false });
 
 const storage = () => {
   const data = new Map();

@@ -9,7 +9,10 @@ import { buildEpilogue } from '../../src/sim/endgame.js';
 import { B } from '../../src/sim/balance.js';
 import { CHANNELS } from '../../src/data/channels.js';
 import { EVENTS } from '../../src/data/events.js';
-import { game, addStaff, passOfficeGates, expectFail } from './helpers.js';
+import { game, addStaff, passOfficeGates, expectFail, pinPacing } from './helpers.js';
+
+// Every moonshot check-in as a card; quietEvents' quiet later check-ins are covered in pacing-rates.test.js.
+pinPacing({ quietEvents: false });
 
 const rich = (seed = 1) => {
   const s = passOfficeGates(game(seed));

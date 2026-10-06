@@ -7,7 +7,10 @@ import { article } from '../../src/sim/util.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
 import { EVENTS } from '../../src/data/events.js';
-import { game, addStaff, addProduct } from './helpers.js';
+import { game, addStaff, addProduct, pinPacing } from './helpers.js';
+
+// Choice availability on cards; quietEvents' card-less path is covered in pacing-rates.test.js.
+pinPacing({ quietEvents: false });
 
 const econ = (s) => { const c = makeCtx(s); economySystem(c); s.week++; return c.events; };
 

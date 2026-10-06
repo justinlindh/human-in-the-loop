@@ -99,7 +99,8 @@ export function moonshotSystem(ctx) {
   const due = m.since + (m.checkins + 1) * B.moonshotCheckinWeeks;
   if (state.week < due || m.raisedFor === due) return;
   m.raisedFor = due;
-  raiseDecision(ctx, m.checkins + 1 >= B.moonshotCheckins ? 'moonshot_result' : 'moonshot_checkin', null, { queue: true });
+  // Under quietEvents only the first check-in asks; later ones keep going on their own.
+  raiseDecision(ctx, m.checkins + 1 >= B.moonshotCheckins ? 'moonshot_result' : 'moonshot_checkin', null, { queue: true, quiet: m.checkins >= 1 });
 }
 
 registerSystem('moonshot', moonshotSystem, 15);

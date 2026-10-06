@@ -5,7 +5,10 @@ import { B } from '../../src/sim/balance.js';
 import { showsCard, checkUnlocks, toastUnlocks } from '../../src/sim/unlocks.js';
 import { UNLOCKS } from '../../src/data/unlocks.js';
 import { POLICIES } from '../../src/data/policies.js';
-import { game, addProduct } from './helpers.js';
+import { game, addProduct, pinPacing } from './helpers.js';
+
+// Cards wait out the gap; quietEvents' card-less path is covered in pacing-rates.test.js.
+pinPacing({ quietEvents: false });
 
 // A settled company with a product, past the opening grace, with nothing recent.
 function settled(seed = 1) {
@@ -56,7 +59,9 @@ describe('issue #556: a launch or an unlock counts as the last pausing moment', 
   it('a roll that lands in a launch pause is held and spent when the gap clears, so events do not thin out', () => {
     const s = settled(5);
     const chance = B.randomEventChance;
+    const rates = B.pacing.askRates;
     try {
+      B.pacing.askRates = false;
       B.randomEventChance = 1;
       s.flags.lastPauseWeek = s.week;
       eventsSystem(makeCtx(s));
@@ -72,6 +77,7 @@ describe('issue #556: a launch or an unlock counts as the last pausing moment', 
       expect(s.flags.heldRolls).toBe(before - 1);
     } finally {
       B.randomEventChance = chance;
+      B.pacing.askRates = rates;
     }
   });
 

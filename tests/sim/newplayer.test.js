@@ -45,7 +45,14 @@ describe('a new player gets a fair opening', () => {
     t.stats.launches = 1;
     addProduct(t);
     let later = 0;
-    for (let w = 0; w < 60; w++) { eventsSystem(makeCtx(t)); if (t.pendingDecision) { later++; t.pendingDecision = null; } t.week++; }
+    // At today's event rate, so 60 weeks surely roll one.
+    const rates = B.pacing.askRates;
+    B.pacing.askRates = false;
+    try {
+      for (let w = 0; w < 60; w++) { eventsSystem(makeCtx(t)); if (t.pendingDecision) { later++; t.pendingDecision = null; } t.week++; }
+    } finally {
+      B.pacing.askRates = rates;
+    }
     expect(later).toBeGreaterThan(0);
   });
 });

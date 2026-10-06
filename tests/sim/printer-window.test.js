@@ -5,7 +5,10 @@ import { makeCtx } from '../../src/sim/registry.js';
 import { eligibleEvents } from '../../src/sim/events.js';
 import { windowsSystem, windowWeek } from '../../src/sim/windows.js';
 import { runBot } from '../../src/sim/bots.js';
-import { game, addStaff } from './helpers.js';
+import { game, addStaff, pinPacing } from './helpers.js';
+
+// The printer jam as a card; quietEvents' card-less printer is covered in pacing-rates.test.js.
+pinPacing({ quietEvents: false });
 
 const N = B.nods;
 

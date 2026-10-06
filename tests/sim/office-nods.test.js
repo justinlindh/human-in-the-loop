@@ -8,7 +8,10 @@ import { removeStaff } from '../../src/sim/staff.js';
 import { B } from '../../src/sim/balance.js';
 import { EVENTS } from '../../src/data/events.js';
 import { OFFICE_NODS, cuttable, consultantRating } from '../../src/data/office-nods.js';
-import { game, passOfficeGates, addStaff } from './helpers.js';
+import { game, passOfficeGates, addStaff, pinPacing } from './helpers.js';
+
+// The office classics as cards; quietEvents' card-less printer is covered in pacing-rates.test.js.
+pinPacing({ quietEvents: false });
 
 const N = B.nods;
 const IDS = OFFICE_NODS.map((e) => e.id);

@@ -4,7 +4,10 @@ import { makeCtx } from '../../src/sim/registry.js';
 import { incentivesSystem, GENRES, stageIncentive } from '../../src/sim/incentives.js';
 import { B } from '../../src/sim/balance.js';
 import { EVENTS } from '../../src/data/events.js';
-import { game, addStaff, addDesks } from './helpers.js';
+import { game, addStaff, addDesks, pinPacing } from './helpers.js';
+
+// Music night's genre as a card; quietEvents' own pick is covered in pacing-rates.test.js.
+pinPacing({ quietEvents: false });
 
 const run = (s) => { const c = makeCtx(s); incentivesSystem(c); return c.events; };
 

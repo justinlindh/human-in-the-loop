@@ -12,6 +12,7 @@ import { mentorOf } from './staff.js';
 import { EVENTS } from '../data/events.js';
 import { ITEMS } from '../data/items.js';
 import { decisionVars, fillText } from './events.js';
+import { askQueueOn, queueStaffPrompt } from './asks.js';
 import { expireLetter } from './mail.js';
 import { grantBlocker, leaveProp, stageTile } from './props.js';
 import { placeNow, findSpot, layoutOf } from './office.js';
@@ -164,6 +165,8 @@ function applyOption(ctx, o, pc) {
 const eventChoiceBlocker = (state, c, subjectId) =>
   (c.requires && !checkCondition(state, c.requires, subjectId) ? requireReason(state, c.requires) : grantBlocker(state, c));
 
+export const promptChance = () => (B.pacing.askRates ? B.askRates.chatPromptChance : B.chatPromptChance);
+
 // Whether a new prompt can open now: fewer than chatPromptsOpen are open.
 export const promptSlotFree = (state) => (state.chatPrompts ?? []).filter((p) => !p.resolved).length < B.chatPromptsOpen;
 
@@ -250,12 +253,41 @@ function openPrompt(ctx) {
   }
   if (!found.length) return;
   const { t, hit } = pick(ctx.rng, found);
+  // With the ask queue on, the prompt waits there as a low ask; its cooldowns start now so it is not asked twice.
+  if (askQueueOn()) {
+    state.flags[`pcd_${t.id}`] = state.week + t.cooldown;
+    recent(state, t.id).push({ week: state.week, posterId: hit.poster.id });
+    queueStaffPrompt(ctx, t.id, { posterId: hit.poster.id, productId: hit.productId ?? null, projectId: hit.projectId ?? null });
+    return;
+  }
+  openStaffPrompt(ctx, t, hit);
+}
+
+// Opens a staff prompt from a queued ask: false when its poster has left.
+export function openQueuedStaffPrompt(ctx, ref) {
+  const { state } = ctx;
+  const t = TEMPLATES[ref.promptTemplate];
+  const poster = state.staff.find((p) => p.id === ref.posterId);
+  if (!t || !poster) return false;
+  state.chatPrompts ??= [];
+  return openStaffPrompt(ctx, t, { poster, productId: ref.productId, projectId: ref.projectId }, true);
+}
+
+// An unanswered queued staff prompt: the template's ignored outcome, on its poster.
+export function expireQueuedStaffPrompt(ctx, ref) {
+  const t = TEMPLATES[ref.promptTemplate];
+  if (t) applyEffects(ctx, t.ignored.effects, ref.posterId, `prompt:${t.id}`);
+}
+
+// fromQueue: its cooldown and history were set when it was queued.
+function openStaffPrompt(ctx, t, hit, fromQueue = false) {
+  const { state } = ctx;
   const pc = { kind: t.id, posterId: hit.poster.id, productId: hit.productId ?? null, projectId: hit.projectId ?? null };
   pc.productName = state.products.find((p) => p.id === pc.productId)?.name ?? null;
   pc.projectName = state.projects.find((j) => j.id === pc.projectId)?.name ?? null;
   pc.rivalName = state.rival?.name ?? null;
   const texts = eraLines(state, t.text).map((x) => fill(state, x, pc)).filter(Boolean);
-  if (!texts.length) return;
+  if (!texts.length) return false;
   const msg = emitChat(ctx, { channel: t.channel, person: hit.poster, text: pick(ctx.rng, texts) });
   state.flags.promptSeq = (state.flags.promptSeq ?? 0) + 1;
   const id = `cp${state.flags.promptSeq}`;
@@ -269,9 +301,12 @@ function openPrompt(ctx) {
     subjectId: null,
   });
   state.flags.lastPromptWeek = state.week;
-  state.flags[`pcd_${t.id}`] = state.week + t.cooldown;
-  recent(state, t.id).push({ week: state.week, posterId: hit.poster.id });
+  if (!fromQueue) {
+    state.flags[`pcd_${t.id}`] = state.week + t.cooldown;
+    recent(state, t.id).push({ week: state.week, posterId: hit.poster.id });
+  }
   ctx.emit({ type: 'chatPrompt', promptId: id, chatId: msg.id });
+  return true;
 }
 
 // A line in the prompt's thread from someone still at the company; returns the chat id or null.
@@ -320,9 +355,13 @@ export function promptsSystem(outer) {
       EVENTS[p.kind].choices.forEach((c, i) => { const why = eventChoiceBlocker(state, c, subjectId); p.options[i].available = !why; p.options[i].reason = why; });
     }
   }
-  if (open.length >= B.chatPromptsOpen || state.week < B.chatPromptFromWeek) return;
-  if (state.week - (state.flags.lastPromptWeek ?? -Infinity) < B.chatPromptGapWeeks) return;
-  if (!chance(ctx.rng, B.chatPromptChance)) return;
+  if (state.week < B.chatPromptFromWeek) return;
+  // With the ask queue on, the attention clock owns the spacing, so the open slot and the week gap do not apply.
+  if (!askQueueOn()) {
+    if (open.length >= B.chatPromptsOpen) return;
+    if (state.week - (state.flags.lastPromptWeek ?? -Infinity) < B.chatPromptGapWeeks) return;
+  }
+  if (!chance(ctx.rng, promptChance())) return;
   openPrompt(ctx);
 }
 

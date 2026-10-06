@@ -13,7 +13,10 @@ import { ALLHANDS_SCREEN, variantText } from './moment-variants.js';
 // funding: only for companies funded that way. yak: { ignore }: a low-stakes event delivered as a Yak reply prompt
 // instead of a popup while prompts are on; ignore is the choice that happens if nobody answers: the mildest one, with
 // the smallest cost to the subject (or overall), and never one that grants an item or a pet, so nobody pays for or
-// gets saddled with a prompt they did not see (null: nothing).
+// gets saddled with a prompt they did not see (null: nothing). scripted: under B.pacing.askRates the event leaves
+// the random pool; once `when` holds and its cooldown has passed it rolls B.askRates.scriptedChance each week.
+// A choice's quietEffects, when present, replace its effects when the choice plays out quietly as a default.
+// quietLine: { channel, text } replaces the usual Yak line of a quiet event.
 // Placeholders in title/text: {name} (subject staff), {product} (subject product), {company}, {incumbent}, {rival}, {rivalFounder},
 // {ransom} (what a ransom would cost this company), {alum} (a recent former employee).
 // Effects apply to the subject (staff or product) where the key is per-subject; see EFFECT_KEYS below.
@@ -190,7 +193,7 @@ const list = [
     choices: [
       { label: 'Check in kindly', hint: 'They take a couple of weeks off; comes back stronger, effects later', effects: { awayWeeks: 2, teamMeaning: 1, later: [{ inWeeks: 3, effects: { meaning: 15 } }] }, outcome: 'You send soup. Actual soup. {name} replies with a single heart.' },
       { label: 'Dock their pay', hint: 'Saves a little cash; they and the team notice', effects: { awayWeeks: 2, cash: 1500, salaryPct: -10, meaning: -15, teamMeaning: -3 }, outcome: 'HR sends a very formal email. Everyone reads it. Everyone.' },
-      { label: 'Say nothing', hint: 'Nothing now. It may happen again, effects later', effects: { awayWeeks: 3, followUp: { eventId: 'no_show_again', inWeeks: 10 } }, outcome: 'The desk stays empty. The plant on it looks worried.' },
+      { label: 'Say nothing', hint: 'Nothing now. It may happen again, effects later', effects: { awayWeeks: 3, followUp: { eventId: 'no_show_again', inWeeks: 10 } }, quietEffects: { awayWeeks: 3 }, outcome: 'The desk stays empty. The plant on it looks worried.' },
     ],
   },
   {
@@ -284,7 +287,7 @@ const list = [
     ],
   },
   {
-    id: 'four_day_week_review', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    id: 'four_day_week_review', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null, quiet: true,
     when: () => true,
     title: 'Four-day week: keep going?',
     text: 'Time to review the four-day week. Output dipped a bit. People look like they sleep now. What does {company} do?',
@@ -428,6 +431,7 @@ const list = [
   },
   {
     id: 'acquisition_offer', kind: 'market', weight: B.acquisitionOfferWeight, cooldownWeeks: 52, random: true, subject: null, marks: 'acquisitionOfferWeek',
+    scripted: true, noExpire: true,
     when: (s, h) => h.offerReady,
     title: 'An acquisition offer',
     text: '{incumbent} wants to buy {company}. The number has a lot of zeros. The integration plan has a lot of question marks.',
@@ -450,7 +454,7 @@ const list = [
     ],
   },
   {
-    id: 'vc_offer', kind: 'market', weight: 3, cooldownWeeks: ONCE, random: true, subject: null, funding: 'bootstrapped',
+    id: 'vc_offer', kind: 'market', weight: 3, cooldownWeeks: ONCE, random: true, subject: null, funding: 'bootstrapped', noExpire: true,
     when: (s) => !s.flags.diluted && (s.week >= 26 || s.cash < 20000),
     title: 'A venture capitalist calls',
     text: 'A VC in a vest wants to give {company} half a million dollars. They say "AI-native" four times.',
@@ -667,6 +671,7 @@ const list = [
   },
   {
     id: 'incident_postmortem', kind: 'cyber', weight: 0, cooldownWeeks: 0, random: false, subject: null, emergency: false,
+    quiet: true, quietLine: { channel: 'incidents', text: 'Postmortem filed: {incident}. Lessons learned, allegedly.' },
     when: () => true,
     title: 'The attack is over',
     text: 'Everything is locked down again. The whiteboard still says "WHO CLICKED IT" in three colors. How much of this do you want to understand?',
@@ -810,7 +815,7 @@ const list = [
     ],
   },
   {
-    id: 'pet_mishap', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
+    id: 'pet_mishap', kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null, quiet: true,
     when: (s) => s.pets.length > 0,
     stage: { prop: 'cable_chewed', anchor: 'door' },
     title: 'Pet incident',
@@ -943,7 +948,7 @@ const list = [
   },
   // The AI Summit, one of three formats a year in rotation. Costs scale with the era ({summitSmall}, {summitBig}).
   {
-    id: 'ai_summit', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    id: 'ai_summit', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null, quiet: true,
     when: () => true,
     title: 'The AI Summit',
     text: 'The AI Summit is next month. Every company will announce something. Some of them will announce the same thing, in the same font. {incumbent} has booked the main stage.',
@@ -954,7 +959,7 @@ const list = [
     ],
   },
   {
-    id: 'ai_summit_panel', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    id: 'ai_summit_panel', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null, quiet: true,
     when: () => true,
     title: 'The AI Summit: the big panel',
     text: 'This year the AI Summit wants {company} on its headline panel: "Will AI Replace Us?" The other panelists are {incumbent} and a man who only speaks in predictions.',
@@ -965,7 +970,7 @@ const list = [
     ],
   },
   {
-    id: 'ai_summit_hackathon', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    id: 'ai_summit_hackathon', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null, quiet: true,
     when: () => true,
     title: 'The AI Summit: the hackathon',
     text: 'The AI Summit is running a 36-hour hackathon and wants a sponsor. The prize is a giant cheque. The real prize is whatever the teams build on top of your product.',
@@ -1071,7 +1076,7 @@ const list = [
     ],
   },
   {
-    id: 'ping_pong', kind: 'misc', weight: 2, cooldownWeeks: 104, random: true, subject: null, eras: ['classic'],
+    id: 'ping_pong', kind: 'misc', weight: 2, cooldownWeeks: 104, random: true, subject: null, eras: ['classic'], quiet: true,
     when: (s) => s.staff.length >= 3 && s.officeStage >= 1 && !s.office.placed.some((i) => i.itemId === 'ping_pong_table'),
     stage: { prop: 'picture_pingpong', anchor: 'wall' },
     title: 'The ping pong question',
@@ -1145,7 +1150,7 @@ const list = [
   },
   // Music night: the Incentives Program winner picks the genre, then the dance break happens.
   {
-    id: 'music_night_genre', kind: 'staff', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    id: 'music_night_genre', kind: 'staff', weight: 0, cooldownWeeks: 0, random: false, subject: null, quiet: 'pick',
     when: () => true,
     title: 'Pick the genre',
     text: '{name}: "I won music night. Apparently I pick the genre. Nobody should have this much power."',
@@ -1201,7 +1206,7 @@ const list = [
   },
   // Annual calendar (raised by the annual system)
   {
-    id: 'conference_expo', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    id: 'conference_expo', kind: 'annual', weight: 0, cooldownWeeks: 0, random: false, subject: null, quiet: true,
     when: () => true,
     stage: { prop: 'printout', anchor: 'wall' },
     title: 'SaaSCon is next week',

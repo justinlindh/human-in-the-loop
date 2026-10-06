@@ -7,7 +7,14 @@ import { B } from '../../src/sim/balance.js';
 describe('issue #757: which bot posts are important', () => {
   const posts = [];
   beforeAll(() => {
-    for (const seed of [1, 2, 3]) runBot('balanced', seed, 520, { onWeek: (s, ev) => { for (const e of ev) if (e.type === 'chat' && e.fromId === null) posts.push({ ...e, prompts: s.chatPrompts }); } });
+    // At today's event and prompt rates, so every kind of post turns up in three games.
+    const keep = B.pacing.askRates;
+    B.pacing.askRates = false;
+    try {
+      for (const seed of [1, 2, 3]) runBot('balanced', seed, 520, { onWeek: (s, ev) => { for (const e of ev) if (e.type === 'chat' && e.fromId === null) posts.push({ ...e, prompts: s.chatPrompts }); } });
+    } finally {
+      B.pacing.askRates = keep;
+    }
   }, 120000);
 
   it('filler bots are never flagged', () => {
