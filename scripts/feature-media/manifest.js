@@ -100,12 +100,16 @@ const HERO_AT = (dx, dz) => ({ js: `(() => { const c = window.__heroC ??= (() =>
 // it and the page's corner controls don't cover it.
 const CARD_IN = `(() => { const st = document.createElement('style'); st.textContent = '#ui .modal.decision { translate: -180px -120px; }'; document.head.append(st); })();`;
 
+// A staged decision opens at the snapshot the week before it, and the item answers the card itself, so the
+// index filter never names the choice a bot made: bot or balance changes cannot take the game away.
+const ANY_CHOICE = (q) => q.replace(/ --choice \d+/g, '');
+
 // [name, event id and index filters, prop to follow, choice index to make, follow zoom (none: the game's
 // wide view, for scenes on every screen)]. The big offices need a closer zoom than the garage.
 const MOMENTS = [
   ['pizza', 'hackathon_week --stage floor --choice 0', 'pizza_boxes', 0, 2.8],
   // The all-hands screen on its floor stand: the camera holds on it, where the hammer goes through.
-  ['hammer', 'open_plan_office --seed 10 --choice 0', '() => ({ x: -9.8, z: -6.25 })', 0, 3, 22],
+  ['hammer', 'open_plan_office --seed 10', '() => ({ x: -9.8, z: -6.25 })', 0, 3, 22],
   ['carrier', 'cat_request --choice 0', 'pet_carrier', 0, 2.8],
   // No follow zoom: the game's own moment camera frames these (it zooms further in the bigger offices).
   ['consultants', 'efficiency_consultants --seed 1 --choice 1', 'visitor_chair', 1],
@@ -120,6 +124,22 @@ const MOMENTS = [
   ['the-box', 'the_box --choice 1', 'box_poster', 0, 3.2],
   ['incubator', 'incubator_house --choice 0', 'house_sign', 0, 2.6],
 ];
+
+// Moments the event index reaches in too few games to rely on: each is staged from a real game by scheduling its
+// decision for the next week, so the game's own tick raises it with its card, freeze and staging.
+const SCHEDULED = (eventId, weeks) => `${PLAY({ weeks, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE} s.scheduled.push({ id: 'sch_pin', week: s.week + 1, kind: 'event', payload: { eventId: '${eventId}', subjectId: null } });` })}; await ${PRE_DECISION(eventId, 12)}`;
+// Notes the pinned decision when it is on screen, and fails the item at `at` if it never was.
+const SEEN_GUARD = (eventId, length) => [
+  ...Array.from({ length: 2 * length - 4 }, (_, i) => ({ at: 0.5 + i / 2, js: `(() => { if (window.__HITL.state.pendingDecision?.eventId === '${eventId}') window.__pinSeen = true; })()` })),
+  { at: length - 1.5, js: `(() => { if (!window.__pinSeen) console.error('capture: the ${eventId} decision never opened'); })()` },
+];
+// Yak prompts the index reaches too rarely: a real game played into the situation that raises them (the weeks of
+// low cash are held up each week while the look-ahead runs), stopping the week before the prompt opens.
+const PINNED_PROMPTS = {
+  lowcash_lunch: `${PLAY({ weeks: 100, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE}` })}; await ${PRE_UNTIL({ weeks: 16, prep: 's.cash = Math.min(s.cash, -1e6); s.lowCashWeeks = Math.max(s.lowCashWeeks, 1);', hit: `(c) => (c.chatPrompts ?? []).some((p) => p.kind === 'lowcash_lunch' && !p.resolved)` })}`,
+};
+const PINNED_EVENT = { 'bridge-loan': 'bridge_loan' };
+const PINNED_MOMENTS = { 'bridge-loan': SCHEDULED('bridge_loan', 176) };
 
 // [event id, find.js query, staged prop, follow zoom]: the staged decisions of docs/features/decisions.md.
 const DECISION_PROPS = [
@@ -299,7 +319,7 @@ export const ITEMS = [
   {
     // Every monitor shows the ransom skull while the decision is open; the office holds still under
     // the card, so the camera sits on one person at their desk. The window keeps the card out.
-    id: 'site-loop-ransomware', title: 'Landing page loop: ransomware on every screen', query: 'seed=9&speed=1', moment: 'ransomware --stage floor --choice 0', pre: true, seconds: 14, warmup: 6.5,
+    id: 'site-loop-ransomware', title: 'Landing page loop: ransomware on every screen', query: 'seed=9&speed=1', moment: 'ransomware --stage floor', pre: true, seconds: 14, warmup: 6.5,
     setup: BARE, actions: [{ at: 0, js: NO_SAY }, ...FOLLOW(SEATED, 3.2, 0, 14, -320), ...CAMLOG(14)], screenshots: [3, 6, 9],
     out: [LOOP('ransomware', 5, 4.2, { x: 0, y: 1 / 6, w: 2 / 3, h: 2 / 3 }, 27)],
   },
@@ -380,7 +400,7 @@ export const ITEMS = [
     out: [{ path: 'img/yak-backfire.webp', size: '1280x800', from: 60.1, crop: { x: 376 / 1920, y: 190 / 1080, w: 1168 / 1920, h: 730 / 1080 } }], publish: true,
   },
   {
-    id: 'site-printer', title: 'Landing page loop: the printer taken out back', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 25, warmup: 6.5,
+    id: 'site-printer', title: 'Landing page loop: the printer taken out back', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor', pre: true, seconds: 25, warmup: 6.5,
     setup: CLEAN,
     actions: [{ at: 0, js: NO_SAY }, ...OPEN(), ...FOLLOW(['printer_jammed'], 2.4, 0, 25), { at: 3.5, js: KEY('1', 'Digit1') }, ...DISMISS_AT([4, 4.5, 5.5], { escape: false }), ...CAMLOG(25)],
     screenshots: [17, 20],
@@ -452,13 +472,13 @@ export const ITEMS = [
   // decision comes from the event index, the game's own tick raises it, the camera follows the prop,
   // and the card is held about 5 s before its choice is made by key.
   ...MOMENTS.map(([name, query, prop, choice, zoom, length = 18]) => ({
-    id: `moment-${name}`, title: `Staged moment: ${name}`, query: 'seed=1&speed=1', moment: query, pre: name !== 'fumes', seconds: length, warmup: 6.5,
-    setup: CLEAN,
+    id: `moment-${name}`, title: `Staged moment: ${name}`, query: 'seed=1&speed=1', ...(PINNED_MOMENTS[name] ? {} : { moment: ANY_CHOICE(query), pre: name !== 'fumes' }), seconds: length, warmup: 6.5,
+    setup: PINNED_MOMENTS[name] ? `(async () => { await ${PINNED_MOMENTS[name]}; ${CLEAN}; })()` : CLEAN,
     // No zoom: the game's wide view.
     actions: [{ at: 0, js: NO_SAY }, ...OPEN(), ...(zoom ? FOLLOW(prop.startsWith('(') ? prop : [prop], zoom, 0, length) : []),
       // Fumes: the card opens about 8 s in (the tick that raises it), so it is answered when it is up, not at a fixed time.
       // Any other decision that comes first (the pre-tick week can raise one) gets its first answer.
-      ...(name === 'fumes' ? [...Array.from({ length: 2 * length }, (_, i) => ({ at: i / 2, js: `(() => { const H = window.__HITL, d = H.state.pendingDecision; if (d && d.eventId !== 'coffee_machine_broke') H.dispatch({ type: 'resolveDecision', choice: 0 }); })()` })), ...CHOOSE_WHEN('coffee_machine_broke', choice, 1, length, 1.5)] : [{ at: 6.5, js: KEY(String(choice + 1), `Digit${choice + 1}`) }]),
+      ...(name === 'fumes' ? [...Array.from({ length: 2 * length }, (_, i) => ({ at: i / 2, js: `(() => { const H = window.__HITL, d = H.state.pendingDecision; if (d && d.eventId !== 'coffee_machine_broke') H.dispatch({ type: 'resolveDecision', choice: 0 }); })()` })), ...CHOOSE_WHEN('coffee_machine_broke', choice, 1, length, 1.5)] : PINNED_MOMENTS[name] ? [...SEEN_GUARD(PINNED_EVENT[name], length), ...CHOOSE_WHEN(null, choice, 1, length, 1.5)] : [{ at: 6.5, js: KEY(String(choice + 1), `Digit${choice + 1}`) }]),
       ...DISMISS_AT([7, 7.5, 9, 12], { escape: false }), ...CAMLOG(length)],
     screenshots: [5],
     // The fumes clip ends before the next week's incident card raises its red alarm.
@@ -673,21 +693,35 @@ export const ITEMS = [
   // The company party: a company-wide celebrate with its cause, in a real game. The banner is a DOM label
   // (.hitl-banner) that lives a few seconds, so the guard looks for it while it is up.
   {
-    id: 'moment-company-party', title: 'Staged moment: the company party', query: 'seed=1&speed=1', seconds: 14, warmup: 0.5, record: '3840x2160',
+    id: 'moment-company-party', title: 'Staged moment: the company party', query: 'seed=1&speed=1', seconds: 14, warmup: 0.5,
     setup: `(async () => { await ${PLAY({ weeks: 176, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE}` })}; ${CLEAN}; ${NO_SAY}; })()`,
     actions: [...CLEAR_EARLY,
       ...FOLLOW(`() => { const R = window.__hitlRender; const ps = []; R.scene.traverse((o) => { if (o.userData.staffId) ps.push(o.parent.getWorldPosition(new o.position.constructor())); }); if (!ps.length) return null; return { x: ps.reduce((a, p) => a + p.x, 0) / ps.length, y: 0, z: ps.reduce((a, p) => a + p.z, 0) / ps.length }; }`, 2.4, 0, 14),
       { at: 1, js: `window.__HITL.emit([{ type: 'celebrate', cause: 'Notemind launched' }])` },
       { at: 2.5, js: `(() => { if (!document.querySelector('.hitl-banner')) console.error('capture: the party banner is not showing'); })()` },
       ...CAMLOG(14)], screenshots: [2, 3, 5, 8],
-    out: [{ path: 'moments/company-party.mp4', size: '1280x720', from: 0.5, seconds: 9, loop: 'none', crop: MIDDLE }],
-    // Not published: the seated staff do not visibly cheer, so only confetti and a small banner read.
+    out: [{ path: 'moments/company-party.mp4', size: '1280x720', from: 0.8, seconds: 7, loop: 'none', crop: { x: 0.1, y: 0.08, w: 0.8, h: 0.8 } }],
+    publish: true,
+  },
+
+  // The same celebrate on a phone-width page, with a longer cause so the banner wraps. The banner is a DOM label
+  // sized in CSS pixels, so the party clip records at 1920x1080 (not 4K) to keep it legible at 1280x720.
+  {
+    id: 'moment-company-party-phone', title: 'Staged moment: the company party banner on a phone', query: 'seed=1&speed=1', seconds: 8, warmup: 0.5, record: '390x844',
+    setup: `(async () => { await ${PLAY({ weeks: 176, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE}` })}; ${CLEAN}; ${NO_SAY}; })()`,
+    actions: [...CLEAR_EARLY,
+      ...FOLLOW(`() => { const R = window.__hitlRender; const ps = []; R.scene.traverse((o) => { if (o.userData.staffId) ps.push(o.parent.getWorldPosition(new o.position.constructor())); }); if (!ps.length) return null; return { x: ps.reduce((a, p) => a + p.x, 0) / ps.length, y: 0, z: ps.reduce((a, p) => a + p.z, 0) / ps.length }; }`, 2.4, 0, 8),
+      { at: 1, js: `window.__HITL.emit([{ type: 'celebrate', cause: 'Product of the Year: Notemind, with a very long name for the banner to wrap' }])` },
+      { at: 3, js: `(() => { if (!document.querySelector('.hitl-banner')) console.error('capture: the party banner is not showing'); })()` }],
+    screenshots: [3],
+    out: [{ path: 'moments/company-party-phone.webp', size: '390x844', from: 3 }],
+    publish: true,
   },
 
   // docs/features/decisions.md: what each decision stages in the office while its card is up. The pre-tick
   // snapshot is opened, the game's tick raises the card, the card is hidden and the camera holds on the prop.
   ...DECISION_PROPS.map(([id, query, prop, zoom = 5.5, center = false]) => ({
-    id: `decision-${id}`, title: `Decision prop: ${id}`, query: 'seed=1&speed=1', moment: query, pre: true, still: true, warmup: 8,
+    id: `decision-${id}`, title: `Decision prop: ${id}`, query: 'seed=1&speed=1', moment: ANY_CHOICE(query), pre: true, still: true, warmup: 8,
     setup: `(() => { ${CLEAN}; ${NO_CARD}; ${NO_SAY}; })()`,
     // A prop a choice leaves behind exists only after the card is answered (by key, as a player would).
     actions: [...OPEN(), ...(LEFT_BEHIND.has(id) ? CHOOSE_WHEN(id, LEFT_BEHIND.get(id), 1, 8, 1.5) : []), ...FOLLOW([prop], zoom, 0, LEFT_BEHIND.has(id) ? 20 : 14, 0, center)],
@@ -699,8 +733,8 @@ export const ITEMS = [
   // docs/features/yak.md: the reply prompts. The pre-tick save of the week that raises each one is opened,
   // the game's tick posts it, and the large Yak (which keeps the game running) is scrolled to the prompt.
   ...YAK_PROMPTS.map((kind) => ({
-    id: `yak-${kind}`, title: `Yak reply prompt: ${kind}`, query: 'seed=1&speed=1', moment: kind, pre: true, still: true, warmup: 0.5,
-    setup: `(() => { ${YAK_ONLY}; })()`,
+    id: `yak-${kind}`, title: `Yak reply prompt: ${kind}`, query: 'seed=1&speed=1', ...(PINNED_PROMPTS[kind] ? {} : { moment: kind, pre: true }), still: true, warmup: 0.5,
+    setup: PINNED_PROMPTS[kind] ? `(async () => { await ${PINNED_PROMPTS[kind]}; ${YAK_ONLY}; })()` : `(() => { ${YAK_ONLY}; })()`,
     actions: [
       ...[0, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18].map((at) => ({ at, js: CLEAR_CARDS })),
       ...CHOOSE_WHEN(null, 0, 1, 24, 1.5),
