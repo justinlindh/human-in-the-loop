@@ -17,7 +17,7 @@ describe.concurrent('observed pacing arguments and metadata', () => {
 
   it('keeps all source metadata hooks explicit and fails on drift', () => {
     const plugin = presentationMetadata();
-    for (const file of [...['dom', 'toasts', 'chat', 'hud', 'advisor', 'incident'].map(x => `src/ui/${x}.js`)]) {
+    for (const file of ['src/main.js', ...['dom', 'toasts', 'chat', 'hud', 'advisor', 'incident'].map(x => `src/ui/${x}.js`)]) {
       expect(plugin.transform(readFileSync(file, 'utf8'), `/${file}`).code).toBeTruthy();
     }
     expect(() => plugin.transform('', '/src/ui/toasts.js')).toThrow('metadata hook missing');
