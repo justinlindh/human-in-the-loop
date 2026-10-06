@@ -4,6 +4,7 @@ import { readFileSync, mkdirSync, readdirSync, statSync, rmSync } from 'node:fs'
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { LongestFirst } from './scripts/tools/test-order.mjs';
+import { pwa } from './scripts/vite-pwa.mjs';
 
 // vitest keeps a module cache of tens of megabytes per run in a fresh directory under TMPDIR and
 // leaves it behind when a run is killed; /tmp is RAM on the team's machine. Under vitest (also a
@@ -38,6 +39,7 @@ function buildVersion() {
 
 export default defineConfig({
   define: { __HITL_VERSION__: JSON.stringify(buildVersion()) },
+  plugins: [pwa({ version: buildVersion() })],
   // The dependency cache lives in each worktree, not in node_modules: worktrees can share one
   // node_modules, and the version define gives every commit a different cache hash, so a shared
   // cache was rebuilt under a running server and its module fetches failed.
