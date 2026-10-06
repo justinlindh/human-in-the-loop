@@ -741,3 +741,35 @@ An Agents-era hiring policy: an AI interviewer screens candidates. Cheaper and f
 
 - A player-opened `ai_interview_watch` skips the usual gap between decisions.
 - Switching the policy off leaves an open watch card to be answered as normal; no new card opens while it is off.
+
+## Attention queue (#1639)
+
+Behind `B.pacing.askQueue`. With it off, decisions, Yak prompts and mail open as before. With it on, the sim proposes and the presentation layer decides when the player sees something.
+
+```js
+state.asks: [{ id, kind, priority, week, expiresWeek, defaultChoice, ref }]
+  // kind: 'decision' | 'prompt' | 'letter'; priority: 'emergency' | 'normal' | 'low'
+  // ref is sim-only (event id and subject, or mail template and context); ui and render read the other fields
+```
+
+- With the switch on, `raiseDecision`, `openEventPrompt` and actionable mail append a candidate to `asks` instead of opening it. Era, period and gate checks still apply, but the sim's week-based spacing and slot limits do not: the attention clock in `src/pacing.js` owns cadence, in real seconds.
+- Order: emergencies first (incidents, cyber), then oldest first. Only the presentation layer opens an ask, one at a time.
+- A candidate whose `expiresWeek` passes without being presented is dropped silently, with no default applied: it no longer fits the game.
+- Bots present the head after `B.attention.botGapWeeks`, and emergencies at once, so balance runs never depend on the wall clock.
+- Saves without `asks` load with `asks: []`.
+
+### Actions: Attention queue
+
+```js
+{ type: 'presentAsk', askId? }   // opens the head ask, or the named one, as pendingDecision, a Yak prompt or a letter; works while paused; refusals: 'No asks waiting' | 'No such ask' | 'Finish the open decision first'
+{ type: 'expireAsk', askId }     // behind B.pacing.askExpiry: applies the ask's default and posts one Yak line saying what was chosen; refusals: 'No such ask' | 'Emergencies never expire'
+```
+
+- The default is the event's `defaultChoice`, else its choice with no effect, else its last choice. A prompt or letter takes its ignore outcome.
+
+### Events: Attention queue
+
+```js
+{ type: 'askQueued', askId, kind, priority }
+{ type: 'askExpired', askId, kind }
+```
