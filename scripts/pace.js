@@ -21,7 +21,8 @@ import { createGrowthMoments } from '../src/render/growth-moments.js';
 import { createGame, tick, dispatch } from '../src/sim/index.js';
 import * as bots from '../src/sim/bots.js';
 import { EVENTS } from '../src/data/events.js';
-import { createPacer, WEEK_SECONDS, readSeconds } from '../src/pacing.js';
+import { createPacer, createAttention, WEEK_SECONDS, readSeconds } from '../src/pacing.js';
+import { B } from '../src/sim/balance.js';
 import { speechMax } from '../src/render/speech-budget.js';
 import { createYakPacer, importantChat } from '../src/yak-pacing.js';
 
@@ -189,6 +190,8 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
   const draw = ([a, b]) => a + rand() * (b - a);
   const pacer = createPacer({ weekSeconds });
   const yakPacer = createYakPacer();
+  // With the ask queue on, decisions open only when the attention clock presents them, as in the page.
+  const clock = createAttention(B.attention);
   const urgentChats = new WeakSet();
   // When each queued important Yak post entered the queue, and the longest wait before one showed, in
   // seconds the Yak pacer was running (menus and spotlights freeze it).
@@ -320,6 +323,9 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
     for (const e of events) {
       if (e.type === 'decision') stageSpotlight(state.pendingDecision, `decision:${state.week}:${state.pendingDecision?.eventId}`);
       if (e.type === 'chatPrompt') stageSpotlight(state.chatPrompts.find((p) => p.id === e.promptId), `prompt:${e.promptId}`);
+      // As the page does: a prompt on screen is marked shown, and a letter with a choice is read.
+      if (e.type === 'chatPrompt' && B.pacing?.shownExpiry) dispatch(state, { type: 'promptShown', promptId: e.promptId });
+      if (e.type === 'mail' && B.pacing?.shownExpiry && state.mail.find((m) => m.id === e.mailId)?.options?.length) dispatch(state, { type: 'readMail', mailId: e.mailId });
       if (e.type === 'decisionResolved' || e.type === 'chatPromptResolved') {
         const d = e.type === 'decisionResolved' ? e : { ...e, eventId: state.chatPrompts.find((p) => p.id === e.promptId)?.kind };
         if (d.eventId === 'printer_jam' && d.choice === 0) beginSpotlight('printer_jam', `printer:${state.week}`);
@@ -475,6 +481,26 @@ export function simulatePacing({ seed = 1, speed = 1, bot = 'sensible', player =
       if (left <= frame) activeSpots.delete(key); else activeSpots.set(key, left - frame);
     }
     if (menuPause || state.pendingDecision) touch();
+    // The clock always runs; it is fed only while the game is on, and asks reach it only with the queue on.
+    if (!state.gameOver) {
+      const queued = !!B.pacing?.askQueue;
+      const asks = queued ? (state.asks ?? []).filter((a) => a.expiresWeek == null || state.week < a.expiresWeek) : [];
+      const out = clock.tick(frame, {
+        running, held, speed, asks, realTime: B.pacing?.askRealTime !== false, expiry: queued && !!B.pacing?.askExpiry,
+        openExpiry: !!B.pacing?.shownExpiry,
+        shown: [
+          ...state.chatPrompts.filter((p) => p.shownWeek != null && !p.resolved).map((p) => ({ kind: 'prompt', id: p.id })),
+          ...(state.mail ?? []).filter((m) => m.shownWeek != null && m.options?.length && !m.resolved && !m.archived).map((m) => ({ kind: 'letter', id: m.id })),
+        ],
+        askOpen: !!state.pendingDecision || state.chatPrompts.some((p) => !p.resolved)
+          || (state.mail ?? []).some((m) => m.options?.length && !m.resolved && !m.archived),
+        decisionOpen: !!state.pendingDecision,
+        modal: !!state.pendingDecision || (!!menu && menu.kind !== 'menu'),
+      });
+      for (const x of out.expireOpen) route(dispatch(state, { type: 'expireOpen', kind: x.kind, id: x.id }).events);
+      for (const askId of out.expire) route(dispatch(state, { type: 'expireAsk', askId }).events);
+      if (out.present) route(dispatch(state, { type: 'presentAsk', askId: out.present }).events);
+    }
     if (running) playT += frame;
     if (menuPause) { paused.menu += frame; if (menu.kind === 'menu') paused.sessions += frame; }
     else if (state.pendingDecision) paused.decision += frame;
