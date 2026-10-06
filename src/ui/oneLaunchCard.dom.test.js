@@ -90,6 +90,45 @@ describe('oneLaunchCard', () => {
     expect(heading(layer)).toBe('Beta launched!');
   });
 
+  it('on with the attention clock: the gap is the clock\'s play seconds, not the UI\'s own total', () => {
+    B.pacing = { oneLaunchCard: true };
+    const clock = { playSeconds: 500, config: { gap: 90 } };
+    const layer = document.createElement('div');
+    document.body.append(layer);
+    const ctx = { controls: { getSpeed: () => speed, setSpeed: (n) => { speed = n; }, attention: clock }, sfx: vi.fn(), act: vi.fn(() => ({ ok: true })), getState: state };
+    const p = createPopups({ layer, ctx, toasts: { setDock: vi.fn() }, restoreDock: vi.fn() });
+    const s = state();
+    p.queueLaunch(1);
+    p.update(s);
+    layer.querySelector('.btn.go').click();
+    p.queueLaunch(2);
+    // Plenty of UI-clock time passes, but the attention clock has only run 89 s.
+    pTick(LAUNCH_GAP_MS * 3);
+    clock.playSeconds = 589;
+    p.update(s);
+    expect(heading(layer)).toBeUndefined();
+    clock.playSeconds = 590;
+    p.update(s);
+    expect(heading(layer)).toBe('Beta launched!');
+  });
+
+  it('on with the attention clock: a restarted clock forgets the last close', () => {
+    B.pacing = { oneLaunchCard: true };
+    const clock = { playSeconds: 900, config: { gap: 90 } };
+    const layer = document.createElement('div');
+    document.body.append(layer);
+    const ctx = { controls: { getSpeed: () => speed, setSpeed: (n) => { speed = n; }, attention: clock }, sfx: vi.fn(), act: vi.fn(() => ({ ok: true })), getState: state };
+    const p = createPopups({ layer, ctx, toasts: { setDock: vi.fn() }, restoreDock: vi.fn() });
+    const s = state();
+    p.queueLaunch(1);
+    p.update(s);
+    layer.querySelector('.btn.go').click();
+    clock.playSeconds = 5;
+    p.queueLaunch(2);
+    p.update(s);
+    expect(heading(layer)).toBe('Beta launched!');
+  });
+
   it('describes an update as a shipped bubble, warn when the score fell', () => {
     const p = { id: 7, name: 'Alpha', version: 3, score: 8.44 };
     expect(shippedDetail(p, 7)).toMatchObject({ topic: 'shipped', subjectId: 7, subjectKind: 'product', text: 'v3: 8.4', tone: 'good' });
