@@ -15,13 +15,13 @@ Each PR that adds a switch also adds a test: with the switch off, its part behav
 | Switch | Step and lane | On | Off (today) |
 |---|---|---|---|
 | `askQueue` | 1 sim, 2 integrator | Decisions, Yak prompts and letters go through one queue, one open at a time, at least 90 s of running play apart, with 45 s of quiet after a modal | Three separate slots on game-week gaps (`decisionGapWeeks`, `chatPromptsOpen`, `mail.actionOpen`) |
-| `askExpiry` | 1 sim, 2 integrator | A low-priority ask that waits 3 min resolves to its default, with one Yak line | Asks wait until their week-based expiry |
+| `askExpiry` | 1 sim, 2 integrator | A non-emergency ask that waits 3 min resolves to its default, with one Yak line. At most `queueCap` (3) wait; when another arrives, the least pressing, oldest one expires at once | Nothing expires, and the queue has no cap |
 | `askRealTime` | 2 integrator | The ask gaps and the expiry are fixed in real seconds at every speed, so 4x shows the same asks per minute as 1x | The gaps shrink with speed (gap seconds ÷ speed), so 4x asks four times as often |
 | `momentCap` | 2 integrator | At most one staged moment per 5 min, holding the clock at most 25 s; music night plays without holding it | Today's spotlight holds and caps |
 | `askRates` | 3 sim | The event and prompt chances are retuned to about 0.5 to 0.7 candidates per running minute | Today's `randomEventChance` and `chatPromptChance` |
 | `letterMail` | 3 sim | No flavour mail; mail is only outside letters with a real choice; reply-all is a Yak gag | Today's inbox rolls, templates and reply-all storms |
 | `quietEvents` | 3 sim | The office gags (ping-pong, printer, pet) are ambient with no choice; incidents below severity 3 resolve ambiently; music night picks its genre | They stay decisions |
-| `quietToasts` | 4 ui | Toasts at least 15 s apart and merged by subject; status news goes to the world, not a toast | Today's toast budget and status toasts |
+| `quietToasts` | 4 ui | Game-started toasts at least 30 s apart and merged by subject; info and good ones dropped after 30 s waiting; warnings first; status news goes to the world, not a toast | Today's toast budget and status toasts |
 | `oneLaunchCard` | 4 ui | One card per launch with no toast; two launches within 60 s share a card | Toast plus card for each launch |
 | `unlockPips` | 4 ui | Unlocks show a "New" pip and one toast; a card only for a new system or an era | An unlock card each time |
 | `advisorGlow` | 4 ui | No peek card; the advisor button glows | The peek card |
@@ -47,9 +47,15 @@ Switches: adds the whole `B.pacing` block. `askQueue` and `askExpiry` land `fals
 
 - `state.asks`: candidates, each with an id, kind (`decision`, `prompt` or `letter`), priority (`emergency`, `normal` or `low`), created week, expiry and default choice.
 - `raiseDecision`, `openEventPrompt` and actionable mail append a candidate when `B.pacing.askQueue` is on. Off, they behave exactly as today.
-- `B.attention` holds the real-second numbers that step 2 reads: the 90 s gap, the 45 s quiet, the 3 min expiry, the 5 min moment window and the 25 s moment cap.
-- New actions: `presentAsk` turns the head candidate into `pendingDecision`, a prompt or a letter. `expireAsk` applies the default and emits one ambient Yak line.
-- `runBot` and the balance bots present each candidate when the queue gives it to them. One balance key, the weeks a candidate waits in a bot run, stands in for the real-second gap at 1x (90 s at 8 s a week is about 11 weeks).
+- `B.attention` holds the real-second numbers that step 2 reads: the 90 s gap, the 45 s quiet, the 3 min expiry, the 5 min moment window and the 25 s moment cap. It also holds four week-based keys:
+  - `staleWeeks`: a candidate past it no longer fits the game and is dropped silently, with no default applied.
+  - `botGapWeeks` (11): bots present the head this long after the last presentation. Emergencies come at once.
+  - `botExpiryWeeks` (22): with `askExpiry` on, a waiting non-emergency ask expires after this in bot runs, and its default applies.
+  - `queueCap` (3): with `askExpiry` on, the most non-emergency asks that can wait.
+- Emergencies are incident and cyber decisions; they never expire. The rest are normal (other decisions) or low (prompts and letters).
+- The expiry default is the event's `defaultChoice`, else its entry in `src/data/ask-defaults.js` (new), else its choice with no effect. A prompt or letter takes its ignore outcome. A test fails for any decision that can expire without one.
+- New actions: `{ type: 'presentAsk', askId? }` turns the head candidate, or the named one, into `pendingDecision`, a prompt or a letter. `{ type: 'expireAsk', askId }` applies the default and emits one ambient Yak line.
+- `runBot` and the balance bots present from the queue on `botGapWeeks` and `botExpiryWeeks`, so balance runs never depend on the wall clock.
 - Save migration for `asks`.
 
 **Targets:** with `askQueue` off, `npm run balance -- --seeds 200` is identical to main. With it on in bot runs, endings move by no more than the paired-run noise over 200 seeds, and the paired table goes in the PR.
@@ -58,7 +64,7 @@ Switches: adds the whole `B.pacing` block. `askQueue` and `askExpiry` land `fals
 
 Switches: `askQueue`, `askExpiry`, `askRealTime` and `momentCap`. This PR sets `askQueue` and `askExpiry` to `true` in `src/sim/balance.js`, with sim's agreement through the lane exception.
 
-- A pure `createAttention()` in `src/pacing.js` works on running real seconds. It holds the 90 s minimum gap between asks, the 45 s quiet after any modal or beat, at most one staged moment per 5 min, and the 3 min expiry for low-priority asks. Emergencies jump the queue but still wait out the quiet. The numbers live in `B.attention`, which sim adds in step 1.
+- A pure `createAttention()` in `src/pacing.js` works on running real seconds. It holds the 90 s minimum gap between asks, the 45 s quiet after any modal or beat, at most one staged moment per 5 min, and the 3 min expiry for any ask that isn't an emergency. Emergencies jump the queue but still wait out the quiet. The `queueCap` expiry happens in the sim when an ask arrives, not on the clock. The numbers live in `B.attention`, which sim adds in step 1.
 - `main.js` dispatches `presentAsk` and `expireAsk` from it.
 - The spotlight hold cap drops to 25 s, and music night stops holding the clock (`momentCap`).
 - Every gap is fixed in real seconds at any speed (`askRealTime`). Only the economy scales with speed.
@@ -84,7 +90,7 @@ Switches: `quietToasts`, `oneLaunchCard`, `unlockPips`, `advisorGlow`, `quietYak
 
 Before step 5 starts, ui writes the **bubble spec**: which status news leaves the toast stack under `quietToasts`, and the shape of the ambient event art draws (type, subject id, short text, an icon id and a tone). ui posts it on the step 4 issue.
 
-- **Toasts:** at least 15 s apart and merged by subject. Only money, staff changes, goals and player-caused feedback stay as toasts. Status news (three-quarters done, back from vacation, trends) becomes an ambient event for step 5.
+- **Toasts:** game-started toasts at least 30 s apart and merged by subject. An info or good toast that has waited 30 s is dropped silently, with no "+N more" counter. Warnings go first and never drop. Only money, staff changes, goals and player-caused feedback stay as toasts. Status news (three-quarters done, back from vacation, trends) becomes an ambient event for step 5.
 - **Launches:** one card per launch, with no toast for the same news. Two launches within 60 s share one card.
 - **Unlocks:** a "New" pip on the build or policy menu plus one toast. A card only for a whole new system or an era.
 - **Advisor:** drop the peek card; the button glows instead.

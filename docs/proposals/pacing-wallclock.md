@@ -123,12 +123,12 @@ Three tiers. Every message the game produces belongs to exactly one of them.
 |---|---|---|---|---|
 | **Ask** | a decision, an answerable prompt or a letter with choices | the decision modal does; a prompt doesn't | yes | **one open at a time across every system**; at least **90 s of running play** between asks (target average **2 to 3 min**) |
 | **Beat** | launch result, era arrival, staged moment, award, incident card | yes, briefly | dismiss only | at least **45 s of running play** after any Ask or Beat closes; staged moments **at most one per 5 min**, held **at most 25 s** |
-| **Ambient** | numbers and bubbles over desks, Yak flavour, standups, the call grid, status toasts | never | never | Yak flavour **at least 20 s apart** while the dock is open; status toasts **at least 15 s apart**, merged when they share a subject; everything else is drawn in the world |
+| **Ambient** | numbers and bubbles over desks, Yak flavour, standups, the call grid, status toasts | never | never | Yak flavour **at least 20 s apart** while the dock is open; status toasts **at least 30 s apart**, merged when they share a subject; everything else is drawn in the world |
 
 Rules:
 
 - **One Ask at a time.** A single attention queue holds every candidate Ask (decision, prompt, letter), ordered by priority. Only the head of the queue is shown. The others wait.
-- **Waiting costs something.** A low-stakes Ask that waits more than **3 min** expires to its default outcome, shown as one ambient Yak line ("Lena picked the cat for you."). Emergencies (incidents, cash crisis, a legal letter) never expire. They jump the queue but still wait out the 45 s quiet after a Beat.
+- **Waiting costs something.** Any Ask that isn't an emergency expires to its default after waiting **3 min**, shown as one ambient Yak line ("Lena picked the cat for you."). The default is the cautious one, never the punishing one. At most **3** non-emergency Asks wait; when another arrives, the least pressing, oldest one expires at once. Emergencies (incidents and cyber attacks) never expire. They jump the queue but still wait out the 45 s quiet after a Beat.
 - **Quiet after a modal.** No Ask or Beat for **45 s of running play** after any modal closes, so the player gets to watch what they just chose play out.
 - **A guaranteed watching stretch.** In any 10 minutes of play there is at least one **3 min** stretch with no Ask and no Beat that the game started.
 - **Player-caused feedback is exempt** (the toast for your own hire, the card for your own launch). It still collapses: a launch is **one** card, not a toast followed by a card with the same news.
@@ -145,7 +145,7 @@ What that comes to at 1x over 20 minutes: about **8 Asks** (down from about 55 t
 | Yak prompts | **Merge** into the queue | A prompt is an Ask like any other. It stops having its own slot and weekly 60% roll. Most `yak` events are low-stakes, so they are the ones that expire to a default. |
 | Mail | **Cut the inbox as a stream** (see below) | |
 | Yak flavour posts | **Make ambient, slow** | At least 20 s apart, no unread badge for flavour, and important posts only (#incidents, #wins) light the dock. |
-| Toasts | **Slow, make most ambient** | Status news (three-quarters done, back from vacation, trend) moves into the world as a desk bubble or floating text over the subject. Toasts stay only for money, staff changes and goals: at least 15 s apart, merged by subject. |
+| Toasts | **Slow, make most ambient** | Status news (three-quarters done, back from vacation, trend) moves into the world as a desk bubble or floating text over the subject. Toasts stay only for money, staff changes and goals: at least 30 s apart, merged by subject, and dropped when they've waited 30 s. Warnings go first and never drop. |
 | Advisor peek | **Make ambient** | Drop the peek card. The advisor button glows when advice matters; the player opens it. |
 | Launch result card | **Keep** | It is the Game Dev Story review beat, and the player caused it. In the mid and late game, each launch after the first few of a year goes into a single "this quarter's launches" card when two land within 60 s. |
 | Unlock and New cards | **Merge, make ambient** | Unlocks become a "New" pip on the build or policy menu plus one toast. A card only for a whole new system (the first Research, Ops, Standups) or an era. |
@@ -177,7 +177,7 @@ The sim is deterministic and counts weeks, and it must stay that way (no `Date.n
 **The sim proposes, the clock disposes.**
 
 - `src/sim/` stops opening asks on its own. Each weekly roll that today calls `raiseDecision`, `openEventPrompt` or `actionable()` mail appends a candidate to `state.asks` (id, kind, priority, created week, expiry rule, default choice). That is deterministic, as today.
-- A new pure module in `src/pacing.js` (`createAttention`) runs on real seconds: running seconds since the last Ask, the quiet after the last modal, the 5 min staged-moment window and the 3 min expiry. When the budget allows, `main.js` dispatches `{ type: 'presentAsk', id }`. The sim then turns the head candidate into `pendingDecision`, a prompt or a letter. When a candidate times out, the clock dispatches `{ type: 'expireAsk', id }` and the sim applies its default.
+- A new pure module in `src/pacing.js` (`createAttention`) runs on real seconds: running seconds since the last Ask, the quiet after the last modal, the 5 min staged-moment window and the 3 min expiry. When the budget allows, `main.js` dispatches `{ type: 'presentAsk', askId }`. The sim then turns the head candidate into `pendingDecision`, a prompt or a letter. When a candidate times out, the clock dispatches `{ type: 'expireAsk', askId }` and the sim applies its default. A candidate that no longer fits the game (past `B.attention.staleWeeks`) is a different case: it is dropped silently, with no default applied.
 - Because both are dispatched actions, a save or a replay stays deterministic: the action log records the week each ask was presented.
 - `ui/spacing.js` (the 30 s card gap) folds into the same module, so cards and asks share one budget.
 - The bots (`runBot`, balance) present each candidate when the queue gives it to them, which keeps balance runs independent of the wall clock. One balance setting decides how many weeks a candidate waits in a bot run, so bot outcomes match the 1x experience.
@@ -189,7 +189,7 @@ The sim is deterministic and counts weeks, and it must stay that way (no `Date.n
 | the economy, project progress, staff XP, decay | the gap between Asks (90 s), the quiet after a modal (45 s), the 3 min expiry |
 | how many candidates the sim proposes per game year | reading time for bubbles, toasts, cards and Yak lines |
 | when a candidate stops fitting (`fits`, week-based expiry) | the staged-moment window (5 min) and cap (25 s) |
-| | the Yak flavour gap (20 s) and the toast gap (15 s) |
+| | the Yak flavour gap (20 s) and the toast gap (30 s) |
 
 So at 4x the player sees the same Asks per real minute as at 1x, and **fewer Asks per game year**: the extra candidates expire to their defaults. That is the point of 4x. It is "let me watch it build", not "give me four times the paperwork". At 4x, staged moments are skipped (they are already counted as skipped at 4x).
 
@@ -200,7 +200,7 @@ So at 4x the player sees the same Asks per real minute as at 1x, and **fewer Ask
 1. **Mail.** Cut flavour mail and keep letters only for outside offers with a real choice, at about one every 5 to 8 min. *Recommend: yes.* The other options are merging it all into Yak, or keeping mail as it is but rarer.
 2. **The Ask gap.** At least 90 s, average 2 to 3 min at 1x. *Recommend: 90 s minimum, 150 s average.* Shorter (60 s) keeps more drama; longer (4 min) is closer to Game Dev Story.
 3. **4x behaviour.** Asks stay at the 1x real-time rate and the excess expire to their defaults. *Recommend: yes.* The alternative is that 4x keeps every Ask and simply fills the screen faster.
-4. **Expired asks.** A low-stakes Ask the player hasn't reached in 3 min resolves to a sensible default, shown as a Yak line. *Recommend: yes.* The alternative is that they wait forever, which brings the pile back.
+4. **Expired asks.** A low-stakes Ask the player hasn't reached in 3 min resolves to a sensible default, shown as a Yak line. *Recommend: yes.* The alternative is that they wait forever, which brings the pile back. With decision 3, any Ask that isn't an emergency can expire, since at 4x the excess has to go somewhere.
 5. **Weak events.** Demote the repetitive office gags (ping-pong, printer, pet) from decisions to ambient moments with no choice. *Recommend: yes.* It is a content cut the owner may want to pick through.
 6. **Staged moments.** At most one per 5 min, holding the clock at most 25 s, and music night stops holding it. *Recommend: yes.*
 
