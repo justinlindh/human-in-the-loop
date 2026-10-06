@@ -349,6 +349,18 @@ describe('attention clock', () => {
     for (let i = 0; i < 300; i++) expect(att.tick(1, { shown: [{ kind: 'letter', id: 'm' }] }).expireOpen).toEqual([]);
   });
 
+  it('uses gapFast above 1x for normal asks and leaves emergencies alone', () => {
+    const cfg = { gap: 90, gapFast: 150, watchWindow: 1e9 };
+    const at = (speed, priority) => drive(createAttention(cfg), 400,
+      [ask('a', priority), ask('b', priority)], { speed, expiry: false }).opened.map((o) => o[0]);
+    const slow = at(1, 'normal');
+    expect(slow[1] - slow[0]).toBeGreaterThanOrEqual(90);
+    expect(slow[1] - slow[0]).toBeLessThan(150);
+    const fast = at(4, 'normal');
+    expect(fast[1] - fast[0]).toBeGreaterThanOrEqual(150);
+    expect(at(4, 'emergency').length).toBe(2);
+  });
+
   it('keeps time for staged moments with no asks queued', () => {
     const att = createAttention();
     for (let round = 0; round < 3; round++) {
