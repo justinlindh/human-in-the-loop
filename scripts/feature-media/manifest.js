@@ -689,15 +689,29 @@ export const ITEMS = [
   // The company party: a company-wide celebrate with its cause, in a real game. The banner is a DOM label
   // (.hitl-banner) that lives a few seconds, so the guard looks for it while it is up.
   {
-    id: 'moment-company-party', title: 'Staged moment: the company party', query: 'seed=1&speed=1', seconds: 14, warmup: 0.5, record: '3840x2160',
+    id: 'moment-company-party', title: 'Staged moment: the company party', query: 'seed=1&speed=1', seconds: 14, warmup: 0.5,
     setup: `(async () => { await ${PLAY({ weeks: 176, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE}` })}; ${CLEAN}; ${NO_SAY}; })()`,
     actions: [...CLEAR_EARLY,
       ...FOLLOW(`() => { const R = window.__hitlRender; const ps = []; R.scene.traverse((o) => { if (o.userData.staffId) ps.push(o.parent.getWorldPosition(new o.position.constructor())); }); if (!ps.length) return null; return { x: ps.reduce((a, p) => a + p.x, 0) / ps.length, y: 0, z: ps.reduce((a, p) => a + p.z, 0) / ps.length }; }`, 2.4, 0, 14),
       { at: 1, js: `window.__HITL.emit([{ type: 'celebrate', cause: 'Notemind launched' }])` },
       { at: 2.5, js: `(() => { if (!document.querySelector('.hitl-banner')) console.error('capture: the party banner is not showing'); })()` },
       ...CAMLOG(14)], screenshots: [2, 3, 5, 8],
-    out: [{ path: 'moments/company-party.mp4', size: '1280x720', from: 0.5, seconds: 9, loop: 'none', crop: MIDDLE }],
-    // Not published: the seated staff do not visibly cheer, so only confetti and a small banner read.
+    out: [{ path: 'moments/company-party.mp4', size: '1280x720', from: 0.8, seconds: 7, loop: 'none', crop: { x: 0.1, y: 0.08, w: 0.8, h: 0.8 } }],
+    publish: true,
+  },
+
+  // The same celebrate on a phone-width page, with a longer cause so the banner wraps. The banner is a DOM label
+  // sized in CSS pixels, so the party clip records at 1920x1080 (not 4K) to keep it legible at 1280x720.
+  {
+    id: 'moment-company-party-phone', title: 'Staged moment: the company party banner on a phone', query: 'seed=1&speed=1', seconds: 8, warmup: 0.5, record: '390x844',
+    setup: `(async () => { await ${PLAY({ weeks: 176, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE}` })}; ${CLEAN}; ${NO_SAY}; })()`,
+    actions: [...CLEAR_EARLY,
+      ...FOLLOW(`() => { const R = window.__hitlRender; const ps = []; R.scene.traverse((o) => { if (o.userData.staffId) ps.push(o.parent.getWorldPosition(new o.position.constructor())); }); if (!ps.length) return null; return { x: ps.reduce((a, p) => a + p.x, 0) / ps.length, y: 0, z: ps.reduce((a, p) => a + p.z, 0) / ps.length }; }`, 2.4, 0, 8),
+      { at: 1, js: `window.__HITL.emit([{ type: 'celebrate', cause: 'Product of the Year: Notemind, with a very long name for the banner to wrap' }])` },
+      { at: 3, js: `(() => { if (!document.querySelector('.hitl-banner')) console.error('capture: the party banner is not showing'); })()` }],
+    screenshots: [3],
+    out: [{ path: 'moments/company-party-phone.webp', size: '390x844', from: 3 }],
+    publish: true,
   },
 
   // docs/features/decisions.md: what each decision stages in the office while its card is up. The pre-tick
