@@ -114,6 +114,7 @@ try {
     await p0.waitForFunction(() => /Downloading|Ready to play offline/.test(document.querySelector('.setrow + .setrow, .settings')?.textContent || document.body.textContent), null, { timeout: 30000 }).catch(() => {});
     await waitState(p0, 'ready');
     check('and shows "Ready to play offline." when done', /Ready to play offline\./.test(await row.textContent()), await row.textContent());
+    await row.scrollIntoViewIfNeeded();
     await p0.screenshot({ path: `${OUT}/settings-offline.png` });
     await ctx0.close();
   }
