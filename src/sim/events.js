@@ -243,12 +243,14 @@ export function eligibleEvents(state) {
     && !(ev.scripted && B.pacing.askRates));
 }
 
-// Under askRates a scripted event comes the week it is ready, rather than from the cut random roll.
+// Under askRates a ready scripted event rolls its own weekly chance (B.askRates.scriptedChance), rather than
+// riding the cut random roll.
 function scriptedEvents(ctx) {
   const { state } = ctx;
   const h = helpers(state);
   for (const ev of Object.values(EVENTS)) {
     if (!ev.scripted || (state.flags[`cd_${ev.id}`] ?? -1) > state.week || !eventFitsEra(state, ev) || !ev.when(state, h)) continue;
+    if (!chance(ctx.rng, B.askRates.scriptedChance[ev.id] ?? 1)) continue;
     const subjects = resolveSubjects(state, ev);
     if (ev.subject !== null && !subjects.length) continue;
     if (fireEvent(ctx, ev, subjects.length ? pick(ctx.rng, subjects).id : null)) return true;

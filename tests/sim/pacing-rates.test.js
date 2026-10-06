@@ -22,8 +22,9 @@ function company(seed = 1) {
 
 let keepPacing;
 let keepMail;
-beforeEach(() => { keepPacing = { ...B.pacing }; keepMail = { ...B.mail }; });
-afterEach(() => { Object.assign(B.pacing, keepPacing); Object.assign(B.mail, keepMail); });
+let keepScripted;
+beforeEach(() => { keepPacing = { ...B.pacing }; keepMail = { ...B.mail }; keepScripted = { ...B.askRates.scriptedChance }; });
+afterEach(() => { Object.assign(B.pacing, keepPacing); Object.assign(B.mail, keepMail); Object.assign(B.askRates.scriptedChance, keepScripted); });
 
 describe('askRates: fewer events and staff prompts come up', () => {
   it('on, the weekly event and prompt rolls use B.askRates; off, today\'s chances', () => {
@@ -116,8 +117,23 @@ describe('askRates: the acquisition offer is a scripted beat', () => {
     return s;
   };
 
+  it('on, a ready offer rolls its own weekly chance: never at 0, and at the chance main\'s random pool gives a ready offer', () => {
+    B.pacing.askRates = true;
+    expect(B.askRates.scriptedChance.acquisition_offer).toBeGreaterThan(0.005);
+    expect(B.askRates.scriptedChance.acquisition_offer).toBeLessThan(0.03);
+    B.askRates.scriptedChance.acquisition_offer = 0;
+    const s = ready();
+    for (let i = 0; i < 60; i++) {
+      eventsSystem(makeCtx(s));
+      expect(s.pendingDecision?.eventId).not.toBe('acquisition_offer');
+      s.pendingDecision = null;
+      s.week++;
+    }
+  });
+
   it('on, the offer leaves the random pool and comes once offerReady holds, then not again for its cooldown', () => {
     B.pacing.askRates = true;
+    B.askRates.scriptedChance.acquisition_offer = 1;
     const s = ready();
     expect(eligibleEvents(s).some((e) => e.id === 'acquisition_offer')).toBe(false);
     eventsSystem(makeCtx(s));

@@ -14,7 +14,7 @@ import { ALLHANDS_SCREEN, variantText } from './moment-variants.js';
 // instead of a popup while prompts are on; ignore is the choice that happens if nobody answers: the mildest one, with
 // the smallest cost to the subject (or overall), and never one that grants an item or a pet, so nobody pays for or
 // gets saddled with a prompt they did not see (null: nothing). scripted: under B.pacing.askRates the event leaves
-// the random pool and comes as soon as `when` holds and its cooldown has passed.
+// the random pool; once `when` holds and its cooldown has passed it rolls B.askRates.scriptedChance each week.
 // Placeholders in title/text: {name} (subject staff), {product} (subject product), {company}, {incumbent}, {rival}, {rivalFounder},
 // {ransom} (what a ransom would cost this company), {alum} (a recent former employee).
 // Effects apply to the subject (staff or product) where the key is per-subject; see EFFECT_KEYS below.
