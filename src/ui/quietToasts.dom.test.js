@@ -153,6 +153,15 @@ describe('status news', () => {
     expect(ambientDetail({ text: 'No topic' })).toBeNull();
   });
 
+  it('uses the toast short, then a cut-down text, then the topic words', () => {
+    expect(ambientDetail({ topic: 'mood', short: 'Sam is wiped' }).text).toBe('Sam is wiped');
+    const cut = ambientDetail({ topic: 'mood', text: 'Sam looks completely exhausted after the long launch week.' }).text;
+    expect(cut.startsWith('Sam looks completely')).toBe(true);
+    expect(cut.length).toBeLessThanOrEqual(SHORT_MAX);
+    expect(ambientDetail({ topic: 'mood' }).text).toBe('Running low');
+    expect(ambientDetail({ topic: 'replyall' })).toMatchObject({ subjectKind: 'company', icon: 'mail', tone: 'info', text: 'Reply-all storm' });
+  });
+
   it('is claimed by the renderer, or left to a toast when nobody draws it', () => {
     const target = new EventTarget();
     const ambient = createAmbient({ target });
