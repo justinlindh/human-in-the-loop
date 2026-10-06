@@ -109,7 +109,8 @@ const IMMEDIATE_KINDS = new Set(['incident', 'cyber']);
 // Opens a decision popup for a choice event. If one is already pending it returns false, or with
 // { queue: true } schedules this one to be raised as soon as the popup is clear. { asked: true } is a
 // card the player opened, which skips the gap after the last decision; `vars` replaces the card's usual vars.
-export function raiseDecision(ctx, eventId, subjectId = null, { queue = false, asked = false, fromQueue = false, vars: own = null } = {}) {
+// quiet: this raise plays out with no card under quietEvents, as an event marked quiet does.
+export function raiseDecision(ctx, eventId, subjectId = null, { queue = false, asked = false, fromQueue = false, vars: own = null, quiet = false } = {}) {
   const { state } = ctx;
   const ev = EVENTS[eventId];
   if (!ev || !ev.choices) return false;
@@ -119,7 +120,7 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false, a
   // A decision with `fits` is dropped, not queued, once it no longer applies (a queued card can come due late).
   if (ev.fits && !ev.fits(state, subjectId)) return false;
   // Under quietEvents a small event plays out with no card and no ask: its default choice, said in Yak.
-  if (B.pacing.quietEvents && ev.quiet && !asked) return resolveQuietly(ctx, ev, subjectId, own);
+  if (B.pacing.quietEvents && (ev.quiet || quiet) && !asked) return resolveQuietly(ctx, ev, subjectId, own);
   // With the ask queue on, a card the game raises waits there; one the player asked for opens at once.
   if (askQueueOn() && !fromQueue && !asked) {
     queueDecision(ctx, eventId, subjectId, own);

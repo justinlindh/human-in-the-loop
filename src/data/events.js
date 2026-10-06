@@ -284,7 +284,7 @@ const list = [
     ],
   },
   {
-    id: 'four_day_week_review', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null,
+    id: 'four_day_week_review', kind: 'leadership', weight: 0, cooldownWeeks: 0, random: false, subject: null, quiet: true,
     when: () => true,
     title: 'Four-day week: keep going?',
     text: 'Time to review the four-day week. Output dipped a bit. People look like they sleep now. What does {company} do?',

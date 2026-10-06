@@ -259,10 +259,10 @@ export const B = {
   },
   // The weekly event and staff-prompt rolls under B.pacing.askRates, cut so the game proposes about 0.4 asks
   // per running minute at 1x in all.
-  askRates: { randomEventChance: 0.011, chatPromptChance: 0.0055 },
+  askRates: { randomEventChance: 0.0092, chatPromptChance: 0.0055 },
   // letterChance: the weekly roll for an outside letter under B.pacing.letterMail, in place of actionChance.
   mail: {
-    enabled: true, letterChance: 0.027, botLateWeeks: 4, fromWeek: 4, ambientChance: 0.35, actionChance: 0.12, actionOpen: 2, expiryWeeks: 8, kept: 40, templateCooldown: 12,
+    enabled: true, letterChance: 0.016, botLateWeeks: 4, fromWeek: 4, ambientChance: 0.35, actionChance: 0.12, actionOpen: 2, expiryWeeks: 8, kept: 40, templateCooldown: 12,
     replyAllChance: 0.02, replyAllCooldown: 26, replyAllWeeks: 3, replyAllOutput: -0.02,
     pitchKnowledge: 2, pitchStrain: 3, refund: 1500, refundBrand: 1, fixOutput: -0.03, fixHealth: 6, complaintIgnoredBrand: -1,
     poachTellMeaning: 4, poachRaisePct: 8, poachRaiseMeaning: 2, poachIgnoredStrain: 3, partnerHype: 8, partnerOutput: -0.04,

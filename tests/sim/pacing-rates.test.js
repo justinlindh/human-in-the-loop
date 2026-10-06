@@ -3,6 +3,7 @@ import { B } from '../../src/sim/balance.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { eventChance, raiseDecision } from '../../src/sim/events.js';
 import { postmortemSeverity } from '../../src/sim/incidents.js';
+import { moonshotSystem } from '../../src/sim/moonshot.js';
 import { promptChance } from '../../src/sim/prompts.js';
 import { mailSystem, deliversAsMail } from '../../src/sim/mail.js';
 import { MAIL_TEMPLATES, EVENT_MAIL, AMBIENT } from '../../src/data/mail.js';
@@ -38,7 +39,24 @@ describe('askRates: fewer events and staff prompts come up', () => {
 });
 
 describe('quietEvents: small events play out without a card', () => {
-  const QUIET = ['ai_summit', 'ai_summit_hackathon', 'ai_summit_panel', 'conference_expo', 'music_night_genre', 'pet_mishap', 'ping_pong', 'printer_jam'];
+  const QUIET = ['ai_summit', 'ai_summit_hackathon', 'ai_summit_panel', 'conference_expo', 'four_day_week_review', 'music_night_genre', 'pet_mishap', 'ping_pong', 'printer_jam'];
+
+  it('on, the first moonshot check-in asks and later ones keep going quietly', () => {
+    B.pacing.quietEvents = true;
+    const s = company();
+    s.cash = 5e6;
+    s.flags.moonshot = { active: true, since: s.week, checkins: 0, name: 'Halo', weekly: 1000 };
+    s.week += B.moonshotCheckinWeeks;
+    moonshotSystem(makeCtx(s));
+    expect(s.pendingDecision?.eventId).toBe('moonshot_checkin');
+    s.pendingDecision = null;
+    s.flags.moonshot.checkins = 1;
+    s.week += B.moonshotCheckinWeeks;
+    const ctx = makeCtx(s);
+    moonshotSystem(ctx);
+    expect(s.pendingDecision).toBeNull();
+    expect(ctx.events).toContainEqual(expect.objectContaining({ type: 'quietEvent', eventId: 'moonshot_checkin', choice: 0 }));
+  });
 
   it('the quiet set is the gags, the annual expo, the summit trio and music night', () => {
     expect(Object.keys(EVENTS).filter((id) => EVENTS[id].quiet).sort()).toEqual(QUIET);

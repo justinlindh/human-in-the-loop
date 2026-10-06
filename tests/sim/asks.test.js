@@ -280,6 +280,20 @@ describe('issue #1646: the ask queue', () => {
     const s = company();
     raise(s, 'incident_postmortem');
     expect(s.asks.map((a) => a.priority)).toEqual(['normal']);
+    B.pacing.askExpiry = true;
+    expect(dispatch(s, { type: 'expireAsk', askId: s.asks[0].id }).ok).toBe(true);
+    expect(s.asks).toEqual([]);
+  });
+
+  it('an expired noc_bet puts the agents on the glass', () => {
+    B.pacing.askQueue = true;
+    B.pacing.askExpiry = true;
+    const s = company();
+    s.ops.noc = null;
+    raise(s, 'noc_bet');
+    expect(s.asks).toHaveLength(1);
+    expect(dispatch(s, { type: 'expireAsk', askId: s.asks[0].id }).ok).toBe(true);
+    expect(s.ops.noc).toBe('agents');
   });
 
   it('expireAsk refuses a noExpire ask, which still waits its turn by priority', () => {

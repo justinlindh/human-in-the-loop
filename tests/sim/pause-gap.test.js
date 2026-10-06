@@ -5,7 +5,10 @@ import { B } from '../../src/sim/balance.js';
 import { showsCard, checkUnlocks, toastUnlocks } from '../../src/sim/unlocks.js';
 import { UNLOCKS } from '../../src/data/unlocks.js';
 import { POLICIES } from '../../src/data/policies.js';
-import { game, addProduct } from './helpers.js';
+import { game, addProduct, pinPacing } from './helpers.js';
+
+// Cards wait out the gap; quietEvents' card-less path is covered in pacing-rates.test.js.
+pinPacing({ quietEvents: false });
 
 // A settled company with a product, past the opening grace, with nothing recent.
 function settled(seed = 1) {
