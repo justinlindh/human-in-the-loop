@@ -131,6 +131,7 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
       back.remove();
       slot.replaceWith(el);
     }
+    globalThis.__hitlHooks?.opened?.(el);
     el.classList.toggle('max', on);
     maxBtn.replaceChildren(icon(on ? 'close' : 'expand', { size: 13 }));
     setTip(maxBtn, on ? 'Back to the corner' : `Open ${appName} big`);
@@ -158,7 +159,7 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
     const name = h(`b.who${m.fromId ? '.link' : ''}`, { text: from, title: m.fromId ? 'Find them in the office' : '' });
     if (m.fromId) name.addEventListener('click', (e) => { e.stopPropagation(); onName?.(m.fromId); });
     const reacts = Object.entries(m.reactions ?? {}).filter(([, n]) => n > 0);
-    return h(`div.msg${bot ? '.bot' : ''}${m.replyTo ? '.reply' : ''}`, { dataset: { id: m.id ?? '', root: m.replyTo ?? m.id ?? '' } },
+    return h(`div.msg${bot ? '.bot' : ''}${m.replyTo ? '.reply' : ''}`, { dataset: { id: m.id ?? '', root: m.replyTo ?? m.id ?? '', tag: globalThis.__hitlHooks?.chatTag?.(m.id) ?? '' } },
       avatar(m),
       h('div.mcol', null,
         h('div.mline', null, name, m.week === null ? null : h('span.w.num', { text: `W${calendarDate(getState?.() ?? {}, m.week).week}` })),

@@ -1,11 +1,20 @@
 // Tiny DOM helpers for the overlay. No framework: build once, then patch text and widths.
 
+// Measurement tools set globalThis.__hitlHooks before the game loads; without it these are no-ops.
+// `listener` may wrap each on* handler.
+function propEntries(props) {
+  const wrap = globalThis.__hitlHooks?.listener;
+  const entries = Object.entries(props);
+  return wrap ? entries.map(([k, v]) => [k, k.startsWith('on') && typeof v === 'function' ? wrap(v) ?? v : v]) : entries;
+}
+
 export function h(tag, props, ...children) {
   const [name, ...classes] = tag.split('.');
   const el = document.createElement(name || 'div');
+  globalThis.__hitlHooks?.created?.(el);
   if (classes.length) el.className = classes.join(' ');
   if (props) {
-    for (const [k, v] of Object.entries(props)) {
+    for (const [k, v] of propEntries(props)) {
       if (v === undefined || v === null || v === false) continue;
       if (k === 'class') el.className = el.className ? `${el.className} ${v}` : v;
       else if (k === 'style' && typeof v === 'object') {

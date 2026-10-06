@@ -73,7 +73,7 @@ export function createToasts(root, { canShow = () => true, quiet = () => false }
   // full and restarts its timer, the next tap acts or dismisses it. An opened toast stays open when
   // it moves between the corner and a panel's dock.
   function node(t, cls, more = 0) {
-    return h(`div.${cls}.${t.tone}${t.action ? '.clickable' : ''}${t.open ? '.cut.open' : ''}`, { dataset: { occludes: '' }, onclick: (e) => {
+    const el = h(`div.${cls}.${t.tone}${t.action ? '.clickable' : ''}${t.open ? '.cut.open' : ''}`, { dataset: { occludes: '' }, onclick: (e) => {
       const n = e.currentTarget;
       if (n.classList.contains('cut') && !n.classList.contains('open')) {
         n.classList.add('open');
@@ -85,6 +85,9 @@ export function createToasts(root, { canShow = () => true, quiet = () => false }
     } },
       t.person ? h('span.ico.face', null, portrait(t.person, 24)) : h('span.ico', null, icon(t.glyph ?? `toast.${t.tone}`)), h('span.tt', { text: t.text }),
       more > 0 ? h('span.more.num', { title: `${more} more`, text: `+${more}` }) : null);
+    el.dataset.toastId = String(t.id);
+    if (t.tag) el.dataset.toastTag = t.tag;
+    return el;
   }
 
   // The dock shows the most severe live toast (newest among equals) and how many others wait.
@@ -178,13 +181,20 @@ export function createToasts(root, { canShow = () => true, quiet = () => false }
     renderDock();
     return true;
   }
+  // Who caused a toast ('player' or 'game'), asked of the measurement hook when push() is first called and
+  // carried with the toast through the queue, the hold and the dock.
+  let carriedTag;
+  let curTag;
   function push(text, tone = 'info', opts = {}) {
+    const tag = carriedTag ?? opts.tag ?? globalThis.__hitlHooks?.origin?.();
+    carriedTag = undefined;
+    if (tag) opts = { ...opts, tag };
     const t0 = toneOf(tone);
     if (!opts.player && playerCaused() && (!canShow() || quiet())) opts = { ...opts, player: true, timed: true };
-    if (opts.player && !canShow()) { shownThisWeek++; show(text, tone, opts); return; }
+    if (opts.player && !canShow()) { shownThisWeek++; showTagged(text, tone, opts); return; }
     const q = quiet();
     // The player's own action is answered at once, whatever the spacing.
-    if (q && opts.player) { shownThisWeek++; show(text, tone, opts); return; }
+    if (q && opts.player) { shownThisWeek++; showTagged(text, tone, opts); return; }
     if (q && opts.subject && !opts.player && mergeBySubject(text, tone, opts)) return;
     if (canShow() && (t0 === 'bad' || (t0 === 'warn' && !q))) { shownThisWeek++; showTagged(text, tone, opts); return; }
     queue.push({ text, tone, opts, n: ++qSeq, at: pnow() });
@@ -198,7 +208,9 @@ export function createToasts(root, { canShow = () => true, quiet = () => false }
   // Shows a toast and remembers its subject, so later news about the same subject can fold into it.
   function showTagged(text, tone, opts) {
     const before = live.length;
+    curTag = opts.tag;
     show(text, tone, opts);
+    curTag = undefined;
     const t = live[live.length - 1];
     if (opts.subject && t && t.text === text && (live.length > before || t.at === pnow())) t.subject = opts.subject;
   }
@@ -228,7 +240,7 @@ export function createToasts(root, { canShow = () => true, quiet = () => false }
     if (on === hidden) return;
     hidden = on;
     if (on) {
-      for (const t of [...live]) { waiting.push({ text: t.text, tone: t.tone, opts: { action: t.action, glyph: t.glyph, person: t.person }, at: t.at }); remove(t); }
+      for (const t of [...live]) { waiting.push({ text: t.text, tone: t.tone, opts: { action: t.action, glyph: t.glyph, person: t.person }, at: t.at }); waiting[waiting.length - 1].opts.tag = t.tag; remove(t); }
       waiting = waiting.slice(-MAX_WAITING);
       return;
     }
@@ -237,14 +249,15 @@ export function createToasts(root, { canShow = () => true, quiet = () => false }
     waiting = [];
     // Least important first, so the most important are the last trimmed to the phone's two.
     due.sort((a, b) => (RANK[a.tone] - RANK[b.tone]) || (a.at - b.at));
-    for (const w of due) show(w.text, w.tone, w.opts, w.at);
+    for (const w of due) { curTag = w.opts.tag; show(w.text, w.tone, w.opts, w.at); curTag = undefined; }
   }
 
   function show(text, tone = 'info', { action, glyph, person, player, timed } = {}, at = pnow()) {
     if (!text) return;
-    if (!mayShow({ player })) { push(text, tone, { action, glyph, person }); return; }
+    if (!mayShow({ player })) { carriedTag = curTag; push(text, tone, { action, glyph, person }); return; }
     if (hidden) {
       waiting.push({ text, tone: toneOf(tone), opts: { action, glyph, person }, at });
+      waiting[waiting.length - 1].opts.tag = curTag;
       if (waiting.length > MAX_WAITING) waiting.shift();
       return;
     }
@@ -253,6 +266,7 @@ export function createToasts(root, { canShow = () => true, quiet = () => false }
     lastText = text;
     lastAt = now;
     const t = { id: ++seq, text, tone: toneOf(tone), timer: 0, node: null, action, glyph, person, at, answer: !!player && !timed };
+    t.tag = curTag;
     live.push(t);
     arm(t, LIFE[t.tone]);
     if (dock) renderDock();
