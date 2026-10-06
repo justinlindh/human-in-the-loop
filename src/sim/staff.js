@@ -22,6 +22,7 @@ import { eraLines, eraOnlyAllowsText, eraAtLeast } from './eras.js';
 import { remoteLearning } from './ladder.js';
 import { purposeLift } from './purpose.js';
 import { squadOutputBonus } from './squads.js';
+import { interviewsOn, shapeCandidate, hireFeeMult, onInterviewHire } from './ai-interviews.js';
 
 export const STATS = ['features', 'polish', 'reliability', 'novelty'];
 export const SENIORITIES = ['junior', 'mid', 'senior'];
@@ -181,11 +182,12 @@ const ROLE_WEIGHTS = { engineer: 35, designer: 13, marketer: 13, support: 13, se
 export function refreshCandidates(state) {
   state.candidates = [];
   // Remote-first companies hire from a wider pool.
-  const count = B.candidateCount + (state.workPolicy === 'remote' ? B.remoteExtraCandidates : 0);
+  const count = B.candidateCount + (state.workPolicy === 'remote' ? B.remoteExtraCandidates : 0)
+    + (interviewsOn(state) ? B.aiInterviews.extraCandidates : 0);
   for (let i = 0; i < count; i++) {
     const seniority = weighted(state.rng, SENIORITIES, (s) => SENIORITY_WEIGHTS[s]);
     const role = weighted(state.rng, Object.keys(ROLES), (x) => ROLE_WEIGHTS[x]);
-    state.candidates.push(makeCandidate(state, role, seniority));
+    state.candidates.push(shapeCandidate(state, makeCandidate(state, role, seniority)));
   }
   state.candidatesWeek = state.week;
 }
@@ -247,7 +249,7 @@ registerAction('hire', (ctx, { candidateId }) => {
   if (!c) return { ok: false, reason: 'No such candidate' };
   if (state.staff.length >= deskCapacity(state)) return { ok: false, reason: 'No free desk' };
   // Famous companies hire for less: people apply instead of being recruited.
-  const fee = c.salary * B.hireFeeWeeks * (1 - B.fameHireRelief * (state.fame ?? 0) / 100);
+  const fee = c.salary * B.hireFeeWeeks * (1 - B.fameHireRelief * (state.fame ?? 0) / 100) * hireFeeMult(state);
   if (state.cash < fee) return { ok: false, reason: 'Not enough cash' };
   state.candidates = state.candidates.filter((x) => x.id !== c.id);
   c.hiredWeek = state.week;
@@ -258,6 +260,7 @@ registerAction('hire', (ctx, { candidateId }) => {
   state.stats.hires++;
   if (c.seniority === 'junior') state.stats.juniorsHired++;
   ctx.emit({ type: 'hire', staffId: c.id });
+  onInterviewHire(ctx, c);
   // One hello per week: when several people start together, the first one speaks for the group.
   if (state.flags.helloWeek !== state.week) {
     state.flags.helloWeek = state.week;
@@ -438,7 +441,7 @@ export function staffUpkeep(ctx) {
     for (const p of state.staff) p.salary = Math.round((p.salary * (1 + B.yearlyRaise)) / 10) * 10;
     ctx.emit({ type: 'toast', text: `Annual raises: payroll +${Math.round(B.yearlyRaise * 100)}%.`, tone: 'info' });
   }
-  if (state.week - state.candidatesWeek >= B.candidateRefreshWeeks) refreshCandidates(state);
+  if (state.week - state.candidatesWeek >= (interviewsOn(state) ? B.aiInterviews.refreshWeeks : B.candidateRefreshWeeks)) refreshCandidates(state);
 }
 
 registerSystem('staff-upkeep', staffUpkeep, 85);

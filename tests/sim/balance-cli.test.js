@@ -20,3 +20,18 @@ describe('balance.js run record', () => {
     } finally { rmSync(dir, { recursive: true, force: true }); }
   }, 120000);
 });
+
+describe('balance.js --set', () => {
+  const run = (...set) => spawnSync(process.execPath, ['scripts/balance.js', '--bots', 'automateAll', '--seeds', '1', '--jobs', '1', ...set.flatMap((s) => ['--set', s])],
+    { cwd: ROOT, encoding: 'utf8', timeout: 120000 });
+
+  it('turns a switch on or off with true or false, and refuses a switch value for a number or a number for a switch', () => {
+    expect(run('aiInterviews.enabled=true').status).toBe(0);
+    const wrong = run('aiInterviews.feeMult=true');
+    expect(wrong.status).toBe(2);
+    expect(wrong.stderr).toContain('not a switch in B');
+    const number = run('aiInterviews.enabled=1');
+    expect(number.status).toBe(2);
+    expect(number.stderr).toContain('not a number in B');
+  }, 120000);
+});

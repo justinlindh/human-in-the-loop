@@ -16,14 +16,16 @@ import { ERA_IDS } from '../src/data/eras.js';
 // Bots run in parallel worker threads by default, a few at a time so a run stays polite on a shared machine.
 const DEFAULT_JOBS = 3;
 
-// --set eraStarts.plateau.exitMrrMult=0.6 overrides one number in B for this run (repeatable).
+// --set eraStarts.plateau.exitMrrMult=0.6 overrides one number in B for this run (repeatable); a switch
+// takes true or false (--set mail.enabled=true).
 function applySets(sets) {
   for (const [path, value] of sets) {
     const keys = path.split('.');
     let obj = B;
     for (const k of keys.slice(0, -1)) obj = obj?.[k];
     const last = keys.at(-1);
-    if (!obj || typeof obj[last] !== 'number') throw new Error(`--set ${path}: not a number in B`);
+    const kind = typeof value === 'boolean' ? 'boolean' : 'number';
+    if (!obj || typeof obj[last] !== kind) throw new Error(`--set ${path}: not a ${kind === 'boolean' ? 'switch' : 'number'} in B`);
     obj[last] = value;
   }
 }
@@ -115,7 +117,8 @@ async function main() {
   const jobs = Number(arg('jobs', DEFAULT_JOBS));
   const sets = args.flatMap((a, i) => (a === '--set' ? [args[i + 1] ?? ''] : [])).map((s) => {
     const [path, value] = s.split('=');
-    if (!path || value === undefined || value === '' || !Number.isFinite(Number(value))) fail(`--set wants path=number, got ${s}`);
+    if (path && (value === 'true' || value === 'false')) return [path, value === 'true'];
+    if (!path || value === undefined || value === '' || !Number.isFinite(Number(value))) fail(`--set wants path=number or path=true|false, got ${s}`);
     return [path, Number(value)];
   });
   if (!Number.isSafeInteger(seeds) || seeds < 1) fail('--seeds must be a positive whole number');
