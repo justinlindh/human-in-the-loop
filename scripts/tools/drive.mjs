@@ -91,6 +91,8 @@ async function play(page, { bot, weeks, until }) {
     // takes runBot's name too: mail and other text read it, so a different name plays a different game.
     if (H.state.week === 0) H.state.companyName = `Bot ${bot}`;
     for (let i = 0; i < 2000 && !H.state.gameOver && H.state.week < weeks; i++) {
+      // With the ask queue on, the bot presents and expires queued asks itself, as runBot does.
+      bots.botAsks?.(H.state, on);
       bots.botDecide(bot, H.state, on);
       if (H.state.gameOver) break;
       bots.botTurn(bot, H.state, on); H.tickN(1);
