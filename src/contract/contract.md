@@ -753,7 +753,7 @@ state.asks: [{ id, kind, priority, week, expiresWeek, defaultChoice, ref }]
 ```
 
 - With the switch on, `raiseDecision`, `openEventPrompt` and actionable mail append a candidate to `asks` instead of opening it. Era, period and gate checks still apply, but the sim's week-based spacing and slot limits do not: the attention clock in `src/pacing.js` owns cadence, in real seconds.
-- Order: by priority (emergency, then normal, then low; emergencies are incidents, cyber, a cash crisis and legal letters), and oldest first within a priority. Only the presentation layer opens an ask, one at a time.
+- Order: by priority (emergency, then normal, then low; emergencies are `incident` and `cyber` events plus any event or mail template marked `emergency: true` in its data, which covers the cash-crisis `bridge_loan` and the legal `hearing_summons`; `app_store_rejection` is not one), and oldest first within a priority. Only the presentation layer opens an ask, one at a time.
 - `expiresWeek` is the created week plus `B.attention.staleWeeks` for normal and low asks, and null for emergencies. A candidate past it is dropped silently, with no default applied, when an ask is next presented: it no longer fits the game. Readers of `state.asks` ignore any ask past its `expiresWeek`.
 - Bots present the head after `B.attention.botGapWeeks`, and emergencies at once. With `B.pacing.askExpiry` on, a waiting non-emergency ask expires after `B.attention.botExpiryWeeks`. Balance runs never depend on the wall clock.
 - Saves without `asks` load with `asks: []`.
