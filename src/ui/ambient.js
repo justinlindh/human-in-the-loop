@@ -26,9 +26,7 @@ const clip = (s) => (s.length > SHORT_MAX ? `${s.slice(0, SHORT_MAX - 1)}…` : 
 export function ambientDetail(e) {
   const t = TOPICS[e?.topic];
   if (!t) return null;
-  // The toast's own short wins, then its text, and the topic's generic words only when it has neither.
-  const own = e.short || e.text || undefined;
-  return { topic: e.topic, subjectId: e.subjectId ?? null, subjectKind: t.kind, text: clip(String(t.short({ ...e, short: own }))), icon: t.icon, tone: e.tone ?? 'info' };
+  return { topic: e.topic, subjectId: e.subjectId ?? null, subjectKind: t.kind, text: clip(String(t.short(e))), icon: t.icon, tone: e.tone ?? 'info' };
 }
 
 export function createAmbient({ target = globalThis } = {}) {
