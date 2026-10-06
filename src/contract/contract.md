@@ -753,20 +753,20 @@ state.asks: [{ id, kind, priority, week, expiresWeek, defaultChoice, ref }]
 ```
 
 - With the switch on, `raiseDecision`, `openEventPrompt` and actionable mail append a candidate to `asks` instead of opening it. Era, period and gate checks still apply, but the sim's week-based spacing and slot limits do not: the attention clock in `src/pacing.js` owns cadence, in real seconds.
-- Order: emergencies first (incidents, cyber), then oldest first. Only the presentation layer opens an ask, one at a time.
-- `expiresWeek` is the created week plus `B.attention.staleWeeks` for normal and low asks, and null for emergencies. A candidate past it is dropped silently, with no default applied, the next time the queue is read: it no longer fits the game.
-- Bots present the head after `B.attention.botGapWeeks`, and emergencies at once, so balance runs never depend on the wall clock.
+- Order: by priority (emergency, then normal, then low; emergencies are incidents and cyber), and oldest first within a priority. Only the presentation layer opens an ask, one at a time.
+- `expiresWeek` is the created week plus `B.attention.staleWeeks` for normal and low asks, and null for emergencies. A candidate past it is dropped silently, with no default applied, when an ask is next presented: it no longer fits the game. Readers of `state.asks` ignore any ask past its `expiresWeek`.
+- Bots present the head after `B.attention.botGapWeeks`, and emergencies at once. With `B.pacing.askExpiry` on, a waiting non-emergency ask expires after `B.attention.botExpiryWeeks`. Balance runs never depend on the wall clock.
 - Saves without `asks` load with `asks: []`.
 
 ### Actions: Attention queue
 
 ```js
 { type: 'presentAsk', askId? }   // opens the head ask, or the named one, as pendingDecision, a Yak prompt or a letter; works while paused; refusals: 'No asks waiting' | 'No such ask' | 'Finish the open decision first'
-{ type: 'expireAsk', askId }     // behind B.pacing.askExpiry: applies the ask's default and posts one Yak line saying what was chosen; refusals: 'No such ask' | 'Emergencies never expire'
+{ type: 'expireAsk', askId }     // behind B.pacing.askExpiry: applies the ask's default and posts one Yak line saying what was chosen; refusals: 'Expiry is off' | 'No such ask' | 'Emergencies never expire'
 ```
 
 - The default is the event's own `defaultChoice`, else its entry in `src/data/ask-defaults.js`, else its choice with no effect; every decision that can expire has one. A prompt or letter takes its ignore outcome. The Yak line names what the team picked. Expiring never costs more than answering cautiously.
-- At most `B.attention.queueCap` non-emergency asks wait. When another arrives, the least pressing, oldest one expires at once and emits `askExpired`.
+- With `B.pacing.askExpiry` on, at most `B.attention.queueCap` non-emergency asks wait. When another arrives, the least pressing, oldest one expires at once and emits `askExpired`. With it off, nothing expires: `expireAsk` refuses with 'Expiry is off', and the queue has no cap.
 
 ### Events: Attention queue
 
