@@ -1,6 +1,6 @@
 import { B } from './balance.js';
 import { int, range, pick, shuffle, weighted, next } from './rng.js';
-import { clamp, round, newId, marketYear } from './util.js';
+import { clamp, round, newId, marketYear, shortText } from './util.js';
 import { ROLES } from '../data/roles.js';
 import { TRAITS, NEVER_HIRED } from '../data/traits.js';
 import { emptyRecord, addToRecord } from './record.js';
@@ -384,7 +384,7 @@ registerAction('train', (ctx, { staffId, program, focus }) => {
   ctx.emit({ type: 'bubble', staffId: p.id, text: `+${Math.round(gain)} XP`, tone: 'good' });
   if (trainedFrom !== null) ctx.emit({ type: 'skillTrained', staffId: p.id, skill: focus, gain: p.skills[focus] - trainedFrom });
   recordGrowth(state, p, 'trained', { skill: trainedFrom !== null ? focus : null, gain: trainedFrom !== null ? p.skills[focus] - trainedFrom : 0, program });
-  ctx.emit({ type: 'toast', text: `${p.name} is off to a ${t.name.toLowerCase()}.`, tone: 'info', topic: 'timeoff', subjectId: p.id });
+  ctx.emit({ type: 'toast', text: `${p.name} is off to a ${t.name.toLowerCase()}.`, tone: 'info', topic: 'timeoff', subjectId: p.id, short: shortText(`Off to a ${t.name.toLowerCase()}`) });
   return { ok: true };
 });
 
@@ -450,7 +450,8 @@ export function staffUpkeep(ctx) {
         p.assignment = back && state.projects.some((j) => j.id === back) ? { type: 'project', targetId: back } : defaultAssignment(p);
         const from = state.flags[`awayFor_${p.id}`];
         delete state.flags[`awayFor_${p.id}`];
-        ctx.emit({ type: 'toast', text: from ? `${p.name} is back from the ${from.toLowerCase()}, full of ideas.` : `${p.name} is back, rested and dangerous.`, tone: 'good', topic: 'back', subjectId: p.id });
+        ctx.emit({ type: 'toast', text: from ? `${p.name} is back from the ${from.toLowerCase()}, full of ideas.` : `${p.name} is back, rested and dangerous.`, tone: 'good', topic: 'back', subjectId: p.id,
+          short: from ? 'Back! Full of ideas' : 'Back, rested and dangerous' });
       }
     }
   }

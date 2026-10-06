@@ -36,7 +36,7 @@ export function strainSystem(ctx) {
     const before = p.strain ?? 0;
     p.strain = clamp(before + strainDelta(state, p, burntOut - (p.mood === 'burnout' ? 1 : 0)), 0, 100);
     if (before < B.strainWarn && p.strain >= B.strainWarn && p.mood !== 'away') {
-      ctx.emit({ type: 'toast', text: `${p.name} looks exhausted.`, tone: 'warn', topic: 'mood', subjectId: p.id });
+      ctx.emit({ type: 'toast', text: `${p.name} looks exhausted.`, tone: 'warn', topic: 'mood', subjectId: p.id, short: 'Exhausted' });
     }
   }
 }
@@ -54,7 +54,7 @@ registerAction('timeOff', (ctx, { staffId }) => {
   p.sabbaticalWeeksLeft = B.timeOffWeeks;
   state.flags[`awayFor_${p.id}`] = 'Time off';
   endMentorshipsOf(state, p);
-  ctx.emit({ type: 'toast', text: `${p.name} is taking two weeks off. Their out-of-office is a photo of a hammock.`, tone: 'good', topic: 'timeoff', subjectId: p.id });
+  ctx.emit({ type: 'toast', text: `${p.name} is taking two weeks off. Their out-of-office is a photo of a hammock.`, tone: 'good', topic: 'timeoff', subjectId: p.id, short: 'Two weeks off. Hammock mode.' });
   return { ok: true };
 });
 

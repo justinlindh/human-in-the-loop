@@ -1,6 +1,6 @@
 import { B } from './balance.js';
 import { chance, pick } from './rng.js';
-import { calendarDate, calendarWeek } from './util.js';
+import { calendarDate, calendarWeek, shortText } from './util.js';
 import { registerSystem } from './registry.js';
 import { emitChat } from './chat.js';
 import { processScheduled } from './effects.js';
@@ -90,7 +90,7 @@ function trendStep(ctx) {
   m.trend = next;
   m.trendWeeksLeft = TRENDS[next].weeks;
   const copy = periodCopy(ctx.state, 'trends', TRENDS[next]);
-  ctx.emit({ type: 'toast', text: `Trend: ${copy.name}. ${copy.text}`, tone: 'info', trendId: next, topic: 'trend', subjectId: null });
+  ctx.emit({ type: 'toast', text: `Trend: ${copy.name}. ${copy.text}`, tone: 'info', trendId: next, topic: 'trend', subjectId: null, short: shortText(`Trend: ${copy.name}`) });
 }
 
 function vendorRelease(ctx) {

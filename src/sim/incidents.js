@@ -1,7 +1,7 @@
 import { ensureRecord } from './record.js';
 import { B } from './balance.js';
 import { chance, int, next, pick } from './rng.js';
-import { avg, clamp, dateOf, calendarDate, sum } from './util.js';
+import { avg, clamp, dateOf, calendarDate, sum, shortText } from './util.js';
 import { registerAction, registerSystem } from './registry.js';
 import { outputMult, staffMods } from './staff.js';
 import { oversightRequired, oversightProvided, overseers } from './automation.js';
@@ -378,7 +378,7 @@ export function incidentsSystem(ctx) {
       state.stats.breaches++;
       landIncident(ctx, { kind, severity: int(ctx.rng, 1, 5), caught: nocRoll(state, 3, nocCatch(state)), model: null });
     } else {
-      ctx.emit({ type: 'toast', text: `Security blocked a ${KIND_LABEL[kind]} attempt.`, tone: 'good', topic: 'blocked', subjectId: null });
+      ctx.emit({ type: 'toast', text: `Security blocked a ${KIND_LABEL[kind]} attempt.`, tone: 'good', topic: 'blocked', subjectId: null, short: shortText(`Blocked: ${KIND_LABEL[kind]}`) });
       // Everyone on a security assignment gets credit for the attack they stopped.
       for (const p of state.staff) if (p.assignment.type === 'security' && p.mood !== 'away') ensureRecord(p).incidentsCaught++;
     }

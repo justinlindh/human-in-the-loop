@@ -1,7 +1,7 @@
 import { ensureRecord } from './record.js';
 import { B } from './balance.js';
 import { pick, shuffle, int, createRng } from './rng.js';
-import { newId } from './util.js';
+import { newId, shortText } from './util.js';
 import { registerSystem } from './registry.js';
 import { emitChat } from './chat.js';
 import { outputMult } from './staff.js';
@@ -51,7 +51,7 @@ export function incentivesSystem(ctx) {
   }
   award(ctx, winner, reward, count);
   ctx.emit({ type: 'incentive', staffId: winner.id, reward: reward.id });
-  ctx.emit({ type: 'toast', text: `Incentives Program: ${winner.name} wins ${reward.name}.`, tone: 'good', topic: 'reward', subjectId: winner.id });
+  ctx.emit({ type: 'toast', text: `Incentives Program: ${winner.name} wins ${reward.name}.`, tone: 'good', topic: 'reward', subjectId: winner.id, short: shortText(`Won ${reward.name}`) });
   stageTalk(ctx, winner, reward);
 }
 
