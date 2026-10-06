@@ -15,6 +15,9 @@ it.each(Object.keys(fixtures))('round trips an existing %s save with open replie
   const loaded = loadGame(storage);
   expect(loaded.ok).toBe(true);
   const s = loaded.state;
+  // A save from before the inbox loads with an empty one; otherwise it plays on exactly as saved.
+  expect(s.mail).toEqual([]);
+  original.mail ??= [];
   expect(s.chatLog).toEqual(original.chatLog);
   expect(s.chatPrompts).toEqual(original.chatPrompts);
   expect(s.flags.posts).toEqual(original.flags.posts);
