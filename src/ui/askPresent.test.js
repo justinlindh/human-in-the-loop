@@ -8,12 +8,12 @@ afterEach(() => { B.pacing = real; });
 
 const act = () => ({ openMail: vi.fn(), revealPrompt: vi.fn() });
 
-it('a presented letter opens Mail on it, falling back to the newest mail', () => {
+it('a presented letter opens its card by the event\'s mailId, and an event without one does nothing', () => {
   const a = act();
   expect(bringAsk({ type: 'askPresented', kind: 'letter', mailId: 'm7' }, { mail: [{ id: 'm9' }] }, a)).toBe(true);
   expect(a.openMail).toHaveBeenCalledWith({ mailId: 'm7' });
-  bringAsk({ type: 'askPresented', kind: 'letter', mailId: null }, { mail: [{ id: 'm9' }] }, a);
-  expect(a.openMail).toHaveBeenLastCalledWith({ mailId: 'm9' });
+  expect(bringAsk({ type: 'askPresented', kind: 'letter', mailId: null }, { mail: [{ id: 'm9' }] }, a)).toBe(false);
+  expect(a.openMail).toHaveBeenCalledTimes(1);
   expect(a.revealPrompt).not.toHaveBeenCalled();
 });
 

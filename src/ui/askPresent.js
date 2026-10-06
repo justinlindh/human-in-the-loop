@@ -6,7 +6,7 @@ import { pacingOn } from './pacing.js';
 // pendingDecision and needs nothing here.
 export function bringAsk(e, state, { openMail, revealPrompt }) {
   if (!pacingOn('askQueue')) return false;
-  if (e.kind === 'letter') { openMail({ mailId: e.mailId ?? state.mail?.[0]?.id }); return true; }
-  if (e.kind === 'prompt') { revealPrompt(e.promptId ?? e.chatId); return true; }
+  if (e.kind === 'letter' && e.mailId) { openMail({ mailId: e.mailId }); return true; }
+  if (e.kind === 'prompt' && e.promptId) { revealPrompt(e.promptId); return true; }
   return false;
 }
