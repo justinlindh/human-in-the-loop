@@ -216,8 +216,9 @@ export function createAttention(cfg = {}) {
       if (modal && !wasModal) lastEvent = t;
       if (!modal && wasModal) lastClose = t;
       wasModal = modal;
-      // A held moment is a beat in progress: its quiet began when it did, and it is not a watching stretch.
+      // A held moment is a beat in progress: its quiet runs from the end of the hold, and it is not a watching stretch.
       if (modal || held) lastEvent = t;
+      if (held) lastClose = t;
 
       // The watching stretch: a window rolls over once it has run its length.
       if (stretch() >= c.watchStretch) watched = true;

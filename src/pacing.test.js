@@ -290,13 +290,21 @@ describe('attention clock', () => {
     expect(drive(createAttention(), 60, [ask('n')], { askOpen: true, expiry: false }).opened).toEqual([]);
   });
 
-  it('starts a staged moment\'s quiet when the moment begins', () => {
+  it('runs a staged moment\'s quiet from the end of its hold', () => {
     const att = createAttention();
     att.tick(1, { running: true });
     att.momentBegun();
     for (let i = 0; i < 25; i++) att.tick(1, { running: false, held: true });
-    // 25 s of hold counted: 20 more seconds of play finishes the 45 s quiet.
-    const { opened } = drive(att, 40, [ask('a')], { expiry: false });
+    const end = att.playSeconds;
+    const { opened } = drive(att, 60, [ask('a')], { expiry: false });
+    expect(opened[0][0] - end).toBe(45);
+  });
+
+  it('runs the quiet from the moment\'s start when it holds nothing', () => {
+    const att = createAttention();
+    att.tick(1, { running: true });
+    att.momentBegun();
+    const { opened } = drive(att, 60, [ask('a')], { expiry: false });
     expect(opened[0][0] - 1).toBe(45);
   });
 
