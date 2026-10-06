@@ -198,7 +198,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     isBlocked: () => buildMode.on || layer.classList.contains('title-mode'),
   });
   const callGrid = createCallGrid({ layer, openStaff: (id) => menu.open('staff', { staffId: id }) });
-  const spacing = createSpacing();
+  const spacing = createSpacing({ attention: () => controls.attention ?? null });
   ctx.spacing = spacing;
   const growth = createGrowth();
   ctx.growth = growth;
@@ -617,6 +617,8 @@ export function createUI({ root, getState, dispatch, controls }) {
     // Whether the player opened something (a panel, a modal, build mode, Settings, the big Yak);
     // the game's own cards (announcements, launch results, the tutorial) don't count.
     playerMenu: playerMenuOpen,
+    // Whether one of the game's own cards is up (announcement, launch, tutorial, popups), whatever the pause setting.
+    beatOpen: () => !!(announcer.open || popups.open || popups.launchOpen || tutorial.open),
     get spacing() { return { wait: spacing.waitMs, play: spacing.playMs }; },
     isBusy,
     update,
