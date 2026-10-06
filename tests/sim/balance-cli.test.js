@@ -35,3 +35,19 @@ describe('balance.js --set', () => {
     expect(number.stderr).toContain('not a number in B');
   }, 120000);
 });
+
+describe('balance.js run hash', () => {
+  it('rests on how the run ended, its weeks, score and final rng, as pair.js does, so a new state field does not read as a change', async () => {
+    const dir = makeTemp('balance-hash-');
+    const out = join(dir, 'runs.json');
+    try {
+      const r = spawnSync(process.execPath, ['scripts/balance.js', '--bots', 'automateAll', '--seeds', '1', '--jobs', '1', '--json', out],
+        { cwd: ROOT, encoding: 'utf8', timeout: 120000 });
+      expect(r.status).toBe(0);
+      const run = JSON.parse(readFileSync(out, 'utf8')).runs['automateAll:1'];
+      const { runBot } = await import('../../src/sim/bots.js');
+      const s = runBot('automateAll', 1).state;
+      expect(run.hash).toBe([run.reason, run.weeks, run.score, s.rng.s].join('|'));
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  }, 120000);
+});
