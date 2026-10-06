@@ -19,6 +19,7 @@ import { h, setText, toggleClass } from './dom.js';
 import { icon } from './icons.js';
 import { SIMX } from './simapi.js';
 import { startPlacing } from './openTarget.js';
+import { pacingOn } from './pacing.js';
 import { ADVISOR_LEVELS, advisorLevel } from './settings.js';
 
 // The sim's advisor names and titles (src/data/advisors.js), when the build has them.
@@ -199,7 +200,7 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
     ctx.sfx?.('open');
   }
 
-  function setGlow(on) { glowing = on; toggleClass(button, 'glow', on); }
+  function setGlow(on) { glowing = on; toggleClass(button, 'glow', on); toggleClass(button, 'pulse', on && pacingOn('advisorGlow')); }
   function hidePeek() { pClear(peekTimer); peekTimer = 0; peek.classList.remove('show'); }
   function showPeek(e) {
     const a = who(e.advisor);
@@ -229,7 +230,8 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
     if (held()) return;
     lastPeek = { week: s.week, tier: tierOf(pending) };
     saw(pending);
-    showPeek(pending);
+    // Under advisorGlow the button's glow is the whole signal: no peek card.
+    if (!pacingOn('advisorGlow')) showPeek(pending);
     setGlow(true);
     pending = null;
   }
