@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # The pre-push and smoke test run: the tests that import the plain JS files this branch changed
 # (scripts/tools/test-related.sh, through the test cache), at nice 10 with the vitest worker cap.
-# PRs run no other tests; the full suite runs at release (scripts/release.sh).
+# PRs run no other tests; the full suite runs at release (scripts/release.sh), as do the whole-game
+# tests (*.full.test.js) and balance, which this run leaves out.
 # Changed = committed since the merge base with origin/main, plus modified and untracked files. Files
 # that are not plain JS under src/, tests/ or scripts/ (docs, data, config, shell scripts) have no
 # import graph to follow and are left to the release. Run `npm run test:fast` by hand for the full suite.
@@ -35,13 +36,13 @@ if [ -z "$files" ]; then
 fi
 # A wide change (a core module, the config) runs every test it reaches: nothing else tests it before
 # merge. HITL_PUSH_TEST_MAX, when set, skips one that reaches more than that many test files.
-reached="$(npx vitest list --filesOnly --changed "$base" 2>/dev/null | grep '\.test\.[cm]\?js$' | grep -vx 'tests/sim/balance.test.js')"
+reached="$(npx vitest list --filesOnly --changed "$base" 2>/dev/null | grep '\.test\.[cm]\?js$' | grep -vx 'tests/sim/balance.test.js' | grep -v '\.full\.test\.js$')"
 count="$(grep -c . <<<"$reached")"
 if [ -n "$cap" ] && [ "$count" -gt "$cap" ]; then
   # shellcheck disable=SC2086
   spawned="$(node scripts/tools/spawned-tests.mjs $files 2>/dev/null)"
   # shellcheck disable=SC2086
-  picked="$(printf '%s\n' "$reached" "$spawned" | sed '/^$/d' | sort -u | node scripts/tools/rank-related.mjs --cap "$cap" --changed $files)"
+  picked="$(printf '%s\n' "$reached" "$spawned" | sed '/^$/d' | grep -v '\.full\.test\.js$' | sort -u | node scripts/tools/rank-related.mjs --cap "$cap" --changed $files)"
   # An empty pick would make vitest run every test: fall back to the first N reached.
   [ -n "$picked" ] || picked="$(head -n "$cap" <<<"$reached")"
   echo "test-push: CAPPED: the changes reach $count test files; running the $cap most relevant (nearest by import), $((count - cap)) not run before merge (the release runs the full suite)"

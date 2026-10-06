@@ -931,6 +931,41 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     R.moments.full = false;
     step(30);
   }
+  // 6b. The same events resolved with no card (quietEvent): a ping-pong picture's stage shows for 15 s
+  // of running play, through a pause, and goes; the jammed printer shows, goes, and is carried out
+  // back to the end of the moment.
+  {
+    R.moments.full = true;
+    const staged = (prop) => R.props.current().some((p) => p.prop === prop);
+    R.handleEvents([{ type: 'quietEvent', eventId: 'ping_pong', subjectId: null, choice: 0, stage: { prop: 'picture_pingpong', anchor: 'wall', x: 3, y: 0, staffId: null } }], S);
+    step(30);
+    const pingShown = staged('picture_pingpong');
+    // Its hold counts running play: 20 s paused leaves it up, then 15 s of play takes it down.
+    R.setSpeed(0);
+    step(30 * 20);
+    R.setSpeed(1);
+    step(30 * 10);
+    const pingHeld = staged('picture_pingpong');
+    step(30 * 6);
+    const pingGone = !staged('picture_pingpong');
+    S.office.props = S.office.props.filter((p) => p.prop !== 'printer_wrecked');
+    S.office.props.push({ id: 'wreck_quiet', prop: 'printer_wrecked', x: 1, y: 1, since: S.week, until: { weeks: 2 } });
+    R.handleEvents([{ type: 'quietEvent', eventId: 'printer_jam', subjectId: ids[0], choice: 0, stage: { prop: 'printer_jammed', anchor: 'kitchen', x: 1, y: 1, staffId: ids[0] } }], S);
+    step(30);
+    const jamShown = staged('printer_jammed');
+    const phases = new Set();
+    for (let i = 0; i < 30 * 40; i++) {
+      step(1);
+      const pm = R.moments.printerState;
+      if (pm) phases.add(pm.phase);
+      else if (phases.size) break;
+    }
+    S.office.props = S.office.props.filter((p) => p.id !== 'wreck_quiet');
+    const carried = ['gather', 'lift', 'carry', 'down', 'smash', 'off'].every((p) => phases.has(p));
+    results.push({ name: 'moment:quiet', pass: pingShown && pingHeld && pingGone && jamShown && carried, pingShown, pingHeld, pingGone, jamShown, phases: [...phases] });
+    R.moments.full = false;
+    step(30);
+  }
   // 7. The visitor chair (first user test) in the current office: the founders crouch out of sight
   // and one goes to the visitor's shoulder, clear of furniture and props the whole way.
   {

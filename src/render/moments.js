@@ -4,7 +4,7 @@ import { pickSpot, spotDebug } from './spots.js';
 import { PALETTE as P } from './palette.js';
 import { createCharacter } from './character.js';
 import { wardrobeEra } from './wardrobe.js';
-import { printerModel, visitorChairModel } from './props.js';
+import { printerModel, visitorChairModel, QUIET_JAM_S } from './props.js';
 import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { between, draw } from './rand.js';
 import { createY2kMoment } from './y2k.js';
@@ -53,6 +53,8 @@ const PAIR_CLEAR = 0.7;      // metres a printer carry keeps from furniture, eit
 const GRIP_OUT = 0.2;        // how far each carrier stands out from the printer's side
 const WALL_STEP_OUT = 0.9;   // a printer against a wall is first carried this far straight out from it
 const BAT_BEHIND = 0.9;      // the one with the bat follows this far behind the printer
+const BAT_ASIDE = 0.5;       // and, before it has gone that far, stands this far out past a carrier
+const LIFT_STEP_S = 0.4;     // seconds the carriers take to settle onto their grips as they lift
 const COLUMN_SCREEN_R = 0.45;  // a column's half-width on screen for staging: its corner-on width plus a body's
 const WATCH_AT = 1.05, WATCH_S = 1;   // where the carriers watch from (metres off the printer), and how long they take to get there
 // Room for a sledgehammer at the wall: furniture between lowY and highY within m metres of the spot
@@ -795,7 +797,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     decidedAt.set(e.eventId, ++decisionSeq);
     resolved.set(e.eventId, e.choice ?? null);
     resolvedT.set(e.eventId, 20);
-    if (e.eventId === 'printer_jam' && e.choice === TAKE_IT_OUT) printerDue = 3;
+    // Resolved with no card (quietEvent), the jammed printer is staged first and goes after a beat.
+    if (e.eventId === 'printer_jam' && e.choice === TAKE_IT_OUT) printerDue = 3 + (e.quiet ? QUIET_JAM_S : 0);
   }
 
   // The open decision or Yak prompt that stages `prop`: { eventId, subjectId }, or null. A prompt
@@ -1425,7 +1428,12 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     // Gathering and the lift, then the cue from the carry to the walk-off.
     pm.spot = spotlights?.begin('printer_jam', printerEnd, PRINTER_GATHER_S + CUE.end, () => pm.obj.visible ? pm.obj.getWorldPosition(new THREE.Vector3()) : pm.end);
     pm.twists = twists(pm);
-    const c = along(route, 0);
+    const c = along(route, 0), ba = Math.atan2(c.dir[0], c.dir[1]) + Math.PI / 2, aside = pm.side + BAT_ASIDE;
+    const nav = office.nav();
+    pm.batAside = [
+      { x: Math.sin(ba) * aside, z: Math.cos(ba) * aside }, { x: -Math.sin(ba) * aside, z: -Math.cos(ba) * aside },
+      { x: -c.dir[0] * BAT_BEHIND, z: -c.dir[1] * BAT_BEHIND },
+    ].find((o) => !nav.isBlocked(c.x + o.x, c.z + o.z, BODY_R)) ?? null;
     const spots = carrySpots(pm, c);
     obj.rotation.y = carryYaw(pm);
     if (near[2]) {
@@ -1467,7 +1475,10 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const a = carryYaw(pm) + Math.PI / 2, perp = [Math.sin(a), Math.cos(a)];
     const out = [1, -1].map((k) => ({ x: c.x + perp[0] * pm.side * k, y: c.y, z: c.z + perp[1] * pm.side * k, yaw: Math.atan2(-perp[0] * k, -perp[1] * k) }));
     const b = along(pm.route, Math.max(0, pm.s - BAT_BEHIND));
-    out.push({ x: b.x, y: b.y, z: b.z, yaw: Math.atan2(b.dir[0], b.dir[1]) });
+    // Until the printer is a bat's length out, the bat stands on open floor beside or behind where it
+    // started (batAside) rather than in it, closing onto the way behind it as it goes.
+    const k = Math.max(0, 1 - pm.s / BAT_BEHIND), off = pm.batAside ?? { x: 0, z: 0 };
+    out.push({ x: b.x + off.x * k, y: b.y, z: b.z + off.z * k, yaw: Math.atan2(b.dir[0], b.dir[1]) });
     return out;
   }
   // The printer's heading at distance s: along the way (read over a stretch of it, so corners turn
@@ -1486,7 +1497,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const chairs = [...office.placed.values()].filter((e) => e.desk?.seat).map((e) => e.desk.seat);
     const nav = office.nav();
     const clear = (x, z) => !nav.isBlocked(x, z, BODY_R) && chairs.every((c) => Math.hypot(c.x - x, c.z - z) > CHAIR_CLEAR);
-    const raw = [];
+    const raw = [], keepAcross = [];
     for (let s = 0; s <= pm.len + 1e-6; s += TWIST_STEP) {
       const c = along(pm.route, s), a = Math.atan2(c.dir[0], c.dir[1]) + Math.PI / 2;
       const q = { x: c.x + Math.sin(a) * pm.side, z: c.z + Math.cos(a) * pm.side,
@@ -1495,9 +1506,15 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
         clear: (p) => clear(p.x, p.z), partnerClear: (p) => clear(p.partner.x, p.partner.z),
       }, fallback: { x: c.x, z: c.z, endOn: true } });
       raw.push(wide.endOn ? 1 : 0);
+      // End on, the carriers stand on the way itself only where it runs on past each of them. Within a
+      // carrier's reach of either end one stands off it (at the start, often in the wall the printer
+      // backs onto), so there the pair stays across unless the end-on spots are clear themselves.
+      const onWay = s >= pm.side && s <= pm.len - pm.side;
+      const endClear = clear(c.x + c.dir[0] * pm.side, c.z + c.dir[1] * pm.side) && clear(c.x - c.dir[0] * pm.side, c.z - c.dir[1] * pm.side);
+      keepAcross.push(!onWay && !endClear);
     }
     const win = (arr, n, f) => arr.map((_, i) => f(arr.slice(Math.max(0, i - n), i + n + 1)));
-    const endOn = win(raw, Math.round(END_ON_HOLD / TWIST_STEP), (xs) => Math.max(...xs));
+    const endOn = win(raw, Math.round(END_ON_HOLD / TWIST_STEP), (xs) => Math.max(...xs)).map((v, i) => (keepAcross[i] ? 0 : v));
     return win(endOn, Math.round(TWIST_EASE / TWIST_STEP), (xs) => (xs.reduce((a, x) => a + x, 0) / xs.length) * Math.PI / 2);
   }
   function batHeld() {
@@ -1546,12 +1563,18 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     if (pm.phase === 'gather') {
       if (pm.people.every((r) => !r.path.length) || pm.t > 12) {
         pm.phase = 'lift'; pm.t = 0;
+        pm.liftFrom = pm.people.map((r) => ({ x: r.pos.x, z: r.pos.z }));
         pm.people.forEach((r, i) => { r.temp.keepPos = true; r.temp.stage.beat = 'lift'; setAnim(r, i < 2 ? 'carryhold' : 'shoulder'); });
       }
       return;
     }
     if (pm.phase === 'lift') {
-      carrySpots(pm, along(pm.route, 0)).forEach((q, i) => pm.people[i] && place(pm.people[i], q));
+      // A walk that ended short of its spot (the grid keeps a body off a wall) closes the gap.
+      const k = Math.min(1, pm.t / LIFT_STEP_S), e = k * k * (3 - 2 * k);
+      carrySpots(pm, along(pm.route, 0)).forEach((q, i) => {
+        const f = pm.liftFrom[i];
+        if (pm.people[i]) place(pm.people[i], { ...q, x: f.x + (q.x - f.x) * e, z: f.z + (q.z - f.z) * e });
+      });
       pm.obj.position.y = Math.min(1, pm.t / 0.5) * gripY(pm);
       if (pm.t >= 0.6) {
         pm.phase = 'carry'; pm.t = 0;

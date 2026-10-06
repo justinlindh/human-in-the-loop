@@ -659,6 +659,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       switch (e.type) {
         case 'hire': if (e.staffId) hired.add(e.staffId); break;
         case 'decisionResolved': momentSpeech.clear(e.eventId); moments.decided(e); getProps()?.decided?.(e); break;
+        // Resolved with no card: its stage goes up for a beat and its moment plays as if answered.
+        case 'quietEvent': getProps()?.quiet?.(e); moments.decided({ ...e, quiet: true }); break;
         case 'chatPromptResolved': {
           // A prompt that delivered an event resolves it as its card would have.
           const c = state?.chatPrompts?.find((x) => x.id === e.promptId);
@@ -686,7 +688,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         }
         case 'say': {
           if (!e.moment) { sayLine(e); break; }
-          const resolved = events.find(x => x.type === 'decisionResolved' && x.eventId === e.moment);
+          const resolved = events.find(x => (x.type === 'decisionResolved' || x.type === 'quietEvent') && x.eventId === e.moment);
           const prompt = state?.chatPrompts?.find(x => x.kind === e.moment);
           const choice = resolved?.choice ?? prompt?.resolved?.choice;
           const open = state?.pendingDecision?.eventId === e.moment || (prompt && !prompt.resolved);

@@ -23,5 +23,8 @@ lst scripts/wait-for.test.sh; grep -q 'nothing to run' <<<"$out" || fail "a shel
 lst; grep -q 'no changes\|nothing to run' <<<"$out" || fail "no files: $out"
 # The real run: one test file's related tests pass and exit 0.
 bash "$HERE/test-related.sh" --files src/ui/advisor.js >/dev/null 2>&1; [ $? -eq 0 ] || fail "a related run exits 0"
+# Whole-game tests run at release: a changed one is left out, not run.
+out="$(HITL_NO_TEST_CACHE=1 bash "$HERE/test-related.sh" --files tests/sim/trailer-beats.full.test.js 2>&1)"
+[ $? -eq 0 ] && ! grep -q 'trailer-beats.full.test.js.*[0-9] test' <<<"$out" && grep -qi 'no test files' <<<"$out" || fail "a .full test is left to the release: $out"
 [ $fails -eq 0 ] && echo "test-related: all cases pass"
 exit $fails

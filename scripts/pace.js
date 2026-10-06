@@ -12,8 +12,10 @@
 // Players: 'batch' opens menus every few weeks, or sooner when something needs attention (a
 // decision, an unlock, a launch, cash below zero), and the bot's changes wait for that session.
 // 'eager' acts every week exactly like the balance harness, so the game matches runBot.
-// --browser observes the real browser loop instead. See docs/toolkit/pace.md for
-// its player policy, record schema, sampling limits and screenshot evidence.
+// --browser observes the real browser loop instead, with a player reading at human speed
+// ([--wpm 200] [--choose 4] [--menu-seconds 10], or --flat for the old bot timing) from a seeded,
+// [--era <id>] or [--load <save>] start. See docs/toolkit/pace.md for its player policy, record
+// schema, sampling limits and screenshot evidence.
 import { MOMENT_KINDS } from '../src/render/spotlight-kinds.js';
 import { createGrowthMoments } from '../src/render/growth-moments.js';
 import { createGame, tick, dispatch } from '../src/sim/index.js';
