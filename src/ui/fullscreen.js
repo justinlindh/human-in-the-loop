@@ -47,7 +47,11 @@ export function watchFullscreen(layer) {
   const back = h('button.btn.fsback', { onclick: async () => { await toggleFullscreen(); sync(); } }, 'Back to full screen');
   back.style.display = 'none';
   layer.append(back);
-  const sync = () => { back.style.display = wanted && !fullscreenActive() && coarse() ? '' : 'none'; };
+  const sync = () => {
+    const show = wanted && !fullscreenActive() && coarse();
+    back.style.display = show ? '' : 'none';
+    layer.classList.toggle('fsback-open', show);
+  };
   return onFullscreenChange(() => {
     // Leaving by the player's own tap or Esc on a desktop keyboard is not a drop; the button clears `wanted`.
     if (fullscreenActive()) wanted = true;
