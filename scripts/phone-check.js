@@ -573,7 +573,7 @@ const CHECKS = {
     if (!found) return { fails: ['no decision came up in 200 weeks'] };
     await wait(page, 900);
     // Open Yak big again behind the card, as a player could.
-    await page.evaluate(() => document.querySelector('.ysz.ymax')?.click());
+    if (!(await yakMaxShown(page))) await page.evaluate(() => document.querySelector('.ysz.ymax')?.click());
     await wait(page, 300);
     const onTop = () => page.evaluate(() => { const c = [...document.querySelectorAll('.modal.decision')].find((e) => e.getBoundingClientRect().width); if (!c) return null; const r = c.getBoundingClientRect(); const e = document.elementFromPoint(r.left + r.width / 2, Math.min(r.bottom - 4, r.top + 40)); return !!e?.closest('.modal.decision'); });
     const top = await onTop();
