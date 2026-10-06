@@ -1376,3 +1376,23 @@ misc · raised by a rule · cooldown 156 weeks
 |---|---|
 | Master a CD release | cash -$4,000; next batch capacity +25%, charged per copy |
 | Keep the disks | keep disks; no cost |
+
+## Empty shelves `pre_first_order`
+
+misc · raised by a rule · cooldown 156 weeks · about one of your live products
+
+| Choice | Effects |
+|---|---|
+| Order 100 copies | order 100 copies through the Inventory order: cash -$800 before discounts, on the shelves in 2 weeks |
+| Order 500 copies | order 500 copies through the Inventory order: cash -$4,000 before discounts, on the shelves in 2 weeks |
+| Hold off | no order; no cost |
+
+## Sold out `pre_sold_out`
+
+misc · raised by a rule · cooldown 156 weeks · about one of your live products
+
+| Choice | Effects |
+|---|---|
+| Order 100 copies | order 100 copies through the Inventory order: cash -$800 before discounts, on the shelves in 2 weeks |
+| Order 500 copies | order 500 copies through the Inventory order: cash -$4,000 before discounts, on the shelves in 2 weeks |
+| Hold off | no order; no cost |
