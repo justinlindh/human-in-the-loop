@@ -186,7 +186,8 @@ export function buildCharLineup(group) {
       if (a === 'slumped') c.setMood('coasting');
       if (a === 'burnout') c.setMood('burnout');
     }));
-    EMOTES.forEach((e, i) => add(i, 5, { hair: (i + 4) % 8, hairColor: HAIRC[i % 8], shirt: SHIRTS[(i + 7) % 10], skin: (i + 1) % 6 }, ROLES[i % 6], (c) => c.setEmote(e)));
+    // Emotes past the tenth go to the free end of the roles row.
+    EMOTES.forEach((e, i) => add(i < 10 ? i : 6 + (i - 10), i < 10 ? 5 : 3, { hair: (i + 4) % 8, hairColor: HAIRC[i % 8], shirt: SHIRTS[(i + 7) % 10], skin: (i + 1) % 6 }, ROLES[i % 6], (c) => c.setEmote(e)));
     // The extra hair styles, in the row ends the rows above leave free (no support: its headset only
     // takes the buzz cut).
     [[8, 0], [8, 1], [6, 2], [7, 2], [8, 2]].forEach(([col, row], i) => add(col, row, { hair: i, style: 8 + i, hairColor: HAIRC[(i * 3 + 2) % 8], skin: (i * 2 + 1) % 6, shirt: SHIRTS[(i + 6) % 10] }, ['designer', 'sales', 'engineer', 'marketer', 'security'][i]));
