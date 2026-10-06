@@ -34,6 +34,24 @@ Generated with ACE-Step 1.5 (MIT code and weights; the model card permits commer
 | `music/dotcom_bust/b_full.ogg` | Dot-com bust (era mode, playlist piece B, seed 1215) | 85 bpm, E minor | 10 bars, 27.9 s |
 | `music/web2/a_full.ogg` | Web 2.0 (era mode, playlist piece A, seed 1302) | 110 bpm, G major | 10 bars, 21.8 s |
 | `music/web2/b_full.ogg` | Web 2.0 (era mode, playlist piece B, seed 1306) | 110 bpm, G major | 10 bars, 21.8 s |
+| `music/radio_lofi/a_full.ogg` | Sad Lo-fi FM (boombox station, track A, seed 14012) | 78 bpm, Eb major | 24.6 s |
+| `music/radio_lofi/b_full.ogg` | Sad Lo-fi FM (boombox station, track B, seed 14022) | 82 bpm, C minor | 46.8 s |
+| `music/radio_lofi/c_full.ogg` | Sad Lo-fi FM (boombox station, track C, seed 14032) | 76 bpm, F minor | 25.8 s |
+| `music/radio_synth88/a_full.ogg` | Synth 88 (boombox station, track A, seed 14111) | 116 bpm, A minor | 16.6 s |
+| `music/radio_synth88/b_full.ogg` | Synth 88 (boombox station, track B, seed 14120) | 112 bpm, E minor | 17.5 s |
+| `music/radio_synth88/c_full.ogg` | Synth 88 (boombox station, track C, seed 14130) | 118 bpm, D minor | 16.3 s |
+| `music/radio_polka/a_full.ogg` | Polka Hour (boombox station, track A, seed 14212) | 126 bpm, F major | 15.4 s |
+| `music/radio_polka/b_full.ogg` | Polka Hour (boombox station, track B, seed 14221) | 132 bpm, Bb major | 14.5 s |
+| `music/radio_polka/c_full.ogg` | Polka Hour (boombox station, track C, seed 14231) | 124 bpm, C major | 15.4 s |
+| `music/radio_bossa/a_full.ogg` | Bossa Nova Express (boombox station, track A, seed 14310) | 124 bpm, D minor | 15.2 s |
+| `music/radio_bossa/b_full.ogg` | Bossa Nova Express (boombox station, track B, seed 14322) | 128 bpm, G minor | 15.0 s |
+| `music/radio_bossa/c_full.ogg` | Bossa Nova Express (boombox station, track C, seed 14332) | 120 bpm, A minor | 16.0 s |
+| `music/radio_elevator/a_full.ogg` | Elevator Jazz (boombox station, track A, seed 14410) | 92 bpm, C major | 21.3 s |
+| `music/radio_elevator/b_full.ogg` | Elevator Jazz (boombox station, track B, seed 14422) | 88 bpm, F major | 21.5 s |
+| `music/radio_elevator/c_full.ogg` | Elevator Jazz (boombox station, track C, seed 14432) | 96 bpm, G major | 20.0 s |
+| `music/radio_funk/a_full.ogg` | Office Funk (boombox station, track A, seed 14510) | 104 bpm, E minor | 18.6 s |
+| `music/radio_funk/b_full.ogg` | Office Funk (boombox station, track B, seed 14522) | 100 bpm, A minor | 19.2 s |
+| `music/radio_funk/c_full.ogg` | Office Funk (boombox station, track C, seed 14530) | 108 bpm, D major | 17.8 s |
 | `music/title/a_full.ogg` | Title | 104 bpm, F major | 8 bars |
 
 The Classic, ChatGBT, Agents, Consolidation and Plateau playlist pieces were rendered at 2:45 with section tags (intro, verse, marimba chorus, a verse with a guitar counter-melody, a breakdown, a build, and a final chorus), then cut to a bar-line loop that starts after the intro and includes the breakdown.
