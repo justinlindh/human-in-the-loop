@@ -272,7 +272,9 @@ fi
 # loosen the checks it is judged by. A PR that changes local CI itself (ci-local.sh, the scripts it
 # runs, its path lists) is also run through its own version, and both must pass.
 run_ci() { # <ci-local.sh> <summary file> <kept-log suffix>
-  CI_DELTA_FILE="${4:-}" CI_KEEP_DIR="$ROOT/failed/pr$pr-${head:0:7}$3" CI_PR_SELFTESTS=1 CI_DIR="$WT" setsid bash "$1" --base "origin/$base" --title "$title" --summary "$2" 9>&- &
+  # CI_OWN: the run through the PR's own ci-local.sh (suffix -own) leaves out the heavy checks main's run
+  # already made on the same tree; it exists to prove the changed runner works.
+  CI_OWN="${3:+1}" CI_DELTA_FILE="${4:-}" CI_KEEP_DIR="$ROOT/failed/pr$pr-${head:0:7}$3" CI_PR_SELFTESTS=1 CI_DIR="$WT" setsid bash "$1" --base "origin/$base" --title "$title" --summary "$2" 9>&- &
   ci_pid=$!
   wait "$ci_pid"; local r=$?
   ci_pid=""

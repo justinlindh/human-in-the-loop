@@ -16,7 +16,7 @@ The main guard (`CI_FULL=1`) still runs all of them here, so a red main gets its
 
 Under `ci-pr.sh`, a PR that has passed before runs only the checks whose inputs differ from its last passed tree (`CI_DELTA_FILE`, see [ci-delta](ci-delta.md)); that is what makes a head that only merged main cheap.
 
-`test:full` (`npm run test:full`) runs the `*.full.test.js` whole-game cases that test:fast leaves out, except `harness-uuid.full.test.js`, which needs a browser and has its own GPU step. They run here, not on GitHub, because the two-core runner takes half an hour on one of the files; a PR run plays only the files [full-select](full-select.md) says the change reaches (none: the step is skipped), and the main guard always runs all of them.
+`test:full` (`npm run test:full`) runs the `*.full.test.js` whole-game cases that test:fast leaves out, except `harness-uuid.full.test.js`, which needs a browser and has its own GPU step. They run on main only (the main guard plays all of them on every main commit and files the issue when one breaks), not in a PR run and not on GitHub, whose two-core runner takes half an hour on one of the files. A PR run records the step as skipped. A PR run also runs only the tooling self-tests whose tool the change touches, and the render and browser checks only for a render, UI or page change; see [ci-covers](ci-covers.md).
 
 A render step that fails is retried once, except when it hit its 600 s limit (exit 124) or timed out waiting for the render lock (75): the summary names the step and it fails without a second try.
 
