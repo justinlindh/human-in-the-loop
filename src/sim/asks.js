@@ -5,9 +5,10 @@ import { pick } from './rng.js';
 import { EVENTS } from '../data/events.js';
 import { EVENT_MAIL } from '../data/mail.js';
 import { ASK_EXPIRED_LINES } from '../data/asks.js';
-import { raiseDecision, decisionVars, fillText } from './events.js';
+import { ASK_DEFAULTS } from '../data/ask-defaults.js';
+import { raiseDecision, decisionVars, fillText, choiceBlocker } from './events.js';
 import { openEventPrompt } from './prompts.js';
-import { openEventMail, sendTemplate, expireTemplate, eventChoiceBlocker } from './mail.js';
+import { openEventMail, sendTemplate, expireTemplate } from './mail.js';
 import { applyEffects } from './effects.js';
 
 // The ask queue (#1639): with B.pacing.askQueue on, decisions, Yak prompts and letters wait here as candidates
@@ -15,15 +16,17 @@ import { applyEffects } from './effects.js';
 
 export const askQueueOn = () => !!B.pacing.askQueue;
 
-// The decision kinds that interrupt at once.
+// The decision kinds that interrupt at once and never expire.
 const EMERGENCY_KINDS = new Set(['incident', 'cyber']);
+const RANK = { emergency: 0, normal: 1, low: 2 };
 
-// The choice an unanswered decision falls back to: its own defaultChoice, else the one that does nothing,
-// else the last.
+// The choice an unanswered decision falls back to: its own defaultChoice, the one picked for it in
+// ASK_DEFAULTS, or the choice that does nothing. Null when it has none of these.
 export function defaultChoiceOf(ev) {
   if (Number.isInteger(ev.defaultChoice)) return ev.defaultChoice;
+  if (Number.isInteger(ASK_DEFAULTS[ev.id])) return ASK_DEFAULTS[ev.id];
   const idle = ev.choices.findIndex((c) => !c.effects || Object.keys(c.effects).length === 0);
-  return idle >= 0 ? idle : ev.choices.length - 1;
+  return idle >= 0 ? idle : null;
 }
 
 function enqueue(ctx, { kind, priority, ref, defaultChoice }) {
@@ -37,8 +40,16 @@ function enqueue(ctx, { kind, priority, ref, defaultChoice }) {
   };
   state.asks.push(ask);
   ctx.emit({ type: 'askQueued', askId: ask.id, kind, priority });
+  // A full queue lets its least pressing, oldest ask go to its default at once.
+  const waiting = state.asks.filter((a) => a.priority !== 'emergency');
+  if (waiting.length > B.attention.queueCap) {
+    const out = waiting.sort((a, b) => RANK[b.priority] - RANK[a.priority] || a.week - b.week || seqOf(a) - seqOf(b))[0];
+    expire(ctx, out);
+  }
   return ask;
 }
+
+const seqOf = (a) => Number(a.id.slice(3));
 
 // vars: a card that brings its own (an interview tape) keeps them for when it opens.
 export function queueDecision(ctx, eventId, subjectId, vars = null) {
@@ -66,10 +77,10 @@ export function dropStale(state) {
   }
 }
 
-// Emergencies first, then the oldest.
+// Emergencies first, then normal, then low; oldest first within each.
 export function headAsk(state) {
   const asks = state.asks ?? [];
-  return asks.find((a) => a.priority === 'emergency') ?? asks[0] ?? null;
+  return asks.length ? [...asks].sort((a, b) => RANK[a.priority] - RANK[b.priority] || a.week - b.week || seqOf(a) - seqOf(b))[0] : null;
 }
 
 const removeAsk = (state, id) => { state.asks = state.asks.filter((a) => a.id !== id); };
@@ -99,16 +110,28 @@ registerAction('presentAsk', (ctx, { askId } = {}) => {
   return { ok: true, opened: !!open(ctx, ask) };
 });
 
-// What an unanswered ask does: the decision's default choice, the prompt's or letter's ignore outcome.
+// What an unanswered ask does: its default choice, or a letter's ignore outcome. Returns the title and
+// the label of what the team picked, for the Yak line.
 function settle(ctx, ask) {
   const { state } = ctx;
   const { ref } = ask;
-  if (ref.template) { expireTemplate(ctx, ref.template, ref.mc); return null; }
+  if (ref.template) { expireTemplate(ctx, ref.template, ref.mc); return { title: 'An email', picked: 'left it unanswered' }; }
   const ev = EVENTS[ref.eventId];
-  if (!ev || ask.defaultChoice === null || ask.defaultChoice === undefined) return ev ?? null;
-  const c = ev.choices[ask.defaultChoice];
-  if (c && !eventChoiceBlocker(state, c, ref.subjectId)) applyEffects(ctx, c.effects, ref.subjectId, ev.id, decisionVars(state, ctx.rng, ref.subjectId));
-  return ev;
+  if (!ev) return { title: 'Something', picked: 'let it go' };
+  const title = fillText(state, ctx.rng, ev.title, ref.subjectId);
+  const c = Number.isInteger(ask.defaultChoice) ? ev.choices[ask.defaultChoice] : null;
+  if (!c || choiceBlocker(state, c, ref.subjectId)) return { title, picked: 'let it go' };
+  const vars = ref.vars ?? decisionVars(state, ctx.rng, ref.subjectId);
+  applyEffects(ctx, c.effects, ref.subjectId, ev.id, vars);
+  return { title, picked: `"${fillText(state, ctx.rng, c.label, ref.subjectId, vars)}"` };
+}
+
+function expire(ctx, ask) {
+  const { state } = ctx;
+  removeAsk(state, ask.id);
+  const { title, picked } = settle(ctx, ask);
+  emitChat(ctx, { channel: 'general', from: '@officebot', text: pick(ctx.rng, ASK_EXPIRED_LINES).replaceAll('{title}', title).replaceAll('{picked}', picked) });
+  ctx.emit({ type: 'askExpired', askId: ask.id, kind: ask.kind });
 }
 
 registerAction('expireAsk', (ctx, { askId } = {}) => {
@@ -116,10 +139,6 @@ registerAction('expireAsk', (ctx, { askId } = {}) => {
   const ask = (state.asks ?? []).find((a) => a.id === askId);
   if (!ask) return { ok: false, reason: 'No such ask' };
   if (ask.priority === 'emergency') return { ok: false, reason: 'Emergencies never expire' };
-  removeAsk(state, ask.id);
-  const ev = settle(ctx, ask);
-  const title = ev ? fillText(state, ctx.rng, ev.title, ask.ref.subjectId) : 'An email';
-  emitChat(ctx, { channel: 'general', from: '@officebot', text: pick(ctx.rng, ASK_EXPIRED_LINES).replaceAll('{title}', title) });
-  ctx.emit({ type: 'askExpired', askId: ask.id, kind: ask.kind });
+  expire(ctx, ask);
   return { ok: true };
 });

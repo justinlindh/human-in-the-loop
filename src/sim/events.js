@@ -82,7 +82,7 @@ export function fillText(state, rng, text, subjectId, vars = null) {
 }
 
 // Why a choice cannot be picked right now (its requirement, or a grant that cannot happen), or null.
-function choiceBlocker(state, c, subjectId) {
+export function choiceBlocker(state, c, subjectId) {
   if (c.effects?.preinternet) {
     const reason = preinternetChoiceReason(state, c.effects.preinternet, subjectId);
     if (reason) return reason;

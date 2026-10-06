@@ -114,10 +114,40 @@ describe('issue #1646: the ask queue', () => {
     expect(s.chatLog.slice(chat).some((m) => /sorted itself|default|left on read/.test(m.text))).toBe(false);
   });
 
-  it('a default is the event\'s own, else its no-effect choice, else its last', () => {
-    expect(defaultChoiceOf({ choices: [{ effects: { cash: 1 } }, { effects: {} }] })).toBe(1);
-    expect(defaultChoiceOf({ defaultChoice: 0, choices: [{ effects: { cash: 1 } }, { effects: {} }] })).toBe(0);
-    expect(defaultChoiceOf({ choices: [{ effects: { cash: 1 } }, { effects: { cash: 2 } }] })).toBe(1);
+  it('a default is the event\'s own, else the one picked for it, else its no-effect choice, and never a guess', () => {
+    expect(defaultChoiceOf({ id: 'x', choices: [{ effects: { cash: 1 } }, { effects: {} }] })).toBe(1);
+    expect(defaultChoiceOf({ id: 'x', defaultChoice: 0, choices: [{ effects: { cash: 1 } }, { effects: {} }] })).toBe(0);
+    expect(defaultChoiceOf({ id: 'x', choices: [{ effects: { cash: 1 } }, { effects: { cash: 2 } }] })).toBeNull();
+    expect(defaultChoiceOf(EVENTS.senior_grumble)).not.toBe(2);
+  });
+
+  it('every decision that can expire has a default that exists', () => {
+    const missing = [];
+    for (const ev of Object.values(EVENTS)) {
+      if (!ev.choices || ['incident', 'cyber'].includes(ev.kind)) continue;
+      const d = defaultChoiceOf(ev);
+      if (d === null || !ev.choices[d]) missing.push(ev.id);
+    }
+    expect(missing).toEqual([]);
+  });
+
+  it('presents by priority, then age, and a fourth waiting ask sends the least pressing, oldest one to its default', () => {
+    B.pacing.askQueue = true;
+    const s = company();
+    fire(s, 'pet_request');
+    raise(s, 'acquisition_offer');
+    raise(s, 'agent_db_wipe');
+    raise(s, 'vc_offer');
+    expect(s.asks.map((x) => x.ref.eventId)).toEqual(['pet_request', 'acquisition_offer', 'agent_db_wipe', 'vc_offer']);
+    const chat = s.chatLog.length;
+    const ev = makeCtx(s);
+    raiseDecision(ev, 'remote_debate');
+    expect(ev.events).toContainEqual(expect.objectContaining({ type: 'askExpired', kind: 'prompt' }));
+    expect(s.chatLog.slice(chat).some((m) => m.text.includes('"Not in the office"'))).toBe(true);
+    expect(s.asks.map((x) => x.ref.eventId)).toEqual(['acquisition_offer', 'agent_db_wipe', 'vc_offer', 'remote_debate']);
+    const order = [];
+    while (s.asks.length) { dispatch(s, { type: 'presentAsk' }); order.push(s.pendingDecision.eventId); s.pendingDecision = null; }
+    expect(order).toEqual(['agent_db_wipe', 'acquisition_offer', 'vc_offer', 'remote_debate']);
   });
 
   it('bots present an emergency at once and anything else after botGapWeeks, and let low asks expire with askExpiry on', () => {
@@ -137,9 +167,13 @@ describe('issue #1646: the ask queue', () => {
     expect(s.pendingDecision.eventId).toBe('acquisition_offer');
     s.pendingDecision = null;
     fire(s, 'pet_request');
+    raise(s, 'vc_offer');
+    raise(s, 'agent_db_wipe');
+    s.flags.lastAskWeek = s.week + B.attention.botExpiryWeeks;
     s.week += B.attention.botExpiryWeeks;
     botAsks(s);
     expect(s.asks).toEqual([]);
+    expect(s.pendingDecision.eventId).toBe('agent_db_wipe');
   });
 
   it('status-news toasts carry a known topic and a subject id or null; money, staff changes and goals carry none', () => {

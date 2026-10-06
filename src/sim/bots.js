@@ -541,7 +541,7 @@ function runRobot(s) {
   if (robot.level < costs.length && s.cash >= 10 * costs[robot.level]) dispatch(s, { type: 'upgradeItem', id: robot.id });
 }
 
-// With the ask queue on, a bot plays the attention clock's part: low-priority asks that waited
+// With the ask queue on, a bot plays the attention clock's part: asks other than emergencies that waited
 // B.attention.botExpiryWeeks expire (with askExpiry on), an emergency is presented at once, and anything else
 // once B.attention.botGapWeeks have passed since the last one.
 export function botAsks(s, { onEvents = null } = {}) {
@@ -551,7 +551,7 @@ export function botAsks(s, { onEvents = null } = {}) {
   try {
     dropStale(s);
     if (B.pacing.askExpiry) {
-      for (const a of s.asks.filter((x) => x.priority === 'low' && s.week - x.week >= B.attention.botExpiryWeeks)) dispatch(s, { type: 'expireAsk', askId: a.id });
+      for (const a of s.asks.filter((x) => x.priority !== 'emergency' && s.week - x.week >= B.attention.botExpiryWeeks)) dispatch(s, { type: 'expireAsk', askId: a.id });
     }
     const head = headAsk(s);
     if (!head || (head.kind === 'decision' && s.pendingDecision)) return;

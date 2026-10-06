@@ -249,8 +249,9 @@ export const B = {
   // beat, how long a low-priority ask waits before it resolves to its default, and at most one staged moment
   // per momentWindowSeconds holding the clock for momentCapSeconds. Bot runs have no clock, so they stand in
   // botGapWeeks for the gap (about 90 s at 1x) and botExpiryWeeks for the expiry. A candidate not presented
-  // within staleWeeks no longer fits and is dropped.
-  attention: { gapSeconds: 90, quietSeconds: 45, expirySeconds: 180, momentWindowSeconds: 300, momentCapSeconds: 25, botGapWeeks: 11, botExpiryWeeks: 22, staleWeeks: 52 },
+  // within staleWeeks no longer fits and is dropped. At most queueCap non-emergency asks wait; a new one past
+  // that sends the least pressing, oldest one to its default at once.
+  attention: { gapSeconds: 90, quietSeconds: 45, expirySeconds: 180, momentWindowSeconds: 300, momentCapSeconds: 25, botGapWeeks: 11, botExpiryWeeks: 22, staleWeeks: 52, queueCap: 3 },
   mail: {
     enabled: true, botLateWeeks: 4, fromWeek: 4, ambientChance: 0.35, actionChance: 0.12, actionOpen: 2, expiryWeeks: 8, kept: 40, templateCooldown: 12,
     replyAllChance: 0.02, replyAllCooldown: 26, replyAllWeeks: 3, replyAllOutput: -0.02,
