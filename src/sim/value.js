@@ -1,24 +1,32 @@
 import { B } from './balance.js';
 
 // Effects that make a structural or identity call: automation and models, policies, the NOC, pivots and
-// product or market switches, people joining or leaving, exits, era bets, the mission and the moonshot.
+// product or market switches, people joining or leaving, exits, era bets, the mission and the moonshot,
+// pets, and buying or upgrading items.
 export const STRUCTURAL_KEYS = ['setAutomation', 'automationBump', 'migrateOff', 'modelBoost', 'agentCap', 'workPolicy',
   'efficiencyCuts', 'nocMode', 'pivot', 'rivalMerge', 'acquireBest', 'expandNow', 'preinternet', 'dotcom',
-  'resign', 'candidates', 'aiInterview', 'win', 'openOffer', 'mission', 'purpose', 'moonshot', 'lastBet'];
+  'resign', 'candidates', 'aiInterview', 'win', 'openOffer', 'mission', 'purpose', 'moonshot', 'lastBet',
+  'adoptPet', 'buyItem', 'upgradeItem'];
 // Story flags that give away part of the company; other flags only remember what happened.
 export const EQUITY_FLAGS = ['diluted', 'incubatorCut'];
 
-// Whether effects make a structural call, or commit to a modifier over B.askRates.structuralWeeks or a
-// cash swing over B.askRates.structuralCashShare of the cash in hand.
-export function structural(s, fx, depth = 0) {
+// Whether effects make a founder's call: a structural key, an equity flag, a pay change either way for one
+// person or the team, the founder's own time off (subjectId is the event's subject), a modifier over
+// B.askRates.structuralWeeks, or a cash swing over B.askRates.structuralCashShare of the cash in hand.
+export function structural(s, fx, subjectId = null, depth = 0) {
   if (!fx || depth > 3) return false;
   if (STRUCTURAL_KEYS.some((k) => fx[k] !== undefined && fx[k] !== null && fx[k] !== false)) return true;
   if (EQUITY_FLAGS.includes(fx.flag?.name)) return true;
+  if (fx.salaryPct || fx.teamSalaryPct) return true;
+  if (fx.awayWeeks && s.staff.some((p) => p.id === subjectId && p.founder)) return true;
   if (fx.cash && Math.abs(fx.cash) > Math.max(0, s.cash) * B.askRates.structuralCashShare) return true;
   if ([fx.modifier].flat().some((m) => m && m.weeks > B.askRates.structuralWeeks)) return true;
   const nested = [fx.cond?.then, fx.cond?.else, fx.gamble?.effects, fx.gamble?.else, ...(fx.later ?? []).map((l) => l.effects)];
-  return nested.some((n) => structural(s, n, depth + 1));
+  return nested.some((n) => structural(s, n, subjectId, depth + 1));
 }
+
+// Whether a choice is the founder's to make: its effects are structural, or it grants an item.
+export const founderCall = (s, c, subjectId = null) => !!c.grant || structural(s, c.effects, subjectId);
 
 // Rough value of an effects object for a careful player.
 export function sensibleValue(s, fx, depth = 0) {

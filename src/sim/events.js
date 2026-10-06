@@ -23,7 +23,7 @@ import { openEventPrompt, promptSlotFree } from './prompts.js';
 import { deliversAsMail, mailSlotFree, openEventMail, mailEventNotice } from './mail.js';
 import { preinternetChoiceReason, batchText } from './boxed.js';
 import { askQueueOn, queueDecision, queuePrompt, queueEventLetter, defaultChoiceOf, isEmergency } from './asks.js';
-import { sensibleValue, structural } from './value.js';
+import { sensibleValue, founderCall } from './value.js';
 import { periodAllows, periodText } from '../data/period-content.js';
 
 // What attackers ask for: sized to the company's cash and revenue, between a floor and a cap, and never
@@ -319,9 +319,9 @@ function launchPause(state) {
 export const eventChance = () => B.randomEventChance;
 
 // Whether any choice is worth more than B.askRates.stakesValue either way to a careful player.
-// A structural choice gives stakes as well.
+// A founder's call gives stakes as well.
 export const hasStakes = (state, ev) => (ev.choices ?? []).some((c) => Math.abs(sensibleValue(state, c.effects)) > B.askRates.stakesValue
-  || structural(state, c.effects));
+  || founderCall(state, c));
 
 // The chance a rolled event becomes a card under askRates rather than playing out quietly. Emergencies and
 // events that need an answer always do.
@@ -392,9 +392,9 @@ registerSystem('moment-talk', momentTalkSystem, 100);
 
 // What the office does with an event nobody saw: the open choice a careful player values most, unless that
 // choice is structural, which the office leaves to the founder by taking the ask default instead.
-function carefulChoice(state, ev, open) {
+export function carefulChoice(state, ev, open, subjectId = null) {
   const best = open.reduce((a, i) => (sensibleValue(state, ev.choices[i].effects) > sensibleValue(state, ev.choices[a].effects) ? i : a), open[0]);
-  return structural(state, ev.choices[best].effects) ? defaultChoiceOf(ev) : best;
+  return founderCall(state, ev.choices[best], subjectId) ? defaultChoiceOf(ev) : best;
 }
 
 // A quiet event resolves itself, applied as a resolved card would apply it, with one Yak line saying what
@@ -404,7 +404,7 @@ function resolveQuietly(ctx, ev, subjectId, own = null) {
   const { state } = ctx;
   const open = ev.choices.map((c, i) => i).filter((i) => !choiceBlocker(state, ev.choices[i], subjectId));
   if (!open.length) return false;
-  const preferred = ev.quiet === 'pick' ? pick(ctx.rng, open) : ev.quiet ? defaultChoiceOf(ev) : carefulChoice(state, ev, open);
+  const preferred = ev.quiet === 'pick' ? pick(ctx.rng, open) : ev.quiet ? defaultChoiceOf(ev) : carefulChoice(state, ev, open, subjectId);
   const choice = open.includes(preferred) ? preferred : open[0];
   const c = ev.choices[choice];
   if (ev.marks) state.flags[ev.marks] = state.week;

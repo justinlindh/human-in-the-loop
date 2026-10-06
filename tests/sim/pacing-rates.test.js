@@ -6,7 +6,8 @@ import { postmortemSeverity } from '../../src/sim/incidents.js';
 import { moonshotSystem } from '../../src/sim/moonshot.js';
 import { promptChance } from '../../src/sim/prompts.js';
 import { processScheduled } from '../../src/sim/effects.js';
-import { STRUCTURAL_KEYS, structural } from '../../src/sim/value.js';
+import { STRUCTURAL_KEYS, structural, founderCall } from '../../src/sim/value.js';
+import { carefulChoice } from '../../src/sim/events.js';
 import { defaultChoiceOf } from '../../src/sim/asks.js';
 import { mailSystem, deliversAsMail } from '../../src/sim/mail.js';
 import { MAIL_TEMPLATES, EVENT_MAIL, AMBIENT } from '../../src/data/mail.js';
@@ -132,6 +133,40 @@ describe('askRates: fewer events and staff prompts come up', () => {
     expect(structural(s, { later: [{ inWeeks: 3, effects: { pivot: true } }] })).toBe(true);
     expect(structural(s, { gamble: { p: 0.5, effects: { brand: 1 }, else: { resign: true } } })).toBe(true);
     expect(structural(s, { brand: 2, meaning: 5, teamMeaning: 1 })).toBe(false);
+  });
+
+  it('founder calls also cover pay changes either way, the founder\'s time off, pets and buying things', () => {
+    const s = company();
+    s.cash = 100000;
+    const founder = s.staff.find((p) => p.founder);
+    const staff = s.staff.find((p) => !p.founder);
+    expect(structural(s, { salaryPct: 8, meaning: 1 })).toBe(true);
+    expect(structural(s, { salaryPct: -10 })).toBe(true);
+    expect(structural(s, { teamSalaryPct: -5 })).toBe(true);
+    expect(structural(s, { teamSalaryPct: 8 })).toBe(true);
+    expect(structural(s, { adoptPet: 'dog' })).toBe(true);
+    expect(structural(s, { buyItem: 'espresso' })).toBe(true);
+    expect(structural(s, { upgradeItem: 'espresso' })).toBe(true);
+    expect(structural(s, { awayWeeks: 4, meaning: 10 }, founder.id)).toBe(true);
+    expect(structural(s, { awayWeeks: 2 }, staff.id)).toBe(false);
+    expect(founderCall(s, { effects: { teamMeaning: 1 }, grant: { item: 'ping_pong' } }, null)).toBe(true);
+    expect(founderCall(s, { effects: { teamMeaning: 1 } }, null)).toBe(false);
+  });
+
+  it('the office never makes a founder call on any quiet-eligible random event, unless it is the event\'s own default', () => {
+    const states = [100000, 2e6].map((cash) => { const s = company(); s.cash = cash; return s; });
+    const eligible = Object.values(EVENTS).filter((ev) => ev.random && ev.choices && !ev.quiet && !ev.noExpire && !ev.scripted && cardChance(states[0], ev) < 1);
+    expect(eligible.length).toBeGreaterThan(20);
+    const wrong = [];
+    for (const s of states) for (const ev of eligible) {
+      const subjects = ev.subject === 'founder' ? s.staff.filter((p) => p.founder) : ev.subject ? s.staff.filter((p) => !p.founder) : [];
+      for (const subjectId of subjects.length ? subjects.map((p) => p.id) : [null]) {
+        const open = ev.choices.map((c, i) => i);
+        const pick = carefulChoice(s, ev, open, subjectId);
+        if (pick !== defaultChoiceOf(ev) && founderCall(s, ev.choices[pick], subjectId)) wrong.push(`${ev.id}#${pick}`);
+      }
+    }
+    expect(wrong).toEqual([]);
   });
 
   it('an event with a structural choice has stakes', () => {
