@@ -11,7 +11,9 @@ mkdir -p "$tmp/bin"
 cat >"$tmp/bin/gh" <<'SH'
 #!/usr/bin/env bash
 echo "$*" >>"$CALLS"
-case "$1 $2" in
+a1="$1"; a2="$2"
+while [ $# -gt 0 ]; do [ "$1" = --body-file ] && cat "$2" >>"$CALLS"; shift; done
+case "$a1 $a2" in
   "issue list") echo "${OPEN:-}" ;;
   "run list") echo "${RUN_ID-55}" ;;
   "run view") echo "https://x/run/55" ;;
@@ -46,6 +48,16 @@ run "main-guard: abc1234 FAIL (golden,render-checks) in 120s" 1
 rc=$?
 [ $rc -eq 1 ] && ! calls | grep -q 'workflow run' && ! calls | grep -q 'release-gate' && calls | grep -q '^issue create .*--label release-red' && calls | grep -q 'golden,render-checks' \
   || fail "a red suite publishes nothing and opens a release-red issue naming the steps: $rc $(calls)"
+run "main-guard: abc1234 FAIL (main-guard) in 5s
+--- red steps ---
+main-guard failed:
+FAIL a red head bisects: missing bisecting 4 merges
+--- end red steps ---" 1
+calls | grep -q '^FAIL a red head bisects: missing bisecting 4 merges' && ! calls | grep -q 'red steps ---' \
+  || fail "the issue quotes the red step's own failure lines: $(calls)"
+run "main-guard: abc1234 FAIL (golden) in 5s
+some last line of output" 1
+calls | grep -q '^some last line of output' || fail "with no step lines the issue ends with the suite's last output: $(calls)"
 OPEN=9 run "main-guard: abc1234 FAIL (phone-check) in 5s" 1
 calls | grep -q '^issue comment 9 ' && ! calls | grep -q '^issue create' || fail "a second red release comments on the open issue: $(calls)"
 

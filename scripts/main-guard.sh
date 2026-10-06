@@ -15,20 +15,22 @@
 # between are skipped unless a bisect needs them), and it waits while any other job is queued for the
 # exclusive software render lock. Each tick it also fast-forwards the shared checkout named by
 # HITL_SHARED_CHECKOUT when that is clean, on main, and no ci-pr or local CI runs in it.
-# Usage: scripts/main-guard.sh [--sha <commit>] [--no-post] [--loop <seconds>]
+# Usage: scripts/main-guard.sh [--sha <commit>] [--no-post] [--no-bisect] [--loop <seconds>]
 #   --sha       check this commit instead of origin/main's tip (checked again even if seen)
-#   --no-post   no status, no issues: print the verdict only (MAIN_GUARD_NO_BISECT=1 also skips the bisect)
+#   --no-post   no status, no issues: print the verdict only
+#   --no-bisect when red, do not bisect the merges since the last green commit
 #   --loop      check, sleep, and check again forever (for running it by hand)
 set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib/tmpdir.sh"
 # Niced commands go through nice10.sh so a process manager that renices by name can't lift their children.
 NICE10="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/nice10.sh"
-usage="usage: scripts/main-guard.sh [--sha <commit>] [--no-post] [--loop <seconds>]"
-sha_arg=""; post=1; loop=""
+usage="usage: scripts/main-guard.sh [--sha <commit>] [--no-post] [--no-bisect] [--loop <seconds>]"
+sha_arg=""; post=1; loop=""; no_bisect=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --sha) sha_arg="${2:?$usage}"; shift 2 ;;
     --no-post) post=0; shift ;;
+    --no-bisect) no_bisect=1; shift ;;
     --loop) loop="${2:?$usage}"; shift 2 ;;
     *) echo "$usage" >&2; exit 2 ;;
   esac
@@ -342,6 +344,20 @@ if [ -z "$what" ]; then
 fi
 
 echo "main-guard: $short FAIL ($what) in ${secs}s"
+# Each red step's own failure lines (its whole tail when it prints none), between markers, for whoever
+# reads this output: a release quotes them in its issue.
+if [ "$ci_rc" -ne 0 ]; then
+  echo "--- red steps ---"
+  for step in $(tr ',' ' ' <<<"$what"); do
+    slog="$STATE/$short-steps/$step.log"
+    [ -f "$STATE/$short-steps/$step.retry.log" ] && slog="$STATE/$short-steps/$step.retry.log"
+    [ -s "$slog" ] || continue
+    lines="$(grep -E '^FAIL|[^a-z]FAIL[: ]|Error' "$slog" | head -n 40)"
+    [ -n "$lines" ] || lines="$(tail -n 25 "$slog")"
+    echo "$step failed:"; echo "$lines"
+  done
+  echo "--- end red steps ---"
+fi
 # The red record auto CI holds render PRs on (scripts/auto-ci.sh) names only the steps red in two
 # verdicts in a row on main's newest commit (a new commit, or the same one checked again), so one flake
 # holds nothing. Only those verdicts count, not an older commit a bisect checks.
@@ -395,7 +411,7 @@ fi
 
 # Merges since the last green commit were skipped: bisect them to name the first red one, within
 # MAIN_GUARD_BISECT_BUDGET seconds (waits for the lock included); past it, report the range narrowed so far.
-[ "${MAIN_GUARD_NO_BISECT:-0}" = 1 ] && exit 1   # a release reports the commit, not the first red merge
+[ "$no_bisect" = 1 ] && exit 1   # a release reports the commit, not the first red merge
 green="$(cat "$STATE/last-green" 2>/dev/null)"
 [ -n "$green" ] && git -C "$REPO" merge-base --is-ancestor "$green" "$sha" 2>/dev/null || exit 1
 mapfile -t range < <(git -C "$REPO" rev-list --first-parent --reverse "$green..$sha")

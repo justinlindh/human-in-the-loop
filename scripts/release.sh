@@ -33,7 +33,7 @@ subject="$(git log -1 --format=%s "$sha")"
 log="$(mktemp "${TMPDIR:-/tmp}/release.XXXXXX")"; trap 'rm -f "$log"' EXIT
 echo "release: running the whole suite on $short ($subject)"
 t0=$SECONDS
-if [ -n "${RELEASE_GUARD:-}" ]; then bash -c "$RELEASE_GUARD" >"$log" 2>&1; else MAIN_GUARD_NO_BISECT=1 bash scripts/main-guard.sh --sha "$sha" --no-post >"$log" 2>&1; fi
+if [ -n "${RELEASE_GUARD:-}" ]; then bash -c "$RELEASE_GUARD" >"$log" 2>&1; else bash scripts/main-guard.sh --sha "$sha" --no-post --no-bisect >"$log" 2>&1; fi
 rc=$?
 secs=$(( SECONDS - t0 ))
 cat "$log"
@@ -72,13 +72,19 @@ dispatch() { # <dry_run: true|false>
 
 # One release-red issue: opened, or commented on when one is open.
 report_red() { # <short what> <headline>
-  local body open
+  local body open excerpt
   body="$(mktemp "${TMPDIR:-/tmp}/release-issue.XXXXXX")"
   {
     echo "$2"
     echo
     echo "Failing: **$1**${run_url:+ ($run_url)}"
     echo
+    # The red steps' own failure lines when the suite printed them, else the end of its output.
+    if [ "$verdict" != pass ]; then
+      excerpt="$(sed -n '/^--- red steps ---$/,/^--- end red steps ---$/p' "$log" | sed '1d;$d')"
+      [ -n "$excerpt" ] || excerpt="$(tail -n 25 "$log")"
+      printf '```\n%s\n```\n\n' "$excerpt"
+    fi
     echo "Nothing was published. Fix forward or revert, then run \`scripts/release.sh\` again."
   } >"$body"
   if [ $dry = 1 ]; then echo "--- release-red issue (dry run, not opened) ---"; cat "$body"; rm -f "$body"; return 0; fi
