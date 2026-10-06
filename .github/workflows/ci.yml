@@ -78,7 +78,7 @@ jobs:
   # this workflow, and a release runs the whole suite itself (scripts/release.sh).
   smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with:
