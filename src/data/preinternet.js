@@ -20,8 +20,11 @@ export const PREINTERNET_EVENTS = [
       { label: 'Keep the disks', hint: 'No cost', effects: { preinternet: 'disks' }, outcome: 'Please insert disk two. Please keep disk one nearby.' },
     ] },
   // The first batch, after a boxed launch, and a reorder when a product sells out with buyers still asking.
-  // Both order through the orderBatch action; {batchSmall} and {batchLarge} are today's quotes.
+  // Both order through the orderBatch action; {batchSmall} and {batchLarge} are today's quotes. Each is dropped
+  // when it no longer fits by the time it comes due. The first order keeps the chapter's eras on purpose: it is a
+  // pre-internet nudge, so a card still queued when dot-com begins is dropped.
   { ...chapter, id: 'pre_first_order', subject: 'randomProduct', title: 'Empty shelves',
+    fits: (s, id) => { const inv = liveBoxOf(s, id); return !!inv && !inv.stock && !inv.delivered && !inv.deliveries.length; },
     text: '{product} is finished and the reviews are in. The stores would love to sell it. They would need something to sell. Boxed software sells from stock: no boxes, no sales.',
     choices: orderChoices([
       'The duplicator is warming up. Someone has volunteered to lick the labels.',
@@ -29,6 +32,7 @@ export const PREINTERNET_EVENTS = [
       'The shelves stay empty. The disks are on the founder\'s desk, where they sell to nobody.',
     ]) },
   { ...chapter, id: 'pre_sold_out', subject: 'randomProduct', eras: undefined, title: 'Sold out',
+    fits: (s, id) => { const inv = liveBoxOf(s, id); return !!inv && !inv.stock && !inv.deliveries.length; },
     text: 'The last copy of {product} just left the shelf. People are still asking for it. The store has started taking their names on a napkin.',
     choices: orderChoices([
       'More boxes are on the way. The napkin is retired with honours.',
@@ -36,6 +40,11 @@ export const PREINTERNET_EVENTS = [
       'The shelf stays empty. The napkin fills up, then gets thrown away.',
     ]) },
 ];
+
+function liveBoxOf(s, id) {
+  const p = s.products.find((x) => x.id === id);
+  return p?.boxed && !p.killed ? p.boxed : null;
+}
 
 function orderChoices([small, large, hold]) {
   const [s, l] = B.preinternet.batches;

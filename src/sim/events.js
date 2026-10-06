@@ -77,7 +77,7 @@ export function fillText(state, rng, text, subjectId, vars = null) {
     .replaceAll('{summitBig}', `$${Math.round(summitCost(state, 'big') / 1000)}k`)
     .replaceAll('{batchSmall}', () => batchText(state, subjectId, B.preinternet.batches[0]))
     .replaceAll('{batchLarge}', () => batchText(state, subjectId, B.preinternet.batches[1]))
-    .replaceAll('{ransom}',`$${Math.round(v.ransom ?? ransomFor(state)).toLocaleString('en-US')}`);
+    .replaceAll('{ransom}', `$${Math.round(v.ransom ?? ransomFor(state)).toLocaleString('en-US')}`);
 }
 
 // Why a choice cannot be picked right now (its requirement, or a grant that cannot happen), or null.
@@ -110,6 +110,8 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
   if (!periodAllows(state, 'events', eventId)) return false;
   if (ev.eras && !ev.eras.includes(currentEra(state).id)) return false;
   if (!decisionGateOpen(state, eventId)) return false;
+  // A decision with `fits` is dropped, not queued, once it no longer applies (a queued card can come due late).
+  if (ev.fits && !ev.fits(state, subjectId)) return false;
   if (state.pendingDecision) {
     if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: state.week, kind: 'event', payload: { eventId, subjectId } });
     return false;

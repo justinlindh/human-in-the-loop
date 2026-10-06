@@ -100,6 +100,34 @@ describe('issue #1566: ordering boxes comes to the player', () => {
     expect(s.pendingDecision).toBe(null);
   });
 
+  it('a queued first-order card is dropped once it no longer fits: already ordered, stock in, or the product gone', () => {
+    const cases = {
+      ordered: (s, p) => expect(dispatch(s, { type: 'orderBatch', productId: p.id, units: small }).ok).toBe(true),
+      stocked: (s, p) => { p.boxed.stock = 50; p.boxed.delivered = 50; },
+      retired: (s, p) => { p.killed = true; },
+    };
+    for (const [name, change] of Object.entries(cases)) {
+      const s = game(), p = product(s);
+      s.flags.lastDecisionWeek = s.week;
+      expect(raiseDecision(makeCtx(s), 'pre_first_order', p.id, { queue: true })).toBe(false);
+      change(s, p);
+      s.week += B.decisionGapWeeks;
+      expect(raiseDecision(makeCtx(s), 'pre_first_order', p.id), name).toBe(false);
+      expect(s.pendingDecision, name).toBe(null);
+    }
+  });
+
+  it('a sold-out card is dropped if stock or a batch turned up first', () => {
+    const s = game(), p = product(s);
+    p.boxed.delivered = 100;
+    p.boxed.deliveries.push({ units: 100, cost: 800, dueWeek: s.week + 2 });
+    expect(raiseDecision(makeCtx(s), 'pre_sold_out', p.id)).toBe(false);
+    p.boxed.deliveries = []; p.boxed.stock = 20;
+    expect(raiseDecision(makeCtx(s), 'pre_sold_out', p.id)).toBe(false);
+    p.boxed.stock = 0;
+    expect(raiseDecision(makeCtx(s), 'pre_sold_out', p.id)).toBe(true);
+  });
+
   it('the cards are written for players', () => {
     for (const id of ['pre_first_order', 'pre_sold_out']) {
       const ev = EVENTS[id];
