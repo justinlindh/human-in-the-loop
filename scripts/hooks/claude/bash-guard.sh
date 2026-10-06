@@ -8,8 +8,8 @@
 #     the reviewer (detached worktrees) and team-lead (main, lead/) post verdicts;
 #   - a test run piped into grep, tail or head that gates a git commit or push: the gate then rides on
 #     the pipe's last command, not the tests (unless pipefail or PIPESTATUS is used);
-#   - scripts/wait-for.sh backgrounded by the shell (&, nohup, setsid) or run with --no-update: the
-#     watcher dies with the tool call or never merges main. run_in_background is the way;
+#   - scripts/wait-for.sh backgrounded by the shell (&, nohup, setsid): the
+#     watcher dies with the tool call. run_in_background is the way;
 #   - a foreground loop that sleeps between checks of PR or CI state (gh pr, gh run, gh api,
 #     pr-status): scripts/wait-for.sh in the background waits instead. A background command gets through;
 #   - git stash, other than list and show: every worktree shares one stash stack, so a pop can take
@@ -56,14 +56,14 @@ if [ -n "$verdict_cmds" ] && [ -n "$cwd" ]; then
   esac
 fi
 
-# wait-for.sh run with a trailing &, nohup, setsid or --no-update, outside heredoc bodies and quoted text.
+# wait-for.sh run with a trailing &, nohup or setsid, outside heredoc bodies and quoted text.
 # Commands are split at ; | && and newlines, and after a lone & (which stays on its command).
 wf_cmds="$(awk '/<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ && !inside { match($0, /<<-?[[:space:]]*'"'"'?[A-Za-z_]+/); tag=substr($0, RSTART, RLENGTH); gsub(/<<-?[[:space:]]*'"'"'?/, "", tag); print; inside=1; next } inside && $0 == tag { inside=0; next } !inside { print }' <<<"$cmd" \
   | sed -E "s/'[^']*'/Q/g; s/\"([^\"\\\\]|\\\\.)*\"/Q/g" \
   | sed -E 's/[0-9]*>&[0-9-]+/R/g; s/&>>?/>/g; s/&&/;/g; s/[;|]/\n/g; s/&/\&\n/g' \
   | grep -E '(^|[[:space:]/(])wait-for\.sh([[:space:]]|$)' || true)"
-if [ -n "$wf_cmds" ] && grep -qE '(^|[[:space:]])(nohup|setsid)([[:space:]]|$)|--no-update|&[[:space:]]*$' <<<"$wf_cmds"; then
-  deny "scripts/wait-for.sh dies with the tool call when it is backgrounded by the shell (&, nohup, setsid), and --no-update stops it merging main, so the PR never merges. Run it as its own Bash call with run_in_background: true and timeout: 7200000, plain: scripts/wait-for.sh <pr> --merged. Re-arm it when it exits without a merge."
+if [ -n "$wf_cmds" ] && grep -qE '(^|[[:space:]])(nohup|setsid)([[:space:]]|$)|&[[:space:]]*$' <<<"$wf_cmds"; then
+  deny "scripts/wait-for.sh dies with the tool call when it is backgrounded by the shell (&, nohup, setsid). Run it as its own Bash call with run_in_background: true and timeout: 7200000, plain: scripts/wait-for.sh <pr> --merged. Re-arm it when it exits without a merge."
 fi
 
 # A loop sleeping between checks of PR or CI state, outside heredoc bodies and quoted text (lines are
