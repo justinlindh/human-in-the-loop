@@ -16,8 +16,11 @@ import { applyEffects } from './effects.js';
 
 export const askQueueOn = () => !!B.pacing.askQueue;
 
-// The decision kinds that interrupt at once and never expire.
+// What interrupts at once and never expires: incident and cyber decisions, the cash crisis, and legal letters.
 const EMERGENCY_KINDS = new Set(['incident', 'cyber']);
+const EMERGENCY_DECISIONS = new Set(['bridge_loan']);
+const decisionPriority = (ev) => (EMERGENCY_KINDS.has(ev.kind) || EMERGENCY_DECISIONS.has(ev.id) ? 'emergency' : 'normal');
+const letterPriority = (category) => (category === 'legal' ? 'emergency' : 'low');
 const RANK = { emergency: 0, normal: 1, low: 2 };
 
 // The choice an unanswered decision falls back to: its own defaultChoice, the one picked for it in
@@ -54,7 +57,7 @@ const seqOf = (a) => Number(a.id.slice(3));
 // vars: a card that brings its own (an interview tape) keeps them for when it opens.
 export function queueDecision(ctx, eventId, subjectId, vars = null) {
   const ev = EVENTS[eventId];
-  return enqueue(ctx, { kind: 'decision', priority: EMERGENCY_KINDS.has(ev.kind) ? 'emergency' : 'normal',
+  return enqueue(ctx, { kind: 'decision', priority: decisionPriority(ev),
     ref: { eventId, subjectId, ...(vars ? { vars } : {}) }, defaultChoice: defaultChoiceOf(ev) });
 }
 
@@ -63,11 +66,11 @@ export function queuePrompt(ctx, ev, subjectId) {
 }
 
 export function queueEventLetter(ctx, ev, subjectId) {
-  return enqueue(ctx, { kind: 'letter', priority: 'low', ref: { eventId: ev.id, subjectId }, defaultChoice: EVENT_MAIL[ev.id]?.ignore ?? null });
+  return enqueue(ctx, { kind: 'letter', priority: letterPriority(EVENT_MAIL[ev.id]?.category), ref: { eventId: ev.id, subjectId }, defaultChoice: EVENT_MAIL[ev.id]?.ignore ?? null });
 }
 
-export function queueTemplateLetter(ctx, templateId, mc) {
-  return enqueue(ctx, { kind: 'letter', priority: 'low', ref: { template: templateId, mc }, defaultChoice: null });
+export function queueTemplateLetter(ctx, templateId, mc, category = null) {
+  return enqueue(ctx, { kind: 'letter', priority: letterPriority(category), ref: { template: templateId, mc }, defaultChoice: null });
 }
 
 // A candidate past its expiresWeek no longer fits: it goes without a default or a word.

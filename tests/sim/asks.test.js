@@ -90,6 +90,15 @@ describe('issue #1646: the ask queue', () => {
     expectFail(expect, dispatch, s, { type: 'expireAsk', askId: s.asks[0].id }, 'Expiry is off');
   });
 
+  it('the cash crisis and legal letters are emergencies too', () => {
+    B.pacing.askQueue = true;
+    const s = company();
+    raise(s, 'bridge_loan');
+    fire(s, 'app_store_rejection');
+    expect(s.asks.map((x) => [x.ref.eventId, x.kind, x.priority, x.expiresWeek])).toEqual([
+      ['bridge_loan', 'decision', 'emergency', null], ['app_store_rejection', 'letter', 'emergency', null]]);
+  });
+
   it('expireAsk applies the default and posts one Yak line; an emergency never expires', () => {
     B.pacing.askQueue = true;
     B.pacing.askExpiry = true;

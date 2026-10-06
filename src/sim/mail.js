@@ -162,7 +162,7 @@ function actionable(ctx) {
   const { t, mc } = pick(ctx.rng, fits);
   if (askQueueOn()) {
     state.flags[`mcd_${t.id}`] = state.week + B.mail.templateCooldown;
-    queueTemplateLetter(ctx, t.id, mc);
+    queueTemplateLetter(ctx, t.id, mc, t.category);
     return;
   }
   sendTemplate(ctx, t.id, mc);
