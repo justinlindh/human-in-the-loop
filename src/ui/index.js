@@ -39,6 +39,7 @@ import { createMomentCaptions } from './moments.js';
 import { retireOptions } from './retire.js';
 import { orderGoals } from './goalOrder.js';
 import { dealBeats } from './deals.js';
+import { createMailButton, mailBeats, mailOn } from './mail.js';
 import { cardOptions, showCard } from './cards.js';
 import { GOALS, GOAL, goalReward, SIM_HAS_MEANING_UNLOCK, unlockInfo } from './v2content.js';
 
@@ -149,6 +150,8 @@ export function createUI({ root, getState, dispatch, controls }) {
     openGoals: () => goalsModal(),
   });
   ui.advisorButton = advisors.button;
+  const mailBtn = createMailButton({ open: () => menu.toggle('mail') });
+  ui.mailButton = mailBtn.el;
   ui.openAdvisors = () => advisors.open();
   const officePrompt = createOfficePrompt();
   ui.extraNeeds = (s) => officePrompt.rows(s);
@@ -328,6 +331,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     if (e.key === '3') return ui.setSpeed(4);
     if (e.key === 'c' || e.key === 'C') return chat.toggle();
     if (e.key === 'h' || e.key === 'H') return advisors.open();
+    if ((e.key === 'i' || e.key === 'I') && mailOn(getState())) return menu.toggle('mail');
     const m = MENU.find((x) => x.key.toLowerCase() === e.key.toLowerCase());
     if (m) { e.preventDefault(); buildMode.exit(); menu.toggle(m.id); }
   }
@@ -399,6 +403,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     toasts.setHidden(PHONE.matches && (buildMode.on || !!popups.open));
     toasts.setWeek(state.week);
     advisors.update(state);
+    mailBtn.update(state);
     // The office move's New pip follows its Needs you row.
     const movePip = !!officePrompt.current(state);
     if (movePip !== lastMovePip) { lastMovePip = movePip; if (!newMenus.has('office')) menu.setNew('office', movePip); }
@@ -447,12 +452,21 @@ export function createUI({ root, getState, dispatch, controls }) {
     beats.quiet.forEach((text, i) => chat.add({ channel: 'wins', from: '@sales', text, id: `deal${state.week}-${i}` }, state.week));
   }
 
+  // New mail: one toast that opens it for mail that waits on an answer or is important, and a soft ping.
+  function onMail(events, state) {
+    if (!events.some((e) => e.type === 'mail')) return;
+    const beats = mailBeats(events, state);
+    for (const t of beats.toasts) toasts.push(t.text, 'good', { glyph: 'mail', action: () => menu.open('mail', { mailId: t.mailId }) });
+    if (beats.ping) sfx('blip');
+  }
+
   function handleEvents(events, state) {
     const unlockKeys = events.filter((e) => e.type === 'unlock').map((e) => e.key);
     const era = events.find((e) => e.type === 'era') ?? null;
     if (unlockKeys.length || era) onUnlocksAndEra(unlockKeys, era, state);
     onGrowth(events, state);
     onDeals(events, state);
+    onMail(events, state);
     // The sim records the squads unlock without an event; the week it lands gets one toast.
     if (state.unlocks?.squads === state.week && squadsToldWeek !== state.week && state.week > 0) {
       squadsToldWeek = state.week;
