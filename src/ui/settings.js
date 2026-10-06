@@ -41,12 +41,23 @@ function saveSettings(s) {
 
 // How much Yak asks for attention: every message, only the ones that matter, or nothing but prompts.
 export const YAK_LEVELS = [
-  // Under quietYak chatter never counts as new, so the tip says what All still lights.
-  { v: 'all', label: 'All', get tip() { return pacingOn('quietYak') ? 'Yak: every message shows; only incidents, wins and replies count as new' : 'Yak: every message counts as new'; } },
+  { v: 'all', label: 'All', tip: 'Yak: every message counts as new' },
   { v: 'important', label: 'Important', tip: 'Yak: only incidents, wins, launches and bots count as new' },
   { v: 'off', label: 'Off', tip: 'Yak: kept shut and quiet; replies it needs still show' },
 ];
-export const yakLevel = () => (YAK_LEVELS.some((l) => l.v === loadSettings().yakLevel) ? loadSettings().yakLevel : 'all');
+// Under quietYak chatter never counts as new, so All and Important are the same thing: one level, On.
+const QUIET_YAK_LEVELS = [
+  { v: 'important', label: 'On', tip: 'Yak: incidents, wins, replies and important posts count as new; chatter shows but never counts' },
+  YAK_LEVELS[2],
+];
+export const yakLevels = () => (pacingOn('quietYak') ? QUIET_YAK_LEVELS : YAK_LEVELS);
+// A stored level as the current levels read it: a stored All or Important reads as On under quietYak.
+export const normalizeYak = (v) => {
+  const levels = yakLevels();
+  if (levels.some((l) => l.v === v)) return v;
+  return levels === QUIET_YAK_LEVELS && v === 'all' ? 'important' : levels[0].v;
+};
+export const yakLevel = () => normalizeYak(loadSettings().yakLevel);
 // Saves the Yak level and tells an open Yak.
 export function setYakLevel(v) {
   saveSetting('yakLevel', v);
@@ -188,8 +199,10 @@ export function createSettings({ layer, controls, sfx, getState = null, toast = 
           toggleClass(sw, 'on', settings.momentCamera !== false);
           return row('Camera follows big moments', 'Eases to things like a first user test. Any input takes the camera back.', sw);
         })(),
-        row('Yak', 'Important keeps incidents, wins, launches and bots; Off keeps Yak shut. Prompts that need your reply always show.',
-          seg(YAK_LEVELS.map(({ v, label }) => ({ v, label })), yakLevel(), (v) => setYakLevel(v))),
+        row('Yak', pacingOn('quietYak')
+          ? 'On shows every message but only lights up for incidents, wins and replies; Off keeps Yak shut. Prompts that need your reply always show.'
+          : 'Important keeps incidents, wins, launches and bots; Off keeps Yak shut. Prompts that need your reply always show.',
+          seg(yakLevels().map(({ v, label }) => ({ v, label })), yakLevel(), (v) => setYakLevel(v))),
         row('Advisors', 'Quiet keeps them to the lightbulb and its dot; Off hides the lightbulb.',
           seg(ADVISOR_LEVELS, advisorLevel(), (v) => setAdvisorLevel(v))),
         row('Default speed', 'Speed the game starts at.', seg([{ v: 1, label: '1x' }, { v: 2, label: '2x' }, { v: 4, label: '4x' }], settings.speed, (v) => set('speed', v))),
