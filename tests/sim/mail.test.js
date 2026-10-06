@@ -252,6 +252,13 @@ describe('issue #17: the inbox', () => {
     expect(t.flags.replyAll).toBeUndefined();
   });
 
+  it('mail kinds of its own never reuse an event id, since event mail is known by its kind', () => {
+    const own = [...AMBIENT, ...MAIL_TEMPLATES].map((t) => t.id).concat('reply_all', 'reply_all_reply', ...Object.keys(EVENT_MAIL).map((id) => `${id}_outcome`));
+    for (const id of own) expect(EVENTS[id], id).toBeUndefined();
+    expect(new Set(own).size).toBe(own.length);
+    for (const id of Object.keys(EVENT_MAIL)) expect(EVENTS[id], id).toBeDefined();
+  });
+
   it('bots keep different inbox habits: some answer at once, one answers late, one never does', () => {
     const habit = (name) => {
       const s = company();
