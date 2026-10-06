@@ -5,6 +5,7 @@ import { writeFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { IN_OFFICE, CLEAR_CARDS, IDLE } from '../../scripts/capture-manifest.js';
+import { INDEX_PACING } from '../../scripts/events/play.js';
 
 const after = IN_OFFICE + `s.policies.daily_standups=false;s.policies.async_standups=false;s.projects=[];s.pendingDecision=null;s.chatPrompts=[];
   for(const p of s.staff){p.mood='ok';p.assignment={type:'idle',targetId:null};}`;
@@ -13,7 +14,11 @@ const after = IN_OFFICE + `s.policies.daily_standups=false;s.policies.async_stan
 // game's own save and continue, so a change to how the sim plays can't move the office the meeting
 // runs in. `--write-game` rebuilds it from the current sim; do that only on purpose.
 const GAME = 'blender/checks/standup-live-game.json';
+// The game plays with the index's pacing switches pinned (INDEX_PACING), so the pacing defaults can't
+// change what the meeting says or when its turns show.
 const LOAD_GAME = `(async()=>{
+  const {B}=await import('/src/sim/balance.js');
+  Object.assign(B.pacing,${JSON.stringify(INDEX_PACING)});
   const st=await (await fetch('/${GAME}')).json();
   const {saveGame}=await import('/src/save/save.js');
   if(!saveGame(st,localStorage))throw Error('standup-live: could not save the stored game');
