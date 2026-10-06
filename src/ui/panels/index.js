@@ -8,6 +8,7 @@ import { automationPanel, policiesPanel } from './automation.js';
 import { opsPanel } from './ops.js';
 import { officePanel } from './office.js';
 import { reportsPanel } from './reports.js';
+import { mailPanel } from './mail.js';
 
 const stub = (label) => ({
   build: () => ({ el: h('div.empty', { text: `${label} is on its way.` }) }),
@@ -24,4 +25,6 @@ export const PANELS = {
   ops: { title: 'Ops and Security', wide: true, build: (ctx) => opsPanel(ctx) },
   office: { title: 'Office', wide: true, build: (ctx, arg) => officePanel(ctx, arg) },
   reports: { title: 'Reports', wide: true, build: (ctx, arg) => reportsPanel(ctx, arg) },
+  // No bottom button: the envelope in the top bar opens it.
+  mail: { title: 'Mail', icon: 'mail', accent: '#4f8cff', wide: true, build: (ctx, arg) => mailPanel(ctx, arg) },
 };

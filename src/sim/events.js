@@ -20,6 +20,7 @@ import { incumbentFor } from '../data/incumbents.js';
 import { emitChat } from './chat.js';
 import { eraOnlyAllowsText, eraAtLeast, currentEra, eraIndex } from './eras.js';
 import { openEventPrompt, promptSlotFree } from './prompts.js';
+import { deliversAsMail, mailSlotFree, openEventMail, mailEventNotice } from './mail.js';
 import { preinternetChoiceReason } from './boxed.js';
 import { periodAllows, periodText } from '../data/period-content.js';
 
@@ -228,6 +229,15 @@ export function fireEvent(ctx, ev, subjectId) {
   // A low-stakes event (yak) arrives as a Yak reply prompt instead of a popup while prompts are on, or waits
   // for another week when a prompt is already open. It keeps the popup's place in the decision cadence, so
   // how often every other event comes up is unchanged.
+  // With the inbox on, letter-like events arrive as mail instead: a choice event waits for a free mail slot
+  // the way a Yak one waits for a prompt slot; a notice keeps its effects and arrives instead of its toast.
+  if (deliversAsMail(ev) && ev.choices) {
+    if (!mailSlotFree(state)) return false;
+    state.flags[`cd_${ev.id}`] = state.week + ev.cooldownWeeks;
+    state.flags.lastDecisionWeek = state.week;
+    openEventMail(ctx, ev, subjectId);
+    return true;
+  }
   if (ev.yak && ev.choices && B.chatPromptsEnabled) {
     if (!promptSlotFree(state)) return false;
     state.flags[`cd_${ev.id}`] = state.week + ev.cooldownWeeks;
@@ -239,7 +249,10 @@ export function fireEvent(ctx, ev, subjectId) {
   if (ev.chat) emitChat(ctx, { channel: 'random', from: '@officebot', text: fillText(state, ctx.rng, ev.chat, subjectId) });
   if (ev.choices) return raiseDecision(ctx, ev.id, subjectId);
   const vars = decisionVars(state, ctx.rng, subjectId);
-  ctx.emit({ type: 'toast', text: `${fillText(state, ctx.rng, ev.title, subjectId, vars)}: ${fillText(state, ctx.rng, ev.text, subjectId, vars)}`, tone: 'info' });
+  const title = fillText(state, ctx.rng, ev.title, subjectId, vars);
+  const text = fillText(state, ctx.rng, ev.text, subjectId, vars);
+  if (deliversAsMail(ev)) mailEventNotice(ctx, ev, title, text, subjectId);
+  else ctx.emit({ type: 'toast', text: `${title}: ${text}`, tone: 'info' });
   applyEffects(ctx, ev.auto, subjectId, ev.id, vars);
   return true;
 }

@@ -3,15 +3,15 @@
 //
 // npm run trailer                                  capture, then build shots/trailer/trailer.mp4
 // npm run trailer -- --vo shots/trailer/vo         voiceover lines as <dir>/<line id>.wav
-//   [--out shots/trailer] [--reuse] [--reuse-from <clips>] [--vertical] [--no-captions] [--print-vo] [--software] [--audio-only]
+//   [--trailer main|era] [--out shots/trailer] [--reuse] [--reuse-from <clips>] [--vertical] [--no-captions] [--print-vo] [--software] [--audio-only]
 // --audio-only mixes mix.wav and music-stem.wav and stops: no capture, no video.
 // --reuse keeps clips already captured from the same commit. Every choice lives in config.js.
 import { spawn, execFileSync, execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { captureKey, canReuse } from './reuse.js';
-import { BEATS, CARDS, MUSIC, OUTPUT, PLAY_URL, VO } from './config.js';
 import { renderGraphics } from './cards.js';
 
 function parseArgs(argv) {
@@ -27,14 +27,22 @@ function parseArgs(argv) {
 }
 
 const args = parseArgs(process.argv.slice(2));
+const ROOT = resolve(new URL('../..', import.meta.url).pathname);
+// --trailer <name> picks the config and capture manifest directory and the default output directory.
+const TRAILERS = { main: { dir: 'scripts/trailer', out: 'shots/trailer' }, era: { dir: 'scripts/reels/era-trailer', out: 'shots/era-trailer' } };
+const TRAILER = TRAILERS[String(args.trailer ?? 'main')];
+if (!TRAILER) { console.error(`trailer: unknown --trailer ${args.trailer} (one of ${Object.keys(TRAILERS).join(', ')})`); process.exit(1); }
+for (const f of ['config.js', 'manifest.js']) {
+  if (!existsSync(join(ROOT, TRAILER.dir, f))) { console.error(`trailer: ${TRAILER.dir}/${f} does not exist`); process.exit(1); }
+}
+const { BEATS, CARDS, MUSIC, OUTPUT, PLAY_URL, VO } = await import(pathToFileURL(join(ROOT, TRAILER.dir, 'config.js')).href);
 if (args['print-vo']) {
   // A line's `say` (how the narrator speaks it, e.g. a URL read aloud) is the TTS script when set; `text` stays the caption.
   process.stdout.write(`${JSON.stringify(VO.lines.map(({ id, text, say }) => ({ id, text: say ?? text })), null, 2)}\n`);
   process.exit(0);
 }
 
-const ROOT = resolve(new URL('../..', import.meta.url).pathname);
-const OUT = resolve(String(args.out ?? join(ROOT, 'shots/trailer')));
+const OUT = resolve(String(args.out ?? join(ROOT, TRAILER.out)));
 const CLIPS = join(OUT, 'clips');
 const GFX = join(OUT, 'gfx');
 const VO_DIR = typeof args.vo === 'string' ? resolve(args.vo) : null;
@@ -74,7 +82,7 @@ const indexFile = join(CLIPS, 'index.json');
 const clipBeats = BEATS.filter((b) => b.item);
 const captured = () => (existsSync(indexFile) ? JSON.parse(readFileSync(indexFile, 'utf8')).items : {});
 // A clip is reused only when its capture item and the commit are unchanged.
-const { ITEMS: CAPTURE_ITEMS } = await import('./manifest.js');
+const { ITEMS: CAPTURE_ITEMS } = await import(pathToFileURL(join(ROOT, TRAILER.dir, 'manifest.js')).href);
 const itemOf = (b) => CAPTURE_ITEMS.find(it => it.id === `trailer-${b.id}`);
 const keyOf = (b) => captureKey(commit, itemOf(b));
 const keyFile = (b) => join(CLIPS, `trailer-${b.id}.key`);
@@ -102,7 +110,7 @@ const AUDIO_ONLY = !!args['audio-only'];
 const todo = AUDIO_ONLY ? [] : (args.reuse || args['reuse-from']) ? clipBeats.filter((b) => !fresh(b)) : clipBeats;
 if (todo.length) {
   console.log(`trailer: capturing ${todo.map((b) => b.id).join(', ')}`);
-  const capture = ['scripts/capture.js', '--manifest', 'scripts/trailer/manifest.js', '--out', CLIPS, '--fps', String(OUTPUT.fps),
+  const capture = ['scripts/capture.js', '--manifest', `${TRAILER.dir}/manifest.js`, '--out', CLIPS, '--fps', String(OUTPUT.fps),
     '--size', `${OUTPUT.width}x${OUTPUT.height}`, '--no-webm', '--only', todo.map((b) => `trailer-${b.id}`).join(','), ...(args.software ? ['--software'] : [])];
   // Capture renders under a render lock (a GPU slot, or the software lock with --software); the
   // wrapper runs straight through when a caller already holds one.
