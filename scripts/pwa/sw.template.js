@@ -1,57 +1,75 @@
 // Service worker for the installed game. scripts/vite-pwa.mjs fills in the placeholders at build time and
 // writes the result to the build's root as sw.js.
-//   Shell     the page, scripts, styles, fonts and app icons: precached on install, in a cache named for the
-//             build, so a new build never reuses an old one's files. Hashed files come from the cache first.
-//   Pages     network first (a short wait), the cached page when offline, so an online player always gets
-//             the newest build and an offline one still gets the game.
-//   Media     models, audio, icons and memes: kept in one cache that outlives builds, served from it while
-//             a fresh copy is fetched for next time. Anything not played yet is simply not there offline;
-//             missing audio is synthesized by the game.
-//   Updates   a new worker installs beside the running one and waits; the page tells it to take over at a
-//             moment that costs the player nothing (src/pwa.js).
-const VERSION = '__VERSION__';
-const SHELL = __SHELL__;
+// The worker does nothing until the page has downloaded a whole build into an offline set (a cache named
+// hitl-set-<build id>, filled by src/dev/pwa.js and marked complete by a last entry). Before that every
+// request goes to the network exactly as without a worker. Once a complete set exists:
+//   - the newest complete set serves everything it holds, pages included, so the game starts without a
+//     network, and a release whose download is still going (or was cut off) has no marker yet, so the
+//     previous complete set keeps serving: the player never sees a half-updated game;
+//   - anything the sets lack goes to the network.
+// Which worker is live does not matter for what is served, so a new build takes over the moment its set is
+// complete, at the next page load; a page already running keeps the files it has. The page asks for the
+// sets older than its own build to be deleted once it is running (prune).
+const ID = '__VERSION__';
 const BASE = '__BASE__';
-const SHELL_CACHE = `hitl-shell-${VERSION}`;
-const MEDIA_CACHE = 'hitl-media';
-const NAV_WAIT_MS = 4000;
+const PREFIX = 'hitl-set-';
+const MARK = new URL(`${BASE}__complete`, self.location.origin).href;
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(SHELL.map((p) => BASE + p))));
-});
+// The complete sets, newest first. A set counts only with its marker, which the page writes last.
+async function completeSets() {
+  const out = [];
+  for (const name of await caches.keys()) {
+    if (!name.startsWith(PREFIX)) continue;
+    const mark = await (await caches.open(name)).match(MARK);
+    if (!mark) continue;
+    let info = {};
+    try { info = await mark.json(); } catch { /* a marker without a time sorts last */ }
+    out.push({ name, id: name.slice(PREFIX.length), at: info.at || 0, version: info.version });
+  }
+  return out.sort((a, b) => b.at - a.at);
+}
+
+// undefined until the first look; [] means no complete set, and the worker steps aside.
+let sets;
+let looking = null;
+function look() {
+  // Until the new look finishes, a request waits for it rather than using the last answer.
+  sets = undefined;
+  looking = completeSets().then((s) => { sets = s; return s; }, () => { sets = []; return sets; });
+  return looking;
+}
+look();
+
+self.addEventListener('install', () => {});
 
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
-    for (const key of await caches.keys()) if (key.startsWith('hitl-shell-') && key !== SHELL_CACHE) await caches.delete(key);
+    const pending = look();
     await self.clients.claim();
+    await pending;
   })());
 });
 
 self.addEventListener('message', (event) => {
-  if (event.data?.type === 'skip-waiting') self.skipWaiting();
-  if (event.data?.type === 'version') event.source?.postMessage({ type: 'version', version: VERSION });
+  const type = event.data?.type;
+  if (type === 'skip-waiting') self.skipWaiting();
+  if (type === 'version') event.source?.postMessage({ type: 'version', id: ID });
+  // The page finished a set: look again.
+  if (type === 'refresh') {
+    event.waitUntil(look().then((s) => event.source?.postMessage({ type: 'refreshed', sets: s.map((x) => x.id) })));
+  }
+  // The page is running build <version>: delete the sets older than that build's, if it has a complete one.
+  if (type === 'prune') {
+    event.waitUntil((async () => {
+      const list = await completeSets();
+      const mine = list.find((s) => s.version === event.data.version);
+      if (mine) for (const o of list) if (o.at < mine.at) await caches.delete(o.name);
+      await look();
+    })());
+  }
 });
 
-const isMedia = (path) => /^(audio|models|icons|memes)\//.test(path);
-
-async function page(request) {
-  const cache = await caches.open(SHELL_CACHE);
-  try {
-    const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), NAV_WAIT_MS);
-    const res = await fetch(request, { signal: ctl.signal });
-    clearTimeout(timer);
-    if (res.ok) return res;
-  } catch { /* offline or slow: the cached page */ }
-  return (await cache.match(BASE + 'index.html')) || (await cache.match(BASE)) || Response.error();
-}
-
-async function shellFile(request) {
-  const hit = await (await caches.open(SHELL_CACHE)).match(request);
-  return hit || fetch(request);
-}
-
-// A range request (an audio element seeking) is answered from a cached whole file when there is one.
+// A range request (an audio element seeking) is answered from the cached whole file.
 async function fromRange(request, hit) {
   const m = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get('range') || '');
   if (!m) return hit;
@@ -69,23 +87,15 @@ async function fromRange(request, hit) {
   });
 }
 
-async function media(event) {
-  const request = event.request;
-  const cache = await caches.open(MEDIA_CACHE);
-  const hit = await cache.match(request.url);
-  // no-cache revalidates with the server (a 304 when the file is unchanged), so keeping the copy fresh
-  // costs a request, not the download.
-  const refresh = () => fetch(request.url, { cache: 'no-cache' }).then((res) => {
-    if (res.ok && res.status === 200) cache.put(request.url, res.clone());
-    return res;
-  });
-  if (hit) {
-    event.waitUntil(refresh().catch(() => {}));
-    return request.headers.has('range') ? fromRange(request, hit) : hit;
+async function serve(request) {
+  const list = sets ?? (await looking);
+  // A page is the build's index whatever its query (?seed=, ?mock=).
+  const key = request.mode === 'navigate' ? `${self.location.origin}${BASE}index.html` : request.url;
+  for (const s of list) {
+    const hit = await (await caches.open(s.name)).match(key);
+    if (hit) return request.headers.has('range') ? fromRange(request, hit) : hit;
   }
-  // A range request with nothing cached goes to the network as asked; a whole-file request is kept.
-  if (request.headers.has('range')) return fetch(request);
-  return refresh();
+  return fetch(request);
 }
 
 self.addEventListener('fetch', (event) => {
@@ -94,8 +104,10 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || !url.pathname.startsWith(BASE)) return;
   const path = url.pathname.slice(BASE.length);
-  if (request.mode === 'navigate') return event.respondWith(page(request));
-  if (path === 'sw.js') return;
-  if (SHELL.includes(path)) return event.respondWith(shellFile(request));
-  if (isMedia(path)) return event.respondWith(media(event));
+  if (path === 'sw.js' || path === 'pwa-assets.json') return;
+  // The page's own downloads of a new build must reach the network, not the old build's copy.
+  if (request.headers.has('x-hitl-download')) return;
+  // Known to hold no complete set: leave the request to the browser.
+  if (sets && sets.length === 0) return;
+  event.respondWith(serve(request));
 });

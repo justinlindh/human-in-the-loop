@@ -1,18 +1,18 @@
 // Vite plugin that makes the build installable and playable offline: a web app manifest, the tags that
-// point at it, and a service worker (scripts/pwa/sw.template.js) with its precache list. Build only; the
-// dev server serves no worker.
+// point at it, a service worker (scripts/pwa/sw.template.js) and the list of files that make up this
+// build. Build only; the dev server serves no worker.
 //   dist/manifest.webmanifest  name, icons, colours and standalone display, scoped to the build's base
-//   dist/sw.js                 the worker, with this build's version and shell file list
-//   dist/pwa-assets.json       { version, warm }: what the page fetches in idle time so a first visit works
-//                              offline too (models, glyph icons, short UI sounds)
-// The shell (precached on install) is the page, the bundles and styles, the fonts and the app icons; the
-// large files (music, voice, models) are cached as they are used.
+//   dist/sw.js                 the worker, with this build's id
+//   dist/pwa-assets.json       { id, version, bytes, files: [{ p, s }] }: every file of the build with its size,
+//                              which the page downloads into the offline set (src/dev/pwa.js)
 import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
 import { createHash } from 'node:crypto';
 
 const THEME = '#efe6d6';
 const NAME = 'Human in the Loop';
+// Files that are not part of the offline set: the worker and the list itself, and notes.
+const SKIP = /^(sw\.js|pwa-assets\.json)$|\.md$/;
 
 function walk(dir, root, out = []) {
   if (!existsSync(dir)) return out;
@@ -50,22 +50,6 @@ export function pwa({ version = 'dev' } = {}) {
       ];
     },
     closeBundle() {
-      const files = walk(outDir, outDir);
-      const shell = files.filter((f) => f === 'index.html' || f.startsWith('assets/') || f.startsWith('fonts/') || f.startsWith('pwa/'));
-      // In the order the game needs them: models first, then the short sounds, then the icons.
-      const rank = (f) => (f.startsWith('models/') ? 0 : f.startsWith('audio/') ? 1 : 2);
-      const warm = files.filter((f) => f.startsWith('models/') || f.startsWith('icons/') || /^audio\/(ui|sfx|stingers)\//.test(f))
-        .sort((a, b) => rank(a) - rank(b) || (a < b ? -1 : 1));
-      // The build's own version when the release sets one; otherwise a hash of the shell, so two different
-      // builds never share a cache name.
-      const hash = createHash('sha1');
-      for (const f of shell) hash.update(`${f}:${statSync(join(outDir, f)).size}\n`);
-      const id = `${version}-${hash.digest('hex').slice(0, 8)}`;
-      const template = readFileSync(join(root, 'scripts/pwa/sw.template.js'), 'utf8');
-      writeFileSync(join(outDir, 'sw.js'), template
-        .replace('__VERSION__', () => id)
-        .replace('__SHELL__', () => JSON.stringify(shell))
-        .replace('__BASE__', () => base));
       writeFileSync(join(outDir, 'manifest.webmanifest'), `${JSON.stringify({
         id: base,
         name: NAME,
@@ -85,7 +69,17 @@ export function pwa({ version = 'dev' } = {}) {
           { src: `${base}pwa/icon-maskable-512.png`, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       }, null, 2)}\n`);
-      writeFileSync(join(outDir, 'pwa-assets.json'), `${JSON.stringify({ version: id, warm })}\n`);
+      const files = walk(outDir, outDir).filter((f) => !SKIP.test(f)).map((p) => ({ p, s: statSync(join(outDir, p)).size }));
+      // The build's own version when the release sets one, plus a hash of its files, so two different
+      // builds never share an id (and so never share a set).
+      const hash = createHash('sha1');
+      for (const f of files) hash.update(`${f.p}:${f.s}\n`);
+      const id = `${version}-${hash.digest('hex').slice(0, 8)}`;
+      const template = readFileSync(join(root, 'scripts/pwa/sw.template.js'), 'utf8');
+      writeFileSync(join(outDir, 'sw.js'), template
+        .replace('__VERSION__', () => id)
+        .replace('__BASE__', () => base));
+      writeFileSync(join(outDir, 'pwa-assets.json'), `${JSON.stringify({ id, version, bytes: files.reduce((n, f) => n + f.s, 0), files })}\n`);
     },
   };
 }

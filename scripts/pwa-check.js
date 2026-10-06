@@ -1,8 +1,15 @@
-// Checks the installable, offline build in a phone-sized Chrome: the manifest is installable (Chrome's
-// own installability errors, no icons or start URL missing), the service worker takes control and
-// fills its cache, the game boots again with the network off, and a new build replaces the old one
-// without a stale page. Builds two versions of the game into the cache directory, serves them from one
-// local server, and exits non-zero when a check fails.
+// Checks the installable, offline build in a phone-sized Chrome. Builds two versions of the game, serves
+// them from one local server (the "published" version can be switched), and exits non-zero when a check
+// fails:
+//   plain browser   a normal visit makes no request the page didn't make before (no offline download)
+//   installed app   Chrome reports no installability errors; the whole build downloads in the background
+//                   with a progress pill and "Ready to play offline"; a download cut off midway resumes on
+//                   the next launch; with the network off the game boots, starts a new game in an era,
+//                   plays its music files from the cache and runs weeks of game time
+//   updates         a new release downloads in the background, the running version keeps going, then a
+//                   "Restart" prompt takes it live; a save from the old version loads; a launch with the
+//                   network off shows no prompt and no error; an update cut off midway leaves the old
+//                   version working and resumes later
 // npm run pwa-check -- [--out shots/pwa] [--keep]
 import { chromium } from 'playwright';
 import { createServer } from 'node:http';
@@ -30,116 +37,203 @@ build(dirs.b, 'v1.0.1');
 
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.glb': 'model/gltf-binary', '.ogg': 'audio/ogg', '.m4a': 'audio/mp4', '.webp': 'image/webp' };
 let root = dirs.a;
+// A pause on audio files makes a download slow enough to cut off midway.
+let slowAudio = 0;
 const server = createServer((req, res) => {
   const path = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)).replace(/^(\.\.[/\\])+/, '');
   let file = join(root, path);
   if (existsSync(file) && statSync(file).isDirectory()) file = join(file, 'index.html');
   if (!existsSync(file)) { res.writeHead(404); res.end('not found'); return; }
-  res.writeHead(200, { 'Content-Type': TYPES[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
-  createReadStream(file).pipe(res);
+  const send = () => { res.writeHead(200, { 'Content-Type': TYPES[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' }); createReadStream(file).pipe(res); };
+  if (slowAudio && /\.(ogg|m4a)$/.test(file)) setTimeout(send, slowAudio); else send();
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const base = `http://127.0.0.1:${server.address().port}/`;
 
 const { browser } = await launchChromium(chromium, { mode: GL, label: 'pwa-check' });
-const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
-const page = await context.newPage();
-const errors = [];
 const failures = [];
-page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-page.on('pageerror', (e) => errors.push(`pageerror ${e.message}`));
 const check = (label, ok, detail) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}${detail ? `: ${detail}` : ''}`); if (!ok) failures.push(label); };
-const swVersion = () => page.evaluate(async () => {
-  const reg = await navigator.serviceWorker.getRegistration();
-  const worker = reg?.active;
-  if (!worker) return null;
-  return new Promise((resolve) => {
-    navigator.serviceWorker.addEventListener('message', (e) => { if (e.data?.type === 'version') resolve(e.data.version); }, { once: true });
-    worker.postMessage({ type: 'version' });
-    setTimeout(() => resolve(null), 3000);
-  });
-});
-const cached = () => page.evaluate(async () => {
-  const names = await caches.keys();
-  const out = {};
-  for (const n of names) out[n] = (await (await caches.open(n)).keys()).length;
-  return out;
-});
+const PHONE = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
+const state = (page) => page.evaluate(() => window.__HITL_OFFLINE && { ...window.__HITL_OFFLINE.state });
+const waitState = (page, name, timeout = 240000) => page.waitForFunction((n) => window.__HITL_OFFLINE?.state.state === n, name, { timeout, polling: 250 })
+  .catch(async (e) => { throw new Error(`waiting for state ${name}: ${JSON.stringify(await state(page))} ${e.message.split('\n')[0]}`); });
+const setNames = (page) => page.evaluate(async () => (await caches.keys()).filter((k) => k.startsWith('hitl-set-')));
+const setSize = (page, name) => page.evaluate(async (n) => (await (await caches.open(n)).keys()).length, name);
+const openPage = async (ctx, installed) => {
+  const page = await ctx.newPage();
+  page.errors = [];
+  page.on('pageerror', (e) => page.errors.push(`pageerror ${e.message}`));
+  page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|ERR_INTERNET_DISCONNECTED|ERR_FAILED/.test(m.text())) page.errors.push(m.text()); });
+  // Chrome can't emulate display-mode, so an installed app is the page's matchMedia saying standalone.
+  if (installed) {
+    await page.addInitScript(() => {
+      const mm = window.matchMedia.bind(window);
+      window.matchMedia = (q) => (/display-mode:\s*standalone/.test(q) ? { ...mm('all'), matches: true, media: q } : mm(q));
+    });
+  }
+  page.cdp = await ctx.newCDPSession(page);
+  return page;
+};
+const launch = async (page, query = '') => { await page.goto(base + query, { waitUntil: 'domcontentloaded', timeout: 90000 }); await waitForBoot(page); };
+const reload = async (page) => { await page.reload({ waitUntil: 'domcontentloaded', timeout: 90000 }); await waitForBoot(page); };
 
 try {
-  // First visit: boots, installs the worker, takes control, fills the cache.
-  await page.goto(base, { waitUntil: 'domcontentloaded', timeout: 90000 });
-  await waitForBoot(page);
+  // ---- A normal browser visit: nothing extra is requested.
+  {
+    const plainUrls = async (blockWorker) => {
+      const ctx = await browser.newContext({ ...PHONE, serviceWorkers: blockWorker ? 'block' : 'allow' });
+      const page = await openPage(ctx, false);
+      const urls = new Set();
+      page.on('request', (r) => urls.add(new URL(r.url()).pathname));
+      await launch(page);
+      await page.waitForTimeout(12000);
+      const st = await state(page);
+      const sets = blockWorker ? [] : await setNames(page);
+      await ctx.close();
+      return { urls, st, sets };
+    };
+    const without = await plainUrls(true);
+    const withSw = await plainUrls(false);
+    const extra = [...withSw.urls].filter((u) => !without.urls.has(u));
+    const allowed = new Set(['/sw.js', '/manifest.webmanifest']);
+    check('a plain browser visit requests nothing beyond the worker and the manifest', extra.every((u) => allowed.has(u)) && !withSw.urls.has('/pwa-assets.json'), `extra: ${extra.join(', ') || 'none'}`);
+    check('and downloads no offline set', withSw.sets.length === 0 && withSw.st?.state === 'off', JSON.stringify(withSw.sets));
+  }
+
+  // ---- A plain browser, on request: the Settings button downloads the game and shows size and progress.
+  {
+    const ctx0 = await browser.newContext(PHONE);
+    const p0 = await openPage(ctx0, false);
+    await launch(p0);
+    await p0.locator('button', { hasText: /Settings/ }).first().evaluate((el) => el.click());
+    const row = p0.locator('.setrow', { hasText: 'Play offline' });
+    await row.waitFor({ timeout: 15000 });
+    const label0 = await row.locator('button').first().textContent();
+    check('Settings offers "Download" with its size in a plain browser', /Download \(\d+ MB\)/.test(label0), label0);
+    await row.locator('button').first().evaluate((el) => el.click());
+    await p0.waitForFunction(() => /Downloading|Ready to play offline/.test(document.querySelector('.setrow + .setrow, .settings')?.textContent || document.body.textContent), null, { timeout: 30000 }).catch(() => {});
+    await waitState(p0, 'ready');
+    check('and shows "Ready to play offline." when done', /Ready to play offline\./.test(await row.textContent()), await row.textContent());
+    await p0.screenshot({ path: `${OUT}/settings-offline.png` });
+    await ctx0.close();
+  }
+
+  // ---- The installed app: download, resume, offline play.
+  const ctx = await browser.newContext(PHONE);
+  let page = await openPage(ctx, true);
+  slowAudio = 120;
+  await launch(page);
   await page.evaluate(() => navigator.serviceWorker.ready);
-  await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 30000 });
-  const v1 = await swVersion();
-  check('the service worker takes control of the first visit', !!v1, v1);
-  const { warm } = await (await fetch(`${base}pwa-assets.json`)).json();
-  const warmed = await page.waitForFunction(() => window.__HITL_PWA_WARM && window.__HITL_PWA_WARM.done >= window.__HITL_PWA_WARM.total, null, { timeout: 180000, polling: 1000 }).then(() => true, () => false);
-  console.log(`warm progress: ${JSON.stringify(await page.evaluate(() => window.__HITL_PWA_WARM || null))} finished=${warmed}`);
-  const c1 = await cached();
-  const shellName = Object.keys(c1).find((k) => k.startsWith('hitl-shell-'));
-  check('the shell is precached', !!shellName && c1[shellName] >= 20, JSON.stringify(c1));
-  check('idle time caches the models, icons and short sounds', (c1['hitl-media'] || 0) >= warm.length * 0.95, `${c1['hitl-media'] || 0} of ${warm.length}`);
-
-  // Chrome's own verdict on whether the page can be installed.
-  const cdp = await context.newCDPSession(page);
-  const { installabilityErrors } = await cdp.send('Page.getInstallabilityErrors');
+  await page.waitForFunction(() => window.__HITL_OFFLINE.state.state === 'downloading' && window.__HITL_OFFLINE.state.done > 0, null, { timeout: 60000, polling: 250 });
+  const pill = await page.evaluate(() => document.querySelector('#hitl-offline .pill')?.textContent || '');
+  check('the installed app shows a download progress pill', /Downloading for offline: \d+% of \d+ MB/.test(pill), pill);
+  await page.screenshot({ path: `${OUT}/downloading.png` });
+  // Cut the network about a fifth of the way in.
+  await page.waitForFunction(() => { const s = window.__HITL_OFFLINE.state; return s.total && s.done / s.total > 0.2; }, null, { timeout: 120000, polling: 100 });
+  await ctx.setOffline(true);
+  await waitState(page, 'paused', 60000);
+  const part = await state(page);
+  check('a download cut off midway pauses', part.state === 'paused' && part.filesDone > 0 && part.filesDone < part.files, `${part.filesDone} of ${part.files} files`);
+  const names1 = await setNames(page);
+  check('and leaves no complete set behind', names1.length === 1 && !(await page.evaluate(async (n) => !!(await (await caches.open(n)).match(new URL('/__complete', location.origin).href)), names1[0])));
+  await ctx.setOffline(false);
+  slowAudio = 0;
+  await reload(page);
+  const resumed = await page.evaluate(() => window.__HITL_OFFLINE.state);
+  await waitState(page, 'ready');
+  const st1 = await state(page);
+  const afterResume = await page.evaluate(() => window.__HITL_OFFLINE.state.filesDone);
+  check('the next launch resumes where it stopped and finishes', afterResume === st1.files && st1.files > 100, `${st1.filesDone} of ${st1.files} files (${resumed.filesDone} on launch)`);
+  const pill2 = await page.evaluate(() => document.querySelector('#hitl-offline .pill')?.textContent || '');
+  check('it confirms "Ready to play offline"', /Ready to play offline/.test(pill2), pill2);
+  await page.screenshot({ path: `${OUT}/ready.png` });
+  const names = await setNames(page);
+  check('one complete set is stored', names.length === 1 && (await setSize(page, names[0])) === st1.files + 1, `${names[0]}: ${await setSize(page, names[0])} entries`);
+  const { installabilityErrors } = await page.cdp.send('Page.getInstallabilityErrors');
   check('Chrome reports no installability errors', installabilityErrors.length === 0, installabilityErrors.map((e) => e.errorId).join(', '));
-  const { manifest } = await (async () => {
-    const m = await (await fetch(`${base}manifest.webmanifest`)).json();
-    return { manifest: m };
-  })();
+  const manifest = await (await fetch(`${base}manifest.webmanifest`)).json();
   check('the manifest is standalone with a start URL and a maskable icon', manifest.display === 'standalone' && manifest.start_url === '/' && manifest.icons.some((i) => i.purpose === 'maskable'));
-  await page.screenshot({ path: `${OUT}/online.png` });
 
-  // The network goes away: a reload still brings the game up from the cache.
-  await context.setOffline(true);
-  await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
-  await waitForBoot(page);
-  const offline = await page.evaluate(() => ({ boot: window.__HITL_BOOT_ERROR || null, text: document.body.innerText.slice(0, 80) }));
-  check('the game boots with the network off', !offline.boot && /New Game|Continue/.test(await page.evaluate(() => document.body.innerText)), offline.boot || offline.text.replace(/\s+/g, ' '));
-  await page.screenshot({ path: `${OUT}/offline.png` });
-  // A live office offline: models, glyphs and sounds come from the cache.
-  await page.goto(`${base}?mock=floor`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await waitForBoot(page);
-  await page.waitForTimeout(4000);
-  const floor = await page.evaluate(() => {
+  // The network goes away: relaunch, start a new game in an era, hear its music.
+  await ctx.setOffline(true);
+  const t0 = Date.now();
+  await reload(page);
+  const offlineBoot = Date.now() - t0;
+  check('the game boots with the network off', !(await page.evaluate(() => window.__HITL_BOOT_ERROR)) && /New Game|Continue/.test(await page.evaluate(() => document.body.innerText)), `${offlineBoot} ms`);
+  await page.screenshot({ path: `${OUT}/offline-title.png` });
+  // A tap unlocks audio, as a player's first touch does.
+  await page.touchscreen.tap(195, 420);
+  const era = await page.evaluate(async () => {
+    performance.clearResourceTimings();
+    window.__HITL.controls.newGame({ seed: 7, startEra: 'dotcom', companyName: 'Offline Co' });
+    await new Promise((r) => setTimeout(r, 6000));
+    const music = performance.getEntriesByType('resource').filter((e) => /\/audio\/music\//.test(e.name));
+    let decoded = 0;
+    if (music[0]) {
+      const ctxA = new (window.AudioContext || window.webkitAudioContext)();
+      const buf = await (await fetch(music[0].name)).arrayBuffer();
+      decoded = (await ctxA.decodeAudioData(buf)).duration;
+    }
     const h = window.__HITL;
     const week0 = h.state.week;
-    h.tickN(2000);
-    return { boot: window.__HITL_BOOT_ERROR || null, playing: !!h.playing, staff: h.state.staff.length, weeks: h.state.week - week0 };
+    h.tickN(1500);
+    return { playing: h.playing, era: h.state.era?.id, music: music.map((e) => `${e.name.split('/audio/')[1]}:${e.responseStatus}`), decoded, weeks: h.state.week - week0 };
   });
-  check('an office renders and runs weeks of game time with the network off', !floor.boot && floor.playing && floor.staff > 0 && floor.weeks > 0, JSON.stringify(floor));
-  await page.screenshot({ path: `${OUT}/offline-floor.png` });
-  await context.setOffline(false);
+  check('a new game in an era starts offline and plays that era\'s music from the cache', era.playing && era.music.length > 0 && era.music.every((m) => m.endsWith(':200')) && era.decoded > 1, JSON.stringify(era));
+  check('weeks of game time run offline', era.weeks > 0, `${era.weeks} weeks`);
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${OUT}/offline-game.png` });
+  await page.evaluate(() => window.__HITL.controls.save?.());
+  check('the offline page raised no errors', page.errors.length === 0, page.errors.slice(0, 3).join(' | '));
+  await ctx.setOffline(false);
 
-  // A new build: the old page keeps running, the new worker waits, and takes over when the page is hidden.
+  // ---- A new release.
   root = dirs.b;
-  await page.evaluate(async () => { const reg = await navigator.serviceWorker.getRegistration(); await reg.update(); });
-  await page.waitForFunction(async () => !!(await navigator.serviceWorker.getRegistration())?.waiting, null, { timeout: 30000 });
-  check('a new build installs beside the running one and waits', (await swVersion()) === v1);
-  const reloaded = page.waitForEvent('load', { timeout: 30000 });
-  await page.evaluate(() => {
-    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
-    document.dispatchEvent(new Event('visibilitychange'));
-  });
-  await reloaded;
+  slowAudio = 250;
+  const v1 = await page.evaluate(() => window.__HITL.version);
+  await reload(page);
+  await page.waitForFunction(() => window.__HITL_OFFLINE.state.state === 'downloading', null, { timeout: 60000, polling: 100 });
+  const upill = await page.evaluate(() => document.querySelector('#hitl-offline .pill')?.textContent || '');
+  check('a new release downloads in the background while the old version runs', /Downloading the update: \d+%/.test(upill) && (await page.evaluate(() => window.__HITL.version)) === v1, upill);
+  // Cut the update off midway: the old version keeps working.
+  await page.waitForFunction(() => { const s = window.__HITL_OFFLINE.state; return s.total && s.done / s.total > 0.2; }, null, { timeout: 120000, polling: 100 });
+  await ctx.setOffline(true);
+  await waitState(page, 'paused', 60000);
+  await reload(page);
+  check('an update cut off midway leaves the old version working', (await page.evaluate(() => window.__HITL.version)) === v1 && !(await page.evaluate(() => document.querySelector('#hitl-update.on'))));
+  await ctx.setOffline(false);
+  slowAudio = 0;
+  await reload(page);
+  await waitState(page, 'ready');
+  await page.waitForSelector('#hitl-update.on', { timeout: 30000 });
+  check('when the update is complete the page asks to restart', /A new version is ready\. Restart to update\?/.test(await page.evaluate(() => document.querySelector('#hitl-update').textContent)) && (await page.evaluate(() => window.__HITL.version)) === v1);
+  await page.screenshot({ path: `${OUT}/update-prompt.png` });
+  const restarted = page.waitForEvent('load', { timeout: 60000 });
+  await page.click('#hitl-update .go', { timeout: 10000 }).catch(async (e) => { console.log('click failed', JSON.stringify(await state(page)), await page.evaluate(() => document.querySelector('#hitl-update')?.className)); throw e; });
+  await restarted;
   await waitForBoot(page);
-  await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 30000 });
-  const v2 = await swVersion();
-  check('the new build takes over when the page is hidden and the page reloads onto it', !!v2 && v2 !== v1, `${v1} -> ${v2}`);
-  const c2 = await cached();
-  check('the old build\'s shell cache is gone and the media cache stays', Object.keys(c2).filter((k) => k.startsWith('hitl-shell-')).length === 1 && c2['hitl-media'] >= c1['hitl-media'] * 0.95, JSON.stringify(c2));
-  await context.setOffline(true);
-  await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
-  await waitForBoot(page);
-  check('the new build also boots offline', !(await page.evaluate(() => window.__HITL_BOOT_ERROR)));
-  await context.setOffline(false);
-  const real = errors.filter((e) => !/Failed to load resource|net::ERR_INTERNET_DISCONNECTED/.test(e));
-  check('no console errors beyond the offline fetches', real.length === 0, real.slice(0, 3).join(' | '));
+  const v2 = await page.evaluate(() => window.__HITL.version);
+  check('Restart now runs the new version', v2 === 'v1.0.1' && v2 !== v1, `${v1} -> ${v2}`);
+  const cont = await page.evaluate(() => { const r = window.__HITL.controls.continueGame(); return { ok: r.ok, name: window.__HITL.state?.companyName, era: window.__HITL.state?.era?.id }; });
+  check('a save made on the old version loads on the new one', cont.ok && cont.name === 'Offline Co', JSON.stringify(cont));
+  // The new version prunes the old set once it is running and has confirmed its own is whole.
+  for (let i = 0; i < 40 && (await setNames(page)).length !== 1; i++) await page.waitForTimeout(500);
+  const after = await setNames(page);
+  check('the old version\'s set is gone and the new one stands alone', after.length === 1 && after[0] !== names[0], `${names[0]} -> ${after.join(',')}`);
+
+  // ---- A launch with no network after the update: no prompt, no error, no wait.
+  await ctx.setOffline(true);
+  const t1 = Date.now();
+  await reload(page);
+  const t2 = Date.now() - t1;
+  await page.waitForTimeout(3500);
+  const quiet = await page.evaluate(() => ({ prompt: !!document.querySelector('#hitl-update.on'), pill: document.querySelector('#hitl-offline .pill.on')?.textContent || '', version: window.__HITL.version }));
+  check('an offline launch shows no prompt, no pill and no error', !quiet.prompt && !quiet.pill && quiet.version === 'v1.0.1' && page.errors.length === 0, `${JSON.stringify(quiet)} errors: ${page.errors.join(' | ')}`);
+  check('and starts as quickly as an online one', t2 < offlineBoot * 3 + 2000, `${t2} ms vs ${offlineBoot} ms`);
+  await ctx.setOffline(false);
+  await ctx.close();
 } catch (e) {
-  check('the run finished', false, String(e?.message || e).split('\n')[0]);
+  check('the run finished', false, String(e?.stack || e).split('\n').slice(0, 3).join(' / '));
 } finally {
   await browser.close();
   server.close();
