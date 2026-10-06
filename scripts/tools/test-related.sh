@@ -45,6 +45,7 @@ files="$(sed '/^$/d' <<<"$keep")"
 [ -n "$files" ] && echo "test-related: $(wc -l <<<"$files") changed file(s)"
 [ -n "$spawned" ] && echo "test-related: plus $(wc -l <<<"$spawned") test file(s) that run a changed script by its path: $(tr '\n' ' ' <<<"$spawned")"
 [ "$list" = 1 ] && { printf '%s\n' "$files" "$spawned" | sed '/^$/d' | sort -u; exit 0; }
-# A test file given to vitest related runs itself.
+# A test file given to vitest related runs itself. Whole-game tests (*.full.test.js) and balance run at
+# release, as in test:fast.
 # shellcheck disable=SC2086
-exec bash scripts/test-cache.sh npx vitest related --run --passWithNoTests --exclude tests/sim/balance.test.js $files $spawned
+exec bash scripts/test-cache.sh npx vitest related --run --passWithNoTests --exclude tests/sim/balance.test.js --exclude 'tests/**/*.full.test.js' $files $spawned
