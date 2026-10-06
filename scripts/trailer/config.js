@@ -68,7 +68,9 @@ export const DEFERRED_CAPTURES = [];
 // One company for the whole outage stretch (seed 13): the agents watch a level-2+ NOC and its next incident is
 // misread, so the alert, the Yak thread and the facepalm all come from the same game.
 const NOC_HIT = '(c) => c.ops.noc === "agents" && c.outage?.misread && c.outage.weeks === 0';
-const OUTAGE_PLAY = { weeks: 1000, bot: 'balanced', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: NOC_HIT };
+// The week a first-version hit launches on the Office Floor (the launch beat's pin).
+const LAUNCH_HIT = "(c, ev) => c.office.stage === 1 && ev.some((e) => e.type === 'launch' && ((p) => p?.version === 1 && p.score >= 9)(c.products.find((p) => p.id === e.productId)))";
+const OUTAGE_PLAY ={ weeks: 1000, bot: 'balanced', prep: IN_OFFICE + "s.policies.daily_standups = false;", after: CHAT_HISTORY, hit: NOC_HIT };
 const YAK_SETUP = `(async () => { await ${LOAD_PIN('outage')}; ${YAK_ONLY}; ${YAK_HELPERS} })()`;
 
 // A quiet week (seed 62, week 124) where "Share a meme" picks the PC LOAD LETTER image: the post
@@ -107,7 +109,7 @@ export const BEATS = [
   // The hire panel: a candidate hired.
   { id: 'hire', item: 'trail-hire', from: 0.9, dur: 2.2 },
   // The first launch on the Office Floor, so the story never steps back into the garage.
-  { id: 'launch', item: 'trail-launch', from: 72.0, dur: 2.4 },
+  { id: 'launch', item: 'real-launch', capture: { pin: 'launch' }, from: 72.0, dur: 2.4 },
   { id: 'noc-watch', item: 'site-yak-backfire', capture: NOC_CAPTURE, from: 5.1, dur: 4.2 },
   { id: 'incident', item: 'site-yak-backfire', capture: NOC_CAPTURE, from: 9.3, dur: 2.2 },
   // A meme posted mid-outage, and the reactions.
@@ -186,6 +188,7 @@ export const PIN_SOURCES = {
   eraChatgbt: { query: 'seed=1&speed=1', setup: BEFORE_EVENT("(e) => e.type === 'era' && e.eraId === 'chatgbt'") },
   eraAgents: { query: 'seed=1&speed=1', setup: BEFORE_EVENT("(e) => e.type === 'era' && e.eraId === 'agents'") },
   eraConsolidation: { query: 'seed=1&speed=1', setup: BEFORE_EVENT("(e) => e.type === 'era' && e.eraId === 'consolidation'") },
+  launch: { query: 'seed=9&speed=1', setup: `(async () => { await ${PRE_UNTIL({ weeks: 400, bot: 'balanced', prep: IN_OFFICE, hit: LAUNCH_HIT })}; })()` },
   plateau: { query: 'seed=3&speed=1&time=day', setup: GROW(800, { lateHires: false }) },
   printer: { moment: 'printer_jam --stage floor --choice 0' },
 };
