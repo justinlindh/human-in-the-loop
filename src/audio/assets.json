@@ -833,9 +833,9 @@
    "file": "sfx/dotcom_bell.ogg",
    "duration": 1.72
   },
-  "sales_register": {
-   "file": "sfx/sales_register.ogg",
-   "duration": 1.053
+  "deal_handbell": {
+   "file": "sfx/deal_handbell.ogg",
+   "duration": 0.867
   },
   "sledge_leader": {
    "file": "sfx/sledge_leader.ogg",
