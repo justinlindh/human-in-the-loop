@@ -105,6 +105,24 @@ describe('issue #670: AI job interviews', () => {
     expect(s.flags.aiPolish[c.id]).toBeUndefined();
   });
 
+  it('a polished candidate hired after the policy is switched off still shows their real skills later', () => {
+    const s = company();
+    dispatch(s, { type: 'setPolicy', id: 'ai_interviews', on: true });
+    const keep = B.aiInterviews.gamerChance;
+    B.aiInterviews.gamerChance = 1;
+    try { refreshCandidates(s); } finally { B.aiInterviews.gamerChance = keep; }
+    const c = s.candidates[0];
+    const listed = skillSum(c);
+    dispatch(s, { type: 'setPolicy', id: 'ai_interviews', on: false });
+    const res = dispatch(s, { type: 'hire', candidateId: c.id });
+    expect(res.events.some((e) => e.type === 'aiInterview')).toBe(false);
+    s.week += B.aiInterviews.revealWeeks;
+    const reveal = weekOf(s).find((e) => e.type === 'interviewReveal');
+    expect(reveal.staffId).toBe(c.id);
+    expect(skillSum(s.staff.find((x) => x.id === c.id))).toBe(listed - reveal.drop);
+    expect(s.flags.aiPolish[c.id]).toBeUndefined();
+  });
+
   it('wider rolls and gamed candidates never touch the main random stream', () => {
     const a = company(), b = company();
     const keep = B.aiInterviews.extraCandidates;

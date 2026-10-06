@@ -8,8 +8,9 @@ import { CALIBRATE_LINES, INTERVIEW_CHATTER, REVEAL_LINES } from '../data/ai-int
 
 // AI video interviews (#670): a policy from the Agents era. Hiring through it is cheaper and faster, candidates
 // roll wider, some had their own AI take the interview (listed skills inflated until a few weeks after hire;
-// the gap lives in flags.aiPolish by person id), and each hire costs a little brand. Everything draws from its
-// own stream, so a game without the policy plays exactly as before.
+// the gap lives in flags.aiPolish by person id), and each hire costs a little brand. The rolls draw from the
+// feature's own stream; only a candidate added by the loop decision uses the main one. A game without the
+// policy plays exactly as before.
 
 const SKILLS = ['features', 'polish', 'reliability', 'novelty'];
 
@@ -44,19 +45,19 @@ export function addFinishedCandidate(state) {
   state.candidates.push(shapeCandidate(state, c, { gamed: true }));
 }
 
-export const hireFeeMult =(state) => (interviewsOn(state) ? B.aiInterviews.feeMult : 1);
+export const hireFeeMult = (state) => (interviewsOn(state) ? B.aiInterviews.feeMult : 1);
 
 // A hire made through the bot: a little brand, the moment staged on the first one and now and then after,
 // and a polished hire's reveal scheduled.
 export function onInterviewHire(ctx, c) {
   const { state } = ctx;
+  const polish = state.flags.aiPolish?.[c.id];
+  if (polish) polish.revealWeek = state.week + B.aiInterviews.revealWeeks;
   if (!interviewsOn(state)) return;
   state.brand = Math.max(0, Math.min(100, state.brand + B.aiInterviews.brandPerHire));
   const first = !state.flags.aiInterviewHires;
   state.flags.aiInterviewHires = (state.flags.aiInterviewHires ?? 0) + 1;
   const staged = first || chance(sideRng(state, 2), B.aiInterviews.stageChance);
-  const polish = state.flags.aiPolish?.[c.id];
-  if (polish) polish.revealWeek = state.week + B.aiInterviews.revealWeeks;
   ctx.emit({ type: 'aiInterview', candidateId: c.id, staffId: c.id, staged });
 }
 

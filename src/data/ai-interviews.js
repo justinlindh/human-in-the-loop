@@ -32,7 +32,7 @@ export const AI_INTERVIEW_EVENTS = [
         outcome: 'They part on great terms. The candidate\'s AI has asked to stay in touch.' },
       { label: 'Pull the plug', hint: 'Brand down a little; the candidate posts about it', effects: { brand: -1 },
         outcome: 'Both screens go dark. Somewhere, a thread titled "Ghosted by a robot" begins.' },
-      { label: 'Hire the AI', hint: 'Automation up a little; the team is not sure how to feel', effects: { automationBump: 0.05, teamMeaning: -1 },
+      { label: 'Hire the AI', hint: 'Automation up a little, and the story gets around', effects: { automationBump: 0.05, hype: 5 },
         outcome: 'It accepted the offer before we finished making it. It has already scheduled a 1:1 with itself.' },
     ],
   },

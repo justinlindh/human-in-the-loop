@@ -1385,4 +1385,4 @@ misc · raised by a rule
 |---|---|
 | Let them finish | a candidate whose own AI did the interview joins the pool, skills listed +20 until 4 weeks after hire |
 | Pull the plug | brand -1 |
-| Hire the AI | team meaning -1; automation level +1 (0.05) |
+| Hire the AI | hype on your newest product +5; automation level +1 (0.05) |
