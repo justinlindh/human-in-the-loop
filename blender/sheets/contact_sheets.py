@@ -1,7 +1,10 @@
 """Contact sheets: one PNG per .glb with front, side, back, 3/4, and top views on a neutral ground,
 with a 1 m scale post (10 cm bands) beside the model. Rendered with Eevee on the GPU.
 
-  blender -b --factory-startup -P blender/sheets/contact_sheets.py -- --models public/models --out <dir> [--only a.glb,b.glb]
+  blender -b --factory-startup -P blender/sheets/contact_sheets.py -- --models public/models --out <dir> [--only a.glb,b_l2,c]
+
+--only takes model names (with or without .glb) or family names (espresso for espresso_l1..l3) and
+sheets each named family; a list that matches no model exits 1.
 
 Each sheet is <out>/<model>.png. Tiles are 384 px; the scale post and a 0.5 m floor grid sit behind
 the model so size reads at a glance.
@@ -154,20 +157,20 @@ def sheet(family, glbs):
 
 
 # Rigs (*_rig.glb) hold bones and clips, nothing to look at.
+import re
+# A model's family: its name without the .glb and the _l1.._l3 level suffix. --only takes model or
+# family names, with or without .glb, and sheets every level of each family it names.
+family = lambda name: re.sub(r'_l[123]$', '', name[:-4] if name.endswith('.glb') else name)
 files = sorted(f for f in os.listdir(MODELS) if f.endswith('.glb') and not f.endswith('_rig.glb'))
 if ONLY:
-    files = [f for f in files if f in ONLY or os.path.splitext(f)[0] in ONLY]
-import re
+    fams = {family(o) for o in ONLY}
+    files = [f for f in files if family(f) in fams]
+    if not files:
+        print(f'contact_sheets: --only {",".join(ONLY)} matches no model in {MODELS}', file=sys.stderr)
+        sys.exit(1)
 families = {}
 for f in files:
-    fam = re.sub(r'_l[123]$', '', os.path.splitext(f)[0])
-    families.setdefault(fam, []).append(os.path.join(MODELS, f))
-if ONLY:
-    fams = {re.sub(r'_l[123]$', '', o) for o in ONLY}
-    files = sorted(f for f in os.listdir(MODELS) if f.endswith('.glb') and not f.endswith('_rig.glb') and re.sub(r'_l[123]$', '', os.path.splitext(f)[0]) in fams)
-    families = {}
-    for f in files:
-        families.setdefault(re.sub(r'_l[123]$', '', os.path.splitext(f)[0]), []).append(os.path.join(MODELS, f))
+    families.setdefault(family(f), []).append(os.path.join(MODELS, f))
 for fam, glbs in sorted(families.items()):
     print(f'SHEET {sheet(fam, sorted(glbs))}')
 tmp = os.path.join(OUT, '_tile.png')
