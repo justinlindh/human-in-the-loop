@@ -15,7 +15,7 @@ const oneLine = (s) => String(s).replace(/\s+/g, ' ').trim();
 const RAW = 'https://raw.githubusercontent.com/justinlindh/human-in-the-loop/feature-media';
 
 // `stills` lists the file names on the feature-media branch; a feature whose id has one there
-// (`office-<id>.webp`, `decision-<id>.png`) gets it as a still line.
+// (`<kind>-<id>.webp` or `.png`, any kind) gets it as a still line.
 export function digest(data, day = data.days[0]?.date, stills = []) {
   const stillsFor = (ids = []) => stills.filter((n) => ids.some((id) => new RegExp(`^[a-z]+-${id.replace(/[^\w-]/g, '')}\\.(webp|png)$`).test(n)));
   const d = data.days.find((x) => x.date === day);

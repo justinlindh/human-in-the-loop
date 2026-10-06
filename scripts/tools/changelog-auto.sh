@@ -83,7 +83,7 @@ data="$STATE/$day.json"
 n="$(jq '[.days[0].prs[], .days[0].direct[]] | length' "$data" 2>/dev/null)" || fail "day-changes.mjs gave no JSON for $day"
 if [ "${n:-0}" -eq 0 ]; then say "no player-visible change on $day; nothing to write"; touch "$STATE/done/$day"; report_green; exit 0; fi
 say "$day: $n player-visible change(s)"
-# Art's object stills live on the feature-media branch (office-<id>.webp, decision-<id>.webp); the digest
+# Art's object stills live on the feature-media branch (<kind>-<id>.webp or .png); the digest
 # links each feature to the one with its id.
 : >"$STATE/$day.stills.txt"
 if git -C "$game" fetch -q origin feature-media >>"$log" 2>&1; then git -C "$game" ls-tree --name-only origin/feature-media >"$STATE/$day.stills.txt" 2>>"$log"; fi
@@ -117,8 +117,8 @@ write_prompt() { # <feedback>
     echo "Write the entry: a headline for the day, then items, one per thing a player would notice. Rules:"
     echo "- Gameplay first, then how it looks. Say what a new object or choice does in play, with the numbers from the effects lines when they are there. Say it the way a player would, not the way a developer would."
     echo "- Group small fixes into one item. Skip anything a player cannot see or feel. Do not invent: every claim comes from the digest."
-    echo "- Stills only. Each item may carry media: [{ \"src\": <a still URL from the digest, exactly as written>, \"kind\": \"image\", \"caption\": <short> }]. Use only stills the digest lists. Never a clip or GIF."
-    echo "- Every new object or choice (a feature the digest marks added) gets its still in its item, when the digest lists one for it. Several new objects may share an item; each keeps its own still."
+    echo "- Stills only. Each item may carry media: [{ \"src\": <a still URL from the digest, exactly as written>, \"kind\": \"image\", \"caption\": <short> }]. Use at most 3 stills per item, and only stills the digest lists. Never a clip or GIF."
+    echo "- Every new object or choice (a feature the digest marks added) gets its still in its item, when the digest lists one for it. When the day adds more than 3 new objects, split them across items so each item has at most 3 stills and every new object still gets its own."
     echo "- refs: the PR numbers behind the item, like [\"#1451\"]."
     echo "- No em dashes (use a comma, a colon or two sentences). Say company or lab, never startup."
     echo
