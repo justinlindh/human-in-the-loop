@@ -345,6 +345,8 @@ try {
           target.file = join(indexDir(simHash()), 'snapshots', target.row.preTick);
         }
         const entries = await snapshotEntries(target.file);
+        // The game plays on with the pacing switches the index was built with, so a pre item's tick raises its card.
+        await (await import('./events/play.js')).pinIndexPacing?.(page);
         const r = await page.evaluate(({ list, pre }) => {
           for (const [k, v] of list) localStorage.setItem(k, v);
           const res = window.__HITL.controls.continueGame();
