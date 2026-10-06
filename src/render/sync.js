@@ -13,6 +13,7 @@ import { createPerks } from './perks.js';
 import { createPets } from './pets.js';
 import { createRobot } from './robot.js';
 import { createIncentives, HOLD_NEAR_M } from './incentives.js';
+import { createRadio } from './radio.js';
 import { createMoments } from './moments.js';
 import { createMomentCamera } from './momentcam.js';
 import { createSpotlights } from './spotlight.js';
@@ -28,6 +29,7 @@ import { between, draw, fixed } from './rand.js';
 // Characters are keyed by staff id; removed staff walk out and are disposed.
 
 const WALK = 1.25;
+const TASTE_EMOTE_S = 3;       // how long a like or dislike of the boombox's station shows
 const CHAIR_BACK_M = 0.55;
 const BODY_R = 0.2;            // a standing person's footprint radius     // where a sitter stops behind their chair before sliding onto it
 // Walks keep a cell off furniture where the room allows (a chibi head is wider than the body and
@@ -610,6 +612,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     firstSync = false;
     pets.sync(state);
     robot.sync(state);
+    radio.sync(state);
 
     // Desk screens and sabbatical signs.
     const outage = !!state.outage;
@@ -696,6 +699,16 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
           incentives.handle(e);
           break;
         case 'robot': robot.event(e); break;
+        case 'radioTaste': {
+          // Someone reacts to the station: they turn to the boombox (seated, a swivel) with a liking
+          // or a sour note bubble. Busy people and moment actors only show the bubble.
+          const r = recs.get(e.staffId);
+          if (!r || r.hidden || r.mode !== 'placed') break;
+          const at = radio.at();
+          if (at && !r.temp && !r.path.length) faceToward(r, { pos: at });
+          emote(r, e.verdict === 'dislike' ? 'music_dislike' : 'music_like', TASTE_EMOTE_S);
+          break;
+        }
         default: break;
       }
       faceEvent(e);
@@ -1354,6 +1367,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   robotOut = () => robot.blocker();
   const momentCam = createMomentCamera(rig);
   const spotlights = createSpotlights({ camera: momentCam });
+  const radio = createRadio({ office, parent: group, low });
   const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx, spotlights, robot });
   // Ambient moments wait out a standup or party; a decision's own moment does not (the game holds
   // still behind its card, so a standup or party under way would never end).
@@ -2166,6 +2180,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     perks.update(dt, lastState);
     pets.update(dt);
     robot.update(dt);
+    radio.update(dt);
     incentives.update(dt);
     moments.update(dt, lastState);
     updateResponders(lastState);
