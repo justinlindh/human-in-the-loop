@@ -15,8 +15,8 @@ const DELAYED = /later|week/i;
 
 const isLeadership = (d) => EVENTS[d.eventId]?.kind === 'leadership' || LEADERSHIP_IDS.has(d.eventId);
 
-// Under oneLaunchCard a new product's card comes at least this long after the last one closed; launches in
-// between wait and join the next card.
+// Under oneLaunchCard a new product's card comes after at least this much running play since the last one
+// closed; launches in between wait and join the next card.
 export const LAUNCH_GAP_MS = 90000;
 
 // True for the sim's "<name> launched!" toast when a launch card already tells that news.
@@ -26,7 +26,8 @@ export const launchToastCarded = (names, text) => pacingOn('oneLaunchCard') && n
 // toasts dock in its strip so a refused choice's reason shows right under the choices.
 export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = () => null }) {
   const queue = []; // launch results waiting for the screen
-  let lastClosed = -Infinity; // when the last launch card closed, for the oneLaunchCard gap
+  let playSinceCard = Infinity; // ms of running play since the last launch card closed, for the oneLaunchCard gap
+  let lastT = pnow();
   let launch = null; // { productId, prevSpeed, timers }
   let resumeSpeed = null; // speed to restore after a launch popup that a decision interrupted
   // Above the big Yak overlay, so a card raised while Yak is open can be answered.
@@ -237,7 +238,7 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
     launch.timers.forEach(pClear);
     if ((ctx.controls.getSpeed?.() ?? 0) === 0) ctx.controls.setSpeed?.(launch.prevSpeed);
     launch = null;
-    lastClosed = pnow();
+    playSinceCard = 0;
     backdrop.style.display = 'none';
     backdrop.replaceChildren();
     restoreDock();
@@ -245,6 +246,10 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
   }
 
   function update(s, { holdLaunch = false } = {}) {
+    // Running play since the last launch card closed: paused time and time under a card or decision don't count.
+    const t = pnow();
+    if (t > lastT && !shown && !launch && !s.pendingDecision && (ctx.controls.getSpeed?.() ?? 0) > 0) playSinceCard += t - lastT;
+    lastT = t;
     remember(s);
     const d = s.pendingDecision;
     if (d && d !== shown) {
@@ -266,7 +271,7 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
       showBatch(s, ids);
       return;
     }
-    const spaced = !pacingOn('oneLaunchCard') || pnow() - lastClosed >= LAUNCH_GAP_MS;
+    const spaced = !pacingOn('oneLaunchCard') || playSinceCard >= LAUNCH_GAP_MS;
     if (!holdLaunch && !shown && !launch && queue.length && !s.gameOver && spaced && (ctx.spacing?.ready() ?? true)) {
       if (queue.length > 1) { const ids = queue.splice(0); if (!showBatch(s, ids)) queue.length = 0; }
       else while (queue.length && !showLaunch(s, queue.shift()));

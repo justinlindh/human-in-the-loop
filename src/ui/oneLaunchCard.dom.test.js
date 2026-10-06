@@ -53,6 +53,27 @@ describe('oneLaunchCard', () => {
     expect(speed).toBe(2);
   });
 
+  it('on: paused time does not count toward the gap', () => {
+    B.pacing = { oneLaunchCard: true };
+    const { layer, p } = setup();
+    const s = state();
+    p.queueLaunch(1);
+    p.update(s);
+    layer.querySelector('.btn.go').click();
+    p.queueLaunch(2);
+    speed = 0;
+    pTick(200000);
+    p.update(s);
+    expect(heading(layer)).toBeUndefined();
+    speed = 2;
+    pTick(LAUNCH_GAP_MS - 1000);
+    p.update(s);
+    expect(heading(layer)).toBeUndefined();
+    pTick(1500);
+    p.update(s);
+    expect(heading(layer)).toBe('Beta launched!');
+  });
+
   it('on: a launch inside 90 s of the last card closing waits and shows after the gap', () => {
     B.pacing = { oneLaunchCard: true };
     const { layer, p } = setup();
@@ -73,6 +94,7 @@ describe('oneLaunchCard', () => {
     const p = { id: 7, name: 'Alpha', version: 3, score: 8.44 };
     expect(shippedDetail(p, 7)).toMatchObject({ topic: 'shipped', subjectId: 7, subjectKind: 'product', text: 'v3: 8.4', tone: 'good' });
     expect(shippedDetail(p, 9).tone).toBe('warn');
+    expect(shippedDetail(p, 8.9).tone).toBe('good');
     expect(shippedDetail(p, undefined).tone).toBe('good');
   });
 
