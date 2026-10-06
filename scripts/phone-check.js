@@ -28,6 +28,8 @@
 //   yak        Yak expands (by its caret) with its header controls inside it and without covering the
 //              HUD, collapses, and its maximized view opens and closes without leaving anything over
 //              the game
+//   yakdecision  a decision raised with the big Yak open shows on top of it, answering it works, the
+//              clock is released, and the minimize button is at least 44 px
 // Uses CDP Input.dispatchTouchEvent for real multi-touch. GL follows scripts/lib/gl.js, and the run
 // holds the matching render lock.
 import { waitForBoot } from './lib/boot.js';
@@ -99,7 +101,7 @@ async function touchPlacement({ page, tap, touch, vp, shot, n0 }) {
   return fails;
 }
 
-const ALL_CHECKS = ['pinch', 'hud', 'panels', 'decision', 'toasts', 'placement', 'taps', 'audio', 'yak', 'skip'];
+const ALL_CHECKS = ['pinch', 'hud', 'panels', 'decision', 'toasts', 'placement', 'taps', 'audio', 'yak', 'yakdecision', 'skip'];
 const TOUCH_ONLY = new Set(['pinch', 'toasts', 'taps', 'audio']);
 
 const args = parseArgs(process.argv.slice(2));
@@ -551,6 +553,44 @@ const CHECKS = {
     try { await tap(page.locator('.chat.max .ysz.ymax').first()); } catch { fails.push('the big Yak view has no tappable close'); await page.keyboard.press('Escape'); }
     await wait(page, 500);
     if (await yakMaxShown(page)) fails.push('closing the big Yak view left its backdrop over the game');
+    return { fails };
+  },
+
+  async yakdecision({ page, tap, shot, touch }) {
+    const fails = [];
+    await clearDecisions(page);
+    try { await tap(page.locator('.ysz.ymax').first()); } catch { return { fails: ['maximize button not tappable'] }; }
+    await wait(page, 500);
+    if (!(await yakMaxShown(page))) return { fails: ['the big Yak view did not open'] };
+    if (touch) {
+      const size = await page.evaluate(() => { const r = document.querySelector('.chat.max .ysz.ymax')?.getBoundingClientRect(); return r ? { w: r.width, h: r.height } : null; });
+      if (!size || size.w < 44 || size.h < 44) fails.push(`the minimize button is ${size ? `${Math.round(size.w)}x${Math.round(size.h)}` : 'missing'}, under 44 px`);
+    }
+    let found = false;
+    for (let i = 0; i < 200 && !found; i++) {
+      found = await page.evaluate(() => { const h = window.__HITL; if (h.state.cash < 50000) h.state.cash += 200000; if (!h.state.pendingDecision) h.tickN(1); return !!h.state.pendingDecision; });
+    }
+    if (!found) return { fails: ['no decision came up in 200 weeks'] };
+    await wait(page, 900);
+    // Open Yak big again behind the card, as a player could.
+    await page.evaluate(() => document.querySelector('.ysz.ymax')?.click());
+    await wait(page, 300);
+    const onTop = () => page.evaluate(() => { const c = [...document.querySelectorAll('.modal.decision')].find((e) => e.getBoundingClientRect().width); if (!c) return null; const r = c.getBoundingClientRect(); const e = document.elementFromPoint(r.left + r.width / 2, Math.min(r.bottom - 4, r.top + 40)); return !!e?.closest('.modal.decision'); });
+    const top = await onTop();
+    await shot('yak-decision');
+    if (top === null) return { fails: ['no decision card on screen'] };
+    if (!top) fails.push('the decision card is under the big Yak view');
+    const last = page.locator('.modal.decision button.choice:not(.unavail)').last();
+    try { await last.scrollIntoViewIfNeeded({ timeout: 2000 }); await tap(last); } catch { fails.push('last choice not tappable'); }
+    await wait(page, 500);
+    if (await page.evaluate(() => !!window.__HITL.state.pendingDecision)) fails.push('tapping a choice did not resolve the decision');
+    // Whatever is left open is closed by the player, then the clock must run.
+    if (await yakMaxShown(page)) { try { await tap(page.locator('.chat.max .ysz.ymax').first()); } catch { await page.keyboard.press('Escape'); } await wait(page, 400); }
+    const t0 = await page.evaluate(() => { const H = window.__HITL; H.setSpeed(1); return { week: H.state.week, acc: H.clock.acc }; });
+    await wait(page, 2500);
+    const after = await page.evaluate(() => { const H = window.__HITL; return { week: H.state.week, acc: H.clock.acc, busy: H.clock.busy, pending: !!H.state.pendingDecision }; });
+    if (after.busy) fails.push('the clock is still held after the decision was answered');
+    else if (after.week === t0.week && after.acc === t0.acc && !after.pending) fails.push('the clock did not advance after the decision was answered');
     return { fails };
   },
 
