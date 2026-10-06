@@ -181,8 +181,9 @@ const RANK = { emergency: 0, normal: 1, low: 2 };
 
 export function createAttention(cfg = {}) {
   const c = { ...ATTENTION_DEFAULTS, ...cfg };
-  let t, lastAsk, lastClose, lastEvent, lastMoment, wasModal, windowStart, watched, waited;
+  let t, lastAsk, lastClose, lastEvent, lastMoment, wasModal, windowStart, watched, waited, shownFor;
   function reset() {
+    shownFor = new Map();
     t = 0; lastAsk = -Infinity; lastClose = -Infinity; lastEvent = -Infinity; lastMoment = -Infinity;
     wasModal = false; windowStart = 0; watched = false; waited = new Map();
   }
@@ -210,7 +211,7 @@ export function createAttention(cfg = {}) {
     // `held` a staged moment holds the clock: time passes for the gaps, not for expiry. `askOpen` any ask
     // is open and `decisionOpen` a decision is; only a decision blocks an emergency. `asks` the
     // candidates ({ id, priority }) in sim order; `expiry` expiry is on.
-    tick(dt, { running = true, held = false, speed = 1, realTime = true, modal = false, askOpen = false, decisionOpen = false, asks = [], expiry = true } = {}) {
+    tick(dt, { running = true, held = false, speed = 1, realTime = true, modal = false, askOpen = false, decisionOpen = false, asks = [], expiry = true, shown = [], openExpiry = false } = {}) {
       const step = realTime ? dt : dt * Math.max(speed, 0);
       if (running || held) t += step;
       if (modal && !wasModal) lastEvent = t;
@@ -226,7 +227,18 @@ export function createAttention(cfg = {}) {
 
       const ids = new Set(asks.map((a) => a.id));
       for (const id of [...waited.keys()]) if (!ids.has(id)) waited.delete(id);
-      const out = { present: null, expire: [] };
+      const out = { present: null, expire: [], expireOpen: [] };
+      // Prompts and letters the player can see ({ kind, id }) run out after openExpiry play seconds
+      // from when they were first seen here; the clock counts only while the game runs.
+      const keys = new Set(shown.map((x) => `${x.kind}:${x.id}`));
+      for (const k of [...shownFor.keys()]) if (!keys.has(k)) shownFor.delete(k);
+      for (const x of shown) {
+        const k = `${x.kind}:${x.id}`;
+        if (!shownFor.has(k)) shownFor.set(k, 0);
+        if (running) shownFor.set(k, shownFor.get(k) + step);
+        // c.openExpiry comes from B.attention; the clock holds no number of its own for it.
+        if (openExpiry && shownFor.get(k) >= c.openExpiry) out.expireOpen.push({ kind: x.kind, id: x.id });
+      }
       for (const a of asks) {
         if (!waited.has(a.id)) waited.set(a.id, 0);
         if (a.priority === 'emergency') continue;

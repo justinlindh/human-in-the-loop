@@ -28,8 +28,8 @@ beforeEach(() => { keep = { ...B.pacing }; });
 afterEach(() => { Object.assign(B.pacing, keep); });
 
 describe('contract #1687: shown prompts and letters', () => {
-  it('lands off, with openExpiry at 120 seconds', () => {
-    expect(B.pacing.shownExpiry).toBe(false);
+  it('lands on, with openExpiry at 120 seconds', () => {
+    expect(B.pacing.shownExpiry).toBe(true);
     expect(B.attention.openExpiry).toBe(120);
   });
 

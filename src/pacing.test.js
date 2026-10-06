@@ -308,6 +308,47 @@ describe('attention clock', () => {
     expect(opened[0][0] - 1).toBe(45);
   });
 
+  it('expires a shown prompt or letter after 120 s of running play, and not before', () => {
+    const att = createAttention(B.attention);
+    const shown = [{ kind: 'prompt', id: 'cp1' }, { kind: 'letter', id: 'm1' }];
+    const run = (s, opts) => { const got = []; for (let i = 0; i < s; i++) got.push(...att.tick(1, { shown, openExpiry: true, ...opts }).expireOpen.map((x) => [att.playSeconds, x.kind, x.id])); return got; };
+    expect(run(119, {})).toEqual([]);
+    expect(run(1, {})).toEqual([[120, 'prompt', 'cp1'], [120, 'letter', 'm1']]);
+  });
+
+  it('does not count paused time toward an open ask, and counts real seconds at 4x', () => {
+    const att = createAttention(B.attention);
+    const shown = [{ kind: 'prompt', id: 'cp1' }];
+    for (let i = 0; i < 500; i++) expect(att.tick(1, { running: false, shown, openExpiry: true }).expireOpen).toEqual([]);
+    let at = 0;
+    for (let i = 1; i <= 200 && !at; i++) if (att.tick(1, { speed: 4, shown, openExpiry: true }).expireOpen.length) at = i;
+    expect(at).toBe(120);
+  });
+
+  it('forgets a prompt that closed, so the next one starts its own 120 s', () => {
+    const att = createAttention(B.attention);
+    for (let i = 0; i < 100; i++) att.tick(1, { shown: [{ kind: 'prompt', id: 'a' }], openExpiry: true });
+    att.tick(1, { shown: [], openExpiry: true });
+    let got = [];
+    for (let i = 0; i < 119; i++) got.push(...att.tick(1, { shown: [{ kind: 'prompt', id: 'a' }], openExpiry: true }).expireOpen);
+    expect(got).toEqual([]);
+  });
+
+  it('gives an item already open after a reload or load its own fresh 120 s', () => {
+    const att = createAttention(B.attention);
+    const shown = [{ kind: 'letter', id: 'm1' }];
+    for (let i = 0; i < 100; i++) att.tick(1, { shown, openExpiry: true });
+    att.reset();
+    const got = [];
+    for (let i = 1; i <= 130; i++) if (att.tick(1, { shown, openExpiry: true }).expireOpen.length) got.push(i);
+    expect(got[0]).toBe(120);
+  });
+
+  it('does not expire open asks while the switch is off', () => {
+    const att = createAttention();
+    for (let i = 0; i < 300; i++) expect(att.tick(1, { shown: [{ kind: 'letter', id: 'm' }] }).expireOpen).toEqual([]);
+  });
+
   it('keeps time for staged moments with no asks queued', () => {
     const att = createAttention();
     for (let round = 0; round < 3; round++) {
