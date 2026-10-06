@@ -11,6 +11,12 @@ export function splitUnlocks(items, era) {
   return { card: items.filter((it) => PIP_SYSTEMS.has(it.key)), pip: items.filter((it) => !PIP_SYSTEMS.has(it.key)) };
 }
 
+// New office items to place, under unlockPips: the toast text for their names, or null for none.
+export function officePipText(names) {
+  if (!names.length) return null;
+  return names.length === 1 ? `New in the Office: ${names[0]}. Look for the New pip.` : `${names.length} new things to place in the Office. Look for the New pip.`;
+}
+
 // The one toast for the pipped unlocks: { text, menuId } or null.
 export function pipToast(pip, title) {
   if (!pip.length) return null;
