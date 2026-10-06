@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { dispatch } from '../../src/sim/index.js';
+import { dispatch, tick } from '../../src/sim/index.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { radioSystem, tasteFor } from '../../src/sim/radio.js';
 import { itemBonus } from '../../src/sim/bonus.js';
-import { suggestPlacement } from '../../src/sim/office.js';
+import { suggestPlacement, purchaseProblem } from '../../src/sim/office.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
 import { B } from '../../src/sim/balance.js';
 import { ITEMS, boomboxItem } from '../../src/data/items.js';
@@ -28,17 +28,31 @@ function place(s) {
 const weekOf = (s) => { const ctx = makeCtx(s); radioSystem(ctx); return ctx.events; };
 
 let enabled;
-beforeEach(() => { enabled = B.boombox.enabled; B.boombox.enabled = true; ITEMS.boombox = boomboxItem(); });
-afterEach(() => { B.boombox.enabled = enabled; if (!enabled) delete ITEMS.boombox; });
+beforeEach(() => { enabled = B.boombox.enabled; B.boombox.enabled = true; });
+afterEach(() => { B.boombox.enabled = enabled; });
 
 describe('issue #139: the boombox', () => {
   it('stays out of the shop and the game while the flag is off', () => {
     B.boombox.enabled = false;
-    delete ITEMS.boombox;
     const s = office();
     expect(s.radio).toEqual({ on: false, station: null });
     expect(weekOf(s)).toEqual([]);
     expectFail(expect, dispatch, s, { type: 'setRadio', on: true }, 'No boombox');
+    expect(ITEMS.boombox.onlyEras).toEqual([]);
+    expect(purchaseProblem(s, 'boombox')).toBe('Not available');
+    expect(dispatch(s, { type: 'placeItem', itemId: 'boombox', ...suggestPlacement(s, 'plant') }).ok).toBe(false);
+  });
+
+  it('a save with a placed boombox still loads and plays when the flag is off again', () => {
+    const s = office();
+    place(s);
+    B.boombox.enabled = false;
+    const store = new Map();
+    const storage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v), removeItem: (k) => store.delete(k) };
+    saveGame(s, storage);
+    const back = loadGame(storage).state;
+    expect(() => { for (let i = 0; i < 4; i++) tick(back); }).not.toThrow();
+    expect(() => itemBonus(back, 'meaningRecovery')).not.toThrow();
   });
 
   it('data: six stations with names and lines, and a unique 1x1 item that helps nearby desks recover', () => {
@@ -64,6 +78,9 @@ describe('issue #139: the boombox', () => {
     place(s);
     expectFail(expect, dispatch, s, { type: 'setRadio', station: 'dubstep' }, 'Unknown station');
     expectFail(expect, dispatch, s, { type: 'setRadio' }, 'Nothing to change');
+    const same = dispatch(s, { type: 'setRadio', on: true, station: 'lofi' });
+    expect(same.ok).toBe(true);
+    expect(same.events.filter((e) => e.type === 'radio')).toEqual([]);
     expect(dispatch(s, { type: 'setRadio', on: false }).ok).toBe(true);
     expect(s.radio).toEqual({ on: false, station: 'lofi' });
     expect(dispatch(s, { type: 'setRadio', station: 'bossa' }).ok).toBe(true);
