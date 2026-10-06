@@ -14,6 +14,7 @@ const TOPICS = {
   reward: { icon: 'award', kind: 'staff', short: (e) => e.short ?? 'Nice work' },
   pet: { icon: 'pet', kind: 'company', short: (e) => e.short ?? 'New office pet' },
   rival: { icon: 'rival', kind: 'company', short: (e) => e.short ?? 'Rival news' },
+  replyall: { icon: 'mail', kind: 'company', short: (e) => e.short ?? 'Reply-all storm' },
 };
 export const AMBIENT_TOPICS = Object.keys(TOPICS);
 const MERGE_MS = 15000;
@@ -25,7 +26,9 @@ const clip = (s) => (s.length > SHORT_MAX ? `${s.slice(0, SHORT_MAX - 1)}…` : 
 export function ambientDetail(e) {
   const t = TOPICS[e?.topic];
   if (!t) return null;
-  return { topic: e.topic, subjectId: e.subjectId ?? null, subjectKind: t.kind, text: clip(String(t.short(e))), icon: t.icon, tone: e.tone ?? 'info' };
+  // The toast's own short wins, then its text, and the topic's generic words only when it has neither.
+  const own = e.short || e.text || undefined;
+  return { topic: e.topic, subjectId: e.subjectId ?? null, subjectKind: t.kind, text: clip(String(t.short({ ...e, short: own }))), icon: t.icon, tone: e.tone ?? 'info' };
 }
 
 export function createAmbient({ target = globalThis } = {}) {
