@@ -250,7 +250,10 @@ export const B = {
     brandPerHire: -0.5, calibrateMeaning: -2, stageChance: 0.15, loopChance: 0.02, chatterChance: 0.08,
   },
   chatPromptsEnabled: true, chatPromptsOpen: 1, chatPromptGapWeeks: 1, chatPromptExpiryWeeks: 3, chatPromptsKept: 4, chatPromptChance: 0.6, chatPromptFromWeek: 6,
+  // yearCap: most times one template opens in 52 weeks (yearCaps per template, for the ones whose trigger
+  // is true most of a game); samePosterWeeks: before a template asks the same person again.
   prompts: {
+    yearCap: 3, yearCaps: { desk_squeeze: 1, newhire_lost: 1, junior_pr: 1, agent_prs: 1 }, samePosterWeeks: 26,
     strainAt: 40, lateWeeks: 12, newHireWeeks: 3, supportShortfall: 0.2, lateProgress: 0.6, agentLevel: 0.3,
     restStrain: 20, pushStrain: 3, pushOutput: 0.02, launchHype: 4, cakeCost: 300, subtweetBackfire: 0.25,
     crunchOutput: 0.04, reviewDebt: 3, mergeDebt: 4, lunchCost: 40, teamLunchCost: 400,

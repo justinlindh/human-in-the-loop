@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { dispatch } from '../../src/sim/index.js';
 import { makeCtx } from '../../src/sim/registry.js';
-import { promptsSystem } from '../../src/sim/prompts.js';
+import { promptsSystem, promptYearCap } from '../../src/sim/prompts.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
 import { runBot } from '../../src/sim/bots.js';
 import { B } from '../../src/sim/balance.js';
@@ -198,6 +198,7 @@ describe('issue #16: Yak reply prompts', () => {
     expect(loadGame(storage).state.chatPrompts).toEqual([]);
   });
 
+  // Spaced by the per-template caps of #1568: roughly one prompt every five to seven weeks.
   it('a long run opens prompts every few weeks, never more than one at a time', () => {
     let opened = 0;
     let worst = 0;
@@ -206,8 +207,44 @@ describe('issue #16: Yak reply prompts', () => {
       worst = Math.max(worst, s.chatPrompts.filter((p) => !p.resolved).length);
     } });
     expect(worst).toBeLessThanOrEqual(B.chatPromptsOpen);
-    expect(r.weeks / opened).toBeLessThan(5);
+    expect(r.weeks / opened).toBeLessThan(8);
     expect(r.weeks / opened).toBeGreaterThan(1);
+  });
+});
+
+describe('issue #1568: the same prompt does not keep coming back', () => {
+  it('a trigger that stays true asks the same person once, not every cooldown', () => {
+    const s = strained(4);
+    const keep = B.chatPromptChance;
+    B.chatPromptChance = 1;
+    const asked = [];
+    try {
+      for (let i = 0; i < 104; i++) {
+        for (const e of weekOf(s)) if (e.type === 'chatPrompt') asked.push(s.chatPrompts.find((p) => p.id === e.promptId));
+        for (const p of s.chatPrompts) if (!p.resolved) dispatch(s, { type: 'answerPrompt', promptId: p.id, choice: 1 });
+        s.staff.find((p) => !p.founder).strain = 80;
+        s.week++;
+      }
+    } finally { B.chatPromptChance = keep; }
+    const vents = asked.filter((p) => p.kind === 'strain_vent');
+    expect(vents.length).toBeGreaterThan(0);
+    for (let i = 1; i < vents.length; i++) expect(vents[i].week - vents[i - 1].week).toBeGreaterThanOrEqual(B.prompts.samePosterWeeks);
+  });
+
+  it('over a long game no template opens more than its yearly cap in any year, nor twice from one poster within the gap', () => {
+    for (const bot of ['balanced', 'recklessHumans', 'automateAll']) {
+      const opened = [];
+      runBot(bot, 5, 780, { onWeek: (s, ev) => {
+        for (const e of ev) if (e.type === 'chatPrompt') { const p = s.chatPrompts.find((x) => x.id === e.promptId); opened.push({ kind: p.kind, week: p.week, from: p.fromId }); }
+      } });
+      expect(opened.length, bot).toBeGreaterThan(5);
+      for (const a of opened) {
+        const year = opened.filter((b) => b.kind === a.kind && b.week >= a.week && b.week < a.week + 52);
+        expect(year.length, `${bot} ${a.kind} from week ${a.week}`).toBeLessThanOrEqual(promptYearCap(a.kind));
+        const again = opened.filter((b) => b.kind === a.kind && b.from === a.from && b.week > a.week && b.week < a.week + B.prompts.samePosterWeeks);
+        if (a.from) expect(again, `${bot} ${a.kind} ${a.from}`).toEqual([]);
+      }
+    }
   });
 });
 

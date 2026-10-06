@@ -4,8 +4,9 @@ import { B } from '../../src/sim/balance.js';
 
 const seeds = Array.from({ length: 200 }, (_, i) => i + 1);
 // Runs out of 200 that must reach the bust and the recovery. recklessHumans hires past its means by
-// design, and the early chapters' market stays at its 2019 size, so it gets a lower floor.
-const floors = { recklessHumans: { bust: 165, recovery: 150 } };
+// design, and the early chapters' market stays at its 2019 size, so it gets a lower floor; it also leans on
+// the free health and output its Yak prompt answers give, which come once or twice a year per template.
+const floors = { recklessHumans: { bust: 165, recovery: 140 } };
 
 describe('dot-com founding runway', () => {
   it.each(Object.keys(BOTS))('%s can launch and reach the bust and recovery', (bot) => {
