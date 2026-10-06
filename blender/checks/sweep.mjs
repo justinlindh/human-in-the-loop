@@ -49,6 +49,7 @@
 // exactly what this run found. The run is deterministic: it depends only on the code.
 import { startHarness, wantGpu } from './harness.mjs';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
+import * as indexPlay from '../../scripts/events/play.js';
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync } from 'node:fs';
 import { dirname, resolve, join, basename } from 'node:path';
 import { execFileSync, spawn } from 'node:child_process';
@@ -246,6 +247,8 @@ async function browserSeeds() {
     const HS = seedRun.harness = await startHarness({ gpu: wantGpu() });
     if (seedRun.stop) { await HS.close(); break; }
     const { page, errors: e } = await HS.openScene(`quality=low&seed=${seed}`, { width: 1600, height: 1000 });
+    // The seed plays with the index's pacing switches, so its decisions open on the tick that raises them.
+    await indexPlay.pinIndexPacing?.(page);
     let week = 0;
     page.on('console', (m) => { const w = /^sweep-progress w(\d+)$/.exec(m.text()); if (w) week = Number(w[1]); });
     const s0 = wall();

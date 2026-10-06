@@ -16,10 +16,12 @@ const SNAP = new Set(['era', 'officeUpgrade']);
 const SNAP_PER_ID = 2;
 const SNAP_PER_OTHER = 1;
 
-// The pacing switches the index plays with off. With them on, most events resolve without a decision
-// card, so the moments captures and sweeps open would never be indexed. Anything that runs the game on
+// The pacing switches the index plays with off. With askRates, letterMail and quietEvents on, most events
+// resolve without a decision card; with askQueue (and its askExpiry) on, a decision opens only when the
+// game presents it, not on the tick that raises it. Either way the moments captures and sweeps open would
+// never be indexed or never come. Anything that runs the game on
 // from an index snapshot pins the same switches (pinIndexPacing in the page, withIndexPacing in Node).
-export const INDEX_PACING = { askRates: false, letterMail: false, quietEvents: false };
+export const INDEX_PACING = { askRates: false, letterMail: false, quietEvents: false, askQueue: false, askExpiry: false };
 
 // Runs fn with B.pacing (the given balance object's, default the sim's) set to INDEX_PACING, then restores it.
 export function withIndexPacing(fn, b = B) {

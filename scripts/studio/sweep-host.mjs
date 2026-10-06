@@ -87,7 +87,13 @@ async function hostLoadedPinned({ file, ...options }) {
   return sampleLoaded({ ...options, crops: 0 });
 }
 
-export async function hostSeed({ seed, ...options }) {
+// A seed plays from week 0 with the index's pacing switches, so its decisions open on the tick that raises them.
+export async function hostSeed(o) {
+  const { withIndexPacing = (fn) => fn() } = await import('../events/play.js');
+  return withIndexPacing(() => hostSeedPinned(o));
+}
+
+async function hostSeedPinned({ seed, ...options }) {
   const { sampleSeed } = await import('../../blender/checks/sample.js');
   const { tick } = await import('../../src/sim/index.js');
   const state = await resolveState({ seed, week: 0 });
