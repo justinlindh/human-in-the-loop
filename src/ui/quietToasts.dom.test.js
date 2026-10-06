@@ -33,16 +33,67 @@ const make = (quiet) => {
 };
 
 describe('toasts under quietToasts', () => {
-  it('shows game-started toasts at least 15 s apart', () => {
+  it('shows game-started toasts at least 30 s apart', () => {
     const { toasts, texts } = make(true);
     toasts.push('Goal complete: Launch it', 'good');
-    toasts.push('Hired Priya', 'good');
     pTick(1);
-    expect(texts()).toEqual(['Goal complete: Launch it']);
-    pTick(14000);
+    pTick(5000);
+    toasts.push('Hired Priya', 'good');
+    pTick(24000);
     expect(texts()).toEqual(['Goal complete: Launch it']);
     pTick(1100);
     expect(texts()).toEqual(['Goal complete: Launch it', 'Hired Priya']);
+  });
+
+  it('drops an info or good toast that has waited 30 s, and shows no "more" chip', () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    const toasts = createToasts(root, { quiet: () => true });
+    toasts.push('Goal complete: Launch it', 'good');
+    toasts.push('Sold the desk', 'info');
+    pTick(1);
+    pTick(31000);
+    expect([...root.querySelectorAll('.toast .tt')].map((n) => n.textContent)).toEqual(['Goal complete: Launch it']);
+    expect(root.querySelector('.toast-more').style.display).toBe('none');
+    pTick(60000);
+    expect([...root.querySelectorAll('.toast .tt')].map((n) => n.textContent)).toEqual(['Goal complete: Launch it']);
+  });
+
+  it('answers a toast that follows the player\'s own tap at once', () => {
+    const { toasts, texts } = make(true);
+    toasts.push('Goal complete: Launch it', 'good');
+    pTick(1);
+    window.dispatchEvent(new Event('pointerdown'));
+    toasts.push('Priya joined the team!', 'good');
+    expect(texts()).toEqual(['Goal complete: Launch it', 'Priya joined the team!']);
+  });
+
+  it('ranks warnings first and never drops one when the queue overflows', () => {
+    const { toasts, texts } = make(true);
+    toasts.push('Goal complete: Launch it', 'good');
+    pTick(1);
+    pTick(5000);
+    for (let i = 0; i < 6; i++) toasts.push(`Plain news ${i}`, 'info');
+    toasts.push('Cash is getting low', 'warn');
+    toasts.push('Cash is very low', 'warn', { subject: 'cash' });
+    pTick(25100);
+    expect(texts()).toEqual(['Goal complete: Launch it', 'Cash is getting low']);
+    pTick(31000);
+    expect(texts()).toContain('Cash is very low');
+  });
+
+  it('holds toasts back while a decision is open', () => {
+    let open = true;
+    const root = document.createElement('div');
+    document.body.append(root);
+    const toasts = createToasts(root, { quiet: () => true, canShow: () => !open });
+    toasts.push('Goal complete: Launch it', 'good');
+    toasts.push('Production is down', 'bad');
+    pTick(1000);
+    expect(root.querySelectorAll('.toast')).toHaveLength(0);
+    open = false;
+    pTick(1000);
+    expect(root.querySelectorAll('.toast').length).toBeGreaterThan(0);
   });
 
   it('shows them 0.7 s apart with the switch off', () => {
@@ -58,13 +109,14 @@ describe('toasts under quietToasts', () => {
   it('folds news about one subject into the toast waiting or just shown', () => {
     const { toasts, texts } = make(true);
     toasts.push('Priya joined the team!', 'good', { subject: 'p1' });
+    pTick(1);
+    pTick(5000);
     toasts.push('Sold the desk', 'info');
     toasts.push('Priya is now a Lead.', 'good', { subject: 'p1' });
-    pTick(1);
     expect(texts()).toEqual(['Priya is now a Lead.']);
     toasts.push('Priya earned a trait.', 'good', { subject: 'p1' });
     expect(texts()).toEqual(['Priya earned a trait.']);
-    pTick(15100);
+    pTick(25000);
     expect(texts()).toEqual(['Priya earned a trait.', 'Sold the desk']);
   });
 

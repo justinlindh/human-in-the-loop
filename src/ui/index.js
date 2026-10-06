@@ -75,7 +75,9 @@ export function createUI({ root, getState, dispatch, controls }) {
   // Cards, launch results, the tutorial and the game's toasts wait while a spotlight holds the clock,
   // and while a scene the player let go by opening a menu still plays behind that menu.
   const holdForMoment = () => spotlightActive() || (playerMenuOpen() && !!(controls.renderer ?? controls.getRenderer?.())?.spotlight?.());
-  const toasts = createToasts(layer, { canShow: () => !holdForMoment(), quiet: () => pacingOn('quietToasts') });
+  // Under quietToasts nothing is toasted over an open decision; it waits (a warning stays queued first).
+  let decisionOpen = () => false;
+  const toasts = createToasts(layer, { canShow: () => !holdForMoment() && !(pacingOn('quietToasts') && decisionOpen()), quiet: () => pacingOn('quietToasts') });
   const ambient = createAmbient();
   let lastSpeed = 1;
 
@@ -282,6 +284,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   // The tray's outage card brings a hidden incident card back, else opens Ops.
   ui.showIncident = () => { if (incidentCard.hidden) incidentCard.reveal(); else menu.open('ops'); };
   const popups = createPopups({ layer, ctx, toasts, resolutionFor: (d, s) => resolutions.forDecision(d, s), restoreDock: () => toasts.setDock(menu.current ? menu.dockEl : null) });
+  decisionOpen = () => popups.open;
   const gameover = createGameOver({ layer, controls, sfx, act });
   const tutorial = createTutorial({ layer, sfx, controls, ui });
   const settings = createSettings({ layer, controls, sfx, getState, toast: (text, tone) => toasts.push(text, tone) });
