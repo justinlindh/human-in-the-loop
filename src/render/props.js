@@ -891,28 +891,26 @@ const binderLabel = (word) => cardTex(`binder|${word}`, 128, 256, (ctx, W, H) =>
   text(ctx, word, 0, 4, 64, P.ink, 900);
   ctx.restore();
 });
+// One fat binder, narrow enough for the strip beside a monitor that the default view sees on a desk
+// facing the camera, with POLICY on both spines so one faces the camera whichever way the desk turns.
 function binder() {
-  const g = new THREE.Group();
-  [['role_security', 'POLICY'], ['marker_orange', 'POLICY'], ['fabric_teal', 'FINAL']].forEach(([c, word], i) => {
-    const x = (i - 1) * 0.11, h = 0.34 - i * 0.02;
-    g.add(mesh(roundedBox(0.1, h, 0.3, 0.012, 2), mat(c), x, h / 2, 0));
-    const tex = binderLabel(word);
-    for (const s of [-1, 1]) {
-      // Spine labels on both narrow ends.
-      const spine = new THREE.Mesh(plane(0.06, h * 0.7), flatMat(tex));
-      spine.position.set(x, h / 2, s * 0.151);
-      spine.rotation.y = s < 0 ? Math.PI : 0;
-      spine.userData.noAO = true;
-      g.add(spine);
-    }
-    // The three rings showing over the top edge.
-    for (const rz of [-0.08, 0, 0.08]) {
-      const ring = mesh(new THREE.TorusGeometry(0.022, 0.005, 6, 12, Math.PI), mat('metal_soft'), x, h, rz);
-      ring.geometry.userData.own = true;
-      ring.rotation.y = Math.PI / 2;
-      g.add(ring);
-    }
-  });
+  const g = new THREE.Group(), h = 0.36;
+  g.add(mesh(roundedBox(0.1, h, 0.3, 0.012, 2), mat('role_security'), 0, h / 2, 0));
+  const tex = binderLabel('POLICY');
+  for (const s of [-1, 1]) {
+    const spine = new THREE.Mesh(plane(0.06, h * 0.7), flatMat(tex));
+    spine.position.set(0, h / 2, s * 0.151);
+    spine.rotation.y = s < 0 ? Math.PI : 0;
+    spine.userData.noAO = true;
+    g.add(spine);
+  }
+  // The three rings showing over the top edge.
+  for (const rz of [-0.08, 0, 0.08]) {
+    const ring = mesh(new THREE.TorusGeometry(0.022, 0.005, 6, 12, Math.PI), mat('metal_soft'), 0, h, rz);
+    ring.geometry.userData.own = true;
+    ring.rotation.y = Math.PI / 2;
+    g.add(ring);
+  }
   return g;
 }
 // The gift cards: fanned upright in a little stand, faces out, each a bright card with a big $.
@@ -1895,7 +1893,7 @@ const BUILDERS = {
   sign_rival_copied: wallPrint(rivalCopied),
   envelope: atDesk(envelope(false), FLAT),
   envelope_thick: atDesk(envelope(true), FLAT),
-  binder: atDesk(binder, { x: -0.62, z: -0.42, rot: 0 }),
+  binder: atDesk(binder, { x: -0.62, z: -0.42, rot: 0, scale: 1.2 }),
   gift_cards: atDesk(giftCards, { ...FLAT, scale: 1.6, x: 0.4, z: -0.35, rot: 0.1, group: true }),
   sticky_notes: atDesk(stickyNotes, { x: 0.38, z: -0.3, rot: 0.1 }),
   photos_laminated: atDesk(photosLaminated, FLAT),
