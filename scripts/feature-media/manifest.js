@@ -198,8 +198,8 @@ const YAK_PROMPTS = ['strain_vent', 'incident_blame', 'launch_hype', 'rival_itch
 // from before the decision and the clip answers it.
 const LEFT_BEHIND = new Map([['rival_jab', 0], ['alumni_reunion', 0], ['mission_statement', 0], ['ai_summit_hackathon', 1], ['last_bet', 0]]);
 
-// Decisions whose prop is still too small to read at the closest zoom; they render but do not publish.
-const UNREADABLE_DECISIONS = new Set(['no_show', 'junior_overwhelmed', 'founder_burnout', 'enterprise_rfp', 'phishing_ceo', 'alumni_reunion']);
+// Decisions whose prop is small: they open the game's own best view of it and scale the zoom with the office.
+const SMALL_PROP_DECISIONS = new Set(['no_show', 'junior_overwhelmed', 'founder_burnout', 'enterprise_rfp', 'phishing_ceo', 'alumni_reunion']);
 
 // [item id, camera zoom, era the item needs] of the shop items shown in docs/features/office.md.
 const ITEM_STILLS = [
@@ -361,6 +361,26 @@ export const ITEMS = [
     screenshots: [1, 3, 5, 9],
     out: [LOOP('rotate', 0, 9.5)],
   },
+  // The early-era starts for the landing page's Eras section: a stored game from each era, side panels hidden,
+  // the office as the era dresses it. Each fails its guard when the game is not in the era it was stored in.
+  ...[
+    ['preinternet', 'era-inventory', 'preinternet', 5, 2.1],
+    ['dotcom', 'era-float', 'dotcom', 5, 2.1],
+    // The Y2K still is a close-up on the wall clock and chart; the Web 2.0 office is cropped to its staff (the
+    // camera's zoom stops short of that in an office this big).
+    ['y2k', 'era-y2k', 'dotcom', 13.5, 2.1, { x: 0.46, y: 0.03, w: 0.46, h: 0.46 }],
+    ['people', 'era-y2k', 'dotcom', 13.5, 4.2],
+    ['web2', 'era-web2', 'web2', 5, 1.5, { x: 0.40, y: 0.24, w: 0.52, h: 0.52 }],
+  ].map(([name, pin, era, at, zoom, crop]) => ({
+    id: `site-still-era-${name}`, title: `Landing page: ${name} era office`, query: 'seed=7&speed=1&eras', still: true, warmup: 0.5, seconds: at + 1.5,
+    setup: `(async () => { await ${PIN_LOAD(pin)}; ${CLEAN}; if (window.__HITL.state.era.id !== '${era}') console.error('capture: not in the ${era} era'); })()`,
+    actions: [...Array.from({ length: 20 }, (_, i) => ({ at: i + 0.2, js: CLEAR_CARDS })), ...CHOOSE_WHEN(null, 0, 1, 30, 3)],
+    // The camera eases to the middle of the staff, as the game's own moment camera does.
+    camera: [{ at: 0, target: { js: `(() => { let n = 0, x = 0, z = 0; window.__hitlRender.scene.traverse((o) => { if (o.userData.staffId !== undefined) { const v = o.parent.getWorldPosition(new o.parent.position.constructor()); x += v.x; z += v.z; n++; } }); return window.__people ??= (n ? { x: x / n, z: z / n } : null); })()` }, zoom }],
+    screenshots: [at],
+    out: [{ path: `img/eras/${name}.webp`, size: '1600x900', ...(crop ? { crop } : {}), publishAs: `site-still-era-${name}` }],
+    publish: true,
+  })),
   {
     // A real game played by the squads bot (src/sim/bots.js), which forms squads once they unlock
     // and posts them to projects, so cohesion has time to build. Staff opens straight to the tab.
@@ -746,10 +766,11 @@ export const ITEMS = [
     id: `decision-${id}`, title: `Decision prop: ${id}`, query: 'seed=1&speed=1', moment: ANY_CHOICE(query), pre: true, still: true, warmup: 8,
     setup: `(() => { ${CLEAN}; ${NO_CARD}; ${NO_SAY}; })()`,
     // A prop a choice leaves behind exists only after the card is answered (by key, as a player would).
-    actions: [...OPEN(), ...(LEFT_BEHIND.has(id) ? CHOOSE_WHEN(id, LEFT_BEHIND.get(id), 1, 8, 1.5) : []), ...FOLLOW([prop], zoom, 0, LEFT_BEHIND.has(id) ? 20 : 14, 0, center)],
+    // The held props are turned to their clearest view and framed at the office-scaled zoom.
+    actions: [...OPEN(SMALL_PROP_DECISIONS.has(id) ? [prop] : undefined), ...(LEFT_BEHIND.has(id) ? CHOOSE_WHEN(id, LEFT_BEHIND.get(id), 1, 8, 1.5) : []), ...FOLLOW([prop], zoom, 0, LEFT_BEHIND.has(id) ? 20 : 14, 0, center, SMALL_PROP_DECISIONS.has(id))],
     screenshots: [LEFT_BEHIND.has(id) ? 14 : 5],
     out: [{ path: `decisions/${id}.webp`, size: '1280x720', from: LEFT_BEHIND.has(id) ? 14 : 5 }],
-    publish: !UNREADABLE_DECISIONS.has(id),
+    publish: true,
   })),
 
   // docs/features/yak.md: the reply prompts. The pre-tick save of the week that raises each one is opened,

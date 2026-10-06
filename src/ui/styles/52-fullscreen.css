@@ -1,3 +1,18 @@
+/* The page's own background, behind the canvas. */
+:root { --page: #efe6d6; }
+
 /* The Full screen button in Settings is a finger-sized target on touch. */
 .hitl .fsbtn { white-space: nowrap; }
 @media (pointer: coarse) { .hitl .fsbtn { min-height: 44px; min-width: 44px; padding: 0 1em; } }
+
+/* Some browsers paint a white page behind a full screen element and size it a little past the layout
+   viewport; the page keeps the game's own background and fills the screen. */
+html:fullscreen, html:-webkit-full-screen, html:fullscreen body, html:-webkit-full-screen body { background: var(--page); width: 100%; height: 100%; }
+html:fullscreen::backdrop, html:-webkit-full-screen::backdrop { background: var(--page); }
+
+/* The way back after the browser drops full screen (the keyboard opening on iPad). */
+.hitl .fsback { position: absolute; left: 50%; bottom: calc(var(--bottom-h, 5em) + 1.4em + env(safe-area-inset-bottom, 0px)); white-space: nowrap; transform: translateX(-50%); z-index: 44; pointer-events: auto; min-height: 44px; padding: 0 1.1em; font-weight: 800; }
+/* On a phone the toasts dock above the bottom row too, so they stack above the button while it shows. */
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl.fsback-open .toasts { bottom: calc(var(--bottom-h, 6em) + 0.9em + 3.4em); }
+}

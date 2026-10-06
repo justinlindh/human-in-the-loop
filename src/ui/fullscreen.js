@@ -1,5 +1,7 @@
 // Full screen for the whole page (the canvas and the interface), from a tap. Safari on iPad
 // still wants the webkit-prefixed calls on some versions, so both spellings are tried.
+import { h } from './dom.js';
+
 const root = () => document.documentElement;
 
 const requestFn = () => root().requestFullscreen ?? root().webkitRequestFullscreen ?? null;
@@ -13,11 +15,15 @@ export const isStandalone = () => !!(window.navigator?.standalone || window.matc
 
 export const fullscreenAvailable = () => !!requestFn() && !!exitFn() && !isStandalone();
 
+// True while the player wants full screen: set by a tap on the button, cleared by their own exit. A
+// drop while it is set (the keyboard opening on iPad) is the browser's doing.
+let wanted = false;
+
 // Must be called from a tap or click. Resolves to an error message, or null when it worked.
 export async function toggleFullscreen() {
   try {
-    if (fullscreenActive()) await exitFn().call(document);
-    else await requestFn().call(root());
+    if (fullscreenActive()) { wanted = false; await exitFn().call(document); }
+    else { await requestFn().call(root()); wanted = true; }
     return null;
   } catch (e) {
     return e?.message || 'This browser did not allow full screen.';
@@ -29,4 +35,27 @@ export function onFullscreenChange(cb) {
   const events = ['fullscreenchange', 'webkitfullscreenchange'];
   events.forEach((e) => document.addEventListener(e, cb));
   return () => events.forEach((e) => document.removeEventListener(e, cb));
+}
+
+const coarse = () => !!window.matchMedia?.('(pointer: coarse)').matches;
+
+// Keeps the page sized to the screen across a full screen change (the renderer sizes itself on resize,
+// and a browser can report the new size late), and offers a one-tap way back when the browser dropped
+// full screen on its own (a fresh tap is required to enter again).
+export function watchFullscreen(layer) {
+  if (!fullscreenAvailable()) return null;
+  const back = h('button.btn.fsback', { onclick: async () => { await toggleFullscreen(); sync(); } }, 'Back to full screen');
+  back.style.display = 'none';
+  layer.append(back);
+  const sync = () => {
+    const show = wanted && !fullscreenActive() && coarse();
+    back.style.display = show ? '' : 'none';
+    layer.classList.toggle('fsback-open', show);
+  };
+  return onFullscreenChange(() => {
+    // Leaving by the player's own tap or Esc on a desktop keyboard is not a drop; the button clears `wanted`.
+    if (fullscreenActive()) wanted = true;
+    sync();
+    [0, 250, 700].forEach((ms) => setTimeout(() => window.dispatchEvent(new Event('resize')), ms));
+  });
 }

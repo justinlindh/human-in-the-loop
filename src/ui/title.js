@@ -3,6 +3,7 @@ import { portrait, roleChip, confirmButton } from './widgets.js';
 import { traitInfo } from './content.js';
 import { ERA, ARCHETYPES, FUNDING, LOGO_COLORS, archetypePerson, fundingCash, fundingMult, archetypeBlurb, foundingWarning } from './v2content.js';
 import { icon } from './icons.js';
+import { fullscreenActive } from './fullscreen.js';
 import { confirmGate } from './confirm-gate.js';
 import { SAVE_NOTE, SAVE_NOTE_SHORT } from './saveNote.js';
 import { downloadSave, pickSaveFile } from './saveFiles.js';
@@ -219,7 +220,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     draft = { companyName: suggestCompany(), logoColor: LOGO_COLORS[0], tagline: TAGLINES[0], seed: '', founders: [], funding: 'bootstrapped', startEra: 'classic', startMode: 'garage', replaceId: null };
     const list = controls.listSaves?.();
     if (Array.isArray(list) && list.length >= (controls.maxSaves ?? MAX_SAVES)) replaceView(list);
-    else identityStep();
+    else STEP[flow()[0]]();
   }
 
   // Every slot is taken: the player picks which company the new one replaces (the oldest by default).
@@ -251,23 +252,77 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
         h('div.row', null,
           h('button.btn.big', { onclick: () => { sfx('click'); menuView(); } }, icon('arrow.back'), ' Back'),
           h('span.spacer'),
-          h('button.btn.go.big', { onclick: () => { draft.replaceId = pick; sfx('click'); identityStep(); } }, 'Replace and continue')))));
+          h('button.btn.go.big', { onclick: () => { draft.replaceId = pick; sfx('click'); STEP[flow()[0]](); } }, 'Replace and continue')))));
     sync();
   }
 
+  // The founding steps in order. The era choice comes first, and only where the era picker is on.
+  const flow = () => (erasPreview ? ['era', 'identity', 'founders', 'funding'] : ['identity', 'founders', 'funding']);
+  const STEP_LABEL = { era: 'Era', identity: 'Company', founders: 'Founders', funding: 'Funding' };
+  const STEP = { era: () => eraStep(), identity: () => identityStep(), founders: () => foundersStep(), funding: () => fundingStep() };
+
   function steps(n) {
-    return h('div.fsteps', null, ...['Company', 'Founders', 'Funding'].map((label, i) =>
-      h(`span.fstep${i === n ? '.on' : i < n ? '.done' : ''}`, null, h('b.num', { text: String(i + 1) }), ` ${label}`)));
+    return h('div.fsteps', null, ...flow().map((id, i) =>
+      h(`span.fstep${i === n ? '.on' : i < n ? '.done' : ''}`, null, h('b.num', { text: String(i + 1) }), ` ${STEP_LABEL[id]}`)));
   }
 
-  function frame(n, body, onNext, nextLabel, nextOk = true) {
-    const next = h('button.btn.go.big', { disabled: !nextOk, onclick: onNext }, n === 2 ? icon('launch') : null, n === 2 ? ' ' : null, nextLabel);
-    root.replaceChildren(h(`div.tl-card.founding.f${n}`, null, lockup(),
+  function frame(name, body, onNext, nextLabel, nextOk = true) {
+    const n = flow().indexOf(name);
+    const last = name === 'funding';
+    const next = h('button.btn.go.big', { disabled: !nextOk, onclick: onNext }, last ? icon('launch') : null, last ? ' ' : null, nextLabel);
+    root.replaceChildren(h(`div.tl-card.founding.fs-${name}`, null, lockup(),
       h('div.tl-form', null, steps(n), body,
         h('div.row', null,
-          h('button.btn.big', { onclick: () => { sfx('click'); if (n === 0) menuView(); else [identityStep, foundersStep][n - 1](); } }, icon('arrow.back'), ' Back'),
+          h('button.btn.big', { onclick: () => { sfx('click'); if (n === 0) menuView(); else STEP[flow()[n - 1]](); } }, icon('arrow.back'), ' Back'),
           h('span.spacer'), next))));
     return next;
+  }
+
+  // Which era the company begins in, and whether to found it or take one over. Classic is chosen to start with.
+  function eraStep() {
+    const garage = ['garage', 'Found a company', 'Start with your two founders in a garage.'];
+    const takeover = ['takeover', 'Take over a company', 'Inherit the people, products and history of a company already running.'];
+    const modeCards = h('div.takeover-choices', { role: 'group', 'aria-label': 'Company start' },
+      ...[garage, takeover].map(([id, name, text]) =>
+        h('button.start-mode', { dataset: { startMode: id }, onclick: () => { draft.startMode = id; sfx('click'); refresh(); } },
+          h('b', { text: name }), h('span.small', { text }))));
+    const eraCards = h('div.era-starts', { role: 'group', 'aria-label': 'Starting era' }, ...Object.values(ERA_STARTS).map((e) =>
+      h('button.era-start', { dataset: { era: e.id }, onclick: () => { draft.startEra = e.id; sfx('click'); refresh(); } },
+        h('b', { text: e.name }), routeOf(e.id) ? h('span.pill.trait', { text: `Route: ${routeOf(e.id).name}` }) : null, h('span.small.eblurb', { text: e.blurb }),
+        h('span.small'))));
+    const refresh = () => {
+      if (!canTakeOver(draft.startEra)) draft.startMode = 'garage';
+      const takingOver = draft.startMode === 'takeover';
+      modeCards.querySelectorAll('button').forEach((b) => {
+        const selected = b.dataset.startMode === draft.startMode;
+        b.disabled = b.dataset.startMode === 'takeover' && !canTakeOver(draft.startEra);
+        if (b.dataset.startMode === 'takeover') setText(b.lastElementChild, b.disabled
+          ? `Takeover is for ${takeoverNames()}. Pick one of those.`
+          : 'Inherit the people, products and history of a company already running.');
+        b.classList.toggle('on', selected);
+        b.setAttribute('aria-pressed', String(selected));
+      });
+      eraCards.querySelectorAll('.era-start').forEach((card) => {
+        const id = card.dataset.era;
+        const selected = id === draft.startEra;
+        card.classList.toggle('on', selected);
+        card.setAttribute('aria-pressed', String(selected));
+        const cardKit = B.eraStarts[id];
+        const inherited = takingOver && canTakeOver(id);
+        card.disabled = takingOver && !canTakeOver(id);
+        setText(card.querySelector('.eblurb'), inherited
+          ? 'Inherit a company built from Classic, with its existing people, products and history.'
+          : card.disabled ? 'Choose Found a company to start in this era.' : ERA_STARTS[id].blurb);
+        setText(card.lastElementChild, inherited
+          ? `Existing company · ${shareText({ scoreShare: B.takeover.scoreShare[id] })}`
+          : `${OFFICE_STAGES[cardKit.officeStage].name} · ${cardKit.desks} desks · ${shareText(cardKit)}`);
+      });
+    };
+    frame('era', h('div.fbody', null,
+      h('b', { text: 'When does your company begin?' }),
+      h('div.small.muted', { text: 'Classic is the full modern run. Earlier starts trade score for their own kit; you can change this until you start.' }),
+      eraCards, modeCards), () => { sfx('click'); STEP.identity(); }, 'Next: company');
+    refresh();
   }
 
   function identityStep() {
@@ -290,7 +345,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       foundersStep();
     };
     nameIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') next(); });
-    frame(0, h('div.fbody', null,
+    frame('identity', h('div.fbody', null,
       h('div.row', null, logo, h('div.col', { style: { flex: 1 } },
         h('label', null, h('b', { text: 'Company name' }),
           h('div.row', null, nameIn, h('button.btn.small', { onclick: () => { draft.companyName = suggestCompany(); nameIn.value = draft.companyName; setLogo(); } }, icon('dice'), ' Suggest'))))),
@@ -300,7 +355,8 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       h('label', null, h('b', { text: 'Seed' }), h('span.small.muted', { text: ' optional: the same seed plays the same game' }), seedIn),
       err), next, 'Next: founders');
     setLogo();
-    setTimeout(() => { nameIn.focus(); nameIn.select(); }, 0);
+    // On a touch device in full screen, opening the keyboard drops full screen, so the player taps the field.
+    if (!(fullscreenActive() && window.matchMedia?.('(pointer: coarse)').matches)) setTimeout(() => { nameIn.focus(); nameIn.select(); }, 0);
   }
 
   function foundersStep() {
@@ -337,7 +393,7 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       return card;
     });
     const cardsEl = h('div.fcards', null, ...cards);
-    nextBtn = frame(1, h('div.fbody', null,
+    nextBtn = frame('founders', h('div.fbody', null,
       h('div.row', null, h('b', { text: 'Pick two founders' }), h('span.spacer'), count),
       h('div.small.muted', { text: 'The pair shapes your opening: who builds, who sells, who keeps things running.' }),
       cardsEl, warn), () => { sfx('click'); fundingStep(); }, 'Next: funding', draft.founders.length === 2);
@@ -350,29 +406,13 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
   const shareText = (kit, long = false) => kit.scoreShare >= 1 ? (long ? 'the same as Classic' : 'full score') : `${Math.round(kit.scoreShare * 100)}% of Classic${long ? '' : ' score'}`;
   function fundingStep() {
     let nextBtn;
-    const modeCards = erasPreview ? h('div.takeover-choices', { role: 'group', 'aria-label': 'Company start' },
-      ...[['garage', 'Found a company', 'Start with your two founders in a garage.'],
-        ['takeover', 'Take over a company', 'Inherit the people, products and history of a company already running.']].map(([id, name, text]) =>
-        h('button.start-mode', { dataset: { startMode: id }, onclick: () => { draft.startMode = id; sfx('click'); refreshEra(); } },
-          h('b', { text: name }), h('span.small', { text })))) : null;
     const fundingLabel = h('b', { text: 'How are you paying for this?' });
     const scoreNote = h('div.small.muted');
     const error = h('div.small.bad-t', { role: 'alert', hidden: true });
-    const eraCards = erasPreview ? h('div.era-starts', { role: 'group', 'aria-label': 'Starting era' }, ...Object.values(ERA_STARTS).map((e) => {
-      const k = B.eraStarts[e.id];
-      return h(`button.era-start${e.id === draft.startEra ? '.on' : ''}`, {
-        'aria-pressed': String(e.id === draft.startEra), dataset: { era: e.id },
-        onclick: () => { draft.startEra = e.id; sfx('click'); refreshEra(); },
-      }, h('b', { text: e.name }), routeOf(e.id) ? h('span.pill.trait', { text: `Route: ${routeOf(e.id).name}` }) : null, h('span.small.eblurb', { text: e.blurb }),
-      h('span.small', { text: `${OFFICE_STAGES[k.officeStage].name} · ${k.desks} desks · ${shareText(k)}` }));
-    })) : null;
-    // The eight starts sit behind one line, so a first-time player meets Classic and the funding question first;
-    // asking for the picker in the URL, or having left Classic, opens it.
+    // The era is picked on the first step; this line shows the pick and goes back to change it.
     const eraNow = h('span.small.era-pick-now');
-    const eraPick = erasPreview ? h('details.era-pick', null,
-      h('summary', null, h('b', { text: 'When does your company begin?' }), eraNow, h('span.small.era-pick-change', { text: 'Change' })),
-      eraCards, modeCards) : null;
-    if (eraPick) eraPick.open = new URLSearchParams(globalThis.location?.search ?? '').has('eras') || draft.startEra !== 'classic' || draft.startMode === 'takeover';
+    const eraLine = erasPreview ? h('div.era-line', null, h('b', { text: 'Your start' }), eraNow,
+      h('button.btn.small', { onclick: () => { sfx('click'); STEP.era(); } }, 'Change')) : null;
     const unlockNote = h('div.small.muted');
     const skippedNote = h('div.small.muted');
     const summary = h('div.era-start-summary', { 'aria-live': 'polite' });
@@ -409,17 +449,6 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
     const refreshEra = () => {
       if (!canTakeOver(draft.startEra)) draft.startMode = 'garage';
       const takeover = draft.startMode === 'takeover';
-      if (modeCards) {
-        modeCards.querySelectorAll('button').forEach((b) => {
-          const selected = b.dataset.startMode === draft.startMode;
-          b.disabled = b.dataset.startMode === 'takeover' && !canTakeOver(draft.startEra);
-          if (b.dataset.startMode === 'takeover') setText(b.lastElementChild, b.disabled
-            ? `Takeover is for ${takeoverNames()}. Pick one of those.`
-            : 'Inherit the people, products and history of a company already running.');
-          b.classList.toggle('on', selected);
-          b.setAttribute('aria-pressed', String(selected));
-        });
-      }
       setText(error, '');
       error.hidden = true;
       setText(fundingLabel, takeover ? 'How was the company originally funded?' : 'How are you paying for this?');
@@ -429,21 +458,6 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       const era = ERA_STARTS[draft.startEra];
       const kit = B.eraStarts[draft.startEra];
       setText(eraNow, takeover ? `Take over a ${era.name} company` : `${era.name} · ${shareText(kit)}`);
-      eraCards?.querySelectorAll('.era-start').forEach((card) => {
-        const id = card.dataset.era;
-        const selected = id === draft.startEra;
-        card.classList.toggle('on', selected);
-        card.setAttribute('aria-pressed', String(selected));
-        const cardKit = B.eraStarts[id];
-        const inherited = takeover && canTakeOver(id);
-        card.disabled = takeover && !canTakeOver(id);
-        setText(card.querySelector('.eblurb'), inherited
-          ? 'Inherit a company built from Classic, with its existing people, products and history.'
-          : card.disabled ? 'Choose Found a company to start in this era.' : ERA_STARTS[id].blurb);
-        setText(card.lastElementChild, inherited
-          ? `Existing company · ${shareText({ scoreShare: B.takeover.scoreShare[id] })}`
-          : `${OFFICE_STAGES[cardKit.officeStage].name} · ${cardKit.desks} desks · ${shareText(cardKit)}`);
-      });
       const skipped = era.skippedGoals.map((id) => GOALS.find((g) => g.id === id)?.name).join(', ');
       const unlocks = era.unlocks.map((key) => key === 'policy.pair' ? 'AI as Pair' : key[0].toUpperCase() + key.slice(1)).join(', ');
       setText(unlockNote, unlocks ? `Already open: ${unlocks}. Policies start off.` : 'Classic is the full modern run, with the ordinary unlocks and goals.');
@@ -460,8 +474,8 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       });
       refreshSummary();
     };
-    nextBtn = frame(2, h('div.fbody', null,
-      eraPick,
+    nextBtn = frame('funding', h('div.fbody', null,
+      eraLine,
       erasPreview ? unlockNote : null,
       erasPreview ? skippedNote : null,
       fundingLabel,

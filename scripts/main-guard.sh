@@ -17,7 +17,7 @@
 # HITL_SHARED_CHECKOUT when that is clean, on main, and no ci-pr or local CI runs in it.
 # Usage: scripts/main-guard.sh [--sha <commit>] [--no-post] [--loop <seconds>]
 #   --sha       check this commit instead of origin/main's tip (checked again even if seen)
-#   --no-post   no status, no issues: print the verdict only
+#   --no-post   no status, no issues: print the verdict only (MAIN_GUARD_NO_BISECT=1 also skips the bisect)
 #   --loop      check, sleep, and check again forever (for running it by hand)
 set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib/tmpdir.sh"
@@ -395,6 +395,7 @@ fi
 
 # Merges since the last green commit were skipped: bisect them to name the first red one, within
 # MAIN_GUARD_BISECT_BUDGET seconds (waits for the lock included); past it, report the range narrowed so far.
+[ "${MAIN_GUARD_NO_BISECT:-0}" = 1 ] && exit 1   # a release reports the commit, not the first red merge
 green="$(cat "$STATE/last-green" 2>/dev/null)"
 [ -n "$green" ] && git -C "$REPO" merge-base --is-ancestor "$green" "$sha" 2>/dev/null || exit 1
 mapfile -t range < <(git -C "$REPO" rev-list --first-parent --reverse "$green..$sha")

@@ -39,6 +39,10 @@
   .hitl .chip.speed.has-mail .paused-tag { display: none; }
   .hitl .chip.speed.has-mail { gap: 0.2em; padding-left: 0.3em; padding-right: 0.3em; }
 }
+/* Eight buttons at 44 px do not fit a 360 px phone beside the envelope; they stay 44 px tall and a little narrower. */
+@media (max-width: 400px) {
+  .hitl .chip.speed.has-mail .btn.small { min-width: 40px; }
+}
 
 /* A phone shows the list or the letter: tapping a row opens it, Back returns. */
 @media (max-width: 600px) {

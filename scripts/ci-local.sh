@@ -155,6 +155,12 @@ if [ "${CI_FULL:-}" != 1 ]; then
     tool_changes=0
   fi
 fi
+# Of the self-tests, a PR runs only those whose tool the change touches (ci-covers.sh reads each toolkit
+# entry's `covers:`); the main guard runs them all. Without a merge base every self-test runs.
+tool_select=0; tool_relevant=""
+if [ "${CI_FULL:-}" != 1 ] && [ -n "${tool_mb:-}" ] && [ "$tool_changes" = 1 ]; then
+  tool_relevant="$(printf '%s\n' "$tool_files" | bash "$SELF/ci-covers.sh" "$PWD")" && tool_select=1
+fi
 # Under ci-pr (CI_PR_SELFTESTS=1) a self-test the PR changes runs as the PR wrote it, in place in the
 # PR's tree, so it exercises the PR's own copies of the scripts it tests (a PR that adds behaviour and
 # its test together passes, and one that fixes a broken test is judged by the fix). The run says so.
@@ -172,6 +178,14 @@ pr_selftest() { # <name> <command...>: sets PR_TEST_TMP to the PR's test file wh
   done
 }
 tool_step() { # <name> <command...>
+  if [ "$tool_changes" = 1 ] && [ "$tool_select" = 1 ]; then
+    local a rel=""
+    for a in "${@:2}"; do case "$a" in "$SELF"/*.test.*) rel="scripts/${a#"$SELF"/}"; break ;; esac; done
+    if [ -n "$rel" ] && ! grep -Fxq -- "$rel" <<<"$tool_relevant"; then
+      record "$1" "skipped: nothing this self-test covers changed" 0; timing_log kind=step tool=ci-local step="$1" skipped=1 wall_s=0 exit=0
+      return 0
+    fi
+  fi
   if [ "$tool_changes" = 1 ]; then
     pr_selftest "$@"
     # The self-tests are independent and light: a few run side by side (collected by tool_join).
@@ -238,7 +252,12 @@ tool_step ci-delta bash "$SELF/ci-delta.test.sh"
 tool_step heavy bash "$SELF/heavy.test.sh"
 tool_step ci-merge-only bash "$SELF/ci-merge-only.test.sh"
 tool_step nice10 bash "$SELF/nice10.test.sh"
+tool_step ci-covers bash "$SELF/ci-covers.test.sh"
+tool_step release bash "$SELF/release.test.sh"
+tool_step main-red bash "$SELF/main-red.test.sh"
 tool_step pwa-plugin bash "$SELF/pwa-plugin.test.sh"
+# Install, update, kill and relaunch in WebKit (about two minutes): the main guard's full run only.
+if [ "${CI_FULL:-}" = 1 ]; then step pwa-webkit node "$SELF/pwa-webkit.js"; fi
 tool_step test-push bash "$SELF/test-push.test.sh"
 tool_step ci-pr-trust bash "$SELF/ci-pr-trust.test.sh"
 tool_step drive bash "$SELF/tools/drive.test.sh"
@@ -246,6 +265,7 @@ tool_step reset-teammate bash "$SELF/team/reset-teammate.test.sh"
 tool_step pace-browser node "$SELF/pace-browser.test.mjs"
 tool_step test-related bash "$SELF/tools/test-related.test.sh"
 tool_step job bash "$SELF/tools/job.test.sh"
+tool_step changelog-auto bash "$SELF/tools/changelog-auto.test.sh"
 tool_step gh-as bash "$SELF/tools/gh-as.test.sh"
 tool_step commit-msg bash "$SELF/hooks/commit-msg.test.sh"
 tool_step pre-push bash "$SELF/hooks/pre-push.test.sh"
@@ -283,6 +303,8 @@ if [ "$bal_mode" = full ] && [ "${CI_FULL:-}" != 1 ] && git show "$BASE:scripts/
   && bal_mb="$(git merge-base "$BASE" HEAD 2>/dev/null)"; then
   bal_mode="$({ git diff --name-only --no-renames "$bal_mb"; git ls-files --others --exclude-standard; } | bash "$LOGS/classify.sh" "$LOGS/bal-skip")"
 fi
+# The run through the PR's own ci-local.sh leaves out what main's run already did on the same tree.
+[ "${CI_OWN:-}" = 1 ] && [ "${CI_FULL:-}" != 1 ] && bal_mode=github
 # Vitest defaults to a worker per core, so a few runs at once (several PRs gating, or balance beside
 # test:fast) oversubscribe the machine and slow bot-run tests past their timeout. Each run takes its
 # share of the cores the load leaves free (vitest_workers), read when test:fast starts.
@@ -329,34 +351,12 @@ if [ -z "$VITEST_WORKERS" ]; then
   timing_log kind=vitest tool=ci-local workers="$VITEST_WORKERS" cores="$(nproc)" load1="$(load1)" runs="$(ci_runs_going)"
 fi
 gh_step test:fast test npm run test:fast -- --maxWorkers="$VITEST_WORKERS"
-# The whole-game cases test:fast leaves out (tests/**/*.full.test.js) play many games: they run here, not
-# on GitHub's two-core runner (where one file alone took half an hour). A PR run plays only the files
-# scripts/tools/full-select.mjs says the change reaches; the main guard (CI_FULL=1) always runs all of them.
-full_check() {
-  if [ "${CI_FULL:-}" != 1 ]; then
-    local mb sel; mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || mb="$BASE"
-    sel="$(node scripts/tools/full-select.mjs --base "$mb")" || return 1
-    # harness-uuid has its own GPU step.
-    sel="$(grep -v '^tests/tools/harness-uuid\.full\.test\.js$' <<<"$sel")" || true
-    # With a delta, only the tests that also reach a file that differs from the last passed tree.
-    if [ "$have_delta" = 1 ] && [ -n "$sel" ]; then
-      local dsel=""
-      if [ -n "$delta" ]; then
-        local dfiles; mapfile -t dfiles <<<"$delta"
-        dsel="$(node scripts/tools/full-select.mjs --files "${dfiles[@]}")" || return 1
-      fi
-      sel="$(comm -12 <(sort <<<"$sel") <(sort <<<"$dsel"))"
-    fi
-    [ -n "$sel" ] || { echo "skipped: no whole-game test reaches this change"; return 0; }
-    echo "selected:"; echo "$sel"
-    # Not `npm run test:full -- files`: its pattern would still match every .full file.
-    # shellcheck disable=SC2086
-    bash scripts/nice10.sh npx vitest run $sel --exclude tests/tools/harness-uuid.full.test.js --maxWorkers="$VITEST_WORKERS"
-    return
-  fi
-  npm run test:full -- --maxWorkers="$VITEST_WORKERS"
-}
-pstep test:full full_check
+# The whole-game cases test:fast leaves out (tests/**/*.full.test.js) play many games, which takes minutes.
+# A PR run does not play them: the main guard (CI_FULL=1) plays all of them on every main commit and files
+# the issue when one breaks, and the author fixes forward.
+full_check() { npm run test:full -- --maxWorkers="$VITEST_WORKERS"; }
+if [ "${CI_FULL:-}" = 1 ]; then pstep test:full full_check
+else record test:full "skipped: the whole-game cases run on main (the main guard)" 0; timing_log kind=step tool=ci-local step=test:full skipped=1 wall_s=0 exit=0; fi
 gh_step build test npm run build
 # Trailer and landing beats (tests/sim/trailer-beats/replay.mjs, sim only, about 20 s), for changes to
 # what a beat's capture setup runs against or the setups themselves. A beat whose setup throws (its
@@ -501,16 +501,28 @@ golden_font_check() {
 browser_t0=$(now)
 # CI_TIER=tests (ci-pr sets it for a change only tests read, scripts/ci-tests-only-paths) leaves out the
 # render, browser and perf checks; the main guard (CI_FULL=1) always runs them.
-if [ "${CI_TIER:-}" = tests ] && [ "${CI_FULL:-}" != 1 ]; then
+#
+# A PR runs them only when it changes what they look at: the renderer, the UI, the audio code, the page,
+# the game's entry and quality code, the models and other rendered assets, the render harness
+# (scripts/lib, blender) or the build config. A sim, docs or tooling change does not, and neither does the
+# run through the PR's own ci-local.sh (main's run made them on the same tree). The main guard always does.
+render_pr_inputs='^(src/(render|ui|audio)/|src/(main|quality)\.js$|public/(models|fonts|icons|memes)/|blender/|index\.html$|vite\.config\.js$|package(-lock)?\.json$|scripts/lib/)'
+no_render=""
+if [ "${CI_FULL:-}" != 1 ]; then
+  if [ "${CI_OWN:-}" = 1 ]; then no_render="the run through the PR's own ci-local.sh leaves out what main's run already did"
+  elif [ "${CI_TIER:-}" = tests ]; then no_render="tests tier (only tests read these changes)"
+  elif [ -n "${tool_mb:-}" ] && ! grep -qE "$render_pr_inputs" <<<"$tool_files"; then no_render="no render, UI, page or entry change"; fi
+fi
+if [ -n "$no_render" ]; then
   for name in golden golden-font lifecycle soak render-checks perf-budget phone-check stage tool-rng harness-uuid; do
-    record "$name" "skipped: tests tier (only tests read these changes)" 0
+    record "$name" "skipped: $no_render" 0
     timing_log kind=step tool=ci-local step="$name" skipped=1 tier=tests wall_s=0 exit=0
   done
-  note "Tests tier: every changed file is on scripts/ci-skip-paths or scripts/ci-tests-only-paths, so the tests and the light checks ran, and the render, browser and balance checks did not."
+  [ "${CI_TIER:-}" = tests ] && note "Tests tier: every changed file is on scripts/ci-skip-paths or scripts/ci-tests-only-paths, so the tests and the light checks ran, and the render, browser and balance checks did not."
 else
 # What the golden images and the render checks read: the game, the assets, the harness and the page. With a
 # delta, they run only when one of those differs from the tree that last passed.
-render_inputs='^(src/|public/|blender/|index\.html$|package(-lock)?\.json$|vite\.config\.js$|scripts/(lib/|capture|studio/|perf/|events/|tools/|ci-local\.sh$))'
+render_inputs='^(src/|public/|blender/|index\.html$|package(-lock)?\.json$|vite\.config\.js$|scripts/(lib/|capture|studio/|perf/|events/|tools/))'
 render_gate() { # <command...>
   if [ "$have_delta" = 1 ] && ! grep -qE "$render_inputs" <<<"$delta"; then
     echo "skipped: no render input differs from the tree this PR last passed"; return 0
@@ -545,11 +557,13 @@ fi
 
 # Exit 1 when any step failed on the code; else 3 when a step failed on the machine twice; else 0.
 failed=0; machine=0
-table="| step | result | seconds |"$'\n'"|---|---|---|"
+# The slowest steps first, so the table says where the time went.
+rows=""
 for i in "${!NAMES[@]}"; do
-  table+=$'\n'"| ${NAMES[$i]} | ${RESULTS[$i]} | ${TIMES[$i]} |"
+  rows+="| ${NAMES[$i]} | ${RESULTS[$i]} | ${TIMES[$i]} |"$'\n'
   case "${RESULTS[$i]}" in pass|skipped:*) ;; "error: machine"*) machine=1 ;; *) failed=1 ;; esac
 done
+table="| step | result | seconds |"$'\n'"|---|---|---|"$'\n'"$(printf '%s' "$rows" | sort -t'|' -k4,4 -rn -s)"
 [ $failed = 0 ] && [ $machine = 1 ] && note "Machine failures only: the machine ran out of something (disk, memory, GPU) twice. Nothing here judges the code; re-run when the machine is quieter."
 tests="$(grep -hE '^ +Tests ' "$LOGS/test:fast.log" "$LOGS/test:balance.log" 2>/dev/null | sed 's/^ *//' | paste -sd ';' -)"
 notes=""
