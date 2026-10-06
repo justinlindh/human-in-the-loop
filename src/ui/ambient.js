@@ -67,13 +67,19 @@ const GAGS = {
   ai_summit: { text: 'AI summit trip', skipped: 'Skipped the summit', icon: 'vacation' },
   ai_summit_panel: { text: 'Off to the panel', skipped: 'Skipped the panel', icon: 'vacation' },
   ai_summit_hackathon: { text: 'Off to the hackathon', skipped: 'Skipped the hackathon', icon: 'vacation' },
+  music_night_genre: { text: 'Music night!', icon: 'award' },
+  incident_postmortem: { text: 'Postmortem filed', icon: 'check' },
+  four_day_week_review: { text: 'Four-day week check-in', icon: 'check' },
 };
-export const GAG_ICONS = [...new Set([...Object.values(GAGS).map((g) => g.icon), 'check', 'trend'])];
+export const GAG_IDS = Object.keys(GAGS);
+export const GAG_ICONS = [...new Set([...Object.values(GAGS).map((g) => g.icon), 'check'])];
+// An event with no caption of its own sends no bubble (null): the sim's Yak line already says what happened.
 export function gagDetail(e, state) {
   const g = GAGS[e.eventId];
-  const skipped = !!g?.skipped && e.choice === 0;
-  const text = g ? (skipped ? g.skipped : g.text) : 'Office moment';
-  const icon = !g ? 'trend' : skipped ? 'check' : g.icon;
+  if (!g) return null;
+  const skipped = !!g.skipped && e.choice === 0;
+  const text = skipped ? g.skipped : g.text;
+  const icon = skipped ? 'check' : g.icon;
   const id = e.subjectId ?? null;
   const subjectKind = id == null ? 'company' : (state?.products ?? []).some((p) => p.id === id) ? 'product' : 'staff';
   return { topic: 'gag', subjectId: id, subjectKind, text, icon, tone: 'info' };

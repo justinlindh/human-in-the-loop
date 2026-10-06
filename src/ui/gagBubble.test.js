@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { GAG_ICONS, gagDetail } from './ambient.js';
+import { GAG_ICONS, GAG_IDS, SHORT_MAX, gagDetail } from './ambient.js';
+import { EVENTS } from '../data/events.js';
 import { AMBIENT_ICON } from '../render/ambient.js';
 
 const state = { products: [{ id: 'pr1' }], staff: [{ id: 's1' }] };
@@ -23,8 +24,20 @@ describe('a card-less gag as an ambient bubble', () => {
     expect(gagDetail({ eventId: 'pet_mishap', subjectId: 'pr1' }, state).subjectKind).toBe('product');
   });
 
-  it('falls back to a generic caption for an event without one', () => {
-    expect(gagDetail({ eventId: 'something_new', subjectId: null }, state)).toMatchObject({ text: 'Office moment', icon: 'trend' });
+  it('sends no bubble for an event without a caption of its own', () => {
+    expect(gagDetail({ eventId: 'something_new', subjectId: null }, state)).toBeNull();
+  });
+
+  it('every event marked quiet has its own caption that fits a bubble', () => {
+    const quiet = Object.values(EVENTS).filter((e) => e.quiet).map((e) => e.id);
+    expect(quiet.length).toBeGreaterThan(0);
+    for (const id of quiet) {
+      const d = gagDetail({ eventId: id, subjectId: null, choice: 1 }, state);
+      expect(d, id).not.toBeNull();
+      expect(d.text.length, id).toBeLessThanOrEqual(SHORT_MAX);
+      expect(d.text, id).not.toBe('Office moment');
+    }
+    expect(GAG_IDS).toEqual(expect.arrayContaining(quiet));
   });
 
   it('only uses icons the renderer\'s ambient map knows', () => {
