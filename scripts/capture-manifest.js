@@ -63,7 +63,7 @@ const NOD = (eventId, weeks) => PLAY({ weeks, bot: 'allHumans', until: `s.pendin
 // A bare frame for the reel: the side overlays (top bar, tray, Yak, menu, toasts) hidden, so the
 // office and the beat fill the frame; the decision card and the moment caption stay. YAK brings Yak
 // back, at the right where the reel's crop keeps it, for a beat whose payoff is a message.
-export const BARE = `(() => { const st = document.createElement('style'); st.id = 'reel-bare'; st.textContent = '#ui .topbar, #ui .tray, #ui .bottom, #ui .toasts { display: none !important; }'; document.head.append(st); })()`;
+export const BARE = `(() => { const st = document.createElement('style'); st.id = 'reel-bare'; st.textContent = '#ui .topbar, #ui .tray, #ui .bottom, #ui .toasts, #ui .camrot, #ui .camhint { display: none !important; }'; document.head.append(st); })()`;
 const YAK = `(() => { const st = document.getElementById('reel-bare'); if (st) st.textContent = '#ui .topbar, #ui .tray, #ui .menu, #ui .toasts { display: none !important; } #ui .chat.yak { position: fixed !important; left: auto !important; right: 24px !important; top: 300px !important; bottom: auto !important; width: 380px !important; }'; })()`;
 // Unlock and tip cards that queue up during a fast-forward, closed the way a player would ("Later",
 // "Got it"), so the nod's decision card is what shows.
@@ -175,12 +175,12 @@ export const PRE_UNTIL = ({ weeks, hit, bot = 'allHumans', prep = '', after = ''
 export const PRE_DECISION = (eventId, weeks, cond = 'true') => PRE_UNTIL({ weeks, hit: `(c) => c.pendingDecision?.eventId === '${eventId}' && (${cond})` });
 // The side overlays hidden (top bar, tray, bottom bar, toasts, tray toggle), Yak included; cards and
 // captions stay. The style element's id is 'clean-shot', for a shot that hides more.
-export const CLEAN = `(() => { const st = document.createElement('style'); st.id = 'clean-shot'; st.textContent = '#ui .topbar, #ui .tray, #ui .bottom, #ui .toasts, #ui .tray-toggle { display: none !important; }'; document.head.append(st); })()`;
+export const CLEAN = `(() => { const st = document.createElement('style'); st.id = 'clean-shot'; st.textContent = '#ui .topbar, #ui .tray, #ui .bottom, #ui .toasts, #ui .tray-toggle, #ui .camrot, #ui .camhint { display: none !important; }'; document.head.append(st); })()`;
 // Only the office: every overlay is invisible but still laid out, so the cards a fast-forward queues
 // can still be closed (a paused game would freeze the shot).
 export const STAGE_ONLY = `(() => { const st = document.createElement('style'); st.textContent = '#ui > * { visibility: hidden !important; }'; document.head.append(st); })()`;
 // Yak stays, alone, for a shot whose subject is a Yak thread.
-export const YAK_ONLY = `(() => { const st = document.createElement('style'); st.textContent = '#ui .topbar, #ui .tray, #ui .toasts, #ui .tray-toggle, #ui .menu { display: none !important; } '; document.head.append(st); })()`;
+export const YAK_ONLY = `(() => { const st = document.createElement('style'); st.textContent = '#ui .topbar, #ui .tray, #ui .toasts, #ui .tray-toggle, #ui .menu, #ui .camrot, #ui .camhint { display: none !important; } '; document.head.append(st); })()`;
 // Answers `eventId` (null: any decision) with `choice` once its card has been up `read` seconds, by
 // pressing the choice's number key as a player would; checked every half second from `from` to `to`.
 export const CHOOSE_WHEN = (eventId, choice, from, to, read = 3) => Array.from({ length: Math.round((to - from) * 2) }, (_, i) => ({ at: from + i / 2,
@@ -221,7 +221,7 @@ export const BUILD_GLIDE = ({ itemId, at = 0.2, glide = 1.2, rest = 0.5, from = 
   ];
 };
 // Only the build bar and its tip over the office (the trailer's build beat): every other overlay hidden.
-export const BUILD_ONLY = `(() => { const st = document.createElement('style'); st.textContent = '#ui .topbar, #ui .tray, #ui .bottom, #ui .toasts, #ui .tray-toggle, #ui .chat.yak, #ui .menu { display: none !important; }'; document.head.append(st); })()`;
+export const BUILD_ONLY = `(() => { const st = document.createElement('style'); st.textContent = '#ui .topbar, #ui .tray, #ui .bottom, #ui .toasts, #ui .tray-toggle, #ui .chat.yak, #ui .menu, #ui .camrot, #ui .camhint { display: none !important; }'; document.head.append(st); })()`;
 // A flying-camera swoop (the renderer's fly(), dev only): once `ready` (JS giving the subject's
 // { x, z } or null) first returns a point, orbits in on it from `keys` ([t, angle deg, radius, height,
 // fov], seconds from the start and metres from the subject), looking at it at `lookY` the whole way.

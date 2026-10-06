@@ -51,7 +51,9 @@ const SPECIAL = {
   preinternet: (v) => v === 'verify' ? `cash -${money(B.preinternet.verifyCost)}; product reliability and maximum health +${B.preinternet.verifyReliability}`
     : v === 'rush' ? `cash +${money(B.preinternet.rushCash)}; debt +${B.preinternet.rushDebt}`
       : v === 'returns' ? `withdraw unsold stock; pay ${B.preinternet.buybackShare * 100}% of its manufacturing cost, capped at ${money(B.preinternet.buybackCap)}, once per product`
-        : v === 'cd' ? `cash -${money(B.preinternet.cdCost)}; next batch capacity +${B.preinternet.cdCapacity * 100}%, charged per copy` : 'keep disks; no cost',
+        : v === 'cd' ? `cash -${money(B.preinternet.cdCost)}; next batch capacity +${B.preinternet.cdCapacity * 100}%, charged per copy`
+          : v.startsWith('order:') ? `order ${v.slice(6)} copies through the Inventory order: cash -${money(Number(v.slice(6)) * B.preinternet.unitCost)} before discounts, on the shelves in ${B.preinternet.leadWeeks} weeks`
+            : v === 'hold' ? 'no order; no cost' : 'keep disks; no cost',
   assign: (v) => ASSIGN[v.type] ?? `they're assigned to ${v.type}`,
   startCraft: () => 'a craft project starts, if none is running',
   pivot: () => 'your newest product pivots',
