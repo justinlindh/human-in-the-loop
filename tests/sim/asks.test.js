@@ -32,7 +32,7 @@ describe('issue #1646: the ask queue', () => {
     expect(B.pacing.askExpiry).toBe(false);
     for (const k of ['askRealTime', 'momentCap', 'askRates', 'letterMail', 'quietEvents', 'quietToasts', 'oneLaunchCard', 'unlockPips', 'advisorGlow', 'quietYak', 'mailArchive', 'deskBubbles']) expect(B.pacing[k], k).toBe(true);
     expect(B.attention).toEqual({ gap: 90, quiet: 45, expiry: 180, momentWindow: 300, momentCap: 25, watchWindow: 600, watchStretch: 180, yakGap: 20,
-      botGapWeeks: 11, botExpiryWeeks: 22, staleWeeks: 52, queueCap: 3 });
+      botGapWeeks: 11, botExpiryWeeks: 22, staleWeeks: 52, queueCap: 3, openExpiry: 120 });
   });
 
   it('off: a decision opens as it always has and the queue stays empty', () => {

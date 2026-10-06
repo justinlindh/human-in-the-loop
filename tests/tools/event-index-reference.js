@@ -10,7 +10,13 @@ const SNAP = new Set(['era', 'officeUpgrade']);
 const SNAP_PER_ID = 2;
 const SNAP_PER_OTHER = 1;
 
-export async function referencePlay({ bot, seed, weeks, dir }) {
+// Plays with the index's pacing switches pinned, as play.js does.
+export async function referencePlay(opts) {
+  const { withIndexPacing } = await import(pathToFileURL(join(ROOT, 'scripts/events/play.js')).href);
+  return withIndexPacing(() => referencePinned(opts));
+}
+
+async function referencePinned({ bot, seed, weeks, dir }) {
   const mod = (p) => import(pathToFileURL(join(ROOT, p)).href);
   const { botDecide, botTurn } = await mod('src/sim/bots.js');
   const { createGame } = await mod('src/sim/state.js');

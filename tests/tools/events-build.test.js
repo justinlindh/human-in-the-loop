@@ -5,7 +5,21 @@ import { gunzipSync } from 'node:zlib';
 import { join, resolve } from 'node:path';
 import { once } from 'node:events';
 import { simHash } from '../../scripts/events/lib.js';
-import { play } from '../../scripts/events/play.js';
+import { play, withIndexPacing, INDEX_PACING } from '../../scripts/events/play.js';
+import { B } from '../../src/sim/balance.js';
+
+describe('index pacing', () => {
+  it('plays with the quiet pacing switches off and puts them back after, on return, throw or a promise', async () => {
+    expect(INDEX_PACING).toEqual({ askRates: false, letterMail: false, quietEvents: false });
+    const before = { ...B.pacing }, pinned = { ...before, ...INDEX_PACING };
+    expect(withIndexPacing(() => ({ ...B.pacing }))).toEqual(pinned);
+    expect(B.pacing).toEqual(before);
+    expect(() => withIndexPacing(() => { throw new Error('x'); })).toThrow('x');
+    expect(B.pacing).toEqual(before);
+    expect(await withIndexPacing(async () => { await null; return { ...B.pacing }; })).toEqual(pinned);
+    expect(B.pacing).toEqual(before);
+  });
+});
 import { referencePlay } from './event-index-reference.js';
 import { build, compareSnapshots, run, shortArgs, shortRun, workspace } from './event-index-fixture.js';
 import { spawnAsync } from './spawn-async.js';

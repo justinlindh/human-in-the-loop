@@ -12,6 +12,7 @@ import { mentorOf } from './staff.js';
 import { EVENTS } from '../data/events.js';
 import { ITEMS } from '../data/items.js';
 import { decisionVars, fillText } from './events.js';
+import { expireLetter } from './mail.js';
 import { grantBlocker, leaveProp, stageTile } from './props.js';
 import { placeNow, findSpot, layoutOf } from './office.js';
 
@@ -179,7 +180,7 @@ export function openEventPrompt(outer, ev, subjectId) {
   (state.flags.promptCtx ??= {})[id] = { kind: ev.id, event: true, subjectId, vars };
   state.chatPrompts.push({
     id, kind: ev.id, chatId: msg.id, channel: 'general', fromId: null, week: state.week,
-    expiresWeek: state.week + B.chatPromptExpiryWeeks,
+    expiresWeek: state.week + B.chatPromptExpiryWeeks, shownWeek: null,
     options: ev.choices.map((c) => { const why = eventChoiceBlocker(state, c, subjectId); return { label: fill2(c.label), hint: fill2(c.hint), available: !why, reason: why }; }),
     resolved: null,
     stage: ev.stage ? { ...ev.stage, ...stageTile(state, ev.stage.anchor, subjectId) } : null,
@@ -261,7 +262,7 @@ function openPrompt(ctx) {
   (state.flags.promptCtx ??= {})[id] = pc;
   state.chatPrompts.push({
     id, kind: t.id, chatId: msg.id, channel: t.channel, fromId: hit.poster.id, week: state.week,
-    expiresWeek: state.week + B.chatPromptExpiryWeeks,
+    expiresWeek: state.week + B.chatPromptExpiryWeeks, shownWeek: null,
     options: t.options.map((o) => { const why = optionBlocker(state, o, pc.posterId); return { label: o.label, hint: fill(state, o.hint, pc) ?? o.hint, available: !why, reason: why, ...(o.opens ? { opens: o.opens } : {}) }; }),
     resolved: null,
     stage: null,
@@ -308,7 +309,7 @@ export function promptsSystem(outer) {
   const { state } = ctx;
   state.chatPrompts ??= [];
   checkDeskPromise(ctx);
-  for (const p of state.chatPrompts) if (!p.resolved && state.week >= p.expiresWeek) resolve(ctx, p, null);
+  for (const p of state.chatPrompts) if (!p.resolved && expiresByWeek(p) && state.week >= p.expiresWeek) resolve(ctx, p, null);
   state.chatPrompts = state.chatPrompts.filter((p) => !p.resolved || state.week - p.resolved.week < B.chatPromptsKept);
   const open = state.chatPrompts.filter((p) => !p.resolved);
   for (const p of open) {
@@ -326,6 +327,28 @@ export function promptsSystem(outer) {
 }
 
 registerSystem('prompts', promptsSystem, 89);
+
+// Under B.pacing.shownExpiry a prompt or letter expires by weeks only until it is shown; after that the
+// presentation clock closes it with expireOpen.
+export const expiresByWeek = (x) => !B.pacing.shownExpiry || x.shownWeek === null || x.shownWeek === undefined;
+
+registerAction('promptShown', (outer, { promptId }) => {
+  const prompt = (outer.state.chatPrompts ?? []).find((p) => p.id === promptId);
+  if (!prompt) return { ok: false, reason: 'No such prompt' };
+  prompt.shownWeek ??= outer.state.week;
+  return { ok: true };
+});
+
+registerAction('expireOpen', (outer, { kind, id }) => {
+  const { state } = outer;
+  if (!B.pacing.shownExpiry) return { ok: false, reason: 'Expiry is off' };
+  if (kind === 'letter') return expireLetter(outer, id);
+  const prompt = (state.chatPrompts ?? []).find((p) => p.id === id);
+  if (!prompt) return { ok: false, reason: 'No such prompt' };
+  if (prompt.resolved) return { ok: false, reason: 'Already answered' };
+  resolve(side(outer, 1000 + Number(prompt.id.slice(2)) * 7 + 6), prompt, null);
+  return { ok: true };
+});
 
 registerAction('answerPrompt', (outer, { promptId, choice }) => {
   const { state } = outer;

@@ -25,6 +25,9 @@ import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { glMode, holdRenderLock, launchChromium } from '../../scripts/lib/gl.js';
 import { resolveTarget, snapshotEntries } from '../../scripts/events/load.js';
+import * as indexPlay from '../../scripts/events/play.js';
+// An older checkout's index has no pin to match.
+const pinIndexPacing = (page) => indexPlay.pinIndexPacing?.(page);
 import { simHash, indexDir, readIndex } from '../../scripts/events/lib.js';
 import { join } from 'node:path';
 import { fmtTrace, fmtActor, ACTOR_JS } from './diag.mjs';
@@ -93,6 +96,7 @@ try {
       await page.evaluate(() => window.__frame(1));
       await new Promise((r) => setTimeout(r, 50));
     }
+    await pinIndexPacing(page);
     const res = await page.evaluate(({ seconds, moveM }) => {
       const H = window.__HITL, R = window.__hitlRender;
       if (R.trace) R.trace.on = true;
@@ -275,6 +279,7 @@ try {
         await page.evaluate(() => window.__frame(1));
         await new Promise((r) => setTimeout(r, 50));
       }
+      await pinIndexPacing(page);
       const r = await page.evaluate((scene) => {
         const H = window.__HITL, R = window.__hitlRender, S = () => H.state;
         const loaded = H.controls.continueGame();

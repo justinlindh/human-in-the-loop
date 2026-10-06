@@ -150,6 +150,7 @@ function normalize(state) {
   for (const g of GOALS) if ((!g.startEras || g.startEras.includes(state.founding?.startEra)) && (!g.requiredChapter || state.founding?.earlyChapters?.some((c) => c.id === g.requiredChapter))) state.goals[g.id] ??= { done: false, week: null };
   state.market.forSale ??= [];
   for (const sq of state.squads) { sq.crewIds ??= []; sq.postedWeek ??= sq.formedWeek; }
+  for (const x of [...state.chatPrompts, ...state.mail]) x.shownWeek ??= null;
   state.office.expansion ??= 0;
   state.office.props ??= [];
   state.fame ??= 0;

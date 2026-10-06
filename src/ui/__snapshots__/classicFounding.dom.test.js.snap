@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`keeps the default founding flow and complete state for bootstrapped > state 1`] = `"3d6eb85bb5d278d7b726bf708a349603335f7bbb92618f33c96cfe2cae26e811"`;
+exports[`keeps the default founding flow and complete state for bootstrapped > state 1`] = `"2c0486dca81b360e211aefa66e6936a7ffb5292599bfca1273515636bb90b57d"`;
 
 exports[`keeps the default founding flow and complete state for bootstrapped 1`] = `
 {
@@ -71,7 +71,7 @@ exports[`keeps the default founding flow and complete state for bootstrapped 1`]
       "inputs": [
         {
           "placeholder": "Company name",
-          "value": "Tiny & Co",
+          "value": "Dashboard Dreams",
         },
         {
           "placeholder": "Tagline",
@@ -82,7 +82,7 @@ exports[`keeps the default founding flow and complete state for bootstrapped 1`]
           "value": "",
         },
       ],
-      "text": "A tiny company simHumanin theLoopBuild software. Keep the humans.1 Company2 Founders3 FundingTCompany name🎲 SuggestLogo colorTagline🎲 SuggestSeed optional: the same seed plays the same game◀ BackNext: founders",
+      "text": "A tiny company simHumanin theLoopBuild software. Keep the humans.1 Company2 Founders3 FundingDCompany name🎲 SuggestLogo colorTagline🎲 SuggestSeed optional: the same seed plays the same game◀ BackNext: founders",
     },
     {
       "buttons": [
@@ -194,7 +194,7 @@ exports[`keeps the default founding flow and complete state for bootstrapped 1`]
     },
   ],
   "options": {
-    "companyName": "Tiny & Co",
+    "companyName": "Dashboard Dreams",
     "founders": [
       "engineer",
       "designer",
@@ -207,7 +207,7 @@ exports[`keeps the default founding flow and complete state for bootstrapped 1`]
 }
 `;
 
-exports[`keeps the default founding flow and complete state for family > state 1`] = `"488f792e5e69b2442b53e8c95ebb9fb10e5890c4dd59d1e3c8a9272eb85f8cb8"`;
+exports[`keeps the default founding flow and complete state for family > state 1`] = `"e440926b197f08cc841202344e906fcab4409a3bc6d77447af48984fb0a85849"`;
 
 exports[`keeps the default founding flow and complete state for family 1`] = `
 {
@@ -278,7 +278,7 @@ exports[`keeps the default founding flow and complete state for family 1`] = `
       "inputs": [
         {
           "placeholder": "Company name",
-          "value": "Tiny & Co",
+          "value": "Dashboard Dreams",
         },
         {
           "placeholder": "Tagline",
@@ -289,7 +289,7 @@ exports[`keeps the default founding flow and complete state for family 1`] = `
           "value": "",
         },
       ],
-      "text": "A tiny company simHumanin theLoopBuild software. Keep the humans.1 Company2 Founders3 FundingTCompany name🎲 SuggestLogo colorTagline🎲 SuggestSeed optional: the same seed plays the same game◀ BackNext: founders",
+      "text": "A tiny company simHumanin theLoopBuild software. Keep the humans.1 Company2 Founders3 FundingDCompany name🎲 SuggestLogo colorTagline🎲 SuggestSeed optional: the same seed plays the same game◀ BackNext: founders",
     },
     {
       "buttons": [
@@ -401,7 +401,7 @@ exports[`keeps the default founding flow and complete state for family 1`] = `
     },
   ],
   "options": {
-    "companyName": "Tiny & Co",
+    "companyName": "Dashboard Dreams",
     "founders": [
       "engineer",
       "designer",
@@ -414,7 +414,7 @@ exports[`keeps the default founding flow and complete state for family 1`] = `
 }
 `;
 
-exports[`keeps the default founding flow and complete state for preseed > state 1`] = `"43ae3b763426966de24b682dc7448f773a321be486cfede542583315cca924e5"`;
+exports[`keeps the default founding flow and complete state for preseed > state 1`] = `"7d419d90045ecba7f99fd9191f1a030b4f63c1c99069f5544b00eae05feb3e9f"`;
 
 exports[`keeps the default founding flow and complete state for preseed 1`] = `
 {
@@ -485,7 +485,7 @@ exports[`keeps the default founding flow and complete state for preseed 1`] = `
       "inputs": [
         {
           "placeholder": "Company name",
-          "value": "Tiny & Co",
+          "value": "Dashboard Dreams",
         },
         {
           "placeholder": "Tagline",
@@ -496,7 +496,7 @@ exports[`keeps the default founding flow and complete state for preseed 1`] = `
           "value": "",
         },
       ],
-      "text": "A tiny company simHumanin theLoopBuild software. Keep the humans.1 Company2 Founders3 FundingTCompany name🎲 SuggestLogo colorTagline🎲 SuggestSeed optional: the same seed plays the same game◀ BackNext: founders",
+      "text": "A tiny company simHumanin theLoopBuild software. Keep the humans.1 Company2 Founders3 FundingDCompany name🎲 SuggestLogo colorTagline🎲 SuggestSeed optional: the same seed plays the same game◀ BackNext: founders",
     },
     {
       "buttons": [
@@ -608,7 +608,7 @@ exports[`keeps the default founding flow and complete state for preseed 1`] = `
     },
   ],
   "options": {
-    "companyName": "Tiny & Co",
+    "companyName": "Dashboard Dreams",
     "founders": [
       "engineer",
       "designer",
