@@ -29,12 +29,14 @@ describe('classify', () => {
   it('keeps feat and fix in the player scopes, and any PR that touched docs/features', () => {
     expect(parseTitle('feat(art)!: x y')).toEqual({ type: 'feat', scope: 'art', breaking: true });
     expect(parseTitle('wip stuff')).toBeNull();
-    for (const s of ['art', 'ui', 'sim', 'audio', 'capture']) expect(classify({ title: `fix(${s}): a b` })).toEqual({ visible: true, reason: `fix(${s})` });
+    for (const s of ['art', 'ui', 'sim', 'audio', 'pacing']) expect(classify({ title: `fix(${s}): a b` })).toEqual({ visible: true, reason: `fix(${s})` });
     expect(classify({ title: 'docs(docs): a b', touchesFeatures: true })).toEqual({ visible: true, reason: 'docs/features' });
   });
 
   it('skips tooling, CI, tests, perf and untitled PRs, saying why', () => {
     expect(classify({ title: 'fix(tools): a b' })).toEqual({ visible: false, reason: 'scope tools' });
+    expect(classify({ title: 'fix(capture): a b' })).toEqual({ visible: false, reason: 'scope capture' });
+    expect(classify({ title: 'fix(capture): a b', touchesFeatures: true })).toEqual({ visible: true, reason: 'docs/features' });
     expect(classify({ title: 'feat(integ): a b' })).toEqual({ visible: false, reason: 'scope integ' });
     expect(classify({ title: 'perf(art): a b' })).toEqual({ visible: false, reason: 'type perf' });
     expect(classify({ title: 'test(sim): a b' })).toEqual({ visible: false, reason: 'type test' });
@@ -198,11 +200,27 @@ describe('a merged PR against a real repository', () => {
 });
 
 describe('command line', () => {
+  it('writes a large result to a pipe in full', () => {
+    const bin = mkdtempSync(join(toolTmp(), 'day-changes-gh-'));
+    try {
+      const prs = Array.from({ length: 400 }, (_, i) => ({ number: i + 1, title: `feat(ui): thing ${i}`, body: `## What\n${'A long line about the change. '.repeat(40)}`, mergedAt: '2026-10-05T20:00:00Z', mergeCommit: { oid: '0'.repeat(40) }, url: `u${i}`, author: { login: 'a' } }));
+      writeFileSync(join(bin, 'gh'), `#!/bin/sh\ncat <<'EOF'\n${JSON.stringify(prs)}\nEOF\n`, { mode: 0o755 });
+      const r = spawnSync(process.execPath, [SCRIPT, '2026-10-05', '--tz', 'UTC', '--no-fetch', '--body-chars', '2000'], { encoding: 'utf8', env: { ...process.env, PATH: `${bin}:${process.env.PATH}` }, maxBuffer: 64 << 20 });
+      expect(r.status).toBe(0);
+      expect(r.stdout.length).toBeGreaterThan(300000);
+      expect(JSON.parse(r.stdout).days[0].prs).toHaveLength(400);
+    } finally { rmSync(bin, { recursive: true, force: true }); }
+  });
+
   it('refuses a missing day, a bad day, a backwards range, a day with --since-first and a bad zone', () => {
     for (const args of [[], ['yesterday'], ['2026-10-05..2026-10-01'], ['--since-first', '2026-10-05'], ['2026-10-05', '--tz', 'Mars/Base'], ['2026-10-05', '--body-chars', '0'], ['2026-10-05', '--nope']]) {
       const r = cli(...args, '--no-fetch');
       expect(r.status, args.join(' ')).toBe(2);
       expect(r.stderr).toMatch(/day-changes:/);
     }
+    const two = cli('2026-10-04', '2026-10-05', '--no-fetch');
+    expect(two.status).toBe(2);
+    expect(two.stderr).toContain('2026-10-04..2026-10-05');
+    expect(cli('2026-10-04', '--no-fetch', '--tz', 'Mars/Base').status).toBe(2);
   });
 });
