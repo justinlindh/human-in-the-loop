@@ -11,7 +11,12 @@ mkdir -p "$tmp/bin"
 cat >"$tmp/bin/gh" <<'SH'
 #!/usr/bin/env bash
 echo "$*" >>"$CALLS"
-case "$1 $2" in "issue list") echo "${OPEN:-}" ;; esac
+case "$1 $2" in
+  "issue list") echo "${OPEN:-}" ;;
+  "run list") echo "${RUN_ID-55}" ;;
+  "run view") echo "https://x/run/55" ;;
+  "run watch") exit "${WATCH_RC:-0}" ;;
+esac
 exit 0
 SH
 chmod +x "$tmp/bin/gh"
@@ -28,6 +33,14 @@ rc=$?
   || fail "a green suite sets release-gate and dispatches the release: $rc $(calls)"
 OPEN=7 run "main-guard: abc1234 PASS in 90s" 0
 calls | grep -q '^issue close 7 ' || fail "a release clears an open release-red issue: $(calls)"
+
+calls | grep -q '^run watch 55 ' || fail "a release waits for the workflow's result: $(calls)"
+WATCH_RC=1 OPEN=7 run "main-guard: abc1234 PASS in 90s" 0
+rc=$?
+[ $rc -eq 1 ] && ! calls | grep -q '^issue close' && calls | grep -q '^issue comment 7 ' \
+  || fail "a failed release workflow is red: no issue closed, the open one gets a comment: $rc $(calls)"
+RUN_ID= RELEASE_POLL=0 run "main-guard: abc1234 PASS in 90s" 0
+[ $? -eq 2 ] || fail "a run that cannot be found is an error, not a pass"
 
 run "main-guard: abc1234 FAIL (golden,render-checks) in 120s" 1
 rc=$?

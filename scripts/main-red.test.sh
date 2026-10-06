@@ -22,6 +22,7 @@ run() { : >"$tmp/calls"; ( export PATH="$tmp/bin:$PATH" CALLS="$tmp/calls" REPO=
 run SHA=tipsha CONCLUSION=failure OPEN=
 grep -q '^issue create .*--label main-red' "$tmp/calls" && grep -q 'ci failed on main at tipsha' "$tmp/calls" && grep -q 'test: https://x/job/1' "$tmp/calls" \
   || fail "a red run with no open issue opens one naming the commit and the jobs: $(cat "$tmp/calls")"
+grep -q '^<!-- main-red:ci -->$' "$tmp/calls" && grep -q '^issue list .*main-red:ci' "$tmp/calls" || fail "the issue carries a marker and lookups match it, so the main guard's own main-red issue is never touched: $(cat "$tmp/calls")"
 run SHA=tipsha CONCLUSION=failure OPEN=41
 grep -q '^issue comment 41 ' "$tmp/calls" && ! grep -q '^issue create' "$tmp/calls" || fail "a red run with an open issue comments on it: $(cat "$tmp/calls")"
 run SHA=tipsha CONCLUSION=success OPEN=41 TIP=tipsha

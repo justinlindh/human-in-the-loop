@@ -7,7 +7,9 @@
 set -euo pipefail
 : "${REPO:?}" "${RUN_ID:?}" "${RUN_URL:?}" "${SHA:?}" "${CONCLUSION:?}"
 gh label create main-red --repo "$REPO" --color B60205 --description "ci is failing on main" 2>/dev/null || true
-open="$(gh issue list --repo "$REPO" --label main-red --state open --json number --jq '.[0].number // empty')"
+# Only the issue this script opened (it carries the marker); the main guard's own main-red issue is left alone.
+MARK='<!-- main-red:ci -->'
+open="$(gh issue list --repo "$REPO" --label main-red --state open --json number,body --jq "[.[] | select(.body | contains(\"$MARK\"))][0].number // empty")"
 short="${SHA:0:8}"
 case "$CONCLUSION" in
   success)
@@ -19,7 +21,7 @@ case "$CONCLUSION" in
   failure|timed_out|startup_failure)
     subject="$(gh api "repos/$REPO/commits/$SHA" --jq '.commit.message | split("\n")[0]')"
     failed="$(gh api "repos/$REPO/actions/runs/$RUN_ID/jobs?per_page=100" --jq '[.jobs[] | select(.conclusion == "failure" or .conclusion == "timed_out") | "- \(.name): \(.html_url)"] | join("\n")')"
-    body="$(printf 'ci failed on main at %s (%s)\n\nRun: %s\n\nFailed jobs:\n%s\n\nFix forward, or revert the commit.' "$short" "$subject" "$RUN_URL" "${failed:-- none reported (see the run)}")"
+    body="$(printf 'ci failed on main at %s (%s)\n\nRun: %s\n\nFailed jobs:\n%s\n\nFix forward, or revert the commit.\n\n%s' "$short" "$subject" "$RUN_URL" "${failed:-- none reported (see the run)}" "$MARK")"
     if [ -n "$open" ]; then
       gh issue comment "$open" --repo "$REPO" --body "$body"
     else

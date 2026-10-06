@@ -4,8 +4,9 @@
 # (it has the GPU): the full vitest suite, balance, the browser checks, render checks, golden, phone check,
 # the scene sweep and the tool self-tests. That is the main guard's run (scripts/main-guard.sh), run on
 # demand at one commit and posting nothing itself.
-#   all green  the commit gets the `release-gate` status and release.yml is dispatched for it:
-#              semantic-release tags the next version and Pages deploys it
+#   all green  the commit gets the `release-gate` status and release.yml is dispatched for it and waited
+#              for: it makes the commit the `release` branch, semantic-release tags the next version from
+#              there and Pages deploys it; a failed workflow is a release-red issue like a red suite
 #   anything red, or the run cannot judge  nothing is published; one issue labelled release-red opens (or
 #              takes a comment) naming the commit and the failing steps
 # Usage: scripts/release.sh [--sha <rev>] [--dry-run]
@@ -47,17 +48,65 @@ what="$(sed -n 's/^main-guard: [0-9a-f]* FAIL (\(.*\)) in [0-9]*s$/\1/p' "$log" 
 
 repo=(); slug='{owner}/{repo}'
 [ -n "${RELEASE_REPO:-}" ] && { repo=(--repo "$RELEASE_REPO"); slug="$RELEASE_REPO"; }
+
+# Dispatches release.yml for the commit and waits for its result: 0 published (or the dry run finished), 1 the
+# workflow failed, 2 it could not be started or found. The workflow makes the tested commit the `release`
+# branch and releases from that, so a main that has moved on does not matter.
+run_url=""
+dispatch() { # <dry_run: true|false>
+  local since id
+  since="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  gh workflow run release.yml "${repo[@]}" -f sha="$sha" -f dry_run="$1" || { echo "release: could not dispatch release.yml" >&2; return 2; }
+  echo "release: dispatched release.yml for $short (dry run: $1)"
+  id=""
+  for _ in $(seq 1 24); do
+    id="$(gh run list --workflow release.yml "${repo[@]}" --event workflow_dispatch --json databaseId,createdAt --jq "[.[] | select(.createdAt >= \"$since\")] | sort_by(.createdAt) | .[0].databaseId // empty")"
+    [ -n "$id" ] && break
+    sleep "${RELEASE_POLL:-5}"
+  done
+  [ -n "$id" ] || { echo "release: could not find the release.yml run" >&2; return 2; }
+  run_url="$(gh run view "$id" "${repo[@]}" --json url --jq .url 2>/dev/null || true)"
+  echo "release: waiting for ${run_url:-run $id}"
+  gh run watch "$id" "${repo[@]}" --exit-status >/dev/null 2>&1 || return 1
+}
+
+# One release-red issue: opened, or commented on when one is open.
+report_red() { # <short what> <headline>
+  local body open
+  body="$(mktemp "${TMPDIR:-/tmp}/release-issue.XXXXXX")"
+  {
+    echo "$2"
+    echo
+    echo "Failing: **$1**${run_url:+ ($run_url)}"
+    echo
+    echo "Nothing was published. Fix forward or revert, then run \`scripts/release.sh\` again."
+  } >"$body"
+  if [ $dry = 1 ]; then echo "--- release-red issue (dry run, not opened) ---"; cat "$body"; rm -f "$body"; return 0; fi
+  gh label create release-red "${repo[@]}" --color B60205 --description "the release suite failed" 2>/dev/null || true
+  open="$(gh issue list "${repo[@]}" --label release-red --state open --json number --jq '.[0].number // empty')"
+  if [ -n "$open" ]; then gh issue comment "$open" "${repo[@]}" --body-file "$body" >/dev/null && echo "release: commented on #$open"
+  else gh issue create "${repo[@]}" --label release-red --title "release blocked at $short: $1" --body-file "$body" && echo "release: opened a release-red issue"; fi
+  rm -f "$body"
+}
+
 if [ "$verdict" = pass ]; then
   echo "release: $short passed the whole suite in ${secs}s"
   if [ $dry = 1 ]; then
     echo "release: dry run: would set release-gate and dispatch release.yml for $short"
-    gh workflow run release.yml "${repo[@]}" -f sha="$sha" -f dry_run=true && echo "release: asked release.yml for a dry run (it prints the next version)"
-    exit 0
+    dispatch true; rc=$?
+    [ $rc -eq 0 ] && echo "release: the workflow's dry run finished (${run_url:-no url}); it names the next version" || echo "release: the workflow's dry run did not finish cleanly (exit $rc)" >&2
+    exit $rc
   fi
   gh api "repos/$slug/statuses/$sha" -f state=success -f context=release-gate -f description="The whole suite passed in ${secs}s" >/dev/null \
     || { echo "release: could not set the release-gate status" >&2; exit 2; }
-  gh workflow run release.yml "${repo[@]}" -f sha="$sha" -f dry_run=false || { echo "release: could not dispatch release.yml" >&2; exit 2; }
-  echo "release: dispatched release.yml for $short"
+  dispatch false; rc=$?
+  if [ $rc -ne 0 ]; then
+    [ $rc -eq 1 ] || exit $rc
+    echo "release: $short passed the suite but the release workflow failed" >&2
+    report_red "the release workflow" "The whole suite passed on \`$short\` ($subject), but the release workflow failed, so nothing was published."
+    exit 1
+  fi
+  echo "release: published from $short"
   # An earlier blocked release is cleared by this one.
   open="$(gh issue list "${repo[@]}" --label release-red --state open --json number --jq '.[0].number // empty')"
   [ -z "$open" ] || gh issue close "$open" "${repo[@]}" --comment "Released from $short: the whole suite passes." >/dev/null
@@ -65,18 +114,5 @@ if [ "$verdict" = pass ]; then
 fi
 
 echo "release: $short is NOT released ($verdict: $what)"
-body="$(mktemp "${TMPDIR:-/tmp}/release-issue.XXXXXX")"
-{
-  echo "The release was not cut: the whole suite $([ "$verdict" = unjudged ] && echo "could not be judged" || echo "failed") on \`$short\` ($subject) after ${secs}s."
-  echo
-  echo "Failing steps: **$what**"
-  echo
-  echo "Nothing was published. Fix forward or revert, then run \`scripts/release.sh\` again."
-} >"$body"
-if [ $dry = 1 ]; then echo "--- release-red issue (dry run, not opened) ---"; cat "$body"; rm -f "$body"; exit 1; fi
-gh label create release-red "${repo[@]}" --color B60205 --description "the release suite failed" 2>/dev/null || true
-open="$(gh issue list "${repo[@]}" --label release-red --state open --json number --jq '.[0].number // empty')"
-if [ -n "$open" ]; then gh issue comment "$open" "${repo[@]}" --body-file "$body" >/dev/null && echo "release: commented on #$open"
-else gh issue create "${repo[@]}" --label release-red --title "release blocked at $short: $what" --body-file "$body" && echo "release: opened a release-red issue"; fi
-rm -f "$body"
+report_red "$what" "The release was not cut: the whole suite $([ "$verdict" = unjudged ] && echo "could not be judged" || echo "failed") on \`$short\` ($subject) after ${secs}s."
 exit 1

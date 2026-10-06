@@ -25,11 +25,11 @@ fi
 git -C "$CLONE" fetch -q origin main && git -C "$CLONE" checkout -q --detach origin/main
 (cd "$CLONE" && { npm ls --depth=0 >/dev/null 2>&1 || npm ci --no-audit --no-fund; })
 mkdir -p "$UNITS"
-install -m 644 "$HERE/hitl-main-guard.service" "$HERE/hitl-main-guard.timer" "$UNITS/"
-# The checkout this was run from is the shared one the guard keeps fast-forwarded.
+# The main guard runs when a release is cut (scripts/release.sh), not on a timer: a leftover timer is removed.
+systemctl --user disable --now hitl-main-guard.timer 2>/dev/null || true
+rm -f "$UNITS/hitl-main-guard.timer" "$UNITS/hitl-main-guard.service"
+rm -rf "$UNITS/hitl-main-guard.service.d"
 shared="$(cd "$HERE/../.." && pwd)"
-mkdir -p "$UNITS/hitl-main-guard.service.d"
-printf '[Service]\nEnvironment=HITL_SHARED_CHECKOUT=%s\n' "$shared" >"$UNITS/hitl-main-guard.service.d/shared-checkout.conf"
 # Auto CI's worktree of the shared checkout, detached at origin/main.
 AUTO="$HOME/.cache/hitl-ci/auto/worktree"
 if [ ! -d "$AUTO" ]; then
@@ -51,7 +51,7 @@ fi
 mkdir -p "$UNITS/hitl-dashboard.service.d"
 printf '[Service]\nEnvironment=HITL_DASH_HOST=%s\n' "$dash_host" >"$UNITS/hitl-dashboard.service.d/host.conf"
 systemctl --user daemon-reload
-systemctl --user enable --now hitl-main-guard.timer hitl-auto-ci.timer hitl-tmp-clean.timer hitl-feature-media.timer hitl-changelog.timer hitl-dashboard.service
+systemctl --user enable --now hitl-auto-ci.timer hitl-tmp-clean.timer hitl-feature-media.timer hitl-changelog.timer hitl-dashboard.service
 systemctl --user restart hitl-dashboard.service
 echo "owner dashboard: http://$dash_host:${HITL_DASH_PORT:-8790}/"
 systemctl --user list-timers 'hitl-*' --no-pager

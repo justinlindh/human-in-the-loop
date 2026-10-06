@@ -143,8 +143,12 @@ for pr in $(order); do
     # What a PR still needs from here is the review carried onto a head that only merges main in:
     # cheap, runs no tests, once per head.
     if [ "${review[$pr]}" != SUCCESS ] && [ ! -e "$STATE/carried/${head[$pr]}" ]; then
-      mkdir -p "$STATE/carried"; : >"$STATE/carried/${head[$pr]}"
-      bash "$CARRY" "$pr" >/dev/null 2>&1 || true
+      mkdir -p "$STATE/carried"
+      out="$(bash "$CARRY" "$pr" 2>&1)"; rc=$?
+      [ -n "$out" ] && while IFS= read -r l; do log "review-carry #$pr: $l"; done <<<"$out"
+      # Exit 0 (carried or not needed) and 1 (nothing to carry: the changes differ, or no earlier pass) are
+      # answers for this head; anything else (a failed call) is tried again on the next pass.
+      case "$rc" in 0|1) : >"$STATE/carried/${head[$pr]}" ;; esac
     fi
     continue
   fi

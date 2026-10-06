@@ -1,7 +1,8 @@
 name: ci
 
-# Runs on pushes to the default branches and on every pull request. A PR merges on `smoke` (or `test`),
-# `commits` and the reviewer's `review` status (see CLAUDE.md); the heavy jobs run on a manual dispatch.
+# Runs on pushes to the default branches and on every pull request. A PR merges on `smoke`, `commits` and
+# the reviewer's `review` status (see CLAUDE.md); `test` runs on pushes to main and manual runs, and the
+# other heavy jobs on a manual dispatch.
 on:
   push:
     branches: [main]
@@ -15,7 +16,9 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # The full test suite: on pushes to main and manual runs, not on pull requests (they pass `smoke`).
   test:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
