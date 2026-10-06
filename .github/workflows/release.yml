@@ -2,18 +2,25 @@ name: release
 
 # semantic-release reads the Conventional Commits since the last tag, tags the next version, and
 # publishes a GitHub release; a new release then deploys to Pages. Release rules: .releaserc.json.
+# A release is cut on request only, by scripts/release.sh: it runs the whole suite on the commit first and,
+# when everything passes, sets the `release-gate` status on that commit and dispatches this workflow. The
+# workflow publishes only a commit that carries that status (a dry run, which publishes nothing, needs none).
+# The tested commit is released from a `release` branch made at it, so a main that has moved on does not
+# stop it, and a real release that makes no tag fails the run.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
+      sha:
+        description: The commit to release (main's tip, with the release-gate status)
+        type: string
+        required: true
       dry_run:
         description: Only compute and print the next version
         type: boolean
-        default: true
+        default: false
 
 concurrency:
-  group: release-${{ github.ref_name }}
+  group: release
   cancel-in-progress: false
 
 permissions:
@@ -23,16 +30,26 @@ jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
+      statuses: read
       contents: write
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
-      # The commit that triggered this run, not the branch tip: the Pages job below runs this commit's
-      # pages.yml, so it must build the same commit. A queued run that main has moved past releases
-      # nothing (semantic-release sees the branch ahead), and the newest run releases.
+      # Only a commit the whole suite passed on (scripts/release.sh set `release-gate` on it) is published.
+      - name: The commit passed the whole suite
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ inputs.sha }}
+        run: |
+          state="$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/statuses" --jq '[.[] | select(.context == "release-gate")][0].state // "none"')"
+          echo "release-gate on $SHA: $state"
+          [ "$state" = success ] || { echo "::error::$SHA has no passing release-gate status; run scripts/release.sh"; exit 1; }
+      # The commit that passed, not the branch tip: the Pages job below builds the tag made from it. A
+      # commit main has moved past releases nothing (semantic-release sees the branch ahead).
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.sha }}
           fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
@@ -41,18 +58,32 @@ jobs:
       - run: npm ci
       - id: before
         run: echo "tags=$(git tag --points-at HEAD --list 'v*' | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+      # semantic-release releases from a configured branch it is on the tip of, and main may have moved past
+      # the tested commit. So the tested commit becomes the `release` branch and is released from there.
+      - name: Make the tested commit the release branch
+        run: |
+          git checkout -B release
+          git push --force origin release
       - name: semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx semantic-release ${{ inputs.dry_run && '--dry-run' || '' }}
-      # A release made with GITHUB_TOKEN triggers no other workflow, so Pages is called from here.
+        # semantic-release takes the branch from the run's ref (a GITHUB_ variable that cannot be overridden),
+        # which is the one this was dispatched on; without GITHUB_ACTIONS it reads the checked-out branch.
+        run: env -u GITHUB_ACTIONS npx semantic-release --branches release ${{ inputs.dry_run && '--dry-run' || '' }}
+      # A release made with GITHUB_TOKEN triggers no other workflow, so Pages is called from here. A real
+      # release that made no tag (nothing releasable since the last one) fails the run instead of passing.
       - id: tag
         env:
           BEFORE: ${{ steps.before.outputs.tags }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
           for t in $(git tag --points-at HEAD --list 'v*'); do
-            case " $BEFORE " in *" $t "*) ;; *) echo "tag=$t" >> "$GITHUB_OUTPUT" ;; esac
+            case " $BEFORE " in *" $t "*) ;; *) echo "tag=$t" >> "$GITHUB_OUTPUT"; made=1 ;; esac
           done
+          if [ "$DRY_RUN" != true ] && [ -z "${made:-}" ]; then
+            echo "::error::semantic-release made no tag for ${{ inputs.sha }}: no feat, fix or perf commit since the last release, or it skipped the commit"
+            exit 1
+          fi
 
   pages:
     needs: release

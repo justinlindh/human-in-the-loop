@@ -1,0 +1,38 @@
+name: main-red
+
+# Reports a failing `ci` run on main in one issue labelled main-red: the first red commit opens it, each
+# further red commit adds a comment naming the commit and the jobs that failed, and a green run on the
+# current tip of main closes it (scripts/main-red.sh). Whoever sees it fixes forward or reverts. (The
+# release's whole-suite run reports its own failures in a release-red issue: scripts/release.sh.)
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+concurrency:
+  group: main-red
+  cancel-in-progress: false
+
+jobs:
+  report:
+    # Pushes to main only: a pull request run of ci can carry any branch name.
+    if: github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      # The default branch's copy of the script, not the commit under test.
+      - uses: actions/checkout@v7
+      - name: Open, update or close the main-red issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: bash scripts/main-red.sh
