@@ -100,7 +100,7 @@ function pickDecision(s, scorer, d = s.pendingDecision) {
 }
 
 // Rough value of an effects object for a careful player.
-function sensibleValue(s, fx, depth = 0) {
+export function sensibleValue(s, fx, depth = 0) {
   if (!fx || depth > 3) return 0;
   let v = 0;
   v += (fx.cash ?? 0) / Math.max(20000, s.cash * 0.15);
@@ -125,7 +125,7 @@ function sensibleValue(s, fx, depth = 0) {
   for (const l of fx.later ?? []) v += 0.8 * sensibleValue(s, l.effects, depth + 1);
   for (const m of [fx.modifier].flat().filter(Boolean)) {
     const good = ['output', 'meaningRecovery', 'hype', 'brandPerWeek', 'acquisition', 'xp', 'oversight'].includes(m.key);
-    v += (good ? 1 : -1) * Math.abs(m.value) * Math.min(m.weeks, 26) * 0.15;
+    v += (good ? 1 : -1) * m.value * Math.min(m.weeks, 26) * 0.15;
   }
   if (fx.win === 'acquired') v -= 100;
   return v;
