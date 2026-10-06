@@ -176,7 +176,6 @@ export const ATTENTION_DEFAULTS = {
   momentCap: 25,      // longest a staged moment may hold the clock
   watchWindow: 600,   // every window holds a stretch with no ask and no beat ...
   watchStretch: 180,  // ... this long
-  openExpiry: 120,    // play seconds a shown, unanswered prompt or letter stays open before it is ignored
 };
 const RANK = { emergency: 0, normal: 1, low: 2 };
 
@@ -237,6 +236,7 @@ export function createAttention(cfg = {}) {
         const k = `${x.kind}:${x.id}`;
         if (!shownFor.has(k)) shownFor.set(k, 0);
         if (running) shownFor.set(k, shownFor.get(k) + step);
+        // c.openExpiry comes from B.attention; the clock holds no number of its own for it.
         if (openExpiry && shownFor.get(k) >= c.openExpiry) out.expireOpen.push({ kind: x.kind, id: x.id });
       }
       for (const a of asks) {

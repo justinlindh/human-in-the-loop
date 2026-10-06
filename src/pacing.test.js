@@ -309,7 +309,7 @@ describe('attention clock', () => {
   });
 
   it('expires a shown prompt or letter after 120 s of running play, and not before', () => {
-    const att = createAttention();
+    const att = createAttention(B.attention);
     const shown = [{ kind: 'prompt', id: 'cp1' }, { kind: 'letter', id: 'm1' }];
     const run = (s, opts) => { const got = []; for (let i = 0; i < s; i++) got.push(...att.tick(1, { shown, openExpiry: true, ...opts }).expireOpen.map((x) => [att.playSeconds, x.kind, x.id])); return got; };
     expect(run(119, {})).toEqual([]);
@@ -317,7 +317,7 @@ describe('attention clock', () => {
   });
 
   it('does not count paused time toward an open ask, and counts real seconds at 4x', () => {
-    const att = createAttention();
+    const att = createAttention(B.attention);
     const shown = [{ kind: 'prompt', id: 'cp1' }];
     for (let i = 0; i < 500; i++) expect(att.tick(1, { running: false, shown, openExpiry: true }).expireOpen).toEqual([]);
     let at = 0;
@@ -326,7 +326,7 @@ describe('attention clock', () => {
   });
 
   it('forgets a prompt that closed, so the next one starts its own 120 s', () => {
-    const att = createAttention();
+    const att = createAttention(B.attention);
     for (let i = 0; i < 100; i++) att.tick(1, { shown: [{ kind: 'prompt', id: 'a' }], openExpiry: true });
     att.tick(1, { shown: [], openExpiry: true });
     let got = [];
@@ -335,7 +335,7 @@ describe('attention clock', () => {
   });
 
   it('gives an item already open after a reload or load its own fresh 120 s', () => {
-    const att = createAttention();
+    const att = createAttention(B.attention);
     const shown = [{ kind: 'letter', id: 'm1' }];
     for (let i = 0; i < 100; i++) att.tick(1, { shown, openExpiry: true });
     att.reset();

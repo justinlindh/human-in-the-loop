@@ -244,7 +244,7 @@ export const B = {
   pacing: {
     askQueue: false, askExpiry: false, askRealTime: true, momentCap: true, askRates: true, letterMail: true, quietEvents: true,
     quietToasts: true, oneLaunchCard: true, unlockPips: true, advisorGlow: true, quietYak: true, mailArchive: true, deskBubbles: true,
-    shownExpiry: false,
+    shownExpiry: true,
   },
   // The attention clock, in real seconds: `gap` is the least running play between two asks, `quiet` the hush
   // after a modal or beat, `expiry` how long a low-priority ask waits before it resolves to its default, and at
