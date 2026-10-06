@@ -14,9 +14,9 @@
 .hitl .advbtn .advcount.show { display: block; }
 .hitl .advbtn.glow { background: #fff3d6; box-shadow: 0 0 0 0.25em rgba(255, 176, 32, 0.6); }
 
-/* With advisorGlow the glow carries the whole signal, so it breathes until the advisors are opened. */
+/* With advisorGlow the glow carries the whole signal: three pulses when advice arrives, then a steady glow until opened. */
 @keyframes advpulse { 50% { box-shadow: 0 0 0 0.5em rgba(255, 176, 32, 0.25); } }
-.hitl .advbtn.glow.pulse { animation: advpulse 1.6s ease-in-out infinite; }
+.hitl .advbtn.glow.pulse { animation: advpulse 1.6s ease-in-out 3; }
 @media (prefers-reduced-motion: reduce) { .hitl .advbtn.glow.pulse { animation: none; } }
 
 /* The peek: a face and a one-line bubble, bottom right on desktop, under the top rows on phones. */

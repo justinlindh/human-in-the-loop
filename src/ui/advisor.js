@@ -200,7 +200,12 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
     ctx.sfx?.('open');
   }
 
-  function setGlow(on) { glowing = on; toggleClass(button, 'glow', on); toggleClass(button, 'pulse', on && pacingOn('advisorGlow')); }
+  function setGlow(on) {
+    glowing = on;
+    // New advice restarts the three pulses.
+    if (on) { button.classList.remove('pulse'); void button.offsetWidth; }
+    toggleClass(button, 'glow', on); toggleClass(button, 'pulse', on && pacingOn('advisorGlow'));
+  }
   function hidePeek() { pClear(peekTimer); peekTimer = 0; peek.classList.remove('show'); }
   function showPeek(e) {
     const a = who(e.advisor);
