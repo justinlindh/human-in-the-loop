@@ -333,9 +333,15 @@ async function boot() {
       running, held, speed, asks, askOpen, decisionOpen: !!s.pendingDecision,
       modal: !!s.pendingDecision || !!ui?.beatOpen?.(),
       realTime: B.pacing?.askRealTime !== false, expiry: queued && !!B.pacing?.askExpiry,
+      openExpiry: !!B.pacing?.shownExpiry && !s.gameOver,
+      shown: [
+        ...(s.chatPrompts ?? []).filter((p) => p.shownWeek != null && !p.resolved).map((p) => ({ kind: 'prompt', id: p.id })),
+        ...(s.mail ?? []).filter((m) => m.shownWeek != null && m.options?.length && !m.resolved && !m.archived).map((m) => ({ kind: 'letter', id: m.id })),
+      ],
     });
     // The clock's own actions are the game's, not the player's: they route as game events.
     const act = (action) => route(sim.dispatch(action).events, sim.state);
+    for (const x of out.expireOpen) act({ type: 'expireOpen', kind: x.kind, id: x.id });
     for (const askId of out.expire) act({ type: 'expireAsk', askId });
     if (out.present) act({ type: 'presentAsk', askId: out.present });
   }
