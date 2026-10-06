@@ -92,7 +92,7 @@ Product = {
 
 ```js
 { type: 'bubble', staffId, text, tone }   // tone: features|polish|reliability|novelty|good|bad
-{ type: 'toast', text, tone, trendId }    // tone: info|good|warn|bad; trendId: set when the toast announces a market trend, else absent
+{ type: 'toast', text, tone, trendId, topic, subjectId }    // tone: info|good|warn|bad; trendId: set when the toast announces a market trend, else absent; topic: set on status news only, one of 'progress'|'timeoff'|'back'|'mood'|'trend'|'blocked'|'reward'|'pet'|'rival' (ui may show it ambiently; minor incidents reach the ambient layer from the `incident` event with severity below 3, not from a toast); subjectId: the staff or product id the news is about, or null. Money, staff changes, goals and player-caused feedback carry no topic and always stay toasts
 { type: 'chat', id, week, channel, from, fromId, text, replyTo, reactions, mailId? }   // mailId: a mail this post points at (#17)
                                           // channel: general|incidents|wins|random|standup; from: staff name or a bot handle like '@pagerbot'
                                           // fromId: staff id or null for bots; replyTo: chat id or null; reactions: { [emoji]: count }
@@ -741,3 +741,36 @@ An Agents-era hiring policy: an AI interviewer screens candidates. Cheaper and f
 
 - A player-opened `ai_interview_watch` skips the usual gap between decisions.
 - Switching the policy off leaves an open watch card to be answered as normal; no new card opens while it is off.
+
+## Attention queue (#1639)
+
+Behind `B.pacing.askQueue`. With it off, decisions, Yak prompts and mail open as before. With it on, the sim proposes and the presentation layer decides when the player sees something.
+
+```js
+state.asks: [{ id, kind, priority, week, expiresWeek, defaultChoice, ref }]
+  // kind: 'decision' | 'prompt' | 'letter'; priority: 'emergency' | 'normal' | 'low'
+  // ref is sim-only (event id and subject, or mail template and context); ui and render read the other fields
+```
+
+- With the switch on, `raiseDecision`, `openEventPrompt` and actionable mail append a candidate to `asks` instead of opening it. Era, period and gate checks still apply, but the sim's week-based spacing and slot limits do not: the attention clock in `src/pacing.js` owns cadence, in real seconds.
+- Order: by priority (emergency, then normal, then low; emergencies are incidents and cyber), and oldest first within a priority. Only the presentation layer opens an ask, one at a time.
+- `expiresWeek` is the created week plus `B.attention.staleWeeks` for normal and low asks, and null for emergencies. A candidate past it is dropped silently, with no default applied, when an ask is next presented: it no longer fits the game. Readers of `state.asks` ignore any ask past its `expiresWeek`.
+- Bots present the head after `B.attention.botGapWeeks`, and emergencies at once. With `B.pacing.askExpiry` on, a waiting non-emergency ask expires after `B.attention.botExpiryWeeks`. Balance runs never depend on the wall clock.
+- Saves without `asks` load with `asks: []`.
+
+### Actions: Attention queue
+
+```js
+{ type: 'presentAsk', askId? }   // opens the head ask, or the named one, as pendingDecision, a Yak prompt or a letter; works while paused; refusals: 'No asks waiting' | 'No such ask' | 'Finish the open decision first'
+{ type: 'expireAsk', askId }     // behind B.pacing.askExpiry: applies the ask's default and posts one Yak line saying what was chosen; refusals: 'Expiry is off' | 'No such ask' | 'Emergencies never expire'
+```
+
+- The default is the event's own `defaultChoice`, else its entry in `src/data/ask-defaults.js`, else its choice with no effect; every decision that can expire has one. A prompt or letter takes its ignore outcome. The Yak line names what the team picked. Expiring never costs more than answering cautiously.
+- With `B.pacing.askExpiry` on, at most `B.attention.queueCap` non-emergency asks wait. When another arrives, the least pressing, oldest one expires at once and emits `askExpired`. With it off, nothing expires: `expireAsk` refuses with 'Expiry is off', and the queue has no cap.
+
+### Events: Attention queue
+
+```js
+{ type: 'askQueued', askId, kind, priority }
+{ type: 'askExpired', askId, kind }
+```
