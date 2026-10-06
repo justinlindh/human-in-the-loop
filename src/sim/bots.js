@@ -100,7 +100,7 @@ function pickDecision(s, scorer, d = s.pendingDecision) {
 }
 
 // Rough value of an effects object for a careful player.
-function sensibleValue(s, fx, depth = 0) {
+export function sensibleValue(s, fx, depth = 0) {
   if (!fx || depth > 3) return 0;
   let v = 0;
   v += (fx.cash ?? 0) / Math.max(20000, s.cash * 0.15);
@@ -125,7 +125,7 @@ function sensibleValue(s, fx, depth = 0) {
   for (const l of fx.later ?? []) v += 0.8 * sensibleValue(s, l.effects, depth + 1);
   for (const m of [fx.modifier].flat().filter(Boolean)) {
     const good = ['output', 'meaningRecovery', 'hype', 'brandPerWeek', 'acquisition', 'xp', 'oversight'].includes(m.key);
-    v += (good ? 1 : -1) * Math.abs(m.value) * Math.min(m.weeks, 26) * 0.15;
+    v += (good ? 1 : -1) * m.value * Math.min(m.weeks, 26) * 0.15;
   }
   if (fx.win === 'acquired') v -= 100;
   return v;
@@ -253,6 +253,8 @@ function automateAll(s) {
   act(s, FUNCTIONS.filter((fn) => fn === 'engineering' || live)
     .filter((fn) => s.automation[fn].level !== 1 || s.automation[fn].model !== model)
     .map((fn) => ({ type: 'setAutomation', fn, level: 1, model })));
+  // It hires through the interview bot as soon as it can.
+  if (!s.policies.ai_interviews && POLICIES.ai_interviews.unlock(s)) dispatch(s, { type: 'setPolicy', id: 'ai_interviews', on: true });
   if (canAffordHire(s, 2600) && s.staff.length < capacity(s)) act(s, hireBest(s, (c) => c.seniority === 'senior' && c.role === 'engineer', (a, b) => skillSum(b) - skillSum(a)));
   if (!s.projects.some((j) => j.kind === 'new')) {
     const res = dispatch(s, startNew(s, 'medium', model));

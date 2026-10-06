@@ -195,7 +195,10 @@ function launchNew(ctx, j) {
   state.products.push(product);
   if (j.angle === 'boxed') {
     product.boxed = newInventory();
-    if (state.era.id === 'preinternet') raiseDecision(ctx, 'pre_master_disk', product.id, { queue: true });
+    if (state.era.id === 'preinternet') {
+      raiseDecision(ctx, 'pre_master_disk', product.id, { queue: true });
+      raiseDecision(ctx, 'pre_first_order', product.id, { queue: true });
+    }
   }
   compatibleLaunch(state, j, product);
   const combo = `${j.category}:${j.angle}`;
