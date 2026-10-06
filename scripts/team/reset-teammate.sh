@@ -50,7 +50,9 @@ done
 transcript() { # the teammate's newest transcript (the brief sits in its first lines)
   local f
   for f in $(find "$proj" -maxdepth 1 -name '*.jsonl' -mmin -1440 -printf '%T@ %p\n' | sort -rn | cut -d' ' -f2-); do
-    head -n 20 "$f" | grep -q "You are \`$name\`" && { echo "$f"; return; }
+    # Not head | grep -q: grep stops at the match, head dies of SIGPIPE on the rest of these large
+    # lines, and pipefail turns that into no match.
+    grep -q "You are \`$name\`" < <(head -n 20 "$f") && { echo "$f"; return; }
   done
 }
 tokens() { # context size of the newest assistant turn in a transcript
