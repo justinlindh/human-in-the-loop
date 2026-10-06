@@ -152,6 +152,65 @@ export function entriesFromDiff(diff) {
   return out;
 }
 
+// --- docs/effects -----------------------------------------------------------------------------
+
+const cells = (line) => line.split(/(?<!\\)\|/).slice(1, -1).map((c) => c.trim().replace(/\\\|/g, '|'));
+
+// The generated effects docs, indexed for lookup: decision sections by event id, and table rows by
+// their first cell (the element's name). `names` maps a feature id to its display name, since the
+// tables do not carry ids.
+export function buildEffectsIndex({ docs, names = new Map() }) {
+  const decisions = new Map(), rows = new Map();
+  for (const [file, md] of Object.entries(docs)) {
+    if (file === 'README.md') continue;
+    for (const sec of md.split(/^(?=## )/m)) {
+      const h = /^## (.+?) `([\w-]+)`\s*$/m.exec(sec.split('\n')[0]);
+      if (h) decisions.set(h[2], { file: `docs/effects/${file}`, kind: 'decision', name: h[1], text: sec.trim() });
+    }
+    const lines = md.split('\n');
+    for (let i = 0; i + 1 < lines.length; i++) {
+      if (!/^\|/.test(lines[i]) || !/^\|[\s|:-]+\|$/.test(lines[i + 1])) continue;
+      const head = cells(lines[i]);
+      for (let j = i + 2; j < lines.length && /^\|/.test(lines[j]); j++) {
+        const row = cells(lines[j]);
+        const entry = { file: `docs/effects/${file}`, kind: 'row', name: row[0], columns: Object.fromEntries(head.map((h, k) => [h, row[k] ?? ''])), text: lines[j] };
+        rows.set(row[0], [...(rows.get(row[0]) ?? []), entry]);
+      }
+    }
+  }
+  return { decisions, rows, names };
+}
+
+// Every effects entry for the ids of one feature entry; [] when none has one.
+export function effectsFor(ids, index) {
+  if (!index) return [];
+  const out = [];
+  for (const id of ids) {
+    const d = index.decisions.get(id);
+    if (d) out.push({ id, ...d });
+    const name = index.names.get(id);
+    if (name) for (const r of index.rows.get(name) ?? []) out.push({ id, ...r });
+  }
+  const seen = new Set();
+  return out.filter((e) => { const k = `${e.file}\n${e.text}`; return seen.has(k) ? false : (seen.add(k), true); });
+}
+
+// The real index: the effects docs of this checkout and the names in src/data.
+export async function loadEffectsIndex(root = new URL('../../', import.meta.url)) {
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const dir = new URL('docs/effects/', root);
+  let docs;
+  try { docs = Object.fromEntries(readdirSync(dir).filter((f) => f.endsWith('.md')).map((f) => [f, readFileSync(new URL(f, dir), 'utf8')])); } catch { return null; }
+  const names = new Map();
+  for (const mod of ['items', 'policies', 'traits', 'training', 'paths', 'roles', 'categories', 'angles', 'models', 'research']) {
+    try {
+      const m = await import(new URL(`src/data/${mod}.js`, root));
+      for (const v of Object.values(m)) for (const e of Array.isArray(v) ? v : typeof v === 'object' && v ? Object.values(v) : []) if (e && typeof e === 'object' && e.id && e.name && !names.has(e.id)) names.set(e.id, e.name);
+    } catch { /* an unreadable data module only means fewer names */ }
+  }
+  return buildEffectsIndex({ docs, names });
+}
+
 // --- git and GitHub ---------------------------------------------------------------------------
 
 const defaultGit = (args) => {
@@ -204,7 +263,9 @@ export function listDirect({ from, to }, { git = defaultGit, ref = 'origin/main'
 }
 
 export function build({ from, to }, opts = {}) {
-  const { tz = Intl.DateTimeFormat().resolvedOptions().timeZone, scopes = DEFAULT_SCOPES, types = DEFAULT_TYPES, bodyChars = 600, gh, git } = opts;
+  const { tz = Intl.DateTimeFormat().resolvedOptions().timeZone, scopes = DEFAULT_SCOPES, types = DEFAULT_TYPES, bodyChars = 600, gh, git, effects = null } = opts;
+  // Each feature entry also carries the generated effects (docs/effects) of the ids it names.
+  const featuresOf = (diff) => (diff ? entriesFromDiff(diff).map((e) => ({ ...e, effects: effectsFor(e.ids, effects) })) : []);
   const days = new Map(eachDay({ from, to }).map((d) => [d, { date: d, prs: [], direct: [], skipped: [] }]));
   for (const c of listDirect({ from, to }, { git, ref: opts.ref })) {
     const day = days.get(dayOf(c.at, tz));
@@ -212,7 +273,7 @@ export function build({ from, to }, opts = {}) {
     const areas = areasOf(c.files);
     if (!areas.length) { day.skipped.push({ sha: c.sha.slice(0, 8), title: c.subject, reason: 'direct commit, no player-facing paths' }); continue; }
     const diff = featuresDiff(c.sha, { git });
-    day.direct.push({ sha: c.sha.slice(0, 8), at: c.at, subject: c.subject, body: trimBody(c.body, bodyChars), areas, features: diff ? entriesFromDiff(diff) : [] });
+    day.direct.push({ sha: c.sha.slice(0, 8), at: c.at, subject: c.subject, body: trimBody(c.body, bodyChars), areas, features: featuresOf(diff) });
   }
   for (const pr of listMerged({ from, to }, { gh })) {
     const day = days.get(dayOf(pr.mergedAt, tz));
@@ -227,7 +288,7 @@ export function build({ from, to }, opts = {}) {
       number: pr.number, url: pr.url, title: pr.title, type: t?.type ?? null, scope: t?.scope ?? null, breaking: !!t?.breaking,
       reason: c.reason, mergedAt: pr.mergedAt, author: pr.author?.login ?? null,
       body: trimBody(pr.body, bodyChars), prMedia: extractMedia(pr.body),
-      features: diff ? entriesFromDiff(diff) : [], ...(diff === null ? { featuresUnavailable: true } : {}),
+      features: featuresOf(diff), ...(diff === null ? { featuresUnavailable: true } : {}),
     });
   }
   return { tz, from, to, days: [...days.values()] };
@@ -235,7 +296,7 @@ export function build({ from, to }, opts = {}) {
 
 // --- command line -----------------------------------------------------------------------------
 
-function main(argv) {
+async function main(argv) {
   let v;
   try {
     v = parseArgs({ args: argv, allowPositionals: true, options: { 'since-first': { type: 'boolean' }, tz: { type: 'string' }, scopes: { type: 'string' }, types: { type: 'string' }, 'body-chars': { type: 'string' }, 'no-fetch': { type: 'boolean' } } });
@@ -250,10 +311,10 @@ function main(argv) {
   if (values['since-first'] && positionals.length) { console.error('day-changes: --since-first takes no day'); return 2; }
   if (!values['no-fetch']) spawnSync('git', ['fetch', '-q', 'origin', 'main'], { stdio: 'ignore' });
   try {
-    const out = build(range, { tz, bodyChars, scopes: values.scopes ? values.scopes.split(',') : DEFAULT_SCOPES, types: values.types ? values.types.split(',') : DEFAULT_TYPES });
+    const out = build(range, { tz, bodyChars, effects: await loadEffectsIndex(), scopes: values.scopes ? values.scopes.split(',') : DEFAULT_SCOPES, types: values.types ? values.types.split(',') : DEFAULT_TYPES });
     process.stdout.write(`${JSON.stringify(out, null, 2)}\n`);
     return 0;
   } catch (e) { console.error(`day-changes: ${e.message}`); return 1; }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) process.exit(main(process.argv.slice(2)));
+if (import.meta.url === `file://${process.argv[1]}`) process.exit(await main(process.argv.slice(2)));

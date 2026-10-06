@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { toolTmp } from '../../scripts/tools/tmp.mjs';
-import { build, classify, dayOf, entriesFromDiff, extractMedia, parseEntry, parseRange, parseTitle, trimBody } from '../../scripts/tools/day-changes.mjs';
+import { build, buildEffectsIndex, classify, effectsFor, dayOf, entriesFromDiff, extractMedia, parseEntry, parseRange, parseTitle, trimBody } from '../../scripts/tools/day-changes.mjs';
 
 const SCRIPT = resolve(__dirname, '../../scripts/tools/day-changes.mjs');
 const cli = (...args) => spawnSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8' });
@@ -101,6 +101,36 @@ describe('docs/features entries', () => {
   });
 });
 
+describe('docs/effects', () => {
+  const docs = {
+    'README.md': '# Effects\n',
+    'decisions.md': '# Decisions\n\n## The Box `the_box`\n\nrival · weight 2\n\n| Choice | Effects |\n|---|---|\n| Build your own | cash -$500 |\n\n## Other `other`\n\ntext\n',
+    'office.md': '# Items\n\n| Item | Kind | Effects |\n|---|---|---|\n| Disk Duplicator | shop | L1 $3,000: duplication cost relief +10% |\n| Potted Plant | furniture | L1 $150 |\n',
+  };
+  const index = buildEffectsIndex({ docs, names: new Map([['disk_duplicator', 'Disk Duplicator']]) });
+
+  it('finds a decision by its id and an item row by the name behind its id', () => {
+    const d = effectsFor(['the_box'], index);
+    expect(d).toHaveLength(1);
+    expect(d[0]).toMatchObject({ id: 'the_box', kind: 'decision', name: 'The Box', file: 'docs/effects/decisions.md' });
+    expect(d[0].text).toContain('Build your own');
+    expect(d[0].text).not.toContain('Other');
+    const r = effectsFor(['disk_duplicator'], index);
+    expect(r).toEqual([expect.objectContaining({ id: 'disk_duplicator', kind: 'row', name: 'Disk Duplicator', columns: { Item: 'Disk Duplicator', Kind: 'shop', Effects: 'L1 $3,000: duplication cost relief +10%' } })]);
+  });
+
+  it('is empty for an id with no effects entry, and without an index', () => {
+    expect(effectsFor(['banner_company'], index)).toEqual([]);
+    expect(effectsFor(['the_box'], null)).toEqual([]);
+  });
+
+  it('puts the effects on each feature entry of a day', () => {
+    const feat = '- **Duplicator**: a machine. `id: disk_duplicator` media: none (x)\n- **Banner**: blue. `id: banner_company` media: none (x)\n';
+    const entries = entriesFromDiff(`+++ b/docs/features/office.md\n${feat.split('\n').filter(Boolean).map((l) => `+${l}`).join('\n')}\n`);
+    expect(entries.map((e) => effectsFor(e.ids, index).length)).toEqual([1, 0]);
+  });
+});
+
 describe('a merged PR against a real repository', () => {
   const dir = mkdtempSync(join(toolTmp(), 'day-changes-test-'));
   const g = (...a) => spawnSync('git', ['-C', dir, '-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { encoding: 'utf8' });
@@ -153,6 +183,9 @@ describe('a merged PR against a real repository', () => {
     expect(d5.prs.map((p) => p.number)).toEqual([1, 3]);
     expect(d5.prs[0]).toMatchObject({ reason: 'feat(ui)', body: 'A shinier stapler.', author: 'a' });
     expect(d5.prs[0].features).toHaveLength(3);
+    expect(d5.prs[0].features.map((f) => f.effects)).toEqual([[], [], []]);
+    const fx = build({ from: '2026-10-05', to: '2026-10-05' }, { tz: 'America/Los_Angeles', gh, git: gitOut, ref: 'main', effects: buildEffectsIndex({ docs: { 'office.md': '| Item | Effects |\n|---|---|\n| Box | L1 $1 |\n' }, names: new Map([['box', 'Box']]) }) });
+    expect(fx.days[0].prs[0].features.find((f) => f.title === 'Box').effects).toEqual([expect.objectContaining({ name: 'Box', kind: 'row' })]);
     expect(d5.prs[1].featuresUnavailable).toBe(true);
     expect(d5.skipped).toContainEqual({ number: 2, title: 'fix(tools): readme', reason: 'scope tools' });
     // The repository's own commits are dated now, so other direct commits may share the day.
