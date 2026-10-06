@@ -1,5 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, onTestFinished } from 'vitest';
 import { dispatch } from '../../src/sim/index.js';
+import { promptsSystem } from '../../src/sim/prompts.js';
+import { PROMPTS } from '../../src/data/prompts.js';
 import { makeCtx } from '../../src/sim/registry.js';
 import { B } from '../../src/sim/balance.js';
 import { EVENTS } from '../../src/data/events.js';
@@ -237,6 +239,38 @@ describe('issue #1646: the ask queue', () => {
     botAsks(s);
     expect(s.asks).toEqual([]);
     expect(s.pendingDecision.eventId).toBe('agent_db_wipe');
+  });
+
+  it('on: a staff Yak prompt waits as a low ask, opens from its poster, and expires to its ignored outcome', () => {
+    B.pacing.askQueue = true;
+    B.pacing.askExpiry = true;
+    B.pacing.askRates = false;
+    const keep = B.chatPromptChance;
+    B.chatPromptChance = 1;
+    onTestFinished(() => { B.chatPromptChance = keep; });
+    const s = company();
+    const tired = s.staff.find((p) => !p.founder);
+    tired.strain = 80;
+    s.flags.lastPromptWeek = undefined;
+    promptsSystem(makeCtx(s));
+    expect(s.chatPrompts.filter((p) => !p.resolved)).toEqual([]);
+    const [ask] = s.asks;
+    expect(ask).toMatchObject({ kind: 'prompt', priority: 'low', ref: { posterId: tired.id } });
+    expect(PROMPTS.some((t) => t.id === ask.ref.promptTemplate)).toBe(true);
+    const r = dispatch(s, { type: 'presentAsk' });
+    expect(r.opened).toBe(true);
+    const opened = s.chatPrompts.at(-1);
+    expect(opened).toMatchObject({ kind: ask.ref.promptTemplate, fromId: tired.id });
+    expect(r.events).toContainEqual(expect.objectContaining({ type: 'askPresented', promptId: opened.id }));
+    // A second one, left to expire, takes the template's ignored outcome.
+    s.chatPrompts = [];
+    s.week += 60;
+    promptsSystem(makeCtx(s));
+    const next = s.asks.find((a) => a.kind === 'prompt');
+    const t = PROMPTS.find((x) => x.id === next.ref.promptTemplate);
+    const meaning = tired.meaning;
+    expect(dispatch(s, { type: 'expireAsk', askId: next.id }).ok).toBe(true);
+    expect(tired.meaning).toBe(Math.max(0, Math.min(100, meaning + (t.ignored.effects.meaning ?? 0))));
   });
 
   it('the era beats and mission tests are marked noExpire, and the postmortem is no emergency', () => {

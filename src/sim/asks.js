@@ -7,7 +7,7 @@ import { EVENT_MAIL } from '../data/mail.js';
 import { ASK_EXPIRED_LINES } from '../data/asks.js';
 import { ASK_DEFAULTS } from '../data/ask-defaults.js';
 import { raiseDecision, decisionVars, fillText, choiceBlocker } from './events.js';
-import { openEventPrompt } from './prompts.js';
+import { openEventPrompt, openQueuedStaffPrompt, expireQueuedStaffPrompt } from './prompts.js';
 import { openEventMail, sendTemplate, expireTemplate } from './mail.js';
 import { applyEffects } from './effects.js';
 
@@ -70,6 +70,11 @@ export function queuePrompt(ctx, ev, subjectId) {
   return enqueue(ctx, { kind: 'prompt', priority: 'low', ref: { eventId: ev.id, subjectId }, defaultChoice: ev.yak?.ignore ?? null });
 }
 
+// A staff Yak prompt: its template and who posts it; unanswered, it takes the template's ignored outcome.
+export function queueStaffPrompt(ctx, promptTemplate, { posterId, productId, projectId }) {
+  return enqueue(ctx, { kind: 'prompt', priority: 'low', ref: { promptTemplate, posterId, productId, projectId }, defaultChoice: null });
+}
+
 export function queueEventLetter(ctx, ev, subjectId) {
   return enqueue(ctx, { kind: 'letter', priority: isEmergency(ev) ? 'emergency' : 'low', ref: { eventId: ev.id, subjectId }, defaultChoice: EVENT_MAIL[ev.id]?.ignore ?? null });
 }
@@ -97,6 +102,7 @@ function open(ctx, ask) {
   const { state } = ctx;
   const { ref } = ask;
   if (ref.template) return sendTemplate(ctx, ref.template, ref.mc);
+  if (ref.promptTemplate) return openQueuedStaffPrompt(ctx, ref);
   const ev = EVENTS[ref.eventId];
   if (!ev) return false;
   if (ask.kind === 'decision') return raiseDecision(ctx, ev.id, ref.subjectId, { fromQueue: true, asked: true, vars: ref.vars ?? null });
@@ -133,6 +139,11 @@ function settle(ctx, ask) {
   const { state } = ctx;
   const { ref } = ask;
   if (ref.template) { expireTemplate(ctx, ref.template, ref.mc); return { title: 'An email', picked: 'left it unanswered' }; }
+  if (ref.promptTemplate) {
+    expireQueuedStaffPrompt(ctx, ref);
+    const poster = state.staff.find((p) => p.id === ref.posterId);
+    return { title: poster ? `${poster.name}'s message` : 'A message', picked: 'left it unanswered' };
+  }
   const ev = EVENTS[ref.eventId];
   if (!ev) return { title: 'Something', picked: 'let it go' };
   const title = fillText(state, ctx.rng, ev.title, ref.subjectId);
