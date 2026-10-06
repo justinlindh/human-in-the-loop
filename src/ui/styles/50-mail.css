@@ -35,7 +35,7 @@
 .hitl .mailthread { display: flex; flex-direction: column; gap: 0.25em; margin: 0 0 0.7em; padding: 0.5em 0.7em; background: var(--cream-3); border-radius: 0.6em; }
 .hitl .mailthreadline { font-size: 0.9em; overflow-wrap: anywhere; }
 /* The presented letter's choices carry their number beside the label, as decision choices do. */
-.hitl .mailopt.keyed { flex-direction: row; align-items: center; gap: 0.7em; }
+.hitl .mailopt.keyed { flex-direction: row; align-items: center; justify-content: flex-start; gap: 0.7em; text-align: left; }
 .hitl .mailopt.keyed .ckey { flex: none; width: 1.9em; height: 1.9em; border-radius: 0.5em; display: grid; place-items: center; background: var(--ink); color: var(--cream); font-weight: 700; }
 .hitl .mailopt.keyed .cbody { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1em; }
 .hitl .mailreply { display: flex; align-items: center; gap: 0.4em; margin: 0 0 0.7em; padding: 0.55em 0.8em; background: #e6f6ee; border: var(--bw) solid var(--line); border-radius: 0.6em; font-weight: 600; }
