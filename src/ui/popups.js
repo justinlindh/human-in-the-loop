@@ -20,7 +20,8 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
   const queue = []; // launch results waiting for the screen
   let launch = null; // { productId, prevSpeed, timers }
   let resumeSpeed = null; // speed to restore after a launch popup that a decision interrupted
-  const backdrop = h('div.modal-back');
+  // Above the big Yak overlay, so a card raised while Yak is open can be answered.
+  const backdrop = h('div.modal-back.popup-back');
   backdrop.style.display = 'none';
   layer.append(backdrop);
 
@@ -106,6 +107,7 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
   }
 
   function renderDecision(s, d) {
+    ctx.unmaxYak?.();
     const leader = isLeadership(d);
     const subject = s.staff.find((p) => p.id === d.subjectId)
       ?? (leader ? s.staff.find((p) => p.founder) : null);

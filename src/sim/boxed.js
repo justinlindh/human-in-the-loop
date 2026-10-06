@@ -14,7 +14,7 @@ export const newInventory = () => ({
   returnUnits: 0, salesHistory: [], grossSales: 0, retailerFees: 0, refunds: 0, manufacturingCost: 0,
   patchCost: 0, patches: 0, patchedVersion: 1, weeklyNet: 0, salesWeek: null,
   delivered: 0, buybackCost: 0, withdrawn: 0, buybackWeek: null, returnsSettled: false, master: null,
-  upgradeCarry: 0,
+  upgradeCarry: 0, soldOutAsked: false,
 });
 
 // The upgrade cycle: each week one installed copy in B.preinternet.upgradeWeeks ages out, and its owner is
@@ -56,7 +56,14 @@ export function patchQuote(state, p) {
   return { cost, reason };
 }
 
-registerAction('orderBatch', (ctx, { productId, units }) => {
+// A batch's price for a decision hint: "100 copies, $800".
+export function batchText(state, productId, requested) {
+  const q = batchQuote(state, state.products.find((x) => x.id === productId), requested);
+  return `${(q.units || requested).toLocaleString('en-US')} copies, $${q.cost.toLocaleString('en-US')}`;
+}
+
+// The orderBatch action, also what an order choice on a decision card runs.
+function orderBatch(ctx, { productId, units }) {
   const { state } = ctx, p = state.products.find((x) => x.id === productId);
   const quote = batchQuote(state, p, units);
   if (quote.reason) return { ok: false, reason: quote.reason };
@@ -67,7 +74,10 @@ registerAction('orderBatch', (ctx, { productId, units }) => {
   if (state.flags.preinternet?.cdCredit) state.flags.preinternet.cdCredit = false;
   ctx.emit({ type: 'toast', tone: 'info', text: `${p.name}: ${quote.units} copies ordered. Delivery in ${B.preinternet.leadWeeks} playable weeks.` });
   return { ok: true };
-});
+}
+registerAction('orderBatch', orderBatch);
+
+const orderSize = (choice) => (typeof choice === 'string' && choice.startsWith('order:') ? Number(choice.slice(6)) : null);
 
 registerAction('mailPatch', (ctx, { productId }) => {
   const { state } = ctx, p = state.products.find((x) => x.id === productId);
@@ -86,7 +96,7 @@ export function sellBoxes(ctx, p, demand) {
   const { state } = ctx, inv = p.boxed;
   const deliveryWeek = state.week + 1;
   const due = inv.deliveries.filter((d) => d.dueWeek <= deliveryWeek);
-  for (const batch of due) { inv.stock += batch.units; inv.stockCost += batch.cost; inv.delivered += batch.units; }
+  for (const batch of due) { inv.stock += batch.units; inv.stockCost += batch.cost; inv.delivered += batch.units; inv.soldOutAsked = false; }
   inv.deliveries = inv.deliveries.filter((d) => d.dueWeek > deliveryWeek);
   if (due.length && inv.buybackWeek === null) {
     inv.buybackWeek = deliveryWeek + B.preinternet.buybackDelayWeeks;
@@ -114,18 +124,24 @@ export function sellBoxes(ctx, p, demand) {
   if (sale?.week === state.week) sale.net += inv.weeklyNet;
   else inv.salesHistory.push({ week: state.week, net: inv.weeklyNet });
   p.customers = 0; p.mrr = 0;
+  // Sold out with buyers left and nothing on the way: ask about a reorder, once per sell-out.
+  if (!inv.stock && !inv.deliveries.length && inv.delivered > 0 && !inv.soldOutAsked && Math.floor(demand) > sold) {
+    inv.soldOutAsked = raiseDecision(ctx, 'pre_sold_out', p.id);
+  }
 }
 
 export function preinternetChoiceReason(state, choice, productId) {
   const p = state.products.find((x) => x.id === productId);
   if (choice === 'verify' && liveBox(p) && !p.boxed.master && state.cash < B.preinternet.verifyCost) return 'Not enough cash';
   if (choice === 'cd' && !state.flags.preinternet?.cdChoice && state.cash < B.preinternet.cdCost) return 'Not enough cash';
+  if (orderSize(choice)) return batchQuote(state, p, orderSize(choice)).reason;
   return null;
 }
 
 export function preinternetEffect(ctx, choice, productId) {
   const { state } = ctx, p = state.products.find((x) => x.id === productId);
   if (preinternetChoiceReason(state, choice, productId)) return;
+  if (orderSize(choice)) { orderBatch(ctx, { productId, units: orderSize(choice) }); return; }
   if ((choice === 'verify' || choice === 'rush') && liveBox(p) && !p.boxed.master) {
     p.boxed.master = choice;
     if (choice === 'verify') {

@@ -16,6 +16,9 @@ export const POLICY_EFFECTS = {
   crunch: [['output', 'crunchOutput', 'pct'], ['strain a week on project or maintenance work', 'crunchStrain', 'num'], ['meaning drain', 'crunchMeaningDrain', 'num']],
   top_pay: [['chance an outside offer is taken', 'topPayAttrition', 'mult']],
   office_upkeep: [['chance an outside offer is taken', 'upkeepAttrition', 'mult'], ['meaning recovery a week', 'upkeepMeaningRecovery', 'num']],
+  ai_interviews: [['hiring fee', 'aiInterviews.feeMult', 'mult'], ['weeks between new candidate pools', 'aiInterviews.refreshWeeks', 'count'],
+    ['extra candidates', 'aiInterviews.extraCandidates', 'count'], ['share of candidates whose own AI did the interview', 'aiInterviews.gamerChance', 'share'],
+    ['brand per hire', 'aiInterviews.brandPerHire', 'num'], ['team meaning when switched on, once', 'aiInterviews.calibrateMeaning', 'num']],
   incentives: [['weeks between rewards', 'incentiveEveryWeeks', 'count'], ['output while a reward lasts', 'incentiveOutput', 'pct'], ["winner's meaning", 'incentiveWinnerMeaning', 'num'], ['envy for everyone else', 'incentiveEnvy', 'num'], ['awards between music nights once the ladder is climbed', 'incentiveMusicEvery', 'count']],
 };
 
