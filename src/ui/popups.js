@@ -29,6 +29,7 @@ export const launchToastCarded = (names, text) => pacingOn('oneLaunchCard') && n
 export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = () => null }) {
   const queue = []; // launch results waiting for the screen
   let playSinceCard = Infinity; // ms of running play since the last launch card closed, for the oneLaunchCard gap
+  let cardClosedAt = -Infinity; // the attention clock's play seconds when the last launch card closed
   let lastT = pnow();
   let launch = null; // { productId, prevSpeed, timers }
   let resumeSpeed = null; // speed to restore after a launch popup that a decision interrupted
@@ -243,10 +244,21 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
     if ((ctx.controls.getSpeed?.() ?? 0) === 0) ctx.controls.setSpeed?.(launch.prevSpeed);
     launch = null;
     playSinceCard = 0;
+    cardClosedAt = ctx.controls.attention?.playSeconds ?? -Infinity;
     backdrop.style.display = 'none';
     backdrop.replaceChildren();
     restoreDock();
     ctx.sfx('close');
+  }
+
+  // With the attention clock (ask queue on) the gap is its play seconds, so it counts exactly what the
+  // other cards count; without it the UI's own running-play total does. A clock that restarted (a new
+  // game) forgets the old close.
+  function launchGapOver() {
+    const clock = ctx.controls.attention;
+    if (!clock) return playSinceCard >= LAUNCH_GAP_MS;
+    if (clock.playSeconds < cardClosedAt) cardClosedAt = -Infinity;
+    return clock.playSeconds - cardClosedAt >= (clock.config?.gap ?? LAUNCH_GAP_MS / 1000);
   }
 
   function update(s, { holdLaunch = false } = {}) {
@@ -279,7 +291,7 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
       return;
     }
     if (pendingLetter && !shown && !launch && !letter && !holdLaunch) { const id = pendingLetter; pendingLetter = null; showLetter(s, id); return; }
-    const spaced = !pacingOn('oneLaunchCard') || playSinceCard >= LAUNCH_GAP_MS;
+    const spaced = !pacingOn('oneLaunchCard') || launchGapOver();
     if (!holdLaunch && !shown && !launch && !letter && queue.length && !s.gameOver && spaced && (ctx.spacing?.ready() ?? true)) {
       if (queue.length > 1) { const ids = queue.splice(0); if (!showBatch(s, ids)) queue.length = 0; }
       else while (queue.length && !showLaunch(s, queue.shift()));
