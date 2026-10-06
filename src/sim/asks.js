@@ -6,7 +6,7 @@ import { EVENTS } from '../data/events.js';
 import { EVENT_MAIL } from '../data/mail.js';
 import { ASK_EXPIRED_LINES } from '../data/asks.js';
 import { ASK_DEFAULTS } from '../data/ask-defaults.js';
-import { raiseDecision, decisionVars, fillText, choiceBlocker } from './events.js';
+import { raiseDecision, decisionVars, fillText, choiceBlocker, helpers } from './events.js';
 import { openEventPrompt, openQueuedStaffPrompt, expireQueuedStaffPrompt } from './prompts.js';
 import { openEventMail, sendTemplate, expireTemplate } from './mail.js';
 import { applyEffects } from './effects.js';
@@ -105,6 +105,8 @@ function open(ctx, ask) {
   if (ref.promptTemplate) return openQueuedStaffPrompt(ctx, ref);
   const ev = EVENTS[ref.eventId];
   if (!ev) return false;
+  // A scripted beat whose condition no longer holds (an offer to a company that stopped qualifying) has gone stale.
+  if (ev.scripted && ev.when && !ev.when(state, helpers(state))) return false;
   if (ask.kind === 'decision') return raiseDecision(ctx, ev.id, ref.subjectId, { fromQueue: true, asked: true, vars: ref.vars ?? null });
   if (ask.kind === 'prompt') { state.chatPrompts ??= []; openEventPrompt(ctx, ev, ref.subjectId); return true; }
   openEventMail(ctx, ev, ref.subjectId);
