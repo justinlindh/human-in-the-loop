@@ -7,7 +7,7 @@ covers: scripts/smoke.sh
 The gate a PR passes, in minutes: PRs merge on `smoke`, `commits` and the reviewer's `review` status. It runs five checks, every time, and prints a table slowest first:
 
 - **syntax**: each `.js` and `.mjs` the change touches parses;
-- **related**: the tests that import the changed JS (`scripts/test-push.sh`, the same pick as the pre-push hook); a wide change runs every test it reaches (only an explicit `HITL_PUSH_TEST_MAX` skips past that many);
+- **related**: the tests that import the changed JS (`scripts/test-push.sh`, the same pick as the pre-push hook); at most `HITL_SMOKE_TEST_CAP` test files (default 40), the nearest by import first (`scripts/tools/rank-related.mjs`), so a wide change runs its most relevant tests and the step prints `CAPPED` with how many it left to the release;
 - **features**: `docs/features` ids match the data (`scripts/features-ids.mjs`);
 - **toolkit**: every script has a `docs/toolkit` entry (`npm run toolkit -- --check`);
 - **build**: a production build.

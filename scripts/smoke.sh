@@ -3,7 +3,8 @@
 # what a change most often breaks, in a few minutes. The whole suite (balance, browser, render, golden,
 # phone and the tool self-tests) runs only when a release is cut (scripts/release.sh).
 #   syntax      every .js and .mjs the change touches parses
-#   related     the tests that import the changed JS (scripts/test-push.sh; a wide change runs them all)
+#   related     the tests that import the changed JS (scripts/test-push.sh), at most HITL_SMOKE_TEST_CAP
+#               (default 40), the most relevant first; the output says CAPPED when it cuts
 #   features    docs/features ids match the data (scripts/features-ids.mjs)
 #   toolkit     every script has a docs/toolkit entry (npm run toolkit -- --check)
 #   build       a production build (npm run build)
@@ -36,7 +37,7 @@ syntax() {
   return $rc
 }
 step syntax syntax
-step related bash scripts/test-push.sh
+step related bash scripts/test-push.sh --cap "${HITL_SMOKE_TEST_CAP:-40}"
 step features node scripts/features-ids.mjs --root "$PWD"
 step toolkit npm run --silent toolkit -- --check
 step build npm run --silent build
