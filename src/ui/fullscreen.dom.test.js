@@ -70,10 +70,12 @@ describe('after the browser drops full screen', () => {
     delete document.fullscreenElement; // the keyboard opened and the browser left full screen
     document.dispatchEvent(new Event('fullscreenchange'));
     expect(back.style.display).toBe('');
+    expect(layer.classList.contains('fsback-open')).toBe(true);
     vi.advanceTimersByTime(800);
     expect(resized).toHaveBeenCalledTimes(3);
-    back.click(); await Promise.resolve();
+    back.click(); await vi.advanceTimersByTimeAsync(0);
     expect(root.requestFullscreen).toHaveBeenCalledTimes(2);
+    expect(layer.classList.contains('fsback-open')).toBe(false);
     vi.useRealTimers();
     delete window.matchMedia;
   });
