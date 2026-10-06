@@ -38,6 +38,15 @@ describe('digest', () => {
     expect(t).toContain('effects (Box item): Effects: L1 $3,000');
   });
 
+  it('links a feature to the feature-media still of its id, and keeps a long feature text to 1500 characters', () => {
+    const long = 'word '.repeat(400);
+    const d = { days: [{ date: '2026-10-05', prs: [{ number: 3, title: 't', body: '', prMedia: [], features: [{ status: 'added', file: 'docs/features/office.md', ids: ['printer_jam'], text: long, media: [], effects: [] }] }], direct: [], skipped: [] }] };
+    const out = digest(d, '2026-10-05', ['office-printer_jam.webp', 'decision-other.webp', 'office-printer_jam_xl.webp']);
+    expect(out).toContain('still: https://raw.githubusercontent.com/justinlindh/human-in-the-loop/feature-media/office-printer_jam.webp');
+    expect(out).not.toMatch(/decision-other|printer_jam_xl/);
+    expect(out).toMatch(/Feature \(added.*\): .{1400,1510}\.\.\./);
+  });
+
   it('refuses a day that is not in the data', () => {
     expect(() => digest(data, '2026-10-06')).toThrow(/no 2026-10-06/);
   });
