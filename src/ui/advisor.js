@@ -156,6 +156,11 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
   }
 
   function row(item, rerender, age = '') {
+    const el = rowBase(item, rerender, age);
+    el.dataset.adviceKey = item.key ?? '';
+    return el;
+  }
+  function rowBase(item, rerender, age = '') {
     const a = who(item.advisor);
     return h(`div.advitem.sev-${sev(item.severity)}`, null,
       face(item.advisor, 34),
@@ -201,6 +206,7 @@ export function createAdvisors({ ctx, layer, getRenderer = () => null, getSpeed 
     peekFace.replaceChildren(face(e.advisor, 44, { idea: true }));
     setText(peekWho, `${a.name}${a.role ? `, ${a.role}` : ''}`);
     setText(peekText, e.text);
+    peek.dataset.adviceKey = e.key ?? '';
     peek.classList.add('show');
     pClear(peekTimer);
     peekTimer = pAfter(PEEK_MS, hidePeek);

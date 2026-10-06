@@ -117,6 +117,7 @@ export function createIncidentCard({ layer, ctx }) {
   function apply(on) {
     if (on === shown) return;
     shown = on;
+    if (on) globalThis.__hitlHooks?.opened?.(el);
     el.style.display = on ? '' : 'none';
     layer.classList.toggle('incident-open', on);
   }

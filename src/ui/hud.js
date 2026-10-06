@@ -245,8 +245,10 @@ export function createHud({ root, controls, ui }) {
           // An item can carry a one-tap fix next to it (e.g. time off for someone exhausted).
           const quick = n.quick ? h('button.btn.small.go.nquick', { onclick: (e) => { e.stopPropagation(); ui.act?.(n.quick.action); } }, n.quick.label) : null;
           const later = n.later ? h('button.btn.small.nquick', { onclick: (e) => { e.stopPropagation(); n.later.run(); traySig = ''; } }, n.later.label) : null;
-          return h('div.needrow', null, h('button.need', { onclick: () => ui.open(...n.go), title: 'Click to fix' },
+          const needRow = h('div.needrow', null, h('button.need', { onclick: () => ui.open(...n.go), title: 'Click to fix' },
             icon(n.icon, { size: 14 }), h('span', { text: n.text }), h('span.go', { text: '›' })), quick, later);
+          needRow.dataset.needKey = n.key ?? '';
+          return needRow;
         })));
     }
     if (s.outage) {
