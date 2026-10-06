@@ -100,12 +100,16 @@ const HERO_AT = (dx, dz) => ({ js: `(() => { const c = window.__heroC ??= (() =>
 // it and the page's corner controls don't cover it.
 const CARD_IN = `(() => { const st = document.createElement('style'); st.textContent = '#ui .modal.decision { translate: -180px -120px; }'; document.head.append(st); })();`;
 
+// A staged decision opens at the snapshot the week before it, and the item answers the card itself, so the
+// index filter never names the choice a bot made: bot or balance changes cannot take the game away.
+const ANY_CHOICE = (q) => q.replace(/ --choice \d+/g, '');
+
 // [name, event id and index filters, prop to follow, choice index to make, follow zoom (none: the game's
 // wide view, for scenes on every screen)]. The big offices need a closer zoom than the garage.
 const MOMENTS = [
   ['pizza', 'hackathon_week --stage floor --choice 0', 'pizza_boxes', 0, 2.8],
   // The all-hands screen on its floor stand: the camera holds on it, where the hammer goes through.
-  ['hammer', 'open_plan_office --seed 10 --choice 0', '() => ({ x: -9.8, z: -6.25 })', 0, 3, 22],
+  ['hammer', 'open_plan_office --seed 10', '() => ({ x: -9.8, z: -6.25 })', 0, 3, 22],
   ['carrier', 'cat_request --choice 0', 'pet_carrier', 0, 2.8],
   // No follow zoom: the game's own moment camera frames these (it zooms further in the bigger offices).
   ['consultants', 'efficiency_consultants --seed 1 --choice 1', 'visitor_chair', 1],
@@ -315,7 +319,7 @@ export const ITEMS = [
   {
     // Every monitor shows the ransom skull while the decision is open; the office holds still under
     // the card, so the camera sits on one person at their desk. The window keeps the card out.
-    id: 'site-loop-ransomware', title: 'Landing page loop: ransomware on every screen', query: 'seed=9&speed=1', moment: 'ransomware --stage floor --choice 0', pre: true, seconds: 14, warmup: 6.5,
+    id: 'site-loop-ransomware', title: 'Landing page loop: ransomware on every screen', query: 'seed=9&speed=1', moment: 'ransomware --stage floor', pre: true, seconds: 14, warmup: 6.5,
     setup: BARE, actions: [{ at: 0, js: NO_SAY }, ...FOLLOW(SEATED, 3.2, 0, 14, -320), ...CAMLOG(14)], screenshots: [3, 6, 9],
     out: [LOOP('ransomware', 5, 4.2, { x: 0, y: 1 / 6, w: 2 / 3, h: 2 / 3 }, 27)],
   },
@@ -396,7 +400,7 @@ export const ITEMS = [
     out: [{ path: 'img/yak-backfire.webp', size: '1280x800', from: 60.1, crop: { x: 376 / 1920, y: 190 / 1080, w: 1168 / 1920, h: 730 / 1080 } }], publish: true,
   },
   {
-    id: 'site-printer', title: 'Landing page loop: the printer taken out back', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor --choice 0', pre: true, seconds: 25, warmup: 6.5,
+    id: 'site-printer', title: 'Landing page loop: the printer taken out back', query: 'seed=1&speed=1', moment: 'printer_jam --stage floor', pre: true, seconds: 25, warmup: 6.5,
     setup: CLEAN,
     actions: [{ at: 0, js: NO_SAY }, ...OPEN(), ...FOLLOW(['printer_jammed'], 2.4, 0, 25), { at: 3.5, js: KEY('1', 'Digit1') }, ...DISMISS_AT([4, 4.5, 5.5], { escape: false }), ...CAMLOG(25)],
     screenshots: [17, 20],
@@ -468,7 +472,7 @@ export const ITEMS = [
   // decision comes from the event index, the game's own tick raises it, the camera follows the prop,
   // and the card is held about 5 s before its choice is made by key.
   ...MOMENTS.map(([name, query, prop, choice, zoom, length = 18]) => ({
-    id: `moment-${name}`, title: `Staged moment: ${name}`, query: 'seed=1&speed=1', ...(PINNED_MOMENTS[name] ? {} : { moment: query, pre: name !== 'fumes' }), seconds: length, warmup: 6.5,
+    id: `moment-${name}`, title: `Staged moment: ${name}`, query: 'seed=1&speed=1', ...(PINNED_MOMENTS[name] ? {} : { moment: ANY_CHOICE(query), pre: name !== 'fumes' }), seconds: length, warmup: 6.5,
     setup: PINNED_MOMENTS[name] ? `(async () => { await ${PINNED_MOMENTS[name]}; ${CLEAN}; })()` : CLEAN,
     // No zoom: the game's wide view.
     actions: [{ at: 0, js: NO_SAY }, ...OPEN(), ...(zoom ? FOLLOW(prop.startsWith('(') ? prop : [prop], zoom, 0, length) : []),
@@ -717,7 +721,7 @@ export const ITEMS = [
   // docs/features/decisions.md: what each decision stages in the office while its card is up. The pre-tick
   // snapshot is opened, the game's tick raises the card, the card is hidden and the camera holds on the prop.
   ...DECISION_PROPS.map(([id, query, prop, zoom = 5.5, center = false]) => ({
-    id: `decision-${id}`, title: `Decision prop: ${id}`, query: 'seed=1&speed=1', moment: query, pre: true, still: true, warmup: 8,
+    id: `decision-${id}`, title: `Decision prop: ${id}`, query: 'seed=1&speed=1', moment: ANY_CHOICE(query), pre: true, still: true, warmup: 8,
     setup: `(() => { ${CLEAN}; ${NO_CARD}; ${NO_SAY}; })()`,
     // A prop a choice leaves behind exists only after the card is answered (by key, as a player would).
     actions: [...OPEN(), ...(LEFT_BEHIND.has(id) ? CHOOSE_WHEN(id, LEFT_BEHIND.get(id), 1, 8, 1.5) : []), ...FOLLOW([prop], zoom, 0, LEFT_BEHIND.has(id) ? 20 : 14, 0, center)],
