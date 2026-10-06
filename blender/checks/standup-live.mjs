@@ -1,12 +1,40 @@
 #!/usr/bin/env node
 // Exercise generated conversations while the real game loop continues ticking during their turns.
 import { spawnSync } from 'node:child_process';
-import { resolve } from 'node:path';
+import { writeFileSync } from 'node:fs';
+import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PLAY, IN_OFFICE, CLEAR_CARDS, IDLE } from '../../scripts/capture-manifest.js';
+import { IN_OFFICE, CLEAR_CARDS, IDLE } from '../../scripts/capture-manifest.js';
 
 const after = IN_OFFICE + `s.policies.daily_standups=false;s.policies.async_standups=false;s.projects=[];s.pendingDecision=null;s.chatPrompts=[];
   for(const p of s.staff){p.mood='ok';p.assignment={type:'idle',targetId:null};}`;
+
+// Every case opens the same stored game (seed 26, played by the balanced bot to week 110) through the
+// game's own save and continue, so a change to how the sim plays can't move the office the meeting
+// runs in. `--write-game` rebuilds it from the current sim; do that only on purpose.
+const GAME = 'blender/checks/standup-live-game.json';
+const LOAD_GAME = `(async()=>{
+  const st=await (await fetch('/${GAME}')).json();
+  const {saveGame}=await import('/src/save/save.js');
+  if(!saveGame(st,localStorage))throw Error('standup-live: could not save the stored game');
+  const r=window.__HITL.controls.continueGame();
+  if(!r.ok)throw Error('standup-live: could not load the stored game: '+(r.reason??''));
+  const s=window.__HITL.state;
+  ${after}
+  ${IDLE};
+})()`;
+
+async function writeGame() {
+  const root = resolve(fileURLToPath(import.meta.url), '../../..');
+  const { createGame } = await import(join(root, 'src/sim/state.js'));
+  const sim = await import(join(root, 'src/sim/index.js'));
+  const b = await import(join(root, 'src/sim/bots.js'));
+  const s = createGame({ seed: 26 });
+  for (let i = 0; i < 110 && !s.gameOver; i++) { b.botDecide('balanced', s); b.botTurn('balanced', s); sim.tick(s); }
+  b.botDecide('balanced', s);
+  writeFileSync(join(root, GAME), JSON.stringify(s) + '\n');
+  console.log(`standup-live: wrote ${GAME} (seed 26, week ${s.week}, ${s.staff.length} staff)`);
+}
 
 async function startConversation({ speed, path }) {
   const H = window.__HITL, S = H.state;
@@ -95,7 +123,7 @@ export const ITEMS = [
 ].map(options => ({
   id: `standup-live-${options.path}-${options.speed}`, title: 'Standup live premise and complete exchange',
   query: 'seed=26&speed=0&time=day', warmup: 0, still: true, fps: 30, size: '1280x800', screenshots: [45],
-  setup: `(async()=>{await ${PLAY({ weeks: 110, after })};setInterval(()=>{${CLEAR_CARDS};${IDLE};if(window.__HITL.state.pendingDecision)window.__HITL.dispatch({type:'resolveDecision',choice:0});},100);window.__HITL.setSpeed(1);})()`,
+  setup: `(async()=>{await ${LOAD_GAME};setInterval(()=>{${CLEAR_CARDS};${IDLE};if(window.__HITL.state.pendingDecision)window.__HITL.dispatch({type:'resolveDecision',choice:0});},100);window.__HITL.setSpeed(1);})()`,
   actions: [
     { at: 4, js: `(${startConversation.toString()})(${JSON.stringify(options)})` },
     ...(options.path === 'replacement' ? [{ at: 6, js: "window.__HITL.state.outage={...window.__HITL.state.outage,weeks:0,kind:'replacement'};window.__standupCheck.replaced=true;" }] : []),
@@ -103,7 +131,8 @@ export const ITEMS = [
   ],
 }));
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url) && process.argv.includes('--write-game')) await writeGame();
+else if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const result = spawnSync('timeout', ['480', 'nice', '-n', '10', 'node', 'scripts/capture.js', '--manifest', fileURLToPath(import.meta.url), '--out', 'shots/standup-live', '--no-webm', ...process.argv.filter(a => a === '--gpu' || a === '--software')], { stdio: 'inherit' });
   process.exitCode = result.status ?? 1;
 }
