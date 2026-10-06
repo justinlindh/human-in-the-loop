@@ -43,6 +43,7 @@ function injectStyle() {
   .hitl-say.hitl-note .in { padding: 4px 10px 4px 6px; }
   .hitl-say.hitl-note.icon-only .in { padding: 4px; }
   .hitl-say.hitl-note.tone-bad .in, .hitl-say.hitl-note.tone-bad .in::after { background: ${P.tone_bad}; color: ${P.paper}; }
+  .hitl-say.hitl-note.tone-good.icon-check .in, .hitl-say.hitl-note.tone-good.icon-check .in::after { background: ${P.tone_good}; color: ${P.paper}; }
   .hitl-stat.hitl-note .in { background: ${P.gold}; color: ${P.ink}; padding: 4px 14px 4px 8px; border-radius: 10px; }
   .hitl-stat.hitl-note.icon-only .in { padding: 3px; }
   `;
@@ -163,13 +164,13 @@ export function createLabels(parent) {
   // Status news as a small bubble with an icon: over a person it lays out as speech (it stacks with
   // and counts against speech bubbles); `float` makes it a slow-rising label over a place instead.
   // `iconOnly` drops the text.
-  function note(text, iconSrc, tone, follow, seconds, { float = false, iconOnly = false, offsetY } = {}) {
+  function note(text, iconSrc, tone, follow, seconds, { float = false, iconOnly = false, offsetY, icon = '' } = {}) {
     if (!float) for (const o of live) if (o.kind === 'say' && o.follow === follow) o.t = o.life;
     const l = acquire();
     l.kind = float ? 'stat' : 'say';
     l.moment = false; l.tone = tone; l.num = null;
     l.speechText = text;
-    l.el.className = `hitl-lbl ${float ? 'hitl-stat' : 'hitl-say'} hitl-note tone-${tone ?? 'info'}${iconOnly ? ' icon-only' : ''}`;
+    l.el.className = `hitl-lbl ${float ? 'hitl-stat' : 'hitl-say'} hitl-note tone-${tone ?? 'info'}${icon ? ` icon-${icon}` : ''}${iconOnly ? ' icon-only' : ''}`;
     l.inner.textContent = '';
     l.inner.style.background = '';
     if (iconSrc) {

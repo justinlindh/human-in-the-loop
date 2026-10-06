@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { existsSync } from 'node:fs';
-import { AMBIENT_ICON, ambientCarriers, ambientGlyph, ambientListener, deskBubblesOn } from './ambient.js';
+import { AMBIENT_ICON, CHECK_S, ambientCarriers, ambientGlyph, ambientListener, ambientSeconds, deskBubblesOn } from './ambient.js';
 
 const event = (detail) => ({ detail, preventDefault: vi.fn() });
 
@@ -44,5 +44,10 @@ describe('ambient status news', () => {
     for (const glyph of Object.values(AMBIENT_ICON)) expect(existsSync(`public/icons/glyphs/${glyph}.svg`), glyph).toBe(true);
     expect(ambientGlyph('nope', 'bad')).toBe('toast.bad');
     expect(existsSync('public/icons/glyphs/toast.bad.svg')).toBe(true);
+  });
+
+  it('holds an all-clear check briefly and other news for its reading time', () => {
+    expect(ambientSeconds('All clear', 1, 'check')).toBe(CHECK_S);
+    expect(ambientSeconds('Minor outage', 1, 'warn')).toBeGreaterThan(CHECK_S);
   });
 });

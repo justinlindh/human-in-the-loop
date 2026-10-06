@@ -22,8 +22,11 @@ export const ambientListener = (draw, enabled = deskBubblesOn) => (ev) => {
 // An unknown icon id draws its tone's glyph.
 export const ambientGlyph = (icon, tone) => AMBIENT_ICON[icon] ?? TONE_ICON[tone] ?? TONE_ICON.info;
 
-// How long a bubble stays: a speech line's hold for its text plus a beat to notice it.
-export const ambientSeconds = (text, speed = 1) => holdSeconds(text || 'x', speed) + 1.5;
+// How long a bubble stays: a speech line's hold for its text plus a beat to notice it. An
+// all-clear check is a short beat.
+export const CHECK_S = 2.5;
+export const ambientSeconds = (text, speed = 1, icon = null) =>
+  icon === 'check' ? CHECK_S : holdSeconds(text || 'x', speed) + 1.5;
 
 // The people whose place carries a staff, project or product's news, best first: the person
 // themself; a project's team; a product's owner, then whoever works on it or on a project for it.

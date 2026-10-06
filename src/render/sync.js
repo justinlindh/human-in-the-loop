@@ -780,9 +780,9 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   let companyUntil = 0, ambientT = 0;
   function ambient(d) {
     if (!d || !lastState) return false;
-    const seconds = ambientSeconds(d.text, speed);
+    const seconds = ambientSeconds(d.text, speed, d.icon);
     const src = `${import.meta.env?.BASE_URL ?? '/'}icons/glyphs/${ambientGlyph(d.icon, d.tone)}.svg`;
-    const opts = { iconOnly: low() };
+    const opts = { iconOnly: low(), icon: /^[a-z]+$/.test(d.icon ?? '') ? d.icon : '' };
     if (d.subjectKind === 'company') {
       if (ambientT < companyUntil) return false;
       const L = office.current?.L;
