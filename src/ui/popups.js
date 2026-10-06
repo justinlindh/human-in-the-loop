@@ -8,6 +8,8 @@ import { pressOutlet } from './press.js';
 import { portrait, portraitLive, roleChip } from './widgets.js';
 import { resolutionBlock, backUpTitle } from './incident.js';
 import { pacingOn } from './pacing.js';
+import { letterView } from './letterView.js';
+import { hasOpenChoice } from './mail.js';
 
 const LEADERSHIP_IDS = new Set(['ceo_replace_support', 'four_day_week', 'ai_first_mandate', 'rebrand', 'pivot_pitch', 'open_plan_office',
   'hackathon_week', 'founder_burnout', 'ceo_support_fallout', 'four_day_week_review', 'ai_first_review']);
@@ -27,9 +29,12 @@ export const launchToastCarded = (names, text) => pacingOn('oneLaunchCard') && n
 export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = () => null }) {
   const queue = []; // launch results waiting for the screen
   let playSinceCard = Infinity; // ms of running play since the last launch card closed, for the oneLaunchCard gap
+  let cardClosedAt = -Infinity; // the attention clock's play seconds when the last launch card closed
   let lastT = pnow();
   let launch = null; // { productId, prevSpeed, timers }
   let resumeSpeed = null; // speed to restore after a launch popup that a decision interrupted
+  let letter = null; // { mailId, prevSpeed, answer, options }: a presented letter on screen
+  let pendingLetter = null; // a presented letter waiting for a decision or launch card to clear
   // Above the big Yak overlay, so a card raised while Yak is open can be answered.
   const backdrop = h('div.modal-back.popup-back');
   backdrop.style.display = 'none';
@@ -239,10 +244,21 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
     if ((ctx.controls.getSpeed?.() ?? 0) === 0) ctx.controls.setSpeed?.(launch.prevSpeed);
     launch = null;
     playSinceCard = 0;
+    cardClosedAt = ctx.controls.attention?.playSeconds ?? -Infinity;
     backdrop.style.display = 'none';
     backdrop.replaceChildren();
     restoreDock();
     ctx.sfx('close');
+  }
+
+  // With the attention clock (ask queue on) the gap is its play seconds, so it counts exactly what the
+  // other cards count; without it the UI's own running-play total does. A clock that restarted (a new
+  // game) forgets the old close.
+  function launchGapOver() {
+    const clock = ctx.controls.attention;
+    if (!clock) return playSinceCard >= LAUNCH_GAP_MS;
+    if (clock.playSeconds < cardClosedAt) cardClosedAt = -Infinity;
+    return clock.playSeconds - cardClosedAt >= (clock.config?.gap ?? LAUNCH_GAP_MS / 1000);
   }
 
   function update(s, { holdLaunch = false } = {}) {
@@ -251,9 +267,12 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
     if (t > lastT && !shown && !launch && !s.pendingDecision && (ctx.controls.getSpeed?.() ?? 0) > 0) playSinceCard += t - lastT;
     lastT = t;
     remember(s);
+    // A letter that expired or was answered elsewhere leaves its card.
+    if (letter) { const lm = (s.mail ?? []).find((x) => x.id === letter.mailId); if (!lm || !hasOpenChoice(lm)) closeLetter(); }
     const d = s.pendingDecision;
     if (d && d !== shown) {
-      // A decision outranks launch results; put an open launch back at the front of the queue.
+      // A decision outranks a letter card and launch results; put an open letter or launch back in line.
+      if (letter) { pendingLetter = letter.mailId; resumeSpeed = letter.prevSpeed; letter = null; }
       if (launch) { const ids = [].concat(launch.productId); launch.timers.forEach(pClear); resumeSpeed = launch.prevSpeed; launch = null; queue.unshift(...ids); }
       shown = d;
       renderDecision(s, d);
@@ -271,11 +290,58 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
       showBatch(s, ids);
       return;
     }
-    const spaced = !pacingOn('oneLaunchCard') || playSinceCard >= LAUNCH_GAP_MS;
-    if (!holdLaunch && !shown && !launch && queue.length && !s.gameOver && spaced && (ctx.spacing?.ready() ?? true)) {
+    if (pendingLetter && !shown && !launch && !letter && !holdLaunch) { const id = pendingLetter; pendingLetter = null; showLetter(s, id); return; }
+    const spaced = !pacingOn('oneLaunchCard') || launchGapOver();
+    if (!holdLaunch && !shown && !launch && !letter && queue.length && !s.gameOver && spaced && (ctx.spacing?.ready() ?? true)) {
       if (queue.length > 1) { const ids = queue.splice(0); if (!showBatch(s, ids)) queue.length = 0; }
       else while (queue.length && !showLaunch(s, queue.shift()));
     }
+  }
+
+  // A letter the attention queue presented, as a decision-like card: the letter, its choices and Archive
+  // (ignore). It always pauses, whatever "pause while menus are open" says. Opening it reads the letter,
+  // which starts its expiry clock.
+  function showLetter(s, mailId) {
+    const m = (s.mail ?? []).find((x) => x.id === mailId);
+    // A letter that expired or was answered while it waited has nothing to decide; skip it and give back the
+    // speed an interrupted card was holding.
+    if (!m || !hasOpenChoice(m)) {
+      if (resumeSpeed !== null) { if ((ctx.controls.getSpeed?.() ?? 0) === 0) ctx.controls.setSpeed?.(resumeSpeed); resumeSpeed = null; }
+      return false;
+    }
+    const prevSpeed = resumeSpeed ?? ctx.controls.getSpeed?.() ?? 1;
+    resumeSpeed = null;
+    ctx.controls.setSpeed?.(0);
+    const view = letterView(ctx, s, m, { onDone: () => closeLetter(), choiceKeys: true, showDeadline: false });
+    const dock = h('div.modal-dock');
+    backdrop.classList.add('docked');
+    backdrop.replaceChildren(h('div.modal.decision.letterdecision', null,
+      h('div.mhead', null, icon('mail', { size: 24 }), h('h2', { text: 'A letter' }), h('span.spacer'), h('span.mtag', { text: 'Letter' })),
+      h('div.mbody', null, ...view.nodes),
+      dock));
+    backdrop.style.display = '';
+    toasts.setDock(dock);
+    ctx.sfx('decision');
+    if (m.read == null) ctx.act({ type: 'readMail', mailId }, { quiet: true });
+    letter = { mailId, prevSpeed, answer: view.answer, options: m.options ?? [] };
+    return true;
+  }
+
+  function closeLetter() {
+    if (!letter) return;
+    if ((ctx.controls.getSpeed?.() ?? 0) === 0) ctx.controls.setSpeed?.(letter.prevSpeed);
+    letter = null;
+    backdrop.style.display = 'none';
+    backdrop.replaceChildren();
+    restoreDock();
+    ctx.sfx('close');
+  }
+
+  // Opens the letter now, or as soon as no decision or launch card is on screen.
+  function openLetter(s, mailId) {
+    if (letter?.mailId === mailId) return;
+    if (shown || launch || letter) { pendingLetter = mailId; return; }
+    showLetter(s, mailId);
   }
 
   function queueLaunch(productId) {
@@ -285,6 +351,13 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
 
   // Returns true when the modal consumed the key.
   function onKey(e) {
+    if (letter) {
+      const n = Number(e.key);
+      e.preventDefault();
+      // Archive (ignore) is the way to skip a letter; Escape does not close it.
+      if (n >= 1 && n <= letter.options.length && letter.options[n - 1].available !== false) letter.answer(n - 1);
+      return true;
+    }
     if (launch) {
       if (e.key === 'Enter' || e.code === 'Space' || e.key === 'Escape' || e.key === '1') { e.preventDefault(); closeLaunch(); }
       else e.preventDefault();
@@ -297,5 +370,5 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
     return false;
   }
 
-  return { update, onKey, queueLaunch, get open() { return !!shown || !!launch; }, get launchOpen() { return !!launch; } };
+  return { update, onKey, queueLaunch, openLetter, get open() { return !!shown || !!launch || !!letter; }, get launchOpen() { return !!launch; }, get letterOpen() { return !!letter; } };
 }

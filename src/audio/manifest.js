@@ -146,6 +146,7 @@ export const ON_EVENT = {
   askQueued: null,
   askExpired: null,
   askPresented: null,
+  quietEvent: null,
   // The boombox: the station itself is read from state.radio by the director, so these are silent here.
   radio: null,
   radioTaste: null,
