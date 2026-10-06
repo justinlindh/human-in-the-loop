@@ -45,7 +45,7 @@ describe('issue #1646: the ask queue', () => {
 
   it('off: a whole bot game never touches the queue', () => {
     B.pacing.askQueue = false;
-    const r =runBot('balanced', 3, 300, { onWeek: (s, events) => { expect(events.some((e) => e.type === 'askQueued')).toBe(false); } });
+    const r = runBot('balanced', 3, 300, { onWeek: (s, events) => { expect(events.some((e) => e.type === 'askQueued')).toBe(false); } });
     expect(r.state.asks).toEqual([]);
   });
 
