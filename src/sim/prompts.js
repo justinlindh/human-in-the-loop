@@ -226,13 +226,26 @@ function resolveEvent(ctx, prompt, choice) {
   ctx.emit({ type: 'chatPromptResolved', promptId: prompt.id, choice });
 }
 
+// When each template opened lately, and for whom: flags.promptHistory[id] = [{ week, posterId }]. Most triggers
+// stay true for weeks (a junior without a mentor, a full office), so a template opens at most its yearly cap
+// in 52 weeks, and never for the same poster within B.prompts.samePosterWeeks.
+const HISTORY_WEEKS = () => Math.max(52, B.prompts.samePosterWeeks);
+export const promptYearCap = (id) => B.prompts.yearCaps[id] ?? B.prompts.yearCap;
+function recent(state, id) {
+  const all = (state.flags.promptHistory ??= {});
+  all[id] = (all[id] ?? []).filter((h) => state.week - h.week < HISTORY_WEEKS());
+  return all[id];
+}
+const overYearCap = (state, id) => recent(state, id).filter((h) => state.week - h.week < 52).length >= promptYearCap(id);
+const askedLately = (state, id, posterId) => recent(state, id).some((h) => h.posterId === posterId && state.week - h.week < B.prompts.samePosterWeeks);
+
 function openPrompt(ctx) {
   const { state } = ctx;
   const found = [];
   for (const t of PROMPTS) {
-    if ((state.flags[`pcd_${t.id}`] ?? -1) > state.week || !fitsEra(state, t)) continue;
+    if ((state.flags[`pcd_${t.id}`] ?? -1) > state.week || !fitsEra(state, t) || overYearCap(state, t.id)) continue;
     const hit = TRIGGERS[t.on]?.(state, ctx);
-    if (hit) found.push({ t, hit });
+    if (hit && !askedLately(state, t.id, hit.poster.id)) found.push({ t, hit });
   }
   if (!found.length) return;
   const { t, hit } = pick(ctx.rng, found);
@@ -256,6 +269,7 @@ function openPrompt(ctx) {
   });
   state.flags.lastPromptWeek = state.week;
   state.flags[`pcd_${t.id}`] = state.week + t.cooldown;
+  recent(state, t.id).push({ week: state.week, posterId: hit.poster.id });
   ctx.emit({ type: 'chatPrompt', promptId: id, chatId: msg.id });
 }
 
