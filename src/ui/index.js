@@ -24,7 +24,7 @@ import { icon } from './icons.js';
 import { createSettings } from './settings.js';
 import { watchFullscreen } from './fullscreen.js';
 import { pacingOn } from './pacing.js';
-import { createAmbient, incidentDetail, shippedDetail } from './ambient.js';
+import { createAmbient, gagDetail, incidentDetail, shippedDetail } from './ambient.js';
 import { createTitle } from './title.js';
 import { erasPreview } from './eraPreview.js';
 import { createGameOver } from './gameover.js';
@@ -531,6 +531,8 @@ export function createUI({ root, getState, dispatch, controls }) {
           break;
         }
         case 'say': callGrid.say(e, state); break;
+        // A card-less gag: a bubble over its subject. The sim's Yak line already names it, so an unclaimed one needs no toast.
+        case 'quietEvent': ambient.sendDetail(gagDetail(e, state)); break;
         case 'hire': {
           const p = state.staff.find((s) => s.id === e.staffId);
           if (p) toasts.push(`${p.name} joined the team!`, 'good', { subject: String(p.id) });
