@@ -1,0 +1,8 @@
+/* The boombox's card in the Office panel (#139): an on/off toggle and a station picker. */
+.hitl .radiocard { display: flex; flex-direction: column; gap: 0.5em; margin: 0.6em 0; }
+.hitl .radiohead { display: flex; align-items: center; gap: 0.5em; }
+.hitl .radiotoggle { min-height: 44px; min-width: 5em; }
+.hitl .radiotoggle { color: var(--ink); }
+.hitl .radiotoggle.on { background: #e6f6ee; color: var(--ink); }
+.hitl .radiorow .gpick { width: 100%; min-height: 44px; }
+.hitl .radionow { min-height: 1.2em; }
