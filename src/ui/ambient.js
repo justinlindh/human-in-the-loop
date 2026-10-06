@@ -56,6 +56,21 @@ export function shippedDetail(p, prevScore) {
   return { topic: 'shipped', subjectId: p.id, subjectKind: 'product', text: clip(`v${p.version}: ${p.score.toFixed(1)}`), icon: 'launch', tone: fell ? 'warn' : 'good' };
 }
 
+// A card-less gag (`quietEvent`): a short caption and glyph per event, and a generic one for the rest.
+const GAGS = {
+  ping_pong: ['Ping-pong!', 'item.ping_pong_table'],
+  printer_jam: ['Printer jammed', 'warn'],
+  pet_mishap: ['Cable chewed', 'pet'],
+  conference_expo: ['Off to the expo', 'channel.conference'],
+  ai_summit: ['AI summit trip', 'channel.conference'],
+};
+export function gagDetail(e, state) {
+  const [text, icon] = GAGS[e.eventId] ?? ['Office moment', 'idea'];
+  const id = e.subjectId ?? null;
+  const subjectKind = id == null ? 'company' : (state?.products ?? []).some((p) => p.id === id) ? 'product' : 'staff';
+  return { topic: 'gag', subjectId: id, subjectKind, text, icon, tone: 'info' };
+}
+
 // Minor incidents (severity below 3, the SEV4 and SEV5 ones) and their all-clear go to the world instead of a toast.
 export const MINOR_SEVERITY = 3;
 export function incidentDetail(e) {
