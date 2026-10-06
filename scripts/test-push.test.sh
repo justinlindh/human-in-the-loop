@@ -8,7 +8,7 @@ fails=0; fail() { echo "FAIL $*"; fails=$((fails + 1)); }
 r="$tmp/repo"; mkdir -p "$r/scripts/tools" "$r/src" "$tmp/bin"
 cp "$HERE/test-push.sh" "$HERE/nice10.sh" "$r/scripts/"
 printf 'echo "related $*" >>"%s/runs"\n' "$tmp" >"$r/scripts/tools/test-related.sh"
-printf '#!/usr/bin/env bash\nfor i in $(seq 1 "${FAKE_COUNT:-3}"); do echo "tests/t$i.test.js"; done\n' >"$tmp/bin/npx"; chmod +x "$tmp/bin/npx"
+printf '#!/usr/bin/env bash\n[ -n "${FAKE_FULL:-}" ] && echo "tests/a.full.test.js"\nfor i in $(seq 1 "${FAKE_COUNT:-3}"); do echo "tests/t$i.test.js"; done\n' >"$tmp/bin/npx"; chmod +x "$tmp/bin/npx"
 g() { git -C "$r" -c user.name=t -c user.email=t@t "$@"; }
 # Stand-in ranker (keeps input order) and test cache, committed so they aren't changes themselves.
 printf 'import { readFileSync } from "node:fs";\nconst n = +process.argv[3];\nprocess.stdout.write(readFileSync(0, "utf8").split("\\n").filter(Boolean).slice(0, n).join("\\n") + "\\n");\n' >"$r/scripts/tools/rank-related.mjs"
@@ -31,7 +31,7 @@ HITL_PUSH_TEST_MAX=100 FAKE_COUNT=41 runit
 # --cap (smoke): past the cap it runs the ranked first N and says CAPPED; under it, the usual run.
 runcap() { out="$(cd "$r" && PATH="$tmp/bin:$PATH" bash scripts/test-push.sh "$@" 2>&1)"; rc=$?; }
 rm -f "$tmp/runs"
-FAKE_COUNT=50 runcap --cap 5
+FAKE_FULL=1 FAKE_COUNT=50 runcap --cap 5
 [ $rc -eq 0 ] && grep -q 'CAPPED: the changes reach 50 test files; running the 5 most relevant' <<<"$out" \
   && grep -qE '^cache npx vitest run --passWithNoTests( tests/t[0-9]+\.test\.js){5}$' "$tmp/runs" \
   || fail "--cap runs the ranked first N and says CAPPED: rc $rc: $(cat "$tmp/runs" 2>/dev/null): $out"
