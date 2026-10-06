@@ -182,6 +182,8 @@ export function createUI({ root, getState, dispatch, controls }) {
       if (opens) openTarget(ctx, opens);
     },
     onPost: (id) => { const r = act({ type: 'postMessage', id }); if (r.ok) sfx('confirm'); return r; },
+    // The first time a reply prompt is actually on screen the attention clock may start its expiry.
+    onShown: (promptId) => { if (pacingOn('askQueue')) act({ type: 'promptShown', promptId }); },
   });
   const menu = createMenu({
     bottom, panelRoot: layer, panels: PANELS, ctx,

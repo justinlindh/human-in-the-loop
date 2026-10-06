@@ -20,6 +20,41 @@ const game = () => {
   return s;
 };
 
+it('reports a prompt as shown once, only when it is in the open channel with Yak expanded', () => {
+  const s = game();
+  const root = document.createElement('div');
+  document.body.append(root);
+  const onShown = vi.fn();
+  const chat = createChat(root, { getState: () => s, onShown });
+  chat.reset(s);
+  chat.update(s);
+  // Queued in another channel: not shown.
+  expect(onShown).not.toHaveBeenCalled();
+  // Collapsed Yak, even with the channel selected: not shown.
+  root.querySelector('.chat-head').click();
+  chat.revealPrompt('p1');
+  chat.update(s);
+  expect(onShown).toHaveBeenCalledTimes(1);
+  expect(onShown).toHaveBeenCalledWith('p1');
+  chat.update(s);
+  chat.update(s);
+  expect(onShown).toHaveBeenCalledTimes(1);
+});
+
+it('does not report a prompt while Yak is collapsed on its channel', () => {
+  const s = game();
+  const root = document.createElement('div');
+  document.body.append(root);
+  const onShown = vi.fn();
+  const chat = createChat(root, { getState: () => s, onShown });
+  chat.reset(s);
+  [...root.querySelectorAll('.ctab')].find((t) => t.textContent.includes('random')).click();
+  root.querySelector('.chat-head').click();
+  chat.update(s);
+  expect(chat.el.classList.contains('collapsed')).toBe(true);
+  expect(onShown).not.toHaveBeenCalled();
+});
+
 it('an open prompt puts a Reply dot on its channel tab while Yak is open on another channel, until it resolves', () => {
   const s = game();
   const root = document.createElement('div');

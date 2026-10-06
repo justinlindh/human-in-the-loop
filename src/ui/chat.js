@@ -33,7 +33,7 @@ const EMOTICONS = { '😂': ':D', '😬': ':-S', '👀': 'o_o', '❤️': '<3', 
 
 // Yak: the office's team chat. Channels with unread badges, threads, reactions, and names you
 // can click to find the person. Messages stay bounded per channel in memory and in the DOM.
-export function createChat(root, { getState, onName, onMaximize, onAnswer, onPost } = {}) {
+export function createChat(root, { getState, onName, onMaximize, onAnswer, onPost, onShown } = {}) {
   const store = Object.fromEntries(CHANNELS.map((c) => [c, []]));
   const unread = Object.fromEntries(CHANNELS.map((c) => [c, 0]));
   let current = 'general';
@@ -255,6 +255,14 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
     refreshBadges();
   }
 
+  const shownSent = new Set(); // prompt ids already reported as shown
+  // Whether a block sits inside the feed's visible box; without layout (no sizes) it counts as in view.
+  const inView = (node) => {
+    const a = node.getBoundingClientRect();
+    const b = list.getBoundingClientRect();
+    if (!a.height || !b.height) return !b.height && !a.height;
+    return a.bottom > b.top && a.top < b.bottom;
+  };
   let reveal = null; // id of a presented prompt to bring into view on the next update, or '' for the first open one
   let quietText = '';
   let appName = 'Yak';
@@ -285,6 +293,18 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
     // A prompt the attention queue just presented waits here until the view has it.
     if (reveal !== null && prompts.open().length) { const id = reveal; reveal = null; showPrompt(id); }
     const open = prompts.open();
+    // Tell the sim each prompt the first time it is really in front of the player: Yak expanded, the prompt's
+    // channel selected and its block inside the visible part of the feed.
+    if (onShown && !collapsed && !document.hidden) {
+      for (const p of open) {
+        if (shownSent.has(p.id) || (p.channel ?? 'general') !== current) continue;
+        const node = list.querySelector(`.yprompt[data-prompt="${CSS.escape(p.id)}"]`);
+        if (!node || !inView(node)) continue;
+        shownSent.add(p.id);
+        if (shownSent.size > 200) shownSent.delete(shownSent.values().next().value);
+        onShown(p.id);
+      }
+    }
     const sig = `${collapsed ? 1 : 0}|${open.map((p) => p.channel).join(',')}`;
     if (sig !== markSig) {
       markSig = sig;
@@ -327,6 +347,7 @@ export function createChat(root, { getState, onName, onMaximize, onAnswer, onPos
   // A new or loaded game rebuilds the feed from the state's recent chat log.
   function reset(s) {
     for (const c of CHANNELS) { store[c] = []; unread[c] = 0; }
+    shownSent.clear();
     lastGeneralWeek = null;
     renderChannel();
     const record = readShown(companyKey(s));
