@@ -10,7 +10,10 @@
 #                             (scripts/lib/quiet.sh), which waits for every slot.
 #   --gpu                     one of HITL_GPU_SLOTS (default 8) GPU slots: GPU renders cost a small
 #                             fraction of the CPU and share the card well; the bound keeps many-browser
-#                             jobs within its memory.
+#                             jobs within its memory. A slot is taken only while the card has
+#                             HITL_GPU_FREE_MB of free memory (default 3000; 0 turns the check off, and
+#                             it is skipped without nvidia-smi): a job that holds most of the card (a
+#                             model run) leaves browsers without a WebGL context, so they wait for it.
 # Inside a caller that already holds a lock that covers the request it runs straight away
 # (scripts/render-lock-held.sh): a software slot covers both kinds, a GPU slot covers GPU work.
 # Otherwise it waits for a lock, exports its PID as the holder, and execs the command, which keeps
@@ -100,13 +103,26 @@ if [ "$mode" = software ]; then
   exec "$@"
 fi
 
-t0=$SECONDS; t0r=$EPOCHREALTIME
+FREE_MB="${HITL_GPU_FREE_MB:-3000}"
+# The first card's free memory in MiB; prints nothing when it can't be read.
+vram_free_mb() {
+  timeout 5 nvidia-smi --query-gpu=memory.total,memory.used --format=csv,noheader,nounits 2>/dev/null | head -n 1 \
+    | awk -F', *' 'NF >= 2 && $1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ { print $1 - $2 }'
+}
+t0=$SECONDS; t0r=$EPOCHREALTIME; said=0; vram_wait=0
 while :; do
+  free=""; [ "$FREE_MB" -gt 0 ] 2>/dev/null && free="$(vram_free_mb)"
+  if [ -n "$free" ] && [ "$free" -lt "$FREE_MB" ]; then
+    [ $said = 1 ] || { echo "with-render-lock: waiting for $FREE_MB MiB of free GPU memory (${free} MiB free)" >&2; said=1; vram_wait=1; }
+    [ $((SECONDS - t0)) -lt "$WAIT" ] || { t0=$t0r; log_wait timed_out=1 vram_wait=1; echo "with-render-lock: GPU memory still under $FREE_MB MiB free after ${WAIT}s" >&2; exit 75; }
+    sleep "${VRAM_POLL:-5}"
+    continue
+  fi
   for lock in "${gpu_locks[@]}"; do
     exec 8>"$lock"
     if flock -n 8; then
       slot="${lock##*-}"; echo "with-render-lock: waited $((SECONDS - t0))s for GPU render slot ${slot%.lock}" >&2
-      t0=$t0r; log_wait slot="${slot%.lock}"
+      t0=$t0r; log_wait slot="${slot%.lock}" vram_wait="$vram_wait"
       export HITL_RENDER_LOCK_HELD=$$
       exec "$@"
     fi
