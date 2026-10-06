@@ -19,7 +19,7 @@ export const askQueueOn = () => !!B.pacing.askQueue;
 // What interrupts at once and never expires: incident and cyber events unless their data says
 // `emergency: false`, and any event or mail template whose data says `emergency: true`.
 const EMERGENCY_KINDS = new Set(['incident', 'cyber']);
-const isEmergency = (ev) => (EMERGENCY_KINDS.has(ev.kind) && ev.emergency !== false) || !!ev.emergency || !!EVENT_MAIL[ev.id]?.emergency;
+export const isEmergency = (ev) => (EMERGENCY_KINDS.has(ev.kind) && ev.emergency !== false) || !!ev.emergency || !!EVENT_MAIL[ev.id]?.emergency;
 const decisionPriority = (ev) => (isEmergency(ev) ? 'emergency' : 'normal');
 const RANK = { emergency: 0, normal: 1, low: 2 };
 

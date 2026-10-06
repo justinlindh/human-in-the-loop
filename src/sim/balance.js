@@ -127,7 +127,7 @@ export const B = {
   postureSecurityPerSkill: 3.2, postureAudit: 20, postureAuditDecay: 0.4, postureTooling: 12, postureDebtPenalty: 0.5,
   auditCost: 15000, toolingWeekly: 900, consultantCost: 45000, founderFixMult: 1.5, bridgeOfferCooldownWeeks: 26,
   outageComplexityPerProduct: 0.2, fixersCounted: 3,
-  postmortemWeeks: 1, postmortemQueueMax: 6, postmortemSeverity: 4, postmortemSeverityQuiet: 5, postmortemDebt: 5, postmortemKnowledge: 3, postmortemMeaning: 2, patchDebt: 3, incidentDebtLineMult: 1.3, incidentSprawlLine: 4,
+  postmortemWeeks: 1, postmortemQueueMax: 6, postmortemSeverity: 4, postmortemDebt: 5, postmortemKnowledge: 3, postmortemMeaning: 2, patchDebt: 3, incidentDebtLineMult: 1.3, incidentSprawlLine: 4,
   outageCollapseWeeks: 6, collapseMrrShare: 0.5, collapseIkBelow: 20,
   gpuWeeklySelfHost: 1200, randomEventChance: 0.22, heldRollsMax: 2, deskStageWaitWeeks: 4,
   standupDailyOutput: -0.03, standupDailyMeaning: 0.3, standupIkBonus: 0.1, meetingTableKnowledge: 0.3,
@@ -257,11 +257,17 @@ export const B = {
     gap: 90, quiet: 45, expiry: 180, momentWindow: 300, momentCap: 25, watchWindow: 600, watchStretch: 180, yakGap: 20,
     botGapWeeks: 11, botExpiryWeeks: 22, staleWeeks: 52, queueCap: 3,
   },
-  // The weekly event and staff-prompt rolls under B.pacing.askRates, cut so the game proposes about 0.4 asks
-  // per running minute at 1x in all.
-  // scriptedChance: the weekly chance a ready scripted event comes, set to how often the uncut random pool
-  // brings it once ready, so moving it out of the pool keeps how often it happens.
-  askRates: { randomEventChance: 0.0073, chatPromptChance: 0.0041, scriptedChance: { acquisition_offer: 0.012 } },
+  // Under B.pacing.askRates the game shows about 0.4 asks per running minute at 1x in all. The staff-prompt
+  // roll is cut. Random events still roll at randomEventChance; cardChance is the share that becomes a card,
+  // and the rest play out quietly, so what happens to the company is unchanged. An event with stakes (a
+  // choice worth more than stakesValue either way by sensibleValue) is stakesCardMult times as likely to
+  // become a card. scriptedChance: the weekly chance a ready scripted event comes, set to how often the
+  // random pool brings it once ready, so moving it out of the pool keeps how often it happens.
+  // A random event that plays out quietly takes the careful player's best choice unless that choice is
+  // structural (src/sim/value.js), which includes a modifier over structuralWeeks or a cash swing over
+  // structuralCashShare of the cash in hand; then it takes the ask default.
+  askRates: { chatPromptChance: 0.0041, cardChance: 0.0075, stakesCardMult: 3, stakesValue: 1, scriptedChance: { acquisition_offer: 0.012 },
+    structuralWeeks: 13, structuralCashShare: 0.1 },
   // letterChance: the weekly roll for an outside letter under B.pacing.letterMail, in place of actionChance.
   mail: {
     enabled: true, letterChance: 0.016, botLateWeeks: 4, fromWeek: 4, ambientChance: 0.35, actionChance: 0.12, actionOpen: 2, expiryWeeks: 8, kept: 40, templateCooldown: 12,

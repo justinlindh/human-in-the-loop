@@ -1,10 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { B } from '../../src/sim/balance.js';
 import { makeCtx } from '../../src/sim/registry.js';
-import { eventChance, raiseDecision, eligibleEvents, eventsSystem } from '../../src/sim/events.js';
+import { eventChance, raiseDecision, eligibleEvents, eventsSystem, hasStakes, cardChance } from '../../src/sim/events.js';
 import { postmortemSeverity } from '../../src/sim/incidents.js';
 import { moonshotSystem } from '../../src/sim/moonshot.js';
 import { promptChance } from '../../src/sim/prompts.js';
+import { processScheduled } from '../../src/sim/effects.js';
+import { STRUCTURAL_KEYS, structural } from '../../src/sim/value.js';
+import { defaultChoiceOf } from '../../src/sim/asks.js';
 import { mailSystem, deliversAsMail } from '../../src/sim/mail.js';
 import { MAIL_TEMPLATES, EVENT_MAIL, AMBIENT } from '../../src/data/mail.js';
 import { EVENTS } from '../../src/data/events.js';
@@ -23,24 +26,149 @@ function company(seed = 1) {
 let keepPacing;
 let keepMail;
 let keepScripted;
-beforeEach(() => { keepPacing = { ...B.pacing }; keepMail = { ...B.mail }; keepScripted = { ...B.askRates.scriptedChance }; });
-afterEach(() => { Object.assign(B.pacing, keepPacing); Object.assign(B.mail, keepMail); Object.assign(B.askRates.scriptedChance, keepScripted); });
+let keepRates;
+beforeEach(() => { keepPacing = { ...B.pacing }; keepMail = { ...B.mail }; keepScripted = { ...B.askRates.scriptedChance }; keepRates = { ...B.askRates }; });
+afterEach(() => {
+  Object.assign(B.pacing, keepPacing); Object.assign(B.mail, keepMail); Object.assign(B.askRates, keepRates);
+  B.askRates.scriptedChance = Object.assign(keepRates.scriptedChance, keepScripted);
+});
 
 describe('askRates: fewer events and staff prompts come up', () => {
-  it('on, the weekly event and prompt rolls use B.askRates; off, today\'s chances', () => {
+  it('on, random events roll as often as ever and only staff prompts roll less', () => {
     B.pacing.askRates = false;
     expect(eventChance()).toBe(B.randomEventChance);
     expect(promptChance()).toBe(B.chatPromptChance);
     B.pacing.askRates = true;
-    expect(eventChance()).toBe(B.askRates.randomEventChance);
+    expect(eventChance()).toBe(B.randomEventChance);
     expect(promptChance()).toBe(B.askRates.chatPromptChance);
-    expect(B.askRates.randomEventChance).toBeLessThan(B.randomEventChance);
     expect(B.askRates.chatPromptChance).toBeLessThan(B.chatPromptChance);
+  });
+
+  it('a choice that moves sensibleValue past stakesValue either way gives an event stakes', () => {
+    const s = company();
+    s.cash = 100000;
+    expect(hasStakes(s, EVENTS.poached_by_bigco)).toBe(true);
+    expect(hasStakes(s, { choices: [{ effects: { brand: 1 } }, { effects: {} }] })).toBe(false);
+    expect(hasStakes(s, { choices: [{ effects: { brand: -2 } }, { effects: {} }] })).toBe(true);
+  });
+
+  it('on, a rolled event becomes a card at cardChance, three times that with stakes, and otherwise plays out quietly', () => {
+    B.pacing.askRates = true;
+    B.pacing.quietEvents = true;
+    const s = company();
+    const flat = { id: 'x', kind: 'staff', choices: [{ effects: { brand: 1 } }, { effects: {} }] };
+    const stakes = { id: 'y', kind: 'staff', choices: [{ effects: { brand: -3 } }, { effects: {} }] };
+    expect(cardChance(s, flat)).toBeCloseTo(B.askRates.cardChance);
+    expect(cardChance(s, stakes)).toBeCloseTo(B.askRates.cardChance * B.askRates.stakesCardMult);
+    expect(B.askRates.stakesCardMult).toBe(3);
+    expect(cardChance(s, EVENTS.agent_db_wipe)).toBe(1);
+    expect(cardChance(s, EVENTS.era_chatgbt)).toBe(1);
+    B.askRates.cardChance = 0;
+    s.flags.heldRolls = 2;
+    const ctx = makeCtx(s);
+    for (let i = 0; i < 40 && !ctx.events.some((e) => e.type === 'quietEvent'); i++) eventsSystem(ctx);
+    expect(s.pendingDecision).toBeNull();
+    expect(s.mail.filter((m) => !m.resolved)).toEqual([]);
+    expect(ctx.events.some((e) => e.type === 'quietEvent')).toBe(true);
+  });
+
+  it('a follow-up scheduled by a quiet resolution rolls the card share too, and otherwise plays out quietly', () => {
+    B.pacing.askRates = true;
+    B.pacing.quietEvents = true;
+    const followUp = (share) => {
+      B.askRates.cardChance = share;
+      const s = company();
+      s.flags.lastDecisionWeek = s.week - 10;
+      const ctx = makeCtx(s);
+      const subject = s.staff.find((p) => !p.founder);
+      raiseDecision(ctx, 'senior_side_project', subject.id, { quiet: true });
+      s.scheduled.push({ id: 'sch_t', week: s.week, kind: 'event', payload: { eventId: 'no_show_again', subjectId: subject.id, quiet: true } });
+      const later = makeCtx(s);
+      processScheduled(later);
+      return { s, events: later.events };
+    };
+    const quiet = followUp(0);
+    expect(quiet.s.pendingDecision).toBeNull();
+    expect(quiet.events).toContainEqual(expect.objectContaining({ type: 'quietEvent', eventId: 'no_show_again' }));
+    expect(followUp(1).s.pendingDecision?.eventId).toBe('no_show_again');
+  });
+
+  it('a quiet resolution marks the follow-ups it schedules', () => {
+    B.pacing.quietEvents = true;
+    const s = company();
+    EVENTS.__test_followup = { ...EVENTS.no_show, id: '__test_followup', quiet: true, defaultChoice: 0,
+      choices: [{ label: 'Wait', effects: { followUp: { eventId: 'no_show_again', inWeeks: 10 } } }] };
+    try {
+      raiseDecision(makeCtx(s), '__test_followup', s.staff[1].id);
+    } finally { delete EVENTS.__test_followup; }
+    expect(s.scheduled.filter((x) => x.kind === 'event')).toEqual([expect.objectContaining({ payload: expect.objectContaining({ eventId: 'no_show_again', quiet: true }) })]);
+  });
+
+  it('no_show\'s ask default schedules no follow-up when it plays out quietly', () => {
+    B.pacing.quietEvents = true;
+    const s = company();
+    s.cash = 100000;
+    const c = EVENTS.no_show.choices[defaultChoiceOf(EVENTS.no_show)];
+    expect(c.quietEffects.followUp).toBeUndefined();
+    raiseDecision(makeCtx(s), 'no_show', s.staff[1].id, { quiet: true });
+    expect(s.scheduled.filter((x) => x.kind === 'event')).toEqual([]);
+    expect(s.staff[1].awayWeeks ?? s.staff[1].away?.weeks ?? 3).toBeGreaterThan(0);
+  });
+
+  it('structural effects: automation, models, policies, the NOC, pivots, people, exits, long modifiers and big cash', () => {
+    const s = company();
+    s.cash = 100000;
+    for (const k of STRUCTURAL_KEYS) expect(structural(s, { [k]: 1 }), k).toBe(true);
+    for (const k of ['setAutomation', 'automationBump', 'migrateOff', 'modelBoost', 'workPolicy', 'flag', 'nocMode', 'pivot', 'resign',
+      'efficiencyCuts', 'candidates', 'aiInterview', 'win', 'openOffer', 'mission', 'purpose', 'moonshot']) expect(STRUCTURAL_KEYS, k).toContain(k);
+    expect(structural(s, { modifier: { key: 'output', value: 0.1, weeks: 14 } })).toBe(true);
+    expect(structural(s, { modifier: { key: 'output', value: 0.1, weeks: 13 } })).toBe(false);
+    expect(structural(s, { cash: -11000 })).toBe(true);
+    expect(structural(s, { cash: -9000 })).toBe(false);
+    expect(structural(s, { later: [{ inWeeks: 3, effects: { pivot: true } }] })).toBe(true);
+    expect(structural(s, { gamble: { p: 0.5, effects: { brand: 1 }, else: { resign: true } } })).toBe(true);
+    expect(structural(s, { brand: 2, meaning: 5, teamMeaning: 1 })).toBe(false);
+  });
+
+  it('an event with a structural choice has stakes', () => {
+    const s = company();
+    s.cash = 100000;
+    expect(hasStakes(s, { choices: [{ effects: { workPolicy: 'remote' } }, { effects: {} }] })).toBe(true);
+  });
+
+  it('a quietly played random event takes the careful player\'s best open choice and names it in Yak', () => {
+    B.pacing.quietEvents = true;
+    const s = company();
+    s.cash = 100000;
+    EVENTS.__test_best = { id: '__test_best', kind: 'staff', title: 'Test card', subject: null, defaultChoice: 1,
+      choices: [{ label: 'Small thing', effects: { brand: 1 } }, { label: 'Nothing', effects: {} }, { label: 'Big thing', effects: { brand: 3 } }] };
+    const ctx = makeCtx(s);
+    try { raiseDecision(ctx, '__test_best', null, { quiet: true }); } finally { delete EVENTS.__test_best; }
+    expect(ctx.events).toContainEqual(expect.objectContaining({ type: 'quietEvent', eventId: '__test_best', choice: 2 }));
+    expect(s.chatLog.at(-1).text).toBe('Test card: "Big thing".');
+  });
+
+  it('when the best choice is structural, the quiet event takes the ask default instead', () => {
+    B.pacing.quietEvents = true;
+    const s = company();
+    s.cash = 100000;
+    EVENTS.__test_best = { id: '__test_best', kind: 'staff', title: 'Test card', subject: null, defaultChoice: 1,
+      choices: [{ label: 'Pivot', effects: { brand: 5, pivot: true } }, { label: 'Nothing', effects: {} }, { label: 'Spend', effects: { brand: 4, cash: -50000 } }] };
+    const ctx = makeCtx(s);
+    try { raiseDecision(ctx, '__test_best', null, { quiet: true }); } finally { delete EVENTS.__test_best; }
+    expect(ctx.events).toContainEqual(expect.objectContaining({ type: 'quietEvent', choice: 1 }));
+  });
+
+  it('off, a rolled event opens its card as today', () => {
+    B.pacing.askRates = false;
+    B.askRates.cardChance = 0;
+    const s = company();
+    expect(cardChance(s, { id: 'x', kind: 'staff', choices: [{ effects: {} }] })).toBe(1);
   });
 });
 
 describe('quietEvents: small events play out without a card', () => {
-  const QUIET = ['ai_summit', 'ai_summit_hackathon', 'ai_summit_panel', 'conference_expo', 'four_day_week_review', 'music_night_genre', 'pet_mishap', 'ping_pong', 'printer_jam'];
+  const QUIET = ['ai_summit', 'ai_summit_hackathon', 'ai_summit_panel', 'conference_expo', 'four_day_week_review', 'incident_postmortem', 'music_night_genre', 'pet_mishap', 'ping_pong', 'printer_jam'];
 
   it('on, the first moonshot check-in asks and later ones keep going quietly', () => {
     B.pacing.quietEvents = true;
@@ -100,11 +228,37 @@ describe('quietEvents: small events play out without a card', () => {
     expect(s.pendingDecision.eventId).toBe('conference_expo');
   });
 
-  it('on, a postmortem asks only after a severity 5 incident', () => {
+  it('postmortems follow every severity 4 attack, with quietEvents on or off', () => {
     B.pacing.quietEvents = true;
-    expect(postmortemSeverity()).toBe(5);
+    expect(postmortemSeverity()).toBe(4);
     B.pacing.quietEvents = false;
     expect(postmortemSeverity()).toBe(4);
+  });
+
+  it('on, a postmortem is filed quietly: the write-up, a line in #incidents and a quietEvent, with no card', () => {
+    B.pacing.quietEvents = true;
+    B.pacing.askQueue = true;
+    const s = company();
+    const responder = s.staff[1];
+    const knowledge = responder.knowledge;
+    s.flags.postmortemQueue = [{ eventId: 'incident_postmortem', week: s.week, kind: 'ransomware', label: 'ransomware', productId: s.products[0].id,
+      severity: 4, weeks: 2, cost: { cash: 0, brand: 0, customers: 0 }, responderIds: [responder.id], helped: [], hurt: [] }];
+    const ctx = makeCtx(s);
+    expect(raiseDecision(ctx, 'incident_postmortem', s.products[0].id, { queue: true })).toBe(true);
+    expect(s.pendingDecision).toBeNull();
+    expect(s.asks).toEqual([]);
+    expect(s.flags.postmortemQueue).toEqual([]);
+    expect(responder.knowledge).toBe(Math.min(100, knowledge + B.postmortemKnowledge));
+    expect(ctx.events).toContainEqual(expect.objectContaining({ type: 'quietEvent', eventId: 'incident_postmortem', choice: 0 }));
+    const line = s.chatLog.at(-1);
+    expect(line).toMatchObject({ channel: 'incidents', text: 'Postmortem filed: ransomware. Lessons learned, allegedly.' });
+  });
+
+  it('off, a postmortem opens its card as before', () => {
+    B.pacing.quietEvents = false;
+    const s = company();
+    raiseDecision(makeCtx(s), 'incident_postmortem', s.products[0].id);
+    expect(s.pendingDecision?.eventId).toBe('incident_postmortem');
   });
 });
 

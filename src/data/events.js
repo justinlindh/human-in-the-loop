@@ -15,6 +15,8 @@ import { ALLHANDS_SCREEN, variantText } from './moment-variants.js';
 // the smallest cost to the subject (or overall), and never one that grants an item or a pet, so nobody pays for or
 // gets saddled with a prompt they did not see (null: nothing). scripted: under B.pacing.askRates the event leaves
 // the random pool; once `when` holds and its cooldown has passed it rolls B.askRates.scriptedChance each week.
+// A choice's quietEffects, when present, replace its effects when the choice plays out quietly as a default.
+// quietLine: { channel, text } replaces the usual Yak line of a quiet event.
 // Placeholders in title/text: {name} (subject staff), {product} (subject product), {company}, {incumbent}, {rival}, {rivalFounder},
 // {ransom} (what a ransom would cost this company), {alum} (a recent former employee).
 // Effects apply to the subject (staff or product) where the key is per-subject; see EFFECT_KEYS below.
@@ -191,7 +193,7 @@ const list = [
     choices: [
       { label: 'Check in kindly', hint: 'They take a couple of weeks off; comes back stronger, effects later', effects: { awayWeeks: 2, teamMeaning: 1, later: [{ inWeeks: 3, effects: { meaning: 15 } }] }, outcome: 'You send soup. Actual soup. {name} replies with a single heart.' },
       { label: 'Dock their pay', hint: 'Saves a little cash; they and the team notice', effects: { awayWeeks: 2, cash: 1500, salaryPct: -10, meaning: -15, teamMeaning: -3 }, outcome: 'HR sends a very formal email. Everyone reads it. Everyone.' },
-      { label: 'Say nothing', hint: 'Nothing now. It may happen again, effects later', effects: { awayWeeks: 3, followUp: { eventId: 'no_show_again', inWeeks: 10 } }, outcome: 'The desk stays empty. The plant on it looks worried.' },
+      { label: 'Say nothing', hint: 'Nothing now. It may happen again, effects later', effects: { awayWeeks: 3, followUp: { eventId: 'no_show_again', inWeeks: 10 } }, quietEffects: { awayWeeks: 3 }, outcome: 'The desk stays empty. The plant on it looks worried.' },
     ],
   },
   {
@@ -669,6 +671,7 @@ const list = [
   },
   {
     id: 'incident_postmortem', kind: 'cyber', weight: 0, cooldownWeeks: 0, random: false, subject: null, emergency: false,
+    quiet: true, quietLine: { channel: 'incidents', text: 'Postmortem filed: {incident}. Lessons learned, allegedly.' },
     when: () => true,
     title: 'The attack is over',
     text: 'Everything is locked down again. The whiteboard still says "WHO CLICKED IT" in three colors. How much of this do you want to understand?',

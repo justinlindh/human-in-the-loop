@@ -277,6 +277,7 @@ describe('issue #1646: the ask queue', () => {
     const marked = Object.keys(EVENTS).filter((id) => EVENTS[id].noExpire).sort();
     expect(marked).toEqual(['acquisition_offer', 'era_agents', 'era_chatgbt', 'era_consolidation', 'era_plateau', 'mission_test_demo', 'mission_test_support']);
     B.pacing.askQueue = true;
+    B.pacing.quietEvents = false;
     const s = company();
     raise(s, 'incident_postmortem');
     expect(s.asks.map((a) => a.priority)).toEqual(['normal']);

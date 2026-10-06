@@ -7,7 +7,7 @@ export const ASK_DEFAULTS = {
   junior_overwhelmed: 1, ceo_replace_support: 2, ceo_support_fallout: 2, four_day_week: 1, four_day_week_review: 0,
   ai_first_mandate: 1, ai_first_review: 1, pivot_pitch: 1, hackathon_week: 1, founder_burnout: 0,
   incumbent_copies_flavor: 1, big_customer_threat: 0, press_wrapper_mockery: 0, acquisition_offer: 1, vc_offer: 1,
-  grokk_pr_scandal: 2, noc_bet: 0,
+  grokk_pr_scandal: 2, noc_bet: 0, incident_postmortem: 0,
   era_chatgbt: 1, era_agents: 1, era_consolidation: 2, era_plateau: 0,
   first_user_test: 2, lockdown_start: 1, work_policy: 1, pet_request: 1, pet_mishap: 0, rival_jab: 0, rival_merge: 1,
   agent_bill: 2, agent_invoice: 0, rival_megaround: 1, mission_statement: 0, mission_test_support: 1, mission_test_demo: 1,
