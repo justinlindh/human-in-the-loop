@@ -109,7 +109,7 @@ Product = {
 { type: 'deal', productId, units, revenue, week, boxed: true, first, notable }
                                           // boxed-software sales (pre-internet): units sold and net receipts this week; notable: first, or revenue at least B.dealNotableBoxRevenue
 { type: 'incident', kind, productId, caught, severity, misread }   // misread: true when the NOC's agents read the alert as routine (NOC, #342)
-{ type: 'resign', staffId, name, fired, reason }    // fired: true when the player fired them; reason: 'fired'|'burnout'|'moved_on'|'poached'|'retired' (older saves may omit it; treat missing as 'burnout' when fired is false)
+{ type: 'resign', staffId, name, fired, reason }    // fired: true when the player fired them; reason: 'fired'|'burnout'|'moved_on'|'poached'|'retired'|'exposed' (older saves may omit it; treat missing as 'burnout' when fired is false)
 { type: 'hire', staffId }
 { type: 'decision' }
 { type: 'decisionResolved', eventId, choice, subjectId }   // emitted by resolveDecision: the event id, the chosen choice index, and the subject (or null). Render and ui react to the choice; never infer it from effects
@@ -722,6 +722,8 @@ An Agents-era hiring policy: an AI interviewer screens candidates. Cheaper and f
 { type: 'aiHireExposed', staffId }                     // the planted incident fires for a hired AI
 ```
 
+- An exposed AI leaves the company: the same tick emits `resign` with `fired: false, reason: 'exposed'`, so render and audio play the usual exit. An exposure does not count in `stats.resignations`.
+
 - Decision `ai_interview_loop` ("our AI and their AI have been interviewing each other for 40 minutes") is raised through the usual decision system, rarely, while the policy is on.
 - AI-interview randomness comes from its own stream, so with `B.aiInterviews.enabled` false a seeded game matches one without the feature.
 
@@ -733,7 +735,7 @@ An Agents-era hiring policy: an AI interviewer screens candidates. Cheaper and f
 - The Hire choice refuses with the usual hiring reasons (no desk, not enough cash, or the candidate gone after a refresh), shown on the choice as `available: false`.
 
 ```js
-{ type: 'watchInterview', candidateId }   // works while paused; refusals: 'AI interviews are off' | 'No such candidate' | 'Already watched' | 'Finish the open decision first'
+{ type: 'watchInterview', candidateId }   // works while paused; refusals: 'AI interviews are off' | 'No such candidate' | 'Already watched' | 'Finish the open decision first' | 'Not right now' (the card cannot open, such as after the game ends)
 { type: 'askFollowUp' }                   // works while paused; once per open interview, adds a line to vars.lines; refusals: 'No interview open' | 'Already asked'
 ```
 
