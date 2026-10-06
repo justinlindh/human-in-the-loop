@@ -43,6 +43,38 @@ These counts come from a one-off probe that tallied the sim's events through `ru
 
 Summed, the sim asks the player to answer something (a decision, a prompt or a mail) about **3.4 times a minute**, once every 18 seconds of running play, from the first year to the last and in every era. On top of that come 1.4 to 2.6 flavour mails, 3 to 15 toasts and 16 to 27 Yak lines a minute. Yak is metered by `yakMinGapSeconds` 6, so most of those lines are dropped. That is why it feels like nothing ever stops talking: something new reaches the screen every 6 seconds, and the longest quiet stretch in 30 minutes was 46 seconds.
 
+### The bot's timing versus a human's
+
+The browser player is faster than a person. It gives every decision a flat 8 s and every other card 6 s, whatever the length of the text. It answers Yak prompts and mail inside its weekly turn, never opens the inbox and spends no time in menus. So the measured numbers above are a **floor**.
+
+The estimate below re-times the same two traces as a human would play them. It reads the actual text of every decision, card and panel at 200 words a minute, plus 4 s to choose on anything with a choice. Mail and Yak prompts are added at the sim's rates: each mail is about 30 words plus 2 s to open the inbox, and each prompt about 45 words at 1x and 27 at 4x, its observed length. Hiring, building and other management add 10 s of menu time per minute of running play. The game weeks played and the running time are unchanged. Only the paused time is re-timed.
+
+| Measure | 1x, bot | 1x, estimated human | 4x, bot | 4x, estimated human |
+|---|---|---|---|---|
+| Wall time to play the same weeks | 30 min (189 weeks) | **55 min** | 30 min (504 weeks) | **107 min** |
+| Share of wall time paused | 16% | **54%** | 44% | **84%** |
+| Mean time on a decision, card or panel | 8.5 s | 21 s | 7.7 s | 23 s |
+| Mail read in a paused inbox | 0 | 54 mails, 11 min | 0 | 227 mails, 48 min |
+| Running play between things needing an answer (mean) | 27 s | **21 s** (decisions, prompts and mail with a choice) | 17 s | **4 s** |
+| Reading time of game toasts and Yak posts, as a share of watching time | not read | **43%** | not read | **239%** (unreadable) |
+| Longest watching stretch with no game ask | 98 s (decisions, cards and mail toasts only) | under 98 s once prompts and mail land in it | 27 s | 27 s or less |
+
+The estimate barely moves with its assumptions. Menus at 5 to 15 s a minute and reading at 200 to 250 words a minute give 52 to 55 minutes and 52% to 54% paused at 1x.
+
+What a human gets at 1x is that **more than half the session is paused** reading things. Between pauses, something new wants an answer every 21 seconds of play. If they read every toast and Yak post, that takes another 43% of the time the game is running. At 4x, one minute in six is spent watching the company. The speed button makes the game slower to play, not faster.
+
+### Mail, in real minutes
+
+sim's mail probe (draft #1641, 1200 games) measures mail per game month. A game month is 4.33 weeks, or 35 s of running play at 1x.
+
+| | Mail per real minute at 1x | Flavour per real minute | Worst burst | Reading cost per minute of play |
+|---|---|---|---|---|
+| main | 3.3 (one every 18 s) | 2.0 | 9 mails in 32 s; 1161 of 1200 games see 4 or more in 32 s | about 40 s |
+| Draft #1641 | 1.35 (one every 44 s) | 0.4 | 4 in 32 s | about 16 s |
+| This proposal | 0.12 to 0.2 (one every 5 to 8 min) | 0 | 1 | about 2 s |
+
+Draft #1641 is a big step in the right direction. It still sends seven to eleven times the mail this budget allows.
+
 ### Why it piles up
 
 - **Three independent queues.** Decisions keep `decisionGapWeeks` 3 (24 s) from the last pause. Yak prompts keep their own slot (`chatPromptsOpen` 1, `chatPromptGapWeeks` 1, so 8 s). Mail keeps another (`mail.actionOpen` 2). None of them knows about the others, so up to four answerable things can be open at once, and a prompt can open 8 seconds after a decision closes.
@@ -187,12 +219,18 @@ timeout 2100s nice -n 10 node scripts/pace.js --browser --seed 1 --speed 4 --bot
 | Shortest gap between Asks (running play) | 24 s (decisions alone) | under 1 s (median 14 s) | at least 90 s |
 | Beats (cards, moments) per real min | 0.7 | 0.93 | at most 0.3 |
 | Share of wall time under a modal | 20% | 45% | at most 8% |
+| Share of wall time paused, estimated human | 54% | 84% | at most 25%, menus the player opens included |
+| Running play between things needing an answer, estimated human | 21 s | 4 s | at least 90 s, mean 150 s |
 | Toasts per real min | 3.7 | 17.5 | at most 2 |
 | Yak posts per real min | 2.6 | 4.3 | at most 2 flavour posts, every important one shown |
 | Longest stretch with nothing game-started asking or holding | 106 s | 28 s | at least 180 s in every 10 min |
 | Asks open at once | up to 4 | up to 4 | 1 |
 
-Two gaps in the tooling, which I'll hand to `tools`:
+Judge the targets at human timing. Bot timing makes every paused share look about three times better than a person will find it. Until pace.js can read at human speed, the human columns come from re-timing its trace as in section 1.
 
-- `pace.js --browser` can't start in an era or from a save. The dot-com and late-game numbers above come from the one-off sim probe.
-- Its browser player answers prompts and mail inside its weekly turn. To measure Asks it needs a mode that leaves prompts and letters on screen for a reading time, the way it does for decisions.
+What pace.js needs before it can measure this directly:
+
+1. **A reading policy (a small flag).** Replace the flat 8 s and 6 s dwell in the browser player's `act` (`scripts/pace-browser.js`) with `--wpm N --choose S`. That makes the dwell `words(text) / N * 60 + (actionable ? S : 0)`. Every record already carries its text, so this is a few lines.
+2. **Visible prompts and mail.** A mode where the player leaves Yak prompts on screen and answers them after their reading dwell, through the UI rather than in its weekly turn. It would also open the inbox when mail arrives and dwell there by the same rule.
+3. **A menu dwell.** For example `--menu-seconds 10` per running minute: the player opens its management panel for that long instead of acting at no cost.
+4. **Era and save starts** (`--era dotcom`, `--load <save>`). The dot-com and late-game numbers above come from a one-off sim probe instead.
