@@ -527,7 +527,7 @@ export function createUI({ root, getState, dispatch, controls }) {
         }
         case 'chat': chat.add(e, e.week ?? state.week); break;
         case 'askPresented': {
-          bringAsk(e, state, { openMail: (arg) => menu.open('mail', arg), revealPrompt: (id) => chat.revealPrompt(id) });
+          bringAsk(e, state, { openMail: ({ mailId }) => popups.openLetter(state, mailId), revealPrompt: (id) => chat.revealPrompt(id) });
           break;
         }
         case 'say': callGrid.say(e, state); break;
@@ -616,7 +616,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   // not the decision popup (the sim already waits for decisions).
   function isBusy() {
     if (settings.values.pauseMenus === false) return false;
-    return !!(menu.current || ctx.modal || buildMode.on || announcer.open || popups.launchOpen || settings.isOpen || tutorial.open || chat.maximized);
+    return !!(menu.current || ctx.modal || buildMode.on || announcer.open || popups.launchOpen || popups.letterOpen || settings.isOpen || tutorial.open || chat.maximized);
   }
   ui.isBusy = isBusy;
 
