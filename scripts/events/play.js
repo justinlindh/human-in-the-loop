@@ -3,6 +3,7 @@ import { writeFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { join } from 'node:path';
 import { botDecide, botTurn } from '../../src/sim/bots.js';
+import { B } from '../../src/sim/balance.js';
 import { createGame } from '../../src/sim/state.js';
 import { tick } from '../../src/sim/tick.js';
 import { EVENTS } from '../../src/data/events.js';
@@ -15,10 +16,37 @@ const SNAP = new Set(['era', 'officeUpgrade']);
 const SNAP_PER_ID = 2;
 const SNAP_PER_OTHER = 1;
 
+// The pacing switches the index plays with off. With them on, most events resolve without a decision
+// card, so the moments captures and sweeps open would never be indexed. Anything that runs the game on
+// from an index snapshot pins the same switches (pinIndexPacing in the page, withIndexPacing in Node).
+export const INDEX_PACING = { askRates: false, letterMail: false, quietEvents: false };
+
+// Runs fn with B.pacing (the given balance object's, default the sim's) set to INDEX_PACING, then restores it.
+export function withIndexPacing(fn, b = B) {
+  const keep = { ...b.pacing };
+  Object.assign(b.pacing, INDEX_PACING);
+  const restore = () => { for (const k of Object.keys(INDEX_PACING)) b.pacing[k] = keep[k]; };
+  let out;
+  try { out = fn(); } catch (e) { restore(); throw e; }
+  if (out && typeof out.then === 'function') return out.finally(restore);
+  restore();
+  return out;
+}
+
+// Pins INDEX_PACING in a browser page running the game (Playwright page), before it plays a snapshot.
+export const pinIndexPacing = (page) => page.evaluate(async (v) => {
+  const { B: b } = await import('/src/sim/balance.js');
+  Object.assign(b.pacing, v);
+}, INDEX_PACING);
+
 // Workers reuse this module across runs; simulation results must depend only on each game's state.
 // `stopped()` is checked each week of both passes; when it turns true the run returns early with
 // `stopped: true`, so a worker is never terminated in the middle of a write.
-export function play({ bot, seed, weeks, dir, profile = false }, stopped = () => false) {
+export function play(opts, stopped = () => false) {
+  return withIndexPacing(() => playPinned(opts, stopped));
+}
+
+function playPinned({ bot, seed, weeks, dir, profile = false }, stopped) {
   const started = performance.now();
   const ms = { sim: 0, extraction: 0, serialization: 0, compression: 0, io: 0 };
   const timed = profile ? (phase, fn) => {

@@ -70,7 +70,14 @@ export async function hostMock({ name, mock, era, quality, ...options }) {
 
 // A saved state (an indexed moment's snapshot, or a find.js match): played as sampleLoaded plays a page
 // that loaded it, the open decision answered with its choice.
-export async function hostLoaded({ file, ...options }) {
+// An index snapshot plays on with the pacing switches the index was built with.
+export async function hostLoaded(o) {
+  // A checkout from before the pin has no withIndexPacing; its index was built unpinned too.
+  const { withIndexPacing = (fn) => fn() } = await import('../events/play.js');
+  return withIndexPacing(() => hostLoadedPinned(o));
+}
+
+async function hostLoadedPinned({ file, ...options }) {
   const { sampleLoaded } = await import('../../blender/checks/sample.js');
   const { dispatch } = await import('../../src/sim/index.js');
   const state = await resolveState({ snapshot: file });
