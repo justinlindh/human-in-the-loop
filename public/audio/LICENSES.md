@@ -34,6 +34,24 @@ Generated with ACE-Step 1.5 (MIT code and weights; the model card permits commer
 | `music/dotcom_bust/b_full.ogg` | Dot-com bust (era mode, playlist piece B, seed 1215) | 85 bpm, E minor | 10 bars, 27.9 s |
 | `music/web2/a_full.ogg` | Web 2.0 (era mode, playlist piece A, seed 1302) | 110 bpm, G major | 10 bars, 21.8 s |
 | `music/web2/b_full.ogg` | Web 2.0 (era mode, playlist piece B, seed 1306) | 110 bpm, G major | 10 bars, 21.8 s |
+| `music/radio_lofi/a_full.ogg` | Sad Lo-fi FM (boombox station, track A, seed 14012) | 78 bpm, Eb major | 24.6 s |
+| `music/radio_lofi/b_full.ogg` | Sad Lo-fi FM (boombox station, track B, seed 14022) | 82 bpm, C minor | 46.8 s |
+| `music/radio_lofi/c_full.ogg` | Sad Lo-fi FM (boombox station, track C, seed 14032) | 76 bpm, F minor | 25.8 s |
+| `music/radio_synth88/a_full.ogg` | Synth 88 (boombox station, track A, seed 14111) | 116 bpm, A minor | 16.6 s |
+| `music/radio_synth88/b_full.ogg` | Synth 88 (boombox station, track B, seed 14120) | 112 bpm, E minor | 17.5 s |
+| `music/radio_synth88/c_full.ogg` | Synth 88 (boombox station, track C, seed 14130) | 118 bpm, D minor | 16.3 s |
+| `music/radio_polka/a_full.ogg` | Polka Hour (boombox station, track A, seed 14212) | 126 bpm, F major | 15.4 s |
+| `music/radio_polka/b_full.ogg` | Polka Hour (boombox station, track B, seed 14221) | 132 bpm, Bb major | 14.5 s |
+| `music/radio_polka/c_full.ogg` | Polka Hour (boombox station, track C, seed 14231) | 124 bpm, C major | 15.4 s |
+| `music/radio_bossa/a_full.ogg` | Bossa Nova Express (boombox station, track A, seed 14310) | 124 bpm, D minor | 15.2 s |
+| `music/radio_bossa/b_full.ogg` | Bossa Nova Express (boombox station, track B, seed 14322) | 128 bpm, G minor | 15.0 s |
+| `music/radio_bossa/c_full.ogg` | Bossa Nova Express (boombox station, track C, seed 14332) | 120 bpm, A minor | 16.0 s |
+| `music/radio_elevator/a_full.ogg` | Elevator Jazz (boombox station, track A, seed 14410) | 92 bpm, C major | 21.3 s |
+| `music/radio_elevator/b_full.ogg` | Elevator Jazz (boombox station, track B, seed 14422) | 88 bpm, F major | 21.5 s |
+| `music/radio_elevator/c_full.ogg` | Elevator Jazz (boombox station, track C, seed 14432) | 96 bpm, G major | 20.0 s |
+| `music/radio_funk/a_full.ogg` | Office Funk (boombox station, track A, seed 14510) | 104 bpm, E minor | 18.6 s |
+| `music/radio_funk/b_full.ogg` | Office Funk (boombox station, track B, seed 14522) | 100 bpm, A minor | 19.2 s |
+| `music/radio_funk/c_full.ogg` | Office Funk (boombox station, track C, seed 14530) | 108 bpm, D major | 17.8 s |
 | `music/title/a_full.ogg` | Title | 104 bpm, F major | 8 bars |
 
 The Classic, ChatGBT, Agents, Consolidation and Plateau playlist pieces were rendered at 2:45 with section tags (intro, verse, marimba chorus, a verse with a guitar counter-melody, a breakdown, a build, and a final chorus), then cut to a bar-line loop that starts after the intro and includes the breakdown.
@@ -162,7 +180,7 @@ All are CC0 1.0 (public domain), from Kenney's packs (kenney.nl) and from freeso
 | `sfx/cd_tray.ogg` | own synthesis (motor whir and clicks), CC0 1.0: a CD tray sliding out |
 | `sfx/retail_box.ogg` | own synthesis (filtered noise), CC0 1.0: a cardboard box set down |
 | `sfx/dotcom_bell.ogg` | own synthesis (inharmonic partials), CC0 1.0: a desk bell |
-| `sfx/sales_register.ogg` | freesound.org 'Cash Register Fake.wav' by CapsLok, CC0 1.0 (https://freesound.org/people/CapsLok/sounds/184438/), trimmed to the strike with a short fade |
+| `sfx/deal_handbell.ogg` | freesound.org 'Ringing bell - happy.wav' by domrodrig, CC0 1.0 (https://freesound.org/people/domrodrig/sounds/116779/), two strikes of the one recording 180 ms apart (the second 2.5 dB softer, 1.5% higher in pitch, the first ring damped as it lands), trimmed with a short fade |
 | `sfx/sledge_leader.ogg` | the 1984-parody leader's drone: Qwen3-TTS 1.7B VoiceDesign (Apache-2.0), invented gibberish in the game's lexicon, slow flat delivery from the prompt (no pitch or time change), cut pause to pause (8.1 s loop) and band-limited with slap echoes for a PA sound; released CC0 by the project |
 | `sfx/sledge_run.ogg` | the run-in sting: ACE-Step 1.5 XL-sft 4B plus 4B planner, recipe stinger_sledge_run, seed 9961, cut to 2.8 s; released CC0 by the project |
 | `sfx/sledge_shatter.ogg` | the screen smash: freesound.org 'Big Mirror Crashing in Other Room' by egeexyz, CC0 1.0 (https://freesound.org/people/egeexyz/sounds/701710/), layered with 'TV Static Sound' by Kleber_KGF, CC0 1.0 (https://freesound.org/people/Kleber_KGF/sounds/354019/) as the white-flash tail |

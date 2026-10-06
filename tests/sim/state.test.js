@@ -6,9 +6,9 @@ const STATE_KEYS = [
   'advisors',
   'version', 'seed', 'rng', 'companyName', 'week', 'nextId', 'cash', 'brand', 'institutionalKnowledge',
   'comprehensionDebt', 'debtFlow', 'officeStage', 'staff', 'candidates', 'candidatesWeek', 'projects', 'products',
-  'automation', 'policies', 'campaigns', 'security', 'ops', 'market', 'models', 'office', 'fame', 'founding', 'research', 'modifiers', 'scheduled', 'chatLog', 'chatPrompts', 'discoveredCombos', 'outage',
+  'automation', 'policies', 'campaigns', 'security', 'ops', 'market', 'models', 'office', 'fame', 'founding', 'research', 'modifiers', 'scheduled', 'chatLog', 'chatPrompts', 'mail', 'discoveredCombos', 'outage',
   'incidentLog', 'lowCashWeeks', 'pendingDecision', 'flags', 'stats', 'history', 'gameOver',
-  'era', 'eraSchedule', 'unlocks', 'goals', 'lockdown', 'workPolicy', 'squads', 'pets', 'rival', 'purpose', 'robot',
+  'era', 'eraSchedule', 'unlocks', 'goals', 'lockdown', 'workPolicy', 'squads', 'pets', 'rival', 'purpose', 'robot', 'radio',
 ];
 
 const game = (seed = 1) => createGame({ seed, companyName: 'Loopworks' });

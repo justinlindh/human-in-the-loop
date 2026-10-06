@@ -98,6 +98,25 @@ up 'true'
 [ $rc -eq 0 ] && grep -q 'pushed' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" != "$before" ] \
   || fail "a worktree still on its branch is updated and pushed: $rc $(cat "$tmp/out")"
 
+# A branch with no upstream (pushed without -u) is still updated, and gets its upstream set.
+moves() { ( cd "$tmp/work" && g checkout -q main && g commit -q --allow-empty -m "main moves again" && g push -q origin main && g checkout -q topic ); }
+moves
+( cd "$tmp/work" && g branch -q --unset-upstream topic )
+before="$(git -C "$tmp/origin.git" rev-parse topic)"
+up 'true'
+[ $rc -eq 0 ] && grep -q 'pushed' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" != "$before" ] \
+  && [ -n "$(git -C "$tmp/work" config branch.topic.remote)" ] \
+  || fail "a branch with no upstream is pushed and tracked: $rc $(cat "$tmp/out")"
+# A push that origin refuses exits 8, says so, and is not reported as pushed.
+moves
+printf '#!/bin/sh\necho "refused by the stand-in origin" >&2\nexit 1\n' >"$tmp/origin.git/hooks/pre-receive"; chmod +x "$tmp/origin.git/hooks/pre-receive"
+before="$(git -C "$tmp/origin.git" rev-parse topic)"
+up 'true'
+[ $rc -eq 8 ] && grep -q 'pushing topic failed' "$tmp/out" && ! grep -q 'pushed ' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" = "$before" ] \
+  || fail "a refused push exits 8 and is not reported as pushed: $rc $(cat "$tmp/out")"
+rm -f "$tmp/origin.git/hooks/pre-receive"
+( cd "$tmp/work" && g reset -q --hard "origin/topic" )
+
 # Without --test the merge is gated on the related tests (test:push, niced) where package.json has
 # that script, and on npm test where it does not. A stand-in npm records how it was called.
 printf '#!/usr/bin/env bash\necho "$*" >>"%s"\n' "$tmp/npm-calls" >"$tmp/bin/npm"; chmod +x "$tmp/bin/npm"
@@ -233,6 +252,24 @@ behind_gh SUCCESS; qrun --timeout 0
 rm -f "$tmp/required" "$tmp/queue/9"
 behind_gh SUCCESS; qrun --timeout 0
 grep -q 'state=ready' "$tmp/queue/9" || fail "with nothing waiting or running the PR is ready: $(cat "$tmp/queue/9" 2>/dev/null)"
+# A queue-first label sorts a PR ahead of unlabelled ones; among labelled ones, first ready goes first.
+rm -f "$tmp/queue/"* "$tmp/merged-after"; echo 'ready_since=1 pr=8 state=ready since=1 prio=0' >"$tmp/queue/8"
+echo '{"labels": [{"name": "queue-first"}]}' >"$tmp/extra.json"
+behind_gh SUCCESS; : >"$tmp/merged-after"; qrun --timeout 1
+[ $rc -eq 0 ] && grep -q 'merged origin/main' "$tmp/out" && ! grep -q 'queued behind' "$tmp/out" \
+  || fail "a queue-first PR goes ahead of an earlier unlabelled one: $rc $(cat "$tmp/out")"
+rm -f "$tmp/queue/"* "$tmp/merged-after"; echo '{}' >"$tmp/extra.json"; echo 'ready_since=9999999999 pr=8 state=ready since=1 prio=1' >"$tmp/queue/8"
+behind_gh SUCCESS; qrun --timeout 0
+[ $rc -eq 124 ] && grep -q 'queued behind #8' "$tmp/out" || fail "an unlabelled PR waits for a queue-first one even if that became ready later: $rc $(cat "$tmp/out")"
+echo '{"labels": [{"name": "queue-first"}]}' >"$tmp/extra.json"; rm -f "$tmp/queue/9"
+echo 'ready_since=1 pr=8 state=ready since=1 prio=1' >"$tmp/queue/8"
+behind_gh SUCCESS; qrun --timeout 0
+[ $rc -eq 124 ] && grep -q 'queued behind #8' "$tmp/out" || fail "among queue-first PRs the earlier one goes first: $rc $(cat "$tmp/out")"
+# A label added after joining changes the entry's priority and keeps its place.
+rm -f "$tmp/queue/"*; echo 'ready_since=5 pr=9 state=ready since=5 prio=0' >"$tmp/queue/9"; echo 'ready_since=1 pr=8 state=ready since=1 prio=1' >"$tmp/queue/8"
+behind_gh SUCCESS; qrun --timeout 0
+grep -q 'ready_since=5 ' "$tmp/queue/9" && grep -q 'prio=1' "$tmp/queue/9" || fail "adding queue-first updates the entry and keeps its ready time: $(cat "$tmp/queue/9" 2>/dev/null)"
+echo '{}' >"$tmp/extra.json"
 rm -f "$tmp/queue/"*; behind_gh SUCCESS; QTEST=false qrun --timeout 1
 [ $rc -eq 5 ] && [ ! -e "$tmp/queue/9" ] || fail "failing tests after merging main free the place: $rc $(cat "$tmp/out")"
 rm -f "$tmp/queue/"*; echo 'ready_since=1 pr=8' >"$tmp/queue/8"

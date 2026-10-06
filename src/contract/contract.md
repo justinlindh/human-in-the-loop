@@ -109,7 +109,7 @@ Product = {
 { type: 'deal', productId, units, revenue, week, boxed: true, first, notable }
                                           // boxed-software sales (pre-internet): units sold and net receipts this week; notable: first, or revenue at least B.dealNotableBoxRevenue
 { type: 'incident', kind, productId, caught, severity, misread }   // misread: true when the NOC's agents read the alert as routine (NOC, #342)
-{ type: 'resign', staffId, name, fired, reason }    // fired: true when the player fired them; reason: 'fired'|'burnout'|'moved_on'|'poached'|'retired' (older saves may omit it; treat missing as 'burnout' when fired is false)
+{ type: 'resign', staffId, name, fired, reason }    // fired: true when the player fired them; reason: 'fired'|'burnout'|'moved_on'|'poached'|'retired'|'exposed' (older saves may omit it; treat missing as 'burnout' when fired is false)
 { type: 'hire', staffId }
 { type: 'decision' }
 { type: 'decisionResolved', eventId, choice, subjectId }   // emitted by resolveDecision: the event id, the chosen choice index, and the subject (or null). Render and ui react to the choice; never infer it from effects
@@ -671,3 +671,73 @@ Mail = {
 - A chat event may carry `mailId`, and a prompt option may use `opens: { panel: 'mail', arg: mailId }`.
 - Mail randomness comes from its own stream (seed, week, `mailSeq`), so with `B.mail.enabled` false a seeded game matches one without the feature.
 - Old saves load with `mail = []` and `flags.mailSeq = 0`.
+
+## Boombox (#139)
+
+A placeable radio. The station is flavour: the effect is the same whatever plays. The whole feature sits behind `B.boombox.enabled`.
+
+- Item `boombox`: furniture, 1x1, unique. Effect: adjacency `{ radius: B.boombox.radius, key: 'meaningRecovery', value: B.boombox.meaning }`. itemBonus skips it while `state.radio.on` is false, and it counts toward `B.itemBonusCap` like any item. Render may show an HQ variant by office stage; the sim item is the same.
+- Stations live in `src/data/stations.js` as `STATIONS`: ids `lofi`, `synth88`, `polka`, `bossa`, `elevator`, `funk`, each with a display name. Audio keys its station beds to these ids.
+
+```js
+state.radio = { on, station }   // on: bool; station: a STATIONS id or null
+person.taste                    // a STATIONS id
+```
+
+- Placing the boombox sets `radio = { on: true, station: station ?? 'lofi' }`; selling it sets `on: false` and keeps `station`; moving it leaves `radio` alone.
+- `person.taste` is derived from the game seed and the person's id, with no draw from the main stream. It is set at hire; old saves derive it on load.
+- Old saves load with `radio = { on: false, station: null }`.
+
+### Actions: Boombox
+
+```js
+{ type: 'setRadio', on?, station? }   // works while paused; refusals: 'No boombox' | 'Unknown station' | 'Nothing to change' (neither field)
+// a station given while off is stored and the radio stays off unless on: true is also given
+```
+
+### Events: Boombox
+
+```js
+{ type: 'radio', on, station, by }               // the radio changed; by: null for the player, or a staffId when the sim's rare station-swap event changes it (that event changes only the station, never on or off)
+{ type: 'radioTaste', staffId, station, verdict } // verdict: 'like' | 'dislike'; at most one per B.boombox.tasteGapWeeks; comes with a Yak line or speech bubble
+```
+
+- Taste reactions and the occasional argument carry no stat penalty either way.
+- A music night overrides the radio in audio while it runs; the sim state is unchanged.
+- Boombox randomness comes from its own stream, so with `B.boombox.enabled` false a seeded game matches one without the feature.
+
+## AI job interviews (#670)
+
+An Agents-era hiring policy: an AI interviewer screens candidates. Cheaper and faster, with wider-spread candidates, and some candidates game it with their own AI. The whole feature sits behind `B.aiInterviews.enabled`.
+
+- Policy `ai_interviews`, unlocked in the Agents era. While on: hiring costs and the candidate refresh interval follow `B.aiInterviews`, candidates' skills spread wider, and a share of candidates carry inflated listed skills. Turning it on costs team meaning once.
+- Every hire made under the policy costs a little brand. A hire whose interview was gamed also shows its real skills `B.aiInterviews.revealWeeks` after hire.
+- Policy state lives in `flags`: `aiPolish`, `aiSeq`, `aiCalibrated`, `aiInterviewHires`. The one field outside `flags` is a candidate's `watched` (below).
+
+### Events: AI interviews
+
+```js
+{ type: 'aiInterview', candidateId, staffId, staged }  // a hire made under the policy, in the same tick as its hire event; staged: render plays the interview moment for this hire
+{ type: 'interviewReveal', staffId, drop }             // a gamed hire's real skills show; drop: how far the listed skills fall
+{ type: 'aiHireExposed', staffId }                     // the planted incident fires for a hired AI
+```
+
+- An exposed AI leaves the company: the same tick emits `resign` with `fired: false, reason: 'exposed'`, so render and audio play the usual exit. An exposure does not count in `stats.resignations`.
+
+- Decision `ai_interview_loop` ("our AI and their AI have been interviewing each other for 40 minutes") is raised through the usual decision system, rarely, while the policy is on.
+- AI-interview randomness comes from its own stream, so with `B.aiInterviews.enabled` false a seeded game matches one without the feature.
+
+### Watching an interview
+
+- Decision `ai_interview_watch`, about one candidate, with `vars: { candidateId, tells: [], decoy, lines: [{ who, text }] }`. Unlike other decisions' `vars`, ui and render must read these: `tells` and `decoy` drive render's interview feed, and `lines` is the transcript ui shows in order, which `askFollowUp` extends while the card is open. Whether the candidate is an AI lives in `flags`, never in the card. It arrives on its own once, at the first candidate refresh after the policy turns on; after that the player opens it from a candidate.
+- A candidate carries `watched` (missing means false).
+- Watching pays nothing by itself: only the choice does. Catching an AI and rejecting a person move brand and meaning; hiring an AI plants an incident `B.aiInterviews.exposeWeeks` (a range) later that never ends the game.
+- The Hire choice refuses with the usual hiring reasons (no desk, not enough cash, or the candidate gone after a refresh), shown on the choice as `available: false`.
+
+```js
+{ type: 'watchInterview', candidateId }   // works while paused; refusals: 'AI interviews are off' | 'No such candidate' | 'Already watched' | 'Finish the open decision first' | 'Not right now' (a safeguard when the decision system declines the card; not expected in normal play)
+{ type: 'askFollowUp' }                   // works while paused; once per open interview, adds a line to vars.lines; refusals: 'No interview open' | 'Already asked'
+```
+
+- A player-opened `ai_interview_watch` skips the usual gap between decisions.
+- Switching the policy off leaves an open watch card to be answered as normal; no new card opens while it is off.

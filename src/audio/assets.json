@@ -327,6 +327,252 @@
      }
     }
    ]
+  },
+  "radio_lofi": {
+   "bpm": 78,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 8,
+     "stems": {
+      "full": {
+       "file": "music/radio_lofi/a_full.ogg",
+       "duration": 24.619,
+       "loopStart": 0,
+       "loopEnd": 1181696
+      }
+     }
+    },
+    {
+     "id": "b",
+     "bars": 16,
+     "stems": {
+      "full": {
+       "file": "music/radio_lofi/b_full.ogg",
+       "duration": 46.816,
+       "loopStart": 0,
+       "loopEnd": 2247168
+      }
+     }
+    },
+    {
+     "id": "c",
+     "bars": 8,
+     "stems": {
+      "full": {
+       "file": "music/radio_lofi/c_full.ogg",
+       "duration": 25.803,
+       "loopStart": 0,
+       "loopEnd": 1238528
+      }
+     }
+    }
+   ]
+  },
+  "radio_synth88": {
+   "bpm": 116,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 8,
+     "stems": {
+      "full": {
+       "file": "music/radio_synth88/a_full.ogg",
+       "duration": 16.555,
+       "loopStart": 0,
+       "loopEnd": 794624
+      }
+     }
+    },
+    {
+     "id": "b",
+     "bars": 8,
+     "stems": {
+      "full": {
+       "file": "music/radio_synth88/b_full.ogg",
+       "duration": 17.451,
+       "loopStart": 0,
+       "loopEnd": 837632
+      }
+     }
+    },
+    {
+     "id": "c",
+     "bars": 8,
+     "stems": {
+      "full": {
+       "file": "music/radio_synth88/c_full.ogg",
+       "duration": 16.277,
+       "loopStart": 0,
+       "loopEnd": 781312
+      }
+     }
+    }
+   ]
+  },
+  "radio_polka": {
+   "bpm": 126,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 8,
+     "stems": {
+      "full": {
+       "file": "music/radio_polka/a_full.ogg",
+       "duration": 15.36,
+       "loopStart": 0,
+       "loopEnd": 737280
+      }
+     }
+    },
+    {
+     "id": "b",
+     "bars": 8,
+     "stems": {
+      "full": {
+       "file": "music/radio_polka/b_full.ogg",
+       "duration": 14.549,
+       "loopStart": 0,
+       "loopEnd": 698368
+      }
+     }
+    },
+    {
+     "id": "c",
+     "bars": 8,
+     "stems": {
+      "full": {
+       "file": "music/radio_polka/c_full.ogg",
+       "duration": 15.36,
+       "loopStart": 0,
+       "loopEnd": 737280
+      }
+     }
+    }
+   ]
+  },
+  "radio_bossa": {
+   "bpm": 124,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 8,
+     "stems": {
+      "full": {
+       "file": "music/radio_bossa/a_full.ogg",
+       "duration": 15.243,
+       "loopStart": 0,
+       "loopEnd": 731648
+      }
+     }
+    },
+    {
+     "id": "b",
+     "bars": 8,
+     "stems": {
+      "full": {
+       "file": "music/radio_bossa/b_full.ogg",
+       "duration": 14.997,
+       "loopStart": 0,
+       "loopEnd": 719872
+      }
+     }
+    },
+    {
+     "id": "c",
+     "bars": 8,
+     "stems": {
+      "full": {
+       "file": "music/radio_bossa/c_full.ogg",
+       "duration": 16.0,
+       "loopStart": 0,
+       "loopEnd": 768000
+      }
+     }
+    }
+   ]
+  },
+  "radio_elevator": {
+   "bpm": 92,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 8,
+     "stems": {
+      "full": {
+       "file": "music/radio_elevator/a_full.ogg",
+       "duration": 21.333,
+       "loopStart": 0,
+       "loopEnd": 1024000
+      }
+     }
+    },
+    {
+     "id": "b",
+     "bars": 8,
+     "stems": {
+      "full": {
+       "file": "music/radio_elevator/b_full.ogg",
+       "duration": 21.547,
+       "loopStart": 0,
+       "loopEnd": 1034240
+      }
+     }
+    },
+    {
+     "id": "c",
+     "bars": 8,
+     "stems": {
+      "full": {
+       "file": "music/radio_elevator/c_full.ogg",
+       "duration": 20.0,
+       "loopStart": 0,
+       "loopEnd": 960000
+      }
+     }
+    }
+   ]
+  },
+  "radio_funk": {
+   "bpm": 104,
+   "beds": [
+    {
+     "id": "a",
+     "bars": 8,
+     "stems": {
+      "full": {
+       "file": "music/radio_funk/a_full.ogg",
+       "duration": 18.635,
+       "loopStart": 0,
+       "loopEnd": 894464
+      }
+     }
+    },
+    {
+     "id": "b",
+     "bars": 8,
+     "stems": {
+      "full": {
+       "file": "music/radio_funk/b_full.ogg",
+       "duration": 19.2,
+       "loopStart": 0,
+       "loopEnd": 921600
+      }
+     }
+    },
+    {
+     "id": "c",
+     "bars": 8,
+     "stems": {
+      "full": {
+       "file": "music/radio_funk/c_full.ogg",
+       "duration": 17.781,
+       "loopStart": 0,
+       "loopEnd": 853504
+      }
+     }
+    }
+   ]
   }
  },
  "stingers": {
@@ -587,9 +833,9 @@
    "file": "sfx/dotcom_bell.ogg",
    "duration": 1.72
   },
-  "sales_register": {
-   "file": "sfx/sales_register.ogg",
-   "duration": 1.053
+  "deal_handbell": {
+   "file": "sfx/deal_handbell.ogg",
+   "duration": 0.867
   },
   "sledge_leader": {
    "file": "sfx/sledge_leader.ogg",

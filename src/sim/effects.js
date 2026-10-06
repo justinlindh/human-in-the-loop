@@ -1,6 +1,7 @@
 import { B } from './balance.js';
 import { dotcomEffect } from './dotcom.js';
 import { preinternetEffect } from './boxed.js';
+import { addFinishedCandidate, watchOutcome } from './ai-interviews.js';
 import { applyCompatibility } from './web2.js';
 import { chance, pick } from './rng.js';
 import { clamp, newId, marketYear } from './util.js';
@@ -141,6 +142,8 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
   if (!fx) return;
   if (fx.dotcom) dotcomEffect(ctx, fx.dotcom);
   if (fx.preinternet) preinternetEffect(ctx, fx.preinternet, subjectId);
+  if (fx.aiInterview === 'finish') addFinishedCandidate(state);
+  if (fx.aiInterview === 'hire' || fx.aiInterview === 'reject') watchOutcome(ctx, fx.aiInterview, subjectId);
   const person = findStaff(state, subjectId);
   const subjectProduct = findProduct(state, subjectId);
   const product = subjectProduct && !subjectProduct.killed ? subjectProduct : newestLive(state);
@@ -173,8 +176,10 @@ export function applyEffects(ctx, fx, subjectId = null, source = null, vars = nu
     }
   }
   if (fx.candidates) {
-    const seniority = fx.candidates === 'seniorBatch' ? 'senior' : 'junior';
-    for (let i = 0; i < 3; i++) state.candidates.push(makeCandidate(state, pick(ctx.rng, ['engineer', 'engineer', 'designer', 'support', 'security', 'marketer']), seniority));
+    // 'seniorBatch' and the default add three; 'single' adds one mid-level applicant.
+    const single = fx.candidates === 'single';
+    const seniority = fx.candidates === 'seniorBatch' ? 'senior' : single ? 'mid' : 'junior';
+    for (let i = 0; i < (single ? 1 : 3); i++) state.candidates.push(makeCandidate(state, pick(ctx.rng, ['engineer', 'engineer', 'designer', 'support', 'security', 'marketer']), seniority));
     state.candidates = state.candidates.slice(-8);
   }
   if (fx.flag) state.flags[fx.flag.name] = fx.flag.value;

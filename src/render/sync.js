@@ -13,6 +13,7 @@ import { createPerks } from './perks.js';
 import { createPets } from './pets.js';
 import { createRobot } from './robot.js';
 import { createIncentives, HOLD_NEAR_M } from './incentives.js';
+import { createRadio } from './radio.js';
 import { createMoments } from './moments.js';
 import { createMomentCamera } from './momentcam.js';
 import { createSpotlights } from './spotlight.js';
@@ -28,6 +29,7 @@ import { between, draw, fixed } from './rand.js';
 // Characters are keyed by staff id; removed staff walk out and are disposed.
 
 const WALK = 1.25;
+const TASTE_EMOTE_S = 3;       // how long a like or dislike of the boombox's station shows
 const CHAIR_BACK_M = 0.55;
 const BODY_R = 0.2;            // a standing person's footprint radius     // where a sitter stops behind their chair before sliding onto it
 // Walks keep a cell off furniture where the room allows (a chibi head is wider than the body and
@@ -359,6 +361,15 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     nocCache = { noc, v: office.navVersion, room };
     return room;
   }
+  // Whether a straight leg from a to b passes within BODY_R of furniture other than the seat's own,
+  // with EXIT_SPREAD_M more for the star bases and armrests of chairs, which reach past their rects.
+  const EXIT_SPREAD_M = 0.1;
+  function brushesOther(seat, a, b) {
+    const obs = office.obstacles();
+    const near = (o, x, z, m) => x > o.x0 - m && x < o.x1 + m && z > o.z0 - m && z < o.z1 + m;
+    const own = new Set(obs.filter((o) => near(o, seat.x, seat.z, 0.05)).map((o) => o.by));
+    return [0.25, 0.5, 0.75, 1].some((t) => obs.some((o) => !own.has(o.by) && near(o, a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t, BODY_R + EXIT_SPREAD_M)));
+  }
   function seatApproach(seat) {
     const obs = office.obstacles(), nav = office.nav();
     const near = (o, x, z, m) => x > o.x0 - m && x < o.x1 + m && z > o.z0 - m && z < o.z1 + m;
@@ -404,6 +415,14 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       r.path = [back, ...walkPath(nav, back, { x: to.x, z: to.z }).slice(1)];
       r.exitFrom = from.uses;
       r.exitSide = back;
+    }
+    // Leaving a desk seat: the route starts from the nearest free cell, which can lie beside the chair
+    // in the gap to the next desk. When that first leg would brush other furniture, back out behind
+    // the chair first instead, when the way back is itself clear; any other exit keeps its route.
+    else if (from && from !== goal && from.seated && !from.uses && r.path.length && Math.hypot(r.pos.x - from.x, r.pos.z - from.z) < 0.3
+      && brushesOther(from, r.pos, r.path[0])) {
+      const back = seatApproach(from);
+      if (!nav.isBlocked(back.x, back.z) && !brushesOther(from, r.pos, back)) r.path = [back, ...walkPath(nav, back, { x: to.x, z: to.z }).slice(1)];
     }
     // Starting inside furniture (an item placed where they stood) finds no path: out to the nearest
     // clear point first, then on from there.
@@ -610,6 +629,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     firstSync = false;
     pets.sync(state);
     robot.sync(state);
+    radio.sync(state);
 
     // Desk screens and sabbatical signs.
     const outage = !!state.outage;
@@ -696,6 +716,16 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
           incentives.handle(e);
           break;
         case 'robot': robot.event(e); break;
+        case 'radioTaste': {
+          // Someone reacts to the station: they turn to the boombox (seated, a swivel) with a liking
+          // or a sour note bubble. Busy people and moment actors only show the bubble.
+          const r = recs.get(e.staffId);
+          if (!r || r.hidden || r.mode !== 'placed') break;
+          const at = radio.at();
+          if (at && !r.temp && !r.path.length) faceToward(r, { pos: at });
+          emote(r, e.verdict === 'dislike' ? 'music_dislike' : 'music_like', TASTE_EMOTE_S);
+          break;
+        }
         default: break;
       }
       faceEvent(e);
@@ -1354,6 +1384,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   robotOut = () => robot.blocker();
   const momentCam = createMomentCamera(rig);
   const spotlights = createSpotlights({ camera: momentCam });
+  const radio = createRadio({ office, parent: group, low });
   const incentives = createIncentives({ office, recs, walkTo, emote, parent: group, caricature, setDim, setAccent, setPictureLight, getYaw: () => rig?.yaw ?? Math.PI / 4, rig, fx, spotlights, robot });
   // Ambient moments wait out a standup or party; a decision's own moment does not (the game holds
   // still behind its card, so a standup or party under way would never end).
@@ -1684,12 +1715,12 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
           // the item's front past whoever stands at its other spot.
           if (tp.stepOut && tp.goal && Math.hypot(r.pos.x - tp.goal.x, r.pos.z - tp.goal.z) < 0.3 && r.path.length) {
             const q = tp.stepOut;
-            r.path = [{ x: q.x, z: q.z }, ...office.nav().path(q, r.path[r.path.length - 1]).slice(1)];
+            r.path = [{ x: q.x, z: q.z }, ...walkPath(office.nav(), q, r.path[r.path.length - 1]).slice(1)];
           }
           // Off the furniture the way they got on: back to the side they came from, then onward.
           if (tp.enter?.side && nearExit(r, tp.enter.side, tp.enter.item)) {
             const side = tp.enter.side;
-            const rest = r.path.length ? office.nav().path(side, r.path[r.path.length - 1]) : [];
+            const rest = r.path.length ? walkPath(office.nav(), side, r.path[r.path.length - 1]) : [];
             r.path = [side, ...rest.slice(1)];
             r.exitFrom = tp.enter.item;
             r.exitSide = side;
@@ -1995,7 +2026,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       // Out of a meeting chair the way they got in: back behind it first, then on to their spot.
       if (tp.seat && tp.enter.from && r.path.length) {
         const side = tp.enter.side;
-        r.path = [side, ...office.nav().path(side, r.path[r.path.length - 1]).slice(1)];
+        r.path = [side, ...walkPath(office.nav(), side, r.path[r.path.length - 1]).slice(1)];
       }
     }
     standup = null;
@@ -2080,7 +2111,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         walkTo(r, dest);
         if (exit) {
           const to = r.path[r.path.length - 1] ?? dest;
-          r.path = [exit.side, ...nav.path(exit.side, { x: to.x, z: to.z }).slice(1)];
+          r.path = [exit.side, ...walkPath(nav, exit.side, { x: to.x, z: to.z }).slice(1)];
           r.exitFrom = exit.from;
           r.exitSide = exit.side;
         }
@@ -2166,6 +2197,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     perks.update(dt, lastState);
     pets.update(dt);
     robot.update(dt);
+    radio.update(dt);
     incentives.update(dt);
     moments.update(dt, lastState);
     updateResponders(lastState);

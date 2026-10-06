@@ -86,8 +86,8 @@ export const CUES = {
   'sfx.cd_tray': { bus: 'sfx', files: ['sfx/cd_tray'], cooldown: 30, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
   'sfx.retail_box': { bus: 'sfx', files: ['sfx/retail_box'], cooldown: 30, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
   'sfx.dotcom_bell': { bus: 'sfx', files: ['sfx/dotcom_bell'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
-  // A notable closed sales deal, in every era.
-  'sfx.sales_register': { bus: 'sfx', files: ['sfx/sales_register'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
+  // The seller's two-shake handbell on a notable closed deal (hitl:dealBell from the renderer), in every era.
+  'sfx.deal_handbell': { bus: 'sfx', files: ['sfx/deal_handbell'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
   // The sledgehammer moment's 1984 parody: a rising sting under the run-in and the screen's smash.
   'moment.sledge_run': { bus: 'sfx', files: ['sfx/sledge_run'], cooldown: 1, priority: 6, gain: 0.8, delivered: true },
   'moment.sledge_shatter': { bus: 'sfx', files: ['sfx/sledge_shatter'], cooldown: 1, priority: 9, gain: 0.9, delivered: true },
@@ -138,8 +138,15 @@ export const ON_EVENT = {
   // The inbox: silent until the arrival ping is picked for it (ui asks for a soft, rare one).
   mail: null,
   mailResolved: null,
-  // Only a notable deal rings the register (the same sound boxed or not).
-  deal: (e) => (e.notable ? 'sfx.sales_register' : null),
+  // The AI interview: silent until its sounds are picked.
+  aiInterview: null,
+  interviewReveal: null,
+  aiHireExposed: null,
+  // The boombox: the station itself is read from state.radio by the director, so these are silent here.
+  radio: null,
+  radioTaste: null,
+  // Silent here: the bell rings from the renderer's hitl:dealBell, so a deal whose beat is skipped stays quiet.
+  deal: null,
   // The founder's quick post: a small cheer when it lands, a wince when it backfires, nothing when flat.
   posted: (e) => ({ landed: 'sfx.reward', backfired: 'sfx.bad' })[e.outcome] ?? null,
   // Growth (#549). A promotion's level-up in the same batch plays only the promotion (see director).
@@ -188,7 +195,7 @@ export function musicKey(state) {
 // The picked station is state.radio = { on, station }; a station with no delivered beds is never chosen.
 export const RADIO_STATIONS = {
   lofi: { bpm: 78, key: 'Eb', mode: 'major' },
-  synth: { bpm: 116, key: 'A', mode: 'minor' },
+  synth88: { bpm: 116, key: 'A', mode: 'minor' },
   polka: { bpm: 126, key: 'F', mode: 'major' },
   bossa: { bpm: 124, key: 'D', mode: 'minor' },
   elevator: { bpm: 92, key: 'C', mode: 'major' },

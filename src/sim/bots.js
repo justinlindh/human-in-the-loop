@@ -100,7 +100,7 @@ function pickDecision(s, scorer, d = s.pendingDecision) {
 }
 
 // Rough value of an effects object for a careful player.
-function sensibleValue(s, fx, depth = 0) {
+export function sensibleValue(s, fx, depth = 0) {
   if (!fx || depth > 3) return 0;
   let v = 0;
   v += (fx.cash ?? 0) / Math.max(20000, s.cash * 0.15);
@@ -125,7 +125,7 @@ function sensibleValue(s, fx, depth = 0) {
   for (const l of fx.later ?? []) v += 0.8 * sensibleValue(s, l.effects, depth + 1);
   for (const m of [fx.modifier].flat().filter(Boolean)) {
     const good = ['output', 'meaningRecovery', 'hype', 'brandPerWeek', 'acquisition', 'xp', 'oversight'].includes(m.key);
-    v += (good ? 1 : -1) * Math.abs(m.value) * Math.min(m.weeks, 26) * 0.15;
+    v += (good ? 1 : -1) * m.value * Math.min(m.weeks, 26) * 0.15;
   }
   if (fx.win === 'acquired') v -= 100;
   return v;
@@ -253,6 +253,8 @@ function automateAll(s) {
   act(s, FUNCTIONS.filter((fn) => fn === 'engineering' || live)
     .filter((fn) => s.automation[fn].level !== 1 || s.automation[fn].model !== model)
     .map((fn) => ({ type: 'setAutomation', fn, level: 1, model })));
+  // It hires through the interview bot as soon as it can.
+  if (!s.policies.ai_interviews && POLICIES.ai_interviews.unlock(s)) dispatch(s, { type: 'setPolicy', id: 'ai_interviews', on: true });
   if (canAffordHire(s, 2600) && s.staff.length < capacity(s)) act(s, hireBest(s, (c) => c.seniority === 'senior' && c.role === 'engineer', (a, b) => skillSum(b) - skillSum(a)));
   if (!s.projects.some((j) => j.kind === 'new')) {
     const res = dispatch(s, startNew(s, 'medium', model));
@@ -574,6 +576,27 @@ function answerPrompts(name, s) {
   }
 }
 
+// Bots answer mail: an event delivered as mail the way they answer it as a popup, a reply-all storm by muting
+// it, and any other mail with its first available reply. Most answer the week it arrives; automateAll gets to
+// it B.mail.botLateWeeks later, and recklessHumans never opens the inbox, so its mail expires unanswered.
+const MAIL_LATE = new Set(['automateAll']);
+const MAIL_NEVER = new Set(['recklessHumans']);
+function answerMail(name, s) {
+  if (MAIL_NEVER.has(name)) return;
+  const age = MAIL_LATE.has(name) ? B.mail.botLateWeeks : 0;
+  for (const m of (s.mail ?? []).filter((x) => x.options.length && !x.resolved && s.week - x.week >= age)) {
+    const open = m.options.map((o, i) => (o.available ? i : -1)).filter((i) => i >= 0);
+    if (!open.length) continue;
+    let choice = open[0];
+    if (m.kind === 'reply_all' && open.includes(1)) choice = 1;
+    else if (EVENTS[m.kind]?.choices) {
+      const d = { eventId: m.kind, subjectId: s.flags.mailCtx?.[m.id]?.subjectId ?? null, choices: m.options };
+      choice = pickDecision(s, CHOOSERS[name], d);
+    }
+    dispatch(s, { type: 'answerMail', mailId: m.id, choice });
+  }
+}
+
 export function botTurn(name, s, { onEvents = null } = {}) {
   const prev = sink;
   sink = onEvents;
@@ -583,6 +606,7 @@ export function botTurn(name, s, { onEvents = null } = {}) {
     if (NOC_BOTS.has(name)) runNoc(s);
     if (ROBOT_BOTS.has(name)) runRobot(s);
     answerPrompts(name, s);
+    answerMail(name, s);
     for (const a of BOTS[name](s)) dispatch(s, a);
     for (const p of liveProducts(s).filter((p) => p.boxed)) {
       if (!p.boxed.deliveries.length && p.boxed.stock <= B.preinternet.batches[0]) {

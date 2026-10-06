@@ -22,7 +22,7 @@
 # Exit: 0 green (or merged, or the issue closed); 2 a check failed; 3 behind or conflicting with
 # --no-update; 4 merging main conflicts; 5 the tests failed after merging main; 6 the PR was closed;
 # 7 this worktree isn't on the PR's branch at its head, or is no longer on the branch the wait started on when a
-#   merge or push is due; 124 timed out.
+#   merge or push is due; 8 pushing the merge of main failed; 124 timed out.
 set -uo pipefail
 
 pr="" issue="" repo="" merged=0 update=1 test_cmd="" poll=60 pickup=15 timeout=240
@@ -74,7 +74,7 @@ q_since() { sed -n 's/^ready_since=\([0-9][0-9]*\).*/\1/p' "$1" 2>/dev/null; }
 q_get() { sed -n "s/^.*$2=\([a-z0-9]*\).*/\1/p" "$1" 2>/dev/null | head -n 1; } # <file> <key>
 q_write() { # <ready_since> <state> <since>: replaces the entry whole, so a reader never sees it half written
   local t; mkdir -p "$qdir" && t="$(mktemp "$qdir/.tmp.XXXXXX")" \
-    && printf 'ready_since=%s pr=%s state=%s since=%s\n' "$1" "$pr" "$2" "$3" >"$t" && mv -f "$t" "$qfile"
+    && printf 'ready_since=%s pr=%s state=%s since=%s prio=%s\n' "$1" "$pr" "$2" "$3" "${qprio:-0}" >"$t" && mv -f "$t" "$qfile"
 }
 # q_state <ready|pending> [join]: records a change of state with its time; with `join`, also enters the
 # queue when not in it. An entry pending (its PR not fully green) longer than HITL_QUEUE_PENDING seconds
@@ -87,13 +87,16 @@ q_state() {
     return 0
   fi
   cur="$(q_get "$qfile" state)"
-  [ "$cur" = "$1" ] || q_write "$(q_since "$qfile")" "$1" "$now"
+  if [ "$cur" != "$1" ]; then q_write "$(q_since "$qfile")" "$1" "$now"
+  # A queue-first label added or removed after joining changes the entry's priority, not its place.
+  elif [ "$(q_get "$qfile" prio)" != "${qprio:-0}" ] && [ -n "$(q_get "$qfile" since)" ]; then q_write "$(q_since "$qfile")" "$1" "$(q_get "$qfile" since)"
+  fi
 }
 q_leave() { rm -f "$qfile"; }
 q_beat() { [ -f "$qfile" ] && touch "$qfile"; return 0; }
 q_ahead() { # prints the PR number of a fresh entry ahead of this one; fails when this PR is first (or not queued)
   [ -f "$qfile" ] || return 1
-  local mine f p t st sn; mine="$(q_since "$qfile")"; [ -n "$mine" ] || return 1
+  local mine f p t st sn fp; mine="$(q_since "$qfile")"; [ -n "$mine" ] || return 1
   for f in "$qdir"/*; do
     [ -f "$f" ] || continue; p="${f##*/}"
     case "$p" in ''|*[!0-9]*) continue ;; esac
@@ -102,7 +105,9 @@ q_ahead() { # prints the PR number of a fresh entry ahead of this one; fails whe
     st="$(q_get "$f" state)"; sn="$(q_get "$f" since)"
     [ "$st" = pending ] && [ -n "$sn" ] && [ $(( $(date +%s) - sn )) -ge "${HITL_QUEUE_PENDING:-1200}" ] && continue
     t="$(q_since "$f")"; [ -n "$t" ] || continue
-    if [ "$t" -lt "$mine" ] || { [ "$t" -eq "$mine" ] && [ "$p" -lt "$pr" ]; }; then echo "$p"; return 0; fi
+    # A queue-first entry goes ahead of every other one; within a priority, first ready, then lowest number.
+    fp="$(q_get "$f" prio)"; fp="${fp:-0}"
+    if [ "$fp" -gt "${qprio:-0}" ] || { [ "$fp" -eq "${qprio:-0}" ] && { [ "$t" -lt "$mine" ] || { [ "$t" -eq "$mine" ] && [ "$p" -lt "$pr" ]; }; }; }; then echo "$p"; return 0; fi
   done
   return 1
 }
@@ -150,7 +155,14 @@ update_branch() {
   fi
   rm -f "$log"
   still_on_branch "pushing (the merge stays committed on $started_on)"
-  git push -q
+  # Explicit about where it goes, so a branch pushed without tracking (no upstream) still updates.
+  local perr; perr="$(mktemp)"
+  if ! git push -q -u origin "HEAD:refs/heads/$started_on" 2>"$perr"; then
+    cat "$perr"; rm -f "$perr"
+    say "pushing $started_on failed; the merge stays committed locally"
+    exit 8
+  fi
+  rm -f "$perr"
   say "pushed $(git rev-parse --short HEAD)"
 }
 
@@ -281,6 +293,7 @@ while :; do
   # required status and GitHub check is green; otherwise it is pending, and a PR pending too long stops
   # holding the line (see q_state).
   if [ "$update" = 1 ]; then
+    qprio="$(jq -r 'if ([.labels[]?.name] | index("queue-first")) != null then 1 else 0 end' <<<"$json")"
     on_hold="$(jq -r '(.isDraft == true) or ([.labels[]?.name] | index("awaiting-user") != null) or (has("autoMergeRequest") and .autoMergeRequest == null)' <<<"$json")"
     if [ "$on_hold" = true ]; then q_leave
     elif [ "$review" = SUCCESS ] && [ "$local_ci" = SUCCESS ] && [ -z "$failing" ]; then

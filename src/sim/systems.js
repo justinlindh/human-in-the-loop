@@ -3,6 +3,7 @@
 import './vendors.js';
 import './standup.js';
 import './staff.js';
+import './ai-interviews.js';
 import './progression.js';
 import './work.js';
 import './projects.js';
@@ -32,6 +33,8 @@ import './beats.js';
 import './moonshot.js';
 import './props.js';
 import './prompts.js';
+import './mail.js';
+import './radio.js';
 import './posts.js';
 import './advisors.js';
 import './squads.js';

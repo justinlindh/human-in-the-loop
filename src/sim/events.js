@@ -4,7 +4,7 @@ import { exitMrr } from './endgame.js';
 import { chance, pick, weighted } from './rng.js';
 import { registerAction, registerSystem, decisionGateOpen } from './registry.js';
 import { newId } from './util.js';
-import { mentorOf } from './staff.js';
+import { mentorOf, hireProblem } from './staff.js';
 import { liveProducts } from './projects.js';
 import { totalMrr } from './products.js';
 import { agentSpend, rivalMergePrice, moonshotWeekly } from './economy.js';
@@ -20,7 +20,8 @@ import { incumbentFor } from '../data/incumbents.js';
 import { emitChat } from './chat.js';
 import { eraOnlyAllowsText, eraAtLeast, currentEra, eraIndex } from './eras.js';
 import { openEventPrompt, promptSlotFree } from './prompts.js';
-import { preinternetChoiceReason } from './boxed.js';
+import { deliversAsMail, mailSlotFree, openEventMail, mailEventNotice } from './mail.js';
+import { preinternetChoiceReason, batchText } from './boxed.js';
 import { periodAllows, periodText } from '../data/period-content.js';
 
 // What attackers ask for: sized to the company's cash and revenue, between a floor and a cap, and never
@@ -52,7 +53,7 @@ export function decisionVars(state, rng, subjectId) {
 
 // Resolves the text placeholders for an event against a subject (staff or product id).
 export function fillText(state, rng, text, subjectId, vars = null) {
-  const person = state.staff.find((p) => p.id === subjectId);
+  const person = state.staff.find((p) => p.id === subjectId) ?? state.candidates?.find((c) => c.id === subjectId);
   const product = state.products.find((p) => p.id === subjectId);
   const v = vars ?? decisionVars(state, rng, subjectId);
   return periodText(state, text)
@@ -74,6 +75,8 @@ export function fillText(state, rng, text, subjectId, vars = null) {
     .replaceAll('{foundationCost}', money(Math.max(0, state.cash) * B.foundationCashShare))
     .replaceAll('{summitSmall}', `$${Math.round(summitCost(state, 'small') / 1000)}k`)
     .replaceAll('{summitBig}', `$${Math.round(summitCost(state, 'big') / 1000)}k`)
+    .replaceAll('{batchSmall}', () => batchText(state, subjectId, B.preinternet.batches[0]))
+    .replaceAll('{batchLarge}', () => batchText(state, subjectId, B.preinternet.batches[1]))
     .replaceAll('{ransom}', `$${Math.round(v.ransom ?? ransomFor(state)).toLocaleString('en-US')}`);
 }
 
@@ -81,6 +84,10 @@ export function fillText(state, rng, text, subjectId, vars = null) {
 function choiceBlocker(state, c, subjectId) {
   if (c.effects?.preinternet) {
     const reason = preinternetChoiceReason(state, c.effects.preinternet, subjectId);
+    if (reason) return reason;
+  }
+  if (c.effects?.aiInterview === 'hire') {
+    const reason = hireProblem(state, subjectId);
     if (reason) return reason;
   }
   if (c.requires && !checkCondition(state, c.requires, subjectId)) return requireReason(state, c.requires);
@@ -99,20 +106,23 @@ export function lastPauseWeek(state) {
 const IMMEDIATE_KINDS = new Set(['incident', 'cyber']);
 
 // Opens a decision popup for a choice event. If one is already pending it returns false, or with
-// { queue: true } schedules this one to be raised as soon as the popup is clear.
-export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } = {}) {
+// { queue: true } schedules this one to be raised as soon as the popup is clear. { asked: true } is a
+// card the player opened, which skips the gap after the last decision; `vars` replaces the card's usual vars.
+export function raiseDecision(ctx, eventId, subjectId = null, { queue = false, asked = false, vars: own = null } = {}) {
   const { state } = ctx;
   const ev = EVENTS[eventId];
   if (!ev || !ev.choices) return false;
   if (!periodAllows(state, 'events', eventId)) return false;
   if (ev.eras && !ev.eras.includes(currentEra(state).id)) return false;
   if (!decisionGateOpen(state, eventId)) return false;
+  // A decision with `fits` is dropped, not queued, once it no longer applies (a queued card can come due late).
+  if (ev.fits && !ev.fits(state, subjectId)) return false;
   if (state.pendingDecision) {
     if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: state.week, kind: 'event', payload: { eventId, subjectId } });
     return false;
   }
   // Decisions that are not emergencies wait for a breather after the last one.
-  const spaced = !IMMEDIATE_KINDS.has(ev.kind);
+  const spaced = !IMMEDIATE_KINDS.has(ev.kind) && !asked;
   const last = lastPauseWeek(state);
   if (spaced && last !== undefined && state.week - last < B.decisionGapWeeks) {
     if (queue) state.scheduled.push({ id: newId(state, 'sch'), week: last + B.decisionGapWeeks, kind: 'event', payload: { eventId, subjectId } });
@@ -139,7 +149,7 @@ export function raiseDecision(ctx, eventId, subjectId = null, { queue = false } 
   if (state.flags.deskWait) delete state.flags.deskWait[waitKey];
   if (spaced) state.flags.lastDecisionWeek = state.week;
   if (ev.marks) state.flags[ev.marks] = state.week;
-  const vars = decisionVars(state, ctx.rng, subjectId);
+  const vars = own ?? decisionVars(state, ctx.rng, subjectId);
   // A postmortem carries the incident it is about, taken from the queue of those waiting.
   const waiting = state.flags.postmortemQueue ?? [];
   const at = waiting.findIndex((x) => x.eventId === eventId);
@@ -228,6 +238,15 @@ export function fireEvent(ctx, ev, subjectId) {
   // A low-stakes event (yak) arrives as a Yak reply prompt instead of a popup while prompts are on, or waits
   // for another week when a prompt is already open. It keeps the popup's place in the decision cadence, so
   // how often every other event comes up is unchanged.
+  // With the inbox on, letter-like events arrive as mail instead: a choice event waits for a free mail slot
+  // the way a Yak one waits for a prompt slot; a notice keeps its effects and arrives instead of its toast.
+  if (deliversAsMail(ev) && ev.choices) {
+    if (!mailSlotFree(state)) return false;
+    state.flags[`cd_${ev.id}`] = state.week + ev.cooldownWeeks;
+    state.flags.lastDecisionWeek = state.week;
+    openEventMail(ctx, ev, subjectId);
+    return true;
+  }
   if (ev.yak && ev.choices && B.chatPromptsEnabled) {
     if (!promptSlotFree(state)) return false;
     state.flags[`cd_${ev.id}`] = state.week + ev.cooldownWeeks;
@@ -239,7 +258,10 @@ export function fireEvent(ctx, ev, subjectId) {
   if (ev.chat) emitChat(ctx, { channel: 'random', from: '@officebot', text: fillText(state, ctx.rng, ev.chat, subjectId) });
   if (ev.choices) return raiseDecision(ctx, ev.id, subjectId);
   const vars = decisionVars(state, ctx.rng, subjectId);
-  ctx.emit({ type: 'toast', text: `${fillText(state, ctx.rng, ev.title, subjectId, vars)}: ${fillText(state, ctx.rng, ev.text, subjectId, vars)}`, tone: 'info' });
+  const title = fillText(state, ctx.rng, ev.title, subjectId, vars);
+  const text = fillText(state, ctx.rng, ev.text, subjectId, vars);
+  if (deliversAsMail(ev)) mailEventNotice(ctx, ev, title, text, subjectId);
+  else ctx.emit({ type: 'toast', text: `${title}: ${text}`, tone: 'info' });
   applyEffects(ctx, ev.auto, subjectId, ev.id, vars);
   return true;
 }

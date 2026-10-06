@@ -187,6 +187,10 @@ export function placedTransform(L, p) {
 // Nav grid over the floor. Obstacles are axis-aligned rects { x0, z0, x1, z1 } in meters, with an
 // optional margin: a cell is blocked when its centre is within that of one (NAV_MARGIN by default).
 const NEAR_COST = 3;   // extra cost of a cell inside a soft clearance (one cell's move costs 1)
+// A free cell in a gap narrower than a body (furniture on both sides, across x or across z) costs
+// a walker this much more again, so a route squeezes through one only when going round is long.
+const PINCH_W = 0.45;
+const PINCH_COST = 8;
 const NAV_MARGIN = 0.12;
 export function createNav(L, obstacles, cell = 0.35) {
   const nx = Math.ceil(L.W / cell), nz = Math.ceil(L.D / cell);
@@ -202,6 +206,25 @@ export function createNav(L, obstacles, cell = 0.35) {
   }
   const N0 = nx * nz, grid0 = blocked;
   const center = (i, k) => ({ x: -L.W / 2 + (i + 0.5) * cell, z: -L.D / 2 + (k + 0.5) * cell });
+
+  // Free cells in a gap narrower than PINCH_W: the clear span through the cell's centre, across x
+  // between the nearest furniture (or wall) on each side, or across z, is below it.
+  let pinch = null;
+  function pinched() {
+    if (pinch) return pinch;
+    pinch = new Uint8Array(nx * nz);
+    for (let i = 0; i < nx; i++) for (let k = 0; k < nz; k++) {
+      if (grid0[i + k * nx]) continue;
+      const { x, z } = center(i, k);
+      let l = x + L.W / 2, r = L.W / 2 - x, u = z + L.D / 2, d = L.D / 2 - z;
+      for (const o of obstacles) {
+        if (z > o.z0 && z < o.z1) { if (o.x1 <= x) l = Math.min(l, x - o.x1); else if (o.x0 >= x) r = Math.min(r, o.x0 - x); }
+        if (x > o.x0 && x < o.x1) { if (o.z1 <= z) u = Math.min(u, z - o.z1); else if (o.z0 >= z) d = Math.min(d, o.z0 - z); }
+      }
+      if (l + r < PINCH_W || u + d < PINCH_W) pinch[i + k * nx] = 1;
+    }
+    return pinch;
+  }
 
   // The grid with every blocked cell grown by `clear` metres, for something wider than one person.
   const grown = new Map();
@@ -263,7 +286,7 @@ export function createNav(L, obstacles, cell = 0.35) {
           const n = a + b * nx;
           if (blocked[n] || closed[n]) continue;
           if (di && dk && (blocked[ci + di + ck * nx] || blocked[ci + (ck + dk) * nx])) continue;
-          const cost = g[cur] + (di && dk ? Math.SQRT2 : 1) + (near?.[n] ? NEAR_COST : 0);
+          const cost = g[cur] + (di && dk ? Math.SQRT2 : 1) + (near?.[n] ? NEAR_COST + (pinched()[n] ? PINCH_COST : 0) : 0);
           if (cost < g[n]) {
             g[n] = cost;
             came[n] = cur;

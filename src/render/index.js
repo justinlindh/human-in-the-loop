@@ -9,7 +9,7 @@ import { createFly } from './fly.js';
 import { setRingsShown, setFaceMorphs } from './character.js';
 import { buildKitBoard, buildPropLineup, buildItemLineup, buildCharLineup, buildCharTurnaround, buildWardrobeLineup, buildIconBoard, buildFaceBoard } from './debug.js';
 import { setGlowScale, mat } from './materials.js';
-import { loadModels, hasModel, ERA_MODELS } from './models.js';
+import { loadModels, hasModel, ERA_MODELS, BOOMBOX_MODELS } from './models.js';
 import { setRigEnabled } from './rig.js';
 import { createScreens } from './screens.js';
 import { createOffice } from './office.js';
@@ -223,6 +223,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   // Era art and clothes load the first time a company wears them; until then the office waits
   // as it does for the other models.
   let eraModels = null;
+  let boombox = null;
   function eraModelsReady(state) {
     if (eraModels === 'ready' || !eraArtWanted(state)) return true;
     if (ERA_MODELS.every(hasModel)) { eraModels = 'ready'; return true; }
@@ -230,9 +231,27 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     eraModels ??= loadModels(ERA_MODELS).then(() => { eraModels = 'ready'; });
     return false;
   }
+  // The boombox models load in the background once a game has a radio; a placed boombox holds the
+  // sync until they arrive, so it never shows as a crate.
+  // A sync held for them runs again with the newest state once they arrive.
+  let boomboxHeld = null;
+  function boomboxReady(state) {
+    if (boombox === 'ready' || !state.radio) return true;
+    if (BOOMBOX_MODELS.every(hasModel)) { boombox = 'ready'; return true; }
+    boombox ??= loadModels(BOOMBOX_MODELS).then(() => {
+      boombox = 'ready';
+      const s = boomboxHeld;
+      boomboxHeld = null;
+      if (s) sync(s);
+    });
+    if (!state.office?.placed?.some((p) => p.itemId === 'boombox')) return true;
+    boomboxHeld = state;
+    return false;
+  }
   function sync(state) {
     decisionOpen = !!state?.pendingDecision;
     if (state && !eraModelsReady(state)) return;
+    if (state && !boomboxReady(state)) return;
     currentWardrobe = state ? wardrobeEra(state) : null;
     if (!office || !ready || !state) return;
     // Before any build: it also decides whether era art is on for this company.
@@ -385,7 +404,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     get spotlights() { return staff?.spotlights ?? null; },
     endSpotlight() { return staff?.endSpotlight() ?? false; },
     // Where the camera looks now, and its zoom.
-    view() { const t = rig.target; return { x: t.x, y: t.y, z: t.z, zoom: rig.zoom }; },
+    // officeScale: how much wider a zoom-1 view is than the Office Floor's, so a close shot asks for
+    // zoom * officeScale (capped at zoomMax), as the moment camera does.
+    view() { const t = rig.target; return { x: t.x, y: t.y, z: t.z, zoom: rig.zoom, officeScale: rig.officeScale, zoomMax: rig.zoomMax }; },
     focusStaff(id) {
       const p = staff?.positionOf(id);
       if (p) rig.focus({ x: p.x, y: 0.6, z: p.z }, 1.9);

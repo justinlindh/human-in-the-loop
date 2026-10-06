@@ -42,13 +42,15 @@ export function adjacencyLinks(placed, occupied) {
 
 // Adjacency for a key: paid desk links averaged over staff, plus item-to-item links.
 // A working office robot at level 2 or more waters the plants, so Potted Plant links pay B.robot.plantBoost.
+// The boombox's links pay only while the radio is on.
 function adjacencyBonus(state, key) {
   let desk = 0;
   let item = 0;
   const robot = robotWorking(state);
   const watered = robot && robot.level >= 2 ? new Set(state.office.placed.filter((p) => p.itemId === 'plant').map((p) => p.id)) : null;
+  const silent = state.radio?.on ? null : state.office.placed.find((p) => p.itemId === 'boombox')?.id;
   for (const l of adjacencyLinks(state.office.placed, occupiedDesks(state))) {
-    if (l.key !== key || !l.paid) continue;
+    if (l.key !== key || !l.paid || (silent && l.sourceId === silent)) continue;
     const value = watered?.has(l.sourceId) ? l.value * B.robot.plantBoost : l.value;
     if (l.target === 'desk') desk += value;
     else item += value;
@@ -56,15 +58,15 @@ function adjacencyBonus(state, key) {
   return item + (state.staff.length ? desk / state.staff.length : 0);
 }
 
-// itemBonus depends only on the layout, item levels, who sits where, and headcount; results are reused
+// itemBonus depends only on the layout, item levels, who sits where, headcount and the radio; results are reused
 // until any of those change. The check compares a flat snapshot of those fields value by value, which costs
 // no allocation while nothing has changed (itemBonus runs once per person in several weekly systems).
 const bonusCache = new WeakMap();
 function sameLayout(state, snap) {
   const { placed } = state.office;
   const { staff } = state;
-  if (snap.length !== 2 + placed.length * 5 + staff.length || snap[0] !== placed.length || snap[1] !== robotBroken(state)) return false;
-  let i = 2;
+  if (snap.length !== 3 + placed.length * 5 + staff.length || snap[0] !== placed.length || snap[1] !== robotBroken(state) || snap[2] !== !!state.radio?.on) return false;
+  let i = 3;
   for (const it of placed) {
     if (snap[i] !== it.id || snap[i + 1] !== it.level || snap[i + 2] !== it.x || snap[i + 3] !== it.y || snap[i + 4] !== it.rot) return false;
     i += 5;
@@ -73,7 +75,7 @@ function sameLayout(state, snap) {
   return true;
 }
 function layoutSnapshot(state) {
-  const snap = [state.office.placed.length, robotBroken(state)];
+  const snap = [state.office.placed.length, robotBroken(state), !!state.radio?.on];
   for (const it of state.office.placed) snap.push(it.id, it.level, it.x, it.y, it.rot);
   for (const p of state.staff) snap.push(p.deskId ?? null);
   return snap;

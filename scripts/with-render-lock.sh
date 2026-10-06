@@ -10,20 +10,37 @@
 #                             (scripts/lib/quiet.sh), which waits for every slot.
 #   --gpu                     one of HITL_GPU_SLOTS (default 8) GPU slots: GPU renders cost a small
 #                             fraction of the CPU and share the card well; the bound keeps many-browser
-#                             jobs within its memory.
+#                             jobs within its memory. A slot is taken only while the card has
+#                             HITL_GPU_FREE_MB of free memory (default 3000; 0 turns the check off, and
+#                             it is skipped without nvidia-smi): a job that holds most of the card (a
+#                             model run) leaves browsers without a WebGL context, so they wait for it.
+#                             A job that needs more than its share of the card (a model run) claims
+#                             weight: `--gpu --slots <n>` takes n slots at once and `--gpu --exclusive`
+#                             all of them, so it waits for the running jobs to finish and the small ones
+#                             queue behind it. A weighted waiter closes a gate (gpu-gate.lock) that
+#                             every GPU run passes before it takes a slot, so small jobs can't keep
+#                             it waiting forever; it holds the gate only while it collects its slots.
 # Inside a caller that already holds a lock that covers the request it runs straight away
-# (scripts/render-lock-held.sh): a software slot covers both kinds, a GPU slot covers GPU work.
+# (scripts/render-lock-held.sh): a software slot covers both kinds, a GPU slot covers GPU work. The
+# outermost call sets the weight; a nested call never asks for more.
 # Otherwise it waits for a lock, exports its PID as the holder, and execs the command, which keeps
 # the lock until it exits.
 # It always says what it did on stderr: the lock it took and how long it waited, or that a holder
 # already covers the run.
-# Usage: scripts/with-render-lock.sh [--gpu|--software] <command> [args...]
+# Usage: scripts/with-render-lock.sh [--gpu [--slots <n>|--exclusive]|--software] <command> [args...]
 #        scripts/with-render-lock.sh [--gpu|--software] --held   exit 0 if a caller's lock covers it
 #   RENDER_LOCK_WAIT  seconds to wait for a lock (default 1800); exit 75 if it runs out
 set -uo pipefail
-usage="usage: scripts/with-render-lock.sh [--gpu|--software] <command> [args...] | [--gpu|--software] --held"
-mode=software
+usage="usage: scripts/with-render-lock.sh [--gpu [--slots <n>|--exclusive]|--software] <command> [args...] | [--gpu|--software] --held"
+mode=software; weight=1; exclusive=0
 case "${1:-}" in --gpu) mode=gpu; shift ;; --software) shift ;; esac
+while :; do
+  case "${1:-}" in
+    --slots) [ "$mode" = gpu ] && [[ "${2:-}" =~ ^[1-9][0-9]*$ ]] || { echo "$usage" >&2; exit 2; }; weight="$2"; shift 2 ;;
+    --exclusive) [ "$mode" = gpu ] || { echo "$usage" >&2; exit 2; }; exclusive=1; shift ;;
+    *) break ;;
+  esac
+done
 [ $# -gt 0 ] || { echo "$usage" >&2; exit 2; }
 HERE="$(cd "$(dirname "$0")" && pwd)"
 # Lock files live in HITL_LOCK_DIR, one place for the whole machine whatever else a run relocates.
@@ -100,18 +117,61 @@ if [ "$mode" = software ]; then
   exec "$@"
 fi
 
-t0=$SECONDS; t0r=$EPOCHREALTIME
+FREE_MB="${HITL_GPU_FREE_MB:-3000}"
+# The first card's free memory in MiB; prints nothing when it can't be read.
+vram_free_mb() {
+  timeout 5 nvidia-smi --query-gpu=memory.total,memory.used --format=csv,noheader,nounits 2>/dev/null | head -n 1 \
+    | awk -F', *' 'NF >= 2 && $1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ { print $1 - $2 }'
+}
+GATE="$DIR/gpu-gate.lock"
+[ "$exclusive" = 1 ] && weight="$SLOTS"
+[ "$weight" -gt "$SLOTS" ] && weight="$SLOTS"
+t0=$SECONDS; t0r=$EPOCHREALTIME; said=0; vram_wait=0; gate_held=""
 while :; do
-  for lock in "${gpu_locks[@]}"; do
-    exec 8>"$lock"
-    if flock -n 8; then
-      slot="${lock##*-}"; echo "with-render-lock: waited $((SECONDS - t0))s for GPU render slot ${slot%.lock}" >&2
-      t0=$t0r; log_wait slot="${slot%.lock}"
-      export HITL_RENDER_LOCK_HELD=$$
-      exec "$@"
+  free=""; [ "$FREE_MB" -gt 0 ] 2>/dev/null && free="$(vram_free_mb)"
+  if [ -n "$free" ] && [ "$free" -lt "$FREE_MB" ]; then
+    [ $said = 1 ] || { echo "with-render-lock: waiting for $FREE_MB MiB of free GPU memory (${free} MiB free)" >&2; said=1; vram_wait=1; }
+    [ $((SECONDS - t0)) -lt "$WAIT" ] || { t0=$t0r; log_wait timed_out=1 vram_wait=1; echo "with-render-lock: GPU memory still under $FREE_MB MiB free after ${WAIT}s" >&2; exit 75; }
+    sleep "${VRAM_POLL:-5}"
+    continue
+  fi
+  if [ "$weight" -gt 1 ]; then
+    # A weighted run closes the gate to new small runs, then collects its slots as the running ones end.
+    if [ -z "$gate_held" ]; then exec 7>"$GATE"; if flock -w 1 7; then gate_held=1; else exec 7>&-; fi; fi
+    if [ -n "$gate_held" ]; then
+      got=(); fd=20
+      for lock in "${gpu_locks[@]}"; do
+        [ ${#got[@]} -lt "$weight" ] || break
+        eval "exec $fd>\"\$lock\""
+        if flock -n "$fd"; then got+=("$fd"); fd=$((fd + 1)); else eval "exec $fd>&-"; fi
+      done
+      if [ ${#got[@]} -ge "$weight" ]; then
+        exec 7>&-
+        echo "with-render-lock: waited $((SECONDS - t0))s for $weight GPU render slots" >&2
+        t0=$t0r; log_wait slots="$weight" vram_wait="$vram_wait"
+        export HITL_RENDER_LOCK_HELD=$$
+        exec "$@"
+      fi
+      for fd in "${got[@]}"; do eval "exec $fd>&-"; done
     fi
-    exec 8>&-
-  done
+  else
+    # A small run waits at the gate while a weighted run is collecting its slots.
+    exec 7>"$GATE"
+    if flock -s -w 1 7; then
+      for lock in "${gpu_locks[@]}"; do
+        exec 8>"$lock"
+        if flock -n 8; then
+          exec 7>&-
+          slot="${lock##*-}"; echo "with-render-lock: waited $((SECONDS - t0))s for GPU render slot ${slot%.lock}" >&2
+          t0=$t0r; log_wait slot="${slot%.lock}" vram_wait="$vram_wait"
+          export HITL_RENDER_LOCK_HELD=$$
+          exec "$@"
+        fi
+        exec 8>&-
+      done
+    fi
+    exec 7>&-
+  fi
   [ $((SECONDS - t0)) -lt "$WAIT" ] || { t0=$t0r; log_wait timed_out=1; echo "with-render-lock: no GPU render slot after ${WAIT}s" >&2; exit 75; }
   sleep 1
 done

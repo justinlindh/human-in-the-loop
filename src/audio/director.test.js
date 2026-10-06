@@ -411,19 +411,20 @@ describe('audio director', () => {
     expect(loops(d3.update(state(), 3, { speed: 1, running: true }))).toMatchObject([{ id: 'sfx/sledge_leader', gain: 0 }]);
   });
 
-  it('rings the register for a notable deal in every era, once per cooldown, and stays quiet otherwise', () => {
+  it('rings the handbell only from hitl:dealBell, never from the deal event itself', () => {
     const d = createDirector();
     const plays = (cmds) => cmds.filter((c) => c.op === 'play').map((c) => c.cue);
     const deal = (notable, extra = {}) => ({ type: 'deal', productId: 'p1', week: 1, notable, ...extra });
     for (const [i, era] of ['preinternet', 'dotcom', 'web2', 'classic', 'agents'].entries()) {
       const s = state({ era: { id: era } });
-      expect(plays(d.events([deal(true)], s, 100 + i * 100))).toEqual(['sfx.sales_register']);
+      expect(plays(d.events([deal(true), deal(true, { boxed: true })], s, 100 + i * 100))).toEqual([]);
+      expect(plays(d.dealBell({ staffId: 's1', seconds: 3 }, 100 + i * 100))).toEqual(['sfx.deal_handbell']);
     }
-    const s = state();
-    expect(plays(d.events([deal(false)], s, 1000))).toEqual([]);
-    expect(plays(d.events([deal(true, { boxed: true })], s, 2000))).toEqual(['sfx.sales_register']);
-    expect(plays(d.events([deal(true)], s, 2010))).toEqual([]);
-    expect(CUES['sfx.sales_register']).toMatchObject({ bus: 'sfx', cooldown: 30 });
+    expect(plays(d.dealBell({ staffId: 's1' }, 500.5))).toEqual([]);
+    expect(plays(d.dealBell({ staffId: 's1' }, 520))).toEqual([]);
+    expect(plays(d.dealBell({ staffId: 's1' }, 531))).toEqual(['sfx.deal_handbell']);
+    expect(CUES['sfx.deal_handbell']).toMatchObject({ bus: 'sfx', cooldown: 30 });
+    expect(CUES['sfx.sales_register']).toBeUndefined();
   });
 
   describe('office boombox radio', () => {
@@ -442,9 +443,21 @@ describe('audio director', () => {
     });
 
     it('stays on the era bed with no radio state, an unknown station, or a station with no delivered beds', () => {
-      const d = createDirector({ seed: 3, beds });
-      run(d, state(), 0);
-      for (const [i, s] of [state(), radio('nope'), radio('polka'), radio('lofi', false)].entries()) expect(music(run(d, s, 5 + i))).toEqual([]);
+      const had = ASSETS.music.radio_polka;
+      delete ASSETS.music.radio_polka;
+      try {
+        const d = createDirector({ seed: 3, beds });
+        run(d, state(), 0);
+        for (const [i, s] of [state(), radio('nope'), radio('polka'), radio('lofi', false)].entries()) expect(music(run(d, s, 5 + i))).toEqual([]);
+      } finally { ASSETS.music.radio_polka = had; }
+    });
+
+    it('ships three beds for each of the six stations, every one a delivered file', () => {
+      for (const id of ['lofi', 'synth88', 'polka', 'bossa', 'elevator', 'funk']) {
+        const beds = ASSETS.music[`radio_${id}`]?.beds ?? [];
+        expect(beds.map((b) => b.id), id).toEqual(['a', 'b', 'c']);
+        for (const b of beds) expect(b.stems.full.file, id).toBe(`music/radio_${id}/${b.id}_full.ogg`);
+      }
     });
 
     it('rotates a station beds as a playlist and does not cheer for a station change', () => {
