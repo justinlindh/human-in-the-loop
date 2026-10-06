@@ -79,11 +79,15 @@ async function boot() {
   const present = (events, state) => {
     if (!events?.length) return;
     renderer?.handleEvents(events, state);
-    ui?.handleEvents(events, state);
+    // A driver that plays through the page (scripts/pace-browser.js) sets window.__hitlHooks before load:
+    // origin() names who caused the call ('player' or not), playerEvents(events) tags a dispatch's events,
+    // uiEvents(events, state, ui) wraps the interface's handling. Without it the page behaves as always.
+    const hooks = window.__hitlHooks;
+    if (hooks?.uiEvents) hooks.uiEvents(events, state, ui); else ui?.handleEvents(events, state);
     audio?.onEvents(events, state);
   };
 
-  const route = (events, state, direct = false) => {
+  const route = (events, state, direct = window.__hitlHooks?.origin?.() === 'player') => {
     if (!events?.length) return;
     const urgentIds = new Set((state.chatPrompts ?? []).filter(p => !p.resolved).map(p => p.chatId));
     if (direct) for (const e of events) if (e.type === 'chat') urgentIds.add(e.id);
@@ -95,6 +99,7 @@ async function boot() {
   const pacer = createPacer();
   const dispatch = (action) => {
     const res = sim.dispatch(action);
+    window.__hitlHooks?.playerEvents?.(res.events);
     route(res.events, sim.state, true);
     return res;
   };
