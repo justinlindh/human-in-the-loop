@@ -7,12 +7,13 @@
 //        [--tz <zone>] [--scopes art,ui,...] [--types feat,fix] [--body-chars 600] [--no-fetch]
 //
 // A PR is player-visible when its Conventional Commits type is in --types (default feat, fix) and its
-// scope is in --scopes (default art, ui, sim, audio, capture, pacing), or when it touched
-// docs/features/ at all. Every other PR is listed under `skipped` with the reason, so nothing is lost
-// silently. Days follow --tz (default the machine's zone); --since-first starts at 2026-09-23 and
-// ends today. The docs/features entries come from the PR's merge commit against its first parent, so
-// they are what the PR changed on main; a merge commit missing locally is fetched once (--no-fetch
-// skips that) and, if still missing, the PR carries `featuresUnavailable`.
+// scope is in --scopes (default art, ui, sim, audio, pacing), or when it touched docs/features/ at
+// all (so a capture PR counts only when it changed a feature entry). Every other PR is listed under
+// `skipped` with the reason, so nothing is lost silently. Days follow --tz (default the machine's
+// zone); --since-first starts at 2026-09-23 and ends today. The docs/features entries come from the
+// PR's merge commit against its first parent, so they are what the PR changed on main. The run starts
+// with `git fetch origin main` (--no-fetch skips it); a merge commit still missing locally makes the
+// PR carry `featuresUnavailable`.
 //
 // The early history was merged by hand, with no pull requests: commits on main's first-parent line
 // that are not PR merges come out as `direct` (subject, trimmed body, the player-facing areas they
@@ -24,7 +25,7 @@ import { spawnSync } from 'node:child_process';
 import { parseArgs } from 'node:util';
 
 export const FIRST_DAY = '2026-09-23';
-export const DEFAULT_SCOPES = ['art', 'ui', 'sim', 'audio', 'capture', 'pacing'];
+export const DEFAULT_SCOPES = ['art', 'ui', 'sim', 'audio', 'pacing'];
 export const DEFAULT_TYPES = ['feat', 'fix'];
 const DAY_MS = 86400000;
 
@@ -308,6 +309,7 @@ async function main(argv) {
   if (!Number.isInteger(bodyChars) || bodyChars < 1) { console.error('day-changes: --body-chars needs a whole number above 0'); return 2; }
   let range;
   try { range = parseRange(positionals[0], { sinceFirst: values['since-first'], today: dayOf(new Date().toISOString(), tz) }); } catch (e) { console.error(`day-changes: ${e.message}`); return 2; }
+  if (positionals.length > 1) { console.error(`day-changes: one day or one range, not ${positionals.length} days (use ${positionals[0]}..${positionals.at(-1)} for a range)`); return 2; }
   if (values['since-first'] && positionals.length) { console.error('day-changes: --since-first takes no day'); return 2; }
   if (!values['no-fetch']) spawnSync('git', ['fetch', '-q', 'origin', 'main'], { stdio: 'ignore' });
   try {
@@ -317,4 +319,5 @@ async function main(argv) {
   } catch (e) { console.error(`day-changes: ${e.message}`); return 1; }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) process.exit(await main(process.argv.slice(2)));
+// The exit code is set, not exited with, so a large result is flushed to a pipe before the process ends.
+if (import.meta.url === `file://${process.argv[1]}`) process.exitCode = await main(process.argv.slice(2));
