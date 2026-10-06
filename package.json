@@ -25,6 +25,7 @@
     "lifecycle": "node scripts/lifecycle.js",
     "soak": "node scripts/soak.js",
     "pwa-check": "node scripts/pwa-check.js",
+    "pwa-webkit": "node scripts/pwa-webkit.js",
     "capture": "node scripts/capture.js",
     "trailer": "node scripts/trailer/build.js",
     "models": "bash scripts/build-models.sh",

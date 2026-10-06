@@ -51,7 +51,7 @@ if (realAt >= 0) {
       if (!existsSync(join(wt, 'node_modules'))) execFileSync('ln', ['-s', join(repoDir, 'node_modules'), join(wt, 'node_modules')]);
       mkdirSync(join(wt, 'scripts/pwa'), { recursive: true });
       mkdirSync(join(wt, 'public/pwa'), { recursive: true });
-      for (const f of ['scripts/vite-pwa.mjs', 'scripts/pwa/sw.template.js', 'src/dev/pwa.js', 'src/dev/pwa-ui.js', 'public/pwa/icon-192.png', 'public/pwa/icon-512.png', 'public/pwa/icon-maskable-512.png', 'public/pwa/apple-touch-icon.png']) {
+      for (const f of ['scripts/vite-pwa.mjs', 'scripts/pwa/sw.template.js', 'scripts/pwa/boot-watchdog.js', 'src/dev/pwa.js', 'src/dev/pwa-ui.js', 'public/pwa/icon-192.png', 'public/pwa/icon-512.png', 'public/pwa/icon-maskable-512.png', 'public/pwa/apple-touch-icon.png']) {
         execFileSync('cp', [join(repoDir, f), join(wt, f)]);
       }
       const edit = (file, fn) => { const p = join(wt, file); writeFileSync(p, fn(readFileSync(p, 'utf8'))); };
