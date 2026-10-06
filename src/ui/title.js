@@ -3,6 +3,7 @@ import { portrait, roleChip, confirmButton } from './widgets.js';
 import { traitInfo } from './content.js';
 import { ERA, ARCHETYPES, FUNDING, LOGO_COLORS, archetypePerson, fundingCash, fundingMult, archetypeBlurb, foundingWarning } from './v2content.js';
 import { icon } from './icons.js';
+import { fullscreenActive } from './fullscreen.js';
 import { confirmGate } from './confirm-gate.js';
 import { SAVE_NOTE, SAVE_NOTE_SHORT } from './saveNote.js';
 import { downloadSave, pickSaveFile } from './saveFiles.js';
@@ -354,7 +355,8 @@ export function createTitle({ layer, controls, sfx, toast, onStart, openSettings
       h('label', null, h('b', { text: 'Seed' }), h('span.small.muted', { text: ' optional: the same seed plays the same game' }), seedIn),
       err), next, 'Next: founders');
     setLogo();
-    setTimeout(() => { nameIn.focus(); nameIn.select(); }, 0);
+    // On a touch device in full screen, opening the keyboard drops full screen, so the player taps the field.
+    if (!(fullscreenActive() && window.matchMedia?.('(pointer: coarse)').matches)) setTimeout(() => { nameIn.focus(); nameIn.select(); }, 0);
   }
 
   function foundersStep() {

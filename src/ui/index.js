@@ -20,6 +20,7 @@ import { createOfficePrompt } from './officePrompt.js';
 import { roleName } from './content.js';
 import { icon } from './icons.js';
 import { createSettings } from './settings.js';
+import { watchFullscreen } from './fullscreen.js';
 import { createTitle } from './title.js';
 import { erasPreview } from './eraPreview.js';
 import { createGameOver } from './gameover.js';
@@ -281,6 +282,7 @@ export function createUI({ root, getState, dispatch, controls }) {
   const gameover = createGameOver({ layer, controls, sfx, act });
   const tutorial = createTutorial({ layer, sfx, controls, ui });
   const settings = createSettings({ layer, controls, sfx, getState, toast: (text, tone) => toasts.push(text, tone) });
+  watchFullscreen(layer);
   ui.openSettings = () => settings.open();
   ui.isMuted = () => settings.isMuted();
   ui.toggleMute = () => { settings.setMuted(!settings.isMuted()); sfx('click'); };
