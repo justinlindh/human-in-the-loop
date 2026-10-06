@@ -121,6 +121,22 @@ const MOMENTS = [
   ['incubator', 'incubator_house --choice 0', 'house_sign', 0, 2.6],
 ];
 
+// Moments the event index reaches in too few games to rely on: each is staged from a real game by scheduling its
+// decision for the next week, so the game's own tick raises it with its card, freeze and staging.
+const SCHEDULED = (eventId, weeks) => `${PLAY({ weeks, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE} s.scheduled.push({ id: 'sch_pin', week: s.week + 1, kind: 'event', payload: { eventId: '${eventId}', subjectId: null } });` })}; await ${PRE_DECISION(eventId, 12)}`;
+// Notes the pinned decision when it is on screen, and fails the item at `at` if it never was.
+const SEEN_GUARD = (eventId, length) => [
+  ...Array.from({ length: 2 * length - 4 }, (_, i) => ({ at: 0.5 + i / 2, js: `(() => { if (window.__HITL.state.pendingDecision?.eventId === '${eventId}') window.__pinSeen = true; })()` })),
+  { at: length - 1.5, js: `(() => { if (!window.__pinSeen) console.error('capture: the ${eventId} decision never opened'); })()` },
+];
+// Yak prompts the index reaches too rarely: a real game played into the situation that raises them (the weeks of
+// low cash are held up each week while the look-ahead runs), stopping the week before the prompt opens.
+const PINNED_PROMPTS = {
+  lowcash_lunch: `${PLAY({ weeks: 100, after: `${IN_OFFICE}${DROP_UNSTAFFED}${STAFF_IDLE}` })}; await ${PRE_UNTIL({ weeks: 16, prep: 's.cash = Math.min(s.cash, -1e6); s.lowCashWeeks = Math.max(s.lowCashWeeks, 1);', hit: `(c) => (c.chatPrompts ?? []).some((p) => p.kind === 'lowcash_lunch' && !p.resolved)` })}`,
+};
+const PINNED_EVENT = { 'bridge-loan': 'bridge_loan' };
+const PINNED_MOMENTS = { 'bridge-loan': SCHEDULED('bridge_loan', 176) };
+
 // [event id, find.js query, staged prop, follow zoom]: the staged decisions of docs/features/decisions.md.
 const DECISION_PROPS = [
   ['hackathon', 'hackathon --choice 0', 'pizza_boxes'],
@@ -452,13 +468,13 @@ export const ITEMS = [
   // decision comes from the event index, the game's own tick raises it, the camera follows the prop,
   // and the card is held about 5 s before its choice is made by key.
   ...MOMENTS.map(([name, query, prop, choice, zoom, length = 18]) => ({
-    id: `moment-${name}`, title: `Staged moment: ${name}`, query: 'seed=1&speed=1', moment: query, pre: name !== 'fumes', seconds: length, warmup: 6.5,
-    setup: CLEAN,
+    id: `moment-${name}`, title: `Staged moment: ${name}`, query: 'seed=1&speed=1', ...(PINNED_MOMENTS[name] ? {} : { moment: query, pre: name !== 'fumes' }), seconds: length, warmup: 6.5,
+    setup: PINNED_MOMENTS[name] ? `(async () => { await ${PINNED_MOMENTS[name]}; ${CLEAN}; })()` : CLEAN,
     // No zoom: the game's wide view.
     actions: [{ at: 0, js: NO_SAY }, ...OPEN(), ...(zoom ? FOLLOW(prop.startsWith('(') ? prop : [prop], zoom, 0, length) : []),
       // Fumes: the card opens about 8 s in (the tick that raises it), so it is answered when it is up, not at a fixed time.
       // Any other decision that comes first (the pre-tick week can raise one) gets its first answer.
-      ...(name === 'fumes' ? [...Array.from({ length: 2 * length }, (_, i) => ({ at: i / 2, js: `(() => { const H = window.__HITL, d = H.state.pendingDecision; if (d && d.eventId !== 'coffee_machine_broke') H.dispatch({ type: 'resolveDecision', choice: 0 }); })()` })), ...CHOOSE_WHEN('coffee_machine_broke', choice, 1, length, 1.5)] : [{ at: 6.5, js: KEY(String(choice + 1), `Digit${choice + 1}`) }]),
+      ...(name === 'fumes' ? [...Array.from({ length: 2 * length }, (_, i) => ({ at: i / 2, js: `(() => { const H = window.__HITL, d = H.state.pendingDecision; if (d && d.eventId !== 'coffee_machine_broke') H.dispatch({ type: 'resolveDecision', choice: 0 }); })()` })), ...CHOOSE_WHEN('coffee_machine_broke', choice, 1, length, 1.5)] : PINNED_MOMENTS[name] ? [...SEEN_GUARD(PINNED_EVENT[name], length), ...CHOOSE_WHEN(null, choice, 1, length, 1.5)] : [{ at: 6.5, js: KEY(String(choice + 1), `Digit${choice + 1}`) }]),
       ...DISMISS_AT([7, 7.5, 9, 12], { escape: false }), ...CAMLOG(length)],
     screenshots: [5],
     // The fumes clip ends before the next week's incident card raises its red alarm.
@@ -699,8 +715,8 @@ export const ITEMS = [
   // docs/features/yak.md: the reply prompts. The pre-tick save of the week that raises each one is opened,
   // the game's tick posts it, and the large Yak (which keeps the game running) is scrolled to the prompt.
   ...YAK_PROMPTS.map((kind) => ({
-    id: `yak-${kind}`, title: `Yak reply prompt: ${kind}`, query: 'seed=1&speed=1', moment: kind, pre: true, still: true, warmup: 0.5,
-    setup: `(() => { ${YAK_ONLY}; })()`,
+    id: `yak-${kind}`, title: `Yak reply prompt: ${kind}`, query: 'seed=1&speed=1', ...(PINNED_PROMPTS[kind] ? {} : { moment: kind, pre: true }), still: true, warmup: 0.5,
+    setup: PINNED_PROMPTS[kind] ? `(async () => { await ${PINNED_PROMPTS[kind]}; ${YAK_ONLY}; })()` : `(() => { ${YAK_ONLY}; })()`,
     actions: [
       ...[0, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18].map((at) => ({ at, js: CLEAR_CARDS })),
       ...CHOOSE_WHEN(null, 0, 1, 24, 1.5),
