@@ -2,6 +2,7 @@ import { h, toggleClass } from '../dom.js';
 import { icon } from '../icons.js';
 import { liveView, tabs } from '../widgets.js';
 import { openTarget } from '../openTarget.js';
+import { pacingOn } from '../pacing.js';
 import { FOLDERS, categoryOf, inboxOf, folderOf, unreadCount, hasOpenChoice, ageText, firstLine, threadOf, weeksLeft } from '../mail.js';
 
 const chip = (m) => { const c = categoryOf(m); return h('span.mailchip', { text: c.label, style: { '--mc': c.color } }); };
@@ -76,7 +77,7 @@ export function mailPanel(ctx, arg) {
         h('span', { text: m.resolved.choice == null || m.resolved.replyText == null ? 'No reply.' : `You replied: ${m.resolved.replyText}` })) : null;
       return [
         h('button.btn.small.mailback', { type: 'button', onclick: () => select(null) }, icon('arrow.back', { size: 14 }), ' Back'),
-        h('div.mailhead', null,
+        h(`div.mailhead${hasOpenChoice(m) && pacingOn('mailArchive') ? '.letter' : ''}`, null,
           chip(m),
           h('h3', { text: m.subject }),
           h('div.small.muted', { text: `From ${m.from?.name ?? 'someone'}${m.from?.org ? `, ${m.from.org}` : ''}${m.to ? ` to ${m.to}` : ''} · ${ageText(m.week, s.week)}` }),
