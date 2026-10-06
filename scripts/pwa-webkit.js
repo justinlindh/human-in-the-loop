@@ -7,6 +7,8 @@
 //   no network    a launch with the server gone boots from the cache
 //   stuck storage a worker whose cache listing never answers is stepped around: the page boots from the
 //                 network
+//   watchdog      a page hidden past the wait is left alone; a controlled page with no downloaded set
+//                 (a slow first download) is never reloaded
 //   broken        a build whose modules throw is replaced by the fixed one over the network by the page's
 //                 own reload, or lands on the previous complete build; with nothing to fall back on it
 //                 shows "Loading failed" with Retry, never a blank screen
@@ -95,6 +97,8 @@ export default mergeConfig(base, { root: ${JSON.stringify(repo)}, plugins: [{ na
       const get = HTMLCanvasElement.prototype.getContext;
       HTMLCanvasElement.prototype.getContext = function (t, ...a) { return /webgl/.test(t) ? null : get.call(this, t, ...a); };
       Object.defineProperty(window, '__HITL_BOOT_ERROR', { set() {}, get() { return undefined; } });
+      // A test can hide the page by setting window.__hidden.
+      Object.defineProperty(document, 'visibilityState', { get: () => (window.__hidden ? 'hidden' : 'visible') });
     });
     return c;
   };
@@ -152,7 +156,7 @@ export default mergeConfig(base, { root: ${JSON.stringify(repo)}, plugins: [{ na
   // ---- no network (a launch counts as confirmed once the page has reported, so wait for that)
   const tries = (page) => page.evaluate(async () => {
     const r = await (await caches.open('hitl-meta')).match(new URL('/__active', location.origin).href);
-    return r ? (await r.json()).tries || 0 : -1;
+    return r ? (await r.json()).stalls || 0 : -1;
   });
   const confirmed = async (page) => {
     for (let i = 0; i < 60; i++) { if ((await tries(page)) === 0) return true; await page.waitForTimeout(250); }
@@ -187,6 +191,7 @@ export default mergeConfig(base, { root: ${JSON.stringify(repo)}, plugins: [{ na
   stuck = false;
 
   // ---- a build that cannot start. Each case installs a, then takes the update c, whose modules throw.
+  const origin = (page) => page.evaluate(() => performance.timeOrigin);
   const breakUpdate = async () => {
     await ctx.close();
     ctx = await newContext();
@@ -206,6 +211,36 @@ export default mergeConfig(base, { root: ${JSON.stringify(repo)}, plugins: [{ na
     await loaded;
     return page;
   };
+
+  // A page left hidden never trips the watchdog; the same page trips it once it is visible.
+  p = await breakUpdate();
+  await p.evaluate(() => { window.__hidden = true; });
+  const t0 = await origin(p);
+  await p.waitForTimeout(12000);
+  check('a page hidden for longer than the watchdog waits is left alone', (await origin(p)) === t0 && !(await card(p)) && (await tries(p)) === 0);
+  await p.evaluate(() => { window.__hidden = false; });
+  check('and is reloaded once it is visible for that long', await p.waitForFunction((t) => performance.timeOrigin !== t, t0, { timeout: 30000 }).then(() => true, () => false));
+  await p.close();
+
+  // A page the worker controls but did not serve from a set (nothing downloaded yet, a slow network) is
+  // never reloaded or switched, however long it takes.
+  await ctx.close();
+  ctx = await newContext();
+  root = dirs.a;
+  slowDownloads = 600000;
+  seq = 0;
+  p = await launch();
+  await p.evaluate(() => navigator.serviceWorker.ready);
+  await p.waitForTimeout(1500);
+  await p.close();
+  root = dirs.c;
+  p = await launch();
+  const t1 = await origin(p);
+  await p.waitForTimeout(14000);
+  const served = await p.evaluate(() => performance.getEntriesByType('navigation')[0].serverTiming.length);
+  check('a controlled page with no downloaded set is never reloaded by the watchdog', (await p.evaluate(() => !!navigator.serviceWorker.controller)) && served === 0 && (await origin(p)) === t1 && !(await card(p)));
+  await p.close();
+  slowDownloads = 0;
 
   // The fix is published while the broken build is on screen: the page reloads itself onto it.
   p = await breakUpdate();

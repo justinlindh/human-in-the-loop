@@ -1,19 +1,39 @@
-// Inlined into the build's index.html (scripts/vite-pwa.mjs). A page the worker served that has not
-// reported ready after a few seconds, or reports a boot error, reloads itself: the worker counts the
-// unconfirmed launch, so the first reload goes to the network and the second to the previous complete
-// build. If the page still has not come up after that, a visible "Loading failed" card with a Retry
-// button replaces the blank screen. Plain script, no dependency on the game's modules, which may be the
-// thing that failed.
+// Inlined into the build's index.html (scripts/vite-pwa.mjs). It arms only on a page the worker answered
+// from a downloaded set (the response carries a Server-Timing entry named hitl-set; scripts/pwa/
+// sw.template.js). Such a page that has been visible for a few seconds without reporting ready, or that
+// reports a boot error, tells the worker it stalled and reloads: the worker then serves the next load from
+// the network, and the one after from the previous complete build. If the page still does not come up, a
+// visible "Loading failed" card with a Retry button replaces the blank screen. Time spent hidden does not
+// count, so a page left in the background never trips it. Plain script, no dependency on the game's
+// modules, which may be the thing that failed.
 (function () {
   var sw = navigator.serviceWorker;
   if (!sw || !sw.controller) return;
+  var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+  var timings = (nav && nav.serverTiming) || [];
+  var armed = false;
+  for (var i = 0; i < timings.length; i++) if (timings[i].name === 'hitl-set') armed = true;
+  if (!armed) return;
   var WAIT_MS = 8000;
+  var TICK_MS = 500;
   var AUTO = 2;
   var KEY = 'hitl.bootRetries';
   var card = null;
+  var visible = 0;
   function failed() { return !window.__HITL_READY || !!window.__HITL_BOOT_ERROR; }
   function retries() { try { return Number(sessionStorage.getItem(KEY)) || 0; } catch (e) { return AUTO; } }
   function setRetries(n) { try { if (n) sessionStorage.setItem(KEY, String(n)); else sessionStorage.removeItem(KEY); } catch (e) { /* no storage: no automatic retry */ } }
+  // The worker is told before the page goes: its answer, or a short wait, whichever comes first.
+  function stalled(then) {
+    var done = false;
+    function go() { if (!done) { done = true; then(); } }
+    try {
+      var ch = new MessageChannel();
+      ch.port1.onmessage = go;
+      sw.controller.postMessage({ type: 'stalled' }, [ch.port2]);
+    } catch (e) { go(); return; }
+    setTimeout(go, 1500);
+  }
   function show() {
     if (card || !document.body) return;
     card = document.createElement('div');
@@ -26,20 +46,25 @@
     btn.type = 'button';
     btn.textContent = 'Retry';
     btn.style.cssText = 'min-height:48px;min-width:140px;border:0;border-radius:12px;background:#35c48b;color:#0c2b1f;font:inherit';
-    btn.onclick = function () { location.reload(); };
+    btn.onclick = function () { stalled(function () { location.reload(); }); };
     card.appendChild(msg);
     card.appendChild(btn);
     document.body.appendChild(card);
   }
-  setTimeout(function () {
-    if (!failed()) { setRetries(0); return; }
-    if (retries() < AUTO) { setRetries(retries() + 1); location.reload(); return; }
-    // A game that was only slow takes the card away once it is up.
-    var poll = setInterval(function () {
-      if (failed()) { show(); return; }
+  var tripped = false;
+  var giveUp = false;
+  var poll = setInterval(function () {
+    if (!failed()) {
       if (card) { card.remove(); card = null; }
       setRetries(0);
       clearInterval(poll);
-    }, 500);
-  }, WAIT_MS);
+      return;
+    }
+    if (document.visibilityState === 'visible') visible += TICK_MS;
+    if (giveUp) show();
+    if (visible < WAIT_MS || tripped) return;
+    tripped = true;
+    if (retries() < AUTO) { setRetries(retries() + 1); stalled(function () { location.reload(); }); return; }
+    stalled(function () { giveUp = true; show(); });
+  }, TICK_MS);
 })();

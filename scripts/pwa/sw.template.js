@@ -9,10 +9,12 @@
 //     (the player chose "Restart now"), so a release never takes over silently and a download that is
 //     still going (no marker yet) is never served;
 //   - anything the set lacks goes to the network.
-// A launch that cannot start leaves a way out that does not depend on the page: the worker counts the
-// launches in a row that never reported healthy (the page reports once it has booted). After one such
-// launch the next one fetches the page from the network first (so a fixed release replaces a broken
-// one); after two, the previous complete set becomes the active one.
+// A launch that cannot start leaves a way out that does not depend on the page: a page this worker served
+// from a set carries a watchdog (scripts/pwa/boot-watchdog.js) that reports a stall when the page has been
+// visible for a while without booting, and the worker counts the stalls since the page last reported
+// healthy. After one stall the next launch fetches the page from the network first (so a fixed release
+// replaces a broken one); after two, the previous complete set becomes the active one. The pages the
+// worker answers that way carry a Server-Timing entry named hitl-set, which tells the watchdog to arm.
 // A cache that does not answer in time is treated as absent, so a launch never waits on storage.
 const ID = '__VERSION__';
 const BASE = '__BASE__';
@@ -23,7 +25,8 @@ const MARK = new URL(`${BASE}__complete`, ORIGIN).href;
 const ACTIVE = new URL(`${BASE}__active`, ORIGIN).href;
 const NET_WAIT_MS = 5000;
 const CACHE_WAIT_MS = 4000;
-const LAUNCH_GRACE_MS = 6000;
+// A set's file (audio and models can be large) gets longer than a page does.
+const FILE_WAIT_MS = 20000;
 
 // The promise's value, or undefined when it has not settled in time.
 function within(promise, ms) {
@@ -62,7 +65,7 @@ function look() {
     let active = await readActive();
     if (list.length && !list.some((s) => s.id === active?.id)) {
       const s = list[0];
-      active = { id: s.id, version: s.version, tries: 0 };
+      active = { id: s.id, version: s.version, stalls: 0 };
       await writeActive(active);
     }
     state = { list, active: list.length ? active : null };
@@ -93,15 +96,23 @@ self.addEventListener('message', (event) => {
     event.waitUntil((async () => {
       const s = await look();
       const set = s.list.find((x) => x.id === msg.id);
-      if (set) { await writeActive({ id: set.id, version: set.version, tries: 0 }); await look(); }
+      if (set) { await writeActive({ id: set.id, version: set.version, stalls: 0 }); await look(); }
       event.source?.postMessage({ type: 'activated', id: msg.id, ok: !!set });
     })());
   }
-  // The page booted: the launch counts as confirmed.
+  // The page booted: the stalls are over.
   if (msg.type === 'healthy') {
     event.waitUntil((async () => {
       const a = await readActive();
-      if (a && a.tries) { await writeActive({ ...a, tries: 0 }); await look(); }
+      if (a && a.stalls) { await writeActive({ ...a, stalls: 0 }); await look(); }
+    })());
+  }
+  // The page's watchdog gave up waiting for the game to boot: the next launch looks elsewhere.
+  if (msg.type === 'stalled') {
+    event.waitUntil((async () => {
+      const a = await readActive();
+      if (a) { await writeActive({ ...a, stalls: (a.stalls || 0) + 1 }); await look(); }
+      event.ports[0]?.postMessage('ok');
     })());
   }
 });
@@ -133,6 +144,13 @@ async function fromNetwork(request) {
   } catch { return null; } finally { clearTimeout(timer); }
 }
 
+// The page answer with the entry that arms the page's watchdog.
+function marked(res, tag) {
+  const headers = new Headers(res.headers);
+  headers.append('Server-Timing', `hitl-set;desc="${tag}"`);
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
+
 // The newest complete set other than the active one that holds the page.
 async function previousSet(list, active, key) {
   for (const s of list) {
@@ -159,31 +177,28 @@ async function serve(request) {
   // A page is the build's index whatever its query (?seed=, ?mock=).
   const key = navigating ? `${ORIGIN}${BASE}index.html` : request.url;
   const answer = async () => {
-    // A reload soon after a launch is still that launch: the page has had no time to confirm.
-    const recent = !!active?.tries && Date.now() - (active.at || 0) < LAUNCH_GRACE_MS;
-    if (navigating && active && !recent) {
-      // Each launch counts until the page confirms it booted.
-      const tries = active.tries || 0;
-      active.tries = tries + 1;
-      active.at = Date.now();
-      await writeActive({ ...active });
-      if (tries >= 2) {
+    if (navigating && active) {
+      // Stalls the page's watchdog reported since a launch last booted.
+      const stalls = active.stalls || 0;
+      if (stalls >= 2) {
         const prev = await previousSet(list, active, key);
         if (prev) {
-          const next = { id: prev.id, version: prev.version, tries: 1 };
+          const next = { id: prev.id, version: prev.version, stalls: 0 };
           await writeActive(next);
           state = { list, active: next };
-          return fromSets(request, list, next, key);
+          const res = await fromSets(request, list, next, key);
+          if (res) return marked(res, next.id);
         }
       }
-      if (tries >= 1) {
+      if (stalls >= 1) {
         const fresh = await fromNetwork(request);
-        if (fresh) return fresh;
+        if (fresh) return marked(fresh, 'network');
       }
     }
-    return fromSets(request, list, active, key);
+    const res = await fromSets(request, list, active, key);
+    return navigating && res ? marked(res, active.id) : res;
   };
-  const res = await within(answer(), navigating ? NET_WAIT_MS + CACHE_WAIT_MS * 2 : CACHE_WAIT_MS);
+  const res = await within(answer(), navigating ? NET_WAIT_MS + CACHE_WAIT_MS * 2 : FILE_WAIT_MS);
   return res || fetch(request);
 }
 
