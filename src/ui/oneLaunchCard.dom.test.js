@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createPopups, launchToastCarded, LAUNCH_GAP_MS } from './popups.js';
+import { afterAll, afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
+import { createPopups, launchToastCarded, LAUNCH_GAP_MS, LAUNCH_GAP_FAST_MS } from './popups.js';
 import { shippedDetail } from './ambient.js';
 import { pReset, pTick } from './pclock.js';
 import { B } from '../sim/balance.js';
@@ -65,7 +65,7 @@ describe('oneLaunchCard', () => {
     pTick(200000);
     p.update(s);
     expect(heading(layer)).toBeUndefined();
-    speed = 2;
+    speed = 1;
     pTick(LAUNCH_GAP_MS - 1000);
     p.update(s);
     expect(heading(layer)).toBeUndefined();
@@ -82,10 +82,31 @@ describe('oneLaunchCard', () => {
     p.update(s);
     layer.querySelector('.btn.go').click();
     p.queueLaunch(2);
+    speed = 1;
     pTick(LAUNCH_GAP_MS - 1000);
     p.update(s);
     expect(heading(layer)).toBeUndefined();
     pTick(1500);
+    p.update(s);
+    expect(heading(layer)).toBe('Beta launched!');
+  });
+
+  it('on: above 1x the gap is the sim\'s fast launch gap', () => {
+    B.pacing = { oneLaunchCard: true };
+    const realAttention = B.attention;
+    B.attention = { ...B.attention, launchGap: 90, launchGapFast: 150 };
+    onTestFinished(() => { B.attention = realAttention; });
+    const { layer, p } = setup();
+    const s = state();
+    p.queueLaunch(1);
+    p.update(s);
+    layer.querySelector('.btn.go').click();
+    p.queueLaunch(2);
+    speed = 2;
+    pTick(LAUNCH_GAP_MS + 5000);
+    p.update(s);
+    expect(heading(layer)).toBeUndefined();
+    pTick(LAUNCH_GAP_FAST_MS - LAUNCH_GAP_MS - 4000);
     p.update(s);
     expect(heading(layer)).toBe('Beta launched!');
   });
@@ -103,6 +124,7 @@ describe('oneLaunchCard', () => {
     layer.querySelector('.btn.go').click();
     p.queueLaunch(2);
     // Plenty of UI-clock time passes, but the attention clock has only run 89 s.
+    speed = 1;
     pTick(LAUNCH_GAP_MS * 3);
     clock.playSeconds = 589;
     p.update(s);
