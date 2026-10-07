@@ -25,7 +25,8 @@
 // A PR with a required check pending or missing is listed but does not end a --wait or hold a --drain open: its CI
 // will finish and it will move to READY.
 // --wait and --drain at an interval of 15 s or more read the current repository's PRs from the shared
-// snapshot (pr-snapshot.mjs), so several queues and watchers cost one `gh pr list` per interval; a
+// snapshot (pr-snapshot.mjs), so several queues and watchers cost one `gh pr list` per interval. Their
+// first check refreshes the snapshot from GitHub, so a verdict posted just before the run is seen; a
 // one-shot run always asks GitHub.
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -109,12 +110,12 @@ export function trustedLogins(file) {
 // the shared snapshot (pr-snapshot.mjs), refreshed when older than maxAgeMs. A one-shot run, a faster
 // interval and another repository ask GitHub directly.
 const MIN_SNAPSHOT_AGE_MS = 15000;
-async function lookAll(trusted, repos, maxAgeMs) {
+async function lookAll(trusted, repos, maxAgeMs, refresh = false) {
   const out = [];
   for (const repo of repos) {
     let prs;
     if (!repo && maxAgeMs >= MIN_SNAPSHOT_AGE_MS) {
-      const snap = await ensureFresh({ maxAgeMs });
+      const snap = await ensureFresh({ maxAgeMs, force: refresh });
       if (!snap) throw new Error('gh pr list failed: no PR snapshot and GitHub could not be read');
       if (snap.isStale) console.error(`review-queue: GitHub could not be read (${snap.error ?? 'unknown'}); using the snapshot from ${Math.round((Date.now() - snap.fetchedAt) / 1000)} s ago`);
       prs = snap.prs.filter((p) => (p.baseRefName ?? 'main') === 'main');
@@ -189,12 +190,14 @@ async function main() {
   const out = (items) => console.log(values.json ? JSON.stringify(items) : items.map(line).join('\n'));
   const started = Date.now();
   const expired = () => (Date.now() - started) / 1000 >= timeout;
+  let first = true;
   try {
     if (values.drain) {
       const shown = new Set();
       let woke = false;
       for (;;) {
-        const all = await look(trusted, repos, interval * 1000);
+        const all = await look(trusted, repos, interval * 1000, first);
+        first = false;
         const fresh = all.filter((w) => !shown.has(key(w)));
         if (fresh.length) { out(fresh); for (const w of fresh) shown.add(key(w)); }
         // Done once something that needed a look has been shown and nothing does now; a queue that so far holds
@@ -206,7 +209,8 @@ async function main() {
       }
     }
     for (;;) {
-      const all = await look(trusted, repos, values.wait ? interval * 1000 : 0);
+      const all = await look(trusted, repos, values.wait ? interval * 1000 : 0, first);
+      first = false;
       if (values.wait ? all.some((w) => w.wake) : all.length) { out(all); return 0; }
       if (!values.wait) { if (values.json) out(all); return 3; }
       if (expired()) return 4;
