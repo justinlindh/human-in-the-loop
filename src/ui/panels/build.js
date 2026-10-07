@@ -208,7 +208,9 @@ export function buildPanel(ctx, arg) {
       setClass(cashAfter, `num ${st.cash - size.cost < 0 ? 'bad-t' : ''}`);
       const reason = blocker(st);
       startBtn.disabled = !!reason;
-      setText(note, reason ?? `${CATEGORY[form.category]?.name} × ${ANGLES.find((a) => a.id === form.angle)?.name}${modelNeeded() ? ` on ${MODEL[form.model]?.name}` : ''}`);
+      const solo = !reason && form.team.size === 0;
+      setClass(note, reason ? 'small bad-t blockwhy' : solo ? 'small good-t blockwhy' : 'faint small');
+      setText(note, reason ?? (solo ? `${agentsHere(st) ? 'Agents' : 'Automation'} will build this` : `${CATEGORY[form.category]?.name} × ${ANGLES.find((a) => a.id === form.angle)?.name}${modelNeeded() ? ` on ${MODEL[form.model]?.name}` : ''}`));
     });
     const fit = form.category && form.angle ? s.discoveredCombos?.[`${form.category}:${form.angle}`] : undefined;
     const summary = h('div.card.summary', null,
@@ -240,6 +242,9 @@ export function buildPanel(ctx, arg) {
   }
 
   // Checked live, so clearing the name or losing cash disables Start right away.
+  // With engineering automation on, a new product builds with nobody picked.
+  const autoBuilds = (s) => automatedProject(s, { kind: 'new' });
+
   function blocker(s) {
     if (!form.category) return 'Pick a category';
     if (!form.angle) return s.era ? 'Pick an approach' : 'Pick an AI angle';
@@ -247,7 +252,7 @@ export function buildPanel(ctx, arg) {
     if (!form.name.trim()) return 'Name it';
     if (form.name.trim().length > NAME_MAX) return `Names are up to ${NAME_MAX} characters`;
     if (s.cash < (B.sizes[form.size]?.cost ?? 0)) return 'Not enough cash';
-    if (!form.team || form.team.size === 0) return 'Pick at least one person';
+    if ((!form.team || form.team.size === 0) && !autoBuilds(s)) return 'Pick at least one person, or turn on engineering automation';
     return null;
   }
 
