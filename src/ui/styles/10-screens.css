@@ -21,6 +21,9 @@
 .hitl .modal.settings { width: min(34em, 100%); }
 .hitl .modal.settings .mhead { background: var(--cream-3); }
 .hitl .setrow { display: flex; align-items: center; justify-content: space-between; gap: 1em; padding: 0.35em 0; border-bottom: 0.12em dashed var(--line); }
+.hitl .backconfirm { display: flex; flex-direction: column; gap: 0.5em; padding: 0.6em 0.7em; margin: 0.3em 0; background: var(--cream-2); border: 0.15em solid var(--ink); border-radius: 0.7em; }
+.hitl .backconfirm .row { display: flex; gap: 0.6em; }
+@media (pointer: coarse) { .hitl .backconfirm .btn, .hitl .backtitle { min-height: 44px; } }
 .hitl input.range { pointer-events: auto; width: 12em; accent-color: var(--blue); }
 .hitl .gear { min-width: 2.2em; margin-left: 0.2em; }
 
