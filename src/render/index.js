@@ -495,7 +495,11 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       fx.setWash(wash * RED_WASH.edge);
       scene.updateMatrixWorld();
       // Skipping the draw is exact only while post keeps no state between frames (golden checks this).
+      // Hidden for the draw only: walkers read root.visible in the next update.
+      const near = inside ? fp.tooClose() : [];
+      for (const c of near) c.root.visible = false;
       if (draw) post.render(dt);
+      for (const c of near) c.root.visible = true;
       labels.render(scene, cam);
       const ls = labels.getSize();
       floating.layout(dt, cam, ls.width, ls.height, labels.domElement);
