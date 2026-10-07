@@ -14,7 +14,8 @@
 .hitl .ypost-head { display: flex; align-items: center; justify-content: space-between; padding: 0 0.2em; font-size: 0.8em; color: var(--ink-soft); }
 .hitl .ypost-head b { text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.9em; }
 .hitl .ypost-opt {
-  font: inherit; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 0.55em; width: 100%;
+  /* flex: none keeps a row at its content height; the picker scrolls instead of squeezing rows so their text overprints the next one. */
+  flex: none; font: inherit; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 0.55em; width: 100%;
   padding: 0.4em 0.5em; border: 0.12em solid rgba(42, 38, 48, 0.2); border-radius: 0.6em; background: #fff; color: var(--ink);
 }
 .hitl .ypost-opt:hover:not(:disabled), .hitl .ypost-opt:focus-visible { border-color: var(--ink); background: #fff8e6; }
