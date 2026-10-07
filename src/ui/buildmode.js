@@ -353,9 +353,10 @@ export function adjacencyWords(prev) {
   if (prev.receives?.length) {
     const byKey = new Map();
     for (const r of prev.receives) byKey.set(r.key, (byKey.get(r.key) ?? 0) + r.value);
-    parts.push(`This desk gets ${[...byKey].map(([k, v]) => (k === 'knowledgeShare'
-      ? `a weekly ${Math.round(v * 100)}% closing of the gap to the group's expert (2+ people)`
-      : `+${Math.round(v * 100)}% ${ADJ_LABEL[k] ?? k}`)).join(', ')}`);
+    const share = byKey.get('knowledgeShare');
+    byKey.delete('knowledgeShare');
+    if (byKey.size) parts.push(`This desk gets ${[...byKey].map(([k, v]) => `+${Math.round(v * 100)}% ${ADJ_LABEL[k] ?? k}`).join(', ')}`);
+    if (share !== undefined) parts.push(`This desk closes ${Math.round(share * 100)}% of the gap to the group's expert each week`);
   }
   return parts.join('. ');
 }
