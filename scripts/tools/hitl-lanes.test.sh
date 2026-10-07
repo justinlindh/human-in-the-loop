@@ -26,12 +26,15 @@ cat >"$tmp/bin/tmux" <<F
 #!/usr/bin/env bash
 case "\$1" in
   list-panes) echo %1 ;;
-  capture-pane) [ -f "$tmp/busy" ] && echo "esc to interrupt"; echo "status @\${PANE_NAME:-lane}" ;;
-  send-keys) echo "\$*" >>"$tmp/keys"; case "\$*" in *"/compact"*) [ -f "$tmp/noconfirm" ] || echo '{"compact_boundary":1}' >>"$tmp/t1.jsonl" ;; esac ;;
+  # arrive: a teammate message reaches the lane (and is read at once, so its inbox stays empty) while the wait
+  # for an idle pane goes on: it shows only in the transcript.
+  capture-pane) [ -f "$tmp/arrive" ] && { printf '{"type":"user","timestamp":"%s","message":{"role":"user","content":"<teammate-message teammate_id=\\\\"team-lead\\\\">new ask"}}\n' "\$(date -u +%FT%T.%3NZ)" >>"$tmp/t1.jsonl"; rm -f "$tmp/arrive"; }
+    [ -f "$tmp/busy" ] && echo "esc to interrupt"; echo "status @\${PANE_NAME:-lane}" ;;
+  send-keys) echo "\$*" >>"$tmp/keys"; case "\$*" in *"/compact"*) [ -f "$tmp/noconfirm" ] || echo '{"type":"system","subtype":"compact_boundary"}' >>"$tmp/t1.jsonl" ;; esac ;;
 esac
 F
 chmod +x "$tmp/bin/gh" "$tmp/bin/tmux"
-export PATH="$tmp/bin:$PATH" RESET_POLL=0 HITL_RESET_RESTATE_WAIT=0 CLAUDE_PROJECTS_DIR="$tmp"
+export PATH="$tmp/bin:$PATH" RESET_POLL=0 RESET_IDLE_GRACE=0 HITL_RESET_RESTATE_WAIT=0 CLAUDE_PROJECTS_DIR="$tmp"
 ac() { bash "$HERE/hitl-autocompact.sh" --memory "$mem" --teams "$teams" "$@" >"$tmp/out" 2>&1; rc=$?; }
 
 # The gate: passes, held by inbox, held by changes requested, unknown name.
@@ -40,20 +43,31 @@ ac lane --check; [ $rc -eq 0 ] && grep -qx 'gates pass for lane; other handoffs 
 echo '[{"from":"x"}]' >"$teams/session-a/inboxes/lane.json"
 ac lane --check; [ $rc -eq 3 ] && grep -qx 'held: lane has unread messages' "$tmp/out" || fail "held by the inbox: $rc $(cat "$tmp/out")"
 echo '[]' >"$teams/session-a/inboxes/lane.json"
-# A verdict is the `review` status on the head; reviews stay COMMENTED, so reviewDecision is not used.
-pr_row() { # <branch> <review state>
-  jq -nc --arg b "$1" --arg s "$2" '{headRefName: $b, reviewDecision: "", statusCheckRollup: [{__typename: "StatusContext", context: "review", state: $s}, {__typename: "CheckRun", name: "smoke", conclusion: "SUCCESS"}]}'
+# Verdicts are COMMENTED reviews whose body starts `**Verdict: pass**` or `**Verdict: changes requested**`
+# (reviewDecision stays empty); the latest one decides, on whichever head it was given.
+pr_row() { # <branch> <verdict or comment, oldest first>...: a pr list row
+  local b="$1" bodies=() k; shift
+  for k in "$@"; do case "$k" in
+    changes) bodies+=("**Verdict: changes requested** (head aaa)\n\nfix it") ;;
+    pass) bodies+=("**Verdict: pass** (head bbb)\n\nthe earlier **Verdict: changes requested** was fixed") ;;
+    comment) bodies+=("looks odd, but this is not a verdict: Verdict: changes requested") ;;
+  esac; done
+  printf '%s\n' "${bodies[@]}" | jq -Rsc --arg b "$b" '{headRefName: $b, reviewDecision: "", reviews: [split("\n")[:-1][] | {body: ., state: "COMMENTED"}]}'
 }
-{ echo '['; pr_row lane/topic FAILURE; echo ','; pr_row other/topic FAILURE; echo ']'; } >"$tmp/prs.json"
+{ echo '['; pr_row lane/topic changes; echo ','; pr_row other/topic changes; echo ']'; } >"$tmp/prs.json"
 ac lane --check; [ $rc -eq 3 ] && grep -qx 'held: lane has a PR with changes requested' "$tmp/out" || fail "held by changes requested: $rc $(cat "$tmp/out")"
 ac --check lane; [ $rc -eq 3 ] || fail "--check may come first: $rc"
-{ echo '['; pr_row lane/topic SUCCESS; echo ','; pr_row lane/other PENDING; echo ']'; } >"$tmp/prs.json"
-ac lane --check; [ $rc -eq 0 ] || fail "a passed or pending review does not hold the lane: $rc $(cat "$tmp/out")"
-echo "[$(pr_row integ/topic FAILURE)]" >"$tmp/prs.json"
+echo "[$(pr_row lane/topic changes comment)]" >"$tmp/prs.json"
+ac lane --check; [ $rc -eq 3 ] || fail "a plain comment after the verdict does not release the lane: $rc $(cat "$tmp/out")"
+echo "[$(pr_row lane/topic pass changes)]" >"$tmp/prs.json"
+ac lane --check; [ $rc -eq 3 ] || fail "the latest verdict decides: a pass, then changes, holds (a new head with only a main merge keeps it too): $rc $(cat "$tmp/out")"
+{ echo '['; pr_row lane/topic changes pass; echo ','; pr_row lane/other comment; echo ','; pr_row lane/third; echo ']'; } >"$tmp/prs.json"
+ac lane --check; [ $rc -eq 0 ] || fail "changes then a pass, a bare comment and no review do not hold the lane: $rc $(cat "$tmp/out")"
+echo "[$(pr_row integ/topic changes)]" >"$tmp/prs.json"
 ac integrator --check; [ $rc -eq 3 ] || fail "the integrator's PRs are integ/: $rc $(cat "$tmp/out")"
-echo "[$(pr_row tools/topic FAILURE)]" >"$tmp/prs.json"
+echo "[$(pr_row tools/topic changes)]" >"$tmp/prs.json"
 ac tools2 --check; [ $rc -eq 3 ] || fail "tools2's PRs are on tools/ branches: $rc $(cat "$tmp/out")"
-echo "[$(pr_row lead/topic FAILURE)]" >"$tmp/prs.json"
+echo "[$(pr_row lead/topic changes)]" >"$tmp/prs.json"
 ac team-lead --check; [ $rc -eq 3 ] || fail "team-lead's PRs are on lead/ branches: $rc $(cat "$tmp/out")"
 ac lane --check; [ $rc -eq 0 ] || fail "another lane's verdict does not hold this one: $rc $(cat "$tmp/out")"
 # The gate fails closed: a gh that cannot answer holds the lane.
@@ -84,6 +98,23 @@ ac lane
   && grep -qP '^\S+\tlane\tcompact\tpre=\d+\ttranscript=t1.jsonl$' "$mem/reset-trial.log" || fail "an autocompact compacts, logs and asks for the restate: $rc $(cat "$tmp/out") $(cat "$tmp/keys")"
 echo '[{"from":"x"}]' >"$teams/session-a/inboxes/lane.json"; : >"$tmp/keys"
 ac lane; [ $rc -eq 3 ] && [ ! -s "$tmp/keys" ] || fail "a held lane is not touched: $rc $(cat "$tmp/keys")"
+echo '[]' >"$teams/session-a/inboxes/lane.json"
+
+# A message that arrives during the idle wait and is read at once is invisible to the inbox check but is in
+# the transcript: the lane is held, /compact is not typed, and the restate prompt is not sent.
+: >"$tmp/keys"; touch "$tmp/arrive"
+ac lane; [ $rc -eq 3 ] && grep -qx 'held: lane has a new message since the check' "$tmp/out" && [ ! -s "$tmp/keys" ] \
+  || fail "a message read during the wait holds the compact: $rc $(cat "$tmp/out") keys: $(cat "$tmp/keys")"
+rm -f "$tmp/arrive"
+# The recheck itself: a message stamped after the given time holds; one before it does not; the gates run again.
+ac lane --recheck 2999-01-01T00:00:00.000Z; [ $rc -eq 0 ] || fail "--recheck passes when nothing is newer: $rc $(cat "$tmp/out")"
+ac lane --recheck 2000-01-01T00:00:00.000Z; [ $rc -eq 3 ] && grep -q 'new message since the check' "$tmp/out" || fail "--recheck holds on a newer message: $rc $(cat "$tmp/out")"
+echo '[{"from":"x"}]' >"$teams/session-a/inboxes/lane.json"
+ac lane --recheck 2999-01-01T00:00:00.000Z; [ $rc -eq 3 ] && grep -q 'unread messages' "$tmp/out" || fail "--recheck runs the inbox gate again: $rc $(cat "$tmp/out")"
+echo '[]' >"$teams/session-a/inboxes/lane.json"
+echo "[$(pr_row lane/topic changes)]" >"$tmp/prs.json"
+ac lane --recheck 2999-01-01T00:00:00.000Z; [ $rc -eq 3 ] && grep -q 'changes requested' "$tmp/out" || fail "--recheck runs the PR gate again: $rc $(cat "$tmp/out")"
+echo '[]' >"$tmp/prs.json"
 
 # Paths come from the environment, with no machine path in the scripts.
 cfg="$tmp/cfg"; mkdir -p "$cfg"

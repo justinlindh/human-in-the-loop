@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Compacts a teammate that just reported "handoff ready", but only at a safe boundary: its inbox is
-# empty (nobody is mid-conversation with it) and none of its PRs has changes requested. After the
-# compact it types a prompt asking the lane to restate its paths, open work and open threads, so the
-# lead can check nothing dropped.
+# empty (nobody is mid-conversation with it) and none of its PRs has changes requested (its latest
+# verdict review says so). The gates run again right before /compact is typed, with a look at the lane's
+# transcript for a message that arrived since and was already read. After the compact it types a prompt
+# asking the lane to restate its paths, open work and open threads, so the lead can check nothing dropped.
 # Usage: hitl-autocompact.sh [--memory <dir>] [--teams <dir>] <name> [--check]
 # Exit 0 compacted (or, with --check, the gates pass); 3 held (reason on stdout); 1 error (no team lists
 # the name, no pane); 2 bad arguments. --check also lists other lanes whose handoff names <name>, for the
@@ -17,13 +18,14 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE/hitl-lane-paths.sh"
 
 usage() { sed -n '2,/^set -uo/p' "${BASH_SOURCE[0]}" | sed '$d' | sed 's/^# \{0,1\}//'; }
-args=()
+args=(); recheck=""
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
     --check) args+=("--check"); shift ;;
     --memory) [ $# -ge 2 ] || { echo "--memory needs a directory" >&2; exit 2; }; export HITL_MEMORY_DIR="$2"; shift 2 ;;
     --teams) [ $# -ge 2 ] || { echo "--teams needs a directory" >&2; exit 2; }; HITL_TEAMS_DIR="$2"; shift 2 ;;
+    --recheck) [ $# -ge 2 ] || { echo "--recheck needs a time" >&2; exit 2; }; recheck="$2"; shift 2 ;;
     --*) echo "unknown option $1" >&2; exit 2 ;;
     *) args+=("$1"); shift ;;
   esac
@@ -38,18 +40,43 @@ team="$(ls -td "$teams"/session-*/ 2>/dev/null | while read -r t; do jq -e --arg
 [ -n "$team" ] || { echo "no team lists $name" >&2; exit 1; }
 
 inbox="$team/inboxes/$name.json"
-if [ -s "$inbox" ] && [ "$(jq 'length' "$inbox" 2>/dev/null || echo 0)" -gt 0 ]; then
-  echo "held: $name has unread messages"; exit 3
-fi
-
-# Verdicts are posted as the `review` status on the head (the reviews themselves are COMMENTED, so
-# reviewDecision stays empty). A lane's branches carry its prefix; three lanes are named differently.
+# A lane's branches carry its prefix; three lanes are named differently.
 case "$name" in integrator) prefix=integ ;; tools2) prefix=tools ;; team-lead) prefix=lead ;; *) prefix="$name" ;; esac
-asked="$(cd "$repo" && gh pr list --json headRefName,statusCheckRollup --jq "[.[] | select((.headRefName | startswith(\"$prefix/\")) and any(.statusCheckRollup[]?; (.context // .name) == \"review\" and (.state // .conclusion) == \"FAILURE\"))] | length" 2>/dev/null)" || asked=""
-# The gate fails closed: a gh that can't answer holds the lane.
-[ -n "$asked" ] || { echo "held: couldn't read $name's PRs from GitHub"; exit 3; }
-if [ "$asked" -gt 0 ]; then
-  echo "held: $name has a PR with changes requested"; exit 3
+
+# The gates: an empty inbox (nobody is mid-conversation with the lane) and no PR whose latest verdict is
+# changes requested. Verdicts are reviews whose body starts `**Verdict: pass**` or `**Verdict: changes
+# requested**` (the reviews are COMMENTED, so reviewDecision stays empty); the latest one decides, so a head
+# that only merged main still counts. Exits 3 with the reason when one holds, and when gh can't answer.
+gates() {
+  if [ -s "$inbox" ] && [ "$(jq 'length' "$inbox" 2>/dev/null || echo 0)" -gt 0 ]; then
+    echo "held: $name has unread messages"; exit 3
+  fi
+  local asked
+  asked="$(cd "$repo" && gh pr list --json headRefName,reviews --jq "[.[] | select(.headRefName | startswith(\"$prefix/\")) | [.reviews[] | select(.body | test(\"^\\\\s*\\\\*\\\\*Verdict: (pass|changes requested)\\\\*\\\\*\"))] | last | select(. != null) | select(.body | test(\"^\\\\s*\\\\*\\\\*Verdict: changes requested\"))] | length" 2>/dev/null)" || asked=""
+  [ -n "$asked" ] || { echo "held: couldn't read $name's PRs from GitHub"; exit 3; }
+  if [ "$asked" -gt 0 ]; then
+    echo "held: $name has a PR with changes requested"; exit 3
+  fi
+}
+
+# A message that reached the lane after <since> and was read already (reading drains the inbox) is only in
+# its transcript: the newest recent transcript opening with the lane's brief, a user record carrying a
+# <teammate-message> stamped after <since>.
+new_mail_since() {
+  local proj f t=""
+  proj="${CLAUDE_PROJECTS_DIR:-$(dirname "$(lane_memory_dir)")}"
+  while IFS= read -r f; do
+    grep -q "You are \`$name\`" < <(head -n 20 "$f") && { t="$f"; break; }
+  done < <(find "$proj" -maxdepth 1 -name '*.jsonl' -mmin -1440 -printf '%T@ %p\n' 2>/dev/null | sort -rn | cut -d' ' -f2-)
+  [ -n "$t" ] || return 1
+  jq -R -e --arg s "$1" 'fromjson? | select(.type == "user" and (.timestamp // "") > $s and ((.message.content // "") | tostring | contains("<teammate-message")))' "$t" >/dev/null 2>&1
+}
+
+since="$(date -u +%FT%T.%3NZ)"
+gates
+if [ -n "$recheck" ]; then
+  if new_mail_since "$recheck"; then echo "held: $name has a new message since the check"; exit 3; fi
+  exit 0
 fi
 
 if [ "$check" = --check ]; then
@@ -60,7 +87,11 @@ if [ "$check" = --check ]; then
 fi
 
 mem="$(lane_memory_dir)"; mkdir -p "$mem"
-bash "$HERE/../team/reset-teammate.sh" "$name" compact 60 --log "$mem/reset-trial.log" || exit $?
+# reset-teammate.sh waits for the pane to go idle, which can take a while; right before it types /compact it
+# runs the gates again and looks for a message that came in since this check, so the lane is not compacted
+# with an instruction its handoff doesn't have.
+again="bash $(printf '%q' "$HERE/hitl-autocompact.sh") --memory $(printf '%q' "$mem") --teams $(printf '%q' "$teams") --recheck $since $name"
+bash "$HERE/../team/reset-teammate.sh" "$name" compact 60 --log "$mem/reset-trial.log" --before-send "$again" || exit $?
 
 pane=""
 for p in $(tmux list-panes -a -F '#{pane_id}'); do
