@@ -30,21 +30,6 @@
     "seed": 3,
     "week": 800
   },
-  "eraChatgbt": {
-    "query": "seed=1&speed=1",
-    "seed": 1,
-    "week": 197
-  },
-  "eraAgents": {
-    "query": "seed=1&speed=1",
-    "seed": 1,
-    "week": 327
-  },
-  "eraConsolidation": {
-    "query": "seed=1&speed=1",
-    "seed": 1,
-    "week": 534
-  },
   "launch": {
     "query": "seed=9&speed=1",
     "seed": 9,

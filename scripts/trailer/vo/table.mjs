@@ -44,11 +44,13 @@ function speech(file) {
 
 const f2 = (x) => (x == null ? '' : x.toFixed(2));
 const problems = [];
-const rows = VO.lines.map((l, i) => {
+// Silent lines are caption-only labels with no recording and no window.
+const SPOKEN = VO.lines.filter((l) => !l.silent);
+const rows = SPOKEN.map((l, i) => {
   const beat = beatOf[l.at.beat];
   if (!beat) { problems.push(`${l.id}: unknown beat ${l.at.beat}`); return null; }
   const offset = l.at.offset ?? 0;
-  const firstInBeat = !VO.lines.slice(0, i).some((p) => p.at.beat === l.at.beat);
+  const firstInBeat = !SPOKEN.slice(0, i).some((p) => p.at.beat === l.at.beat);
   const room = beat.dur - (offset + l.max);
   const need = beat.last ? 0 : RULE.beforeCut;
   const issues = [];

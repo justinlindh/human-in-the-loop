@@ -49,7 +49,9 @@ Everything lives in `scripts/trailer/config.js`:
   narrator, and the fade out. Times are seconds or `{ beat, offset }`, so they follow a beat when cuts move.
 - `VO`: the narration lines, their cue points and caption switch.
 
-The first launch, the incident and the era arrivals are the trailer's own capture items
+The era segment's five beats (`era-*`) are captured from `scripts/reels/era-trailer`: each opens on its own stored game and has caption-only lines (`silent: true`, held for `hold` seconds) in place of narration.
+
+The first launch and the incident are the trailer's own capture items
 (`scripts/trailer/manifest.js`). Each plays a real game with the balanced bot and stops the week before
 its event, so the event happens live on camera. The launch and incident seeds are not fixed: when the
 manifest loads, it replays candidate seeds in the pure sim and takes the first whose event lands in a

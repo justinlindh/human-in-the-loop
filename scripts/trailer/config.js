@@ -1,5 +1,5 @@
 import { YAK_HELPERS, YAK_CHECK } from '../feature-media/yak.js';
-import { LOAD_PIN, BEFORE_EVENT } from './pins.js';
+import { LOAD_PIN } from './pins.js';
 import { GROW, EMPTY_DESKS } from '../feature-media/manifest.js';
 import { PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY, CAMLOG, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK_SEL, STAGE_ONLY, CLEAR_CARDS } from '../capture-manifest.js';
 // A player closes any launch or unlock card that turns up while the Yak thread plays out; a modal card holds the clock.
@@ -39,9 +39,8 @@ const LATER = (at) => ({ at, js: "[...document.querySelectorAll('button')].find(
 const YAK_HISTORY = (at) => ({ at, js: 'window.__HITL.emit((window.__HITL.state.chatLog ?? []).slice(-15))' });
 
 // The camera target and zoom a beat's capture keeps: `target` is where the view already looks
-// (VIEW0), or a party's centre (PARTY). In-engine moves only; `punch` (a 2D zoom) is not used.
+// (VIEW0), or a party's centre (PARTY). In-engine moves; `punch` (a 2D zoom) only holds the era segment's crops.
 const VIEW0 = { js: '(window.__v0 ??= window.__hitlRender.view())' };
-const PEOPLE = { js: "(() => { let n = 0, x = 0, z = 0; window.__hitlRender.scene.traverse((o) => { if (o.userData.staffId !== undefined) { const v = o.parent.getWorldPosition(new o.parent.position.constructor()); x += v.x; z += v.z; n++; } }); return window.__people ??= (n ? { x: x / n, z: z / n } : null); })()" };
 // Speech bubbles and work labels hidden, for a shot about something else.
 const NO_SAY_T = (at) => ({ at, js: "(() => { const st = document.createElement('style'); st.textContent = '.hitl-say, .hitl-leads { display: none !important; }'; document.head.append(st); })()" });
 // The post's facepalmer, found through the renderer and held for the reaction shot.
@@ -118,13 +117,17 @@ export const BEATS = [
   { id: 'yak-react', item: 'site-yak-backfire', capture: { query: 'seed=13&speed=1', setup: YAK_SETUP, still: false, seconds: 16, screenshots: [11.2, 11.6, 12.4, 13.2, 14, 14.8, 15.6], camera: [{ at: 0, target: VIEW0, zoom: 1 }, { at: 11, target: VIEW0, zoom: 1 }, { at: 11.2, target: FACEPALMER, zoom: 4.2 }] }, actions: [...CAMLOG(16), NO_SAY_T(0), { at: 11, js: "document.querySelector('#ui').style.display = 'none'" }, { at: 11.3, js: "if (!window.__facepalmer) throw new Error('trailer: the post has no facepalmer')" }], from: 11.2, dur: 2.0 },
   // The PC LOAD LETTER meme held full size from its first frame, so the sign reads. No narration.
   { id: 'printer-meme', item: 'site-yak-backfire', capture: { query: 'seed=62&speed=1', setup: MEME_SETUP, still: false, seconds: 8, screenshots: [], actions: MEME_ACTIONS }, from: 3.65, dur: 3.5 },
-  { id: 'printer', item: 'trail-fly-printer', capture: { seconds: 36, pin: 'printer' }, from: 26 + 4 / 30, dur: 7.0 },
-  { id: 'era-chatgbt', item: 'real-era', capture: { pin: 'eraChatgbt' }, actions: [NO_ERA_CARD(0)], from: 9.0, dur: 4.1 },
-  { id: 'era-agents', item: 'real-era', capture: { pin: 'eraAgents' }, actions: [NO_ERA_CARD(0)], from: 9.0, dur: 2.4 },
+  { id: 'printer', item: 'trail-fly-printer', capture: { seconds: 36, pin: 'printer' }, from: 28.1, dur: 7.0 },
+  // The era segment (scripts/reels/era-trailer): one cut per era, each from its own stored game. `punch` holds a
+  // fixed crop onto the window or card; the labels are the silent caption lines below.
+  { id: 'era-inventory', item: 'seg-inventory', punch: { at: [0.5, 0.4], zoom: [1.25, 1.25] }, from: 1.5, dur: 3.0 },
+  { id: 'era-float', item: 'seg-float', punch: { at: [0.65, 0.45], zoom: [1 / 0.7, 1 / 0.7] }, from: 7.0, dur: 3.0 },
+  // The countdown ends on 23:59:59, before the midnight card.
+  { id: 'era-y2k', item: 'seg-y2k', punch: { at: [0.5, 0.6], zoom: [1.25, 1.25] }, from: 12.7, dur: 4.0 },
+  { id: 'era-web2', item: 'seg-web2', punch: { at: [0.5, 0.4], zoom: [1.25, 1.25] }, from: 2.0, dur: 3.0 },
+  { id: 'era-ai', item: 'seg-ai', punch: { at: [0.6, 0.55], zoom: [1.25, 1.25] }, from: 8.1, dur: 3.4 },
   // The runaway cloud bill: the hot rack smoking behind the card.
   { id: 'cloud-bill', item: 'site-loop-automation', capture: { query: 'seed=6&speed=1', pin: 'cloud' }, from: 10.0, dur: 4.0 },
-  // Consolidation's redress is mostly cleanup: the beat frames the crowd, the busiest HQ.
-  { id: 'era-consolidation', item: 'real-era', actions: [NO_ERA_CARD(0)], capture: { pin: 'eraConsolidation', camera: [{ at: 0, target: PEOPLE, zoom: 1.7 }] }, from: 9.0, dur: 2.8 },
   // The flying camera's orbit onto the waffle table.
   { id: 'waffle', item: 'trail-fly-waffle', from: 14.3, dur: 4.2 },
   { id: 'dance', item: 'site-loop-music', capture: { camera: [{ at: 14, target: DANCER, zoom: 2.2 }] }, from: 19.0, dur: 3.0 },
@@ -141,7 +144,7 @@ export const BEATS = [
 export const MUSIC = {
   bed: { file: 'public/audio/music/classic/a_full.ogg', gain: -8, fadeIn: 0.3 },
   // The printer's own cue replaces the bed for its beat and lands on the printer beat's cut.
-  swaps: [{ file: 'public/audio/moments/printer_smash.ogg', seek: 9.9, at: { beat: 'printer' }, until: { beat: 'era-chatgbt' }, fade: 0.3, gain: -6 }],
+  swaps: [{ file: 'public/audio/moments/printer_smash.ogg', seek: 9.9, at: { beat: 'printer' }, until: { beat: 'era-inventory' }, fade: 0.3, gain: -6 }],
   // The foosball rally once both players are at the table: the game plays its cue once per use, so
   // the trailer places a few hits of the same sound under the bed.
   stingers: [5.15, 5.7, 6.35, 6.9, 7.6].map((offset) => ({ file: 'public/audio/sfx/foosball.ogg', at: { beat: 'build', offset }, gain: -12 })),
@@ -165,10 +168,12 @@ export const VO = {
     { id: 'l2c', at: { beat: 'noc-watch', offset: 0.3 }, max: 3.4, text: 'The dashboards are green. The agents are very confident.' },
     { id: 'l2b', at: { beat: 'incident', offset: 0.2 }, max: 1.7, text: 'Call the outage a stress test.' },
     { id: 'l7', at: { beat: 'yak', offset: 0.3 }, max: 2.5, text: 'Your team talks. Mostly in memes.' },
-    { id: 'l3', at: { beat: 'era-chatgbt', offset: 0.2 }, max: 3.6, text: 'Survive the AI eras. First chatbots.' },
-    { id: 'l3b', at: { beat: 'era-agents', offset: 0.3 }, max: 1.1, text: 'Then agents.' },
+    // The era segment has no narration: its labels are caption-only lines held for `hold` seconds.
+    { id: 'e1', at: { beat: 'era-inventory', offset: 0.2 }, silent: true, hold: 2.35, text: 'Pre-internet: software in boxes' },
+    { id: 'e2', at: { beat: 'era-float', offset: 0.2 }, silent: true, hold: 2.35, text: 'The dot-com boom' },
+    { id: 'e4', at: { beat: 'era-web2', offset: 0.2 }, silent: true, hold: 2.35, text: 'Web 2.0' },
+    { id: 'e5', at: { beat: 'era-ai', offset: 0.2 }, silent: true, hold: 2.75, text: 'The AI years' },
     { id: 'l9', at: { beat: 'cloud-bill', offset: 0.3 }, max: 3.3, text: 'Just automate everything. Read the bill later.' },
-    { id: 'l3c', at: { beat: 'era-consolidation', offset: 0.2 }, max: 2.2, text: 'Then whatever the agents hire.' },
     { id: 'l4a', at: { beat: 'waffle', offset: 0.4 }, max: 2.3, text: 'Reward your team with waffles.' },
     { id: 'l4b', at: { beat: 'dance', offset: 0.3 }, max: 2.1, text: 'And a mandatory dance break.' },
     { id: 'l10', at: { beat: 'plateau', offset: 0.5 }, max: 4.0, text: "Or automate them all, and see who's left." },
@@ -185,9 +190,6 @@ export const PIN_SOURCES = {
   meme: { query: 'seed=62&speed=1', setup: `(async () => { await ${PRE_UNTIL(MEME_PLAY)}; })()` },
   garage: { query: 'seed=5&speed=1&time=day', setup: GROW(4) },
   cloud: { query: 'seed=6&speed=1' },
-  eraChatgbt: { query: 'seed=1&speed=1', setup: BEFORE_EVENT("(e) => e.type === 'era' && e.eraId === 'chatgbt'") },
-  eraAgents: { query: 'seed=1&speed=1', setup: BEFORE_EVENT("(e) => e.type === 'era' && e.eraId === 'agents'") },
-  eraConsolidation: { query: 'seed=1&speed=1', setup: BEFORE_EVENT("(e) => e.type === 'era' && e.eraId === 'consolidation'") },
   launch: { query: 'seed=9&speed=1', setup: `(async () => { await ${PRE_UNTIL({ weeks: 400, bot: 'balanced', prep: IN_OFFICE, hit: LAUNCH_HIT })}; })()` },
   plateau: { query: 'seed=3&speed=1&time=day', setup: GROW(800, { lateHires: false }) },
   printer: { moment: 'printer_jam --stage floor --choice 0' },

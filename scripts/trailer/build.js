@@ -38,7 +38,7 @@ for (const f of ['config.js', 'manifest.js']) {
 const { BEATS, CARDS, MUSIC, OUTPUT, PLAY_URL, VO } = await import(pathToFileURL(join(ROOT, TRAILER.dir, 'config.js')).href);
 if (args['print-vo']) {
   // A line's `say` (how the narrator speaks it, e.g. a URL read aloud) is the TTS script when set; `text` stays the caption.
-  process.stdout.write(`${JSON.stringify(VO.lines.map(({ id, text, say }) => ({ id, text: say ?? text })), null, 2)}\n`);
+  process.stdout.write(`${JSON.stringify(VO.lines.filter((l) => !l.silent).map(({ id, text, say }) => ({ id, text: say ?? text })), null, 2)}\n`);
   process.exit(0);
 }
 
@@ -124,11 +124,12 @@ for (const b of AUDIO_ONLY ? [] : clipBeats) {
 
 // 2. Voiceover lines and their times.
 const lines = VO.lines.map((l) => {
-  const file = VO_DIR ? join(VO_DIR, `${l.id}.wav`) : null;
+  // A silent line is a caption with no narration: it has no recording and stays up for `hold` seconds.
+  const file = VO_DIR && !l.silent ? join(VO_DIR, `${l.id}.wav`) : null;
   const has = file && existsSync(file);
-  if (VO_DIR && !has) throw new Error(`trailer: missing voiceover line ${file}`);
+  if (VO_DIR && !l.silent && !has) throw new Error(`trailer: missing voiceover line ${file}`);
   // Without a recording, a caption stays up for a reading-pace estimate.
-  const len = has ? probeSeconds(file) : l.text.split(/\s+/).length / 2.6;
+  const len = has ? probeSeconds(file) : l.hold ?? l.text.split(/\s+/).length / 2.6;
   return { ...l, file: has ? file : null, start: at(l.at), len };
 });
 for (const [i, l] of lines.entries()) {
