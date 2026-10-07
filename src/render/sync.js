@@ -2389,10 +2389,14 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     shown(id) { const r = recs.get(id); return !!r && !r.hidden && r.mode === 'placed'; },
     // Floor positions of everyone visible, for effects that react to where people are.
     positions() { const out = []; for (const r of recs.values()) if (!r.hidden) out.push(r.pos); return out; },
-    // Characters of everyone drawn whose floor position is within r of (x, z) on the floor, but `except`.
+    // Everyone drawn within r of (x, z) on the floor, but `except`: [{ char, d }] with d their distance.
     charsNear(x, z, r, except = null) {
       const out = [];
-      for (const o of recs.values()) if (o.id !== except && !o.hidden && o.char.root.visible && Math.hypot(o.pos.x - x, o.pos.z - z) < r) out.push(o.char);
+      for (const o of recs.values()) {
+        if (o.id === except || o.hidden || !o.char.root.visible) continue;
+        const d = Math.hypot(o.pos.x - x, o.pos.z - z);
+        if (d < r) out.push({ char: o.char, d });
+      }
       return out;
     },
     // Checks: put someone in a temp and optionally set them walking across the office.

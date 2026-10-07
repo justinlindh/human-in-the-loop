@@ -25,7 +25,13 @@ const FOLLOW = 18;               // how fast see-as follows the eyes (1/s): stea
 const LOOK_AHEAD_M = 1.2;        // see-as, walking: the view aims at the path this far ahead
 const TURN = 6;                  // how fast see-as turns to a new heading (1/s)
 
-const CLEAR_M = 0.5;             // see-as: anyone standing this close to the eye is left out of the frame
+// See-as leaves out of the frame anyone this close to the eye: a chibi head nearer than about 0.9 m
+// covers a third of the view. Walking past or behind someone the wider reach applies; standing (a
+// chat, a huddle) only the near one, so a conversation partner stays in view. Someone left out
+// comes back only past the reach plus CLEAR_HOLD_M, so nobody blinks in and out.
+const CLEAR_M = 0.5;
+const CLEAR_WALK_M = 0.9;
+const CLEAR_HOLD_M = 0.15;
 const ARRIVE_M = 1.5;           // see-as: over a walk's last this-many metres the view turns to the spot's facing
 const AT_SPOT_M = 0.5;           // and within this of the spot it holds that facing
 
@@ -60,6 +66,8 @@ export function createFirstPerson({ getOffice, getStaff, onAutoExit = () => {} }
   const pos = new THREE.Vector3(), dir = new THREE.Vector3(), tmp = new THREE.Vector3();
   const view = { yaw: 0 };
   let fresh = true;
+  let walking = false;            // see-as: the person has a path ahead this frame
+  const left = new Set();         // see-as: characters left out of the last frame
 
   function shown(id) {
     const s = getStaff();
@@ -159,6 +167,7 @@ export function createFirstPerson({ getOffice, getStaff, onAutoExit = () => {} }
       // wall the last steps point at.
       const w = getStaff().walkOf?.(who);
       const ahead = pathAhead(p.eyes, w?.path);
+      walking = !!w?.path?.length;
       let want = ahead ? Math.atan2(ahead.x - p.eyes.x, ahead.z - p.eyes.z) : Math.atan2(p.forward.x, p.forward.z);
       // At the spot it holds that facing while the body turns round to it.
       const spot = w?.temp?.goal ?? w?.goal;
@@ -192,11 +201,19 @@ export function createFirstPerson({ getOffice, getStaff, onAutoExit = () => {} }
 
   return {
     camera, seeAs, walk, input, step,
-    // See-as: the characters too close to the eye to draw this frame (a passer-by's head would fill
-    // the screen). Walk mode keeps everyone: people stop the walker a body apart, and it chose to go there.
+    // See-as: the characters not to draw this frame: the person seen through, and anyone too close to
+    // the eye (a passer-by's head would fill the screen). Walk mode keeps everyone: people stop the
+    // walker a body apart, and it chose to go there.
     tooClose() {
-      if (mode !== 'seeAs') return [];
-      return getStaff()?.charsNear?.(camera.position.x, camera.position.z, CLEAR_M, who) ?? [];
+      if (mode !== 'seeAs') { left.clear(); return []; }
+      const reach = walking ? CLEAR_WALK_M : CLEAR_M;
+      const near = getStaff()?.charsNear?.(camera.position.x, camera.position.z, reach + CLEAR_HOLD_M, who) ?? [];
+      const out = near.filter((n) => n.d < reach || left.has(n.char)).map((n) => n.char);
+      left.clear();
+      for (const c of out) left.add(c);
+      // Their own body too: a hand swinging up into the view reads as a ball floating past.
+      const self = getStaff()?.charOf(who);
+      return self ? [self, ...out] : out;
     },
     exit() { end(false); },
     get mode() { return mode; },

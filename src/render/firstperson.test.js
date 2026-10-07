@@ -105,14 +105,34 @@ test('see-as, walking, looks down the path ahead rather than at a wall the head 
   expect(fp.camera.getWorldDirection(new THREE.Vector3()).z).toBeLessThan(-0.99);
 });
 
-test('see-as leaves out anyone right by the eye; walk mode never does', () => {
-  const people = { s1: person(0, 0, Math.PI / 2), s2: person(0.4, 0.1), s3: person(2, 0) };
+test('see-as leaves out anyone right by the eye, further while walking; walk mode never does', () => {
+  // s2 is 0.33 m from the eye, s3 0.73 m, s4 1.9 m.
+  const people = { s1: person(0, 0, Math.PI / 2), s2: person(0.4, 0.1), s3: person(0.8, 0), s4: person(2, 0) };
   const { fp, staff } = world({ obstacles: [], people });
   staff.charsNear = (x, z, r, except) => Object.entries(people)
-    .filter(([id, p]) => id !== except && Math.hypot(p.eyes.x - x, p.eyes.z - z) < r).map(([id]) => id);
+    .map(([id, p]) => ({ char: id, d: Math.hypot(p.eyes.x - x, p.eyes.z - z) }))
+    .filter((n) => n.char !== except && n.d < r);
+  // The first one left out is always the person seen through; the rest are passers-by.
+  const others = () => {
+    const [self, ...rest] = fp.tooClose();
+    expect(self.probe().eyes).toBe(people.s1.eyes);
+    return rest;
+  };
   fp.seeAs('s1');
   fp.step(1 / 60);
-  expect(fp.tooClose()).toEqual(['s2']);
+  // Standing (a chat): only the one at the eye.
+  expect(others()).toEqual(['s2']);
+  // Walking: the one a stride ahead too.
+  staff.walkOf = () => ({ path: [{ x: 3, z: 0 }] });
+  fp.step(1 / 60);
+  expect(others()).toEqual(['s2', 's3']);
+  // Left out, s3 stays out a little past the reach rather than blinking back.
+  people.s3 = person(0.07 + 0.95, 0);
+  fp.step(1 / 60);
+  expect(others()).toContain('s3');
+  people.s3 = person(0.07 + 1.1, 0);
+  fp.step(1 / 60);
+  expect(others()).not.toContain('s3');
   fp.walk({ x: 0, z: 1, yaw: 0 });
   fp.step(1 / 60);
   expect(fp.tooClose()).toEqual([]);
