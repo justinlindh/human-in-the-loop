@@ -210,7 +210,7 @@ const SMALL_PROP_DECISIONS = new Set(['no_show', 'junior_overwhelmed', 'founder_
 // [item id, camera zoom, era the item needs] of the shop items shown in docs/features/office.md.
 const ITEM_STILLS = [
   ['disk_duplicator', 3.2, 'preinternet'], ['retail_shelf', 3.2, 'preinternet'], ['dotcom_banner', 3.2, 'dotcom'],
-  ['desk'], ['meeting_table'], ['whiteboard'], ['coffee_corner'], ['plant'], ['bookshelf'], ['couch'], ['foosball'], ['ping_pong_table'],
+  ['desk'], ['meeting_table'], ['whiteboard'], ['water_cooler'], ['plant'], ['bookshelf'], ['couch'], ['foosball'], ['ping_pong_table'],
   ['espresso'], ['plant_wall'], ['nap_pod'], ['arcade'], ['standing_desk'], ['whiteboard_wall'], ['library'], ['monitoring_wall'], ['noc'],
   ['office_robot'], ['server_rack'], ['trophy_case'],
 ];
