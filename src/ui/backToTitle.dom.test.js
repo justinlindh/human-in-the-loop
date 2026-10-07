@@ -53,6 +53,16 @@ describe('Settings: Back to title', () => {
     expect(s.isOpen).toBe(true);
   });
 
+  it('scrolls the confirm into view when it opens', () => {
+    const { layer } = setup();
+    const confirm = layer.querySelector('.backconfirm');
+    confirm.scrollIntoView = vi.fn();
+    byText(layer, 'button', 'Back to title').click();
+    expect(confirm.scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
+    byText(layer, 'button', 'Stay').click();
+    expect(confirm.scrollIntoView).toHaveBeenCalledTimes(1);
+  });
+
   it('stays in the game and says why when the save fails', () => {
     saved = false;
     const { layer, s, toast } = setup();
