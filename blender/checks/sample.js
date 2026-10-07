@@ -123,6 +123,10 @@ function checkPeople(R, C, t, list = X.bodies(R)) {
 // matrices as render() would).
 function stepWorld(R, S, n) { frames(window.__advance, n); }
 
+// In Node, one turn of the event loop, so the process can handle a signal between long stretches of
+// synchronous sampling; a no-op in the page.
+const turn = () => (typeof setImmediate === 'function' ? new Promise((r) => setImmediate(r)) : undefined);
+
 const WEEK_FRAMES = Math.round(WEEK_SECONDS * 30);
 
 // The game releases a tick's queued Yak posts over simulated time; a sweep holds the page's live frames, so each
@@ -209,7 +213,7 @@ const PEOPLE_EVERY = 0.2;
 // A screen-only run (the browser step beside the engine's collision rows) makes only the page checks in
 // every window it plays.
 let SCREEN_ONLY = false;
-function window_(R, S, C, { seconds, every, t0 = 0, quiet = false, screenOnly = SCREEN_ONLY }) {
+async function window_(R, S, C, { seconds, every, t0 = 0, quiet = false, screenOnly = SCREEN_ONLY }) {
   const memo = {};
   // One drawn frame settles the camera on the office as it is now, so crops frame the spot.
   R.render(0);
@@ -218,6 +222,8 @@ function window_(R, S, C, { seconds, every, t0 = 0, quiet = false, screenOnly = 
   const track = new Map();
   const per = Math.round(PEOPLE_EVERY / DT);
   for (let i = 0; i <= n; i++) {
+    // A turn of the event loop between steps lets a SIGTERM be handled mid-window (see turn()).
+    await turn();
     // Drawn frames, as the game runs: the labels lay themselves out in render().
     if (i) for (let f = 0; f < per; f++) { frames(window.__step, 1); if (!quiet && C.screen !== false) checkScreen(R, C, t0 + (i - 1) * PEOPLE_EVERY + (f + 1) * DT, track); }
     if (quiet || screenOnly) continue;
@@ -286,10 +292,10 @@ async function momentsPass(R, S, C, { open = 10, after = 5, choices = 1, every =
       S.pendingDecision = { eventId, subjectId: subject.id, stage: ev.stage ? { ...ev.stage, x: tile.x ?? 4, y: tile.y ?? 0 } : null };
       R.handleEvents([{ type: 'decision' }], S);
       const C2 = C.at(`moment:${eventId}${choices > 1 ? `:choice${c}` : ''}`);
-      window_(R, S, C2, { seconds: open, every });
+      await window_(R, S, C2, { seconds: open, every });
       S.pendingDecision = null;
       R.handleEvents([{ type: 'decisionResolved', eventId, choice: c, subjectId: subject.id }], S);
-      window_(R, S, C2, { seconds: after, every, t0: open });
+      await window_(R, S, C2, { seconds: after, every, t0: open });
       stepWorld(R, S, 60);
       played.push(eventId);
     }
@@ -300,7 +306,7 @@ async function momentsPass(R, S, C, { open = 10, after = 5, choices = 1, every =
     const desk = S.office.placed.find((p) => p.id === R.perks.peek(subject.id).seat) ?? S.office.placed[0];
     const id = `sweep_moment_${prop}`;
     S.office.props.push({ id, prop, x: desk.x, y: desk.y, since: S.week, until: { weeks: 2 } });
-    window_(R, S, C.at(`moment:${prop}`), { seconds: open, every });
+    await window_(R, S, C.at(`moment:${prop}`), { seconds: open, every });
     S.office.props = S.office.props.filter((p) => p.id !== id);
     stepWorld(R, S, 60);
     played.push(prop);
@@ -311,7 +317,7 @@ async function momentsPass(R, S, C, { open = 10, after = 5, choices = 1, every =
   for (const species of ['dog', 'cat']) {
     R.pets.reset();
     setupPetPasser(R, S, species);
-    window_(R, S, C.at(`moment:pet:${species}`), { seconds: 5, every });
+    await window_(R, S, C.at(`moment:pet:${species}`), { seconds: 5, every });
     played.push(`pet:${species}`);
   }
   S.pets = savedPets; R.sync(S);
@@ -320,14 +326,14 @@ async function momentsPass(R, S, C, { open = 10, after = 5, choices = 1, every =
   const savedPlaced = S.office.placed, savedRobot = S.robot;
   for (const cause of ['spin', 'stuck', 'cone', 'emptyDesk', 'unplug']) {
     setupRobotFix(R, S, { cause });
-    window_(R, S, C.at(`moment:robot:${cause}`), { seconds: 8, every });
+    await window_(R, S, C.at(`moment:robot:${cause}`), { seconds: 8, every });
     played.push(`robot:${cause}`);
   }
   // It serves at a waffle party and plays DJ at a music night.
   const { setupRobotParty } = await import('/src/render/checks.js');
   for (const reward of ['waffle_party', 'music_night']) {
     setupRobotParty(R, S, reward);
-    window_(R, S, C.at(`moment:robot:${reward}`), { seconds: 10, every });
+    await window_(R, S, C.at(`moment:robot:${reward}`), { seconds: 10, every });
     played.push(`robot:${reward}`);
   }
   R.incentives?.reset();
@@ -401,7 +407,7 @@ export async function sampleMock({ name, seconds = 20, every = 1, known = [], wo
   if (propDesks) { R.perks.hold = true; await propsPass(R, S, C, propDesks); R.perks.hold = false; }
   if (grid) { R.perks.hold = true; await gridPass(R, S, C, { only: item }); R.perks.hold = false; }
   const here = !item || S.office.placed.some((p) => p.itemId === item);
-  if (here) window_(R, S, C, { seconds, every });
+  if (here) await window_(R, S, C, { seconds, every });
   const tips = item ? 0 : tooltipPass(R, C);
   const windows = [{ state: `mock:${name}`, why: 'mock', bodies: X.bodies(R).length, staff: S.staff.length, tooltips: tips }];
   if (moments) {
@@ -423,10 +429,10 @@ export async function sampleLoaded({ label, open = 16, after = 8, every = 1, cho
   const C = createCollector({ state: label, known, worst, crops, cropAll, tol: TOL, item });
   // The loaded office builds on the first sync; a second settles it.
   frames(window.__step, 30);
-  window_(R, H.state, C, { seconds: open, every });
+  await window_(R, H.state, C, { seconds: open, every });
   if (H.state.pendingDecision) {
     H.dispatch({ type: 'resolveDecision', choice: choice ?? 0 });
-    window_(R, H.state, C, { seconds: after, every, t0: open });
+    await window_(R, H.state, C, { seconds: after, every, t0: open });
   }
   return { violations: C.list, windows: [{ state: label, why: 'event', bodies: X.bodies(R).length, staff: H.state.staff.length }] };
 }
@@ -441,8 +447,7 @@ export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every =
   const route = (events) => { if (events?.length) H.emit(events); };
   const last = only ? Math.max(...only) : Infinity;
   for (let w = 0; w <= weeks && H.state.week <= last && !H.state.gameOver; w++) {
-    // In Node, a turn of the event loop each week lets the process see a signal between windows.
-    if (typeof setImmediate === 'function') await new Promise((r) => setImmediate(r));
+    await turn();
     const S = H.state;
     const stageProp = S.pendingDecision?.stage?.prop;
     const why = S.officeStage !== stage ? `stage ${S.officeStage}` : S.era?.id !== era ? `era ${S.era?.id}` : stageProp && staged < maxStaged ? `decision ${S.pendingDecision.eventId}` : w % every === 0 ? 'every' : null;
@@ -456,7 +461,7 @@ export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every =
     const wanted = why && (!only || only.includes(S.week)) && (!item || S.office.placed.some((p) => p.itemId === item));
     if (why && !wanted) {
       stepWorld(R, S, 120);
-      window_(R, S, null, { seconds: why.startsWith('decision') ? stagedSeconds : seconds, every: step, quiet: true });
+      await window_(R, S, null, { seconds: why.startsWith('decision') ? stagedSeconds : seconds, every: step, quiet: true });
     }
     if (wanted) {
       const taken = out.filter((v) => v.crop);
@@ -466,7 +471,7 @@ export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every =
       stepWorld(R, S, 120);
       // dump.mjs --sweep-row: the scene as this window starts, before anything is sampled.
       if (stopAt === S.week) return { stopped: { week: S.week, why }, violations: out, windows, end: { week: S.week, over: null } };
-      window_(R, S, C, { seconds: why.startsWith('decision') ? stagedSeconds : seconds, every: step });
+      await window_(R, S, C, { seconds: why.startsWith('decision') ? stagedSeconds : seconds, every: step });
       for (const v of C.list) v.why = why;
       out.push(...C.list);
       windows.push({ state: `seed:${seed}:w${S.week}`, why, stage: S.officeStage, era: S.era?.id, bodies: X.bodies(R).length, staff: S.staff.length, props: (S.office?.props ?? []).length });

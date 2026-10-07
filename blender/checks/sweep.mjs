@@ -69,10 +69,13 @@ const full = argv.includes('--full');
 // browser. --screen-only is the small browser step the engine run hands the page checks to.
 const screenOnly = argv.includes('--screen-only');
 const engine = !argv.includes('--browser') && !screenOnly;
-// Importing the browser harness makes playwright handle SIGINT, SIGTERM and SIGHUP in JavaScript, which
-// only runs between turns of the event loop; the engine samples in long synchronous stretches and starts no
-// browser here, so those signals take their default action (the screen step ends with the run below).
-if (engine) for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.removeAllListeners(sig);
+// Importing the browser harness makes playwright handle SIGINT, SIGTERM and SIGHUP in JavaScript. The engine
+// starts no browser here, so it ends on those signals itself: the exit handlers below take the screen step
+// and a control checkout down with it. Handlers only run between turns of the event loop, so sample.js
+// takes a turn between the steps of every window.
+if (engine) {
+  for (const [sig, n] of [['SIGINT', 2], ['SIGTERM', 15], ['SIGHUP', 1]]) { process.removeAllListeners(sig); process.on(sig, () => process.exit(128 + n)); }
+}
 // Milliseconds on the process's own clock: the engine replaces Date.now with a game clock.
 const wall = () => Number(process.hrtime.bigint() / 1000000n);
 // A mock played with an era's art on, named `<mock>@<era>` (the page's `?mock=<mock>&eras&eraArt=<era>`):
@@ -135,6 +138,8 @@ async function startControl(spec) {
   const patch = asRoot ? execFileSync('git', ['-C', spec, 'diff', 'HEAD', '--binary'], { maxBuffer: 1 << 28 }) : null;
   const overlay = Object.fromEntries(['sweep.mjs', 'sample.js', 'sweep-plan.js', 'cache.mjs'].map((f) => [`blender/checks/${f}`, join(HERE, f)]));
   for (const f of ['worktree.mjs', 'tmp.mjs']) overlay[`scripts/tools/${f}`] = join(repoRoot, 'scripts/tools', f);
+  // The sweep imports the event index's loader and pacing pin, which an older checkout may not have.
+  for (const f of readdirSync(join(repoRoot, 'scripts/events')).filter((x) => /\.(m?js)$/.test(x))) overlay[`scripts/events/${f}`] = join(repoRoot, 'scripts/events', f);
   // An engine run on the other checkout is this checkout's engine on that checkout's game code.
   if (engine) {
     overlay['blender/checks/intersect.js'] = join(HERE, 'intersect.js');
