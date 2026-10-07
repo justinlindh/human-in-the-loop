@@ -5,6 +5,8 @@ covers: blender/checks/golden.mjs blender/checks/golden-identity-controls.mjs bl
 ---
 Close-up renders compared with stored reference images. Update the references only deliberately, in the PR that changes the look.
 
+`--update` (and a scene with no reference yet) writes a reference only from a render with no page errors and no failed loads (any request that failed or answered 400 or above), which a second render in a fresh page matches byte for byte. Otherwise the old reference stays, the scene's line says `reference NOT updated` with the failed loads, the errors, or the two renders' hashes (saved as `<scene>.render1.png` and `.render2.png` in `shots/golden`), and the run exits 1. An update therefore takes twice as long per scene.
+
 The references are GPU renders, and a GPU run renders its scenes one at a time under one GPU slot, the only way the GPU reproduces them byte for byte. `--software` renders on SwiftShader, `--jobs=N` scenes at once, for a machine without the GPU; its pixels don't match the references, so use it to compare two software runs, not to verify. Scene records are kept per GL mode.
 
 Each scene steps to its pose drawing only the final frame (`__settle`), and is cached on its own: a scene that passes, or is updated, records every file its page loaded, and a later verify or `--update` skips it while none of those files, its reference or the tools changed. With every scene unchanged it starts no browser and takes no lock. `HITL_NO_CHECK_CACHE=1` renders them all.

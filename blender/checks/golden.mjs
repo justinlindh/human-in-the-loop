@@ -1,7 +1,8 @@
 // Golden images: a fixed set of close-up renders compared against stored references.
 //
 //   node blender/checks/golden.mjs            compare; exits 1 if any scene differs
-//   node blender/checks/golden.mjs --update   rewrite the references (commit them deliberately)
+//   node blender/checks/golden.mjs --update   rewrite the references (commit them deliberately); a scene
+//                                             is rewritten only when two clean renders match byte for byte
 //   --only=a,b    just these scenes      --software  SwiftShader instead of the GPU
 //   --jobs=N      scenes rendered at once under --software (default 8); a GPU run renders one at a time
 //
@@ -71,6 +72,8 @@ const SCENES = [
 // The code a scene's pixels depend on beyond what its page loads.
 const TOOL_FILES = ['blender/checks/golden.mjs', 'blender/checks/harness.mjs', 'blender/checks/cache.mjs', 'scripts/lib/gl.js'];
 const refRel = (sc) => `blender/checks/golden/${sc.name}.png`;
+const unknown = (ONLY ?? []).filter((n) => !SCENES.some((sc) => sc.name === n));
+if (unknown.length) { console.error(`golden: no scene named ${unknown.join(', ')}; scenes: ${SCENES.map((sc) => sc.name).join(', ')}`); process.exit(2); }
 const selected = SCENES.filter((sc) => !ONLY || ONLY.includes(sc.name));
 // Drawing only the final frame is exact only while nothing in the draw path carries state from one
 // frame to the next (history buffers, accumulation, trails in post). Whenever golden renders, one
@@ -101,7 +104,7 @@ const H = await startHarness({ gpu: GPU, browsers: Math.max(1, Math.min(JOBS, to
 mkdirSync(REF, { recursive: true });
 mkdirSync(OUT, { recursive: true });
 
-let failed = 0;
+let failed = 0, written = 0;
 // A scene's page script: set it up, step it to its pose, and return the canvas as a PNG data URL.
 // settle draws only each run of frames' last (__settle); false draws every frame (__step).
 const POSE = async ({ setup, steps, zoom, at, settle }) => {
@@ -129,18 +132,41 @@ const POSE = async ({ setup, steps, zoom, at, settle }) => {
   };
 const poseArgs = (sc, settle) => ({ setup: sc.setup ?? '', steps: sc.steps, zoom: sc.zoom ?? 1, at: sc.at ?? null, settle });
 
-async function runScene(sc, slot) {
-  const { page, errors, requests } = await H.openScene(`quality=medium&${sc.query}`, { width: W, height: H_PX, slot });
-  const png = await page.evaluate(POSE, poseArgs(sc, true));
-  const buf = Buffer.from(png.split(',')[1], 'base64');
-  const refPath = join(REF, `${sc.name}.png`);
-  if (UPDATE || !existsSync(refPath)) {
-    writeFileSync(refPath, buf);
-    results.set(sc.name, `${sc.name}: reference ${UPDATE ? 'updated' : 'created'}`);
-    if (!errors.length) recordScene('golden', sc.name, sc.base, requestedFiles(requests), refRel(sc));
-    await page.close();
-    return;
+const render = async (sc, slot) => {
+  const opened = await H.openScene(`quality=medium&${sc.query}`, { width: W, height: H_PX, slot });
+  const png = await opened.page.evaluate(POSE, poseArgs(sc, true));
+  return { ...opened, png, buf: Buffer.from(png.split(',')[1], 'base64') };
+};
+
+// A new reference is written only from a render with no page errors and no failed loads, which a
+// second render in a fresh page matches byte for byte; otherwise the old reference stays and the
+// scene fails, with both renders saved when they differ.
+async function writeReference(sc, slot, first, refPath) {
+  const verb = UPDATE ? 'updated' : 'created';
+  const refuse = (why) => { failed++; results.set(sc.name, `${sc.name}: reference NOT ${verb}: ${why}`); };
+  const problems = (r) => [...r.failedLoads.map((f) => `failed load ${f}`), ...r.errors.map((e) => `page error ${e}`)];
+  await first.page.close();
+  if (problems(first).length) return refuse(problems(first).slice(0, 5).join('; '));
+  const second = await render(sc, slot);
+  await second.page.close();
+  if (problems(second).length) return refuse(`second render: ${problems(second).slice(0, 5).join('; ')}`);
+  if (!first.buf.equals(second.buf)) {
+    writeFileSync(join(OUT, `${sc.name}.render1.png`), first.buf);
+    writeFileSync(join(OUT, `${sc.name}.render2.png`), second.buf);
+    const hash = (b) => createHash('sha256').update(b).digest('hex').slice(0, 16);
+    return refuse(`two renders differ (${hash(first.buf)} vs ${hash(second.buf)}), saved as ${sc.name}.render1.png and .render2.png; a page or asset not ready in one render is the usual cause`);
   }
+  writeFileSync(refPath, first.buf);
+  written++;
+  results.set(sc.name, `${sc.name}: reference ${verb}, two renders identical`);
+  recordScene('golden', sc.name, sc.base, requestedFiles(first.requests), refRel(sc));
+}
+
+async function runScene(sc, slot) {
+  const first = await render(sc, slot);
+  const { page, errors, requests, failedLoads, png, buf } = first;
+  const refPath = join(REF, `${sc.name}.png`);
+  if (UPDATE || !existsSync(refPath)) return writeReference(sc, slot, first, refPath);
   // Compare in the page: both images drawn to canvases, pixels counted, a diff image built.
   const cmp = await page.evaluate(async ({ a, b, tol }) => {
     const load = (src) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = src; });
@@ -162,7 +188,7 @@ async function runScene(sc, slot) {
     return { share: n / (w * h), diff: out.toDataURL('image/png') };
   }, { a: `data:image/png;base64,${readFileSync(refPath).toString('base64')}`, b: png, tol: CHANNEL_TOL });
   const ok = cmp.share <= MAX_SHARE && !errors.length;
-  if (ok) recordScene('golden', sc.name, sc.base, requestedFiles(requests), refRel(sc));
+  if (ok && !failedLoads.length) recordScene('golden', sc.name, sc.base, requestedFiles(requests), refRel(sc));
   if (!ok) {
     failed++;
     writeFileSync(join(OUT, `${sc.name}.actual.png`), buf);
@@ -235,6 +261,7 @@ if (!identical) {
   console.log(`golden: identity not established for ${IDENTITY.name}: the frame-by-frame and final-frame renders did not both come out identical (see above). A draw path that keeps state between frames is one cause, a page or asset not ready in one render another`);
 } else console.log(`golden: ${IDENTITY.name} is byte-identical drawn frame by frame and final frame only${identityFresh ? ' (on record, not redrawn)' : ''}`);
 console.log(`golden: rendered ${todo.length} of ${selected.length} scenes; ${selected.length - todo.length} unchanged, skipped`);
-if (failed) console.log(`golden: ${failed} scene(s) differ; see shots/golden/*.diff.png, or run with --update if the change is intended (then commit and post before/after media: scripts/baseline-media.sh <pr>)`);
-if (UPDATE) console.log('golden: updated references need before/after media on the PR: commit them, then scripts/baseline-media.sh <pr>');
+if (failed && UPDATE) console.log(`golden: ${failed} check(s) failed (see the lines above); a scene whose reference was not updated keeps its old one`);
+else if (failed) console.log(`golden: ${failed} scene(s) differ; see shots/golden/*.diff.png, or run with --update if the change is intended (then commit and post before/after media: scripts/baseline-media.sh <pr>)`);
+if (written) console.log('golden: updated references need before/after media on the PR: commit them, then scripts/baseline-media.sh <pr>');
 process.exit(failed ? 1 : 0);
