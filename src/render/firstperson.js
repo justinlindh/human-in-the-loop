@@ -6,8 +6,8 @@ import * as THREE from 'three';
 //   camera, mode, seeAs(staffId) -> bool, walk(spawn?) -> bool, exit(), input({ moveX, moveZ, yaw, pitch }), step(dt) -> bool }
 //   input: moveX/moveZ -1..1 along the view's right and forward; yaw and pitch are radians turned since
 //     the last call, positive yaw turning right and positive pitch looking up.
-//   seeAs: the camera sits just in front of a person's eyes and looks exactly where their head looks;
-//     input is ignored.
+//   seeAs: the camera sits just in front of a person's eyes and looks where their head looks (down
+//     their path while they walk); input is ignored.
 //   walk: the camera stands at a person's eye height, moved and turned by input, and slides along
 //     walls, furniture and people instead of passing through them.
 //   step(dt) moves the camera for this frame; it returns whether first person is on. It ends the mode
@@ -22,6 +22,33 @@ const PERSON_R = 0.22;           // and against people
 const WALK_SPEED = 1.6;          // m/s at full input
 const PITCH_MAX = 1.05;          // radians up or down
 const FOLLOW = 18;               // how fast see-as follows the eyes (1/s): steady through a walk's bob
+const LOOK_AHEAD_M = 1.2;        // see-as, walking: the view aims at the path this far ahead
+const TURN = 6;                  // how fast see-as turns to a new heading (1/s)
+
+const ARRIVE_M = 1.5;            // see-as: over a walk's last this-many metres the view turns to the spot's facing
+const AT_SPOT_M = 0.5;           // and within this of the spot it holds that facing
+
+const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+
+function pathLength(from, path) {
+  let n = 0, at = from;
+  for (const q of path ?? []) { n += Math.hypot(q.x - at.x, q.z - at.z); at = q; }
+  return n;
+}
+
+// The point LOOK_AHEAD_M along a walk path from `from`, or null when the path is shorter than a
+// step (standing, or arriving).
+function pathAhead(from, path) {
+  if (!path?.length) return null;
+  let left = LOOK_AHEAD_M, at = from;
+  for (const q of path) {
+    const d = Math.hypot(q.x - at.x, q.z - at.z);
+    if (d >= left) return { x: at.x + (q.x - at.x) * (left / d), z: at.z + (q.z - at.z) * (left / d) };
+    left -= d;
+    at = q;
+  }
+  return left < LOOK_AHEAD_M - 0.3 ? at : null;
+}
 const STEP_M = 0.05;             // walk moves in sub-steps no longer than this, so it never tunnels
 
 export function createFirstPerson({ getOffice, getStaff, onAutoExit = () => {} }) {
@@ -30,6 +57,7 @@ export function createFirstPerson({ getOffice, getStaff, onAutoExit = () => {} }
   let who = null, stage = null;
   const walker = { x: 0, z: 0, yaw: 0, pitch: 0 };
   const pos = new THREE.Vector3(), dir = new THREE.Vector3(), tmp = new THREE.Vector3();
+  const view = { yaw: 0 };
   let fresh = true;
 
   function shown(id) {
@@ -124,11 +152,26 @@ export function createFirstPerson({ getOffice, getStaff, onAutoExit = () => {} }
     if (mode === 'seeAs') {
       if (!shown(who)) { end(true); return false; }
       const p = getStaff().charOf(who).probe();
-      const yaw = Math.atan2(p.forward.x, p.forward.z), pitch = Math.asin(THREE.MathUtils.clamp(p.forward.y, -1, 1));
-      pos.copy(p.eyes).addScaledVector(tmp.set(Math.sin(yaw), 0, Math.cos(yaw)), AHEAD_M);
+      // Walking, the view looks down the path a little ahead rather than where the head points at
+      // this instant, so a turn round a corner doesn't fill the screen with the wall it passes.
+      // Near the end of a walk it turns to face what they are walking to (a spot's facing), not the
+      // wall the last steps point at.
+      const w = getStaff().walkOf?.(who);
+      const ahead = pathAhead(p.eyes, w?.path);
+      let want = ahead ? Math.atan2(ahead.x - p.eyes.x, ahead.z - p.eyes.z) : Math.atan2(p.forward.x, p.forward.z);
+      // At the spot it holds that facing while the body turns round to it.
+      const spot = w?.temp?.goal ?? w?.goal;
+      const left = pathLength(p.eyes, w?.path);
+      if (spot?.yaw != null) {
+        if (ahead && left < ARRIVE_M) want += wrap(spot.yaw - want) * (1 - left / ARRIVE_M);
+        else if (!ahead && Math.hypot(spot.x - p.eyes.x, spot.z - p.eyes.z) < AT_SPOT_M) want = spot.yaw;
+      }
+      const pitch = Math.asin(THREE.MathUtils.clamp(p.forward.y, -1, 1));
+      view.yaw = fresh ? want : view.yaw + wrap(want - view.yaw) * (1 - Math.exp(-dt * TURN));
+      pos.copy(p.eyes).addScaledVector(tmp.set(Math.sin(view.yaw), 0, Math.cos(view.yaw)), AHEAD_M);
       if (fresh) camera.position.copy(pos);
       else camera.position.lerp(pos, 1 - Math.exp(-dt * FOLLOW));
-      aim(yaw, pitch);
+      aim(view.yaw, pitch);
     } else {
       const m = walker.move;
       if (m && (m.x || m.z)) {

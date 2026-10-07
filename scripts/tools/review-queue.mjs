@@ -123,9 +123,36 @@ async function lookAll(trusted, repos, maxAgeMs) {
       if (r.status !== 0) throw new Error(`gh pr list failed${repo ? ` for ${repo}` : ''}: ${(r.stderr || r.stdout).trim().split('\n').slice(-1)[0]}`);
       prs = JSON.parse(r.stdout);
     }
-    out.push(...queue(prs, trusted, repo, requiredChecks(repo)));
+    const heads = new Map(prs.map((p) => [p.number, p.headRefOid]));
+    out.push(...queue(prs, trusted, repo, requiredChecks(repo)).filter((w) => w.group === 'DEPENDABOT' || w.group === 'OUTSIDE' || !heldByVerdict(repo, w.number, heads.get(w.number))));
   }
   return out;
+}
+
+// True when the PR's last verdict review asked for changes on an earlier head and the head since only merges
+// main: no commit of the PR's own after the judged one, so that verdict still stands (wait-for's rule). A
+// verdict review's body starts `**Verdict: pass**` or `**Verdict: changes requested**` (review-verdict.sh).
+// Remembered per head for the life of the process; a gh call that fails reads as not held.
+const heldCache = new Map();
+export function heldByVerdict(repo, number, head) {
+  const k = `${repo ?? ''}#${number}@${head}`;
+  if (!head) return false;
+  if (!heldCache.has(k)) heldCache.set(k, judgeHeld(repo ?? '{owner}/{repo}', number, head));
+  return heldCache.get(k);
+}
+function judgeHeld(repo, number, head) {
+  const r = gh(['api', `repos/${repo}/pulls/${number}/reviews?per_page=100`, '--jq',
+    '[.[] | select((.body // "") | test("^\\\\*\\\\*Verdict: (pass|changes requested)\\\\*\\\\*"))] | last // empty | "\\(.body | startswith("**Verdict: changes requested")) \\(.commit_id)"']);
+  const [changes, judged] = r.status === 0 ? r.stdout.trim().split(' ') : [];
+  if (changes !== 'true' || !judged || judged === head) return false;
+  // The PR's own non-merge commits (those not in main) at the head and at the judged head: any new one is the author's.
+  const own = (sha) => {
+    const c = gh(['api', `repos/${repo}/compare/main...${sha}`, '--jq', '[.commits[] | select((.parents | length) == 1) | .sha] | join(" ")']);
+    return c.status === 0 ? new Set(c.stdout.trim().split(' ').filter(Boolean)) : null;
+  };
+  const now = own(head), then = own(judged);
+  if (!now || !then) return false;
+  return [...now].every((s) => then.has(s));
 }
 
 const sleep = (s) => new Promise((resolve) => setTimeout(resolve, s * 1000));
