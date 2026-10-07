@@ -38,7 +38,9 @@ describe('sfx-screen', () => {
     expect(BARS.maxDur).toBeLessThan(1);
   });
 
-  it('exits 1 on a failing file, 0 on a passing one and 2 on bad input', () => {
+  // The command decodes through ffmpeg, which a bare CI runner may not have.
+  const hasFfmpeg = spawnSync('ffmpeg', ['-version']).status === 0;
+  it.skipIf(!hasFfmpeg)('exits 1 on a failing file, 0 on a passing one and 2 on bad input', () => {
     const run = (...a) => spawnSync('node', ['src/audio/sfx-screen.mjs', ...a], { encoding: 'utf8' });
     expect(run('public/audio/sfx/letter_ping.ogg').status).toBe(0);
     expect(run('public/audio/sfx/deal_handbell.ogg', '--max-dur', '0.2').status).toBe(1);
