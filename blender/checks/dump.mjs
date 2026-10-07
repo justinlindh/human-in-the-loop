@@ -45,7 +45,9 @@ if (!out) { console.error('dump: --out is required'); process.exit(2); }
 const [w, h] = opt('size', '1280x800').split('x').map(Number);
 const warm = Number(opt('warm', 60));
 const every = Number(opt('every', 15));
-const frames = opt('clip') ? Array.from({ length: Math.floor((Number(opt('clip')) * 30) / every) + 1 }, (_, i) => i * every) : opt('frames', '0').split(',').map(Number).sort((a, b) => a - b);
+const framesArg = opt('frames', '0');
+if (!opt('clip') && !/^\d+(,\d+)*$/.test(framesArg)) { console.error(`dump: --frames wants a comma list of whole frame numbers (like 0,30,60), got "${framesArg}"; use --clip <seconds> --every <n> for a range`); process.exit(2); }
+const frames = opt('clip') ? Array.from({ length: Math.floor((Number(opt('clip')) * 30) / every) + 1 }, (_, i) => i * every) : framesArg.split(',').map(Number).sort((a, b) => a - b);
 const q = new URLSearchParams({ quality: opt('quality', 'medium') });
 // A seeded game is played to --week by a bot (as the sweep does), so the office is furnished and
 // staffed; --bot none only ticks the weeks, choosing the first option of every decision.

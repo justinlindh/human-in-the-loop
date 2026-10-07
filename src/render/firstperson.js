@@ -15,6 +15,9 @@ import * as THREE from 'three';
 
 const FOV = 70;
 const NEAR = 0.04;
+// See-as draws nothing nearer than this: the person's own head is left out, and a desk partition they
+// brush past on the last step to their desk would otherwise fill the lens as they turn to it.
+const NEAR_SEE_AS = 0.2;
 const EYE_Y = 0.82;              // walk mode's eye height: a standing person's, as their probe measures it
 const AHEAD_M = 0.07;            // see-as: the camera sits this far in front of the eyes, clear of the face
 const BODY_R = 0.2;              // walk mode's body radius against furniture and walls
@@ -26,14 +29,18 @@ const LOOK_AHEAD_M = 1.2;        // see-as, walking: the view aims at the path t
 const TURN = 6;                  // how fast see-as turns to a new heading (1/s)
 
 // See-as leaves out of the frame anyone this close to the eye: a chibi head nearer than about 0.9 m
-// covers a third of the view. Walking past or behind someone the wider reach applies; standing (a
-// chat, a huddle) only the near one, so a conversation partner stays in view. Someone left out
+// covers a third of the view. Walking past or behind someone, or standing with them off to the side
+// (more than SIDE_RAD from the view, where they only ever show as a slice of head at the edge), the
+// wider reach applies; standing with them ahead (a chat partner) only the near one. Someone left out
 // comes back only past the reach plus CLEAR_HOLD_M, so nobody blinks in and out.
 const CLEAR_M = 0.5;
 const CLEAR_WALK_M = 0.9;
 const CLEAR_HOLD_M = 0.15;
-const ARRIVE_M = 1.5;           // see-as: over a walk's last this-many metres the view turns to the spot's facing
-const AT_SPOT_M = 0.5;           // and within this of the spot it holds that facing
+const SIDE_RAD = 0.45;
+// See-as: over a walk's last this-many metres the view turns to the spot's facing, and once the path
+// is too short to look along, it holds that facing while the body turns round (a sitter stops behind
+// the chair, then swings round past whatever stands beside the desk).
+const ARRIVE_M = 1.5;
 
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 
@@ -158,6 +165,8 @@ export function createFirstPerson({ getOffice, getStaff, onAutoExit = () => {} }
   function step(dt) {
     if (mode === 'off') return false;
     if (getOffice()?.current !== stage) { end(true); return false; }
+    const near = mode === 'seeAs' ? NEAR_SEE_AS : NEAR;
+    if (camera.near !== near) { camera.near = near; camera.updateProjectionMatrix(); }
     if (mode === 'seeAs') {
       if (!shown(who)) { end(true); return false; }
       const p = getStaff().charOf(who).probe();
@@ -174,7 +183,7 @@ export function createFirstPerson({ getOffice, getStaff, onAutoExit = () => {} }
       const left = pathLength(p.eyes, w?.path);
       if (spot?.yaw != null) {
         if (ahead && left < ARRIVE_M) want += wrap(spot.yaw - want) * (1 - left / ARRIVE_M);
-        else if (!ahead && Math.hypot(spot.x - p.eyes.x, spot.z - p.eyes.z) < AT_SPOT_M) want = spot.yaw;
+        else if (!ahead && Math.hypot(spot.x - p.eyes.x, spot.z - p.eyes.z) < ARRIVE_M) want = spot.yaw;
       }
       const pitch = Math.asin(THREE.MathUtils.clamp(p.forward.y, -1, 1));
       view.yaw = fresh ? want : view.yaw + wrap(want - view.yaw) * (1 - Math.exp(-dt * TURN));
@@ -206,9 +215,13 @@ export function createFirstPerson({ getOffice, getStaff, onAutoExit = () => {} }
     // walker a body apart, and it chose to go there.
     tooClose() {
       if (mode !== 'seeAs') { left.clear(); return []; }
-      const reach = walking ? CLEAR_WALK_M : CLEAR_M;
-      const near = getStaff()?.charsNear?.(camera.position.x, camera.position.z, reach + CLEAR_HOLD_M, who) ?? [];
-      const out = near.filter((n) => n.d < reach || left.has(n.char)).map((n) => n.char);
+      const { x, z } = camera.position;
+      const near = getStaff()?.charsNear?.(x, z, CLEAR_WALK_M + CLEAR_HOLD_M, who) ?? [];
+      const out = near.filter((n) => {
+        const side = Math.abs(wrap(Math.atan2(n.x - x, n.z - z) - view.yaw)) > SIDE_RAD;
+        const reach = walking || side ? CLEAR_WALK_M : CLEAR_M;
+        return n.d < reach || (left.has(n.char) && n.d < reach + CLEAR_HOLD_M);
+      }).map((n) => n.char);
       left.clear();
       for (const c of out) left.add(c);
       // Their own body too: a hand swinging up into the view reads as a ball floating past.

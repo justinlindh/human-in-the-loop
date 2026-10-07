@@ -25,6 +25,7 @@ test('walk starts inside the door at eye height, facing into the room', () => {
   expect(fp.mode).toBe('walk');
   expect(fp.camera.position.y).toBeCloseTo(0.82);
   expect(fp.camera.position.z).toBeCloseTo(3.7);
+  expect(fp.camera.near).toBeCloseTo(0.04);
   const d = fp.camera.getWorldDirection(new THREE.Vector3());
   expect(d.z).toBeLessThan(-0.99);
 });
@@ -77,6 +78,8 @@ test('see-as sits just ahead of the eyes and looks where the head looks', () => 
   expect(fp.camera.position.y).toBeCloseTo(0.8);
   expect(fp.camera.position.x).toBeCloseTo(1.07);
   expect(fp.camera.getWorldDirection(new THREE.Vector3()).x).toBeGreaterThan(0.99);
+  // A partition brushed past is clipped rather than filling the lens; walk mode sees close up.
+  expect(fp.camera.near).toBeCloseTo(0.2);
   // Not controllable: look and move input change nothing.
   fp.input({ yaw: 1, pitch: 0.5, moveZ: 1 });
   fp.step(1 / 60);
@@ -95,7 +98,12 @@ test('see-as, walking, looks down the path ahead rather than at a wall the head 
   // 1.2 m along: 0.4 m east then 0.8 m north, so the view points north-east, never south at the wall.
   expect(d.z).toBeGreaterThan(0.8);
   expect(d.x).toBeGreaterThan(0.3);
-  // At the spot, it holds the spot's facing while the head swings round.
+  // Stopped a metre short of the spot (a sitter behind the chair), it holds the spot's facing while
+  // the head swings round, rather than following the head past the wall beside the desk.
+  staff.walkOf = () => ({ path: [], temp: { goal: { x: 1, z: 0, yaw: Math.PI / 2 } } });
+  for (let i = 0; i < 120; i++) fp.step(1 / 60);
+  expect(fp.camera.getWorldDirection(new THREE.Vector3()).x).toBeGreaterThan(0.99);
+  // At the spot, the same.
   staff.walkOf = () => ({ path: [], temp: { goal: { x: 0.1, z: 0, yaw: Math.PI / 2 } } });
   for (let i = 0; i < 120; i++) fp.step(1 / 60);
   expect(fp.camera.getWorldDirection(new THREE.Vector3()).x).toBeGreaterThan(0.99);
@@ -105,12 +113,12 @@ test('see-as, walking, looks down the path ahead rather than at a wall the head 
   expect(fp.camera.getWorldDirection(new THREE.Vector3()).z).toBeLessThan(-0.99);
 });
 
-test('see-as leaves out anyone right by the eye, further while walking; walk mode never does', () => {
-  // s2 is 0.33 m from the eye, s3 0.73 m, s4 1.9 m.
-  const people = { s1: person(0, 0, Math.PI / 2), s2: person(0.4, 0.1), s3: person(0.8, 0), s4: person(2, 0) };
+test('see-as leaves out anyone right by the eye, further while walking or off to the side; walk mode never does', () => {
+  // Looking +x: s2 is 0.33 m from the eye, s3 0.73 m ahead, s4 1.9 m ahead, s5 0.7 m off to the left.
+  const people = { s1: person(0, 0, Math.PI / 2), s2: person(0.4, 0.1), s3: person(0.8, 0), s4: person(2, 0), s5: person(0.07, 0.7) };
   const { fp, staff } = world({ obstacles: [], people });
   staff.charsNear = (x, z, r, except) => Object.entries(people)
-    .map(([id, p]) => ({ char: id, d: Math.hypot(p.eyes.x - x, p.eyes.z - z) }))
+    .map(([id, p]) => ({ char: id, d: Math.hypot(p.eyes.x - x, p.eyes.z - z), x: p.eyes.x, z: p.eyes.z }))
     .filter((n) => n.char !== except && n.d < r);
   // The first one left out is always the person seen through; the rest are passers-by.
   const others = () => {
@@ -120,12 +128,12 @@ test('see-as leaves out anyone right by the eye, further while walking; walk mod
   };
   fp.seeAs('s1');
   fp.step(1 / 60);
-  // Standing (a chat): only the one at the eye.
-  expect(others()).toEqual(['s2']);
+  // Standing (a chat): the one at the eye and the one at the edge of the view, not the partner ahead.
+  expect(others()).toEqual(['s2', 's5']);
   // Walking: the one a stride ahead too.
   staff.walkOf = () => ({ path: [{ x: 3, z: 0 }] });
   fp.step(1 / 60);
-  expect(others()).toEqual(['s2', 's3']);
+  expect(others()).toEqual(['s2', 's3', 's5']);
   // Left out, s3 stays out a little past the reach rather than blinking back.
   people.s3 = person(0.07 + 0.95, 0);
   fp.step(1 / 60);

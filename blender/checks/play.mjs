@@ -11,7 +11,9 @@
 // The snapshot loads through the title screen's Continue path and the game's own loop runs on
 // virtual time (loop-page.mjs), so decision freezes, spotlights and the UI behave as for a player.
 // Each frame: decisions are answered (--choose per event id, else --default-choice, after
-// --decision-hold seconds so the card shows), "Got it" cards are dismissed, and the camera follows
+// --decision-hold seconds so the card shows), any other card that holds the game (a launch result, a
+// letter, an announcement, the tutorial) is dismissed after the same hold (a letter by --default-choice's
+// option, else its dismiss button, then Escape; one that stays ends the run, exit 2), and the camera follows
 // --focus (re-aimed every frame, eased; a staff id follows that person, at --zoom; `hub` is the outage rack, else the first responder).
 // It stops when --until (a predicate over the state S) has held and --tail seconds have passed, or
 // after --weeks weeks or --max-seconds of game time.
@@ -20,9 +22,10 @@
 // removed unless --keep-frames).
 // --log is JSON, one row per frame: week, clock, decision, outage, camera, the focus's screen box,
 // the people on screen with their boxes, with --panels the visible UI panels (element, first line of
-// text, rect) as onscreen.mjs lists them, and anything --log-js returns (an object merged in). Boxes
+// text, rect) as onscreen.mjs lists them, `dismissed` ({ card, clicked } or { card, key }) on a frame
+// that dismissed a card, and anything --log-js returns (an object merged in). Boxes
 // are pixels [left, top, width, height] on the canvas, as onscreen.mjs reports them.
-// Exit codes: 0 done (and --until held, if given); 1 --until never held; 2 could not run.
+// Exit codes: 0 done (and --until held, if given); 1 --until never held; 2 could not run, or a card held the game.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { glMode, holdRenderLock, launchChromium } from '../../scripts/lib/gl.js';
@@ -32,6 +35,30 @@ import { PANELS_INSTALL } from './panels.js';
 import { mkdirSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
+
+// Page JS: dismisses the topmost card holding the game. A letter takes --default-choice's option;
+// another card its dismiss button (by its text), else its last button. A card that has had its click
+// gets Escape on the next try. Returns the card's title and id, and what was clicked.
+const DISMISS = ({ defaultChoice }) => {
+  const vis = (el) => el.getClientRects().length > 0;
+  const text = (el) => el.textContent.trim().replace(/\s+/g, ' ');
+  const card = [...document.querySelectorAll('.modal, .announce, .coach')].filter(vis).at(-1) ?? null;
+  const out = { id: null, card: null };
+  if (card) {
+    if (!card.dataset.playCard) card.dataset.playCard = String((window.__playCards = (window.__playCards ?? 0) + 1));
+    out.id = card.dataset.playCard;
+    out.card = text(card.querySelector('h2, h3') ?? card).slice(0, 80);
+    const clicked = card.dataset.playClicked === '1';
+    card.dataset.playClicked = '1';
+    const btns = [...card.querySelectorAll('button')].filter((b) => vis(b) && !b.disabled);
+    const opts = btns.filter((b) => b.classList.contains('mailopt'));
+    const pick = clicked ? null : opts.length ? opts[Math.min(defaultChoice, opts.length - 1)]
+      : btns.find((b) => /^(nice!|got it|onward|later|ok|okay|close|done|next|continue|see the decision)$/i.test(text(b))) ?? btns.at(-1);
+    if (pick) { out.clicked = text(pick); pick.click(); return out; }
+  }
+  dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+  return out;
+};
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
@@ -81,6 +108,8 @@ try {
   const log = [];
   let recorded = 0, untilAt = null, frame = 0, decisionFor = 0, reason = 'max-seconds';
   const navigatedTo = [];
+  const dismissed = [];
+  let busyFor = 0, tries = 0, lastCard = null;
   page.on('framenavigated', (f) => { if (f === page.mainFrame()) navigatedTo.push(f.url().replace(/^https?:\/\/[^/]+/, '') || '/'); });
   const startWeek = started.week;
   for (; frame < maxFrames; frame++) {
@@ -164,8 +193,22 @@ try {
     }
     decisionFor = row.held;
     log.push(row.row);
-    // A "Got it" card (a toast card the UI holds the game on) is dismissed like a player would.
-    if (row.busy) await page.locator('button', { hasText: 'Got it' }).first().click({ timeout: 500 }).catch(() => {});
+    // A card the UI holds the game on shows for --decision-hold, then is dismissed as a player would.
+    if (!row.busy) { busyFor = 0; tries = 0; } else if (++busyFor >= hold) {
+      // A failed evaluate is the page navigating, which the next frame reports.
+      const d = await page.evaluate(DISMISS, { defaultChoice }).catch(() => null);
+      if (d) {
+        if (d.id !== lastCard) { lastCard = d.id; tries = 0; }
+        if (++tries > 2) {
+          reason = `held at frame ${frame} (week ${row.row.week}) by ${d.card ? `"${d.card}"` : 'something that is not a card'}: neither a button nor Escape dismissed it`;
+          code = 2; break;
+        }
+        const what = d.clicked !== undefined ? { card: d.card, clicked: d.clicked } : { card: d.card, key: 'Escape' };
+        row.row.dismissed = what;
+        dismissed.push(`${d.card ?? 'hold'} -> ${what.clicked ?? 'Escape'}`);
+        busyFor = 0;
+      }
+    }
     if (out && frame % every === 0) { await page.screenshot({ path: `${out}-frames/${String(recorded++).padStart(5, '0')}.png` }); }
     if (row.stop && untilAt === null) untilAt = frame;
     if (untilAt !== null && frame - untilAt >= tail) { reason = 'until'; break; }
@@ -181,7 +224,7 @@ try {
   if (opt('log')) writeFileSync(opt('log'), JSON.stringify(log, null, 1));
   const last = log[log.length - 1];
   const answered = log.filter((r) => r.answered).map((r) => `${r.answered.id}=${r.answered.choice}`);
-  console.log(`PLAY ${reason}: ${frame + 1} frames (${((frame + 1) / 30).toFixed(1)} s), week ${startWeek} to ${last?.week ?? startWeek}${answered.length ? `, decisions ${answered.join(', ')}` : ''}${until ? `, --until ${untilAt === null ? 'never held' : `held at frame ${untilAt}`}` : ''}${out ? `, ${recorded} frames -> ${out}` : ''}`);
+  console.log(`PLAY ${reason}: ${frame + 1} frames (${((frame + 1) / 30).toFixed(1)} s), week ${startWeek} to ${last?.week ?? startWeek}${answered.length ? `, decisions ${answered.join(', ')}` : ''}${dismissed.length ? `, dismissed ${dismissed.join('; ')}` : ''}${until ? `, --until ${untilAt === null ? 'never held' : `held at frame ${untilAt}`}` : ''}${out ? `, ${recorded} frames -> ${out}` : ''}`);
   if (until && untilAt === null && code === 0) code = 1;
   if (errors.length) { console.error(`play: page errors: ${errors.slice(0, 3).join('; ')}`); code = code || 2; }
 } finally {
