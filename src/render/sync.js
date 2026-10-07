@@ -1551,10 +1551,23 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       }
       const k = r.speed * dt * PASS_K;
       const x = r.pos.x + sx * k, z = r.pos.z + sz * k;
-      const refused = office.nav().isBlocked(x, z, PASS_CLEAR_M);
+      const refused = !driftClear(r, x, z, office.nav());
       if (!refused) r.pos.set(x, 0, z);
       r.drift = { rule, other: o.id, step: [sx * k, sz * k], refused };
     }
+  }
+
+  // Whether a walker may drift aside to (x, z): clear of furniture, and with a straight line from
+  // there to the next point of their route that stays off it, since the walk heads straight there
+  // from wherever the drift left them (a waypoint metres away, past the corner the route went round).
+  function driftClear(r, x, z, nav) {
+    if (nav.isBlocked(x, z, PASS_CLEAR_M)) return false;
+    const t = r.path[0];
+    if (!t) return true;
+    // The last cell before the point is left out: a route can end on a seat inside its desk's cells.
+    const d = Math.hypot(t.x - x, t.z - z), n = Math.ceil(d / (nav.cell / 2));
+    for (let i = 1; i < n && d * (1 - i / n) > nav.cell; i++) if (nav.isBlocked(x + (t.x - x) * i / n, z + (t.z - z) * i / n)) return false;
+    return true;
   }
 
   // A standing, unseated person ahead on a walker's line whom the walk doesn't end at, as
@@ -1575,7 +1588,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (!a) return;
     const k = r.speed * dt * PASS_K, nav = office.nav();
     const x = r.pos.x + a.sx * k, z = r.pos.z + a.sz * k;
-    const refused = nav.isBlocked(x, z, PASS_CLEAR_M);
+    const refused = !driftClear(r, x, z, nav);
     if (!refused) r.pos.set(x, 0, z);
     r.drift = { rule: 'pass-stander', other: o.id, step: refused ? null : [a.sx * k, a.sz * k], refused };
   }
@@ -1631,7 +1644,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       if (!a || a.lon > STAND_HOLD_M || Math.abs(a.lat) > PERSON_GAP) continue;
       const need = PERSON_GAP - Math.abs(a.lat);
       const x = r.pos.x + a.sx * need, z = r.pos.z + a.sz * need;
-      if (!nav.isBlocked(x, z, PASS_CLEAR_M)) continue;
+      if (driftClear(r, x, z, nav)) continue;
       if (r.standHold?.id !== o.id) {
         // First try another way round them; hold only when there is none.
         r.standHold = { id: o.id, t: 0 };
