@@ -419,7 +419,7 @@ export async function sampleLoaded({ label, open = 16, after = 8, every = 1, cho
   return { violations: C.list, windows: [{ state: label, why: 'event', bodies: X.bodies(R).length, staff: H.state.staff.length }] };
 }
 
-export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every = 52, seconds = 6, stagedSeconds = 20, step = 1, known = [], worst = {}, crops = 60, cropAll = false, maxStaged = 6, item = null, only = null, screenOnly = false }) {
+export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every = 52, seconds = 6, stagedSeconds = 20, step = 1, known = [], worst = {}, crops = 60, cropAll = false, maxStaged = 6, item = null, only = null, screenOnly = false, stopAt = null }) {
   const R = window.__hitlRender, H = window.__HITL;
   SCREEN_ONLY = screenOnly;
   const { botDecide, botTurn } = await import('/src/sim/bots.js');
@@ -452,6 +452,8 @@ export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every =
       const C = createCollector({ state: `seed:${seed}:w${S.week}`, known, worst, crops: crops - fresh, spare: crops - taken.length, cropAll, tol: TOL, item });
       // Settle what the weeks since the last window changed (a stage move, new furniture popping in).
       stepWorld(R, S, 120);
+      // dump.mjs --sweep-row: the scene as this window starts, before anything is sampled.
+      if (stopAt === S.week) return { stopped: { week: S.week, why }, violations: out, windows, end: { week: S.week, over: null } };
       window_(R, S, C, { seconds: why.startsWith('decision') ? stagedSeconds : seconds, every: step });
       for (const v of C.list) v.why = why;
       out.push(...C.list);

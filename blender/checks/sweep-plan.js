@@ -1,5 +1,12 @@
 // Pure helpers for the sweep's scoped and replayed runs (sweep.mjs); loaded in Node and in the page.
 
+// How each sweep mode plays a seeded game: the windows (`every` weeks apart, `seconds` long, `step` between
+// samples) a window's state depends on. dump.mjs --sweep-row replays a report's seed with its mode's values.
+export const SEED_PLAY = {
+  fast: { weeks: 1040, every: 104, seconds: 2, stagedSeconds: 16, maxStaged: 3, step: 1 },
+  full: { weeks: 1040, every: 13, seconds: 8, stagedSeconds: 24, maxStaged: 40, step: 0.5 },
+};
+
 // Whether a violation involves the item: its id as a whole token in either thing or the detail
 // (`noc` matches `noc/pal_plastic_charcoal` and `noc#3[frame]`, not `snocone` or `noc_l2`; `desk`
 // does not match `standing_desk`).

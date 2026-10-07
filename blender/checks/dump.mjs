@@ -12,6 +12,8 @@
 //   --browser    make dump.json in the browser without PNGs (to compare with the engine)
 //   --bot        who plays a seeded game to --week (default balanced; none only ticks the weeks)
 //   --patch-js   statements run with S (state) and R (renderer) after the warm-up, before frame 0
+//   --sweep-row  <report.json> <state or violation key> [<person id>]: the scene a sweep window sampled (seed:3:w556), as the
+//                window starts; the engine only. Prints the report's rows in that window, and whether the person is there.
 //   --snapshot   start from an indexed moment's snapshot (scripts/events/find.js prints paths)
 //   --moment     start from the first indexed moment matching a find query, e.g. 'printer_jam --choice 0'
 //   --event      an event or list of events handed to the renderer with the patch
@@ -32,7 +34,8 @@
 import { spotReasons } from '../../src/render/spots.js';
 import { startHarness, wantGpu } from './harness.mjs';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { SEED_PLAY } from './sweep-plan.js';
 import { resolve } from 'node:path';
 
 const argv = process.argv.slice(2);
@@ -59,6 +62,38 @@ const useBrowser = images || argv.includes('--browser');
 const kill = setTimeout(() => { console.error(`dump: timed out after ${timeout} s`); process.exit(124); }, timeout * 1000);
 const dir = resolve(out);
 mkdirSync(dir, { recursive: true });
+const sweepRow = opt('sweep-row');
+if (sweepRow) {
+  // The exact scene a sweep window sampled: the report's seed replayed as the sweep plays it (its mode's steps), stopped as
+  // the window starts, then dumped like any scene. Engine only: the sweep's own samplers run there.
+  if (useBrowser) { console.error('dump: --sweep-row runs on the engine; drop --images and --browser'); process.exit(2); }
+  const at = argv.indexOf('--sweep-row');
+  const [reportFile, key] = [sweepRow, argv[at + 2]];
+  const thing = argv[at + 3]?.startsWith('--') ? undefined : argv[at + 3];
+  if (!key || key.startsWith('--')) { console.error('dump: --sweep-row wants <report.json> <state or violation key> [<person id>]'); process.exit(2); }
+  let report;
+  try { report = JSON.parse(readFileSync(resolve(reportFile), 'utf8')); } catch (e) { console.error(`dump: cannot read the report "${reportFile}" (${e.message.split('\n')[0]})`); process.exit(2); }
+  const rows = (report.violations ?? []).filter((v) => v.key === key || v.state === key || (v.states ?? []).includes(key));
+  const inState = (st) => (report.violations ?? []).filter((v) => v.state === st || (v.states ?? []).includes(st));
+  const state = /^seed:\d+:w\d+$/.test(key) ? key : (rows[0]?.states ?? [rows[0]?.state]).find((s) => /^seed:\d+:w\d+$/.test(s ?? ''));
+  const m = /^seed:(\d+):w(\d+)$/.exec(state ?? '');
+  if (!m) { console.error(`dump: --sweep-row: "${key}" names no seeded window in ${reportFile} (a state like seed:3:w556, or a violation key whose states include one)`); process.exit(2); }
+  const play = SEED_PLAY[report.mode ?? 'fast'];
+  if (!play) { console.error(`dump: --sweep-row: the report's mode "${report.mode}" is not one this dump knows`); process.exit(2); }
+  const here = inState(state);
+  const host = await import('../../scripts/studio/sweep-host.mjs');
+  const r = await host.hostSeed({ seed: Number(m[1]), ...play, only: [Number(m[2])], stopAt: Number(m[2]), known: [], worst: {} });
+  if (!r.stopped) { console.error(`dump: --sweep-row: seed ${m[1]} played to week ${r.end.week}${r.end.over ? ` (${r.end.over})` : ''} without a window at week ${m[2]}`); process.exit(1); }
+  const { dumpPage } = await import('./dump-page.js');
+  const dumped = await dumpPage({ warm: 0, trace: argv.includes('--trace'), frames, width: w, height: h, views: opt('views') ? opt('views').split(',').map(Number) : null });
+  clearTimeout(kill);
+  writeFileSync(`${dir}/dump.json`, JSON.stringify({ scene: { sweepRow: state, report: reportFile, why: r.stopped.why, mode: report.mode ?? 'fast' }, warm: 0, frames: dumped }, null, 1));
+  console.log(`dump: ${state} (${r.stopped.why}), the scene as the window starts; the report's rows in it: ${here.length ? `${here.slice(0, 6).map((v) => v.detail).join('; ')}${here.length > 6 ? `; and ${here.length - 6} more` : ''}` : 'none'}`);
+  const people = dumped[0].people;
+  if (thing) console.log(people.some((p) => p.id === thing) ? `dump: ${thing} is in the scene${(() => { const p = people.find((q) => q.id === thing); return ` at (${p.pos[0].toFixed(2)}, ${p.pos[2].toFixed(2)})`; })()}` : `dump: ${thing} is not in the scene (${people.length} people)`);
+  console.log(`dump: ${dumped.length} frame(s), ${people.length} people -> ${out}/dump.json (studio engine)`);
+  process.exit(thing && !people.some((p) => p.id === thing) ? 1 : 0);
+}
 if (!useBrowser) {
   // The studio engine: the game's own scene in Node, stepped by the same page function, nothing drawn.
   const { runCases } = await import('../../scripts/studio/page-host.mjs');
