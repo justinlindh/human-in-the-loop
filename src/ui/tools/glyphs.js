@@ -276,6 +276,8 @@ export const GLYPHS = {
   chart: { d: rr(3, 3, 18, 18, 3, PAPER) + `<path d="M6.5 16.5l4-4.5 3 2.5 4.5-6" stroke="${C.green}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
   // Saves as files: an arrow into a tray (export, a download) and out of it (import).
   'save.export': { d: rr(3, 14.5, 18, 6.5, 2, C.cream) + path('M12 16 18 9.5h-3.8V3h-4.4v6.5H6Z', C.green) },
+  // The envelope on the mail button and the Mail panel header.
+  mail: { d: `<rect x="2.5" y="5" width="19" height="14" rx="2.5" fill="#fff4dc" stroke="${INK}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><path d="M3.5 7.5 12 13.5l8.5-6" fill="none" stroke="${INK}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` },
   'save.import': { d: rr(3, 14.5, 18, 6.5, 2, C.cream) + path('M12 2.5 18 9h-3.8v6.5h-4.4V9H6Z', C.blue) },
   continue: { d: rr(3.5, 3.5, 17, 17, 2.5, C.blue) + rr(7, 3.5, 10, 6.5, 1, C.cream) + rr(6.5, 13, 11, 7.5, 1, PAPER) + rr(13, 5, 2.5, 3.5, 0.5, C.metalDark) },
   gameover: { d: path('M5 21.5V10a7 7 0 0 1 14 0v11.5Z', C.metal) + rr(3, 20, 18, 2.5, 1, C.leaf) + `<path d="M8.5 10h7M8.5 13.5h7M10 17h4" ${line(1.8)}/>` },
