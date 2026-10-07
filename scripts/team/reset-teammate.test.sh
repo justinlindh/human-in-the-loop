@@ -28,11 +28,11 @@ mk() { # <file> <brief-name>: a teammate transcript
 mk sim1 sim
 # A lead-style transcript mentions the brief only after many other lines, and is newer.
 { for i in $(seq 1 30); do echo '{"type":"user","message":"filler"}'; done; echo '{"type":"user","message":"You are `sim`, on the team."}'; } >"$proj/lead.jsonl"
-export SENT="$tmp/sent" TRANSCRIPT="$proj/sim1.jsonl" CLAUDE_PROJECTS_DIR="$proj" RESET_POLL=0 RESET_IDLE_GRACE=0 PATH="$tmp/bin:$PATH" PANE_TEXT='ready\n  @sim'
+export SENT="$tmp/sent" TRANSCRIPT="$proj/sim1.jsonl" CLAUDE_PROJECTS_DIR="$proj" RESET_POLL=0 RESET_IDLE_GRACE=0 RESET_KEY_GAP=0 PATH="$tmp/bin:$PATH" PANE_TEXT='ready\n  @sim'
 run() { out="$(bash "$HERE/reset-teammate.sh" "$@" 2>&1)"; rc=$?; }
 
 : >"$SENT"; run sim compact 5 --log "$tmp/log"
-[ $rc -eq 0 ] && grep -q 'context before: 90010 tokens' <<<"$out" && grep -q -- '-t %1 /compact Enter' "$SENT" || fail "a compact is sent, confirmed and sized: rc $rc: $out"
+[ $rc -eq 0 ] && grep -q 'context before: 90010 tokens' <<<"$out" && grep -qx -- 'send-keys -t %1 /compact' "$SENT" && [ "$(tail -1 "$SENT")" = 'send-keys -t %1 Enter' ] || fail "a compact is sent, confirmed and sized: rc $rc: $out"
 grep -q "sim	compact	pre=90010	transcript=sim1.jsonl" "$tmp/log" || fail "--log appends a row: $(cat "$tmp/log" 2>/dev/null)"
 
 # Two transcripts hold the brief: the stale one has the newer mtime, the live one the newer last record.
@@ -52,7 +52,7 @@ rm -f "$proj"/live2.jsonl "$proj"/stale2.jsonl
 [ $rc -eq 2 ] && grep -q 'reports stop reaching team-lead' <<<"$out" && [ ! -s "$SENT" ] || fail "a clear is refused and nothing is sent: rc $rc: $out"
 
 STICK=1 run sim compact 1
-[ $rc -eq 1 ] && grep -q 'not confirmed: the pane went idle without compacting' <<<"$out" && grep -q '@sim' <<<"$out" || fail "a compact the pane refused ends at once with the pane text: rc $rc: $out"
+[ $rc -eq 1 ] && grep -q 'not confirmed: the pane went idle without compacting' <<<"$out" && grep -q '@sim' <<<"$out" && grep -q 'The pane right after /compact was typed' <<<"$out" || fail "a compact the pane refused ends at once with the pane text: rc $rc: $out"
 # A compaction still running keeps the wait up to --confirm-wait, whatever max-wait is; one that ends without a
 # boundary is not confirmed, and a message that only mentions the record is not the record.
 : >"$SENT"; STICK=1 BUSY_AFTER='compacting… (8m 23s)\n  @sim' run sim compact 60 --confirm-wait 1
