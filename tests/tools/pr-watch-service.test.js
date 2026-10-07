@@ -96,6 +96,33 @@ describe('pr-watch-service', () => {
     } finally { t.done(); }
   }, 120000);
 
+  it('hands a Dependabot PR to one reviewer with the --allow-bot path, and its failures and conflicts to that reviewer', () => {
+    const t = setup();
+    try {
+      t.empty();
+      const bot = { author: { login: 'app/dependabot' } };
+      t.world({ prs: [pr(30, 'dependabot/npm_and_yarn/vite-7.1.0', bot, 'PENDING'), pr(31, 'dependabot/github_actions/x', bot, 'FAILURE')] });
+      expect(t.once().status).toBe(0);
+      const told = t.told();
+      expect(Object.keys(told)).toEqual(['reviewer', 'reviewer2']);
+      expect(told.reviewer).toEqual([expect.stringMatching(/^PR #30 .* is ready for review: t30\. .*Dependabot: read the diff \(gh pr diff 30\) and the changelogs first, with no install; on a pass, take the --allow-bot path: scripts\/ci-pr\.sh 30 --allow-bot --head 30a{38}, then gh pr merge 30 --auto --merge\.$/)]);
+      expect(told.reviewer2).toEqual([
+        expect.stringMatching(/^PR #31 .*a Dependabot PR assigned to you\): required check failed: smoke=failure\. Read the failing job \(no install\)/),
+        expect.stringMatching(/^PR #31 .*ci-pr\.sh 31 --allow-bot/),
+      ]);
+      t.drain();
+      expect(t.once().status).toBe(0);
+      expect(t.told()).toEqual({});
+      // After its pass, #30's check fails and it conflicts: its reviewer hears both, the other reviewer and team-lead nothing.
+      t.world({ prs: [pr(30, 'dependabot/npm_and_yarn/vite-7.1.0', { ...bot, mergeable: 'CONFLICTING' }, 'FAILURE', 'SUCCESS'), pr(31, 'dependabot/github_actions/x', bot, 'FAILURE')] });
+      expect(t.once().status).toBe(0);
+      expect(t.told()).toEqual({ reviewer: [
+        expect.stringMatching(/^PR #30 .*conflicts with main\. Comment "@dependabot rebase"/),
+        expect.stringMatching(/^PR #30 .*required check failed: smoke/),
+      ] });
+    } finally { t.done(); }
+  }, 120000);
+
   it('hands ready PRs to the reviewers the team has now', () => {
     const t = setup();
     const members = (names) => writeFileSync(join(t.team, 'config.json'), JSON.stringify({ createdAt: 1, members: names.map((name) => ({ name })) }));

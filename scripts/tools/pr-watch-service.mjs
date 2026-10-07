@@ -3,9 +3,9 @@
 // --wait. It reads the shared PR snapshot (pr-snapshot.mjs) and writes a message into a lane's team
 // inbox only when that lane must act, in the format SendMessage writes, so an idle lane wakes on it:
 //
-//   failed     a required check failed on the head          -> the author lane
+//   failed     a required check failed on the head          -> the author lane (a Dependabot PR: its reviewer)
 //   changes    a changes-requested verdict on the head      -> the author lane
-//   conflict   the PR conflicts with main                   -> the author lane
+//   conflict   the PR conflicts with main                   -> the author lane (a Dependabot PR: its reviewer)
 //   merged     the PR merged (once)                         -> the author lane
 //   closed     the PR closed without merging (once)         -> the author lane
 //   ready      required checks green, no verdict on the head -> one reviewer, alternating per PR; a PR
@@ -114,16 +114,25 @@ export function prEvents(pr, { required, trusted, lane, assign, verdict, held = 
     const v = verdict(n);
     tell('changes', author, `${at}: changes requested${v ? ` by ${v.login}: ${v.url}` : ''}. Address them and push; pr-watch follows the new head.`);
   }
-  if (pr.mergeable === 'CONFLICTING') tell('conflict', author, `${at} conflicts with main. Merge origin/main into ${br} in your worktree (merge, never rebase), run npm run test:push, and push.`);
   const failing = failingChecks(pr, required);
-  if (failing.length) tell('failed', author, `${at}: required check failed: ${failing.join(', ')}. Read the failing job, fix it and push (merge origin/main in first if main may already fix it); pr-watch follows the new head.`);
+  if (author) {
+    if (pr.mergeable === 'CONFLICTING') tell('conflict', author, `${at} conflicts with main. Merge origin/main into ${br} in your worktree (merge, never rebase), run npm run test:push, and push.`);
+    if (failing.length) tell('failed', author, `${at}: required check failed: ${failing.join(', ')}. Read the failing job, fix it and push (merge origin/main in first if main may already fix it); pr-watch follows the new head.`);
+  } else {
+    // A PR with no author lane (Dependabot): its reviewer acts on it, and never runs its code to fix it.
+    if (pr.mergeable === 'CONFLICTING') tell('conflict', assign(n), `${at} (a Dependabot PR assigned to you) conflicts with main. Comment "@dependabot rebase" on it; never push to its branch.`);
+    if (failing.length) tell('failed', assign(n), `${at} (a Dependabot PR assigned to you): required check failed: ${failing.join(', ')}. Read the failing job (no install). If the bump breaks it, post changes with scripts/review-verdict.sh or close it and tell team-lead; a flake gets a rerun.`);
+  }
   const q = queue([pr], trusted, null, required)[0];
   // The CI group (a required check pending or failing) is not ready; a failure went to the author above.
-  if (q && q.group !== 'CI') {
-    if (!held(n, head)) {
-      const how = { READY: 'Review it and post the verdict with scripts/review-verdict.sh.', DEPENDABOT: 'A Dependabot PR: read its diff and changelogs first with no install; CI comes after the verdict.', OUTSIDE: 'A fork or an outside author: never fetch or run it; report it to team-lead.' }[q.group];
-      tell('ready', assign(n), `${at} is ready for review: ${pr.title}. It is assigned to you; the other reviewer is not told. ${how}`);
-    }
+  // A bot or outside PR is never held by an earlier verdict, as in review-queue.
+  if (q && q.group !== 'CI' && (q.group !== 'READY' || !held(n, head))) {
+    const how = {
+      READY: 'Review it and post the verdict with scripts/review-verdict.sh.',
+      DEPENDABOT: `Dependabot: read the diff (gh pr diff ${n}) and the changelogs first, with no install; on a pass, take the --allow-bot path: scripts/ci-pr.sh ${n} --allow-bot --head ${head}, then gh pr merge ${n} --auto --merge.`,
+      OUTSIDE: 'A fork or an outside author: never fetch or run it; report it to team-lead.',
+    }[q.group];
+    tell('ready', assign(n), `${at} is ready for review: ${pr.title}. It is assigned to you; the other reviewer is not told. ${how}`);
   }
   return out;
 }
