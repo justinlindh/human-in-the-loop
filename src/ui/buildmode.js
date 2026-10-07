@@ -329,7 +329,7 @@ export function createBuildMode({ layer, ctx, controls }) {
   };
 }
 
-const ADJ_LABEL = { novelty: 'freshness', staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', uptimeFloor: 'minimum uptime', knowledgeGain: 'knowledge gain' };
+const ADJ_LABEL = { novelty: 'freshness', staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', uptimeFloor: 'minimum uptime', knowledgeGain: 'knowledge gain', knowledgeShare: 'shared know-how' };
 
 // "Boosts 2 desks: +3% freshness" or, for a desk, "This desk gets +3% meaning recovery from a Plant".
 export function adjacencyWords(prev) {

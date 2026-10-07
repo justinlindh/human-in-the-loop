@@ -15,6 +15,7 @@ const TOPICS = {
   pet: { icon: 'pet', kind: 'company', short: (e) => e.short ?? 'New office pet' },
   rival: { icon: 'rival', kind: 'company', short: (e) => e.short ?? 'Rival news' },
   replyall: { icon: 'mail', kind: 'company', short: (e) => e.short ?? 'Reply-all storm' },
+  shared: { icon: 'progress', kind: 'staff', short: (e) => e.short ?? 'Context shared' },
 };
 export const AMBIENT_TOPICS = Object.keys(TOPICS);
 const MERGE_MS = 15000;

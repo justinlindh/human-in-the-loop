@@ -175,7 +175,7 @@ const WORK_POLICY = (() => {
   return out;
 })();
 
-const ADJ_WORDS = { novelty: 'freshness', staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', uptimeFloor: 'minimum uptime', knowledgeGain: 'knowledge gain' };
+const ADJ_WORDS = { novelty: 'freshness', staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', uptimeFloor: 'minimum uptime', knowledgeGain: 'knowledge gain', knowledgeShare: 'shared know-how' };
 
 function adjacencyLine(it) {
   const a = it.adjacency;
