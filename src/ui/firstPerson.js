@@ -119,7 +119,7 @@ export function createFirstPerson({ layer, controls, ctx, sfx }) {
       stickEl.style.left = `${e.clientX - r.left - STICK_R}px`; stickEl.style.top = `${e.clientY - r.top - STICK_R}px`;
       stickEl.classList.add('on');
     } else if (!left && lookId === null) { lookId = e.pointerId; lookLast = { x: e.clientX, y: e.clientY }; }
-    touchLayer.setPointerCapture?.(e.pointerId);
+    try { touchLayer.setPointerCapture?.(e.pointerId); } catch { /* the pointer already ended: the drag simply stops */ }
   });
   touchLayer.addEventListener('pointermove', (e) => {
     if (e.pointerId === stickId && stickOrigin) {
