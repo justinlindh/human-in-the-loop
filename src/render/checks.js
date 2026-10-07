@@ -962,8 +962,33 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
         for (const r of roots) r.traverse((m) => { if (m.isMesh && m.geometry?.parameters?.radiusTop === 0.03 && m.parent && m.visible) seen++; });
         cups = Math.max(cups, seen);
       }
-      pass = sent && chatted > 30 && worst < 0.01 && facing > 0.5 && cups === 2;
-      info = { sent, chatSamples: chatted, insidePct: +(100 * worst).toFixed(2), facing: +facing.toFixed(2), cups };
+      // Someone standing just in front of a chat spot, on the visitors' side: the pair never walks
+      // into them (they go round, or wait and give up).
+      for (let i = 0; i < 30 * 15 && (R.perks.peek(a)?.temp || R.perks.peek(b)?.temp); i++) step(1);
+      const c = S.staff[2]?.id;
+      let closest = Infinity;
+      if (c && R.perks.send([a, b], host.id, { dur: 6 })) {
+        const g0 = R.perks.peek(a).temp.goal, g1 = R.perks.peek(b).temp.goal;
+        const from = charOf(R.scene, a).position;
+        const ux = g1.x - g0.x, uz = g1.z - g0.z, ul = Math.hypot(ux, uz) || 1;
+        let nx = -uz / ul, nz = ux / ul;
+        if ((from.x - g0.x) * nx + (from.z - g0.z) * nz < 0) { nx = -nx; nz = -nz; }
+        const sx = g0.x + nx * 0.5, sz = g0.z + nz * 0.5;
+        R.standAt(c, sx, sz);
+        R.catchFor(c, { anim: 'idle', t: Infinity, goal: { x: sx, z: sz, yaw: 0, anim: 'idle' }, back: true });
+        for (let i = 0; i < 30 * 20; i++) {
+          step(1);
+          const pc = charOf(R.scene, c).position;
+          for (const w of [a, b]) {
+            const p = charOf(R.scene, w).position;
+            closest = Math.min(closest, Math.hypot(p.x - pc.x, p.z - pc.z));
+          }
+          if (!R.perks.peek(a)?.temp && !R.perks.peek(b)?.temp) break;
+        }
+        R.catchFor(c, null, { walk: true });
+      }
+      pass = sent && chatted > 30 && worst < 0.01 && facing > 0.5 && cups === 2 && closest >= 0.45;
+      info = { sent, chatSamples: chatted, insidePct: +(100 * worst).toFixed(2), facing: +facing.toFixed(2), cups, standerGap: +closest.toFixed(2) };
       Object.assign(host, was);
       step(30);
     }

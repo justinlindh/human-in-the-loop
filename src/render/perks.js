@@ -141,9 +141,16 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
   }
   function walkToSpot(r, e, spot) {
     const a = approachFor(r, e, spot);
+    const q = r.temp.stepOut;
+    const fromBeyond = (p) => q && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) > Math.hypot(q.x - p.x, q.z - p.z);
     if (a) {
       r.temp.enter = { from: null, t: 0, side: { x: a.x, z: a.z }, item: e.id };
-      walkTo(r, { x: a.x, z: a.z, yaw: spot.yaw });
+      // Through the step-in point when it lies beyond the approach, so the walk waits there for
+      // anyone standing on it (sync's waitsToStepIn).
+      if (fromBeyond(a)) {
+        walkTo(r, { x: q.x, z: q.z, yaw: spot.yaw });
+        r.path.push({ x: a.x, z: a.z });
+      } else walkTo(r, { x: a.x, z: a.z, yaw: spot.yaw });
     } else if (r.temp.stepOut && Math.hypot(r.pos.x - spot.x, r.pos.z - spot.z) > Math.hypot(r.temp.stepOut.x - spot.x, r.temp.stepOut.z - spot.z)) {
       // From beyond the step-in point (anyone already nearer the spot walks straight to it).
       const q = r.temp.stepOut;
