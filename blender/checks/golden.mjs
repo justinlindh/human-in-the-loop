@@ -72,6 +72,8 @@ const SCENES = [
 // The code a scene's pixels depend on beyond what its page loads.
 const TOOL_FILES = ['blender/checks/golden.mjs', 'blender/checks/harness.mjs', 'blender/checks/cache.mjs', 'scripts/lib/gl.js'];
 const refRel = (sc) => `blender/checks/golden/${sc.name}.png`;
+const unknown = (ONLY ?? []).filter((n) => !SCENES.some((sc) => sc.name === n));
+if (unknown.length) { console.error(`golden: no scene named ${unknown.join(', ')}; scenes: ${SCENES.map((sc) => sc.name).join(', ')}`); process.exit(2); }
 const selected = SCENES.filter((sc) => !ONLY || ONLY.includes(sc.name));
 // Drawing only the final frame is exact only while nothing in the draw path carries state from one
 // frame to the next (history buffers, accumulation, trails in post). Whenever golden renders, one
