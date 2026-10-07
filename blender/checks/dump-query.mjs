@@ -17,7 +17,11 @@
 // left), so hand1 reads as a small negative right.
 //   where   the point, the yaw, the animation or moment, and the screen box
 //   dist    the distance between the two points, and the vector from the first to the second
-//   rel     the first point in the second thing's own frame: right (+x), up (+y), ahead (+z)
+//   rel     the first point in the second thing's own frame: right (+x), up (+y), ahead (+z). When the
+//           first is a person and the second an item it adds the item's real edge: the distance from
+//           the person's point to the footprint of the item's bounds (0 inside), the side they are on
+//           (front, back, left, right; an end when it is a short face of a long item), the person's yaw
+//           against the item's, and whether they face the nearest edge point
 //   near    everything within the radius (default 1 m) of the thing, nearest first
 //   nav     the walk grid's cells within the radius (default 0.4 m) of a floor point: blocked, free,
 //           or walkable under furniture, and why: the room's edge, the obstacle rects that block it
@@ -79,7 +83,38 @@ function navAt(fr, x, z, r) {
   return out;
 }
 
-const fmtTrace = (l) => `t=${l.t}s ${l.id ?? '-'} ${l.what}${l.from || l.to ? ` ${l.from ?? '-'} -> ${l.to ?? '-'}` : ''}${l.by ? ` by ${l.by}` : ''}${l.why ? ` (${l.why})` : ''}${l.repeats ? ` x${l.repeats}` : ''}${l.decision ? ` [${l.decision}]` : ''}`;
+// A person against an item's real footprint: the floor extent of its bounds in the item's own frame (right +x,
+// ahead +z, as in rel). Exact when the item stands square to its yaw (every placed item does); a bounds box
+// of an item turned off the grid reads as the smallest square-on rectangle around it. Reports the distance
+// from the person's point to that rectangle's edge (0 inside), which side of the item it is on (front and
+// back are the item's ahead axis; an end is a short face of an item at least 1.5 times longer than wide),
+// and the person's yaw against the item's, with whether they face the nearest edge point.
+const wrapPi = (x) => Math.atan2(Math.sin(x), Math.cos(x));
+function edgeOf(A, B) {
+  const bd = B.thing.bounds;
+  if (!bd || !A.point) return null;
+  const c = Math.cos(B.yaw), s = Math.sin(B.yaw), o = B.thing.pos;
+  const loc = (x, z) => [-(x - o[0]) * c + (z - o[2]) * s, (x - o[0]) * s + (z - o[2]) * c];
+  const corners = [[bd.min[0], bd.min[2]], [bd.min[0], bd.max[2]], [bd.max[0], bd.min[2]], [bd.max[0], bd.max[2]]].map(([x, z]) => loc(x, z));
+  const x0 = Math.min(...corners.map((q) => q[0])), x1 = Math.max(...corners.map((q) => q[0]));
+  const z0 = Math.min(...corners.map((q) => q[1])), z1 = Math.max(...corners.map((q) => q[1]));
+  const [px, pz] = loc(A.point[0], A.point[2]);
+  const ox = px < x0 ? x0 - px : px > x1 ? px - x1 : 0, oz = pz < z0 ? z0 - pz : pz > z1 ? pz - z1 : 0;
+  const yawDeg = (wrapPi((A.yaw ?? 0) - B.yaw) * 180 / Math.PI).toFixed(0);
+  if (!ox && !oz) return `inside the footprint; yaw ${yawDeg} deg against the item`;
+  const w = x1 - x0, d = z1 - z0, long = Math.max(w, d) / Math.min(w, d) >= 1.5;
+  const sideX = px > x1 ? 'right' : 'left', sideZ = pz > z1 ? 'front' : 'back';
+  const side = ox >= oz ? sideX : sideZ, other = ox >= oz ? sideZ : sideX;
+  const end = long && (side === 'left' || side === 'right' ? w > d : d > w);
+  // The nearest point on the rectangle, back in world metres, and the person's heading against it.
+  const nx = Math.min(Math.max(px, x0), x1), nz = Math.min(Math.max(pz, z0), z1);
+  const wx = o[0] + (-nx * c + nz * s), wz = o[2] + (nx * s + nz * c);
+  const toward = wrapPi(Math.atan2(wx - A.point[0], wz - A.point[2]) - (A.yaw ?? 0)) * 180 / Math.PI;
+  const facing = Math.abs(toward) <= 45 ? 'toward the edge' : Math.abs(toward) >= 135 ? 'away from it' : 'across it';
+  return `edge ${Math.hypot(ox, oz).toFixed(3)} m, ${side}${end ? ' end' : ''} side${ox && oz ? ` (corner with ${other})` : ''}; yaw ${yawDeg} deg against the item, facing ${facing} (${toward.toFixed(0)} deg off)`;
+}
+
+const fmtTrace =(l) => `t=${l.t}s ${l.id ?? '-'} ${l.what}${l.from || l.to ? ` ${l.from ?? '-'} -> ${l.to ?? '-'}` : ''}${l.by ? ` by ${l.by}` : ''}${l.why ? ` (${l.why})` : ''}${l.repeats ? ` x${l.repeats}` : ''}${l.decision ? ` [${l.decision}]` : ''}`;
 for (const fr of dump.frames) {
   const head = `frame ${String(fr.frame).padStart(4)} t=${fr.t.toFixed(2)}s`;
   if (cmd === 'nav') {
@@ -133,7 +168,8 @@ for (const fr of dump.frames) {
       // A's point in B's frame. B faces (sin yaw, 0, cos yaw); its right is (-cos yaw, 0, sin yaw).
       const v = sub(A.point, B.point), c = Math.cos(B.yaw), s = Math.sin(B.yaw);
       const local = [-v[0] * c + v[2] * s, v[1], v[0] * s + v[2] * c];
-      console.log(`${head}  ${a} in ${b}'s frame: right ${local[0].toFixed(3)}, up ${local[1].toFixed(3)}, ahead ${local[2].toFixed(3)} m`);
+      const edge = A.kind === 'person' && B.kind === 'item' ? edgeOf(A, B) : null;
+      console.log(`${head}  ${a} in ${b}'s frame: right ${local[0].toFixed(3)}, up ${local[1].toFixed(3)}, ahead ${local[2].toFixed(3)} m${edge ? `; ${edge}` : ''}`);
     }
   } else if (cmd === 'near') {
     const r = Number(b ?? 1);
