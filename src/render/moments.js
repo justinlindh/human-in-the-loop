@@ -1442,11 +1442,26 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       near[2].char.setHeld(pm.bat);
     }
     near.forEach((r, i) => {
-      r.temp = { anim: 'idle', t: 1e6, goal: spots[i], moment: 'printer', stage: { beat: 'gather', role: i < 2 ? 'carrier' : 'bat', target: obj, held: i < 2 ? obj : pm.bat } };
-      walkTo(r, spots[i]);
+      const goal = gatherSpot(spots[i], obj.position, pm.clearR);
+      r.temp = { anim: 'idle', t: 1e6, goal, moment: 'printer', stage: { beat: 'gather', role: i < 2 ? 'carrier' : 'bat', target: obj, held: i < 2 ? obj : pm.bat } };
+      walkTo(r, goal);
       r.path = aroundPrinter(r.pos, r.path, obj.position, pm.clearR);
     });
     return true;
+  }
+  // Where someone waits to pick the printer up: their grip, or, where the walk grid blocks it (a printer
+  // wedged against a wall), the open floor on the printer's clearance circle (radius R about c) nearest
+  // the grip's side. The grid doesn't know the printer, so the nearest open point to a blocked grip
+  // could be inside it. The lift brings them in to the grip.
+  function gatherSpot(spot, c, R) {
+    const nav = office.nav();
+    if (!nav.isBlocked(spot.x, spot.z, BODY_R)) return spot;
+    const a0 = Math.atan2(spot.x - c.x, spot.z - c.z);
+    for (let k = 0; k <= 12; k++) for (const sgn of k ? [1, -1] : [1]) {
+      const a = a0 + sgn * k * Math.PI / 12, x = c.x + Math.sin(a) * R, z = c.z + Math.cos(a) * R;
+      if (!nav.isBlocked(x, z, BODY_R)) return { ...spot, x, z };
+    }
+    return spot;
   }
   // The walk grid doesn't know the carried printer: a walk to a grip that would cross it goes round
   // its clearance circle (radius R about c) instead, from where it first meets the circle to the
@@ -1610,8 +1625,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       // A walk that ended short of its spot (the grid keeps a body off a wall) closes the gap.
       const k = Math.min(1, pm.t / LIFT_STEP_S), e = k * k * (3 - 2 * k);
       carrySpots(pm, along(pm.route, 0)).forEach((q, i) => {
-        const f = pm.liftFrom[i];
-        if (pm.people[i]) place(pm.people[i], { ...q, x: f.x + (q.x - f.x) * e, z: f.z + (q.z - f.z) * e });
+        if (pm.people[i]) place(pm.people[i], { ...q, ...roundPrinter(pm.liftFrom[i], q, pm.obj.position, pm.clearR, e) });
       });
       pm.obj.position.y = Math.min(1, pm.t / 0.5) * gripY(pm);
       if (pm.t >= 0.6) {
