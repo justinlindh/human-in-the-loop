@@ -13,7 +13,10 @@ cat >"$tmp/bin/tmux" <<'TMUX'
 case "$1" in
   list-panes) echo "%1" ;;
   # BUSY_AFTER: what the pane shows once a command was typed (a compaction still running).
-  capture-pane) if [ -n "${BUSY_AFTER:-}" ] && [ -s "$SENT" ]; then printf '%b\n' "$BUSY_AFTER"; else printf '%b\n' "${PANE_TEXT:-}"; fi ;;
+  # The typed command shows in the input line once it has been sent more than DROP times (the prompt dropping
+  # the first DROP sends); a pane showing BUSY_AFTER after a command shows only that.
+  capture-pane) if [ -n "${BUSY_AFTER:-}" ] && grep -q 'send-keys -t %1 Enter' "$SENT" 2>/dev/null; then printf '%b\n' "$BUSY_AFTER"; else printf '%b\n' "${PANE_TEXT:-}"
+    [ "$(grep -c -x 'send-keys -t %1 /compact' "$SENT" 2>/dev/null)" -gt "${DROP:-0}" ] && echo '❯ /compact'; fi; true ;;
   # MENTION: the transcript only gains a message that talks about the record, not the record.
   send-keys) echo "$*" >>"$SENT"; [ "$4" = /compact ] && [ -n "${MENTION:-}" ] && echo '{"type":"user","message":"the compact_boundary record is written when it ends"}' >>"$TRANSCRIPT"
     [ "$4" = /compact ] && [ -z "${STICK:-}" ] && echo '{"type":"system","subtype":"compact_boundary"}' >>"$TRANSCRIPT" ;;
@@ -28,7 +31,7 @@ mk() { # <file> <brief-name>: a teammate transcript
 mk sim1 sim
 # A lead-style transcript mentions the brief only after many other lines, and is newer.
 { for i in $(seq 1 30); do echo '{"type":"user","message":"filler"}'; done; echo '{"type":"user","message":"You are `sim`, on the team."}'; } >"$proj/lead.jsonl"
-export SENT="$tmp/sent" TRANSCRIPT="$proj/sim1.jsonl" CLAUDE_PROJECTS_DIR="$proj" RESET_POLL=0 RESET_IDLE_GRACE=0 RESET_KEY_GAP=0 PATH="$tmp/bin:$PATH" PANE_TEXT='ready\n  @sim'
+export SENT="$tmp/sent" TRANSCRIPT="$proj/sim1.jsonl" CLAUDE_PROJECTS_DIR="$proj" RESET_POLL=0 RESET_IDLE_GRACE=0 RESET_KEY_GAP=0 RESET_SETTLE=0 PATH="$tmp/bin:$PATH" PANE_TEXT='ready\n  @sim'
 run() { out="$(bash "$HERE/reset-teammate.sh" "$@" 2>&1)"; rc=$?; }
 
 : >"$SENT"; run sim compact 5 --log "$tmp/log"
@@ -47,6 +50,13 @@ touch -d '2026-10-07 01:00' "$proj/live2.jsonl"; touch "$proj/stale2.jsonl"
 : >"$SENT"; TRANSCRIPT="$proj/stale2.jsonl" PANE_TEXT='ready\n  @two' run two compact 5
 [ $rc -eq 0 ] || fail "a boundary in another candidate file confirms the compact: rc $rc: $out"
 rm -f "$proj"/live2.jsonl "$proj"/stale2.jsonl
+
+# A prompt that drops the first typed command: it is cleared and typed again, and Enter goes only after it shows.
+: >"$SENT"; DROP=1 run sim compact 5
+[ $rc -eq 0 ] && [ "$(grep -c -x 'send-keys -t %1 /compact' "$SENT")" = 2 ] && grep -q 'send-keys -t %1 C-u' "$SENT" && [ "$(grep -c 'send-keys -t %1 Enter' "$SENT")" = 1 ] || fail "a dropped command is retyped, Enter once: rc $rc: $out $(cat "$SENT")"
+# One that never shows it: three tries, no Enter, a clear failure with what the pane showed.
+: >"$SENT"; DROP=9 run sim compact 5
+[ $rc -eq 1 ] && grep -q '/compact not typed' <<<"$out" && grep -q 'attempt 3' <<<"$out" && ! grep -q 'Enter' "$SENT" || fail "a command that never shows is not sent: rc $rc: $out $(cat "$SENT")"
 
 : >"$SENT"; run sim clear 5
 [ $rc -eq 2 ] && grep -q 'reports stop reaching team-lead' <<<"$out" && [ ! -s "$SENT" ] || fail "a clear is refused and nothing is sent: rc $rc: $out"

@@ -86,10 +86,34 @@ if [ -n "$before_send" ]; then
   [ $rc -eq 0 ] || exit "$rc"
 fi
 
-# The command and the Enter go as two sends with a gap, so the prompt has drawn the typed command (and its
-# slash-command menu) before Enter lands; the pane just after is kept to show on a failure.
-tmux send-keys -t "$pane" "/$mode"
-sleep "${RESET_KEY_GAP:-1}"
+# The pane has to stay idle for RESET_SETTLE seconds (default 20) before anything is typed: a lane that
+# just ended its turn can look idle while its prompt does not take keys yet. Busy again restarts the count.
+calm=$SECONDS
+while [ $((SECONDS - calm)) -lt "${RESET_SETTLE:-20}" ]; do
+  sleep "${RESET_POLL:-5}"
+  busy && calm=$SECONDS
+  [ $SECONDS -ge $((end + ${RESET_SETTLE:-20})) ] && { echo "$name never stayed idle for ${RESET_SETTLE:-20}s" >&2; exit 1; }
+done
+
+# The command goes in first and is checked on screen; Enter follows only once it shows in the input, and a
+# command that never shows (the prompt dropped the keys) is cleared and typed again, three times at most.
+# The pane just after Enter is kept to show on a failure.
+landed=0; tries=""
+for attempt in 1 2 3; do
+  tmux send-keys -t "$pane" "/$mode"
+  sleep "${RESET_KEY_GAP:-1}"
+  seen="$(tmux capture-pane -p -t "$pane" | grep -v '^[[:space:]]*$' | tail -4)"
+  if grep -q "/$mode" <<<"$seen"; then landed=1; break; fi
+  tries="$tries
+attempt $attempt, the pane after typing:
+$seen"
+  tmux send-keys -t "$pane" C-u
+  sleep "$((attempt * ${RESET_KEY_GAP:-1}))"
+done
+if [ "$landed" != 1 ]; then
+  echo "$name: /$mode not typed: it never showed in the input after 3 tries; nothing was sent. $tries" >&2
+  exit 1
+fi
 tmux send-keys -t "$pane" Enter
 sleep "${RESET_KEY_GAP:-1}"
 typed="$(tmux capture-pane -p -t "$pane" | grep -v '^[[:space:]]*$' | tail -4)"

@@ -29,12 +29,12 @@ case "\$1" in
   # arrive: a teammate message reaches the lane (and is read at once, so its inbox stays empty) while the wait
   # for an idle pane goes on: it shows only in the transcript.
   capture-pane) [ -f "$tmp/arrive" ] && { printf '{"type":"user","timestamp":"%s","message":{"role":"user","content":"<teammate-message teammate_id=\\\\"team-lead\\\\">new ask"}}\n' "\$(date -u +%FT%T.%3NZ)" >>"$tmp/t1.jsonl"; rm -f "$tmp/arrive"; }
-    [ -f "$tmp/busy" ] && echo "esc to interrupt"; echo "status @\${PANE_NAME:-lane}" ;;
+    [ -f "$tmp/busy" ] && echo "esc to interrupt"; echo "status @\${PANE_NAME:-lane}"; { grep -q '/compact' "$tmp/keys" 2>/dev/null && echo '❯ /compact'; true; } ;;
   send-keys) echo "\$*" >>"$tmp/keys"; case "\$*" in *"/compact"*) [ -f "$tmp/noconfirm" ] || echo '{"type":"system","subtype":"compact_boundary"}' >>"$tmp/t1.jsonl" ;; esac ;;
 esac
 F
 chmod +x "$tmp/bin/gh" "$tmp/bin/tmux"
-export PATH="$tmp/bin:$PATH" RESET_POLL=0 RESET_IDLE_GRACE=0 RESET_KEY_GAP=0 HITL_RESET_RESTATE_WAIT=0 CLAUDE_PROJECTS_DIR="$tmp"
+export PATH="$tmp/bin:$PATH" RESET_POLL=0 RESET_IDLE_GRACE=0 RESET_KEY_GAP=0 RESET_SETTLE=0 HITL_RESET_RESTATE_WAIT=0 CLAUDE_PROJECTS_DIR="$tmp"
 ac() { bash "$HERE/hitl-autocompact.sh" --memory "$mem" --teams "$teams" "$@" >"$tmp/out" 2>&1; rc=$?; }
 
 # The gate: passes, held by inbox, held by changes requested, unknown name.
