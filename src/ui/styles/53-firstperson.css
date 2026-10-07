@@ -9,8 +9,10 @@
 .hitl .fp-touch { position: absolute; inset: 0; display: none; touch-action: none; }
 .hitl.fp-walking .fp-touch { display: block; pointer-events: auto; }
 .hitl .fp-look { position: absolute; inset: 0 0 0 50%; }
-.hitl .fp-stick { position: absolute; left: 1.6em; bottom: 2.2em; width: 108px; height: 108px; border-radius: 50%; border: 0.16em solid var(--ink); background: color-mix(in srgb, var(--cream) 55%, transparent); opacity: 0.8; pointer-events: none; }
-.hitl .fp-stick.on { opacity: 1; }
+.hitl .fp-stick { position: absolute; left: 1.6em; bottom: 2.2em; width: 108px; height: 108px; border-radius: 50%; border: 0.16em solid var(--ink); background: color-mix(in srgb, var(--cream) 55%, transparent); opacity: 0.8; pointer-events: none; display: none; }
+/* Shown at rest only where there is a touch screen; it always shows under a thumb that is down. */
+@media (pointer: coarse) { .hitl .fp-stick { display: block; } }
+.hitl .fp-stick.on { display: block; opacity: 1; }
 .hitl .fp-stick i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: var(--cream); border: 0.16em solid var(--ink); box-shadow: 0 0.14em 0 var(--ink); }
 .hitl .fp-walk { position: absolute; right: 0.6em; bottom: 4.4em; pointer-events: auto; z-index: 3; font-weight: 800; }
 .hitl .fp-walk[hidden] { display: none; }
