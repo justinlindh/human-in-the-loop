@@ -13,7 +13,7 @@ export const GROUPS = {
   props: ['prop:dropOnWalk', 'prop:dropOnStand', 'moment:pizza', 'prop:groupOnMovedTable', 'moment:hammer', 'moment:letter', 'moment:printer', 'moment:visitor:flinch', 'moment:visitor:explain', 'moment:behind-card', 'moment:prompt-stage', 'prop:stageStaff', 'prop:pivotBoard', 'moment:letter-claim', 'moment:letter-lifecycle', 'moment:cooler'],
   y2k: ['moment:y2k', 'prop:y2k-printer-isolation'],
   pairs: ['pairs:floor'],
-  use: ['use:espresso', 'use:coffee_corner', 'use:plant_wall', 'use:bookshelf'],
+  use: ['use:espresso', 'use:water_cooler', 'use:plant_wall', 'use:bookshelf'],
   party: ['waffle:crowd'],
   sky: ['sky:trailing'],
   garage: ['pairs:garage'],

@@ -26,7 +26,7 @@ const HEAD_TOP = HIP_Y + TORSO_H + 0.43;
 // Seconds into the slap anim when the hand lands (robot.js times the robot's jolt to it).
 export const SLAP_AT = 0.5;
 
-const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'hide', 'flinch', 'pointscreen', 'wave', 'carry',
+const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'cupsip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'hide', 'flinch', 'pointscreen', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake', 'facepalm', 'facepalmsit', 'pet', 'fidget', 'dilemma',
   'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff', 'growthpump', 'growthpumpsit', 'growthclap', 'growthclapsit', 'rackfix', 'slap', 'deal', 'dealsit', 'hurlspin', 'hurlthrow'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
@@ -107,6 +107,8 @@ const DILEMMA = { look: 0.85, lookRate: 1.3, handUp: -1.75, hover: 0.22, hoverRa
 const HAND_TIP = new THREE.Vector3(0, -0.06, 0);   // the hand's centre below the wrist pivot
 const boxGeo = new RoundedBoxGeometry(0.34, 0.24, 0.26, 2, 0.025);
 // Pizza slice: a wedge pointing at the mouth (-z) with a rounded crust along its back.
+// A paper cup for 'cupsip' (the water cooler), held like the mug: wider at the rim.
+const CUP_GEO = new THREE.CylinderGeometry(0.03, 0.022, 0.075, 12);
 const SLICE_GEO = new THREE.CylinderGeometry(0.075, 0.075, 0.012, 3, 1, false, -Math.PI / 6, Math.PI / 3).translate(0, 0, -0.02);
 const CRUST_GEO = new THREE.CapsuleGeometry(0.012, 0.07, 4, 8).rotateZ(Math.PI / 2);
 const pickGeo = new THREE.CylinderGeometry(0.3, 0.3, 1.15, 8).translate(0, 0.58, 0);
@@ -417,6 +419,8 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   const mug = P('mug');
   mug.position.set(0, -0.06, 0.04);
   const mugParent = arms[1].wrist;
+  const cup = new THREE.Mesh(CUP_GEO, mat('paper_sheet'));
+  cup.position.copy(mug.position);
   // A slice of pizza for 'eat', held like the mug: a flat wedge, crust out.
   const slice = new THREE.Group();
   const cheese = new THREE.Mesh(SLICE_GEO, mat('fabric_mustard'));
@@ -756,7 +760,8 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.headX = -0.15;
         break;
       }
-      case 'sip': {
+      case 'sip':
+      case 'cupsip': {
         const cyc = (t % 4) / 4;
         const up = cyc < 0.45 ? Math.sin((cyc / 0.45) * Math.PI) : 0;
         tgt.armRX = -0.6 - up * 1.4;
@@ -1234,6 +1239,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     anim = name;
     animT = 0;
     attach(mug, mugParent, name === 'sip' || name === 'water');
+    attach(cup, mugParent, name === 'cupsip');
     attach(slice, mugParent, name === 'eat');
     if (held) attach(held, mugParent, true);
     // Lying people are lifted onto furniture with their root, and the floor ring would float with them.

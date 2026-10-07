@@ -428,22 +428,29 @@ export async function runUseChecks(R, S, itemIds, { dt = 1 / 30 } = {}) {
   const THREEv = new THREE.Vector3();
   for (const pid of itemIds) {
     const e = R.office.placed.get(pid);
-    const who = ids[k++ % ids.length];
-    if (!R.perks.send([who], pid, { dur: 30 })) { results.push({ name: `use:${e?.itemId ?? pid}`, pass: false, reason: 'not sent' }); continue; }
-    for (let i = 0; i < 600 && R.perks.peek(who)?.path; i++) step(1);
+    // One person, or two for an item used in pairs (the water cooler's chat).
+    let group = [ids[k++ % ids.length]];
+    if (!R.perks.send(group, pid, { dur: 30 })) {
+      group = [group[0], ids[k++ % ids.length]];
+      if (!R.perks.send(group, pid, { dur: 30 })) { results.push({ name: `use:${e?.itemId ?? pid}`, pass: false, reason: 'not sent' }); continue; }
+    }
+    for (let i = 0; i < 600 && group.some((w) => R.perks.peek(w)?.path); i++) step(1);
     step(20);
-    const root = charOf(R.scene, who);
-    // Distance from the person to the model's front face, in the item's frame.
+    // Distance from each person to the model's front face, in the item's frame; the worst one counts.
     e.obj.updateMatrixWorld(true);
     const inv = e.obj.matrixWorld.clone().invert();
-    const local = THREEv.copy(root.position).applyMatrix4(inv);
     const box = new THREE.Box3();
     e.obj.traverse((o) => { if (o.isMesh) { o.geometry.computeBoundingBox(); box.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld.clone().premultiply(inv))); } });
-    const gap = local.z - box.max.z;
-    const inOther = bodyInside(root, furnitureOf(R));
-    results.push({ name: `use:${e.itemId}_l${e.level}`, pass: gap > 0 && gap < USE_MAX && inOther === 0 && Math.abs(local.x) < (box.max.x - box.min.x) / 2 + 0.3,
-      frontGap: +gap.toFixed(2), across: +local.x.toFixed(2), insidePct: +(100 * inOther).toFixed(2) });
-    R.perks.send([who], pid, { dur: 0.01 });
+    const each = group.map((w) => {
+      const root = charOf(R.scene, w);
+      const local = THREEv.copy(root.position).applyMatrix4(inv);
+      const gap = local.z - box.max.z, inOther = bodyInside(root, furnitureOf(R));
+      return { gap, across: local.x, inOther, ok: gap > 0 && gap < USE_MAX && inOther === 0 && Math.abs(local.x) < (box.max.x - box.min.x) / 2 + 0.3 };
+    });
+    const worst = each.find((x) => !x.ok) ?? each[0];
+    results.push({ name: `use:${e.itemId}_l${e.level}`, pass: each.every((x) => x.ok), people: group.length,
+      frontGap: +worst.gap.toFixed(2), across: +worst.across.toFixed(2), insidePct: +(100 * worst.inOther).toFixed(2) });
+    R.perks.send(group, pid, { dur: 0.01 });
     step(5);
   }
   return results;
@@ -930,6 +937,72 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     results.push({ name: 'moment:printer', pass: done && worst < 0.01 && chin > 0 && hitsOk && spotOk && quiet === true, phases: [...phases], hits, quiet, spotlight: { seen: spotSeen, events: spots.map((x) => `${x.active ? 'start' : 'end'} ${x.kind}`) }, samples, insidePct: +(100 * worst).toFixed(2), worstWho, worstAt, chinGap: +chin.toFixed(3), chinWho });
     R.moments.full = false;
     step(30);
+  }
+  // 6a. A chat at the water cooler: two people meet in front of it, turn to each other, paper cups in
+  // hand, clear of furniture the whole time, and go back to their desks.
+  {
+    const host = S.office.placed.find((p) => p.itemId === 'espresso');
+    const was = host && { itemId: host.itemId, level: host.level };
+    let pass = false, info = { reason: 'no espresso to swap for a cooler' };
+    if (host) {
+      Object.assign(host, { itemId: 'water_cooler', level: 1 });
+      step(30);
+      const [a, b] = S.staff.map((p) => p.id);
+      const sent = R.perks.send([a, b], host.id, { dur: 9 });
+      let worst = 0, facing = 1, cups = 0, chatted = 0, goals = null;
+      for (let i = 0; sent && i < 30 * 30; i++) {
+        step(1);
+        const ra = R.perks.peek(a), rb = R.perks.peek(b);
+        if (!ra?.temp && !rb?.temp && chatted) break;
+        if (ra?.temp?.anim !== 'cupsip' && rb?.temp?.anim !== 'cupsip') continue;
+        chatted++;
+        goals ??= [R.perks.peek(a).temp.goal, R.perks.peek(b).temp.goal];
+        const roots = [charOf(R.scene, a), charOf(R.scene, b)];
+        for (const r of roots) worst = Math.max(worst, bodyInside(r, furnitureOf(R)));
+        // Each one's facing toward the other (1 straight at them), once they've turned from the walk in.
+        const [pa, pb] = roots.map((r) => r.position);
+        if (chatted > 30) for (const [r, o] of [[roots[0], pb], [roots[1], pa]]) {
+          const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(r.getWorldQuaternion(new THREE.Quaternion()));
+          const to = new THREE.Vector3(o.x - r.position.x, 0, o.z - r.position.z).normalize();
+          facing = Math.min(facing, fwd.x * to.x + fwd.z * to.z);
+        }
+        let seen = 0;
+        for (const r of roots) r.traverse((m) => { if (m.isMesh && m.geometry?.parameters?.radiusTop === 0.03 && m.parent && m.visible) seen++; });
+        cups = Math.max(cups, seen);
+      }
+      // Someone standing just in front of a chat spot, on the visitors' side: the pair never walks
+      // into them (the chat doesn't start, or they keep clear).
+      for (let i = 0; i < 30 * 15 && (R.perks.peek(a)?.temp || R.perks.peek(b)?.temp); i++) step(1);
+      const c = S.staff[2]?.id;
+      let closest = Infinity, standerSent = null;
+      if (c && goals) {
+        const [g0, g1] = goals;
+        const from = charOf(R.scene, a).position;
+        const ux = g1.x - g0.x, uz = g1.z - g0.z, ul = Math.hypot(ux, uz) || 1;
+        let nx = -uz / ul, nz = ux / ul;
+        if ((from.x - g0.x) * nx + (from.z - g0.z) * nz < 0) { nx = -nx; nz = -nz; }
+        const sx = g0.x + nx * 0.5, sz = g0.z + nz * 0.5;
+        R.standAt(c, sx, sz);
+        R.catchFor(c, { anim: 'idle', t: Infinity, goal: { x: sx, z: sz, yaw: 0, anim: 'idle' }, back: true });
+        step(5);
+        standerSent = R.perks.send([a, b], host.id, { dur: 6 });
+        for (let i = 0; standerSent && i < 30 * 20; i++) {
+          step(1);
+          const pc = charOf(R.scene, c).position;
+          for (const w of [a, b]) {
+            const p = charOf(R.scene, w).position;
+            closest = Math.min(closest, Math.hypot(p.x - pc.x, p.z - pc.z));
+          }
+          if (!R.perks.peek(a)?.temp && !R.perks.peek(b)?.temp) break;
+        }
+        R.catchFor(c, null, { walk: true });
+      }
+      pass = sent && chatted > 30 && worst < 0.01 && facing > 0.5 && cups === 2 && standerSent !== null && closest >= 0.45;
+      info = { sent, chatSamples: chatted, insidePct: +(100 * worst).toFixed(2), facing: +facing.toFixed(2), cups, standerSent, standerGap: closest === Infinity ? null : +closest.toFixed(2) };
+      Object.assign(host, was);
+      step(30);
+    }
+    results.push({ name: 'moment:cooler', pass, ...info });
   }
   // 6b. The same events resolved with no card (quietEvent): a ping-pong picture's stage shows for 15 s
   // of running play, through a pause, and goes; the jammed printer shows, goes, and is carried out

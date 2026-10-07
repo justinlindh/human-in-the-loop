@@ -14,7 +14,7 @@ export const BOOMBOX_MODELS = [1, 2, 3].map((l) => `boombox_l${l}`);
 export const PROP_NAMES = [
   ...(ERA_MODELS_AT_START ? [...ERA_MODELS, ...BOOMBOX_MODELS] : []),
   'desk', 'chair', 'monitor', 'laptop', 'server_rack', 'plant_tall', 'plant_small', 'coffee_machine',
-  'whiteboard', 'couch', 'bookshelf', 'garage_door', 'window_frame', 'monitoring_wall', 'water_cooler', 'trophy', 'kitchenette', 'ping_pong_table', 'foosball', 'balloons', 'waffle_station',
+  'whiteboard', 'couch', 'bookshelf', 'garage_door', 'window_frame', 'monitoring_wall', 'water_cooler', 'water_cooler_jug', 'water_cooler_web2', 'water_cooler_agents', 'trophy', 'kitchenette', 'ping_pong_table', 'foosball', 'balloons', 'waffle_station',
 ];
 
 export const ITEM_IDS = [
