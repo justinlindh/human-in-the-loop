@@ -84,6 +84,27 @@ test('see-as sits just ahead of the eyes and looks where the head looks', () => 
   expect(fp.camera.position.x).toBeCloseTo(1.07);
 });
 
+test('see-as, walking, looks down the path ahead rather than at a wall the head swings past', () => {
+  // Walking +x, the path turns to +z 0.4 m ahead; the head points straight at -z (a wall).
+  const people = { s1: person(0, 0, Math.PI) };
+  const { fp, staff } = world({ obstacles: [], people });
+  staff.walkOf = () => ({ path: [{ x: 0.4, z: 0 }, { x: 0.4, z: 3 }] });
+  fp.seeAs('s1');
+  fp.step(1 / 60);
+  const d = fp.camera.getWorldDirection(new THREE.Vector3());
+  // 1.2 m along: 0.4 m east then 0.8 m north, so the view points north-east, never south at the wall.
+  expect(d.z).toBeGreaterThan(0.8);
+  expect(d.x).toBeGreaterThan(0.3);
+  // At the spot, it holds the spot's facing while the head swings round.
+  staff.walkOf = () => ({ path: [], temp: { goal: { x: 0.1, z: 0, yaw: Math.PI / 2 } } });
+  for (let i = 0; i < 120; i++) fp.step(1 / 60);
+  expect(fp.camera.getWorldDirection(new THREE.Vector3()).x).toBeGreaterThan(0.99);
+  // Standing still, it looks where the head looks.
+  staff.walkOf = () => ({ path: [] });
+  for (let i = 0; i < 120; i++) fp.step(1 / 60);
+  expect(fp.camera.getWorldDirection(new THREE.Vector3()).z).toBeLessThan(-0.99);
+});
+
 test('see-as refuses someone who is away, and ends by itself when they go', () => {
   const people = { s1: person(1, 1), s2: { ...person(2, 2), hidden: true } };
   const { fp, exits } = world({ people });
