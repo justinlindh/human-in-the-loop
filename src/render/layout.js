@@ -446,5 +446,5 @@ export function createNav(L, obstacles, cell = 0.35) {
     return one(x, z) || (r > 0 && (one(x + r, z) || one(x - r, z) || one(x, z + r) || one(x, z - r)));
   };
 
-  return { path, blocked, nx, nz, cell, freePoint, isBlocked };
+  return { path, blocked, nx, nz, cell, freePoint, isBlocked, room, roomAlong };
 }
