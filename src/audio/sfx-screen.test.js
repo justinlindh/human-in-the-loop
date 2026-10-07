@@ -30,6 +30,12 @@ describe('sfx-screen', () => {
     expect(r.failed.join(' ')).toMatch(/decay/);
   });
 
+  it('does not let trailing silence turn a ringing cue into a long clip', () => {
+    const padded = [...ring(0.25, 1.1, true), ...new Array(Math.round(0.6 * SR)).fill(0)];
+    expect(padded.length / SR).toBeGreaterThan(BARS.shortMax);
+    expect(screen(padded, SR).failed.join(' ')).toMatch(/decay/);
+  });
+
   it('leaves the decay of a long clip to the ear', () => {
     expect(screen(ring(0.6, 3, true), SR).failed).toEqual([]);
   });
