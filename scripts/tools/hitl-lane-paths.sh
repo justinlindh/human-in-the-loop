@@ -1,4 +1,4 @@
-# Sourced by hitl-reset.sh and hitl-autocompact.sh: where the Claude project memory and the team
+# Sourced by hitl-autocompact.sh: where the Claude project memory and the team
 # directories live, from the environment, so no machine path is written in the scripts.
 #   lane_memory_dir   $HITL_MEMORY_DIR, else <config>/projects/<checkout path, / and . as ->/memory
 #   lane_teams_dir    $HITL_TEAMS_DIR, else <config>/teams

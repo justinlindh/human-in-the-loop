@@ -9,7 +9,7 @@
 # lead's open-threads check before it confirms.
 # The team directory is --teams, else $HITL_TEAMS_DIR, else <config>/teams, and its session-* directories
 # are searched newest first for one whose config.json lists the name. The memory directory (handoffs live
-# in <memory>/handoffs) are --memory, else $HITL_MEMORY_DIR, else the Claude project's memory folder for
+# in <memory>/handoffs) is --memory, else $HITL_MEMORY_DIR, else the Claude project's memory folder for
 # this checkout. The compact is scripts/team/reset-teammate.sh, logged to <memory>/reset-trial.log.
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -42,9 +42,13 @@ if [ -s "$inbox" ] && [ "$(jq 'length' "$inbox" 2>/dev/null || echo 0)" -gt 0 ];
   echo "held: $name has unread messages"; exit 3
 fi
 
-prefix="$name"; [ "$name" = integrator ] && prefix=integ
-asked="$(cd "$repo" && gh pr list --json headRefName,reviewDecision --jq "[.[] | select((.headRefName | startswith(\"$prefix/\")) and .reviewDecision == \"CHANGES_REQUESTED\")] | length" 2>/dev/null || echo 0)"
-if [ "${asked:-0}" -gt 0 ]; then
+# Verdicts are posted as the `review` status on the head (the reviews themselves are COMMENTED, so
+# reviewDecision stays empty). A lane's branches carry its prefix; three lanes are named differently.
+case "$name" in integrator) prefix=integ ;; tools2) prefix=tools ;; team-lead) prefix=lead ;; *) prefix="$name" ;; esac
+asked="$(cd "$repo" && gh pr list --json headRefName,statusCheckRollup --jq "[.[] | select((.headRefName | startswith(\"$prefix/\")) and any(.statusCheckRollup[]?; (.context // .name) == \"review\" and (.state // .conclusion) == \"FAILURE\"))] | length" 2>/dev/null)" || asked=""
+# The gate fails closed: a gh that can't answer holds the lane.
+[ -n "$asked" ] || { echo "held: couldn't read $name's PRs from GitHub"; exit 3; }
+if [ "$asked" -gt 0 ]; then
   echo "held: $name has a PR with changes requested"; exit 3
 fi
 
