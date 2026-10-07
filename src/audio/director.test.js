@@ -219,7 +219,7 @@ describe('audio director', () => {
     expect(coffee).toBeLessThanOrEqual(5);
     const bare = createDirector();
     let none = 0;
-    for (let t = 0; t < 600; t += 0.5) none += bare.update(state(), t, { speed: 1, running: true }).filter((x) => x.cue === 'sfx.dog' || x.cue === 'sfx.coffee').length;
+    for (let t = 0; t < 600; t += 0.5) none += bare.update(state({ office: { placed: [{ itemId: 'water_cooler' }] } }), t, { speed: 1, running: true }).filter((x) => x.cue === 'sfx.dog' || x.cue === 'sfx.coffee').length;
     expect(none).toBe(0);
   });
 
