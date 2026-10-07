@@ -380,8 +380,9 @@ export function createHud({ root, controls, ui }) {
     if (!lowQ) {
       const vals = sparkValues(s.history);
       const tone = sparkTone(vals, cashSub.className);
-      const sig = sparkSig(s.history, tone);
-      if (sig !== sparkSigLast && cashSpark.clientWidth) { sparkSigLast = sig; drawCashSpark(cashSpark, vals, tone); }
+      const width = cashSpark.clientWidth;
+      const sig = sparkSig(s.history, tone, width);
+      if (sig !== sparkSigLast && width) { sparkSigLast = sig; drawCashSpark(cashSpark, vals, tone); }
     }
 
     const m = totalMrr(s);

@@ -7,14 +7,21 @@ export const SPARK_WEEKS = 40;
 export const sparkValues = (history, max = SPARK_WEEKS) => (history ?? []).slice(-max).map((x) => x.cash).filter(Number.isFinite);
 
 // Changes whenever the line would: the history grew or its newest week moved, or the colour changes.
-export const sparkSig = (history, tone) => `${history?.length ?? 0}|${history?.[history.length - 1]?.week ?? ''}|${tone}`;
+// The canvas width is part of it, so a resize across a breakpoint redraws at the new size.
+export const sparkSig = (history, tone, width = 0) => `${history?.length ?? 0}|${history?.[history.length - 1]?.week ?? ''}|${tone}|${width}`;
 
-// 'bad' when the runway line is red, 'warn' when amber, else 'up' or 'down' by the line's direction.
+// How many recent weeks decide whether the line is rising or falling.
+export const SLOPE_WEEKS = 6;
+
+// 'bad' when the runway line is red, 'warn' when amber, else 'up' or 'down' by where cash is heading now
+// (the last few weeks), so a company that has turned around reads green however far it fell before.
 export function sparkTone(values, subClass = 'sub') {
   if (/\bbad\b/.test(subClass)) return 'bad';
   if (/\bwarn\b/.test(subClass)) return 'warn';
   if (values.length < 2) return 'flat';
-  return values[values.length - 1] >= values[0] ? 'up' : 'down';
+  const last = values[values.length - 1];
+  const from = values[Math.max(0, values.length - 1 - SLOPE_WEEKS)];
+  return last >= from ? 'up' : 'down';
 }
 
 const COLOR = { up: '#2f9e75', down: '#e8930c', warn: '#e8930c', bad: '#e5484d', flat: '#8f8795' };
