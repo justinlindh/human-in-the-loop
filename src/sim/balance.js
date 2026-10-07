@@ -111,6 +111,10 @@ export const B = {
   // The NOC (#342): Security staff for a full humans crew; the agents' catch multiplier, the chance they misread
   // an incident, and the weeks between switching modes.
   nocCrew: 3, nocAgentCatch: 1.5, nocMisreadChance: 0.15, nocSwitchWeeks: 26,
+  // The water cooler (#1640): staff in the office whose seats are within `radius` tiles form its crowd; with two
+  // or more, each gains `share` of the gap to the crowd's most knowledgeable member a week, at most `maxGain`.
+  // A gain of `notifyGain` or more says "Context shared", at most once per cooler per `notifyWeeks`.
+  cooler: { price: 1500, radius: 3, share: 0.02, maxGain: 1, notifyGain: 0.5, notifyWeeks: 8 },
   // The office robot (#178). Item effects live in items.js; these are its moods.
   //   plantBoost: Potted Plant adjacency multiplier from level 2. breakChance: a week, x l3BreakMult at level 3.
   //   grumbleFrom / sabotageFrom: automation share where grumbling and sabotage start; refuseExposure: how automated

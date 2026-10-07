@@ -106,7 +106,7 @@ describe('placement', () => {
     const r = createRng(42);
     const s = fresh();
     s.cash = 20000;
-    const ids = ['desk', 'plant', 'whiteboard', 'coffee_corner', 'bookshelf', 'meeting_table', 'espresso', 'server_rack'];
+    const ids = ['desk', 'plant', 'whiteboard', 'water_cooler', 'bookshelf', 'meeting_table', 'espresso', 'server_rack'];
     for (let i = 0; i < 400; i++) {
       const moving = s.office.placed.length && int(r, 0, 3) === 0 ? pick(r, s.office.placed) : null;
       const a = moving
@@ -311,7 +311,7 @@ describe('moving offices', () => {
   const furnished = (seed) => {
     const s = game(seed);
     s.cash = 1e7;
-    for (const id of ['plant', 'whiteboard', 'coffee_corner', 'espresso']) {
+    for (const id of ['plant', 'whiteboard', 'water_cooler', 'espresso']) {
       const spot = findSpot(0, s.office.placed, id);
       if (spot) expect(dispatch(s, { type: 'placeItem', itemId: id, ...spot }).ok).toBe(true);
     }
@@ -441,7 +441,7 @@ describe('suggested layout', () => {
       expect(new Set(desks.map((d) => d.rot))).toEqual(new Set([0, 2]));
       if (stage > 0) expect(new Set(desks.map((d) => d.y)).size).toBeGreaterThanOrEqual(2);
       expect(Math.max(...desks.map((d) => d.x))).toBeLessThan(OFFICE_STAGES[stage].grid.w - 1);
-      for (const id of ['plant', 'coffee_corner', 'whiteboard', 'bookshelf', 'espresso']) {
+      for (const id of ['plant', 'water_cooler', 'whiteboard', 'bookshelf', 'espresso']) {
         const spot = suggestPlacement(s, id);
         if (spot) expect(placementCheck(s, { itemId: id, ...spot }).ok, id).toBe(true);
       }

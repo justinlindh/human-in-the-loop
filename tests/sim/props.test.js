@@ -182,7 +182,7 @@ describe('staged prop tiles keep off items and their front zones', () => {
   it('kitchen, door and wall anchors land on free floor, never on an item or where people stand to use one', () => {
     for (let seed = 21; seed <= 26; seed++) {
       const s = floor(seed);
-      for (const [itemId, x, y, rot] of [['coffee_corner', 3, 6, 0], ['espresso', 10, 1, 0], ['bookshelf', 6, 0, 0], ['plant', 8, 0, 0], ['arcade', 7, 9, 2]]) {
+      for (const [itemId, x, y, rot] of [['water_cooler', 3, 6, 0], ['espresso', 10, 1, 0], ['bookshelf', 6, 0, 0], ['plant', 8, 0, 0], ['arcade', 7, 9, 2]]) {
         dispatch(s, { type: 'placeItem', itemId, x, y, rot });
       }
       const taken = new Set();
@@ -194,9 +194,13 @@ describe('staged prop tiles keep off items and their front zones', () => {
         const t = stageTile(s, anchor, null);
         expect(taken.has(String([t.x, t.y])), `seed ${seed} ${anchor} at ${t.x},${t.y}`).toBe(false);
       }
-      const corner = s.office.placed.find((p) => p.itemId === 'coffee_corner');
-      const k = stageTile(s, 'kitchen', null);
-      expect(Math.max(Math.abs(k.x - corner.x), Math.abs(k.y - corner.y)), `seed ${seed}`).toBeLessThanOrEqual(3);
+      // The kitchen is the espresso machine, else the water cooler.
+      for (const drop of [null, 'espresso']) {
+        if (drop) s.office.placed = s.office.placed.filter((p) => p.itemId !== drop);
+        const at = s.office.placed.find((p) => p.itemId === 'espresso') ?? s.office.placed.find((p) => p.itemId === 'water_cooler');
+        const k = stageTile(s, 'kitchen', null);
+        expect(Math.max(Math.abs(k.x - at.x), Math.abs(k.y - at.y)), `seed ${seed} ${at.itemId}`).toBeLessThanOrEqual(3);
+      }
     }
   });
 });

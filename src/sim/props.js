@@ -65,7 +65,8 @@ export function stageTile(state, anchor, subjectId) {
     if (who) { const [x, y] = seatTile(deskOf(who)); return { x, y, staffId: who.id }; }
   }
   if (anchor === 'kitchen') {
-    const corner = state.office.placed.find((i) => i.itemId === 'coffee_corner' || i.itemId === 'espresso');
+    // The espresso machine, else the water cooler: where people go for a drink.
+    const corner = state.office.placed.find((i) => i.itemId === 'espresso') ?? state.office.placed.find((i) => i.itemId === 'water_cooler');
     if (corner) {
       const spot = nearestFree(state, corner.x, corner.y);
       if (spot) return spot;

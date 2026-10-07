@@ -47,7 +47,7 @@ describe('the effects report office page covers every item', () => {
   });
 
   it('prints adjacency bonuses with their radius', () => {
-    expect(row('Coffee Corner')).toMatch(/stamina recovery \+8% .*within 3 tiles/);
+    expect(row('Water Cooler')).toMatch(/desks within 3 tiles each close 2% of the gap to the most knowledgeable of them a week, at most 1 knowledge/);
     expect(row('Potted Plant')).toMatch(/meaning recovery \+4% .*within 2 tiles/);
     expect(row('Server Racks')).toMatch(/uptime floor \+1% for each other Server Racks within 1 tile/);
   });

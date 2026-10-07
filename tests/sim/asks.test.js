@@ -342,7 +342,7 @@ describe('issue #1646: the ask queue', () => {
   });
 
   it('status-news toasts carry a known topic and a subject id or null; money, staff changes and goals carry none', () => {
-    const TOPICS = ['progress', 'timeoff', 'back', 'mood', 'trend', 'blocked', 'reward', 'pet', 'rival', 'replyall', 'incident'];
+    const TOPICS = ['progress', 'timeoff', 'back', 'mood', 'trend', 'blocked', 'reward', 'pet', 'rival', 'replyall', 'incident', 'shared'];
     const seen = new Set();
     const toasts = [];
     for (const bot of ['balanced', 'allHumans']) {
