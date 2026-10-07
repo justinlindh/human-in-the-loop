@@ -180,6 +180,8 @@ const ADJ_WORDS = { novelty: 'freshness', staminaRecovery: 'stamina recovery', m
 function adjacencyLine(it) {
   const a = it.adjacency;
   if (!a) return null;
+  // The cooler is not a flat bonus: each week a person nearby closes a share of the gap to the group's expert.
+  if (a.key === 'knowledgeShare') return `Weekly: closes ${Math.round(a.value * 100)}% of the gap to the group's expert (2+ people within ${a.radius} tiles)`;
   const val = a.key === 'uptimeFloor' ? `+${Math.round(a.value * 100)} pts` : `+${Math.round(a.value * 100)}%`;
   const name = a.to ? CATALOG[a.to]?.name ?? a.to : null;
   const to = name ? (/s$/i.test(name) ? name : `${name}s`) : 'desks';

@@ -176,7 +176,7 @@ const FB_FURNITURE = [
   { id: 'desk', name: 'Desk Set', desc: 'A desk, a chair, and a screen. One person each.', costs: [800], footprint: { w: 2, h: 1 }, minStage: 0 },
   { id: 'meeting_table', name: 'Meeting Table', desc: 'Where standups and arguments happen.', costs: [2500], footprint: { w: 3, h: 2 }, minStage: 0 },
   { id: 'whiteboard', name: 'Whiteboard', desc: 'Nearby desks think a little weirder.', costs: [900], footprint: { w: 2, h: 1 }, minStage: 0, adjacency: { radius: 2, key: 'novelty', value: 0.03 } },
-  { id: 'water_cooler', name: 'Water Cooler', desc: 'Where the team trades what the code actually does. People near it pick up each other\'s context.', costs: [1500], footprint: { w: 2, h: 1 }, minStage: 0, adjacency: { radius: 3, key: 'knowledgeShare', value: 0.05 } },
+  { id: 'water_cooler', name: 'Water Cooler', desc: 'Where the team trades what the code actually does. People near it pick up each other\'s context.', costs: [B.cooler?.price ?? 1500], footprint: { w: 2, h: 1 }, minStage: 0, adjacency: { radius: B.cooler?.radius ?? 3, key: 'knowledgeShare', value: B.cooler?.share ?? 0.02 } },
   { id: 'plant', name: 'Potted Plant', desc: 'Nearby desks feel a bit better about their work.', costs: [300], footprint: { w: 1, h: 1 }, minStage: 0, adjacency: { radius: 2, key: 'meaningRecovery', value: 0.03 } },
   { id: 'bookshelf', name: 'Bookshelf', desc: 'Nearby desks pick up the systems faster.', costs: [1200], footprint: { w: 2, h: 1 }, minStage: 0, adjacency: { radius: 2, key: 'knowledgeGain', value: 0.05 } },
 ];
