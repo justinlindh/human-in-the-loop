@@ -7,16 +7,20 @@ import { queue, line } from '../../scripts/tools/review-queue.mjs';
 
 const QUEUE = resolve(__dirname, '../../scripts/tools/review-queue.mjs');
 
+// `ci` is the state of the required check `smoke` (`commits` always passes; null: nothing reported yet). A
+// failing local-ci rides along on every PR with checks: it is not required, so it must change nothing.
+const run_ = (name, ci) => ({ __typename: 'CheckRun', name, status: ci === 'PENDING' ? 'IN_PROGRESS' : 'COMPLETED', conclusion: ci === 'PENDING' ? '' : ci });
 const pr = (number, over = {}, ci = 'SUCCESS', review = null) => ({
   number, title: `t${number}`, isDraft: false, isCrossRepository: false, labels: [], headRefOid: `${number}`.padEnd(40, 'a'), headRefName: `tools/x${number}`,
   author: { login: 'justinlindh' },
-  statusCheckRollup: [...(ci ? [{ __typename: 'StatusContext', context: 'local-ci', state: ci }] : []), ...(review ? [{ __typename: 'StatusContext', context: 'review', state: review }] : [])],
+  statusCheckRollup: [...(ci ? [run_('commits', 'SUCCESS'), run_('smoke', ci), { __typename: 'StatusContext', context: 'local-ci', state: 'FAILURE' }] : []), ...(review ? [{ __typename: 'StatusContext', context: 'review', state: review }] : [])],
   ...over,
 });
+const REQUIRED = ['commits', 'smoke'];
 
 describe('who is waiting, and in which group', () => {
   const trusted = ['justinlindh'];
-  const groups = (list) => queue(list, trusted).map((w) => `${w.group}#${w.number}`);
+  const groups = (list) => queue(list, trusted, undefined, REQUIRED).map((w) => `${w.group}#${w.number}`);
 
   it('sorts ready, dependabot, outside and ci-not-green PRs into groups and drops the rest', () => {
     const list = [
@@ -31,17 +35,34 @@ describe('who is waiting, and in which group', () => {
   });
 
   it('only a failing CI wakes a waiter; a pending or missing one is listed but waits', () => {
-    const w = (n, ci) => queue([pr(n, {}, ci)], trusted)[0];
+    const w = (n, ci) => queue([pr(n, {}, ci)], trusted, undefined, REQUIRED)[0];
     expect(w(1, 'FAILURE').wake).toBe(true);
     expect(w(2, 'PENDING').wake).toBe(false);
     expect(w(3, null).wake).toBe(false);
-    expect(queue([pr(4, { author: { login: 'x' } }, null)], trusted)[0].wake).toBe(true);
+    expect(queue([pr(4, { author: { login: 'x' } }, null)], trusted, undefined, REQUIRED)[0].wake).toBe(true);
   });
 
   it('prints group, number, short head, branch and title, with the reason for a CI line and the repo when given', () => {
-    expect(line(queue([pr(5)], ['justinlindh'])[0])).toBe('READY #5 5aaaaaaa tools/x5: t5');
-    expect(line(queue([pr(9, {}, 'PENDING')], ['justinlindh'])[0])).toBe('CI #9 9aaaaaaa tools/x9: t9 (local-ci pending)');
-    expect(line(queue([pr(5)], ['justinlindh'], 'me/site')[0])).toBe('READY me/site#5 5aaaaaaa tools/x5: t5');
+    expect(line(queue([pr(5)], ['justinlindh'], undefined, REQUIRED)[0])).toBe('READY #5 5aaaaaaa tools/x5: t5');
+    expect(line(queue([pr(9, {}, 'PENDING')], ['justinlindh'], undefined, REQUIRED)[0])).toBe('CI #9 9aaaaaaa tools/x9: t9 (smoke pending)');
+    expect(line(queue([pr(5)], ['justinlindh'], 'me/site', REQUIRED)[0])).toBe('READY me/site#5 5aaaaaaa tools/x5: t5');
+  });
+
+  it('READY rests on the required checks, not on local-ci, which is no longer posted', () => {
+    const noLocalCi = (n, ...runs) => pr(n, { statusCheckRollup: runs.map(([name, c]) => run_(name, c)) }, null);
+    const g = (p, req = REQUIRED) => queue([p], ['justinlindh'], undefined, req)[0];
+    expect(g(noLocalCi(1, ['commits', 'SUCCESS'], ['smoke', 'SUCCESS'])).group).toBe('READY');
+    expect(g(noLocalCi(2, ['commits', 'SUCCESS'], ['smoke', 'SKIPPED'])).group).toBe('READY');
+    expect(g(noLocalCi(3, ['commits', 'SUCCESS'], ['smoke', 'PENDING']))).toMatchObject({ group: 'CI', wake: false, waiting: ['smoke pending'] });
+    expect(g(noLocalCi(4, ['commits', 'SUCCESS']))).toMatchObject({ group: 'CI', waiting: ['smoke none'] });
+    expect(g(noLocalCi(5, ['commits', 'SUCCESS'], ['smoke', 'FAILURE']))).toMatchObject({ group: 'CI', ci: 'failure', wake: true });
+    // A check nothing requires does not hold a PR back; a verdict on the head still removes it.
+    expect(g(noLocalCi(6, ['commits', 'SUCCESS'], ['smoke', 'SUCCESS'], ['balance', 'FAILURE'])).group).toBe('READY');
+    expect(queue([pr(7, {}, 'SUCCESS', 'SUCCESS')], ['justinlindh'], undefined, REQUIRED)).toEqual([]);
+    // The rules unreadable: every reported check but review and local-ci must pass; none reported is not ready.
+    expect(g(noLocalCi(8, ['commits', 'SUCCESS'], ['smoke', 'SUCCESS']), null).group).toBe('READY');
+    expect(g(noLocalCi(9, ['commits', 'SUCCESS'], ['smoke', 'PENDING']), null).group).toBe('CI');
+    expect(g(noLocalCi(10), null)).toMatchObject({ group: 'CI', waiting: ['checks none'] });
   });
 });
 
@@ -147,7 +168,7 @@ describe('review-queue command', () => {
       child.on('close', (c) => { code = c; });
       await until(() => out.trim());
       await new Promise((r) => setTimeout(r, 600));
-      expect(out.trim()).toBe('CI #3 3aaaaaaa tools/x3: t3 (local-ci pending)');
+      expect(out.trim()).toBe('CI #3 3aaaaaaa tools/x3: t3 (smoke pending)');
       expect(code).toBeNull();
       t.set([pr(3, {}, 'SUCCESS')]);
       await until(() => lines(out).length >= 2);
@@ -166,10 +187,10 @@ describe('review-queue command', () => {
       let out = '';
       child.stdout.on('data', (d) => { out += d; });
       await until(() => lines(out).length >= 2);
-      expect(lines(out)).toEqual(['READY #5 5aaaaaaa tools/x5: t5', 'CI #3 3aaaaaaa tools/x3: t3 (local-ci pending)']);
+      expect(lines(out)).toEqual(['READY #5 5aaaaaaa tools/x5: t5', 'CI #3 3aaaaaaa tools/x3: t3 (smoke pending)']);
       t.set([pr(3, {}, 'SUCCESS'), pr(5)]);
       await until(() => lines(out).length >= 3);
-      expect(lines(out)).toEqual(['READY #5 5aaaaaaa tools/x5: t5', 'CI #3 3aaaaaaa tools/x3: t3 (local-ci pending)', 'READY #3 3aaaaaaa tools/x3: t3']);
+      expect(lines(out)).toEqual(['READY #5 5aaaaaaa tools/x5: t5', 'CI #3 3aaaaaaa tools/x3: t3 (smoke pending)', 'READY #3 3aaaaaaa tools/x3: t3']);
       child.kill('SIGTERM');
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
   }, 30000);

@@ -5,10 +5,10 @@
 // held, closed or pushed to a new head): nothing is remembered between runs, so running this again returns
 // whatever is still waiting.
 //
-//   READY       same repo, author in scripts/ci-trusted, local-ci green on the head: review it
+//   READY       same repo, author in scripts/ci-trusted, every check branch protection requires (less review) passing on the head: review it
 //   DEPENDABOT  a Dependabot PR: read its diff and changelogs first (no install), CI comes after the verdict
 //   OUTSIDE     a fork or an author outside scripts/ci-trusted: never fetch or run it, report to team-lead
-//   CI          a trusted PR whose local-ci is failing, pending or missing (the reason is on the line); a
+//   CI          a trusted PR with a required check failing, pending or not reported (the reason is on the line); a
 //               failing one can still need a verdict, a pending one is only listed
 //
 //   node scripts/tools/review-queue.mjs                     print the queue, one PR per line; exit 0 with
@@ -20,7 +20,7 @@
 //   --interval <s>       seconds between looks when waiting (default 60)
 //   --timeout <s>        give up waiting after this long (exit 4); default no limit
 //   --json               the queue as JSON
-// A PR with local-ci pending or missing is listed but does not end a --wait or hold a --drain open: its CI
+// A PR with a required check pending or missing is listed but does not end a --wait or hold a --drain open: its CI
 // will finish and it will move to READY.
 // --wait and --drain at an interval of 15 s or more read the current repository's PRs from the shared
 // snapshot (pr-snapshot.mjs), so several queues and watchers cost one `gh pr list` per interval; a
@@ -36,26 +36,59 @@ const DEPENDABOT = /^(app\/)?dependabot(\[bot\])?$/;
 
 const ctx = (pr, name) => ((pr.statusCheckRollup ?? []).find((c) => c.__typename === 'StatusContext' && c.context === name)?.state ?? 'none').toLowerCase();
 
-// The queue from `gh pr list --json` rows: [{ group, number, head, branch, title, ci, wake, repo? }], oldest number first.
-export function queue(prs, trusted, repo) {
+// One check's state on a PR's head, by name, whether it is a commit status or a check run:
+// success (success, skipped, neutral), failure, pending (running, or a status still pending) or none (not reported).
+const OK = new Set(['success', 'skipped', 'neutral']), BAD = new Set(['failure', 'error', 'cancelled', 'timed_out', 'action_required']);
+export function checkState(pr, name) {
+  const c = (pr.statusCheckRollup ?? []).find((x) => (x.__typename === 'StatusContext' ? x.context : x.name) === name);
+  if (!c) return 'none';
+  const s = String(c.__typename === 'StatusContext' ? c.state : c.status === 'COMPLETED' ? c.conclusion : 'pending').toLowerCase();
+  return OK.has(s) ? 'success' : BAD.has(s) ? 'failure' : 'pending';
+}
+
+// The checks a PR must pass before it is worth a review: `required` (the names branch protection requires,
+// less review); with no list (the rules could not be read) every reported check but review and local-ci.
+const neededChecks = (pr, required) => required ?? (pr.statusCheckRollup ?? []).map((x) => (x.__typename === 'StatusContext' ? x.context : x.name)).filter((n) => n && n !== 'review' && n !== 'local-ci');
+
+// The queue from `gh pr list --json` rows: [{ group, number, head, branch, title, ci, waiting, wake, repo? }], oldest number first.
+// `ci` is success when every required check passed, failure when one failed, else pending; `waiting` lists the
+// ones that have not passed, as `name state`.
+export function queue(prs, trusted, repo, required = null) {
   const out = [];
   for (const pr of prs) {
     if (pr.isDraft || (pr.labels ?? []).some((l) => l.name === 'awaiting-user')) continue;
     if (['success', 'failure', 'error'].includes(ctx(pr, 'review'))) continue;
     const login = pr.author?.login ?? '';
-    const ci = ctx(pr, 'local-ci');
+    const states = neededChecks(pr, required).map((n) => [n, checkState(pr, n)]);
+    const waiting = states.filter(([, s]) => s !== 'success').map(([n, s]) => `${n} ${s}`);
+    // Rules unreadable and nothing reported on the head yet: not ready.
+    if (!states.length && required === null) waiting.push('checks none');
+    const ci = states.some(([, s]) => s === 'failure') ? 'failure' : waiting.length ? 'pending' : 'success';
     let group;
     if (DEPENDABOT.test(login) && !pr.isCrossRepository) group = 'DEPENDABOT';
     else if (pr.isCrossRepository || !trusted.includes(login)) group = 'OUTSIDE';
     else group = ci === 'success' ? 'READY' : 'CI';
-    out.push({ group, number: pr.number, head: pr.headRefOid.slice(0, 8), branch: pr.headRefName, title: pr.title, ci,
-      wake: group !== 'CI' || ci === 'failure' || ci === 'error', ...(repo ? { repo } : {}) });
+    out.push({ group, number: pr.number, head: pr.headRefOid.slice(0, 8), branch: pr.headRefName, title: pr.title, ci, waiting,
+      wake: group !== 'CI' || ci === 'failure', ...(repo ? { repo } : {}) });
   }
   const order = { READY: 0, DEPENDABOT: 1, OUTSIDE: 2, CI: 3 };
   return out.sort((a, b) => order[a.group] - order[b.group] || a.number - b.number);
 }
 
-export const line = (w) => `${w.group} ${w.repo ? `${w.repo}` : ''}#${w.number} ${w.head} ${w.branch}: ${w.title}${w.group === 'CI' ? ` (local-ci ${w.ci})` : ''}`;
+export const line = (w) => `${w.group} ${w.repo ? `${w.repo}` : ''}#${w.number} ${w.head} ${w.branch}: ${w.title}${w.group === 'CI' ? ` (${w.waiting.join(', ')})` : ''}`;
+
+// The checks branch protection requires on main, less review, read from the API (cached for a few minutes);
+// null when they cannot be read, and queue() then falls back to every reported check.
+const rulesCache = new Map();
+export function requiredChecks(repo, now = Date.now()) {
+  const hit = rulesCache.get(repo ?? '');
+  if (hit && now - hit.at < 300000) return hit.names;
+  const r = spawnSync('gh', ['api', `repos/${repo ?? '{owner}/{repo}'}/branches/main/protection`], { encoding: 'utf8' });
+  let names = null;
+  if (r.status === 0) { try { const c = JSON.parse(r.stdout).required_status_checks?.contexts; if (Array.isArray(c)) names = c.filter((n) => typeof n === 'string' && n !== 'review'); } catch { /* unreadable */ } }
+  rulesCache.set(repo ?? '', { at: now, names });
+  return names;
+}
 
 export function trustedLogins(file) {
   return readFileSync(file, 'utf8').split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
@@ -79,7 +112,7 @@ async function look(trusted, repos, maxAgeMs) {
       if (r.status !== 0) throw new Error(`gh pr list failed${repo ? ` for ${repo}` : ''}: ${(r.stderr || r.stdout).trim().split('\n').slice(-1)[0]}`);
       prs = JSON.parse(r.stdout);
     }
-    out.push(...queue(prs, trusted, repo));
+    out.push(...queue(prs, trusted, repo, requiredChecks(repo)));
   }
   return out;
 }

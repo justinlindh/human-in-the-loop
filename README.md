@@ -110,7 +110,8 @@ Every line of code, every model, every sound and most of the words here were wri
 | tools, tools2 | checks and plumbing | the staging probe, the scene sweep and dump, the real-loop moment check, the event index, and the shared harnesses every lane runs on |
 | perf | performance | frame-time and dev-loop profiling, the perf budget and the timing log |
 | video | capture and video | reels, shareable clips, landing page assets and feature media; turns what it sees on video into fixes for the owning lanes |
-| reviewer | review and playtest | nothing: reads every PR, plays the build in a browser, posts verdicts |
+| reviewer, reviewer2 | review and playtest | nothing: reads every PR, plays the build in a browser, posts verdicts |
+| designer | game design and pacing | design proposals and balance calls, measured with the pacing and balance tools; sim builds them |
 
 Temporary members join for one job and leave (the landing page, for one). Lanes talk to each other directly about the things they share (sim and ui about actions and reason strings, art and ui about fonts and label stacking) and go through the lead for contract changes and disagreements. [`src/contract/contract.md`](src/contract/contract.md) is what lets them work in parallel without stepping on each other: the simulation promises a state shape and a list of events, and everyone else only reads.
 
