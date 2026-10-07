@@ -33,6 +33,7 @@ import { createGameOver } from './gameover.js';
 import { createTutorial, tutorialDone } from './tutorial.js';
 import { createBuildMode } from './buildmode.js';
 import { createCamRotate } from './camrot.js';
+import { createFirstPerson } from './firstPerson.js';
 import { createIncidentCard, createResolutions, resolutionBlock, backUpTitle } from './incident.js';
 import { openTarget } from './openTarget.js';
 import { setPortraitSource } from './widgets.js';
@@ -195,6 +196,9 @@ export function createUI({ root, getState, dispatch, controls }) {
 
   const buildMode = createBuildMode({ layer, ctx, controls });
   const camRot = createCamRotate({ layer, controls, sfx });
+  const firstPerson = createFirstPerson({ layer, controls, ctx, sfx });
+  ctx.firstPerson = firstPerson;
+  ctx.closeAll = () => { menu.close(); ctx.modal?.close(); buildMode.exit(); };
   ctx.rotateHint = () => camRot.buildHint();
   ctx.rotateHintHide = () => camRot.hideHint();
   // Hover or long-press a person or an item in the office for its tooltip.
@@ -455,6 +459,7 @@ export function createUI({ root, getState, dispatch, controls }) {
     const covered = !!(menu.current || ctx.modal || announcer.open || popups.open || settings.isOpen || chat.maximized);
     incidentCard.update(state, covered || buildMode.on || gameover.open);
     camRot.update(covered || (incidentCard.open && PHONE.matches));
+    firstPerson.update(covered || buildMode.on || gameover.open || firstPerson.active);
     syncMenus(state);
     callGrid.update(state, !!(menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || gameover.open));
     tutorial.setHeld(!!(holdForMoment() || menu.current || ctx.modal || buildMode.on || announcer.open || popups.open || settings.isOpen));

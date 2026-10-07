@@ -1,0 +1,23 @@
+/* First-person views: the HUD steps aside, leaving Exit, who you are, and the touch controls. */
+.hitl .fp { position: absolute; inset: 0; z-index: 30; pointer-events: none; }
+.hitl .fp[hidden] { display: none; }
+.hitl .fp-exit { position: absolute; top: 0.8em; right: 0.8em; pointer-events: auto; min-width: 4.2em; min-height: 2.8em; font-weight: 800; z-index: 2; }
+.hitl .fp-who { position: absolute; top: 0.8em; left: 0.8em; max-width: calc(100% - 7em); background: var(--cream); color: var(--ink); border: 0.14em solid var(--ink); border-radius: 0.8em; padding: 0.35em 0.7em; font-weight: 800; box-shadow: 0 0.18em 0 var(--ink); }
+.hitl .fp-who:empty { display: none; }
+.hitl .fp-hint { position: absolute; left: 50%; bottom: 0.8em; transform: translateX(-50%); background: color-mix(in srgb, var(--cream) 92%, transparent); color: var(--ink); border: 0.12em solid var(--ink); border-radius: 0.8em; padding: 0.3em 0.7em; font-weight: 700; font-size: 0.85em; max-width: calc(100% - 1.6em); text-align: center; }
+.hitl .fp-hint:empty { display: none; }
+.hitl .fp-touch { position: absolute; inset: 0; display: none; touch-action: none; }
+.hitl.fp-walking .fp-touch { display: block; pointer-events: auto; }
+.hitl .fp-look { position: absolute; inset: 0 0 0 50%; }
+.hitl .fp-stick { position: absolute; left: 1.6em; bottom: 2.2em; width: 108px; height: 108px; border-radius: 50%; border: 0.16em solid var(--ink); background: color-mix(in srgb, var(--cream) 55%, transparent); opacity: 0.8; pointer-events: none; }
+.hitl .fp-stick.on { opacity: 1; }
+.hitl .fp-stick i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: var(--cream); border: 0.16em solid var(--ink); box-shadow: 0 0.14em 0 var(--ink); }
+.hitl .fp-walk { position: absolute; right: 0.6em; bottom: 4.4em; pointer-events: auto; z-index: 3; font-weight: 800; }
+.hitl .fp-walk[hidden] { display: none; }
+.hitl.title-mode .fp-walk { display: none !important; }
+.hitl .seeas { margin: 0.3em 0; }
+/* While a mode is on, everything else is hidden; the panels are closed on entry. */
+.hitl.fp-on > *:not(.fp) { visibility: hidden; pointer-events: none; }
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) {
+  .hitl .fp-walk { bottom: auto; top: calc(var(--topbar-h, 4.6em) + 0.5em + 54px); }
+}

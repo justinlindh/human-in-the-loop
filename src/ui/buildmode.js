@@ -258,7 +258,7 @@ export function createBuildMode({ layer, ctx, controls }) {
 
   // Clicking a placed item outside build mode opens its card: move, upgrade, sell.
   function inspect(clientX, clientY) {
-    if (layer.classList.contains('title-mode')) return;
+    if (layer.classList.contains('title-mode') || ctx.firstPerson?.active) return;
     const r = R();
     // A person under the cursor: tell the audio engine (a voice bark) and open them in Staff.
     const hit = r?.pick?.(clientX, clientY);
