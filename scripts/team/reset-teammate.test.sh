@@ -12,8 +12,11 @@ cat >"$tmp/bin/tmux" <<'TMUX'
 #!/usr/bin/env bash
 case "$1" in
   list-panes) echo "%1" ;;
-  capture-pane) printf '%b\n' "${PANE_TEXT:-}" ;;
-  send-keys) echo "$*" >>"$SENT"; [ "$4" = /compact ] && [ -z "${STICK:-}" ] && echo '{"type":"system","subtype":"compact_boundary"}' >>"$TRANSCRIPT" ;;
+  # BUSY_AFTER: what the pane shows once a command was typed (a compaction still running).
+  capture-pane) if [ -n "${BUSY_AFTER:-}" ] && [ -s "$SENT" ]; then printf '%b\n' "$BUSY_AFTER"; else printf '%b\n' "${PANE_TEXT:-}"; fi ;;
+  # MENTION: the transcript only gains a message that talks about the record, not the record.
+  send-keys) echo "$*" >>"$SENT"; [ "$4" = /compact ] && [ -n "${MENTION:-}" ] && echo '{"type":"user","message":"the compact_boundary record is written when it ends"}' >>"$TRANSCRIPT"
+    [ "$4" = /compact ] && [ -z "${STICK:-}" ] && echo '{"type":"system","subtype":"compact_boundary"}' >>"$TRANSCRIPT" ;;
 esac
 TMUX
 chmod +x "$tmp/bin/tmux"
@@ -25,7 +28,7 @@ mk() { # <file> <brief-name>: a teammate transcript
 mk sim1 sim
 # A lead-style transcript mentions the brief only after many other lines, and is newer.
 { for i in $(seq 1 30); do echo '{"type":"user","message":"filler"}'; done; echo '{"type":"user","message":"You are `sim`, on the team."}'; } >"$proj/lead.jsonl"
-export SENT="$tmp/sent" TRANSCRIPT="$proj/sim1.jsonl" CLAUDE_PROJECTS_DIR="$proj" RESET_POLL=0 PATH="$tmp/bin:$PATH" PANE_TEXT='ready\n  @sim'
+export SENT="$tmp/sent" TRANSCRIPT="$proj/sim1.jsonl" CLAUDE_PROJECTS_DIR="$proj" RESET_POLL=0 RESET_IDLE_GRACE=0 PATH="$tmp/bin:$PATH" PANE_TEXT='ready\n  @sim'
 run() { out="$(bash "$HERE/reset-teammate.sh" "$@" 2>&1)"; rc=$?; }
 
 : >"$SENT"; run sim compact 5 --log "$tmp/log"
@@ -36,7 +39,22 @@ grep -q "sim	compact	pre=90010	transcript=sim1.jsonl" "$tmp/log" || fail "--log 
 [ $rc -eq 2 ] && grep -q 'reports stop reaching team-lead' <<<"$out" && [ ! -s "$SENT" ] || fail "a clear is refused and nothing is sent: rc $rc: $out"
 
 STICK=1 run sim compact 1
-[ $rc -eq 1 ] && grep -q 'not confirmed' <<<"$out" || fail "a compact the transcript never shows is not confirmed: rc $rc: $out"
+[ $rc -eq 1 ] && grep -q 'not confirmed: the pane went idle without compacting' <<<"$out" && grep -q '@sim' <<<"$out" || fail "a compact the pane refused ends at once with the pane text: rc $rc: $out"
+# A compaction still running keeps the wait up to --confirm-wait, whatever max-wait is; one that ends without a
+# boundary is not confirmed, and a message that only mentions the record is not the record.
+: >"$SENT"; STICK=1 BUSY_AFTER='compacting… (8m 23s)\n  @sim' run sim compact 60 --confirm-wait 1
+[ $rc -eq 1 ] && grep -q 'not confirmed after 1s' <<<"$out" || fail "--confirm-wait bounds the wait for a compaction that never ends: rc $rc: $out"
+STICK=1 MENTION=1 run sim compact 1
+[ $rc -eq 1 ] && grep -q 'not confirmed' <<<"$out" || fail "a message mentioning compact_boundary is not a boundary: rc $rc: $out"
+run sim compact 5 --confirm-wait soon
+[ $rc -eq 2 ] || fail "a bad --confirm-wait is a usage error: rc $rc: $out"
+# --before-send runs once the pane is idle, just before /compact is typed: nonzero stops it, sending nothing.
+: >"$SENT"; run sim compact 5 --before-send 'exit 3'
+[ $rc -eq 3 ] && [ ! -s "$SENT" ] || fail "a failing --before-send ends the run with its code and sends nothing: rc $rc: $(cat "$SENT")"
+: >"$SENT"; run sim compact 5 --before-send 'echo checked >"$SENT.check"'
+[ $rc -eq 0 ] && [ -f "$SENT.check" ] && grep -q /compact "$SENT" || fail "a passing --before-send lets /compact go: rc $rc: $out"
+: >"$SENT"; PANE_TEXT='working… (3s)\n  @sim' run sim compact 1 --before-send 'touch "$SENT.ran"'
+[ ! -e "$SENT.ran" ] || fail "--before-send does not run while the pane is busy"; rm -f "$SENT.ran" "$SENT.check"
 
 : >"$SENT"; PANE_TEXT='working… (3s)\n  @sim' run sim compact 1
 [ $rc -eq 1 ] && grep -q 'still busy' <<<"$out" && [ ! -s "$SENT" ] || fail "a busy pane is not sent to: rc $rc: $out"
