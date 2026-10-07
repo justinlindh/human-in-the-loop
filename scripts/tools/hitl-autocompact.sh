@@ -96,5 +96,9 @@ for p in $(tmux list-panes -a -F '#{pane_id}'); do
 done
 [ -n "$pane" ] || { echo "compacted, but no pane shows @$name for the restate prompt" >&2; exit 1; }
 sleep "${HITL_RESET_RESTATE_WAIT:-3}"
-tmux send-keys -t "$pane" "You've been compacted. Re-read memory/handoffs/$name.md, then in one message restate your paths, your open work and your open threads (who you're waiting on or owe a reply), re-arm your watchers, and continue." Enter
+restate="You've been compacted. Re-read memory/handoffs/$name.md, then in one message restate your paths, your open work and your open threads (who you're waiting on or owe a reply), re-arm your watchers, and continue."
+# The prompt is typed into a cleared input box and checked there before Enter, so it can never be sent glued to
+# text left in the box (the box is below the rows a lane pane shows).
+bash "$HERE/pane-input.sh" put "$pane" "$restate" || { echo "compacted $name, but the restate prompt could not be typed into its input" >&2; exit 1; }
+tmux send-keys -t "$pane" Enter
 echo "compacted $name and asked it to restate"

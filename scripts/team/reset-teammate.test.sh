@@ -6,17 +6,32 @@ REPO="$(cd "$HERE/../.." && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 fails=0; fail() { echo "FAIL $*"; fails=$((fails + 1)); }
 mkdir -p "$tmp/bin"
-# The stand-in tmux: one pane whose last lines come from $PANE_TEXT; send-keys appends a
-# compact_boundary line to $TRANSCRIPT when the command is /compact and $STICK is unset.
+# The stand-in tmux: one pane whose last lines come from $PANE_TEXT and whose input box is the file $SENT.in
+# (seen only while the pane is zoomed, as the real input line is below the rows the pane shows). send-keys
+# appends to the box (-l text), C-u empties it (not with STUBBORN), and Enter sends the box: the box holding
+# exactly /compact appends a compact_boundary line to $TRANSCRIPT (unless STICK); anything else is a message.
 cat >"$tmp/bin/tmux" <<'TMUX'
 #!/usr/bin/env bash
+box="$SENT.in"; zoom="$SENT.zoom"
 case "$1" in
   list-panes) echo "%1" ;;
-  # BUSY_AFTER: what the pane shows once a command was typed (a compaction still running).
-  capture-pane) if [ -n "${BUSY_AFTER:-}" ] && [ -s "$SENT" ]; then printf '%b\n' "$BUSY_AFTER"; else printf '%b\n' "${PANE_TEXT:-}"; fi ;;
+  display) [ -f "$zoom" ] && echo 1 || echo 0 ;;
+  resize-pane) if [ -f "$zoom" ]; then rm -f "$zoom"; else : >"$zoom"; fi ;;
+  # BUSY_AFTER: what the pane shows once Enter was sent (a compaction still running).
+  capture-pane)
+    if [ -f "$zoom" ]; then printf '%s\n' 'the last reply said to run /compact later' '────────' "❯ $(cat "$box" 2>/dev/null)" '────────'
+    elif [ -n "${BUSY_AFTER:-}" ] && grep -q 'send-keys -t %1 Enter' "$SENT" 2>/dev/null; then printf '%b\n' "$BUSY_AFTER"
+    else printf '%b\n' "${PANE_TEXT:-}"; fi; true ;;
   # MENTION: the transcript only gains a message that talks about the record, not the record.
-  send-keys) echo "$*" >>"$SENT"; [ "$4" = /compact ] && [ -n "${MENTION:-}" ] && echo '{"type":"user","message":"the compact_boundary record is written when it ends"}' >>"$TRANSCRIPT"
-    [ "$4" = /compact ] && [ -z "${STICK:-}" ] && echo '{"type":"system","subtype":"compact_boundary"}' >>"$TRANSCRIPT" ;;
+  send-keys) echo "$*" >>"$SENT"
+    case "$4" in
+      -l) [ "$(grep -c -x -- 'send-keys -t %1 -l .*' "$SENT")" -gt "${DROP:-0}" ] && printf '%s' "$5" >>"$box" ;;
+      C-u) [ -z "${STUBBORN:-}" ] && : >"$box" ;;
+      Enter) if [ "$(cat "$box" 2>/dev/null)" = /compact ]; then
+          [ -n "${MENTION:-}" ] && echo '{"type":"user","message":"the compact_boundary record is written when it ends"}' >>"$TRANSCRIPT"
+          [ -z "${STICK:-}" ] && echo '{"type":"system","subtype":"compact_boundary"}' >>"$TRANSCRIPT"
+        fi; : >"$box" ;;
+    esac; true ;;
 esac
 TMUX
 chmod +x "$tmp/bin/tmux"
@@ -28,11 +43,11 @@ mk() { # <file> <brief-name>: a teammate transcript
 mk sim1 sim
 # A lead-style transcript mentions the brief only after many other lines, and is newer.
 { for i in $(seq 1 30); do echo '{"type":"user","message":"filler"}'; done; echo '{"type":"user","message":"You are `sim`, on the team."}'; } >"$proj/lead.jsonl"
-export SENT="$tmp/sent" TRANSCRIPT="$proj/sim1.jsonl" CLAUDE_PROJECTS_DIR="$proj" RESET_POLL=0 RESET_IDLE_GRACE=0 RESET_KEY_GAP=0 PATH="$tmp/bin:$PATH" PANE_TEXT='ready\n  @sim'
+export SENT="$tmp/sent" TRANSCRIPT="$proj/sim1.jsonl" CLAUDE_PROJECTS_DIR="$proj" RESET_POLL=0 RESET_IDLE_GRACE=0 RESET_KEY_GAP=0 RESET_SETTLE=0 PANE_REDRAW=0 PANE_GAP=0 PATH="$tmp/bin:$PATH" PANE_TEXT='ready\n  @sim'
 run() { out="$(bash "$HERE/reset-teammate.sh" "$@" 2>&1)"; rc=$?; }
 
 : >"$SENT"; run sim compact 5 --log "$tmp/log"
-[ $rc -eq 0 ] && grep -q 'context before: 90010 tokens' <<<"$out" && grep -qx -- 'send-keys -t %1 /compact' "$SENT" && [ "$(tail -1 "$SENT")" = 'send-keys -t %1 Enter' ] || fail "a compact is sent, confirmed and sized: rc $rc: $out"
+[ $rc -eq 0 ] && grep -q 'context before: 90010 tokens' <<<"$out" && grep -qx -- 'send-keys -t %1 -l /compact' "$SENT" && [ "$(tail -1 "$SENT")" = 'send-keys -t %1 Enter' ] || fail "a compact is sent, confirmed and sized: rc $rc: $out"
 grep -q "sim	compact	pre=90010	transcript=sim1.jsonl" "$tmp/log" || fail "--log appends a row: $(cat "$tmp/log" 2>/dev/null)"
 
 # Two transcripts hold the brief: the stale one has the newer mtime, the live one the newer last record.
@@ -47,6 +62,21 @@ touch -d '2026-10-07 01:00' "$proj/live2.jsonl"; touch "$proj/stale2.jsonl"
 : >"$SENT"; TRANSCRIPT="$proj/stale2.jsonl" PANE_TEXT='ready\n  @two' run two compact 5
 [ $rc -eq 0 ] || fail "a boundary in another candidate file confirms the compact: rc $rc: $out"
 rm -f "$proj"/live2.jsonl "$proj"/stale2.jsonl
+
+# A prompt that drops the first typed command: the box shows it empty, so it is typed again, and Enter goes once.
+: >"$SENT"; : >"$SENT.in"; DROP=1 run sim compact 5
+[ $rc -eq 0 ] && [ "$(grep -c -x 'send-keys -t %1 -l /compact' "$SENT")" = 2 ] && [ "$(grep -c 'send-keys -t %1 Enter' "$SENT")" = 1 ] || fail "a dropped command is retyped, Enter once: rc $rc: $out $(cat "$SENT")"
+# One that never shows: the earlier reply on screen mentions /compact, which must not count; no Enter is sent.
+: >"$SENT"; : >"$SENT.in"; DROP=9 run sim compact 5
+[ $rc -eq 1 ] && grep -q '/compact not typed' <<<"$out" && grep -q 'never showed alone' <<<"$out" && ! grep -q 'Enter' "$SENT" || fail "a command that never shows is not sent: rc $rc: $out $(cat "$SENT")"
+# Text an earlier run left in the input box is cleared first: the command is sent alone and compacts.
+: >"$SENT"; printf '%s' "You've been compacted. Re-read the handoff and continue." >"$SENT.in"
+run sim compact 5
+[ $rc -eq 0 ] && grep -q 'send-keys -t %1 C-u' "$SENT" && [ "$(tail -1 "$SENT")" = 'send-keys -t %1 Enter' ] || fail "stale input is cleared before the command: rc $rc: $out $(cat "$SENT")"
+# A box that will not empty stops the run with nothing sent.
+: >"$SENT"; printf '%s' "left over" >"$SENT.in"; STUBBORN=1 run sim compact 5
+[ $rc -eq 1 ] && grep -q 'would not empty' <<<"$out" && ! grep -q 'Enter' "$SENT" || fail "a box that will not empty is not typed into: rc $rc: $out $(cat "$SENT")"
+: >"$SENT.in"; rm -f "$SENT.zoom"
 
 : >"$SENT"; run sim clear 5
 [ $rc -eq 2 ] && grep -q 'reports stop reaching team-lead' <<<"$out" && [ ! -s "$SENT" ] || fail "a clear is refused and nothing is sent: rc $rc: $out"

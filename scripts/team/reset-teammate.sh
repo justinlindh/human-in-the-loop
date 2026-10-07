@@ -80,16 +80,28 @@ while busy || { sleep "${RESET_POLL:-4}"; busy; }; do
   sleep "${RESET_POLL:-5}"
 done
 
+# The pane has to stay idle for RESET_SETTLE seconds (default 20) before anything is typed: a lane that
+# just ended its turn can look idle while its prompt does not take keys yet. Busy again restarts the count.
+calm=$SECONDS
+while [ $((SECONDS - calm)) -lt "${RESET_SETTLE:-20}" ]; do
+  sleep "${RESET_POLL:-5}"
+  busy && calm=$SECONDS
+  [ $SECONDS -ge $((end + ${RESET_SETTLE:-20})) ] && { echo "$name never stayed idle for ${RESET_SETTLE:-20}s" >&2; exit 1; }
+done
+
 # The caller's last look, right before the command is typed: a nonzero exit stops here, sending nothing.
 if [ -n "$before_send" ]; then
   bash -c "$before_send"; rc=$?
   [ $rc -eq 0 ] || exit "$rc"
 fi
 
-# The command and the Enter go as two sends with a gap, so the prompt has drawn the typed command (and its
-# slash-command menu) before Enter lands; the pane just after is kept to show on a failure.
-tmux send-keys -t "$pane" "/$mode"
-sleep "${RESET_KEY_GAP:-1}"
+# The input box is below the rows a lane pane shows, and text an earlier run left in it would get the command
+# appended and be sent as one message. pane-input.sh clears the box, types the command and checks the box holds
+# exactly the command (zooming the pane for a moment to see it); Enter goes only then.
+for pi in "$here" "$(git rev-parse --show-toplevel 2>/dev/null)" "$repo"; do
+  pi="$pi/scripts/tools/pane-input.sh"; [ -f "$pi" ] && break
+done
+bash "$pi" put "$pane" "/$mode" || { echo "$name: /$mode not typed; nothing was sent" >&2; exit 1; }
 tmux send-keys -t "$pane" Enter
 sleep "${RESET_KEY_GAP:-1}"
 typed="$(tmux capture-pane -p -t "$pane" | grep -v '^[[:space:]]*$' | tail -4)"
