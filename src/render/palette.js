@@ -120,6 +120,10 @@ export const PALETTE = {
   tone_bad: '#e5484d',
   tone_warn: '#ffb020',
 
+  // First-person drop ceiling
+  ceiling_tile: '#eee8dc',
+  ceiling_grid: '#d9d2c4',
+
   // Sky and light
   sky_day_top: '#bfd8ea',
   sky_day_bottom: '#f1e6d2',
