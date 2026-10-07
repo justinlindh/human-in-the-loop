@@ -3,13 +3,14 @@
 # empty (nobody is mid-conversation with it) and none of its PRs has changes requested. After the
 # compact it types a prompt asking the lane to restate its paths, open work and open threads, so the
 # lead can check nothing dropped.
-# Usage: hitl-autocompact.sh [--memory <dir>] [--teams <dir>] [--exclude <transcript-prefix>] <name> [--check]
+# Usage: hitl-autocompact.sh [--memory <dir>] [--teams <dir>] <name> [--check]
 # Exit 0 compacted (or, with --check, the gates pass); 3 held (reason on stdout); 1 error (no team lists
 # the name, no pane); 2 bad arguments. --check also lists other lanes whose handoff names <name>, for the
 # lead's open-threads check before it confirms.
 # The team directory is --teams, else $HITL_TEAMS_DIR, else <config>/teams, and its session-* directories
 # are searched newest first for one whose config.json lists the name. The memory directory (handoffs live
-# in <memory>/handoffs) and --exclude are as in hitl-reset.sh, which does the compact.
+# in <memory>/handoffs) are --memory, else $HITL_MEMORY_DIR, else the Claude project's memory folder for
+# this checkout. The compact is scripts/team/reset-teammate.sh, logged to <memory>/reset-trial.log.
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=hitl-lane-paths.sh
@@ -23,14 +24,13 @@ while [ $# -gt 0 ]; do
     --check) args+=("--check"); shift ;;
     --memory) [ $# -ge 2 ] || { echo "--memory needs a directory" >&2; exit 2; }; export HITL_MEMORY_DIR="$2"; shift 2 ;;
     --teams) [ $# -ge 2 ] || { echo "--teams needs a directory" >&2; exit 2; }; HITL_TEAMS_DIR="$2"; shift 2 ;;
-    --exclude) [ $# -ge 2 ] || { echo "--exclude needs a prefix" >&2; exit 2; }; export HITL_RESET_EXCLUDE="$2"; shift 2 ;;
     --*) echo "unknown option $1" >&2; exit 2 ;;
     *) args+=("$1"); shift ;;
   esac
 done
 check=""; names=()
 for a in "${args[@]}"; do if [ "$a" = --check ]; then check="--check"; else names+=("$a"); fi; done
-[ "${#names[@]}" -eq 1 ] || { echo "usage: hitl-autocompact.sh [--memory <dir>] [--teams <dir>] [--exclude <prefix>] <name> [--check]" >&2; exit 2; }
+[ "${#names[@]}" -eq 1 ] || { echo "usage: hitl-autocompact.sh [--memory <dir>] [--teams <dir>] <name> [--check]" >&2; exit 2; }
 name="${names[0]}"
 repo="$(lane_repo_root)" || { echo "not inside the repository" >&2; exit 1; }
 teams="$(lane_teams_dir)"
@@ -55,7 +55,8 @@ if [ "$check" = --check ]; then
   exit 0
 fi
 
-bash "$HERE/hitl-reset.sh" "$name" compact 60 || exit $?
+mem="$(lane_memory_dir)"; mkdir -p "$mem"
+bash "$HERE/../team/reset-teammate.sh" "$name" compact 60 --log "$mem/reset-trial.log" || exit $?
 
 pane=""
 for p in $(tmux list-panes -a -F '#{pane_id}'); do
