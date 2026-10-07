@@ -370,6 +370,7 @@ export function staffPanel(ctx, arg) {
             : p.path ? h('div.pathinfo', null, h('b', null, p.legend ? icon('legend') : icon('path'), ` ${p.legend ? 'Legend ' : ''}${PATHS[p.path]?.name ?? p.path}`),
               h('div.small.muted', { text: PATHS[p.path]?.desc ?? '' })) : null,
           h('div.small', null, h('b', { text: 'Doing: ' }), doingText(s, p)),
+          ctx.firstPerson?.available() ? h('button.btn.small.seeas', { type: 'button', title: 'Look through their eyes', onclick: () => ctx.firstPerson.seeAs(p.id, p.name.split(' ')[0]) }, 'See as ', p.name.split(' ')[0]) : null,
           assignSelect(ctx, s, p, !!landing?.assign)),
         h('div.dmid', null,
           h('div.section', null, h('h3', null, 'Skills', h('span.aside', null, strengthChip(p))),
