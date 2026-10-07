@@ -11,6 +11,7 @@
 // things by kind (item ids, prop ids), not by instance, so a baseline entry holds across states.
 import * as X from './intersect.js';
 import { mentions, isWorse } from './sweep-plan.js';
+import { WEEK_SECONDS } from '../../src/pacing.js';
 
 const DT = 1 / 30;
 
@@ -121,6 +122,8 @@ function checkPeople(R, C, t, list = X.bodies(R)) {
 // Frames as the game runs them, without drawing (the harness's __advance, which refreshes world
 // matrices as render() would).
 function stepWorld(R, S, n) { frames(window.__advance, n); }
+
+const WEEK_FRAMES = Math.round(WEEK_SECONDS * 30);
 
 // The game releases a tick's queued Yak posts over simulated time; a sweep holds the page's live frames, so each
 // frame it steps is also given to the game's Yak pacer (`__HITL.yakStep`, which main.js and the studio host both
@@ -472,6 +475,9 @@ export async function sampleSeed({ seed, bot = 'balanced', weeks = 1040, every =
     if (S.gameOver) break;
     botTurn(bot, S, { onEvents: route });
     H.tickN(1);
+    // The week this tick starts runs its game seconds through the Yak pacer too, so posts from weeks between windows
+    // are shown or expire in their own time, not at the next window.
+    for (let i = 0; i < WEEK_FRAMES; i++) H.yakStep?.(1 / 30);
     R.sync(S);
   }
   return { violations: out, windows, end: { week: H.state.week, over: H.state.gameOver?.reason ?? null } };
