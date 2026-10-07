@@ -931,6 +931,44 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
     R.moments.full = false;
     step(30);
   }
+  // 6a. A chat at the water cooler: two people meet in front of it, turn to each other, paper cups in
+  // hand, clear of furniture the whole time, and go back to their desks.
+  {
+    const host = S.office.placed.find((p) => p.itemId === 'espresso');
+    const was = host && { itemId: host.itemId, level: host.level };
+    let pass = false, info = { reason: 'no espresso to swap for a cooler' };
+    if (host) {
+      Object.assign(host, { itemId: 'water_cooler', level: 1 });
+      step(30);
+      const [a, b] = S.staff.map((p) => p.id);
+      const sent = R.perks.send([a, b], host.id, { dur: 9 });
+      let worst = 0, facing = 1, cups = 0, chatted = 0;
+      for (let i = 0; sent && i < 30 * 30; i++) {
+        step(1);
+        const ra = R.perks.peek(a), rb = R.perks.peek(b);
+        if (!ra?.temp && !rb?.temp && chatted) break;
+        if (ra?.temp?.anim !== 'cupsip' && rb?.temp?.anim !== 'cupsip') continue;
+        chatted++;
+        const roots = [charOf(R.scene, a), charOf(R.scene, b)];
+        for (const r of roots) worst = Math.max(worst, bodyInside(r, furnitureOf(R)));
+        // Each one's facing toward the other (1 straight at them), once they've turned from the walk in.
+        const [pa, pb] = roots.map((r) => r.position);
+        if (chatted > 30) for (const [r, o] of [[roots[0], pb], [roots[1], pa]]) {
+          const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(r.getWorldQuaternion(new THREE.Quaternion()));
+          const to = new THREE.Vector3(o.x - r.position.x, 0, o.z - r.position.z).normalize();
+          facing = Math.min(facing, fwd.x * to.x + fwd.z * to.z);
+        }
+        let seen = 0;
+        for (const r of roots) r.traverse((m) => { if (m.isMesh && m.geometry?.parameters?.radiusTop === 0.03 && m.parent && m.visible) seen++; });
+        cups = Math.max(cups, seen);
+      }
+      pass = sent && chatted > 30 && worst < 0.01 && facing > 0.5 && cups === 2;
+      info = { sent, chatSamples: chatted, insidePct: +(100 * worst).toFixed(2), facing: +facing.toFixed(2), cups };
+      Object.assign(host, was);
+      step(30);
+    }
+    results.push({ name: 'moment:cooler', pass, ...info });
+  }
   // 6b. The same events resolved with no card (quietEvent): a ping-pong picture's stage shows for 15 s
   // of running play, through a pause, and goes; the jammed printer shows, goes, and is carried out
   // back to the end of the moment.

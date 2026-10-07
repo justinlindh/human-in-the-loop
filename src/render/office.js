@@ -1070,7 +1070,7 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
     return true;
   }
 
-  const ERA_DRESSED = new Set(['desk', 'meeting']);
+  const ERA_DRESSED = new Set(['desk', 'meeting', 'cooler']);
   const ERA_PER_FRAME = 4;
   let eraQueue = [];
   // A desk's chair as its own object, to roll it (someone getting up), or merged back in. Returns the
