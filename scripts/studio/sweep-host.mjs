@@ -61,6 +61,24 @@ async function open({ state, mock, era, quality }) {
   return { rt, R, S, game };
 }
 
+// What main.js's route does with events: chat goes through the game's Yak pacer and reaches the renderer as the
+// pacer releases it, a step at a time (`yakStep`, called per stepped frame by sample.js); everything else at once.
+// `direct` marks the player's own actions, whose chat shows at once.
+async function feedEvents(R, S, game) {
+  const { createYakPacer } = await import('../../src/yak-pacing.js');
+  const yak = createYakPacer();
+  let gameT = 0;
+  const present = (events) => { if (events?.length) R.handleEvents(events, S); };
+  game.emit = (events, direct = false) => {
+    if (!events?.length) return;
+    const urgentIds = new Set((S.chatPrompts ?? []).filter((p) => !p.resolved).map((p) => p.chatId));
+    if (direct) for (const e of events) if (e.type === 'chat') urgentIds.add(e.id);
+    present(yak.enqueue(events, { urgentIds, state: S, gameTime: gameT }));
+    present(events.filter((e) => e.type !== 'chat'));
+  };
+  game.yakStep = (dt) => { gameT += dt; present(yak.step(dt, true, { gameTime: gameT, state: S })); };
+}
+
 // `mock` and `era` name the scene when the report's name for it differs (`floor@dotcom`).
 export async function hostMock({ name, mock, era, quality, ...options }) {
   const { sampleMock } = await import('../../blender/checks/sample.js');
@@ -82,8 +100,8 @@ async function hostLoadedPinned({ file, ...options }) {
   const { dispatch } = await import('../../src/sim/index.js');
   const state = await resolveState({ snapshot: file });
   const { R, S, game } = await open({ state });
-  game.emit = (events) => { if (events?.length) R.handleEvents(events, S); };
-  game.dispatch = (action) => { const res = dispatch(S, action); game.emit(res.events); return res; };
+  await feedEvents(R, S, game);
+  game.dispatch = (action) => { const res = dispatch(S, action); game.emit(res.events, true); return res; };
   return sampleLoaded({ ...options, crops: 0 });
 }
 
@@ -98,8 +116,7 @@ async function hostSeedPinned({ seed, ...options }) {
   const { tick } = await import('../../src/sim/index.js');
   const state = await resolveState({ seed, week: 0 });
   const { R, S, game } = await open({ state });
-  // What main.js's route does for the renderer: the sim's events reach it as they happen.
-  game.emit = (events) => { if (events?.length) R.handleEvents(events, S); };
+  await feedEvents(R, S, game);
   game.tickN = (n) => { for (let i = 0; i < n; i++) game.emit(tick(S)); };
   // The sampler reports its week on the console for a browser run's time limit; here it is noise.
   const log = console.log;
