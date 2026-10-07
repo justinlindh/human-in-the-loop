@@ -77,6 +77,8 @@ async function boot() {
   renderer?.setSpeed?.(speed);
 
   const yakPacer = createYakPacer();
+  // Game seconds a tool has stepped the Yak pacer by hand (yakStep below); 0 in normal play.
+  let simT = 0;
   const present = (events, state) => {
     if (!events?.length) return;
     renderer?.handleEvents(events, state);
@@ -93,7 +95,7 @@ async function boot() {
     if (window.__hitlHooks?.origin?.() === 'player') direct = true;
     const urgentIds = new Set((state.chatPrompts ?? []).filter(p => !p.resolved).map(p => p.chatId));
     if (direct) for (const e of events) if (e.type === 'chat') urgentIds.add(e.id);
-    present(yakPacer.enqueue(events, { urgentIds, state, gameTime: pacer.gameT }), state);
+    present(yakPacer.enqueue(events, { urgentIds, state, gameTime: pacer.gameT + simT }), state);
     present(events.filter(e => e.type !== 'chat'), state);
   };
 
@@ -124,7 +126,7 @@ async function boot() {
   function startPlaying(state) {
     pacer.reset();
     attention.reset();
-    yakPacer.reset();
+    yakPacer.reset(); simT = 0;
     if (realSim) useState(state);
     playing = true;
     // A load started from code (the dev harness loading a snapshot) has no title button to close it.
@@ -135,7 +137,7 @@ async function boot() {
     playing = false;
     pacer.reset();
     attention.reset();
-    yakPacer.reset();
+    yakPacer.reset(); simT = 0;
     if (realSim) useState(simMod.createGame({ seed: randomSeed() }));
     ui?.showTitle();
   }
@@ -250,6 +252,12 @@ async function boot() {
       for (let left = Math.max(0, Number(seconds) || 0); left > 0; left -= MAX_CATCHUP) steps += stepClocks(Math.min(left, MAX_CATCHUP));
       return steps;
     },
+    // Steps only the Yak pacer by `dt` game seconds, for a tool that holds the page's live frames (the sweep):
+    // queued chat is released by simulated time, as the frame loop would.
+    yakStep: (dt) => {
+      simT += dt;
+      present(yakPacer.step(dt, true, { gameTime: pacer.gameT + simT, state: sim.state }), sim.state);
+    },
     // Presents events as if the sim had emitted them (capture scenarios, playtests).
     emit: (events) => route(events, sim.state),
     controls,
@@ -362,7 +370,7 @@ async function boot() {
     frozen = speed === 0 || menuPause || !!sim.state.pendingDecision || !playing;
     if (running) route(pacer.due(), sim.state);
     present(yakPacer.step(dt, playing && speed > 0 && !menuPause && !held && !document.hidden,
-      { gameTime: pacer.gameT, state: sim.state }), sim.state);
+      { gameTime: pacer.gameT + simT, state: sim.state }), sim.state);
     if (!frozen && !held) dayClock = (dayClock + dt / DAY_SECONDS) % 1;
     logic = { menuPause, running, held };
   }

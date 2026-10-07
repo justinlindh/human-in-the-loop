@@ -120,7 +120,16 @@ function checkPeople(R, C, t, list = X.bodies(R)) {
 
 // Frames as the game runs them, without drawing (the harness's __advance, which refreshes world
 // matrices as render() would).
-function stepWorld(R, S, n) { window.__advance(n); }
+function stepWorld(R, S, n) { frames(window.__advance, n); }
+
+// The game releases a tick's queued Yak posts over simulated time; a sweep holds the page's live frames, so each
+// frame it steps is also given to the game's Yak pacer (`__HITL.yakStep`, which main.js and the studio host both
+// provide), and both engines show the renderer the same chat.
+function frames(advance, n) {
+  const yak = window.__HITL?.yakStep;
+  if (!yak) { advance(n); return; }
+  for (let i = 0; i < n; i++) { advance(1); yak(1 / 30); }
+}
 
 // Screen space: speech bubbles and stat labels must not cover each other, a face, or an emote.
 // The labels' layout eases into place over a few frames, so only an overlap that lasts SCREEN_HOLD
@@ -207,7 +216,7 @@ function window_(R, S, C, { seconds, every, t0 = 0, quiet = false, screenOnly = 
   const per = Math.round(PEOPLE_EVERY / DT);
   for (let i = 0; i <= n; i++) {
     // Drawn frames, as the game runs: the labels lay themselves out in render().
-    if (i) for (let f = 0; f < per; f++) { window.__step(1); if (!quiet && C.screen !== false) checkScreen(R, C, t0 + (i - 1) * PEOPLE_EVERY + (f + 1) * DT, track); }
+    if (i) for (let f = 0; f < per; f++) { frames(window.__step, 1); if (!quiet && C.screen !== false) checkScreen(R, C, t0 + (i - 1) * PEOPLE_EVERY + (f + 1) * DT, track); }
     if (quiet || screenOnly) continue;
     const t = t0 + i * PEOPLE_EVERY;
     if (i % k === 0) checkFrame(R, C, t, memo);
@@ -410,7 +419,7 @@ export async function sampleLoaded({ label, open = 16, after = 8, every = 1, cho
   R.moments.full = true;
   const C = createCollector({ state: label, known, worst, crops, cropAll, tol: TOL, item });
   // The loaded office builds on the first sync; a second settles it.
-  window.__step(30);
+  frames(window.__step, 30);
   window_(R, H.state, C, { seconds: open, every });
   if (H.state.pendingDecision) {
     H.dispatch({ type: 'resolveDecision', choice: choice ?? 0 });
