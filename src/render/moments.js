@@ -1571,6 +1571,12 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
   // A step from `from` to `to` round the printer at `c` rather than through it: the angle about it
   // eases from one to the other the short way, and the distance from it bulges out to `clearR` (its
   // half diagonal and a body) at the middle of the step, at e (0 to 1) of the way.
+  // How far roundPrinter's step from `from` to `to` goes, in metres.
+  function arcLength(from, to, c, clearR) {
+    let n = 0, p = from;
+    for (let k = 1; k <= 12; k++) { const q = roundPrinter(from, to, c, clearR, k / 12); n += Math.hypot(q.x - p.x, q.z - p.z); p = q; }
+    return n;
+  }
   function roundPrinter(from, to, c, clearR, e) {
     const r0 = Math.hypot(from.x - c.x, from.z - c.z), r1 = Math.hypot(to.x - c.x, to.z - c.z);
     const a0 = Math.atan2(from.x - c.x, from.z - c.z), a1 = Math.atan2(to.x - c.x, to.z - c.z);
@@ -1617,18 +1623,27 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       if (pm.people.every((r) => !r.path.length) || pm.t > 12) {
         pm.phase = 'lift'; pm.t = 0;
         pm.liftFrom = pm.people.map((r) => ({ x: r.pos.x, z: r.pos.z }));
-        pm.people.forEach((r, i) => { r.temp.keepPos = true; r.temp.stage.beat = 'lift'; setAnim(r, i < 2 ? 'carryhold' : 'shoulder'); });
+        // Each steps onto their grip no faster than they walk, taking at least LIFT_STEP_S. The step
+        // eases in and out, so its top speed is 1.5 times its average.
+        const grips = carrySpots(pm, along(pm.route, 0));
+        pm.liftS = pm.people.map((r, i) => Math.max(LIFT_STEP_S, 1.5 * arcLength(pm.liftFrom[i], grips[i], pm.obj.position, pm.clearR) / (r.speed || 1)));
+        pm.liftEnd = Math.max(...pm.liftS);
+        pm.people.forEach((r, i) => { r.temp.keepPos = true; r.temp.stage.beat = 'lift'; setAnim(r, pm.liftS[i] > LIFT_STEP_S ? 'walk' : i < 2 ? 'carryhold' : 'shoulder'); });
       }
       return;
     }
     if (pm.phase === 'lift') {
-      // A walk that ended short of its spot (the grid keeps a body off a wall) closes the gap.
-      const k = Math.min(1, pm.t / LIFT_STEP_S), e = k * k * (3 - 2 * k);
+      // A walk that ended short of its spot (the grid keeps a body off a wall) closes the gap; the
+      // printer comes up as the last of them arrives.
       carrySpots(pm, along(pm.route, 0)).forEach((q, i) => {
-        if (pm.people[i]) place(pm.people[i], { ...q, ...roundPrinter(pm.liftFrom[i], q, pm.obj.position, pm.clearR, e) });
+        const r = pm.people[i];
+        if (!r) return;
+        const k = Math.min(1, pm.t / pm.liftS[i]), e = k * k * (3 - 2 * k);
+        place(r, { ...q, ...roundPrinter(pm.liftFrom[i], q, pm.obj.position, pm.clearR, e) });
+        if (k >= 1 && r.temp.anim === 'walk') setAnim(r, i < 2 ? 'carryhold' : 'shoulder');
       });
-      pm.obj.position.y = Math.min(1, pm.t / 0.5) * gripY(pm);
-      if (pm.t >= 0.6) {
+      pm.obj.position.y = Math.min(1, Math.max(0, pm.t - (pm.liftEnd - LIFT_STEP_S)) / 0.5) * gripY(pm);
+      if (pm.t >= pm.liftEnd + 0.2) {
         pm.phase = 'carry'; pm.t = 0;
         pm.speed = Math.min(CARRY_SPEED[1], Math.max(CARRY_SPEED[0], pm.len / CUE.down));
         pm.people.forEach((r, i) => { r.temp.stage.beat = 'carry'; setAnim(r, i < 2 ? 'carry' : 'shoulderwalk'); });
