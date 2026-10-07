@@ -175,11 +175,13 @@ const WORK_POLICY = (() => {
   return out;
 })();
 
-const ADJ_WORDS = { novelty: 'freshness', staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', uptimeFloor: 'minimum uptime', knowledgeGain: 'knowledge gain' };
+const ADJ_WORDS = { novelty: 'freshness', staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', uptimeFloor: 'minimum uptime', knowledgeGain: 'knowledge gain', knowledgeShare: 'shared know-how' };
 
 function adjacencyLine(it) {
   const a = it.adjacency;
   if (!a) return null;
+  // The cooler is not a flat bonus: each week a person nearby closes a share of the gap to the group's expert.
+  if (a.key === 'knowledgeShare') return `Weekly: closes ${Math.round(a.value * 100)}% of the gap to the group's expert (2+ people within ${a.radius} tiles)`;
   const val = a.key === 'uptimeFloor' ? `+${Math.round(a.value * 100)} pts` : `+${Math.round(a.value * 100)}%`;
   const name = a.to ? CATALOG[a.to]?.name ?? a.to : null;
   const to = name ? (/s$/i.test(name) ? name : `${name}s`) : 'desks';
