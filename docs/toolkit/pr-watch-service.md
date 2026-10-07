@@ -1,7 +1,7 @@
 ---
 tool: `node scripts/tools/pr-watch-service.mjs [--once] [--dry-run] [--interval s] [--status-every min]`
 section: pr
-who: integrator (runs it as a systemd user service), team-lead (reads its log), every lane (gets its messages)
+who: integrator (installs and runs it as a systemd user service), team-lead (reads its log); every lane and reviewer receives its messages instead of running wait-for or review-queue watchers
 covers: scripts/tools/pr-watch-service.mjs tests/tools/pr-watch-service.test.js
 ---
 One watcher for every open pull request, so no lane keeps `wait-for.sh` or `review-queue.mjs --wait` running in its own session. It reads the shared PR snapshot (`pr-snapshot.mjs`, one `gh pr list` per interval) and writes a message into a lane's team inbox (`~/.claude/teams/<team>/inboxes/<name>.json`, the entry SendMessage writes, sender `pr-watch`) only when that lane must act. An idle lane wakes on it like any teammate message. Each message names the PR, branch, head, event and next step.
@@ -10,7 +10,7 @@ One watcher for every open pull request, so no lane keeps `wait-for.sh` or `revi
 - `changes`: a changes-requested verdict on the head, with the reviewer and the review link. Goes to the author lane.
 - `conflict`: the PR conflicts with main. The author lane merges `origin/main` in itself; the service never pushes.
 - `merged` and `closed`: once, to the author lane.
-- `ready`: required checks green and no verdict on the head (the review queue's READY, DEPENDABOT and OUTSIDE groups, less a head that only merges main after a changes verdict). It goes to one reviewer, alternating per PR among the team's members whose names start with `reviewer`. The PR keeps that reviewer for later heads, and the other reviewer is never told. A PR whose reviewer has left the team moves to one who is there and is told to them; with no reviewer on the team, team-lead hears it.
+- `ready`: no verdict on the head and, for a trusted PR, required checks green and the head not one that only merges main after a changes verdict (the review queue's READY, DEPENDABOT and OUTSIDE groups). A Dependabot PR is sent whatever its checks say, since its CI runs after the verdict, and its message gives the `--allow-bot` path: read `gh pr diff` and the changelogs with no install, then on a pass `scripts/ci-pr.sh <n> --allow-bot --head <sha>` and auto-merge. It goes to one reviewer, alternating per PR among the team's members whose names start with `reviewer`. The PR keeps that reviewer for later heads, and the other reviewer is never told. A PR whose reviewer has left the team moves to one who is there and is told to them; with no reviewer on the team, team-lead hears it.
 
 Drafts and PRs labelled `awaiting-user` are left to the lead's own watcher. The author lane comes from the branch prefix: `integ/` is integrator, `lead/` is team-lead, `<lane>/` is that lane, and anything else goes to team-lead (Dependabot branches have no author lane). A `tools/` branch is tools2's when a `gamedev-tools2` worktree has it checked out at the pass that first sees the PR, else tools'; the PR keeps that lane, so a tools2 PR whose branch was already switched away before then goes to tools. The team is the newest under `~/.claude/teams/` whose config lists team-lead, looked up every pass, so a relaunch is picked up without a restart; with no team the service logs that it is waiting and keeps looking.
 

@@ -96,6 +96,23 @@ describe('pr-watch-service', () => {
     } finally { t.done(); }
   }, 120000);
 
+  it('hands a Dependabot PR to one reviewer with the --allow-bot path, whatever its checks say', () => {
+    const t = setup();
+    try {
+      t.empty();
+      const bot = { author: { login: 'app/dependabot' } };
+      t.world({ prs: [pr(30, 'dependabot/npm_and_yarn/vite-7.1.0', bot, 'PENDING'), pr(31, 'dependabot/github_actions/x', bot, 'FAILURE')] });
+      expect(t.once().status).toBe(0);
+      const told = t.told();
+      expect(Object.keys(told)).toEqual(['reviewer', 'reviewer2']);
+      expect(told.reviewer).toEqual([expect.stringMatching(/^PR #30 .* is ready for review: t30\. .*Dependabot: read the diff \(gh pr diff 30\) and the changelogs first, with no install; on a pass, take the --allow-bot path: scripts\/ci-pr\.sh 30 --allow-bot --head 30a{38}, then gh pr merge 30 --auto --merge\.$/)]);
+      expect(told.reviewer2).toEqual([expect.stringMatching(/^PR #31 .*ci-pr\.sh 31 --allow-bot/)]);
+      t.drain();
+      expect(t.once().status).toBe(0);
+      expect(t.told()).toEqual({});
+    } finally { t.done(); }
+  }, 120000);
+
   it('hands ready PRs to the reviewers the team has now', () => {
     const t = setup();
     const members = (names) => writeFileSync(join(t.team, 'config.json'), JSON.stringify({ createdAt: 1, members: names.map((name) => ({ name })) }));

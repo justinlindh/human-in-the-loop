@@ -1,9 +1,11 @@
 ---
 tool: `node scripts/tools/review-queue.mjs [--wait | --drain] [--repo owner/name]... [--interval s] [--timeout s] [--skip list]... [--json]`
 section: pr
-who: reviewer, team-lead
+who: reviewer and team-lead, to list the queue on demand (the PR watch service hands each ready PR to one reviewer)
 covers: scripts/tools/review-queue.mjs tests/tools/review-queue.test.js
 ---
+Reviewers don't keep `--wait` or `--drain` running in their session: the PR watch service (`pr-watch-service.md`) sends each ready PR, Dependabot's included, to one reviewer. Run it without a flag to see the whole queue.
+
 The pull requests waiting for a review verdict, all of them at once, in the groups a reviewer handles differently. A PR is in the queue when it is open into main, not a draft, not held by `awaiting-user`, and no `review` verdict is on its current head. It leaves only when a verdict is posted on that head (or it is held, closed, or pushed to a new head); nothing is remembered between runs, so running it again returns whatever is still waiting, and a review that was started and not finished stays listed. A PR whose last verdict review (first line `**Verdict: changes requested**`) judged an earlier head, and whose head since only merges main (none of its own commits after the judged one), is not waiting either: that verdict still stands, as in `wait-for`. An own commit after it brings the PR back. This costs a reviews call per waiting PR and two compare calls when its verdict asked for changes, once per head per run.
 
 - `READY`: same repo, author in `scripts/ci-trusted`, every check branch protection requires on main (less `review`; read from the API with `gh api`, cached five minutes) passing on the head. Review it. Nothing else counts: `local-ci` is no longer posted and is ignored, and a failing job nothing requires does not hold a PR back. When the rules can't be read, every reported check but `review` and `local-ci` has to pass, and a head with none reported is not ready.

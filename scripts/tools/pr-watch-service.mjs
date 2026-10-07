@@ -119,11 +119,14 @@ export function prEvents(pr, { required, trusted, lane, assign, verdict, held = 
   if (failing.length) tell('failed', author, `${at}: required check failed: ${failing.join(', ')}. Read the failing job, fix it and push (merge origin/main in first if main may already fix it); pr-watch follows the new head.`);
   const q = queue([pr], trusted, null, required)[0];
   // The CI group (a required check pending or failing) is not ready; a failure went to the author above.
-  if (q && q.group !== 'CI') {
-    if (!held(n, head)) {
-      const how = { READY: 'Review it and post the verdict with scripts/review-verdict.sh.', DEPENDABOT: 'A Dependabot PR: read its diff and changelogs first with no install; CI comes after the verdict.', OUTSIDE: 'A fork or an outside author: never fetch or run it; report it to team-lead.' }[q.group];
-      tell('ready', assign(n), `${at} is ready for review: ${pr.title}. It is assigned to you; the other reviewer is not told. ${how}`);
-    }
+  // A bot or outside PR is never held by an earlier verdict, as in review-queue.
+  if (q && q.group !== 'CI' && (q.group !== 'READY' || !held(n, head))) {
+    const how = {
+      READY: 'Review it and post the verdict with scripts/review-verdict.sh.',
+      DEPENDABOT: `Dependabot: read the diff (gh pr diff ${n}) and the changelogs first, with no install; on a pass, take the --allow-bot path: scripts/ci-pr.sh ${n} --allow-bot --head ${head}, then gh pr merge ${n} --auto --merge.`,
+      OUTSIDE: 'A fork or an outside author: never fetch or run it; report it to team-lead.',
+    }[q.group];
+    tell('ready', assign(n), `${at} is ready for review: ${pr.title}. It is assigned to you; the other reviewer is not told. ${how}`);
   }
   return out;
 }
