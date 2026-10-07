@@ -10,13 +10,20 @@ describe('the water cooler effect words', () => {
     expect(it.costs[0]).toBe(B.cooler.price);
     const pct = Math.round(B.cooler.share * 100);
     expect(adjacencyWords({ gives: { key: 'knowledgeShare', value: B.cooler.share, to: 'desk', count: 3, radius: 3 } }))
-      .toBe(`Weekly: 3 desks nearby close ${pct}% of the gap to the group's expert (2+ people)`);
+      .toBe(`Weekly: 3 desks nearby close ${pct}% of the gap to the group's expert each week, with 2 or more people nearby`);
     expect(adjacencyWords({ receives: [{ key: 'knowledgeShare', value: B.cooler.share }] }))
-      .toBe(`This desk closes ${pct}% of the gap to the group's expert each week`);
+      .toBe(`This desk closes ${pct}% of the gap to the group's expert each week, with 2 or more people nearby`);
+  });
+
+  it('counts the largest cooler in reach once, not the sum', () => {
+    expect(adjacencyWords({ receives: [{ key: 'knowledgeShare', value: 0.02 }, { key: 'knowledgeShare', value: 0.02 }] }))
+      .toBe("This desk closes 2% of the gap to the group's expert each week, with 2 or more people nearby");
+    expect(adjacencyWords({ receives: [{ key: 'knowledgeShare', value: 0.02 }, { key: 'knowledgeShare', value: 0.03 }] })).toContain('closes 3%');
+    expect(adjacencyWords({ receives: [{ key: 'novelty', value: 0.03 }, { key: 'novelty', value: 0.03 }] })).toBe('This desk gets +6% freshness');
   });
 
   it('keeps the cooler apart from the flat bonuses a desk also gets', () => {
     expect(adjacencyWords({ receives: [{ key: 'knowledgeShare', value: B.cooler.share }, { key: 'novelty', value: 0.04 }] }))
-      .toBe(`This desk gets +4% freshness. This desk closes ${Math.round(B.cooler.share * 100)}% of the gap to the group's expert each week`);
+      .toBe(`This desk gets +4% freshness. This desk closes ${Math.round(B.cooler.share * 100)}% of the gap to the group's expert each week, with 2 or more people nearby`);
   });
 });
