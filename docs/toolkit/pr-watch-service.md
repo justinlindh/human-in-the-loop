@@ -9,6 +9,7 @@ One watcher for every open pull request, so no lane keeps `wait-for.sh` or `revi
 - `failed`: a required check (branch protection's list, less review) failed on the head, once nothing on the head is still running. Goes to the author lane.
 - `changes`: a changes-requested verdict on the head, with the reviewer and the review link. Goes to the author lane.
 - `conflict`: the PR conflicts with main. The author lane merges `origin/main` in itself; the service never pushes.
+- A Dependabot PR has no author lane, so its `failed` and `conflict` go to its reviewer: read the failing job with no install and post changes, close it or rerun a flake; ask Dependabot to rebase a conflict rather than pushing to its branch.
 - `merged` and `closed`: once, to the author lane.
 - `ready`: no verdict on the head and, for a trusted PR, required checks green and the head not one that only merges main after a changes verdict (the review queue's READY, DEPENDABOT and OUTSIDE groups). A Dependabot PR is sent whatever its checks say, since its CI runs after the verdict, and its message gives the `--allow-bot` path: read `gh pr diff` and the changelogs with no install, then on a pass `scripts/ci-pr.sh <n> --allow-bot --head <sha>` and auto-merge. It goes to one reviewer, alternating per PR among the team's members whose names start with `reviewer`. The PR keeps that reviewer for later heads, and the other reviewer is never told. A PR whose reviewer has left the team moves to one who is there and is told to them; with no reviewer on the team, team-lead hears it.
 
