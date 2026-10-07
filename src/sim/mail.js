@@ -51,12 +51,14 @@ function fill(state, text, mc) {
   return missing ? null : out;
 }
 
-// The first variant that fills and fits the era, from a random starting point.
+// The first variant that fits the era and fills, from a random starting point. The era check reads the
+// template, so names the player chose (the company, a product) never change which mail arrives.
 function pickText(ctx, lines, mc) {
   const start = int(ctx.rng, 0, lines.length - 1);
   for (let i = 0; i < lines.length; i++) {
-    const t = fill(ctx.state, lines[(start + i) % lines.length], mc);
-    if (t && eraAllowsText(ctx.state, t)) return t;
+    const line = lines[(start + i) % lines.length];
+    const t = eraAllowsText(ctx.state, line) ? fill(ctx.state, line, mc) : null;
+    if (t) return t;
   }
   return null;
 }
