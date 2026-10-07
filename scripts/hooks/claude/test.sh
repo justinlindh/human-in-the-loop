@@ -161,6 +161,29 @@ allowed 'cat scripts/review-verdict.sh' "$repo"
 allowed "git commit -m 'review-verdict.sh 5 pass'" "$repo"
 g -C "$repo" checkout -q main
 
+# A commit from a disposable review checkout (a detached worktree named review-*) is refused; the same
+# commit from a lane worktree, a differently named detached one, and text that only mentions it pass.
+rv="$tmp/review-77"; g -C "$repo" worktree add -q --detach "$rv"
+denied 'git commit -m probe' "$rv"
+denied 'git commit -am probe && echo done' "$rv"
+denied "git -C $rv commit -m probe" "$repo"
+denied 'nice git -c user.name=x commit -m probe' "$rv"
+allowed 'git status' "$rv"
+allowed "echo 'git commit -m probe'" "$rv"
+allowed $'cat <<EOF\ngit commit -m x\nEOF' "$rv"
+allowed 'git commit -m work' "$repo"
+other="$tmp/scratch-77"; g -C "$repo" worktree add -q --detach "$other"; allowed 'git commit -m probe' "$other"
+g -C "$repo" worktree add -q -b review-branch "$tmp/review-78"; allowed 'git commit -m probe' "$tmp/review-78"
+
+# A scripted sweep edits a constant from the shell: allowed in a detached review-* checkout, refused in a
+# lane worktree, in a detached checkout with another name, and in a branch checkout that happens to be named review-*.
+allowed "sed -i 's/a/b/' $T" "$rv"
+allowed "echo x >> $T" "$rv"
+allowed "python3 -c \"open('$T','w').write('x')\"" "$rv"
+denied "sed -i 's/a/b/' $T" "$repo"
+denied "sed -i 's/a/b/' $T" "$other"
+denied "sed -i 's/a/b/' $T" "$tmp/review-78"
+
 # Sleeping between checks of PR or CI state costs a turn per wait: wait-for.sh in the background instead.
 allowed 'sleep 5; gh pr view 12 --json statusCheckRollup'
 denied 'until gh pr checks 12; do sleep 30; done'
