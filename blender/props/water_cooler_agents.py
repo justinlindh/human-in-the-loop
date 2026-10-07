@@ -11,12 +11,12 @@ reset()
 SX = -0.25
 parts = [
     box('panel', (0.62, 0.3, 1.62), (SX, 0.08, 0.81), 'plastic_white', bevel=0.04),
-    box('niche', (0.36, 0.08, 0.34), (SX, -0.06, 0.82), 'plastic_charcoal', bevel=0.02),
-    box('niche_light', (0.32, 0.01, 0.02), (SX, -0.03, 0.98), 'screen_cyan', bevel=0),
-    cyl('spout', 0.022, 0.06, (SX, -0.06, 0.95), 'metal_soft', verts=10, bevel=0.005),
-    box('grate', (0.3, 0.1, 0.02), (SX, -0.07, 0.66), 'metal_soft', bevel=0.005),
-    box('screen', (0.36, 0.012, 0.2), (SX, -0.072, 1.24), 'screen_cyan', bevel=0.006),
-    box('strip', (0.02, 0.012, 1.4), (SX - 0.28, -0.07, 0.8), 'screen_cyan', bevel=0),
+    box('niche', (0.36, 0.08, 0.34), (SX, -0.06, 0.82), 'metal_soft', bevel=0.02),
+    box('niche_light', (0.32, 0.01, 0.02), (SX, -0.03, 0.98), 'neon_cyan', bevel=0),
+    cyl('spout', 0.022, 0.06, (SX, -0.06, 0.95), 'metal_dark', verts=10, bevel=0.005),
+    box('grate', (0.3, 0.1, 0.02), (SX, -0.07, 0.66), 'metal_dark', bevel=0.005),
+    box('screen', (0.36, 0.012, 0.2), (SX, -0.072, 1.24), 'screen', bevel=0.006),
+    box('strip', (0.02, 0.012, 1.4), (SX - 0.28, -0.07, 0.8), 'neon_cyan', bevel=0),
     # The QR code plate on the front, beside the screen.
     box('qr_plate', (0.16, 0.01, 0.16), (SX, -0.072, 1.47), 'paper', bevel=0.004),
 ]
