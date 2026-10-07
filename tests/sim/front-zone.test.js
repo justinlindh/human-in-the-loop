@@ -30,7 +30,7 @@ describe('issue #470: items with a front zone keep the tile in front of them cle
     expect(frontCells('standing_desk', 3, 3, 0, 2)).toHaveLength(2);
     expect(frontCells('server_rack', 3, 3, 0, 2)).toEqual([]);
     expect(frontCells('server_rack', 3, 3, 0, 3)).toHaveLength(2);
-    for (const id of ['espresso', 'coffee_corner', 'plant_wall', 'bookshelf', 'library', 'arcade']) expect(frontCells(id, 3, 3, 0, 1).length, id).toBeGreaterThan(0);
+    for (const id of ['espresso', 'water_cooler', 'plant_wall', 'bookshelf', 'library', 'arcade']) expect(frontCells(id, 3, 3, 0, 1).length, id).toBeGreaterThan(0);
     expect(frontCells('desk', 3, 3, 0, 1)).toEqual([]);
     expect(frontCells('plant', 3, 3, 0, 1)).toEqual([]);
   });
@@ -63,9 +63,9 @@ describe('issue #470: items with a front zone keep the tile in front of them cle
     expect(placementCheck(s, { itemId: 'plant', x: 3, y: 4 })).toEqual({ ok: false, reason: REASON });
     expect(placementCheck(s, { itemId: 'plant', x: 6, y: 5 }).ok).toBe(true);
     expect(place(s, 'plant', 6, 5).ok).toBe(true);
-    // A coffee corner facing the plant is refused; turned away from it, it fits.
-    expect(placementCheck(s, { itemId: 'coffee_corner', x: 6, y: 4, rot: 0 }).reason).toBe(REASON);
-    expect(placementCheck(s, { itemId: 'coffee_corner', x: 6, y: 3, rot: 2 }).ok).toBe(true);
+    // A water cooler facing the plant is refused; turned away from it, it fits.
+    expect(placementCheck(s, { itemId: 'water_cooler', x: 6, y: 4, rot: 0 }).reason).toBe(REASON);
+    expect(placementCheck(s, { itemId: 'water_cooler', x: 6, y: 3, rot: 2 }).ok).toBe(true);
   });
 
   it('an item cannot face a wall', () => {
@@ -100,7 +100,7 @@ describe('issue #470: items with a front zone keep the tile in front of them cle
 
   it('automatic placement finds spots that respect front zones', () => {
     const s = floor(5);
-    for (const id of ['espresso', 'coffee_corner', 'bookshelf', 'plant_wall']) {
+    for (const id of ['espresso', 'water_cooler', 'bookshelf', 'plant_wall']) {
       const spot = findSpot(layoutOf(s), s.office.placed, id);
       expect(spot, id).toBeTruthy();
       expect(place(s, id, spot.x, spot.y, spot.rot).ok, id).toBe(true);

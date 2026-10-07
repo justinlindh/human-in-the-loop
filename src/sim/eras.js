@@ -36,7 +36,7 @@ const NEEDS_ITEM = [
   [/\bcouch/i, ['couch']],
   [/foosball/i, ['foosball']],
   [/ping pong/i, ['ping_pong_table']],
-  [/espresso|coffee machine/i, ['espresso', 'coffee_corner']],
+  [/espresso|coffee machine/i, ['espresso']],
   [/nap pod/i, ['nap_pod']],
   [/arcade/i, ['arcade']],
   [/bookshel/i, ['bookshelf', 'library']],

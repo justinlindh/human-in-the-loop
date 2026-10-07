@@ -153,6 +153,8 @@ function normalize(state) {
   for (const x of [...state.chatPrompts, ...state.mail]) x.shownWeek ??= null;
   state.office.expansion ??= 0;
   state.office.props ??= [];
+  // The coffee corner became the water cooler, in the same spot.
+  for (const p of state.office.placed) if (p.itemId === 'coffee_corner') p.itemId = 'water_cooler';
   state.fame ??= 0;
   state.ops.noc ??= null;
   state.ops.nocSince ??= null;

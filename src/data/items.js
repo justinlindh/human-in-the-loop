@@ -10,8 +10,8 @@ const FURNITURE = [
   ['meeting_table', 'Meeting Table', 'Standups and arguments happen here. Mostly arguments.', [3000], { w: 3, h: 2 }, null],
   ['whiteboard', 'Whiteboard', 'Nearby desks get a little more inventive. The markers are always dry.', [400], { w: 2, h: 1 },
     { radius: 2, key: 'novelty', value: 0.04 }],
-  ['coffee_corner', 'Coffee Corner', 'A kettle, a drip machine, and a mug that says World\'s Okayest Dev. Keeps the desks right next to it going.', [1200], { w: 2, h: 1 },
-    { radius: 3, key: 'staminaRecovery', value: 0.08 }],
+  ['water_cooler', 'Water Cooler', 'Where the team trades what the code actually does. People near it pick up each other\'s context.', [B.cooler.price], { w: 2, h: 1 },
+    { radius: B.cooler.radius, key: 'knowledgeShare', value: B.cooler.share }],
   ['plant', 'Potted Plant', 'Green and quietly judgmental. People nearby recover a little faster.', [150], { w: 1, h: 1 },
     { radius: 2, key: 'meaningRecovery', value: 0.04 }],
   ['bookshelf', 'Bookshelf', 'Old manuals, one good novel. People nearby learn the systems faster.', [500], { w: 2, h: 1 },
@@ -69,13 +69,13 @@ const rows = [
 
 // Items with a front zone, keyed to the level it starts at: a use spot people stand at, or stools, a mat or a
 // grate in front. The tile row in front of the footprint stays clear of other items (see frontCells).
-const FRONT_FROM = { noc: 2, espresso: 1, coffee_corner: 1, plant_wall: 1, bookshelf: 1, library: 1, arcade: 1, standing_desk: 2, server_rack: 3 };
+const FRONT_FROM = { noc: 2, espresso: 1, water_cooler: 1, plant_wall: 1, bookshelf: 1, library: 1, arcade: 1, standing_desk: 2, server_rack: 3 };
 // Items whose front zone is deeper than one row: the NOC's chairs fill the first row, and the crew stands in
 // the second.
 export const FRONT_ROWS = { noc: 2 };
 
 // Items that can go on the roof terrace.
-const OUTDOOR = new Set(['plant', 'couch', 'coffee_corner', 'ping_pong_table', 'plant_wall']);
+const OUTDOOR = new Set(['plant', 'couch', 'water_cooler', 'ping_pong_table', 'plant_wall']);
 
 export const ITEMS = Object.fromEntries([
   ...[

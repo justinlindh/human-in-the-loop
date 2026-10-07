@@ -1132,18 +1132,18 @@ When: `(s) => s.office.placed.some((i) => i.itemId === 'espresso')`
 
 misc · weight 2 · cooldown 52 weeks · arrives as a Yak prompt · staged: french_press
 
-When: `(s) => s.week >= 8 && !s.office.placed.some((i) => i.itemId === 'espresso' || i.itemId === 'coffee_corner')`
+When: `(s) => s.week >= 8 && !s.office.placed.some((i) => i.itemId === 'espresso')`
 
 | Choice | Effects |
 |---|---|
 | Buy an espresso machine | team meaning +2; buys Espresso Machine; requires an espresso machine can be bought |
 | Not yet | team meaning -1; leaves french_press |
 
-## The coffee corner has been reviewed `coffee_wanted_corner`
+## The office coffee has been reviewed `coffee_wanted_corner`
 
 misc · weight 2 · cooldown 52 weeks · arrives as a Yak prompt · staged: printout
 
-When: `(s) => s.week >= 8 && !s.office.placed.some((i) => i.itemId === 'espresso') && s.office.placed.some((i) => i.itemId === 'coffee_corner')`
+When: `(s) => s.week >= 8 && !s.office.placed.some((i) => i.itemId === 'espresso') && s.office.placed.some((i) => i.itemId === 'water_cooler')`
 
 | Choice | Effects |
 |---|---|
