@@ -118,6 +118,7 @@ export const PALETTE = {
   tone_novelty: '#ffb020',
   tone_good: '#34c38f',
   tone_bad: '#e5484d',
+  tone_warn: '#ffb020',
 
   // Sky and light
   sky_day_top: '#bfd8ea',
