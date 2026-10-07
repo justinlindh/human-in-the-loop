@@ -1,7 +1,7 @@
 import { YAK_HELPERS, YAK_CHECK } from '../feature-media/yak.js';
 import { LOAD_PIN } from './pins.js';
 import { GROW, EMPTY_DESKS } from '../feature-media/manifest.js';
-import { PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY, CAMLOG, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK_SEL, STAGE_ONLY, CLEAR_CARDS } from '../capture-manifest.js';
+import { PLAY, BUILD_ONLY, NO_SAY, PRE_UNTIL, IN_OFFICE, CHAT_HISTORY, YAK_ONLY, CAMLOG, CLEAR_EARLY, DISMISS_AT, CHOOSE_WHEN, CLICK_SEL, STAGE_ONLY, CLEAR_CARDS } from '../capture-manifest.js';
 // A player closes any launch or unlock card that turns up while the Yak thread plays out; a modal card holds the clock.
 const CARDS_EVERY = (from, to, step) => Array.from({ length: Math.floor((to - from) / step) + 1 }, (_, i) => ({ at: from + i * step, js: CLEAR_CARDS }));
 
@@ -104,7 +104,7 @@ export const BEATS = [
   // From just before the move, so the new floor drops onto the garage on screen.
   { id: 'office', item: '2-2-office-move', capture: { seconds: 9 }, actions: [LATER(0.1), NO_ERA_CARD(0)], from: 1.8, dur: 3.5 },
   // The player places a foosball table (the build bar is the one interface kept), and people come to play.
-  { id: 'build', item: 'trail-build', from: 0.9, dur: 10.5 },
+  { id: 'build', item: 'trail-build', capture: { pin: 'build', setup: `(async () => { ${BUILD_ONLY}; ${NO_SAY}; })()` }, from: 0.9, dur: 10.5 },
   // The hire panel: a candidate hired.
   { id: 'hire', item: 'trail-hire', from: 0.9, dur: 2.2 },
   // The first launch on the Office Floor, so the story never steps back into the garage.
@@ -190,6 +190,8 @@ export const PIN_SOURCES = {
   outage: { query: 'seed=13&speed=1', setup: `(async () => { await ${PRE_UNTIL(OUTAGE_PLAY)}; })()` },
   meme: { query: 'seed=62&speed=1', setup: `(async () => { await ${PRE_UNTIL(MEME_PLAY)}; })()` },
   garage: { query: 'seed=5&speed=1&time=day', setup: GROW(4) },
+  // The Office Floor with ten or more staff, a foosball table still to place.
+  build: { query: 'seed=1&speed=1&time=day', setup: `(async () => { await ${PLAY({ weeks: 400, until: 's.office.stage === 1 && s.staff.length >= 10', after: IN_OFFICE + 's.cash = Math.max(s.cash, 50000);' })}; })()` },
   cloud: { query: 'seed=6&speed=1' },
   launch: { query: 'seed=9&speed=1', setup: `(async () => { await ${PRE_UNTIL({ weeks: 400, bot: 'balanced', prep: IN_OFFICE, hit: LAUNCH_HIT })}; })()` },
   plateau: { query: 'seed=3&speed=1&time=day', setup: GROW(800, { lateHires: false }) },

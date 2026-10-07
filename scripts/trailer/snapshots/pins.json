@@ -34,5 +34,10 @@
     "query": "seed=9&speed=1",
     "seed": 9,
     "week": 140
+  },
+  "build": {
+    "query": "seed=1&speed=1&time=day",
+    "seed": 1,
+    "week": 111
   }
 }
