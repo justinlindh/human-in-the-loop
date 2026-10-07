@@ -4,7 +4,9 @@ import { trendSummary } from './content.js';
 import { availableItems } from './panels/office.js';
 // Stylesheets load in file-name order, which is their cascade order.
 import.meta.glob('./styles/*.css', { eager: true });
-import { h, calendarDate } from './dom.js';
+import { h, calendarDate, fmtMoney } from './dom.js';
+import { lineChart, sample } from './charts.js';
+import { calendarWeek } from '../sim/util.js';
 import { createHud } from './hud.js';
 import { createToasts } from './toasts.js';
 import { createChat } from './chat.js';
@@ -287,6 +289,17 @@ export function createUI({ root, getState, dispatch, controls }) {
     ctx.openModal({ title: `Goals: ${goalsDoneText(list.filter((g) => s.goals[g.id].done && !s.goals[g.id].skipped).length, list.filter((g) => !s.goals[g.id].skipped).length)}`, iconName: 'star', body, cls: 'small' });
   }
   ui.openGoals = goalsModal;
+  // The cash chip opens the full money chart: all the history there is, sampled to fit.
+  function moneyModal() {
+    const s = getState();
+    const hist = sample(s.history ?? []);
+    const body = h('div.moneychart', null, h('div.small.muted', { text: `Cash now ${fmtMoney(s.cash)}. Cash at the end of each week.` }));
+    ctx.openModal({ title: 'Money', iconName: 'money', body, cls: 'small' });
+    // The chart is drawn once the card is on screen, so it fits the card's real width.
+    const W = Math.max(240, Math.floor(body.clientWidth || 320) - 4);
+    body.append(lineChart({ weeks: hist.map((x) => calendarWeek(s, x.week)), w: W, h: Math.round(W * 0.55), fmt: (v) => fmtMoney(v), series: [{ color: '#e8930c', values: hist.map((x) => x.cash) }] }));
+  }
+  ui.openMoney = moneyModal;
   ctx.build = buildMode;
   ctx.isBusy = () => isBusy();
 

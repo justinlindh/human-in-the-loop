@@ -27,6 +27,12 @@
 .hitl .chip.company .date { font-size: 0.8em; opacity: 0.8; white-space: nowrap; }
 .hitl .chip.company .date .num { font-size: 1em; }
 
+.hitl .chip.cash { flex-direction: row; align-items: center; justify-content: flex-start; gap: 0.6em; cursor: pointer; }
+.hitl .chip.cash .cashtxt { display: flex; flex-direction: column; min-width: 0; }
+.hitl .chip.cash .cashspark { flex: none; width: 4.8em; height: 2.1em; }
+.hitl .chip.cash .cashspark[hidden] { display: none; }
+@media (min-width: 881px) and (max-width: 1300px) { .hitl .chip.cash .cashspark { width: 3.4em; } }
+@media (max-width: 480px), (max-height: 500px) and (pointer: coarse) { .hitl .chip.cash .cashspark { display: none; } }
 .hitl .chip.cash .val { color: var(--ink); }
 .hitl .chip.cash.neg { background: #ffe1df; animation: hitl-pulse 1s ease-in-out infinite; }
 .hitl .chip.cash.neg .val { color: var(--bad); }

@@ -1,5 +1,6 @@
 import { pnow } from './pclock.js';
 import { phoneLayout } from './media.js';
+import { sparkValues, sparkTone, sparkSig, drawCashSpark } from './cashSpark.js';
 import { SIMX } from './simapi.js';
 import { progressBar, goalsDoneText } from './goalProgress.js';
 import { setTip } from './tooltip.js';
@@ -125,7 +126,14 @@ export function createHud({ root, controls, ui }) {
 
   const cashVal = h('div.val.num');
   const cashSub = h('div.sub');
-  const cash = h('div.chip.cash', { title: 'Cash on hand. Below zero for 8 weeks and the lab folds.' }, h('div.lbl', { text: 'Cash' }), cashVal, cashSub);
+  // The cash chip opens the money chart; where there is room it also draws the last weeks of cash.
+  const cashSpark = h('canvas.cashspark', { 'aria-hidden': 'true' });
+  const cash = h('div.chip.cash', {
+    title: 'Cash on hand. Below zero for 8 weeks and the lab folds. Tap for the money chart.', role: 'button', tabIndex: 0,
+    onclick: () => ui.openMoney?.(),
+    onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ui.openMoney?.(); } },
+  }, h('div.cashtxt', null, h('div.lbl', { text: 'Cash' }), cashVal, cashSub), cashSpark);
+  let sparkSigLast = null;
 
   const mrrVal = h('span.num');
   const mrrTrend = h('span.trend');
@@ -364,6 +372,20 @@ export function createHud({ root, controls, ui }) {
       } else {
         setText(cashSub, net === null ? 'Runway: fine' : `${fmtMoney(net, { sign: true })}/wk`);
         setClass(cashSub, 'sub');
+      }
+    }
+    // The line redraws only when the history grows or its colour changes, and not at all on Low quality.
+    const lowQ = controls.getQuality?.() === 'low';
+    if (lowQ !== cashSpark.hidden) cashSpark.hidden = lowQ;
+    if (!lowQ) {
+      // The signature is cheap (history length, newest week, the runway colour, the canvas width); the 40 values
+      // and their colour are built only when it changes.
+      const width = cashSpark.clientWidth;
+      const sig = sparkSig(s.history, cashSub.className, width);
+      if (sig !== sparkSigLast && width) {
+        sparkSigLast = sig;
+        const vals = sparkValues(s.history);
+        drawCashSpark(cashSpark, vals, sparkTone(vals, cashSub.className));
       }
     }
 
