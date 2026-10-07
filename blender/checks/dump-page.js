@@ -8,7 +8,7 @@ export const dumpPage = async (o) => {
   const canvas = document.querySelector('canvas');
   if (o.width && o.height) { canvas.width = o.width; canvas.height = o.height; }
   // Raycasts against per-mesh trees: the camera-turn probes are thousands of rays.
-  await window.__fastRaycast();
+  await window.__fastRaycast?.();
   const dump = await import('/blender/checks/dump.js');
   await dump.prepare();
   // A loaded snapshot announces its open decision, as the browser run does after continueGame.

@@ -54,7 +54,7 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync } fro
 import { dirname, resolve, join, basename } from 'node:path';
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { planReplay, mentions, isWorse } from './sweep-plan.js';
+import { planReplay, mentions, isWorse, SEED_PLAY } from './sweep-plan.js';
 import { createWorktree } from '../../scripts/tools/worktree.mjs';
 import { graphBase, graphOutput, graphPassedAt, recordGraphPass, requestedFiles } from './cache.mjs';
 import { fileURLToPath } from 'node:url';
@@ -79,8 +79,8 @@ const wall = () => Number(process.hrtime.bigint() / 1000000n);
 // the pre-internet, dot-com and Web 2.0 offices, and a modern era with its street and data centre.
 const ERA_MOCKS = ['garage@preinternet', 'floor@dotcom', 'floor@web2', 'floor@agents'];
 const MODES = {
-  fast: { mocks: ['garage', 'floor', 'hq', 'night', ...ERA_MOCKS], propMocks: ['floor', 'hq'], propDesks: 3, gridMocks: ['floor'], momentMocks: ['floor'], moments: { open: 10, after: 5, choices: 1 }, mockSeconds: 6, seeds: [1], seedLimit: 300, weeks: 1040, every: 104, seconds: 2, stagedSeconds: 16, maxStaged: 3, step: 1 },
-  full: { mocks: ['garage', 'floor', 'hq', 'incident', 'night', 'ending', ...ERA_MOCKS], propMocks: ['garage', 'floor', 'hq'], propDesks: 8, gridMocks: ['floor'], momentMocks: ['floor', 'hq'], moments: { open: 20, after: 10, choices: 2 }, mockSeconds: 30, seeds: [1, 2, 3, 4], seedLimit: 1200, weeks: 1040, every: 13, seconds: 8, stagedSeconds: 24, maxStaged: 40, step: 0.5 },
+  fast: { mocks: ['garage', 'floor', 'hq', 'night', ...ERA_MOCKS], propMocks: ['floor', 'hq'], propDesks: 3, gridMocks: ['floor'], momentMocks: ['floor'], moments: { open: 10, after: 5, choices: 1 }, mockSeconds: 6, seeds: [1], seedLimit: 300, ...SEED_PLAY.fast },
+  full: { mocks: ['garage', 'floor', 'hq', 'incident', 'night', 'ending', ...ERA_MOCKS], propMocks: ['garage', 'floor', 'hq'], propDesks: 8, gridMocks: ['floor'], momentMocks: ['floor', 'hq'], moments: { open: 20, after: 10, choices: 2 }, mockSeconds: 30, seeds: [1, 2, 3, 4], seedLimit: 1200, ...SEED_PLAY.full },
 };
 const replayFile = opt('replay');
 const replayed = replayFile ? (() => {
