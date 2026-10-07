@@ -427,6 +427,15 @@ describe('audio director', () => {
     expect(CUES['sfx.sales_register']).toBeUndefined();
   });
 
+  it('pings when a letter is presented, and stays quiet for a prompt or a decision', () => {
+    const d = createDirector();
+    const plays = (cmds) => cmds.filter((c) => c.op === 'play').map((c) => c.cue);
+    const ask = (kind, extra) => ({ type: 'askPresented', askId: 'a1', kind, priority: 1, mailId: null, promptId: null, ...extra });
+    expect(plays(d.events([ask('letter', { mailId: 'm1' })], state(), 10))).toEqual(['sfx.letter']);
+    expect(plays(d.events([ask('prompt', { promptId: 'p1' }), ask('decision')], state(), 20))).toEqual([]);
+    expect(CUES['sfx.letter']).toMatchObject({ bus: 'ui', files: ['sfx/letter_ping'] });
+  });
+
   describe('office boombox radio', () => {
     const beds = { classic: ['classic/a'], radio_lofi: ['radio_lofi/a', 'radio_lofi/b'], radio_funk: ['radio_funk/a'] };
     const radio = (station, on = true) => state({ radio: { on, station } });
