@@ -234,6 +234,8 @@ export function createSettings({ layer, controls, sfx, getState = null, toast = 
     function arm(on) {
       confirm.style.display = on ? '' : 'none';
       ask.style.display = on ? 'none' : '';
+      // At the bottom of the scrolling panel the confirm opens below the fold: bring it into view.
+      if (on) confirm.scrollIntoView?.({ block: 'nearest' });
       sfx('click');
     }
     function leave() {
