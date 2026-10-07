@@ -21,6 +21,12 @@ describe('sweep --against', () => {
     } finally { rmSync(tmp, { recursive: true, force: true }); }
   }, 300000);
 
+  it('exits 2 with one line when --against names no checkout or ref', () => {
+    const r = spawnSync(process.execPath, ['blender/checks/sweep.mjs', '--against', 'no_such_ref_zz', '--mocks', 'garage', '--seeds', 'none', '--no-screen', '--out', 'shots/sweep-against-test'], { cwd: ROOT, encoding: 'utf8', timeout: 60000 });
+    expect(r.status).toBe(2);
+    expect(r.stderr.trim()).toBe('sweep: --against no_such_ref_zz is neither a checkout nor a git ref');
+  }, 90000);
+
   // The control is a checkout whose garage mock drops an extra espresso onto the first desk, so
   // only the control finds that overlap: it is gone on this checkout.
   it('keeps the control report in <out>/control and prints the rows only the control found', () => {

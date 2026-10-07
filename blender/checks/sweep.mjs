@@ -132,7 +132,13 @@ const against = opt('against') ?? null;
 const repoRoot = resolve(HERE, '../..');
 async function startControl(spec) {
   const asRoot = existsSync(spec) && existsSync(join(spec, '.git'));
-  const rev = asRoot ? execFileSync('git', ['-C', spec, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim() : execFileSync('git', ['-C', repoRoot, 'rev-parse', spec], { encoding: 'utf8' }).trim();
+  let rev;
+  try {
+    rev = execFileSync('git', asRoot ? ['-C', spec, 'rev-parse', 'HEAD'] : ['-C', repoRoot, 'rev-parse', '--verify', '--quiet', `${spec}^{commit}`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  } catch {
+    console.error(`sweep: --against ${spec} is neither a checkout nor a git ref`);
+    process.exit(2);
+  }
   // A checkout given by path counts with its uncommitted edits to tracked files (a control patch).
   const patch = asRoot ? execFileSync('git', ['-C', spec, 'diff', 'HEAD', '--binary'], { maxBuffer: 1 << 28 }) : null;
   const overlay = Object.fromEntries(['sweep.mjs', 'sample.js', 'sweep-plan.js', 'cache.mjs'].map((f) => [`blender/checks/${f}`, join(HERE, f)]));
