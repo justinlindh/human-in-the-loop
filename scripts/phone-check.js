@@ -243,6 +243,16 @@ async function clearCards(page) {
   return page.evaluate(() => [...document.querySelectorAll('.announce-back, .modal-back')].filter((e) => getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().width).map((e) => e.className));
 }
 
+// One week toward a decision. With the ask queue on a decision opens only when the attention clock
+// presents it, and these checks stop the clock, so a waiting decision is presented by hand.
+const stepToDecision = (page) => page.evaluate(() => {
+  const h = window.__HITL;
+  if (h.state.cash < 50000) h.state.cash += 200000;
+  if (!h.state.pendingDecision) h.tickN(1);
+  const ask = (h.state.asks ?? []).find((a) => a.kind === 'decision');
+  if (!h.state.pendingDecision && ask) h.dispatch({ type: 'presentAsk', askId: ask.id });
+  return !!h.state.pendingDecision;
+});
 const clearDecisions = (page) => page.evaluate(() => { const h = window.__HITL; for (let c = 0; c < 4 && h.state.pendingDecision; c++) h.dispatch({ type: 'resolveDecision', choice: c }); });
 const camera = (page) => page.evaluate(() => { const c = window.__HITL.controls.renderer.camera; return { h: c.top - c.bottom, x: c.position.x, z: c.position.z, scale: visualViewport.scale }; });
 // Yak's caret expands and collapses it; the header's other buttons resize or maximize it, so taps
@@ -374,7 +384,7 @@ const CHECKS = {
     const fails = [];
     let found = false;
     for (let i = 0; i < 200 && !found; i++) {
-      found = await page.evaluate(() => { const h = window.__HITL; if (h.state.cash < 50000) h.state.cash += 200000; if (!h.state.pendingDecision) h.tickN(1); return !!h.state.pendingDecision; });
+      found = await stepToDecision(page);
     }
     if (!found) return { fails: ['no decision came up in 200 weeks'] };
     await wait(page, 900);
@@ -416,7 +426,7 @@ const CHECKS = {
     let outcome = 'never showed';
     for (let attempt = 0; attempt < 3; attempt++) {
       // Held on screen for the check, so a loaded machine cannot time it out before the tap.
-      await page.evaluate((text) => { window.__HITL_UI?.freezeToasts?.(true); window.__HITL.emit([{ type: 'toast', text, tone: 'warn' }]); }, longText); // warn always shows
+      await page.evaluate((text) => { window.__HITL_UI?.freezeToasts?.(true); window.__HITL.emit([{ type: 'toast', text, tone: 'bad' }]); }, longText); // a severe toast shows at once; under quietToasts a warn waits out the toast gap
       await wait(page, 600);
       if (!(await long.count())) { outcome = 'never showed'; continue; }
       const st = await toastState(long).catch(() => null);
@@ -577,7 +587,7 @@ const CHECKS = {
     }
     let found = false;
     for (let i = 0; i < 200 && !found; i++) {
-      found = await page.evaluate(() => { const h = window.__HITL; if (h.state.cash < 50000) h.state.cash += 200000; if (!h.state.pendingDecision) h.tickN(1); return !!h.state.pendingDecision; });
+      found = await stepToDecision(page);
     }
     if (!found) return { fails: ['no decision came up in 200 weeks'] };
     await wait(page, 900);
