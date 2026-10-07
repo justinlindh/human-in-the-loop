@@ -20,7 +20,7 @@ loadGame(storage) -> { ok, state?, reason?, notice? }   // notice: a message to 
 exportSave(storage, id) -> string   // the raw save text, for keeping a stale save; saveMeta carries `version`
 importSave(storage, text, { replaceId? }) -> { ok, id?, meta?, reason?, full?, stale?, version? }   // validates text as loadGame does and stores it in a free slot; with every slot taken it returns { ok:false, full:true } and writes nothing unless replaceId names the slot to overwrite; never changes the index's `last` slot; success carries the slot's saveMeta as `meta`, a version refusal carries `stale` and `version` as loadGame's does. ui reaches it through controls.importSave(text, opts) in main.js
 FUNCTIONS = ['engineering','support','sales','marketing','qa','ops']
-SAVE_VERSION   // the current number lives in src/save/; a save with a different version is refused, so renames migrate in normalize() on load without a bump
+SAVE_VERSION   // the current number lives in src/sim/state.js; a save with a different version is refused, so renames migrate in normalize() on load without a bump
 ```
 
 ### State shape (JSON-serializable; all numbers finite)
@@ -715,7 +715,7 @@ Where people trade what they know. The Espresso Machine is the stamina item; the
 - Item `water_cooler` replaces `coffee_corner`: furniture, 2x1, price `B.cooler.price`. It inherits the corner's placement data (outdoor permission and the clear row in front), so migrated offices stay legal. Effect: adjacency `{ radius: B.cooler.radius, key: 'knowledgeShare', value: B.cooler.share }`.
 - Saves: `normalize()` turns a placed `coffee_corner` into a `water_cooler` on load, keeping position, rotation and level, with no SAVE_VERSION change. The id `coffee_corner` no longer exists after load.
 - `knowledgeShare`, applied weekly by the knowledge system: each placed cooler has its own crowd, the human staff whose desks are within its radius, excluding agents, remote staff and anyone away. A crowd of 2 or more lifts each member by `share × (the crowd's highest knowledge − their own)`, at most `B.cooler.maxGain` a week. A desk in reach of two coolers counts once, in the crowd with the higher top. The effect sits outside `B.itemBonusCap` and pays nothing while the cooler is broken.
-- When a cooler lifts someone by at least `B.cooler.notifyGain` in a week, at most once per cooler per `B.cooler.notifyWeeks`, the sim emits a toast with topic `'shared'`: `subjectId` is the person in that crowd with the largest gain that week (ties go to the lower staff id), `short` is 'Context shared', tone `good`, and the text names them and the crowd's top expert. ui shows it as a desk bubble, or a toast if no bubble claims it.
+- When a cooler lifts someone by at least `B.cooler.notifyGain` in a week, at most once per cooler per `B.cooler.notifyWeeks`, the sim emits a toast with topic `'shared'`: `subjectId` is the person in that crowd with the largest gain that week (on a tie, whoever comes first in `state.staff`), `short` is 'Context shared', tone `good`, and the text names them and the crowd's top expert. ui shows it as a desk bubble, or a toast if no bubble claims it.
 
 ## AI job interviews (#670)
 
