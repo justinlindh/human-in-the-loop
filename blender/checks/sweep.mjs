@@ -49,7 +49,6 @@
 // (--crop-all: of accepted ones too); with --against, the control run's files go to <out>/control/.
 // --update-baseline rewrites the baseline to
 // exactly what this run found. The run is deterministic: it depends only on the code.
-import { startHarness, wantGpu } from './harness.mjs';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
 import * as indexPlay from '../../scripts/events/play.js';
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync, cpSync, rmSync } from 'node:fs';
@@ -212,11 +211,16 @@ if (cacheKey) { process.env.HITL_LOAD_TRACK = '1'; await import('../../scripts/s
 const kill = setTimeout(() => { console.error(`sweep: timed out after ${timeout} s`); process.exit(124); }, timeout * 1000);
 const t0 = wall();
 // Geometry, not pixels: the GPU by default, SwiftShader with --software or HITL_GL=software.
-const H = engine ? null : await startHarness({ gpu: wantGpu() });
+// The browser harness is loaded only by a run that uses a browser: importing it makes playwright catch signals.
+const harness = () => import('./harness.mjs');
+const startHarness = async () => { const m = await harness(); return m.startHarness({ gpu: m.wantGpu() }); };
+const H = engine ? null : await startHarness();
 const host = engine ? await import('../../scripts/studio/sweep-host.mjs') : null;
+if (engine) defaultSignals();
 // Started only once this process holds its render lock: the harness re-runs the whole command under
 // the lock and exits the first copy, which must not have started a control of its own.
-const control = against ? await startControl(against) : null;
+// A signal to the whole group also reaches the git commands it runs; that run ends by the signal too, not by an error.
+const control = against ? await startControl(against).catch((e) => { if (e?.signal) { defaultSignals(); process.kill(process.pid, e.signal); } throw e; }) : null;
 // The page checks (screen, tooltip) need a browser and do not depend on the engine's sampling, so that
 // step starts now and runs alongside it (its rows are added below): the same run's states (mocks and
 // their moments, indexed moments, snapshots, seeds) are played there with the page checks alone.
@@ -271,7 +275,7 @@ async function browserSeeds() {
   const out = { found: [], windows: [], errors: [], requested: [] };
   for (const seed of M.seeds) {
     if (seedRun.stop) break;
-    const HS = seedRun.harness = await startHarness({ gpu: wantGpu() });
+    const HS = seedRun.harness = await startHarness();
     if (seedRun.stop) { await HS.close(); break; }
     const { page, errors: e } = await HS.openScene(`quality=low&seed=${seed}`, { width: 1600, height: 1000 });
     // The seed plays with the index's pacing switches, so its decisions open on the tick that raises them.

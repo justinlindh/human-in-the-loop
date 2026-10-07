@@ -10,9 +10,10 @@ const run = (args, timeout) => spawnSync(process.execPath, args, { encoding: 'ut
 // so it takes SIGTERM at its default action and a reaper process ends the screen step and a control checkout and
 // removes the control's temp tree. Interrupted at any point, the run ends at once and leaves nothing behind.
 describe('an interrupted sweep', () => {
-  for (const [name, extra] of [['plain run', []], ['--against run', ['--against', 'HEAD']]]) {
+  // Early (still starting up) and later (sampling), plain and with a control checkout.
+  for (const [name, extra, after] of [['plain run', [], 2], ['--against run, starting up', ['--against', 'HEAD'], 0.3], ['--against run, sampling', ['--against', 'HEAD'], 2]]) {
     it(`ends on SIGTERM and leaves nothing behind (${name})`, () => {
-      const r = run([TEST, '--after', '2', '--grace', '10', '--', process.execPath, 'blender/checks/sweep.mjs', ...extra], 120000);
+      const r = run([TEST, '--after', String(after), '--grace', '10', '--', process.execPath, 'blender/checks/sweep.mjs', ...extra], 120000);
       expect(r.stdout, r.stderr).toMatch(/exit: (143|signal SIGTERM)\n/);
       expect(r.stdout).toContain('survivors: none');
       expect(r.stdout).toContain('leftover temp dirs: none');
