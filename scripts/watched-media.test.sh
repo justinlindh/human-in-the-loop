@@ -42,6 +42,12 @@ pr '["scripts/x.sh"]' '- **Screenshots or clips:** audio only. The owner approve
 out="$(check)"; [ $? -eq 0 ] || fail "a Screenshots entry of audio only: $out"
 pr '["scripts/x.sh"]' "- **Screenshots or clips:** audio only $(url take.wav)"
 out="$(check)"; [ $? -eq 1 ] && grep -q take.wav <<<"$out" || fail "audio posted with pr-media still needs watching: $out"
+pr '["scripts/x.sh"]' '- **Screenshots or clips:** not a visual change.'
+out="$(check)"; [ $? -eq 0 ] || fail "a Screenshots entry of not a visual change: $out"
+pr '["scripts/x.sh"]' '- **Screenshots or clips:** No visual change; the tool prints text.'
+out="$(check)"; [ $? -eq 0 ] || fail "a Screenshots entry of no visual change: $out"
+pr '["scripts/x.sh"]' "- **Screenshots or clips:** not a visual change, but here is the report $(url report.png)"
+out="$(check)"; [ $? -eq 1 ] && grep -q report.png <<<"$out" || fail "media posted with pr-media still needs watching: $out"
 pr '["scripts/x.sh"]' '- **Screenshots or clips:** see the comment below'
 out="$(check)"; [ $? -eq 1 ] && grep -q 'has no media' <<<"$out" || fail "a Screenshots entry with no media posted: $out"
 
