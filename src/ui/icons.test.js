@@ -34,6 +34,10 @@ describe('icons', () => {
     expect(missing).toEqual([]);
   });
 
+  it('has art for the water cooler item before its data lands', () => {
+    expect(art.has('item.water_cooler')).toBe(true);
+  });
+
   it('has a glyph for every quick post icon', () => {
     expect(POSTS.map((p) => postIcon(p.icon)).filter((n) => !known(n))).toEqual([]);
   });
