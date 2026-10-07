@@ -35,6 +35,19 @@ run() { out="$(bash "$HERE/reset-teammate.sh" "$@" 2>&1)"; rc=$?; }
 [ $rc -eq 0 ] && grep -q 'context before: 90010 tokens' <<<"$out" && grep -q -- '-t %1 /compact Enter' "$SENT" || fail "a compact is sent, confirmed and sized: rc $rc: $out"
 grep -q "sim	compact	pre=90010	transcript=sim1.jsonl" "$tmp/log" || fail "--log appends a row: $(cat "$tmp/log" 2>/dev/null)"
 
+# Two transcripts hold the brief: the stale one has the newer mtime, the live one the newer last record.
+# The live one is the one sized and logged, and a boundary written to either file confirms the compact.
+mkt() { # <file> <brief-name> <last-record-time>
+  printf '{"type":"user","message":"You are `%s`, on the team."}\n{"type":"assistant","timestamp":"%s","message":{%s}}\n' "$2" "$3" "$usage" >"$proj/$1.jsonl"
+}
+mkt live2 two 2026-10-07T09:00:00.000Z; mkt stale2 two 2026-10-04T09:00:00.000Z
+touch -d '2026-10-07 01:00' "$proj/live2.jsonl"; touch "$proj/stale2.jsonl"
+: >"$SENT"; TRANSCRIPT="$proj/live2.jsonl" PANE_TEXT='ready\n  @two' run two compact 5 --log "$tmp/log2"
+[ $rc -eq 0 ] && grep -q 'transcript=live2.jsonl' "$tmp/log2" || fail "the transcript written last is picked, not the newest mtime: rc $rc: $out $(cat "$tmp/log2" 2>/dev/null)"
+: >"$SENT"; TRANSCRIPT="$proj/stale2.jsonl" PANE_TEXT='ready\n  @two' run two compact 5
+[ $rc -eq 0 ] || fail "a boundary in another candidate file confirms the compact: rc $rc: $out"
+rm -f "$proj"/live2.jsonl "$proj"/stale2.jsonl
+
 : >"$SENT"; run sim clear 5
 [ $rc -eq 2 ] && grep -q 'reports stop reaching team-lead' <<<"$out" && [ ! -s "$SENT" ] || fail "a clear is refused and nothing is sent: rc $rc: $out"
 

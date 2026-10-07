@@ -12,8 +12,8 @@
 # team-lead, so the lead loses it silently. Respawn the teammate instead when a compact isn't enough.
 # The transcript directory is Claude Code's, for the main checkout's path (found from any worktree): ~/.claude/projects/<the path
 # with every character outside A-Z a-z 0-9 turned into a dash>. CLAUDE_PROJECTS_DIR names another one.
-# A teammate's transcript is the newest one, touched in the last day, whose first lines hold its spawn
-# brief ("You are `<name>`"). Run it from the team lead's session, never for the session you are in.
+# A teammate's transcript is, of those touched in the last day whose first lines hold its spawn brief
+# ("You are `<name>`"), the one with the newest last record; a boundary in any of them confirms the compact. Run it from the team lead's session, never for the session you are in.
 # Exit: 0 done, 1 not found, still busy or not confirmed, 2 usage.
 set -uo pipefail
 usage="usage: scripts/team/reset-teammate.sh <name> compact [max-wait-seconds] [--log <file>] [--before-send <command>] [--confirm-wait <seconds>]"
@@ -52,13 +52,24 @@ for p in $(tmux list-panes -a -F '#{pane_id}'); do
 done
 [ -n "$pane" ] || { echo "no pane shows @$name" >&2; exit 1; }
 
-transcript() { # the teammate's newest transcript (the brief sits in its first lines)
+candidates() { # every recent transcript whose first lines hold the brief
   local f
-  for f in $(find "$proj" -maxdepth 1 -name '*.jsonl' -mmin -1440 -printf '%T@ %p\n' | sort -rn | cut -d' ' -f2-); do
+  for f in $(find "$proj" -maxdepth 1 -name '*.jsonl' -mmin -1440 -printf '%p\n'); do
     # Not head | grep -q: grep stops at the match, head dies of SIGPIPE on the rest of these large
     # lines, and pipefail turns that into no match.
-    grep -q "You are \`$name\`" < <(head -n 20 "$f") && { echo "$f"; return; }
+    grep -q "You are \`$name\`" < <(head -n 20 "$f") && echo "$f"
   done
+}
+# The time of a file's last record says which session is writing now (any process can touch an mtime);
+# a file without timestamps falls back to its mtime.
+last_at() {
+  local t; t="$(tac "$1" | grep -m1 -o '"timestamp":"[^"]*"' | cut -d'"' -f4)"
+  [ -n "$t" ] || t="$(date -u -d "@$(stat -c %Y "$1")" +%FT%T.000Z)"
+  echo "$t"
+}
+transcript() { # the candidate written most recently
+  local f
+  for f in $(candidates); do echo "$(last_at "$f") $f"; done | sort -r | head -1 | cut -d' ' -f2-
 }
 tokens() { # context size of the newest assistant turn in a transcript
   # A record can carry the usage object more than once; count only the first.
@@ -71,8 +82,10 @@ before="$(transcript)"
 [ -n "$before" ] || { echo "no transcript in $proj starts with $name's brief" >&2; exit 1; }
 case "$confirm_wait" in ''|*[!0-9]*) echo "confirm-wait must be a number of seconds" >&2; exit 2 ;; esac
 # Only the transcript's own boundary records count, not a message that mentions the word.
-boundaries() { grep -c '"subtype":"compact_boundary"' "$1"; }
-pre="$(tokens "$before")"; n0="$(boundaries "$before")"
+boundaries() { # counted over every candidate, so the compact is seen whichever file the lane writes it to
+  local f n=0; for f in $(candidates); do n=$((n + $(grep -c '"subtype":"compact_boundary"' "$f"))); done; echo "$n"
+}
+pre="$(tokens "$before")"; n0="$(boundaries)"
 end=$((SECONDS + maxwait))
 while busy || { sleep "${RESET_POLL:-4}"; busy; }; do
   [ $SECONDS -ge $end ] && { echo "$name still busy after ${maxwait}s" >&2; exit 1; }
@@ -91,7 +104,7 @@ tmux send-keys -t "$pane" "/$mode" Enter
 # seconds (default 30) with no boundary refused the command (nothing to compact, an error): that ends it now.
 ok=0; idle=0; cend=$((SECONDS + confirm_wait))
 while :; do
-  [ "$(boundaries "$before")" -gt "$n0" ] && { ok=1; break; }
+  [ "$(boundaries)" -gt "$n0" ] && { ok=1; break; }
   [ $SECONDS -ge $cend ] && { echo "$name: /$mode not confirmed after ${confirm_wait}s" >&2; break; }
   if busy; then idle=0; else
     [ "$idle" = 0 ] && idle=$SECONDS
