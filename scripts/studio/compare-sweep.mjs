@@ -8,7 +8,7 @@
 //
 //   node scripts/studio/compare-sweep.mjs --compose file.json [--frame 30] [--detail]
 //       the scene in one compose file
-//   node scripts/studio/compare-sweep.mjs --grid coffee_corner,desk,plant,whiteboard [--positions 20] [--json out.json]
+//   node scripts/studio/compare-sweep.mjs --grid espresso,desk,plant,whiteboard [--positions 20] [--json out.json]
 //       each item alone, a standing person at a lattice of positions round and inside its footprint
 import { parseArgs } from 'node:util';
 import { spawnSync } from 'node:child_process';
@@ -18,7 +18,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const { values } = parseArgs({ options: { compose: { type: 'string' }, grid: { type: 'string' }, positions: { type: 'string' }, frame: { type: 'string' }, tolerance: { type: 'string' }, json: { type: 'string' }, detail: { type: 'boolean' } } });
-if (!values.compose && !values.grid) { console.error('usage: compare-sweep.mjs --compose file.json [--frame 30] [--detail] | --grid coffee_corner,desk,... [--positions 20]  [--tolerance 0.005] [--json out.json]'); process.exit(2); }
+if (!values.compose && !values.grid) { console.error('usage: compare-sweep.mjs --compose file.json [--frame 30] [--detail] | --grid espresso,desk,... [--positions 20]  [--tolerance 0.005] [--json out.json]'); process.exit(2); }
 const TOL_PERSON = 0.02;   // sweep.mjs's tolerance for people
 const tolerance = Number(values.tolerance ?? 0.005), frame = Number(values.frame ?? 30);
 const scratch = makeTemp('compare-sweep-');

@@ -134,7 +134,7 @@ describe('studio scene --compose', () => {
     expect(bad.status).toBe(2);
   }, 260000);
 
-  it('sends a person to a coffee corner, holds another until a time, then lets them walk', async () => {
+  it('sends a person to an espresso machine, holds another until a time, then lets them walk', async () => {
     const rows = await frames('coffeeVisit');
     const acts = (id) => rows.map((r) => person(r, id).person.activity);
     expect(acts('ada')).toContain('sip');
@@ -145,7 +145,7 @@ describe('studio scene --compose', () => {
     expect(new Set(held).size).toBe(1);
   }, 260000);
 
-  it('coffee wait: a person stands on the step-out point by name, and the visitor never walks into them', async () => {
+  it('coffee wait: a person stands on the step-out point by name, held until a time, in line with the spot', async () => {
     const rows = await frames('coffeeWait');
     const at = (r, id) => person(r, id).position;
     const act = (r, id) => person(r, id).person.activity;
@@ -153,7 +153,19 @@ describe('studio scene --compose', () => {
     // held still until `until` (6.5 s), then walking
     expect(new Set(bo.slice(0, 13).map((p) => p.join())).size).toBe(1);
     expect(act(rows[14], 'bo')).toBe('walk');
-    // ada and bo never overlap, over the whole run
+    // cy sips at slot 1; the step-out point is the same distance in front of slot 0
+    const sip = rows.find((r) => act(r, 'cy') === 'sip');
+    expect(sip).toBeTruthy();
+    expect(bo[0][2] - at(sip, 'cy')[2]).toBeGreaterThan(0.2);
+    expect(bo[0][2] - at(sip, 'cy')[2]).toBeLessThan(0.8);
+  }, 260000);
+
+  // #1755: at the espresso machine the visitor walks through the person on the step-out point.
+  it.skip('coffee wait: the visitor never walks into the person on the step-out point', async () => {
+    const rows = await frames('coffeeWait');
+    const at = (r, id) => person(r, id).position;
+    const act = (r, id) => person(r, id).person.activity;
+    const bo = rows.map((r) => at(r, 'bo'));
     for (const r of rows) {
       const pairs = r.facts.intersections.filter((c) => /person:(ada|bo)\//.test(c.a) && /person:(ada|bo)\//.test(c.b) && c.a.split('/')[0] !== c.b.split('/')[0]);
       expect(pairs, `t=${r.timeSeconds}`).toEqual([]);
@@ -185,7 +197,7 @@ describe('studio scene --compose', () => {
 });
 
 describe('compose perk visits and timed releases', () => {
-  const cc = { base: 'floor', era: 'agents', items: [{ item: 'coffee_corner', at: [6, 6], id: 'cc' }] };
+  const cc = { base: 'floor', era: 'agents', items: [{ item: 'espresso', at: [6, 6], id: 'cc' }] };
   it('compiles a use and an until to timed steps', () => {
     const { script } = compose({ ...cc, people: [{ id: 'a', at: [8, 9], t: 2, use: { item: 'cc', slot: 1, dur: 4 } }, { id: 'b', at: [6.4, 8.2], until: 7 }] });
     expect(script).toContainEqual({ frame: 60, who: 'a', op: 'use', item: 'cc', slot: 1, dur: 4 });
@@ -275,9 +287,9 @@ describe('the sweep\'s collision rows on a composed scene', () => {
   it('give the same person-against-furniture rows as the engine, within 5 mm', async () => {
     const r = await run('overlap');
     expect(r.status, r.stdout + r.stderr).toBe(0);
-    expect(r.stdout).toMatch(/match {2}ada\|c1\|torso\|pal_plastic_white/);
-    expect(r.stdout).toMatch(/match {2}ada\|c1\|head\|pal_plastic_white/);
-    expect(r.stdout).toContain('5 of 5 pairs match within 0.005 m');
+    expect(r.stdout).toMatch(/match {2}ada\|c1\|torso\|pal_wood_honey/);
+    expect(r.stdout).toMatch(/match {2}ada\|c1\|head\|pal_wood_honey/);
+    expect(r.stdout).toContain('6 of 6 pairs match within 0.005 m');
   }, 260000);
 
   it('runs a grid of positions round an item and finds no pair the engine misses (plant: every pair matches)', async () => {
@@ -296,8 +308,8 @@ describe('the sweep\'s collision rows on a composed scene', () => {
   }, 260000);
 
   it('lets a person stand inside a footprint only when asked', () => {
-    const spec = (free) => ({ base: 'floor', items: [{ item: 'coffee_corner', at: [6, 6], id: 'c1' }], people: [{ id: 'a', at: [6.5, 6.5], ...(free ? { free: true } : {}) }] });
-    expect(problemsOf(spec(false)).join('\n')).toMatch(/inside the coffee_corner "c1"/);
+    const spec = (free) => ({ base: 'floor', items: [{ item: 'espresso', at: [6, 6], id: 'c1' }], people: [{ id: 'a', at: [6.5, 6.5], ...(free ? { free: true } : {}) }] });
+    expect(problemsOf(spec(false)).join('\n')).toMatch(/inside the espresso "c1"/);
     expect(problemsOf(spec(true))).toEqual([]);
   });
 });

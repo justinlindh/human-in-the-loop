@@ -1,7 +1,7 @@
 {
   "base": "floor",
   "era": "agents",
-  "items": [{ "item": "coffee_corner", "at": [6, 6], "id": "cc" }],
+  "items": [{ "item": "espresso", "at": [6, 6], "id": "cc" }],
   "people": [
     { "id": "ada", "at": [6.2, 9], "use": { "item": "cc", "slot": 0, "dur": 3 } },
     { "id": "cy", "at": [8.2, 9], "use": { "item": "cc", "slot": 1, "dur": 20 } },
