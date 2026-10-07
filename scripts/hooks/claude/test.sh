@@ -410,19 +410,20 @@ PATH="$tmp/bin:$PATH" run pr-create-check.sh "$(prjson "gh pr create --body-file
 [[ "$out" == *"Gates run"* ]] || fail "pr-create-check should flag an empty Gates run entry (got: $out)"
 PATH="$tmp/bin:$PATH" run pr-create-check.sh "$(prjson "npm test" "ok")"; [ -z "$out" ] || fail "pr-create-check should ignore other commands"
 
-# context-nudge: the last assistant usage record decides; once past 400k, then every 150k more.
+# context-nudge: the last assistant usage record decides; a teammate past 180k (the lead past 400k), then every 150k more.
 tr_="$tmp/transcript.jsonl"; export XDG_RUNTIME_DIR="$tmp/run"
 turn() { # <context tokens> [agent name]: appends an assistant record, then a tool result after it
   jq -nc --argjson c "$1" --arg a "${2:-}" '{type: "assistant", message: {id: ("m" + ($c | tostring)), usage: {input_tokens: 5, cache_creation_input_tokens: 1000, cache_read_input_tokens: ($c - 1005)}}} + (if $a == "" then {} else {agentName: $a} end)' >>"$tr_"
   jq -nc '{type: "user", message: {content: [{type: "tool_result", content: "usage is fine"}]}}' >>"$tr_"
 }
 nudge() { run context-nudge.sh "$(jq -n --arg t "$tr_" --arg s "${1:-s1}" '{hook_event_name: "UserPromptSubmit", session_id: $s, transcript_path: $t, prompt: "x"}')"; }
-turn 390000 art; nudge; [ -z "$out" ] || fail "context-nudge below 400k: $out"
-turn 410000 art; nudge; grep -q 'at 410k.*handoffs/art.md.*handoff ready' <<<"$out" || fail "context-nudge at 410k: $out"
-turn 500000 art; nudge; [ -z "$out" ] || fail "context-nudge repeats within 150k: $out"
-turn 565000 art; nudge; grep -q 'at 565k' <<<"$out" || fail "context-nudge after 150k more: $out"
-turn 200000 art; nudge; [ -z "$out" ] || fail "context-nudge after a compaction: $out"
-turn 420000 art; nudge; grep -q 'at 420k' <<<"$out" || fail "context-nudge resets below the threshold: $out"
+turn 170000 art; nudge; [ -z "$out" ] || fail "context-nudge below 180k: $out"
+turn 190000 art; nudge; grep -q 'at 190k.*task is done.*handoffs/art.md.*Open threads.*handoff ready.*finish it first' <<<"$out" || fail "context-nudge at 190k: $out"
+turn 300000 art; nudge; [ -z "$out" ] || fail "context-nudge repeats within 150k: $out"
+turn 345000 art; nudge; grep -q 'at 345k' <<<"$out" || fail "context-nudge after 150k more: $out"
+turn 100000 art; nudge; [ -z "$out" ] || fail "context-nudge after a compaction: $out"
+turn 200000 art; nudge; grep -q 'at 200k' <<<"$out" || fail "context-nudge resets below the threshold: $out"
+: >"$tr_"; turn 300000; nudge s4; [ -z "$out" ] || fail "context-nudge for the lead below 400k: $out"
 : >"$tr_"; turn 450000; nudge s3; grep -q 'handoffs/team-lead.md' <<<"$out" && ! grep -q 'tell team-lead' <<<"$out" || fail "context-nudge for the lead: $out"
 run context-nudge.sh '{"session_id":"s2","transcript_path":"/nonexistent"}'; [ $rc -eq 0 ] && [ -z "$out" ] || fail "context-nudge without a transcript: $rc $out"
 unset XDG_RUNTIME_DIR
