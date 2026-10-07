@@ -29,12 +29,21 @@ case "\$1" in
   # arrive: a teammate message reaches the lane (and is read at once, so its inbox stays empty) while the wait
   # for an idle pane goes on: it shows only in the transcript.
   capture-pane) [ -f "$tmp/arrive" ] && { printf '{"type":"user","timestamp":"%s","message":{"role":"user","content":"<teammate-message teammate_id=\\\\"team-lead\\\\">new ask"}}\n' "\$(date -u +%FT%T.%3NZ)" >>"$tmp/t1.jsonl"; rm -f "$tmp/arrive"; }
-    [ -f "$tmp/busy" ] && echo "esc to interrupt"; echo "status @\${PANE_NAME:-lane}"; { grep -q '/compact' "$tmp/keys" 2>/dev/null && echo '❯ /compact'; true; } ;;
-  send-keys) echo "\$*" >>"$tmp/keys"; case "\$*" in *"/compact"*) [ -f "$tmp/noconfirm" ] || echo '{"type":"system","subtype":"compact_boundary"}' >>"$tmp/t1.jsonl" ;; esac ;;
+    if [ -f "$tmp/zoom" ]; then printf '%s\n' '────' "❯ \$(cat "$tmp/inbox-text" 2>/dev/null)" '────'
+    else { [ -f "$tmp/busy" ] && echo "esc to interrupt"; echo "status @\${PANE_NAME:-lane}"; true; }; fi ;;
+  display) [ -f "$tmp/zoom" ] && echo 1 || echo 0 ;;
+  resize-pane) if [ -f "$tmp/zoom" ]; then rm -f "$tmp/zoom"; else : >"$tmp/zoom"; fi ;;
+  # The input box is the file inbox-text (seen while zoomed); Enter sends it: exactly /compact compacts.
+  send-keys) echo "\$*" >>"$tmp/keys"
+    case "\$4" in
+      -l) printf '%s' "\$5" >>"$tmp/inbox-text" ;;
+      C-u) : >"$tmp/inbox-text" ;;
+      Enter) [ "\$(cat "$tmp/inbox-text" 2>/dev/null)" = /compact ] && { [ -f "$tmp/noconfirm" ] || echo '{"type":"system","subtype":"compact_boundary"}' >>"$tmp/t1.jsonl"; }; : >"$tmp/inbox-text" ;;
+    esac; true ;;
 esac
 F
 chmod +x "$tmp/bin/gh" "$tmp/bin/tmux"
-export PATH="$tmp/bin:$PATH" RESET_POLL=0 RESET_IDLE_GRACE=0 RESET_KEY_GAP=0 RESET_SETTLE=0 HITL_RESET_RESTATE_WAIT=0 CLAUDE_PROJECTS_DIR="$tmp"
+export PATH="$tmp/bin:$PATH" RESET_POLL=0 RESET_IDLE_GRACE=0 RESET_KEY_GAP=0 RESET_SETTLE=0 PANE_REDRAW=0 PANE_GAP=0 HITL_RESET_RESTATE_WAIT=0 CLAUDE_PROJECTS_DIR="$tmp"
 ac() { bash "$HERE/hitl-autocompact.sh" --memory "$mem" --teams "$teams" "$@" >"$tmp/out" 2>&1; rc=$?; }
 
 # The gate: passes, held by inbox, held by changes requested, unknown name.
@@ -96,6 +105,11 @@ PANE_NAME=other ac lane; [ $rc -eq 1 ] && grep -q 'no pane shows @lane' "$tmp/ou
 ac lane
 [ $rc -eq 0 ] && grep -q 'compacted lane and asked it to restate' "$tmp/out" && grep -q "Re-read memory/handoffs/lane.md" "$tmp/keys" \
   && grep -qP '^\S+\tlane\tcompact\tpre=\d+\ttranscript=t1.jsonl$' "$mem/reset-trial.log" || fail "an autocompact compacts, logs and asks for the restate: $rc $(cat "$tmp/out") $(cat "$tmp/keys")"
+# Text left in the lane's input box is cleared before the command and again before the restate prompt, so
+# neither is ever sent glued to it: the box holds exactly what was typed when Enter goes.
+: >"$tmp/keys"; printf '%s' "an old unsent draft" >"$tmp/inbox-text"
+ac lane
+[ $rc -eq 0 ] && grep -q 'send-keys -t %1 C-u' "$tmp/keys" && grep -q "Re-read memory/handoffs/lane.md" "$tmp/keys" || fail "stale input is cleared before the compact: $rc $(cat "$tmp/out") $(cat "$tmp/keys")"
 echo '[{"from":"x"}]' >"$teams/session-a/inboxes/lane.json"; : >"$tmp/keys"
 ac lane; [ $rc -eq 3 ] && [ ! -s "$tmp/keys" ] || fail "a held lane is not touched: $rc $(cat "$tmp/keys")"
 echo '[]' >"$teams/session-a/inboxes/lane.json"
