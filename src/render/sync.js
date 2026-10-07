@@ -1558,11 +1558,12 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     }
   }
 
-  // Whether a walker may drift aside to (x, z): clear of furniture, and with a straight line from
+  // Whether a walker may drift aside to (x, z): PASS_CLEAR_M from furniture (or no nearer than they
+  // already are), and with a straight line from
   // there to the next point of their route that stays off it, since the walk heads straight there
   // from wherever the drift left them (a waypoint metres away, past the corner the route went round).
   function driftClear(r, x, z, nav) {
-    if (nav.isBlocked(x, z, PASS_CLEAR_M)) return false;
+    if (nav.isBlocked(x, z) || nav.room(x, z) < Math.min(PASS_CLEAR_M, nav.room(r.pos.x, r.pos.z))) return false;
     const t = r.path[0];
     if (!t) return true;
     // The last cell before the point is left out: a route can end on a seat inside its desk's cells.
