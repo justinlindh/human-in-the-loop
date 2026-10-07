@@ -142,7 +142,14 @@ export function createBuildMode({ layer, ctx, controls }) {
     const chk = checkPlace(s, { itemId: m.itemId, x: hover.x, y: hover.y, rot: m.rot, moveId: m.moveId });
     if (!chk.ok) return { ok: false, text: chk.reason ?? 'Cannot place here' };
     const prev = adjacencyPreview(s, { itemId: m.itemId, x: hover.x, y: hover.y, rot: m.rot, moveId: m.moveId });
-    return { ok: true, text: adjacencyWords(prev) || (touchUI() ? 'Tap it or Place to put it down' : 'Click to place'), ids: prev.gives?.ids ?? [] };
+    const warn = playHintText(R()?.playHint?.({ itemId: m.itemId, x: hover.x, y: hover.y, rot: m.rot, level: m.level, moveId: m.moveId }));
+    return { ok: true, warn, text: warn ?? (adjacencyWords(prev) || (touchUI() ? 'Tap it or Place to put it down' : 'Click to place')), ids: prev.gives?.ids ?? [] };
+  }
+
+  // The renderer's play hint (a foosball table that would have no clear long side) as a line of words.
+  function playHintText(hint) {
+    if (!hint) return null;
+    return hint.self ? 'Needs room on both long sides' : 'Blocks a foosball table';
   }
 
   // Warm plates under the things the item would boost, when the renderer offers them.
@@ -169,9 +176,11 @@ export function createBuildMode({ layer, ctx, controls }) {
     const st = statusFor(s);
     setText(statusEl, st.text);
     toggleClass(statusEl, 'bad', st.ok === false);
-    toggleClass(statusEl, 'good', st.ok === true);
+    toggleClass(statusEl, 'good', st.ok === true && !st.warn);
+    toggleClass(statusEl, 'warn', !!st.warn);
     setText(tip, st.text);
     toggleClass(tip, 'bad', st.ok === false);
+    toggleClass(tip, 'warn', !!st.warn);
     tip.style.display = hover ? '' : 'none';
     placeBtn.style.display = !mouseAim && hover ? '' : 'none';
     // Dim and inert while the aimed spot is blocked; the status line says why.
@@ -291,6 +300,7 @@ export function createBuildMode({ layer, ctx, controls }) {
     }, icon('update'), ` Upgrade ${fmtMoney(nextCost)}`);
     const adj = it.adjacency ? adjacencyPreview(s, { itemId: p.itemId, x: p.x, y: p.y, rot: p.rot, moveId: p.id }) : null;
     const r = rectOf(p);
+    const playHint = R()?.playHint?.({ placedId: id }) ?? null;
     const body = h('div.col.itemcard', null,
       h('div.row', null, h('span.iico', null, icon(`item.${p.itemId}`, { size: 30 })),
         h('div.small.muted', { text: it.desc ?? '' })),
@@ -298,6 +308,7 @@ export function createBuildMode({ layer, ctx, controls }) {
       it.effects?.[lvl - 1] && Object.keys(it.effects[lvl - 1]).length ? h('div.small', { text: `Now: ${effectWords(it.effects[lvl - 1])}` }) : null,
       nextCost != null && it.effects?.[lvl] ? h('div.small.muted', { text: `Next: ${effectWords(it.effects[lvl])}` }) : null,
       adj?.gives ? h('div.small', { text: adjacencyWords(adj) }) : null,
+      playHint ? h('div.small.warn-t', { text: playHintText(playHint) }) : null,
       isDesk(p.itemId) ? h('div.small.muted', { text: 'One person works here.' }) : null,
       h('div.small.muted', { text: `Takes ${r.w}x${r.h} tiles.` }),
       h('div.row.wrap', null,
