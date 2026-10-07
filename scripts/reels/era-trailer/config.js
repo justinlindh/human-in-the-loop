@@ -55,7 +55,7 @@ export const PIN_SOURCES = {
 export const BEATS = [
   { id: 'inventory', item: 'seg-inventory', from: 1.5, dur: 3.0 },
   { id: 'float', item: 'seg-float', from: 7.0, dur: 3.0 },
-  { id: 'y2k', item: 'seg-y2k', from: 15.5, dur: 4.0 },
+  { id: 'y2k', item: 'seg-y2k', from: 12.7, dur: 4.0 },
   { id: 'ie6', item: 'seg-web2', from: 2.0, dur: 3.0 },
   { id: 'ai', item: 'seg-ai', from: 8.1, dur: 3.4 },
 ];
