@@ -49,6 +49,12 @@ export function createPostBar({ layer, getState, onPost }) {
       h('div.ypost-head', null, h('b', { text: label }), h('button.btn.small.ypost-x', { type: 'button', 'aria-label': 'Close', onclick: (e) => { e.stopPropagation(); close(); } }, icon('close', { size: 12 }))),
       ...list.map(row));
     (sheet ? layer : bar).append(open);
+    // Inside the Yak panel the picker may be no taller than the room above the bar, or the panel's edge clips its
+    // top border and the close button looks cut off.
+    if (!sheet) {
+      const room = bar.getBoundingClientRect().top - (bar.closest('.chat')?.getBoundingClientRect().top ?? 0) - 10;
+      if (room > 120) open.style.maxHeight = `${Math.floor(room)}px`;
+    }
     btn.setAttribute('aria-expanded', 'true');
     addEventListener('pointerdown', outside, true);
     addEventListener('keydown', esc, true);

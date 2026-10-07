@@ -5,7 +5,7 @@
 .hitl .ypost-status { margin-left: auto; font-size: 0.72em; font-weight: 600; color: var(--ink-soft); white-space: nowrap; }
 .hitl .ypost.none-ready .ypost-btn { opacity: 0.75; }
 .hitl .ypost-pick {
-  position: absolute; left: 0.35em; right: 0.35em; bottom: calc(100% + 0.3em); z-index: 6; pointer-events: auto;
+  position: absolute; left: 0; right: 0; bottom: calc(100% + 0.3em); z-index: 6; pointer-events: auto;
   display: flex; flex-direction: column; gap: 0.3em; padding: 0.4em; max-height: 26em; overflow-y: auto;
   background: var(--cream); border: 0.18em solid var(--ink); border-radius: 0.8em; box-shadow: 0 0.25em 0 var(--ink), var(--soft);
 }
