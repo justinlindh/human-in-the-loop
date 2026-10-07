@@ -58,6 +58,29 @@ describe('sweep-parity', () => {
     expect(r.stdout).toMatch(/1 of 1 rows match/);
   });
 
+  it('leaves out rows seen in seeded games unless --seeds asks for them', () => {
+    const a = report('e.json', [row('person|a|b', 0.05, ['mock:floor']), row('person|c|d', 0.05, ['seed:1:w10'])]);
+    const b = report('f.json', [row('person|a|b', 0.05, ['mock:floor']), row('person|c|d', 0.2, ['seed:1:w10'])]);
+    const r = run(a, b);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toMatch(/1 of 1 rows match.*1 rows seen only in seeded games left out/);
+    const s = spawnSync(process.execPath, [script('scripts/studio/sweep-parity.mjs'), a, b, '--seeds'], { encoding: 'utf8' });
+    expect(s.status).toBe(1);
+    expect(s.stdout).toMatch(/differ\s+person\|c\|d/);
+  });
+
+  it('compares a row seen in a mock and a seeded game on its non-seeded states, without its depth', () => {
+    const a = report('g.json', [row('person|m|n', 0.05, ['mock:floor', 'seed:1:w10'])]);
+    const same = report('h.json', [row('person|m|n', 0.2, ['mock:floor', 'seed:1:w20'])]);
+    const r = run(a, same);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toMatch(/1 of 1 rows match.*1 seen in both kinds/);
+    const other = report('i.json', [row('person|m|n', 0.05, ['mock:hq', 'seed:1:w10'])]);
+    const s = run(a, other);
+    expect(s.status).toBe(1);
+    expect(s.stdout).toMatch(/states\s+person\|m\|n/);
+  });
+
   it('fails on a row in one run only, a depth past the tolerance, and a different state', () => {
     const a = report('c.json', [row('person|x|y', 0.05), row('overlap|p|q', 0.02), row('person|s|t', 0.03, ['mock:floor'])]);
     const b = report('d.json', [row('person|x|y', 0.09), row('person|new|row', 0.04), row('person|s|t', 0.03, ['mock:hq'])]);
