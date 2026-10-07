@@ -91,16 +91,45 @@ describe('pr-watch-service', () => {
       expect(t.once().status).toBe(0);
       expect(t.told()).toEqual({});
       expect(readFileSync(join(t.dir, 'watch.log'), 'utf8')).toMatch(/merged 3:merged -> integrator sent /);
+      // A merged PR, once told, leaves no record behind.
+      expect(Object.keys(JSON.parse(readFileSync(join(t.dir, 'state.json'), 'utf8')).sent).filter((k) => k.startsWith('3'))).toEqual([]);
     } finally { t.done(); }
   }, 120000);
 
-  it('its first pass records what is already true and sends none of it', () => {
+  it('hands ready PRs to the reviewers the team has now', () => {
+    const t = setup();
+    const members = (names) => writeFileSync(join(t.team, 'config.json'), JSON.stringify({ createdAt: 1, members: names.map((name) => ({ name })) }));
+    try {
+      t.empty();
+      // One reviewer: both ready PRs go to it.
+      members(MEMBERS.filter((n) => n !== 'reviewer2'));
+      t.world({ prs: [pr(1, 'tools/a'), pr(2, 'ui/b')] });
+      expect(t.once().status).toBe(0);
+      expect(t.told()).toEqual({ reviewer: [expect.stringMatching(/^PR #1 /), expect.stringMatching(/^PR #2 /)] });
+      t.drain();
+      // That reviewer leaves and reviewer2 joins: both waiting PRs move to reviewer2 and are told again.
+      members(MEMBERS.filter((n) => n !== 'reviewer'));
+      expect(t.once().status).toBe(0);
+      expect(t.told()).toEqual({ reviewer2: [expect.stringMatching(/^PR #1 \(tools\/a\) at 1aaaaaaa is ready/), expect.stringMatching(/^PR #2 /)] });
+      t.drain();
+      expect(t.once().status).toBe(0);
+      expect(t.told()).toEqual({});
+      // No reviewer at all: team-lead hears it.
+      members(MEMBERS.filter((n) => !n.startsWith('reviewer')));
+      t.world({ prs: [pr(1, 'tools/a', { headRefOid: '1'.padEnd(40, 'd') })] });
+      expect(t.once().status).toBe(0);
+      expect(t.told()).toEqual({ 'team-lead': [expect.stringMatching(/^PR #1 \(tools\/a\) at 1ddddddd is ready/)] });
+    } finally { t.done(); }
+  }, 120000);
+
+  it('its first pass records the author events already true without sending them, and still hands out ready PRs', () => {
     const t = setup();
     try {
       t.world({ prs: PRS });
       expect(t.once().status).toBe(0);
-      expect(t.told()).toEqual({});
-      expect(readFileSync(join(t.dir, 'watch.log'), 'utf8')).toMatch(/first pass: recorded 5 event\(s\) already true, sent none/);
+      expect(t.told()).toEqual({ reviewer: [expect.stringMatching(/^PR #1 /)], reviewer2: [expect.stringMatching(/^PR #2 /)] });
+      expect(readFileSync(join(t.dir, 'watch.log'), 'utf8')).toMatch(/first pass: recorded 3 author event\(s\) already true without sending them/);
+      t.drain();
       t.world({ prs: [...PRS, pr(10, 'art/j', {}, 'FAILURE')] });
       expect(t.once().status).toBe(0);
       expect(t.told()).toEqual({ art: [expect.stringMatching(/^PR #10 \(art\/j\) at 10aaaaaa: required check failed/)] });
@@ -157,18 +186,18 @@ describe('pr-watch-service', () => {
       rmSync(join(t.team, 'config.json'));
       const r = t.once();
       expect(r.status).toBe(2);
-      expect(r.stderr).toMatch(/no team in .* lists team-lead, reviewer and reviewer2/);
+      expect(r.stderr).toMatch(/no team in .* lists team-lead/);
     } finally { t.done(); }
   }, 120000);
 });
 
 describe('pr-watch-service parts', () => {
-  it('finds the newest team that lists the reviewers, whatever its directory is called', () => {
+  it('finds the newest team that lists team-lead, whatever its directory is called, with its reviewers', () => {
     const dir = mkdtempSync(join(toolTmp(), 'pr-watch-teams-'));
     try {
       const mk = (name, createdAt, members) => { mkdirSync(join(dir, name)); writeFileSync(join(dir, name, 'config.json'), JSON.stringify({ createdAt, members: members.map((n) => ({ name: n })) })); };
-      mk('session-old', 1, MEMBERS); mk('session-new', 5, MEMBERS); mk('other-project', 9, ['team-lead', 'worker']);
-      expect(findTeam(dir).dir).toBe(join(dir, 'session-new'));
+      mk('session-old', 1, MEMBERS); mk('session-new', 5, ['team-lead', 'reviewer2', 'sim', 'reviewer']); mk('other-project', 9, ['lead', 'worker']);
+      expect(findTeam(dir)).toMatchObject({ dir: join(dir, 'session-new'), reviewers: ['reviewer', 'reviewer2'] });
     } finally { rmSync(dir, { recursive: true, force: true }); }
   });
 

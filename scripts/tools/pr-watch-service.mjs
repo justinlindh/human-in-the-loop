@@ -22,10 +22,12 @@
 //   --dry-run        print who would be told what on this pass; writes no inbox and no state
 //   --interval       seconds between passes (default 60)
 //   --status-every   minutes between status lines in the log (default 10), so a dead service shows
-// The first pass with no state file records what is already true without sending it.
+// The first pass with no state file records the author events already true without sending them;
+// ready PRs still go to their reviewers.
 // Env: HITL_TEAMS_DIR (default ~/.claude/teams), HITL_PR_WATCH_STATE, HITL_PR_WATCH_LOG
 // (default ~/.cache/hitl-ci/pr-watch.log), HITL_PR_SNAPSHOT (see pr-snapshot.mjs).
-// Exit: 0 after --once; 2 bad options or no team found; 143/130 on SIGTERM/SIGINT.
+// Exit: 0 after --once; 2 bad options, or no team for --once or --dry-run (the service waits for
+// one instead); 143/130 on SIGTERM/SIGINT.
 import { spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
@@ -38,7 +40,6 @@ import { queue, requiredChecks, heldByVerdict, checkState, trustedLogins } from 
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '../..');
-const REVIEWERS = ['reviewer', 'reviewer2'];
 const cache = join(homedir(), '.cache', 'hitl-ci');
 const teamsDir = () => process.env.HITL_TEAMS_DIR || join(homedir(), '.claude', 'teams');
 const stateFile = () => process.env.HITL_PR_WATCH_STATE || join(cache, 'pr-watch-state.json');
@@ -50,16 +51,17 @@ const log = (line) => {
   console.log(l);
 };
 
-// The team whose config lists the reviewers and team-lead, newest first: the directory name changes
-// when the team is relaunched.
+// The newest team whose config lists team-lead (the directory name changes when the team is
+// relaunched), with its reviewers: the members whose names start with "reviewer", in name order.
 export function findTeam(dir = teamsDir()) {
   let best = null;
   for (const name of (() => { try { return readdirSync(dir); } catch { return []; } })()) {
     let cfg;
     try { cfg = JSON.parse(readFileSync(join(dir, name, 'config.json'), 'utf8')); } catch { continue; }
     const members = (cfg.members ?? []).map((m) => m.name);
-    if (!['team-lead', ...REVIEWERS].every((n) => members.includes(n))) continue;
-    if (!best || (cfg.createdAt ?? 0) > best.createdAt) best = { dir: join(dir, name), members, createdAt: cfg.createdAt ?? 0 };
+    if (!members.includes('team-lead')) continue;
+    const reviewers = members.filter((n) => n.startsWith('reviewer')).sort();
+    if (!best || (cfg.createdAt ?? 0) > best.createdAt) best = { dir: join(dir, name), members, reviewers, createdAt: cfg.createdAt ?? 0 };
   }
   return best;
 }
@@ -104,7 +106,8 @@ export function prEvents(pr, { required, trusted, lane, assign, verdict, held = 
   const n = pr.number, head = pr.headRefOid, h = head.slice(0, 8), br = pr.headRefName;
   const at = `PR #${n} (${br}) at ${h}`;
   const out = [];
-  const tell = (event, to, text) => to && out.push({ event, key: `${n}@${head}:${event}`, to, text });
+  // A ready key names its reviewer, so a PR handed to another reviewer (the first left the team) is told again, to them.
+  const tell = (event, to, text) => to && out.push({ event, key: `${n}@${head}:${event}${event === 'ready' ? `>${to}` : ''}`, to, text });
   const author = lane(br);
   const review = checkState(pr, 'review');
   if (review === 'failure') {
@@ -206,13 +209,19 @@ export async function pass({ team, dryRun = false, maxAgeMs = 60000, force = fal
     const pr = prs.find((p) => p.headRefName === br);
     return state.open[pr?.number]?.lane ?? authorLane(br, team.members, wts);
   };
+  // Among the reviewers on the team now; a PR whose reviewer has left the team gets another. With no
+  // reviewer on the team, team-lead hears it.
+  const rs = team.reviewers ?? [];
   const assign = (n) => {
-    if (!state.assigned[n]) { state.assigned[n] = REVIEWERS[state.next % REVIEWERS.length]; state.next++; }
+    if (!rs.length) return 'team-lead';
+    if (!rs.includes(state.assigned[n])) { state.assigned[n] = rs[state.next % rs.length]; state.next++; }
     return state.assigned[n];
   };
+  // The verdict review is looked up only for a changes message not yet sent.
+  const verdictFor = (pr) => (n) => (state.sent[`${n}@${pr.headRefOid}:changes`] ? null : lastVerdict(n));
   const events = [];
   for (const pr of prs) {
-    events.push(...prEvents(pr, { required, trusted, lane, assign, verdict: lastVerdict }));
+    events.push(...prEvents(pr, { required, trusted, lane, assign, verdict: verdictFor(pr) }));
     state.open[pr.number] = { branch: pr.headRefName, lane: lane(pr.headRefName), head: pr.headRefOid };
   }
   // Gone from the open list: merged or closed, told once.
@@ -230,13 +239,18 @@ export async function pass({ team, dryRun = false, maxAgeMs = 60000, force = fal
   for (const e of events) {
     if (state.sent[e.key]) continue;
     if (dryRun) { console.log(`would tell ${e.to}: ${e.text}`); continue; }
-    if (seeding) { state.sent[e.key] = { at: Date.now(), to: e.to, seeded: true }; continue; }
+    // A first pass records the author events already true; a ready PR still gets its reviewer, so a
+    // lost record never leaves the queue silent.
+    if (seeding && e.event !== 'ready') { state.sent[e.key] = { at: Date.now(), to: e.to, seeded: true }; continue; }
     const id = await deliver(team.dir, e.to, e.text, `pr-watch: #${e.key.split(/[@:]/)[0]} ${e.event}`);
     state.sent[e.key] = { at: Date.now(), to: e.to, id };
     log(`${e.event} ${e.key} -> ${e.to} ${id ? `sent ${id}` : 'NOT WRITTEN'}`);
     if (id) state.pending.push({ to: e.to, id, key: e.key, at: Date.now() });
   }
-  if (seeding) log(`first pass: recorded ${events.length} event(s) already true, sent none`);
+  if (seeding) log(`first pass: recorded ${events.filter((e) => e.event !== 'ready').length} author event(s) already true without sending them`);
+  // A PR that has left the open list and been told about needs no record.
+  const done = new Set(Object.keys(state.sent).filter((k) => /^\d+:(merged|closed)$/.test(k)).map((k) => k.split(':')[0]).filter((n) => !state.open[n]));
+  for (const k of Object.keys(state.sent)) if (done.has(k.split(/[@:]/)[0])) delete state.sent[k];
   // A message still queued 10 minutes on is logged once as undelivered (its lane isn't running);
   // it stays in the inbox and is never sent again.
   state.pending = state.pending.filter((p) => {
@@ -255,19 +269,29 @@ async function main(argv) {
   catch (e) { console.error(`pr-watch: ${e.message}\nusage: node scripts/tools/pr-watch-service.mjs [--once] [--dry-run] [--interval <s>] [--status-every <min>]`); return 2; }
   const interval = Number(v.interval ?? 60), statusEvery = Number(v['status-every'] ?? 10);
   if (!(interval >= 15) || !(statusEvery > 0)) { console.error('pr-watch: --interval wants 15 s or more and --status-every a positive number of minutes'); return 2; }
-  const team = findTeam();
-  if (!team) { console.error(`pr-watch: no team in ${teamsDir()} lists team-lead, reviewer and reviewer2`); return 2; }
+  const noTeam = `no team in ${teamsDir()} lists team-lead`;
   // A one-shot pass reads GitHub, not a snapshot up to an interval old.
-  if (v['dry-run'] || v.once) { await pass({ team, dryRun: !!v['dry-run'], maxAgeMs: interval * 1000, force: true }); return 0; }
-  log(`started: team ${basename(team.dir)}, every ${interval} s`);
-  let lastStatus = 0, passes = 0;
+  if (v['dry-run'] || v.once) {
+    const team = findTeam();
+    if (!team) { console.error(`pr-watch: ${noTeam}`); return 2; }
+    await pass({ team, dryRun: !!v['dry-run'], maxAgeMs: interval * 1000, force: true });
+    return 0;
+  }
+  log(`started: every ${interval} s`);
+  // The team is looked up every pass: a relaunch moves it, and with none (between launches) the
+  // service waits rather than exiting into a restart loop.
+  let lastStatus = 0, passes = 0, teamDir = null;
   for (;;) {
-    let cur = findTeam() ?? team;
-    if (cur.dir !== team.dir) { log(`team is now ${basename(cur.dir)}`); Object.assign(team, cur); }
-    try { await pass({ team, maxAgeMs: interval * 1000 }); passes++; } catch (e) { log(`pass failed: ${e.stack ?? e.message}`); }
+    const team = findTeam();
+    if (!team) { if (teamDir !== '') log(`waiting: ${noTeam}`); teamDir = ''; }
+    else {
+      if (team.dir !== teamDir) log(`team ${basename(team.dir)}, reviewers: ${team.reviewers.join(', ') || 'none (ready goes to team-lead)'}`);
+      teamDir = team.dir;
+      try { await pass({ team, maxAgeMs: interval * 1000 }); passes++; } catch (e) { log(`pass failed: ${e.stack ?? e.message}`); }
+    }
     if (Date.now() - lastStatus >= statusEvery * 60000) {
       const s = loadState();
-      log(`status: alive, ${passes} pass(es), ${Object.keys(s?.open ?? {}).length} open PR(s) watched, ${s?.pending?.length ?? 0} message(s) waiting to be read`);
+      log(`status: alive, ${passes} pass(es), ${teamDir ? `team ${basename(teamDir)}` : 'no team'}, ${Object.keys(s?.open ?? {}).length} open PR(s) watched, ${s?.pending?.length ?? 0} message(s) waiting to be read`);
       lastStatus = Date.now();
     }
     await new Promise((r) => setTimeout(r, interval * 1000));
