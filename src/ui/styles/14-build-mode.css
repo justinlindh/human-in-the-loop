@@ -13,9 +13,9 @@
 .hitl .bstatus { font-size: 0.88em; font-weight: 600; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hitl .bstatus.bad { color: var(--bad); }
 .hitl .bstatus.good { color: var(--good); }
-.hitl .bstatus.warn { color: var(--warn); }
+.hitl .bstatus.warn { color: #8a5200; }
 .hitl .buildtip.warn { background: var(--warn); color: var(--ink); }
-.hitl .warn-t { color: var(--warn); font-weight: 700; }
+.hitl .warn-t { color: #8a5200; font-weight: 700; border-left: 0.3em solid var(--warn); padding-left: 0.5em; }
 .hitl .buildbar .btn { white-space: nowrap; }
 .hitl .buildtip {
   position: absolute; pointer-events: none; z-index: 13; max-width: 18em; padding: 0.25em 0.6em; border-radius: 0.6em;
