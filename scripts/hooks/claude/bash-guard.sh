@@ -147,7 +147,26 @@ done < <(grep -oE 'git([[:space:]]+-C[[:space:]]+[^[:space:];&|]+)?[[:space:]]+p
 in_review=""
 rtop="$(git -C "${cwd:-.}" rev-parse --show-toplevel 2>/dev/null || true)"
 case "$(basename "${rtop:-none}")" in review-*) git -C "$rtop" symbolic-ref -q HEAD >/dev/null 2>&1 || in_review=1 ;; esac
-tracked_file() { [ -z "$in_review" ] || return 1; git -C "${cwd:-.}" ls-files --error-unmatch -- "$1" >/dev/null 2>&1 && [ ! -d "${cwd:-.}/$1" ] && [ ! -d "$1" ]; }
+# The exemption is for a write that lands inside the review checkout, judged by the target, not by where the
+# session sits: it holds only when the command never changes directory or aims git elsewhere, an absolute
+# target is under the checkout and a relative one does not climb out of it.
+review_target_ok() { # <path>
+  [ -n "$in_review" ] || return 1
+  grep -qE '(^|[[:space:];&|(])(cd|pushd)([[:space:]]|$)|git[[:space:]]+-C' <<<"$cmd" && return 1
+  case "$1" in
+    /*) case "$1" in "$rtop"/*) return 0 ;; esac; return 1 ;;
+    *..*) return 1 ;;
+  esac
+  return 0
+}
+# Tracked in the worktree that holds the target (another worktree of this repository, reached by an absolute
+# or climbing path, counts), not only in the session's own.
+tracked_at() { # <path>
+  local p="$1" d; case "$p" in /*) ;; *) p="${cwd:-.}/$p" ;; esac
+  d="$(dirname "$p")"; [ -d "$d" ] || d="${cwd:-.}"
+  git -C "$d" ls-files --error-unmatch -- "$p" >/dev/null 2>&1
+}
+tracked_file() { ! review_target_ok "$1" || return 1; tracked_at "$1" && [ ! -d "${cwd:-.}/$1" ] && [ ! -d "$1" ]; }
 trigger="$(awk '/<<-?[[:space:]]*'"'"'?[A-Za-z_]+'"'"'?/ && !inside { match($0, /<<-?[[:space:]]*'"'"'?[A-Za-z_]+/); tag=substr($0, RSTART, RLENGTH); gsub(/<<-?[[:space:]]*'"'"'?/, "", tag); print; inside=1; next } inside && $0 == tag { inside=0; next } !inside { print }' <<<"$cmd" \
   | sed -zE "s/'[^']*'/Q/g; s/\"([^\"\\\\]|\\\\.)*\"/Q/g" \
   | grep -E '(^|[[:space:];&|(])(python3?|node)([[:space:]]+-[A-Za-z-]+)*[[:space:]]+(-[ce]|--eval|-)([[:space:]]|$)|(^|[[:space:];&|(])(python3?|node)[^;&|]*<<' || true)"
@@ -211,7 +230,7 @@ if grep -qE 'sed|perl|tee|>' <<<"$cmd"; then
   while IFS= read -r t; do
     [ -n "$t" ] || continue
     case "$t" in '$'*|'~'*|/dev/*) continue ;; esac
-    if [ -z "$in_review" ] && git -C "${cwd:-.}" ls-files --error-unmatch -- "$t" >/dev/null 2>&1; then
+    if ! review_target_ok "$t" && tracked_at "$t"; then
       deny "$t is a tracked file, and sed -i, perl -i, > and tee would change it without lane-guard seeing it. Change tracked files with the Edit or Write tool (lane-guard checks those). To take a file from another ref or a merge side, use git checkout <ref> -- <file> (or git checkout --ours/--theirs -- <file> in a conflict). Write scratch output outside the repo or to an untracked file."
     fi
   done <<<"$wtargets"

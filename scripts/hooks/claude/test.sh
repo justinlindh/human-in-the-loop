@@ -183,6 +183,12 @@ allowed "python3 -c \"open('$T','w').write('x')\"" "$rv"
 denied "sed -i 's/a/b/' $T" "$repo"
 denied "sed -i 's/a/b/' $T" "$other"
 denied "sed -i 's/a/b/' $T" "$tmp/review-78"
+# The exemption follows where the write lands, not where the session sits.
+denied "cd $repo && sed -i 's/a/b/' $T" "$rv"
+denied "sed -i 's/a/b/' $repo/$T" "$rv"
+denied "sed -i 's/a/b/' ../repo/$T" "$rv"
+denied "git -C $repo status; sed -i 's/a/b/' $T" "$rv"
+allowed "sed -i 's/a/b/' $rv/$T" "$rv"
 
 # Sleeping between checks of PR or CI state costs a turn per wait: wait-for.sh in the background instead.
 allowed 'sleep 5; gh pr view 12 --json statusCheckRollup'

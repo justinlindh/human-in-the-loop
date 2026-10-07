@@ -22,10 +22,17 @@ async function trackedWrites($: EngineInterface, writes: ShellWrite[]) {
   const out: { path: string; how: string; rel: string; owners: string[] }[] = []
   for (const w of writes) {
     const cwd = await dirFor($, w.dir)
-    const r = await git($, cwd, 'ls-files', '--full-name', '--error-unmatch', '--', w.path)
+    // Where the write lands: the worktree holding the target file, not the one the session sits in.
+    const abs = w.path.startsWith('/') ? w.path : `${cwd}/${w.path}`
+    const at = abs.includes('/') ? abs.slice(0, abs.lastIndexOf('/')) || '/' : cwd
+    let top = (await git($, at, 'rev-parse', '--show-toplevel')).stdout.trim()
+    if (!top) top = (await git($, cwd, 'rev-parse', '--show-toplevel')).stdout.trim()
+    // A reviewer's disposable checkout (a detached worktree named review-*) takes shell edits, for a sweep.
+    if (/^review-/.test(top.slice(top.lastIndexOf('/') + 1)) && (await git($, top, 'symbolic-ref', '-q', 'HEAD')).exitCode !== 0) continue
+    const inTop = top && abs.startsWith(`${top}/`) ? abs.slice(top.length + 1) : w.path
+    const r = await git($, top || cwd, 'ls-files', '--full-name', '--error-unmatch', '--', inTop)
     if (r.exitCode !== 0) continue
     const rel = r.stdout.trim().split('\n')[0]
-    const top = (await git($, cwd, 'rev-parse', '--show-toplevel')).stdout.trim()
     let lanes = ''
     try { lanes = await $.fs.read(`${top}/scripts/hooks/claude/lanes.txt`) } catch { /* no lanes file: no owner named */ }
     out.push({ ...w, rel, owners: ownersOf(rel, lanes) })
