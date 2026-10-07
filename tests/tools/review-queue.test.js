@@ -154,6 +154,27 @@ describe('review-queue command', () => {
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
   }, 20000);
 
+  // gh as the reviews and compare calls answer after their --jq: #5's last verdict asked for changes on head
+  // `judged`, and the PR's own non-merge commits are c1 at `judged` and whatever OWN_<sha> lists at a later head.
+  it('a head that only merges main over a changes verdict is not waiting; an own commit since, or a pass, is', () => {
+    const t = setup([pr(5, { headRefOid: 'merge'.padEnd(40, '0') }), pr(6, { headRefOid: 'fixed'.padEnd(40, '0') }), pr(7, { headRefOid: 'other'.padEnd(40, '0') })]);
+    try {
+      writeFileSync(join(t.dir, 'gh'), `#!/bin/sh
+case "$*" in
+  *pulls/5/reviews*|*pulls/6/reviews*) echo "true judged" ;;
+  *pulls/7/reviews*) echo "false judged" ;;
+  *compare/main...judged*) echo "c1" ;;
+  *compare/main...merge*) echo "c1" ;;
+  *compare/main...fixed*) echo "c1 c2" ;;
+  *) cat "${t.dir}/queue.json" ;;
+esac
+`);
+      const r = run(t.env);
+      expect(r.status).toBe(0);
+      expect(lines(r.stdout).map((l) => l.split(' ')[1])).toEqual(['#6', '#7']);
+    } finally { rmSync(t.dir, { recursive: true, force: true }); }
+  });
+
   it.concurrent('--wait --skip stands while only skipped PRs wait, and wakes on a skipped PR at a new head', async () => {
     const t = setup([pr(2), pr(4)]);
     try {
