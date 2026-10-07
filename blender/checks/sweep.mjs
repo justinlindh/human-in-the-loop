@@ -71,13 +71,19 @@ const full = argv.includes('--full');
 // browser. --screen-only is the small browser step the engine run hands the page checks to.
 const screenOnly = argv.includes('--screen-only');
 const engine = !argv.includes('--browser') && !screenOnly;
-// Importing the browser harness makes playwright handle SIGINT, SIGTERM and SIGHUP in JavaScript. The engine
-// starts no browser here, so it ends on those signals itself: the exit handlers below take the screen step
-// and a control checkout down with it. Handlers only run between turns of the event loop, so sample.js
-// takes a turn between the steps of every window.
+// Importing the browser harness makes playwright handle SIGINT, SIGTERM and SIGHUP in JavaScript, which only
+// runs between turns of the event loop; the engine builds scenes and samples in long synchronous stretches,
+// and starts no browser here, so those signals take their default action and end it at once. The reaper (a
+// child that watches this process's pipe) then ends the screen step and a control checkout and removes the
+// control's temp directory, which also covers a SIGKILL.
+const defaultSignals = () => { for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.removeAllListeners(sig); };
+let reaper = null;
 if (engine) {
-  for (const [sig, n] of [['SIGINT', 2], ['SIGTERM', 15], ['SIGHUP', 1]]) { process.removeAllListeners(sig); process.on(sig, () => process.exit(128 + n)); }
+  defaultSignals();
+  reaper = spawn(process.execPath, [fileURLToPath(new URL('../../scripts/tools/reaper.mjs', import.meta.url))], { stdio: ['pipe', 'ignore', 'ignore'] });
+  reaper.unref(); reaper.stdin.unref(); reaper.stdin.on('error', () => {});
 }
+const reap = (m) => { try { reaper?.stdin.write(`${JSON.stringify(m)}\n`); } catch { /* the reaper is gone */ } };
 // Milliseconds on the process's own clock: the engine replaces Date.now with a game clock.
 const wall = () => Number(process.hrtime.bigint() / 1000000n);
 // A mock played with an era's art on, named `<mock>@<era>` (the page's `?mock=<mock>&eras&eraArt=<era>`):
@@ -162,7 +168,10 @@ async function startControl(spec) {
     if (!drop.has(argv[i])) args.push(argv[i]);
   }
   const out = join(wt.tmp, 'out');
-  const { done } = wt.spawn(process.execPath, [join(wt.path, 'blender/checks/sweep.mjs'), ...args, '--out', out], { stdio: ['ignore', 'ignore', 'inherit'] });
+  const { child, done } = wt.spawn(process.execPath, [join(wt.path, 'blender/checks/sweep.mjs'), ...args, '--out', out], { stdio: ['ignore', 'ignore', 'inherit'] });
+  reap({ tree: { repo: repoRoot, tmp: wt.tmp } });
+  reap({ group: child.pid });
+  if (engine) defaultSignals();
   return { label: asRoot ? spec.split('/').pop() : spec, rev: rev.slice(0, 8), out, wt, done };
 }
 async function endControl(c) {
@@ -222,6 +231,7 @@ const screen = (() => {
   }
   // Its own process group, so ending it ends what it started (the render-lock wrapper, the browser).
   const child = spawn(process.execPath, [fileURLToPath(import.meta.url), ...rest, '--screen-only', '--out', sub], { stdio: ['ignore', 'ignore', 'inherit'], detached: true, env: { ...process.env, HITL_SWEEP_PARENT: String(process.pid), HITL_SWEEP_LOADS: cacheKey ? '1' : '' } });
+  reap({ group: child.pid });
   // The step ends with this process however it ends: SIGTERM to the group (the browser closes on it),
   // SIGKILL if anything is still there after a grace period. A parent that is busy or SIGKILLed cannot
   // do this, so the step also watches for its parent (below).
