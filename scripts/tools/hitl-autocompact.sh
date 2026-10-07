@@ -88,7 +88,7 @@ mem="$(lane_memory_dir)"; mkdir -p "$mem"
 # runs the gates again and looks for a message that came in since this check, so the lane is not compacted
 # with an instruction its handoff doesn't have.
 again="bash $(printf '%q' "$HERE/hitl-autocompact.sh") --memory $(printf '%q' "$mem") --teams $(printf '%q' "$teams") --recheck $since $name"
-bash "$HERE/../team/reset-teammate.sh" "$name" compact 60 --log "$mem/reset-trial.log" --before-send "$again" || exit $?
+bash "$HERE/../team/reset-teammate.sh" "$name" compact 60 --log "$mem/reset-trial.log" --before-send "$again" || { rc=$?; echo "not compacted $name (exit $rc): no restate prompt typed" >&2; exit "$rc"; }
 
 pane=""
 for p in $(tmux list-panes -a -F '#{pane_id}'); do

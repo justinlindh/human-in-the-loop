@@ -86,7 +86,13 @@ if [ -n "$before_send" ]; then
   [ $rc -eq 0 ] || exit "$rc"
 fi
 
-tmux send-keys -t "$pane" "/$mode" Enter
+# The command and the Enter go as two sends with a gap, so the prompt has drawn the typed command (and its
+# slash-command menu) before Enter lands; the pane just after is kept to show on a failure.
+tmux send-keys -t "$pane" "/$mode"
+sleep "${RESET_KEY_GAP:-1}"
+tmux send-keys -t "$pane" Enter
+sleep "${RESET_KEY_GAP:-1}"
+typed="$(tmux capture-pane -p -t "$pane" | grep -v '^[[:space:]]*$' | tail -4)"
 # Confirmed by the transcript's new boundary. A compaction can take minutes (the pane shows its spinner), so
 # the wait is --confirm-wait (default 600 s), apart from max-wait; but a pane that sits idle for RESET_IDLE_GRACE
 # seconds (default 30) with no boundary refused the command (nothing to compact, an error): that ends it now.
@@ -98,7 +104,8 @@ while :; do
     [ "$idle" = 0 ] && idle=$SECONDS
     if [ $((SECONDS - idle)) -ge "${RESET_IDLE_GRACE:-30}" ]; then
       echo "$name: /$mode not confirmed: the pane went idle without compacting. Its last lines:" >&2
-      tmux capture-pane -p -t "$pane" | grep -v '^[[:space:]]*$' | tail -4 >&2; break
+      tmux capture-pane -p -t "$pane" | grep -v '^[[:space:]]*$' | tail -4 >&2
+      printf 'The pane right after /%s was typed:\n%s\n' "$mode" "$typed" >&2; break
     fi
   fi
   sleep "${RESET_POLL:-5}"

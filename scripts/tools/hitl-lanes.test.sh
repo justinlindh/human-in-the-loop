@@ -34,7 +34,7 @@ case "\$1" in
 esac
 F
 chmod +x "$tmp/bin/gh" "$tmp/bin/tmux"
-export PATH="$tmp/bin:$PATH" RESET_POLL=0 RESET_IDLE_GRACE=0 HITL_RESET_RESTATE_WAIT=0 CLAUDE_PROJECTS_DIR="$tmp"
+export PATH="$tmp/bin:$PATH" RESET_POLL=0 RESET_IDLE_GRACE=0 RESET_KEY_GAP=0 HITL_RESET_RESTATE_WAIT=0 CLAUDE_PROJECTS_DIR="$tmp"
 ac() { bash "$HERE/hitl-autocompact.sh" --memory "$mem" --teams "$teams" "$@" >"$tmp/out" 2>&1; rc=$?; }
 
 # The gate: passes, held by inbox, held by changes requested, unknown name.
@@ -87,7 +87,7 @@ ac --memory; [ $rc -eq 2 ] || fail "an option without its value exits 2: $rc"
 # The compact step is scripts/team/reset-teammate.sh: an unconfirmed compact or a missing pane stops the
 # run with its exit code and leaves the lane without a restate prompt.
 touch "$tmp/noconfirm"; : >"$tmp/keys"; echo '[]' >"$tmp/prs.json"
-ac lane; [ $rc -eq 1 ] && grep -q 'not confirmed' "$tmp/out" && ! grep -q 'Re-read' "$tmp/keys" || fail "an unconfirmed compact stops before the restate prompt: $rc $(cat "$tmp/out")"
+ac lane; [ $rc -eq 1 ] && grep -q 'not confirmed' "$tmp/out" && grep -q 'not compacted lane (exit 1): no restate prompt typed' "$tmp/out" && ! grep -q 'Re-read' "$tmp/keys" || fail "an unconfirmed compact stops before the restate prompt: $rc $(cat "$tmp/out")"
 rm -f "$tmp/noconfirm"
 PANE_NAME=other ac lane; [ $rc -eq 1 ] && grep -q 'no pane shows @lane' "$tmp/out" || fail "no pane exits 1: $rc $(cat "$tmp/out")"
 
