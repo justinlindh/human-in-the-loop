@@ -43,7 +43,11 @@ const tail = Math.round(Number(opt('tail', 3)) * 30);
 const hold = Math.round(Number(opt('decision-hold', 2)) * 30);
 const every = Math.max(1, Number(opt('every', 1)));
 const choices = Object.fromEntries(String(opt('choose', '')).split(',').filter(Boolean).map((p) => p.split('=')));
-const defaultChoice = Number(opt('default-choice', 0));
+// A bare `--default-choice` (the next token is another flag, or nothing) means option 0; anything
+// else must be a whole number, so a stray word is refused rather than becoming NaN.
+const dcRaw = opt('default-choice');
+const defaultChoice = dcRaw === undefined || String(dcRaw).startsWith('--') ? 0 : Number(dcRaw);
+if (!Number.isInteger(defaultChoice) || defaultChoice < 0) fail(`--default-choice takes an option number (0, 1, ...), got "${dcRaw}"`);
 const until = opt('until');
 const out = opt('out') ? resolve(opt('out')) : null;
 for (const [k, args] of [['until', ['S']], ['log-js', ['S', 'R']]]) if (opt(k)) { try { new Function(...args, `return (${opt(k)});`); } catch (e) { fail(`--${k} is not a JS expression: ${e.message}`); } }
@@ -76,6 +80,8 @@ try {
 
   const log = [];
   let recorded = 0, untilAt = null, frame = 0, decisionFor = 0, reason = 'max-seconds';
+  const navigatedTo = [];
+  page.on('framenavigated', (f) => { if (f === page.mainFrame()) navigatedTo.push(f.url().replace(/^https?:\/\/[^/]+/, '') || '/'); });
   const startWeek = started.week;
   for (; frame < maxFrames; frame++) {
     const row = await page.evaluate(({ frame, choices, defaultChoice, hold, decisionFor, until, logJs, recording, yieldFocus, rate, wantPanels }) => {
@@ -145,7 +151,17 @@ try {
         },
         held, stop, busy: !!clock.busy && !S.pendingDecision, gameOver: !!S.gameOver,
       };
-    }, { frame, choices, defaultChoice, hold, decisionFor, until, logJs: opt('log-js') ?? null, recording: !!opt('log'), yieldFocus: argv.includes('--focus-yield'), rate: Number(opt('ease-rate', 4)), wantPanels: argv.includes('--panels') });
+    }, { frame, choices, defaultChoice, hold, decisionFor, until, logJs: opt('log-js') ?? null, recording: !!opt('log'), yieldFocus: argv.includes('--focus-yield'), rate: Number(opt('ease-rate', 4)), wantPanels: argv.includes('--panels') })
+      // The page navigating mid-frame (a reload, the title screen) destroys the context the frame ran in:
+      // stop there, keep the log so far and say where it went.
+      .catch((e) => { if (!/Execution context was destroyed|navigation|Target (page, context or browser )?has been closed/i.test(e.message)) throw e; return { navigated: true }; });
+    if (row.navigated) {
+      const prev = log[log.length - 1];
+      await page.waitForLoadState('commit', { timeout: 2000 }).catch(() => {});
+      const now = (navigatedTo.at(-1) ?? page.url().replace(/^https?:\/\/[^/]+/, '')) || '/';
+      reason = `page navigated at frame ${frame} to ${now}${prev ? ` (the frame before: week ${prev.week}${prev.decision ? `, decision ${prev.decision}` : ''})` : ''}`;
+      code = 2; break;
+    }
     decisionFor = row.held;
     log.push(row.row);
     // A "Got it" card (a toast card the UI holds the game on) is dismissed like a player would.
@@ -165,7 +181,7 @@ try {
   if (opt('log')) writeFileSync(opt('log'), JSON.stringify(log, null, 1));
   const last = log[log.length - 1];
   const answered = log.filter((r) => r.answered).map((r) => `${r.answered.id}=${r.answered.choice}`);
-  console.log(`PLAY ${reason}: ${frame + 1} frames (${((frame + 1) / 30).toFixed(1)} s), week ${startWeek} to ${last.week}${answered.length ? `, decisions ${answered.join(', ')}` : ''}${until ? `, --until ${untilAt === null ? 'never held' : `held at frame ${untilAt}`}` : ''}${out ? `, ${recorded} frames -> ${out}` : ''}`);
+  console.log(`PLAY ${reason}: ${frame + 1} frames (${((frame + 1) / 30).toFixed(1)} s), week ${startWeek} to ${last?.week ?? startWeek}${answered.length ? `, decisions ${answered.join(', ')}` : ''}${until ? `, --until ${untilAt === null ? 'never held' : `held at frame ${untilAt}`}` : ''}${out ? `, ${recorded} frames -> ${out}` : ''}`);
   if (until && untilAt === null && code === 0) code = 1;
   if (errors.length) { console.error(`play: page errors: ${errors.slice(0, 3).join('; ')}`); code = code || 2; }
 } finally {
