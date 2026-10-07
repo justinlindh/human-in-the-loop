@@ -639,6 +639,11 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         r.goalKey = g.key;
         r.goal = g;
         if (g.hidden && !r.hidden) {
+          // A perk visit ends: on the way there it is dropped; at the item, its ending steps them
+          // off the way they came and then heads for the door. Kept, it would slide them back from
+          // the door onto the spot through whatever stands between.
+          if (r.temp?.perkKey && !r.path.length) { r.temp.t = 0; continue; }
+          if (r.temp?.perkKey) r.temp = null;
           walkTo(r, g, false, was);           // head for the door, then disappear
         } else if (!g.hidden && r.hidden) {
           const d = cur.zones.door;
