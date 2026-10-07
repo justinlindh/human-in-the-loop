@@ -73,11 +73,11 @@ function mockPlaced(stage, staffCount) {
 }
 // Placement rules for the mock's build mode: footprints at rot 0, level-1 prices, doors, blocked tiles.
 const MOCK_SHAPES = {
-  desk: { w: 1, h: 2 }, meeting_table: { w: 3, h: 2 }, whiteboard: { w: 2, h: 1 }, coffee_corner: { w: 2, h: 1 }, plant: { w: 1, h: 1 },
+  desk: { w: 1, h: 2 }, meeting_table: { w: 3, h: 2 }, whiteboard: { w: 2, h: 1 }, water_cooler: { w: 2, h: 1 }, plant: { w: 1, h: 1 },
   bookshelf: { w: 2, h: 1 }, plant_wall: { w: 2, h: 1 }, nap_pod: { w: 1, h: 2 }, whiteboard_wall: { w: 3, h: 1 }, library: { w: 2, h: 2 },
   monitoring_wall: { w: 3, h: 1 }, espresso: { w: 2, h: 1 }, standing_desk: { w: 2, h: 1 }, server_rack: { w: 2, h: 1 }, trophy_case: { w: 2, h: 1 },
 };
-const MOCK_PRICES = { desk: 800, meeting_table: 3000, whiteboard: 400, coffee_corner: 1200, plant: 150, bookshelf: 500 };
+const MOCK_PRICES = { desk: 800, meeting_table: 3000, whiteboard: 400, water_cooler: 1200, plant: 150, bookshelf: 500 };
 const DOORS = [{ x: 4, y: 6 }, { x: 7, y: 11 }, { x: 10, y: 15 }];
 const BLOCKED = [[[8, 0]], [[5, 4], [9, 4], [5, 8], [9, 8]], [[6, 5], [14, 5], [6, 10], [14, 10]]];
 const priceOf = (itemId, level = 1) => (MOCK_PRICES[itemId] ?? 3000) * 3 ** (level - 1);
