@@ -1,7 +1,7 @@
 import { newId } from './util.js';
 import { registerAction } from './registry.js';
 import { emitChat } from './chat.js';
-import { ITEMS } from '../data/items.js';
+import { ITEMS, FRONT_ROWS } from '../data/items.js';
 import { OFFICE_STAGES, officeShape } from '../data/office.js';
 import { B } from './balance.js';
 import { adjacencyLinks, itemBonus } from './bonus.js';
@@ -34,19 +34,23 @@ export function footprintCells(itemId, x, y, rot) {
   return cells;
 }
 
-// The tiles an item's front zone covers at a level: the row just past its footprint on the side it faces
-// (+y at rot 0, -x at 1, -y at 2, +x at 3), across its width. Empty below the item's frontFrom level.
+// The tiles an item's front zone covers at a level: the rows just past its footprint on the side it faces
+// (+y at rot 0, -x at 1, -y at 2, +x at 3), across its width, nearest row first; FRONT_ROWS rows deep, else
+// one. Empty below the item's frontFrom level.
 export function frontCells(itemId, x, y, rot, level = 1) {
   const it = ITEMS[itemId];
   if (!it?.frontFrom || level < it.frontFrom) return [];
   const { w, h } = it.footprint;
   const [rw, rh] = rot % 2 ? [h, w] : [w, h];
-  switch (rot) {
-    case 1: return Array.from({ length: rh }, (_, i) => [x - 1, y + i]);
-    case 2: return Array.from({ length: rw }, (_, i) => [x + i, y - 1]);
-    case 3: return Array.from({ length: rh }, (_, i) => [x + rw, y + i]);
-    default: return Array.from({ length: rw }, (_, i) => [x + i, y + rh]);
-  }
+  const row = (d) => {
+    switch (rot) {
+      case 1: return Array.from({ length: rh }, (_, i) => [x - 1 - d, y + i]);
+      case 2: return Array.from({ length: rw }, (_, i) => [x + i, y - 1 - d]);
+      case 3: return Array.from({ length: rh }, (_, i) => [x + rw + d, y + i]);
+      default: return Array.from({ length: rw }, (_, i) => [x + i, y + rh + d]);
+    }
+  };
+  return Array.from({ length: FRONT_ROWS[itemId] ?? 1 }, (_, d) => row(d)).flat();
 }
 
 const FRONT_REASON = 'Needs clear floor in front';

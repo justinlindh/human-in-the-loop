@@ -52,6 +52,7 @@ export const CUES = {
   // they stay silent rather than use a synthesized stand-in.
   'sfx.printerSmash': { bus: 'sfx', files: ['sfx/printer_smash'], cooldown: 0.3, priority: 8, delivered: true },
   'sfx.stapler': { bus: 'sfx', files: ['sfx/stapler'], cooldown: 0.5, priority: 3, gain: 0.8, delivered: true },
+  'sfx.letter': { bus: 'ui', files: ['sfx/letter_ping'], cooldown: 1, priority: 3, gain: 0.8, delivered: true },
   'sfx.memo': { bus: 'ui', files: ['sfx/memo'], cooldown: 1, priority: 3, gain: 0.8, delivered: true },
   'sfx.banner': { bus: 'sfx', files: ['sfx/banner'], cooldown: 2, priority: 3, gain: 0.8, delivered: true },
   // Growth (#549). A level-up is common, so it is soft and spaced out (more so at speed, and not at
@@ -145,7 +146,8 @@ export const ON_EVENT = {
   // The ask queue: silent until its sounds are picked.
   askQueued: null,
   askExpired: null,
-  askPresented: null,
+  // Only a letter pings; a prompt or a decision brings its own sound.
+  askPresented: (e) => (e.mailId ? 'sfx.letter' : null),
   quietEvent: null,
   // The boombox: the station itself is read from state.radio by the director, so these are silent here.
   radio: null,

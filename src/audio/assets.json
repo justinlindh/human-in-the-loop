@@ -833,6 +833,10 @@
    "file": "sfx/dotcom_bell.ogg",
    "duration": 1.72
   },
+  "letter_ping": {
+   "file": "sfx/letter_ping.ogg",
+   "duration": 0.5
+  },
   "deal_handbell": {
    "file": "sfx/deal_handbell.ogg",
    "duration": 0.867

@@ -70,6 +70,9 @@ const rows = [
 // Items with a front zone, keyed to the level it starts at: a use spot people stand at, or stools, a mat or a
 // grate in front. The tile row in front of the footprint stays clear of other items (see frontCells).
 const FRONT_FROM = { noc: 2, espresso: 1, water_cooler: 1, plant_wall: 1, bookshelf: 1, library: 1, arcade: 1, standing_desk: 2, server_rack: 3 };
+// Items whose front zone is deeper than one row: the NOC's chairs fill the first row, and the crew stands in
+// the second.
+export const FRONT_ROWS = { noc: 2 };
 
 // Items that can go on the roof terrace.
 const OUTDOOR = new Set(['plant', 'couch', 'water_cooler', 'ping_pong_table', 'plant_wall']);

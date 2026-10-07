@@ -20,7 +20,7 @@ loadGame(storage) -> { ok, state?, reason?, notice? }   // notice: a message to 
 exportSave(storage, id) -> string   // the raw save text, for keeping a stale save; saveMeta carries `version`
 importSave(storage, text, { replaceId? }) -> { ok, id?, meta?, reason?, full?, stale?, version? }   // validates text as loadGame does and stores it in a free slot; with every slot taken it returns { ok:false, full:true } and writes nothing unless replaceId names the slot to overwrite; never changes the index's `last` slot; success carries the slot's saveMeta as `meta`, a version refusal carries `stale` and `version` as loadGame's does. ui reaches it through controls.importSave(text, opts) in main.js
 FUNCTIONS = ['engineering','support','sales','marketing','qa','ops']
-SAVE_VERSION = 1
+SAVE_VERSION   // the current number lives in src/sim/state.js; a save with a different version is refused, so renames migrate in normalize() on load without a bump
 ```
 
 ### State shape (JSON-serializable; all numbers finite)
@@ -92,7 +92,7 @@ Product = {
 
 ```js
 { type: 'bubble', staffId, text, tone }   // tone: features|polish|reliability|novelty|good|bad
-{ type: 'toast', text, tone, trendId, topic, subjectId, short }    // short: on a toast with a topic, the bubble text, at most 32 characters ("Trend: AI agents", "75% done"); absent otherwise; tone: info|good|warn|bad; trendId: set when the toast announces a market trend, else absent; topic: set on status news only, one of 'progress'|'timeoff'|'back'|'mood'|'trend'|'blocked'|'reward'|'pet'|'rival'|'replyall' (ui may show it ambiently; 'replyall' marks the start of a reply-all storm while `B.pacing.letterMail` is on; minor incidents reach the ambient layer from the `incident` event with severity below 3, not from a toast); subjectId: the staff or product id the news is about, or null. Money, staff changes, goals and player-caused feedback carry no topic and always stay toasts
+{ type: 'toast', text, tone, trendId, topic, subjectId, short }    // short: on a toast with a topic, the bubble text, at most 32 characters ("Trend: AI agents", "75% done"); absent otherwise; tone: info|good|warn|bad; trendId: set when the toast announces a market trend, else absent; topic: set on status news only, one of 'progress'|'timeoff'|'back'|'mood'|'trend'|'blocked'|'reward'|'pet'|'rival'|'replyall'|'shared' (ui may show it ambiently; 'replyall' marks the start of a reply-all storm while `B.pacing.letterMail` is on; 'shared' is the water cooler's knowledge lift; minor incidents reach the ambient layer from the `incident` event with severity below 3, not from a toast); subjectId: the staff or product id the news is about, or null. Money, staff changes, goals and player-caused feedback carry no topic and always stay toasts
 { type: 'chat', id, week, channel, from, fromId, text, replyTo, reactions, mailId? }   // mailId: a mail this post points at (#17)
                                           // channel: general|incidents|wins|random|standup; from: staff name or a bot handle like '@pagerbot'
                                           // fromId: staff id or null for bots; replyTo: chat id or null; reactions: { [emoji]: count }
@@ -707,6 +707,15 @@ person.taste                    // a STATIONS id
 - Taste reactions and the occasional argument carry no stat penalty either way.
 - A music night overrides the radio in audio while it runs; the sim state is unchanged.
 - Boombox randomness comes from its own stream, so with `B.boombox.enabled` false a seeded game matches one without the feature.
+
+## Water cooler (#1640)
+
+Where people trade what they know. The Espresso Machine is the stamina item; the cooler spreads knowledge.
+
+- Item `water_cooler` replaces `coffee_corner`: furniture, 2x1, price `B.cooler.price`. It inherits the corner's placement data (outdoor permission and the clear row in front), so migrated offices stay legal. Effect: adjacency `{ radius: B.cooler.radius, key: 'knowledgeShare', value: B.cooler.share }`.
+- Saves: `normalize()` turns a placed `coffee_corner` into a `water_cooler` on load, keeping position, rotation and level, with no SAVE_VERSION change. The id `coffee_corner` no longer exists after load.
+- `knowledgeShare`, applied weekly by the knowledge system: each placed cooler has its own crowd, the human staff whose desks are within its radius, excluding agents, remote staff and anyone away. A crowd of 2 or more lifts each member by `share × (the crowd's highest knowledge − their own)`, at most `B.cooler.maxGain` a week. A desk in reach of two coolers counts once, in the crowd with the higher top. The effect sits outside `B.itemBonusCap` and pays nothing while the cooler is broken.
+- When a cooler lifts someone by at least `B.cooler.notifyGain` in a week, at most once per cooler per `B.cooler.notifyWeeks`, the sim emits a toast with topic `'shared'`: `subjectId` is the person in that crowd with the largest gain that week (on a tie, whoever comes first in `state.staff`), `short` is 'Context shared', tone `good`, and the text names them and the crowd's top expert. ui shows it as a desk bubble, or a toast if no bubble claims it.
 
 ## AI job interviews (#670)
 

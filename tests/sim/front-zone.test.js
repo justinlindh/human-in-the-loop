@@ -35,6 +35,28 @@ describe('issue #470: items with a front zone keep the tile in front of them cle
     expect(frontCells('plant', 3, 3, 0, 1)).toEqual([]);
   });
 
+  it('a NOC with chairs keeps two rows clear: the chair row and a standing row behind it', () => {
+    expect(frontCells('noc', 3, 3, 0, 1)).toEqual([]);
+    for (const level of [2, 3]) {
+      expect(frontCells('noc', 3, 3, 0, level)).toEqual([[3, 4], [4, 4], [5, 4], [3, 5], [4, 5], [5, 5]]);
+      expect(frontCells('noc', 3, 3, 1, level)).toEqual([[2, 3], [2, 4], [2, 5], [1, 3], [1, 4], [1, 5]]);
+      expect(frontCells('noc', 3, 3, 2, level)).toEqual([[3, 2], [4, 2], [5, 2], [3, 1], [4, 1], [5, 1]]);
+      expect(frontCells('noc', 3, 3, 3, level)).toEqual([[4, 3], [4, 4], [4, 5], [5, 3], [5, 4], [5, 5]]);
+    }
+  });
+
+  it('nothing goes in the second row in front of a NOC with chairs', () => {
+    const s = floor(1);
+    s.unlocks.ops = true;
+    expect(place(s, 'noc', 2, 2, 0).ok).toBe(true);
+    const noc = s.office.placed.find((p) => p.itemId === 'noc');
+    noc.level = 2;
+    const second = place(s, 'plant', 3, 4, 0);
+    expect(second.ok).toBe(false);
+    expect(second.reason).toBe(REASON);
+    expect(place(s, 'plant', 3, 5, 0).ok).toBe(true);
+  });
+
   it('nothing may be placed on a front zone, and an item with one needs its front floor clear', () => {
     const s = floor(1);
     expect(place(s, 'espresso', 3, 3, 0).ok).toBe(true);
