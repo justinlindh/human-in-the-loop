@@ -7,7 +7,7 @@ import * as THREE from 'three';
 //   input: moveX/moveZ -1..1 along the view's right and forward; yaw and pitch are radians turned since
 //     the last call, positive yaw turning right and positive pitch looking up.
 //   seeAs: the camera sits just in front of a person's eyes and looks where their head looks (down
-//     their path while they walk); input is ignored.
+//     their path while they walk); input is ignored. tooClose() lists who to leave out of the draw.
 //   walk: the camera stands at a person's eye height, moved and turned by input, and slides along
 //     walls, furniture and people instead of passing through them.
 //   step(dt) moves the camera for this frame; it returns whether first person is on. It ends the mode
@@ -25,7 +25,8 @@ const FOLLOW = 18;               // how fast see-as follows the eyes (1/s): stea
 const LOOK_AHEAD_M = 1.2;        // see-as, walking: the view aims at the path this far ahead
 const TURN = 6;                  // how fast see-as turns to a new heading (1/s)
 
-const ARRIVE_M = 1.5;            // see-as: over a walk's last this-many metres the view turns to the spot's facing
+const CLEAR_M = 0.5;             // see-as: anyone standing this close to the eye is left out of the frame
+const ARRIVE_M = 1.5;           // see-as: over a walk's last this-many metres the view turns to the spot's facing
 const AT_SPOT_M = 0.5;           // and within this of the spot it holds that facing
 
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
@@ -191,6 +192,12 @@ export function createFirstPerson({ getOffice, getStaff, onAutoExit = () => {} }
 
   return {
     camera, seeAs, walk, input, step,
+    // See-as: the characters too close to the eye to draw this frame (a passer-by's head would fill
+    // the screen). Walk mode keeps everyone: people stop the walker a body apart, and it chose to go there.
+    tooClose() {
+      if (mode !== 'seeAs') return [];
+      return getStaff()?.charsNear?.(camera.position.x, camera.position.z, CLEAR_M, who) ?? [];
+    },
     exit() { end(false); },
     get mode() { return mode; },
     get who() { return who; },

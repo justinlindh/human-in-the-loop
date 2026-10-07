@@ -105,6 +105,19 @@ test('see-as, walking, looks down the path ahead rather than at a wall the head 
   expect(fp.camera.getWorldDirection(new THREE.Vector3()).z).toBeLessThan(-0.99);
 });
 
+test('see-as leaves out anyone right by the eye; walk mode never does', () => {
+  const people = { s1: person(0, 0, Math.PI / 2), s2: person(0.4, 0.1), s3: person(2, 0) };
+  const { fp, staff } = world({ obstacles: [], people });
+  staff.charsNear = (x, z, r, except) => Object.entries(people)
+    .filter(([id, p]) => id !== except && Math.hypot(p.eyes.x - x, p.eyes.z - z) < r).map(([id]) => id);
+  fp.seeAs('s1');
+  fp.step(1 / 60);
+  expect(fp.tooClose()).toEqual(['s2']);
+  fp.walk({ x: 0, z: 1, yaw: 0 });
+  fp.step(1 / 60);
+  expect(fp.tooClose()).toEqual([]);
+});
+
 test('see-as refuses someone who is away, and ends by itself when they go', () => {
   const people = { s1: person(1, 1), s2: { ...person(2, 2), hidden: true } };
   const { fp, exits } = world({ people });
