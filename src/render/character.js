@@ -765,7 +765,8 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         const cyc = (t % 4) / 4;
         const up = cyc < 0.45 ? Math.sin((cyc / 0.45) * Math.PI) : 0;
         tgt.armRX = -0.6 - up * 1.4;
-        tgt.armRZ = -0.25 - up * 0.2;
+        // Between sips the mug rests out from the belly; it crosses in only on the way to the mouth.
+        tgt.armRZ = 0.05 - up * 0.5;
         tgt.headX = -up * 0.25;
         tgt.bodyY = s(t * 2.2 + phase) * 0.006;
         break;
