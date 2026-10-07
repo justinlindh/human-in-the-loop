@@ -213,12 +213,36 @@ export function createSettings({ layer, controls, sfx, getState = null, toast = 
         h('div.small.muted.setnote', { text: SAVE_NOTE }),
         canExport() ? row('Export a copy', 'Saves this company as a file. Import it on the title screen in another browser or device.',
           h('button.btn.small', { onclick: () => exportNow() }, icon('save.export'), ' Export')) : null,
+        ...(canLeave() ? backToTitle(row) : []),
         h('div.small.muted.keyhelp', null, 'Keys: ', h('span.kbd', { text: 'Space' }), ' pause, ', h('span.kbd', { text: '1' }), h('span.kbd', { text: '2' }), h('span.kbd', { text: '3' }),
           ' speed, letters open panels, ', h('span.kbd', { text: 'Esc' }), ' closes.'))));
   }
 
   // Only for a game in progress that the host can save and read back.
   const canExport = () => !!(controls.save && controls.exportSave && getState?.()?.companyName && !layer.classList.contains('title-mode'));
+  // Back to the title from a game in progress: the same save the autosave writes, then the title (Continue
+  // there picks this company up). The confirm is in the panel, so it works by touch and says what happens.
+  const canLeave = () => !!(controls.save && controls.newGame && getState?.()?.companyName && !layer.classList.contains('title-mode'));
+  function backToTitle(row) {
+    const ask = h('button.btn.small.backtitle', { type: 'button', onclick: () => arm(true) }, 'Back to title');
+    const go = h('button.btn.small.go', { type: 'button', onclick: () => leave() }, 'Save and go');
+    const stay = h('button.btn.small', { type: 'button', onclick: () => arm(false) }, 'Stay');
+    const confirm = h('div.backconfirm', { role: 'group', 'aria-label': 'Back to title' },
+      h('div.small', { text: 'Your game is saved first. Continue on the title picks it up where you left off.' }),
+      h('div.row', null, go, stay));
+    confirm.style.display = 'none';
+    function arm(on) {
+      confirm.style.display = on ? '' : 'none';
+      ask.style.display = on ? 'none' : '';
+      sfx('click');
+    }
+    function leave() {
+      if (controls.save() === false) { toast?.('Could not save: this browser is not saving, so the game stays open', 'warn'); sfx('error'); arm(false); return; }
+      close();
+      controls.newGame();
+    }
+    return [row('Back to title', 'Saves this company, then shows the title screen.', ask), confirm];
+  }
   function exportNow() {
     controls.save();
     const s = getState();
