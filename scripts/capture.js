@@ -303,7 +303,8 @@ try {
     // A still item records only until its last screenshot and writes no video.
     const { FPS, W, H, seconds } = runOf(it);
     const frames = Math.round(seconds * FPS);
-    const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
+    // `touch: true` makes the page a coarse-pointer touch device, so (pointer: coarse) UI shows.
+    const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1, ...(it.touch ? { hasTouch: true, isMobile: true } : {}) });
     // Enough offline audio for boot, warmup, and the clip.
     const audioSeconds = AUDIO && !it.still ? 30 + (it.warmup ?? 1) + seconds : 0;
     await ctx.addInitScript(shim, { fps: FPS, seed: it.seed ?? 1, audioSeconds });
