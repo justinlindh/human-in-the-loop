@@ -184,6 +184,13 @@ function buildWall(L, key, wallMat) {
 // Rotation that turns a model's +Z front toward the room for a given wall.
 const WALL_ROT = { x: Math.PI / 2, z: 0, px: -Math.PI / 2, pz: Math.PI };
 
+// Window panes: clear glass with a light tint and a little sheen, so the real street outside shows.
+const WINDOW_GLASS = { opacity: 0.2, roughness: 0.06, metalness: 0.2 };
+let windowGlassMat = null;
+function windowGlass() {
+  return (windowGlassMat ??= new THREE.MeshStandardMaterial({ color: color('glass'), transparent: true, depthWrite: false, ...WINDOW_GLASS }));
+}
+
 function openingModel(L, o, screens) {
   const wx = o.wall === 'x' ? -L.W / 2 - T / 2 : o.wall === 'px' ? L.W / 2 + T / 2 : o.at;
   const wz = o.wall === 'z' ? -L.D / 2 - T / 2 : o.wall === 'pz' ? L.D / 2 + T / 2 : o.at;
@@ -192,7 +199,7 @@ function openingModel(L, o, screens) {
     const g = new THREE.Group();
     const m = getModel('window_frame');
     m.scale.set(o.width / 1.6, (o.top - o.bottom) / 1.3, 1);
-    m.traverse((c) => { if (c.isMesh && c.name.startsWith('window_glass')) { c.material = screens.windowMaterial(); c.castShadow = false; } });
+    m.traverse((c) => { if (c.isMesh && c.name.startsWith('window_glass')) { c.material = windowGlass(); c.castShadow = false; c.userData.noAO = true; } });
     g.add(m);
     // The sill stands out into the room, so it is its own mesh (kept out of the wall's merge) that
     // hides when tall furniture stands against the wall below it (see sillBlockers).
