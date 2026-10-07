@@ -1390,7 +1390,7 @@ function printerWrecked() {
 // facing the way it faces, its back in line with the kitchen's. Every printer prop but the wreck goes
 // there while a kitchen stands, so the everyday printer, the jammed one and the one under the OUT OF
 // ORDER sign are the same printer in the same place. Without a kitchen, the anchor tile's floor.
-const KITCHEN_ITEMS = new Set(['coffee_corner', 'espresso']);
+const KITCHEN_ITEMS = new Set(['coffee_corner', 'water_cooler', 'espresso']);
 const PRINTER_SCALE = 1.2;
 // Props that stand in for the everyday printer, and the printer props that swap with each other in place.
 const PRINTER_PROPS = new Set(['printer_jammed', 'printer_wrecked', 'printer_out_of_order']);

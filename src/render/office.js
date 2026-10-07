@@ -243,7 +243,7 @@ const HEAD_MARGIN = 0.24;
 const KIND = {
   desk: 'desk', desk_set: 'desk', meeting_table: 'meeting', meeting: 'meeting', whiteboard: 'whiteboard',
   coffee_corner: 'coffee', coffee: 'coffee', kitchenette: 'coffee', plant: 'plant', plants: 'plant', plant_tall: 'plant',
-  bookshelf: 'bookshelf', couch: 'couch', sofa: 'couch', rack: 'rack',
+  bookshelf: 'bookshelf', couch: 'couch', sofa: 'couch', rack: 'rack', water_cooler: 'cooler',
   ping_pong_table: 'pingpong', ping_pong: 'pingpong', foosball: 'foosball',
 };
 export const kindOf = (itemId) => KIND[itemId] ?? itemId;
@@ -456,6 +456,11 @@ function screensFor(obj, screens, seed) {
   });
 }
 
+// The water cooler for an era: a glass jug before the web, the blue bottle through the dot-com years
+// and Classic, a filtered tap and kombucha keg in Web 2.0, and a hydration station from the agents on.
+const COOLER_ERA = { preinternet: 'water_cooler_jug', web2: 'water_cooler_web2', agents: 'water_cooler_agents', consolidation: 'water_cooler_agents', plateau: 'water_cooler_agents' };
+const coolerModel = (era) => COOLER_ERA[era] ?? 'water_cooler';
+
 // Turns a model's long side along the footprint's long side and shrinks it to fit. Wall pieces
 // then sit against the back edge; the rest are centered. A model fits within its footprint both ways,
 // since the sim gives the room past it to a neighbour; frontZone models (stools, a mat or a grate in
@@ -485,6 +490,7 @@ export function buildPlacedModel(p, stageIdx, screens = null, seed = 0, era = 'c
   else if (p.itemId === 'monitoring_wall' && era === 'classic') inner = statusTv(screens);
   else if (kind === 'whiteboard') inner = getModel('whiteboard');
   else if (kind === 'coffee') inner = getModel('kitchenette');
+  else if (kind === 'cooler') inner = getModel(coolerModel(eraArtActive() ? artEra : era));
   else if (kind === 'plant') inner = getModel('plant_tall');
   else if (kind === 'bookshelf') inner = getModel('bookshelf');
   else if (kind === 'couch') inner = getModel('couch');

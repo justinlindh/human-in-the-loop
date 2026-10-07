@@ -26,6 +26,8 @@ const PERKS = {
   plant_wall: { cap: 1, anim: 'water', dur: [3.5, 5], weight: 0.6, spots: (f) => [[0, f.h / 2 + 0.45]], face: 'item' },
   pingpong: { pair: true, anim: 'paddle', dur: [8, 12], weight: 1.3, spots: (f) => [[-(f.w / 2 + 0.2), 0], [f.w / 2 + 0.2, 0]], face: 'item' },
   foosball: { pair: true, anim: 'play', dur: [7, 11], weight: 1.2, spots: (f) => [[0, -(f.h / 2 + 0.3)], [0, f.h / 2 + 0.3]], face: 'item' },
+  // Two people in front of the water cooler, paper cups in hand, chatting.
+  cooler: { pair: true, anim: 'cupsip', dur: [8, 12], weight: 2, spots: (f) => [[-0.35, f.h / 2 + 0.45], [0.35, f.h / 2 + 0.45]], face: 'partner', chat: true },
 };
 
 // Per-model spots, authored in the model's own frame (x right, z toward its front, meters as built
@@ -33,6 +35,7 @@ const PERKS = {
 // model-space facing. These override the generic footprint spots for that model.
 const SEAT_HIP_Y = 0.47;
 const GATHER_SLACK = 4;          // seconds a pair game waits past the longer walk before giving up
+const CHAT_TURN_S = 2;           // seconds the second person at the cooler waits before their first sip
 const STAND_M = 0.4;            // a person stands this far in front of the item they use
 const COVER_M = 0.1;            // a point this near other furniture counts as inside it
 const MODEL_SPOTS = {
@@ -196,7 +199,13 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     let yaw;
     if (def.face === 'front') yaw = e.target.rotY;
     else if (def.face === 'axis') yaw = e.target.rotY + (f.w > f.h ? Math.PI / 2 : 0);
-    else yaw = Math.atan2(e.target.x - p.x, e.target.z - p.z);
+    else if (def.face === 'partner') {
+      // Toward the other spot, turned a little out toward the room, so both faces stay in view.
+      const [ox, oz] = def.spots(f)[1 - i];
+      const q = toWorld(e.target, ox, oz), out = toWorld(e.target, lx, lz + 1);
+      const a = Math.atan2(q.x - p.x, q.z - p.z), b = Math.atan2(out.x - p.x, out.z - p.z);
+      yaw = Math.atan2(Math.sin(a) * 0.75 + Math.sin(b) * 0.25, Math.cos(a) * 0.75 + Math.cos(b) * 0.25);
+    } else yaw = Math.atan2(e.target.x - p.x, e.target.z - p.z);
     void other;
     return { x: p.x, z: p.z, yaw, anim: 'idle' };
   }
@@ -451,7 +460,10 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     if (s.paddles) dropPaddles(s);
     if (s.foos) { foosEnd(s.foos); s.foos = null; }
     const live = [s.a, s.b].filter((r) => r.temp?.pair === s);
-    if (played && live.length === 2) {
+    if (played && live.length === 2 && s.def.chat) {
+      // A chat has no winner: both nod off back to their desks.
+      for (const r of live) r.temp.t = 0.01;
+    } else if (played && live.length === 2) {
       const win = chance() < 0.5 ? 0 : 1;
       live.forEach((r, i) => {
         r.temp.anim = i === win ? 'celebrate' : 'groan';
@@ -475,6 +487,8 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
           s.phase = 'play'; s.t = 0; played++;
           announceUse(s.e, [s.a.id, s.b.id]);
           s.a.temp.anim = s.b.temp.anim = s.def.anim;
+          // A chat: the second sips a beat after the first, so they take turns.
+          if (s.def.chat) s.b.temp.anim = 'idle';
           if (s.def === PERKS.pingpong) { s.ball = new THREE.Mesh(ballGeo, mat('paper')); s.ball.castShadow = !low(); parent.add(s.ball); takePaddles(s); }
           if (s.def === PERKS.foosball) foosStart(s);
         } else if (s.t > s.limit) { endPair(s, false); sessions.splice(i, 1); }
@@ -490,6 +504,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
         s.ball.position.set(x, 0.62 + hop * 0.22, z);
       }
       if (s.foos) foosTick(s.foos, dt);
+      if (s.def.chat && s.t >= CHAT_TURN_S && s.b.temp.anim === 'idle') s.b.temp.anim = s.def.anim;
       if (s.t >= s.dur) { endPair(s, true); sessions.splice(i, 1); }
     }
   }
