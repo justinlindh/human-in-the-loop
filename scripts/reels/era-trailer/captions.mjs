@@ -13,7 +13,6 @@ mkdirSync(dir, { recursive: true });
 export const LABELS = {
   inventory: 'Pre-internet: software in boxes',
   float: 'The dot-com boom',
-  y2k: 'Y2K',
   ie6: 'Web 2.0',
   ai: 'The AI years',
 };

@@ -21,7 +21,7 @@ beat() { # id from dur crop
 }
 beat inventory 1.5 3.0 "iw*0.8:ih*0.8:iw*0.1:ih*0.0"
 beat float 7.0 3.0 "iw*0.7:ih*0.7:iw*0.3:ih*0.1"
-beat y2k 14.3 4.0 "iw*0.8:ih*0.8:iw*0.1:ih*0.2"
+beat y2k 15.5 4.0 "iw*0.8:ih*0.8:iw*0.1:ih*0.2"
 beat ie6 2.0 3.0 "iw*0.8:ih*0.8:iw*0.1:ih*0.0"
 beat ai 8.1 3.4 "iw*0.8:ih*0.8:iw*0.2:ih*0.15"
 kit_cut "$out" "$w"/inventory.mp4 "$w"/float.mp4 "$w"/y2k.mp4 "$w"/ie6.mp4 "$w"/ai.mp4
