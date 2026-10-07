@@ -72,6 +72,26 @@ if [ -n "$issue" ]; then
   done
 fi
 
+# The reviewer's last verdict review on the PR, as `<changes|pass> <head sha it judged> <login> <url>` (the
+# verdict is in the review body; the review status on a head is the other record of it).
+last_verdict() {
+  gh pr view "${R[@]}" "$pr" --json reviews -q '[.reviews[] | select((.body // "") | test("Verdict: (pass|changes requested)"; "i"))] | last // empty
+    | "\(if (.body | test("Verdict: changes requested"; "i")) then "changes" else "pass" end) \(.commit.oid // "-") \(.author.login) \(.url)"' 2>/dev/null
+}
+is_merge() { # <sha> <branch>
+  git cat-file -e "$1^{commit}" 2>/dev/null || git fetch -q origin "$2" 2>/dev/null
+  [ "$(git rev-list --parents -n1 "$1" 2>/dev/null | wc -w)" -gt 2 ]
+}
+# True when the head differs from <sha> only by merges of main: no commit of the PR's own since.
+main_merges_only() { # <sha> <head> <branch>
+  git cat-file -e "$1^{commit}" 2>/dev/null || git fetch -q origin "$3" 2>/dev/null
+  git cat-file -e "$1^{commit}" 2>/dev/null && git cat-file -e "$2^{commit}" 2>/dev/null || return 1
+  git fetch -q origin main 2>/dev/null
+  git rev-parse -q --verify origin/main >/dev/null 2>&1 || return 1
+  git merge-base --is-ancestor "$1" "$2" 2>/dev/null || return 1
+  [ -z "$(git rev-list --no-merges "$1..$2" ^origin/main 2>/dev/null)" ]
+}
+
 local_ci_link() {
   gh api "$api/issues/$pr/comments?per_page=100" \
     | jq -r '[.[] | select(.body | startswith("### Local CI"))] | last | .html_url // empty'
@@ -201,7 +221,7 @@ behind_main() { # <branch> <head>
   ! git merge-base --is-ancestor origin/main "$2" 2>/dev/null
 }
 
-last="" seen_head="" head_since=0 warned=0 required="" rules_read=0 lag_said="" snap_head="" fix_tried=0
+last="" seen_head="" head_since=0 warned=0 required="" rules_read=0 cr_head="" cr_state="" lag_said="" snap_head="" fix_tried=0
 while :; do
   read_pr || { live=0; sleep "$poll"; continue; }
   live=0
@@ -253,6 +273,30 @@ while :; do
   # run satisfies a required check, as GitHub counts it.
   waiting="$(jq -r --arg req "$required" '($req | split(" ")) as $r | [.statusCheckRollup[]? | {n: (.context // .name), s: ((.state // .conclusion // "") | ascii_upcase)}] as $all
     | [$r[] | . as $name | select([$all[] | select(.n == $name and (.s == "SUCCESS" or .s == "SKIPPED" or .s == "NEUTRAL"))] | length == 0)] | join(" ")' <<<"$json")"
+
+  # A changes-requested verdict ends the wait at once, names the verdict, and never merges main. A head that
+  # only merges main into a PR whose last verdict was changes requested has no verdict of its own yet: that
+  # verdict still stands until a fresh one.
+  if [ "$review" = SUCCESS ]; then cr_state=""
+  elif [ "$review" != FAILURE ] && [ "$review" != ERROR ] && [ "$cr_head" != "$head" ]; then
+    cr_head="$head"; cr_state=""
+    # Only a head that is itself a merge can be a main merge on top of a judged head: skip the review lookup otherwise.
+    v=""; is_merge "$head" "$branch" && { v="$(last_verdict)" || v=""; }
+    read -r vkind vsha _ <<<"$v"
+    if [ "$vkind" = changes ] && [ -n "$vsha" ] && [ "$vsha" != "$head" ] && main_merges_only "$vsha" "$head" "$branch"; then cr_state="$v"; fi
+  fi
+  if [ "$review" = FAILURE ] || [ "$review" = ERROR ] || [ -n "$cr_state" ]; then
+    confirm || continue
+    if [ -n "$cr_state" ] && [ "$review" != FAILURE ] && [ "$review" != ERROR ]; then
+      read -r _ vsha vlogin vurl <<<"$cr_state"
+      say "#$pr at ${head:0:8}: changes were requested on ${vsha:0:8} by $vlogin and only main was merged since, so no fresh verdict yet: $vurl"
+    else
+      v="$(last_verdict)"; vlogin=""; vurl=""
+      case "$v" in changes\ *|pass\ *) read -r _ _ vlogin vurl <<<"$v" ;; esac
+      say "#$pr at ${head:0:8}: changes requested (review=failure)${vlogin:+ by $vlogin}${vurl:+: $vurl}"
+    fi
+    exit 2
+  fi
 
   # A conflict with main is tried at once (it fails fast and names the PR for a person). A PR that is only
   # behind main is left alone, since main no longer requires an up-to-date branch, unless --update asks.
