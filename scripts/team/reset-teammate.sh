@@ -52,25 +52,13 @@ for p in $(tmux list-panes -a -F '#{pane_id}'); do
 done
 [ -n "$pane" ] || { echo "no pane shows @$name" >&2; exit 1; }
 
-candidates() { # every recent transcript whose first lines hold the brief
-  local f
-  for f in $(find "$proj" -maxdepth 1 -name '*.jsonl' -mmin -1440 -printf '%p\n'); do
-    # Not head | grep -q: grep stops at the match, head dies of SIGPIPE on the rest of these large
-    # lines, and pipefail turns that into no match.
-    grep -q "You are \`$name\`" < <(head -n 20 "$f") && echo "$f"
-  done
-}
-# The time of a file's last record says which session is writing now (any process can touch an mtime);
-# a file without timestamps falls back to its mtime.
-last_at() {
-  local t; t="$(tac "$1" | grep -m1 -o '"timestamp":"[^"]*"' | cut -d'"' -f4)"
-  [ -n "$t" ] || t="$(date -u -d "@$(stat -c %Y "$1")" +%FT%T.000Z)"
-  echo "$t"
-}
-transcript() { # the candidate written most recently
-  local f
-  for f in $(candidates); do echo "$(last_at "$f") $f"; done | sort -r | head -1 | cut -d' ' -f2-
-}
+# The pick rules live in one helper shared with hitl-autocompact.sh (a copy of this script outside the
+# repository uses the helper of the repository it is run from).
+for picker in "$here" "$(git rev-parse --show-toplevel 2>/dev/null)" "$repo"; do
+  picker="$picker/scripts/tools/lane-transcript.sh"; [ -f "$picker" ] && break
+done
+candidates() { bash "$picker" "$proj" "$name" --all; } # every recent transcript whose first lines hold the brief
+transcript() { bash "$picker" "$proj" "$name"; }       # the one written most recently
 tokens() { # context size of the newest assistant turn in a transcript
   # A record can carry the usage object more than once; count only the first.
   tac "$1" | grep -m1 '"cache_read_input_tokens"' | grep -o '"usage":{[^}]*}' | head -1 \

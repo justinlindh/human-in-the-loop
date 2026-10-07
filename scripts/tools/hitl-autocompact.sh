@@ -60,15 +60,12 @@ gates() {
 }
 
 # A message that reached the lane after <since> and was read already (reading drains the inbox) is only in
-# its transcript: the newest recent transcript opening with the lane's brief, a user record carrying a
+# its transcript (the one lane-transcript.sh picks), a user record carrying a
 # <teammate-message> stamped after <since>.
 new_mail_since() {
-  local proj f t=""
+  local proj t
   proj="${CLAUDE_PROJECTS_DIR:-$(dirname "$(lane_memory_dir)")}"
-  while IFS= read -r f; do
-    grep -q "You are \`$name\`" < <(head -n 20 "$f") && { t="$f"; break; }
-  done < <(find "$proj" -maxdepth 1 -name '*.jsonl' -mmin -1440 -printf '%T@ %p\n' 2>/dev/null | sort -rn | cut -d' ' -f2-)
-  [ -n "$t" ] || return 1
+  t="$(bash "$HERE/lane-transcript.sh" "$proj" "$name")" || return 1
   jq -R -e --arg s "$1" 'fromjson? | select(.type == "user" and (.timestamp // "") > $s and ((.message.content // "") | tostring | contains("<teammate-message")))' "$t" >/dev/null 2>&1
 }
 
