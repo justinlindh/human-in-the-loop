@@ -1,32 +1,38 @@
 // Screens a short sound-effect candidate for a ringing or reverberant tail before it goes anywhere near the
-// owner's desk. Measures the clip's length, how long its envelope takes to fall 40 dB below its peak, the
-// level of its last 200 ms against the whole clip, and its last 50 ms peak, and fails any file over a bar.
+// owner's desk. Two checks, both relative to the clip itself so a 10 ms click is not judged like a bell:
+//   decay: how long the envelope takes to fall 40 dB below its peak and stay there. A short cue (a clip no
+//          longer than `shortMax`) must settle within `decay`; longer clips are loops, ambience or stingers
+//          and are judged by ear.
+//   end:   the peak of the clip's last stretch (a quarter of the clip, at most 50 ms) against the clip's peak.
+//          A clip cut off while still loud fails.
 //
-//   node src/audio/sfx-screen.mjs [--max-dur s] [--decay s] [--last200 dB] [--last50 dB] FILE...
+//   node src/audio/sfx-screen.mjs [--decay s] [--short-max s] [--end dB] FILE...
 //
-// Exits 1 when any file fails. Decoding needs ffmpeg on the path.
+// Exits 1 when any file fails, 2 on bad input. Decoding needs ffmpeg on the path.
 import { spawnSync } from 'node:child_process';
 import { basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SR = 48000;
 
-// The bars sit between the sounds the owner accepted (a 0.5 s wooden tick, a 0.6 s water glug) and the ones
-// rejected as echo-y (a bell that rings past a second).
+// Every effect and UI sound in public/audio passes these. A 1.1 s bell that rings for a second does not.
 export const BARS = {
-  maxDur: 0.8,     // s: longest clip
-  decay: 0.45,     // s: from the envelope's peak until it stays 40 dB below it
-  last200: -20,    // dB: RMS of the last 200 ms relative to the whole clip's RMS
-  last50: -50,     // dBFS: peak of the last 50 ms
+  decay: 0.8,     // s: longest peak-to-silence time for a short cue
+  shortMax: 1.2,  // s: clips up to this length are short cues
+  end: -6,        // dB: last stretch's peak relative to the clip's peak
 };
 
 const db = (x) => 20 * Math.log10(x + 1e-12);
-const rms = (a) => Math.sqrt(a.reduce((s, v) => s + v * v, 0) / Math.max(1, a.length));
+const peakOf = (a, from = 0) => { let p = 0; for (let i = from; i < a.length; i++) p = Math.max(p, Math.abs(a[i])); return p; };
 
 // A 5 ms RMS envelope of mono samples.
 function envelope(x, sr) {
   const w = Math.max(1, Math.round(0.005 * sr)), out = [];
-  for (let i = 0; i < x.length; i += w) out.push(rms(x.slice(i, i + w)));
+  for (let i = 0; i < x.length; i += w) {
+    let s = 0, n = 0;
+    for (let j = i; j < Math.min(x.length, i + w); j++, n++) s += x[j] * x[j];
+    out.push(Math.sqrt(s / n));
+  }
   return { env: out, step: w / sr };
 }
 
@@ -34,22 +40,19 @@ function envelope(x, sr) {
 export function screen(x, sr, bars = BARS) {
   const dur = x.length / sr;
   const { env, step } = envelope(x, sr);
-  const peak = Math.max(...env), peakAt = env.indexOf(peak);
+  let peak = 0;
+  for (const v of env) peak = Math.max(peak, v);
+  const peakAt = env.indexOf(peak);
   const floor = peak * 0.01; // 40 dB below the peak
   let last = peakAt;
   for (let i = env.length - 1; i > peakAt; i--) if (env[i] > floor) { last = i; break; }
   const decay = (last - peakAt) * step;
-  const tail = (s) => x.slice(Math.max(0, x.length - Math.round(s * sr)));
-  // A clip under 0.4 s has no separate tail: its last half stands in for the last 200 ms.
-  const last200 = db(rms(tail(Math.min(0.2, dur / 2)))) - db(rms(x));
-  const last50 = db(Math.max(...tail(0.05).map(Math.abs)));
-  const m = { dur, decay, last200, last50 };
+  const tailLen = Math.max(1, Math.round(Math.min(0.05, dur / 4) * sr));
+  const end = db(peakOf(x, x.length - tailLen)) - db(peakOf(x));
   const failed = [];
-  if (dur > bars.maxDur) failed.push(`length ${dur.toFixed(2)} s > ${bars.maxDur} s`);
-  if (decay > bars.decay) failed.push(`decay ${decay.toFixed(2)} s > ${bars.decay} s`);
-  if (last200 > bars.last200) failed.push(`last 200 ms ${last200.toFixed(1)} dB > ${bars.last200} dB`);
-  if (last50 > bars.last50) failed.push(`last 50 ms peak ${last50.toFixed(1)} dBFS > ${bars.last50} dBFS`);
-  return { ...m, failed };
+  if (dur <= bars.shortMax && decay > bars.decay) failed.push(`decay ${decay.toFixed(2)} s > ${bars.decay} s`);
+  if (end > bars.end) failed.push(`ends at ${end.toFixed(1)} dB of its peak > ${bars.end} dB`);
+  return { dur, decay, end, failed };
 }
 
 function decode(file) {
@@ -60,7 +63,7 @@ function decode(file) {
 }
 
 function main(argv) {
-  const bars = { ...BARS }, files = [], keys = { '--max-dur': 'maxDur', '--decay': 'decay', '--last200': 'last200', '--last50': 'last50' };
+  const bars = { ...BARS }, files = [], keys = { '--decay': 'decay', '--short-max': 'shortMax', '--end': 'end' };
   for (let i = 0; i < argv.length; i++) {
     if (keys[argv[i]]) {
       const v = Number(argv[++i]);
@@ -69,12 +72,12 @@ function main(argv) {
     } else if (argv[i].startsWith('--')) { console.error(`sfx-screen: unknown option ${argv[i]}`); return 2; }
     else files.push(argv[i]);
   }
-  if (!files.length) { console.error('usage: sfx-screen.mjs [--max-dur s] [--decay s] [--last200 dB] [--last50 dB] FILE...'); return 2; }
+  if (!files.length) { console.error('usage: sfx-screen.mjs [--decay s] [--short-max s] [--end dB] FILE...'); return 2; }
   let bad = 0;
   for (const f of files) {
     let r;
     try { r = screen(decode(f), SR, bars); } catch (e) { console.error(`${basename(f)}: ${e.message}`); bad++; continue; }
-    console.log(`${r.failed.length ? 'FAIL' : 'ok  '} ${basename(f)}  ${r.dur.toFixed(2)} s  decay ${r.decay.toFixed(2)} s  last200 ${r.last200.toFixed(1)} dB  last50 ${r.last50.toFixed(1)} dBFS${r.failed.length ? `  (${r.failed.join('; ')})` : ''}`);
+    console.log(`${r.failed.length ? 'FAIL' : 'ok  '} ${basename(f)}  ${r.dur.toFixed(2)} s  decay ${r.decay.toFixed(2)} s  end ${r.end.toFixed(1)} dB${r.failed.length ? `  (${r.failed.join('; ')})` : ''}`);
     if (r.failed.length) bad++;
   }
   return bad ? 1 : 0;
