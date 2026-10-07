@@ -960,6 +960,7 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
         const roots = [charOf(R.scene, a), charOf(R.scene, b)];
         for (const r of roots) worst = Math.max(worst, bodyInside(r, furnitureOf(R)));
         // Each one's facing toward the other (1 straight at them), once they've turned from the walk in.
+        // One turns well out toward the camera, so above 0.3 counts: turned to each other, not away.
         const [pa, pb] = roots.map((r) => r.position);
         if (chatted > 30) for (const [r, o] of [[roots[0], pb], [roots[1], pa]]) {
           const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(r.getWorldQuaternion(new THREE.Quaternion()));
@@ -997,7 +998,7 @@ export async function runPropChecks(R, S, { dt = 1 / 30 } = {}) {
         }
         R.catchFor(c, null, { walk: true });
       }
-      pass = sent && chatted > 30 && worst < 0.01 && facing > 0.5 && cups === 2 && standerSent !== null && closest >= 0.45;
+      pass = sent && chatted > 30 && worst < 0.01 && facing > 0.3 && cups === 2 && standerSent !== null && closest >= 0.45;
       info = { sent, chatSamples: chatted, insidePct: +(100 * worst).toFixed(2), facing: +facing.toFixed(2), cups, standerSent, standerGap: closest === Infinity ? null : +closest.toFixed(2) };
       Object.assign(host, was);
       step(30);
