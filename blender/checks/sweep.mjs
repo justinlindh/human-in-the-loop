@@ -49,7 +49,6 @@
 // (--crop-all: of accepted ones too); with --against, the control run's files go to <out>/control/.
 // --update-baseline rewrites the baseline to
 // exactly what this run found. The run is deterministic: it depends only on the code.
-import { startHarness, wantGpu } from './harness.mjs';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
 import * as indexPlay from '../../scripts/events/play.js';
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync, cpSync, rmSync } from 'node:fs';
@@ -71,10 +70,19 @@ const full = argv.includes('--full');
 // browser. --screen-only is the small browser step the engine run hands the page checks to.
 const screenOnly = argv.includes('--screen-only');
 const engine = !argv.includes('--browser') && !screenOnly;
-// Importing the browser harness makes playwright handle SIGINT, SIGTERM and SIGHUP in JavaScript, which
-// only runs between turns of the event loop; the engine samples in long synchronous stretches and starts no
-// browser here, so those signals take their default action (the screen step ends with the run below).
-if (engine) for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.removeAllListeners(sig);
+// Importing the browser harness makes playwright handle SIGINT, SIGTERM and SIGHUP in JavaScript, which only
+// runs between turns of the event loop; the engine builds scenes and samples in long synchronous stretches,
+// and starts no browser here, so those signals take their default action and end it at once. The reaper (a
+// child that watches this process's pipe) then ends the screen step and a control checkout and removes the
+// control's temp directory, which also covers a SIGKILL.
+const defaultSignals = () => { for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.removeAllListeners(sig); };
+let reaper = null;
+if (engine) {
+  defaultSignals();
+  reaper = spawn(process.execPath, [fileURLToPath(new URL('../../scripts/tools/reaper.mjs', import.meta.url))], { stdio: ['pipe', 'ignore', 'ignore'] });
+  reaper.unref(); reaper.stdin.unref(); reaper.stdin.on('error', () => {});
+}
+const reap = (m) => { try { reaper?.stdin.write(`${JSON.stringify(m)}\n`); } catch { /* the reaper is gone */ } };
 // Milliseconds on the process's own clock: the engine replaces Date.now with a game clock.
 const wall = () => Number(process.hrtime.bigint() / 1000000n);
 // A mock played with an era's art on, named `<mock>@<era>` (the page's `?mock=<mock>&eras&eraArt=<era>`):
@@ -148,6 +156,16 @@ async function startControl(spec) {
     overlay['blender/checks/intersect.js'] = join(HERE, 'intersect.js');
     for (const f of readdirSync(join(repoRoot, 'scripts/studio')).filter((x) => x.endsWith('.mjs'))) overlay[`scripts/studio/${f}`] = join(repoRoot, 'scripts/studio', f);
   }
+  // The sweep's borrowed files import things an older checkout lacks: refuse such a ref up front.
+  const git = (...a) => execFileSync('git', ['-C', repoRoot, ...a], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  const has = (path) => { try { git('cat-file', '-e', `${rev}:${path}`); return true; } catch { return false; } };
+  const needs = [
+    ['scripts/lib/timing.js', () => has('scripts/lib/timing.js'), '0dd14127'],
+    ['src/yak-pacing.js', () => has('src/yak-pacing.js'), 'ae51a538'],
+    ['B.pacing in src/sim/balance.js', () => has('src/sim/balance.js') && /^  pacing: \{/m.test(git('show', `${rev}:src/sim/balance.js`)), '18039e42'],
+  ];
+  const lacks = needs.find(([, ok]) => !ok());
+  if (lacks) { console.error(`sweep: --against ${spec} is too old to run this sweep's files (it has no ${lacks[0]}); use a ref that contains ${lacks[2]}`); process.exit(2); }
   // The worktree and the control's process group go away however this process ends.
   const wt = await createWorktree({ repo: repoRoot, rev, label: 'sweep-against', patch, overlay });
   const drop = new Set(['--update-baseline', '--prune']);
@@ -157,7 +175,10 @@ async function startControl(spec) {
     if (!drop.has(argv[i])) args.push(argv[i]);
   }
   const out = join(wt.tmp, 'out');
-  const { done } = wt.spawn(process.execPath, [join(wt.path, 'blender/checks/sweep.mjs'), ...args, '--out', out], { stdio: ['ignore', 'ignore', 'inherit'] });
+  const { child, done } = wt.spawn(process.execPath, [join(wt.path, 'blender/checks/sweep.mjs'), ...args, '--out', out], { stdio: ['ignore', 'ignore', 'inherit'] });
+  reap({ tree: { repo: repoRoot, tmp: wt.tmp } });
+  reap({ group: child.pid });
+  if (engine) defaultSignals();
   return { label: asRoot ? spec.split('/').pop() : spec, rev: rev.slice(0, 8), out, wt, done };
 }
 async function endControl(c) {
@@ -198,11 +219,16 @@ if (cacheKey) { process.env.HITL_LOAD_TRACK = '1'; await import('../../scripts/s
 const kill = setTimeout(() => { console.error(`sweep: timed out after ${timeout} s`); process.exit(124); }, timeout * 1000);
 const t0 = wall();
 // Geometry, not pixels: the GPU by default, SwiftShader with --software or HITL_GL=software.
-const H = engine ? null : await startHarness({ gpu: wantGpu() });
+// The browser harness is loaded only by a run that uses a browser: importing it makes playwright catch signals.
+const harness = () => import('./harness.mjs');
+const startHarness = async () => { const m = await harness(); return m.startHarness({ gpu: m.wantGpu() }); };
+const H = engine ? null : await startHarness();
 const host = engine ? await import('../../scripts/studio/sweep-host.mjs') : null;
+if (engine) defaultSignals();
 // Started only once this process holds its render lock: the harness re-runs the whole command under
 // the lock and exits the first copy, which must not have started a control of its own.
-const control = against ? await startControl(against) : null;
+// A signal to the whole group also reaches the git commands it runs; that run ends by the signal too, not by an error.
+const control = against ? await startControl(against).catch((e) => { if (e?.signal) { defaultSignals(); process.kill(process.pid, e.signal); } throw e; }) : null;
 // The page checks (screen, tooltip) need a browser and do not depend on the engine's sampling, so that
 // step starts now and runs alongside it (its rows are added below): the same run's states (mocks and
 // their moments, indexed moments, snapshots, seeds) are played there with the page checks alone.
@@ -217,6 +243,7 @@ const screen = (() => {
   }
   // Its own process group, so ending it ends what it started (the render-lock wrapper, the browser).
   const child = spawn(process.execPath, [fileURLToPath(import.meta.url), ...rest, '--screen-only', '--out', sub], { stdio: ['ignore', 'ignore', 'inherit'], detached: true, env: { ...process.env, HITL_SWEEP_PARENT: String(process.pid), HITL_SWEEP_LOADS: cacheKey ? '1' : '' } });
+  reap({ group: child.pid });
   // The step ends with this process however it ends: SIGTERM to the group (the browser closes on it),
   // SIGKILL if anything is still there after a grace period. A parent that is busy or SIGKILLed cannot
   // do this, so the step also watches for its parent (below).
@@ -256,7 +283,7 @@ async function browserSeeds() {
   const out = { found: [], windows: [], errors: [], requested: [] };
   for (const seed of M.seeds) {
     if (seedRun.stop) break;
-    const HS = seedRun.harness = await startHarness({ gpu: wantGpu() });
+    const HS = seedRun.harness = await startHarness();
     if (seedRun.stop) { await HS.close(); break; }
     const { page, errors: e } = await HS.openScene(`quality=low&seed=${seed}`, { width: 1600, height: 1000 });
     // The seed plays with the index's pacing switches, so its decisions open on the tick that raises them.

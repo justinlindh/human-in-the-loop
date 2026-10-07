@@ -31,9 +31,12 @@ const git = (repo, args, opts = {}) => execFileSync('git', ['-C', repo, ...args]
 const pause = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 const isAlive = (pid) => { try { process.kill(pid, 0); return true; } catch (e) { return e.code === 'EPERM'; } };
 
-function removeTree(repo, tmp) {
+export function removeTree(repo, tmp) {
   try { git(repo, ['worktree', 'remove', '--force', join(tmp, 'tree')]); } catch { /* removed below */ }
   rmSync(tmp, { recursive: true, force: true });
+  // A process that was just killed can still be writing into the tree (a dev server's cache), so it is
+  // removed again until it stays gone.
+  for (let i = 0; i < 10 && existsSync(tmp); i++) { pause(100); rmSync(tmp, { recursive: true, force: true }); }
   try { git(repo, ['worktree', 'prune']); } catch { /* the repo may be gone */ }
 }
 
