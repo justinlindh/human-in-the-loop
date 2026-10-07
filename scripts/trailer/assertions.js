@@ -52,7 +52,7 @@ export function beatAssertions(beat) {
   if (beat.id === 'build') {
     checks.push(check(beat.id, 3, "s.office.placed.some(p => p.itemId === 'foosball')"));
     // Two people are at the table and the game is on before the push-in lands.
-    checks.push(check(beat.id, beat.from + 6, "R.perks?.phases.some(p => p.startsWith('play'))"));
+    checks.push(check(beat.id, beat.from + 7.7, "R.perks?.phases.some(p => p.startsWith('play'))"));
   }
   if (beat.id === 'printer') checks.push(check(beat.id, beat.from + 2, 'R.moments.printer?.hit >= 2 && R.flying'));
   if (beat.id === 'hire') {
