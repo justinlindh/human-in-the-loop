@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { spawnSync } from 'node:child_process';
-import { resolve } from 'node:path';
+import { spawnSync, execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { toolTmp } from '../../scripts/tools/tmp.mjs';
 
 const ROOT = resolve(__dirname, '../..');
 const TEST = 'scripts/tools/interrupt-test.mjs';
@@ -20,4 +22,20 @@ describe('an interrupted sweep', () => {
       expect(r.status).toBe(0);
     }, 130000);
   }
+});
+
+// A control checkout older than what the sweep's borrowed files import is refused before anything starts. A scratch
+// repository with one commit stands in for it (a shallow clone may not hold an old real ref).
+describe('--against a checkout that is too old', () => {
+  it('exits 2 naming what it lacks and the commit to use', () => {
+    const dir = mkdtempSync(join(toolTmp(), 'sweep-old-'));
+    try {
+      const git = (...a) => execFileSync('git', ['-C', dir, ...a], { stdio: 'ignore' });
+      git('init', '-q'); writeFileSync(join(dir, 'a.txt'), 'x');
+      git('add', '.'); git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'old', '--date=2020-01-01T00:00:00Z');
+      const r = run(['blender/checks/sweep.mjs', '--against', dir, '--mocks', 'garage', '--seeds', 'none', '--no-screen'], 60000);
+      expect(r.status, r.stderr).toBe(2);
+      expect(r.stderr).toMatch(/too old.*no scripts\/lib\/timing\.js.*contains 0dd14127/);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
 });

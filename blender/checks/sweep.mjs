@@ -151,13 +151,21 @@ async function startControl(spec) {
   const patch = asRoot ? execFileSync('git', ['-C', spec, 'diff', 'HEAD', '--binary'], { maxBuffer: 1 << 28 }) : null;
   const overlay = Object.fromEntries(['sweep.mjs', 'sample.js', 'sweep-plan.js', 'cache.mjs'].map((f) => [`blender/checks/${f}`, join(HERE, f)]));
   for (const f of ['worktree.mjs', 'tmp.mjs']) overlay[`scripts/tools/${f}`] = join(repoRoot, 'scripts/tools', f);
-  // The sweep imports the event index's loader and pacing pin, which an older checkout may not have.
-  for (const f of readdirSync(join(repoRoot, 'scripts/events')).filter((x) => /\.(m?js)$/.test(x))) overlay[`scripts/events/${f}`] = join(repoRoot, 'scripts/events', f);
   // An engine run on the other checkout is this checkout's engine on that checkout's game code.
   if (engine) {
     overlay['blender/checks/intersect.js'] = join(HERE, 'intersect.js');
     for (const f of readdirSync(join(repoRoot, 'scripts/studio')).filter((x) => x.endsWith('.mjs'))) overlay[`scripts/studio/${f}`] = join(repoRoot, 'scripts/studio', f);
   }
+  // The sweep's borrowed files import things an older checkout lacks: refuse such a ref up front.
+  const git = (...a) => execFileSync('git', ['-C', repoRoot, ...a], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  const has = (path) => { try { git('cat-file', '-e', `${rev}:${path}`); return true; } catch { return false; } };
+  const needs = [
+    ['scripts/lib/timing.js', () => has('scripts/lib/timing.js'), '0dd14127'],
+    ['src/yak-pacing.js', () => has('src/yak-pacing.js'), 'ae51a538'],
+    ['B.pacing in src/sim/balance.js', () => has('src/sim/balance.js') && /^  pacing: \{/m.test(git('show', `${rev}:src/sim/balance.js`)), '18039e42'],
+  ];
+  const lacks = needs.find(([, ok]) => !ok());
+  if (lacks) { console.error(`sweep: --against ${spec} is too old to run this sweep's files (it has no ${lacks[0]}); use a ref that contains ${lacks[2]}`); process.exit(2); }
   // The worktree and the control's process group go away however this process ends.
   const wt = await createWorktree({ repo: repoRoot, rev, label: 'sweep-against', patch, overlay });
   const drop = new Set(['--update-baseline', '--prune']);
