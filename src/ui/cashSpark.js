@@ -6,9 +6,9 @@ export const SPARK_WEEKS = 40;
 // The last `max` weeks of cash from state.history ({ week, cash }), oldest first.
 export const sparkValues = (history, max = SPARK_WEEKS) => (history ?? []).slice(-max).map((x) => x.cash).filter(Number.isFinite);
 
-// Changes whenever the line would: the history grew or its newest week moved, or the colour changes.
-// The canvas width is part of it, so a resize across a breakpoint redraws at the new size.
-export const sparkSig = (history, tone, width = 0) => `${history?.length ?? 0}|${history?.[history.length - 1]?.week ?? ''}|${tone}|${width}`;
+// Changes whenever the line would, without building its values: the history grew or its newest week moved, the
+// runway colour (`key`) changed, or the canvas was resized across a breakpoint.
+export const sparkSig = (history, key, width = 0) => `${history?.length ?? 0}|${history?.[history.length - 1]?.week ?? ''}|${key}|${width}`;
 
 // How many recent weeks decide whether the line is rising or falling.
 export const SLOPE_WEEKS = 6;

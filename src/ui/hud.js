@@ -378,11 +378,15 @@ export function createHud({ root, controls, ui }) {
     const lowQ = controls.getQuality?.() === 'low';
     if (lowQ !== cashSpark.hidden) cashSpark.hidden = lowQ;
     if (!lowQ) {
-      const vals = sparkValues(s.history);
-      const tone = sparkTone(vals, cashSub.className);
+      // The signature is cheap (history length, newest week, the runway colour, the canvas width); the 40 values
+      // and their colour are built only when it changes.
       const width = cashSpark.clientWidth;
-      const sig = sparkSig(s.history, tone, width);
-      if (sig !== sparkSigLast && width) { sparkSigLast = sig; drawCashSpark(cashSpark, vals, tone); }
+      const sig = sparkSig(s.history, cashSub.className, width);
+      if (sig !== sparkSigLast && width) {
+        sparkSigLast = sig;
+        const vals = sparkValues(s.history);
+        drawCashSpark(cashSpark, vals, sparkTone(vals, cashSub.className));
+      }
     }
 
     const m = totalMrr(s);
