@@ -27,7 +27,7 @@ const PERKS = {
   pingpong: { pair: true, anim: 'paddle', dur: [8, 12], weight: 1.3, spots: (f) => [[-(f.w / 2 + 0.2), 0], [f.w / 2 + 0.2, 0]], face: 'item' },
   foosball: { pair: true, anim: 'play', dur: [7, 11], weight: 1.2, spots: (f) => [[0, -(f.h / 2 + 0.3)], [0, f.h / 2 + 0.3]], face: 'item' },
   // Two people in front of the water cooler, paper cups in hand, chatting.
-  cooler: { pair: true, anim: 'cupsip', dur: [8, 12], weight: 2, spots: (f) => [[-0.35, f.h / 2 + 0.45], [0.35, f.h / 2 + 0.45]], face: 'partner', chat: true },
+  cooler: { pair: true, anim: 'cupsip', dur: [8, 12], weight: 2, spots: (f) => [[-0.35, f.h / 2 - 0.1], [0.35, f.h / 2 - 0.1]], face: 'partner', chat: true },
 };
 
 // Per-model spots, authored in the model's own frame (x right, z toward its front, meters as built
@@ -248,6 +248,20 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     return null;
   }
 
+  // Someone other than `except` standing on a chat spot or where it is walked into from: the chat
+  // doesn't start, so nobody walks into them.
+  const FRONT_CLEAR_M = 0.6;
+  function chatFrontTaken(e, def, except = []) {
+    const f = footprint(e.itemId, 0);
+    const pts = [0, 1].flatMap((i) => {
+      const s = spotFor(e, def, i);
+      const { lx } = toLocal(e.target, s.x, s.z);
+      return [s, toWorld(e.target, lx, f.h / 2 + APPROACH_M)];
+    });
+    return [...recs.values()].some((r) => !except.includes(r) && !r.hidden && r.char?.root.visible
+      && pts.some((p) => Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < FRONT_CLEAR_M));
+  }
+
   let obsCache = null;
   function covered(e, spot) {
     if (obsCache?.v !== office.navVersion) obsCache = { v: office.navVersion, obs: office.obstacles() };
@@ -262,7 +276,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
       if (!kind) continue;
       const def = PERKS[kind];
       if (def.pair) {
-        if (!slots.has(`${e.id}:0`) && !slots.has(`${e.id}:1`)) out.push({ e, kind, def, i: 0 });
+        if (!slots.has(`${e.id}:0`) && !slots.has(`${e.id}:1`) && !(def.chat && chatFrontTaken(e, def))) out.push({ e, kind, def, i: 0 });
         continue;
       }
       const n = modelSpots(e)?.length ?? def.spots(footprint(e.itemId, 0)).length;
@@ -382,7 +396,9 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
       slots.set(key, r);
       const spot = spotFor(e, def, i);
       r.temp = { anim: 'idle', t: Infinity, goal: spot, back: true, wander: true, perkKey: key, pair: s };
-      walkTo(r, spot);
+      // A chat spot sits inside the cooler's footprint, close to it: walked into from its front.
+      if (def.chat) walkToSpot(r, e, spot);
+      else walkTo(r, spot);
       // Long enough for the longer walk there, with room for a detour round someone in the way.
       let len = 0, at = r.pos;
       for (const q of r.path) { len += Math.hypot(q.x - at.x, q.z - at.z); at = q; }
@@ -658,7 +674,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
       for (const r of rs) { r.temp = null; r.path = []; }
       cleanSlots();
       if (def.pair) {
-        if (rs.length < 2) return false;
+        if (rs.length < 2 || def.chat && chatFrontTaken(e, def, rs)) return false;
         startPair({ e, kind, def, i: 0 }, rs[0], rs[1]);
         if (dur) sessions[sessions.length - 1].dur = dur;
         return true;

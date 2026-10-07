@@ -71,7 +71,7 @@ export const mainPage = async (runs) => {
   S.office.placed.forEach(mark);
   for (const [x, y] of L.blocked) used.add(`${x},${y}`);
   const free = (x, y, fw, fh) => { for (let i = -1; i <= fw; i++) for (let j = 0; j <= fh; j++) if (used.has(`${x + i},${y + j}`)) return false; return x > 0 && y + fh < L.grid.h - 1 && x + fw < L.grid.w; };
-  const USE = [['espresso', 1], ['espresso', 2], ['espresso', 3], ['coffee_corner', 1], ['plant_wall', 1], ['plant_wall', 3], ['bookshelf', 1]];
+  const USE = [['espresso', 1], ['espresso', 2], ['espresso', 3], ['water_cooler', 1], ['plant_wall', 1], ['plant_wall', 3], ['bookshelf', 1]];
   const useIds = [];
   USE.forEach(([itemId, level], n) => {
     const f = footprint(itemId, 0);

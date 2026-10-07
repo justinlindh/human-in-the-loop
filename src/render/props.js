@@ -74,7 +74,7 @@ export function createProps(office, screens = null) {
   // while the kitchen stays put; and a count that moves it when furniture lands on it.
   let printerSpot = null, printerMoves = 0;
   const kitchenKey = (state) => {
-    const k = (state.office?.placed ?? []).find((i) => KITCHEN_ITEMS.has(i.itemId));
+    const k = kitchenPick(state.office?.placed ?? []);
     return k ? `${k.id}@${k.x},${k.y},${k.rot ?? 0}` : null;
   };
 
@@ -1390,14 +1390,16 @@ function printerWrecked() {
 // facing the way it faces, its back in line with the kitchen's. Every printer prop but the wreck goes
 // there while a kitchen stands, so the everyday printer, the jammed one and the one under the OUT OF
 // ORDER sign are the same printer in the same place. Without a kitchen, the anchor tile's floor.
-const KITCHEN_ITEMS = new Set(['coffee_corner', 'water_cooler', 'espresso']);
+// In the sim's order of preference: the espresso machine, else the water cooler.
+const KITCHEN_ORDER = ['espresso', 'water_cooler', 'coffee_corner'];
+const kitchenPick = (items) => KITCHEN_ORDER.map((id) => items.find((i) => i.itemId === id)).find(Boolean) ?? null;
 const PRINTER_SCALE = 1.2;
 // Props that stand in for the everyday printer, and the printer props that swap with each other in place.
 const PRINTER_PROPS = new Set(['printer_jammed', 'printer_wrecked', 'printer_out_of_order']);
 const KITCHEN_SWAP = new Set(['printer', 'printer_jammed', 'printer_out_of_order']);
 // Whether a furniture box reaches into a floor rect (floorRect's padding left out).
 const boxHitsRect = (b, r, pad = 0.06) => b.min.x < r.x1 - pad && b.max.x > r.x0 + pad && b.min.z < r.z1 - pad && b.max.z > r.z0 + pad;
-const kitchenOf = (office) => [...(office.placed?.values() ?? [])].find((o) => o.obj && KITCHEN_ITEMS.has(o.itemId)) ?? null;
+const kitchenOf = (office) => kitchenPick([...(office.placed?.values() ?? [])].filter((o) => o.obj));
 function byKitchen(build) {
   const fallback = onFloor(build, { x: 1.1, z: 0.2, rot: 0.2, scale: PRINTER_SCALE });
   return (L, anchor, env) => {
