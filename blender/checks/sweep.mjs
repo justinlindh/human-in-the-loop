@@ -19,7 +19,8 @@
 //                            and seeded windows only in weeks it stands (mocks default to floor)
 //            --replay <report.json>  only the states a previous report's violations came from
 //            --against <root|ref>    the same run on another checkout (a worktree path or a git ref),
-//                            in parallel; a violation is new when that run does not have it too
+//                            in parallel; a violation is new when that run does not have it too;
+//                            its report goes to <out>/control/ and its rows this run lacks print as gone
 //
 // Checks:
 //   overlap  two things interpenetrate by more than 1 cm (furniture, desk and floor props, wall
@@ -45,12 +46,13 @@
 // entry) fail the run, except that in fast mode those seen only in seeded games are advisory. An
 // accepted entry may name the issue tracking it ("issue": n); fix it, then drop the entry. --out
 // (default shots/sweep/) gets report.json, report.md (a table for a PR) and a crop of each
-// (--crop-all: of accepted ones too). --update-baseline rewrites the baseline to
+// (--crop-all: of accepted ones too); with --against, the control run's files go to <out>/control/.
+// --update-baseline rewrites the baseline to
 // exactly what this run found. The run is deterministic: it depends only on the code.
 import { startHarness, wantGpu } from './harness.mjs';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
 import * as indexPlay from '../../scripts/events/play.js';
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync, cpSync, rmSync } from 'node:fs';
 import { dirname, resolve, join, basename } from 'node:path';
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -133,7 +135,13 @@ const against = opt('against') ?? null;
 const repoRoot = resolve(HERE, '../..');
 async function startControl(spec) {
   const asRoot = existsSync(spec) && existsSync(join(spec, '.git'));
-  const rev = asRoot ? execFileSync('git', ['-C', spec, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim() : execFileSync('git', ['-C', repoRoot, 'rev-parse', spec], { encoding: 'utf8' }).trim();
+  let rev;
+  try {
+    rev = execFileSync('git', asRoot ? ['-C', spec, 'rev-parse', 'HEAD'] : ['-C', repoRoot, 'rev-parse', '--verify', '--quiet', `${spec}^{commit}`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  } catch {
+    console.error(`sweep: --against ${spec} is neither a checkout nor a git ref`);
+    process.exit(2);
+  }
   // A checkout given by path counts with its uncommitted edits to tracked files (a control patch).
   const patch = asRoot ? execFileSync('git', ['-C', spec, 'diff', 'HEAD', '--binary'], { maxBuffer: 1 << 28 }) : null;
   const overlay = Object.fromEntries(['sweep.mjs', 'sample.js', 'sweep-plan.js', 'cache.mjs'].map((f) => [`blender/checks/${f}`, join(HERE, f)]));
@@ -161,6 +169,10 @@ async function endControl(c) {
   await c.done;
   let report = null;
   try { report = JSON.parse(readFileSync(join(c.out, 'report.json'), 'utf8')); } catch { /* the control run failed */ }
+  // The control's files outlive its worktree, so a reader can see both sides.
+  const keep = join(outDir, 'control');
+  rmSync(keep, { recursive: true, force: true });
+  if (report) cpSync(c.out, keep, { recursive: true });
   c.wt.disposeSync();
   return report;
 }
@@ -430,6 +442,11 @@ const gone = refKeys.filter((k) => !byKey.has(k));
 // A narrowed run (--mocks, --seeds, --moments) sees only part of the baseline, so only a full run
 // lists what it did not see.
 if (!opt('mocks') && !opt('seeds') && !opt('moments') && !item && !replayed && !controlReport) for (const k of gone) console.log(`sweep: baseline entry not seen this run: ${k}`);
+// The control ran the same states, so what it found and this run did not is gone on this checkout.
+if (controlReport) {
+  for (const k of new Set(gone)) console.log(`sweep: gone vs ${control.label}: ${k}`);
+  console.log(`sweep: ${control.label}'s report is in ${join(outDir, 'control')}`);
+}
 
 // Updating keeps accepted entries this run did not see (a seeded moment may not come up every
 // time) unless --prune is given; an entry seen again takes the larger worst value.

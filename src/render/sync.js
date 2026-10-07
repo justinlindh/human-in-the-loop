@@ -77,6 +77,7 @@ const PASS_DOT = 0.2;        // headings more alike than this (cosine) are going
 const PASS_MEET_M = 0.6;       // a walk ending this near the other person is walking to meet them
 const PASS_FOLLOW_M = 0.55;    // someone following another holds back to this far behind
 const PASS_CLEAR_M = 0.3;      // and nobody drifts aside to within this of furniture
+const STEP_OFF_M = 0.35;       // a way round someone may end this close to furniture (a seat in its desk)
 const AISLE_HALF_M = 0.35;     // the way is too narrow for two where a body this far out either side hits furniture
 const AISLE_STEP_M = 0.25;     // how finely a route ahead is checked for that
 const AISLE_LOOK_M = 4;        // and how far ahead
@@ -517,7 +518,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     for (const t of [0, 0.8, -0.8, 1.57, -1.57]) {
       const a = { x: r.pos.x + (ux * Math.cos(t) - uz * Math.sin(t)) * STEP_BACK_M, z: r.pos.z + (ux * Math.sin(t) + uz * Math.cos(t)) * STEP_BACK_M };
       if (nav.isBlocked(a.x, a.z)) continue;
-      const p = [a, ...nav.path(a, end).slice(1)];
+      const p = [a, ...nav.path(a, end, WALK_CLEAR.clear, WALK_CLEAR).slice(1)];
       if (p.length < 2) continue;
       p[p.length - 1] = end;
       const g = gap(p);
@@ -639,6 +640,11 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         r.goalKey = g.key;
         r.goal = g;
         if (g.hidden && !r.hidden) {
+          // A perk visit ends: on the way there it is dropped; at the item, its ending steps them
+          // off the way they came and then heads for the door. Kept, it would slide them back from
+          // the door onto the spot through whatever stands between.
+          if (r.temp?.perkKey && !r.path.length) { r.temp.t = 0; continue; }
+          if (r.temp?.perkKey) r.temp = null;
           walkTo(r, g, false, was);           // head for the door, then disappear
         } else if (!g.hidden && r.hidden) {
           const d = cur.zones.door;
@@ -1546,10 +1552,36 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       }
       const k = r.speed * dt * PASS_K;
       const x = r.pos.x + sx * k, z = r.pos.z + sz * k;
-      const refused = office.nav().isBlocked(x, z, PASS_CLEAR_M);
+      const refused = !driftClear(r, x, z, office.nav());
       if (!refused) r.pos.set(x, 0, z);
       r.drift = { rule, other: o.id, step: [sx * k, sz * k], refused };
     }
+  }
+
+  // Whether a walker may drift aside to (x, z): PASS_CLEAR_M from furniture (or no nearer than they
+  // already are), and with a straight line from
+  // there to the next point of their route that stays off it, since the walk heads straight there
+  // from wherever the drift left them (a waypoint metres away, past the corner the route went round).
+  function driftClear(r, x, z, nav) {
+    if (nav.isBlocked(x, z) || nav.room(x, z) < Math.min(PASS_CLEAR_M, nav.room(r.pos.x, r.pos.z))) return false;
+    const t = r.path[0];
+    if (!t) return true;
+    // The last cell before the point is left out: a route can end on a seat inside its desk's cells.
+    const d = Math.hypot(t.x - x, t.z - z), n = Math.ceil(d / (nav.cell / 2));
+    for (let i = 1; i < n && d * (1 - i / n) > nav.cell; i++) if (nav.isBlocked(x + (t.x - x) * i / n, z + (t.z - z) * i / n)) return false;
+    return true;
+  }
+
+  // Whether a way round someone (a nav path from `from`) keeps PASS_CLEAR_M of furniture, or no less
+  // than the walker already has where they stand. The last steps into the goal are left out, as a
+  // goal can be a seat inside its desk.
+  function wayClear(nav, from, way) {
+    const need = Math.min(PASS_CLEAR_M, nav.room(from.x, from.z));
+    for (let j = 0; j < way.length - 1; j++) {
+      const a = j ? way[j] : from;
+      if (nav.roomAlong(a, way[j + 1], 0, j === way.length - 2 ? STEP_OFF_M : 0) < need) return false;
+    }
+    return true;
   }
 
   // A standing, unseated person ahead on a walker's line whom the walk doesn't end at, as
@@ -1570,7 +1602,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (!a) return;
     const k = r.speed * dt * PASS_K, nav = office.nav();
     const x = r.pos.x + a.sx * k, z = r.pos.z + a.sz * k;
-    const refused = nav.isBlocked(x, z, PASS_CLEAR_M);
+    const refused = !driftClear(r, x, z, nav);
     if (!refused) r.pos.set(x, 0, z);
     r.drift = { rule: 'pass-stander', other: o.id, step: refused ? null : [a.sx * k, a.sz * k], refused };
   }
@@ -1626,12 +1658,12 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       if (!a || a.lon > STAND_HOLD_M || Math.abs(a.lat) > PERSON_GAP) continue;
       const need = PERSON_GAP - Math.abs(a.lat);
       const x = r.pos.x + a.sx * need, z = r.pos.z + a.sz * need;
-      if (!nav.isBlocked(x, z, PASS_CLEAR_M)) continue;
+      if (driftClear(r, x, z, nav)) continue;
       if (r.standHold?.id !== o.id) {
         // First try another way round them; hold only when there is none.
         r.standHold = { id: o.id, t: 0 };
-        const way = nav.path(r.pos, end, 0, { avoid: [{ x: o.pos.x, z: o.pos.z, r: PERSON_GAP + BODY_R }] });
-        if (way && way.length >= 2) {
+        const way = nav.path(r.pos, end, WALK_CLEAR.clear, { ...WALK_CLEAR, avoid: [{ x: o.pos.x, z: o.pos.z, r: PERSON_GAP + BODY_R }] });
+        if (way && way.length >= 2 && wayClear(nav, r.pos, way)) {
           r.path = [...way.slice(1, -1), end];
           r.standHold.rerouted = true;
           return false;
