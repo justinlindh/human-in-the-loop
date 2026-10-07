@@ -892,13 +892,13 @@ const binderLabel = (word) => cardTex(`binder|${word}`, 128, 256, (ctx, W, H) =>
   ctx.restore();
 });
 // One fat binder, narrow enough for the strip beside a monitor that the default view sees on a desk
-// facing the camera, with POLICY on both spines so one faces the camera whichever way the desk turns.
+// facing the camera, labelled on both spines so one faces the camera whichever way the desk turns:
+// POLICY on one and FINAL on the other.
 function binder() {
   const g = new THREE.Group(), h = 0.36;
   g.add(mesh(roundedBox(0.1, h, 0.3, 0.012, 2), mat('role_security'), 0, h / 2, 0));
-  const tex = binderLabel('POLICY');
   for (const s of [-1, 1]) {
-    const spine = new THREE.Mesh(plane(0.06, h * 0.7), flatMat(tex));
+    const spine = new THREE.Mesh(plane(0.06, h * 0.7), flatMat(binderLabel(s < 0 ? 'POLICY' : 'FINAL')));
     spine.position.set(0, h / 2, s * 0.151);
     spine.rotation.y = s < 0 ? Math.PI : 0;
     spine.userData.noAO = true;
