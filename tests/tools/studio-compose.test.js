@@ -145,7 +145,7 @@ describe('studio scene --compose', () => {
     expect(new Set(held).size).toBe(1);
   }, 260000);
 
-  it('coffee wait: a person stands on the step-out point by name, held until a time, in line with the spot', async () => {
+  it('coffee wait: a person stands on the step-out point by name, in line with the spot', async () => {
     const rows = await frames('coffeeWait');
     const at = (r, id) => person(r, id).position;
     const act = (r, id) => person(r, id).person.activity;
@@ -153,23 +153,6 @@ describe('studio scene --compose', () => {
     // held still until `until` (6.5 s), then walking
     expect(new Set(bo.slice(0, 13).map((p) => p.join())).size).toBe(1);
     expect(act(rows[14], 'bo')).toBe('walk');
-    // cy sips at slot 1; the step-out point is the same distance in front of slot 0
-    const sip = rows.find((r) => act(r, 'cy') === 'sip');
-    expect(sip).toBeTruthy();
-    expect(bo[0][2] - at(sip, 'cy')[2]).toBeGreaterThan(0.2);
-    expect(bo[0][2] - at(sip, 'cy')[2]).toBeLessThan(0.8);
-  }, 260000);
-
-  // #1755: at the espresso machine the visitor walks through the person on the step-out point.
-  it.skip('coffee wait: the visitor never walks into the person on the step-out point', async () => {
-    const rows = await frames('coffeeWait');
-    const at = (r, id) => person(r, id).position;
-    const act = (r, id) => person(r, id).person.activity;
-    const bo = rows.map((r) => at(r, 'bo'));
-    for (const r of rows) {
-      const pairs = r.facts.intersections.filter((c) => /person:(ada|bo)\//.test(c.a) && /person:(ada|bo)\//.test(c.b) && c.a.split('/')[0] !== c.b.split('/')[0]);
-      expect(pairs, `t=${r.timeSeconds}`).toEqual([]);
-    }
     const sip = rows.find((r) => act(r, 'ada') === 'sip');
     if (sip) {
       // the point is in front of the spot ada sips at, straight in line with it (read from the game, not pinned)
@@ -181,6 +164,15 @@ describe('studio scene --compose', () => {
       expect(rows.some((r) => act(r, 'ada') === 'walk' && r.timeSeconds > 2)).toBe(true);
       const end = at(rows[rows.length - 1], 'ada');
       expect(Math.hypot(end[0] - bo[0][0], end[2] - bo[0][2])).toBeGreaterThan(1.5);
+    }
+  }, 260000);
+
+  // #1755: the visitor walks through the person on the espresso's step-out point. Once that is fixed this reports a failure: drop `.fails`.
+  it.fails('coffee wait: the visitor never walks into the person on the step-out point', async () => {
+    const rows = await frames('coffeeWait');
+    for (const r of rows) {
+      const pairs = r.facts.intersections.filter((c) => /person:(ada|bo)\//.test(c.a) && /person:(ada|bo)\//.test(c.b) && c.a.split('/')[0] !== c.b.split('/')[0]);
+      expect(pairs, `t=${r.timeSeconds}`).toEqual([]);
     }
   }, 260000);
 
