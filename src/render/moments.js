@@ -1423,7 +1423,7 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const route = printerRoute(at, wreck.position, at.out);
     const pm = printer = {
       phase: 'gather', obj, people: near, bat: null, route, len: routeLength(route), s: 0, t: 0, cue: 0,
-      clear: routeClear, side: size.x / 2 + GRIP_OUT, h: size.y, wreck, scale1: wreck.children[0]?.scale.x ?? JAM_SCALE, hit: 0, swung: -1,
+      clear: routeClear, side: size.x / 2 + GRIP_OUT, h: size.y, clearR: Math.hypot(size.x, size.z) / 2 + BODY_R, wreck, scale1: wreck.children[0]?.scale.x ?? JAM_SCALE, hit: 0, swung: -1,
     };
     // Gathering and the lift, then the cue from the carry to the walk-off.
     pm.spot = spotlights?.begin('printer_jam', printerEnd, PRINTER_GATHER_S + CUE.end, () => pm.obj.visible ? pm.obj.getWorldPosition(new THREE.Vector3()) : pm.end);
@@ -1444,8 +1444,35 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     near.forEach((r, i) => {
       r.temp = { anim: 'idle', t: 1e6, goal: spots[i], moment: 'printer', stage: { beat: 'gather', role: i < 2 ? 'carrier' : 'bat', target: obj, held: i < 2 ? obj : pm.bat } };
       walkTo(r, spots[i]);
+      r.path = aroundPrinter(r.pos, r.path, obj.position, pm.clearR);
     });
     return true;
+  }
+  // The walk grid doesn't know the carried printer: a walk to a grip that would cross it goes round
+  // its clearance circle (radius R about c) instead, from where it first meets the circle to the
+  // grip's side, then in to the grip.
+  function aroundPrinter(from, path, c, R) {
+    if (!path.length) return path;
+    const pts = [{ x: from.x, z: from.z }, ...path];
+    for (let i = 1; i < pts.length; i++) {
+      const p = pts[i - 1], q = pts[i], dx = q.x - p.x, dz = q.z - p.z, l2 = dx * dx + dz * dz || 1;
+      const t = Math.max(0, Math.min(1, ((c.x - p.x) * dx + (c.z - p.z) * dz) / l2));
+      if (Math.hypot(p.x + dx * t - c.x, p.z + dz * t - c.z) >= R) continue;
+      // Where this leg enters the circle (or its start, if it starts inside).
+      let e = 0;
+      for (let k = 0; k <= 20; k++) if (Math.hypot(p.x + dx * k / 20 - c.x, p.z + dz * k / 20 - c.z) < R) { e = Math.max(0, (k - 1) / 20); break; }
+      const goal = path.at(-1);
+      const a0 = Math.atan2(p.x + dx * e - c.x, p.z + dz * e - c.z), a1 = Math.atan2(goal.x - c.x, goal.z - c.z);
+      // The short way round, else the long way, whichever stays on open floor.
+      const short = Math.atan2(Math.sin(a1 - a0), Math.cos(a1 - a0)), nav = office.nav();
+      for (const da of [short, short - Math.sign(short || 1) * 2 * Math.PI]) {
+        const n = Math.max(1, Math.ceil(Math.abs(da) / 0.35)), arc = [];
+        for (let k = 0; k <= n; k++) { const a = a0 + da * k / n; arc.push({ x: c.x + Math.sin(a) * R, z: c.z + Math.cos(a) * R }); }
+        if (arc.every((q) => !nav.isBlocked(q.x, q.z))) return [...pts.slice(1, i), ...arc, goal];
+      }
+      return path;
+    }
+    return path;
   }
   // From the printer's spot to the wreck's.
   let routeClear = 0;
@@ -1526,6 +1553,17 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     return g;
   }
   function norm(x, z) { const l = Math.hypot(x, z) || 1; return [x / l, z / l]; }
+  // A step from `from` to `to` round the printer at `c` rather than through it: the angle about it
+  // eases from one to the other the short way, and the distance from it bulges out to `clearR` (its
+  // half diagonal and a body) at the middle of the step, at e (0 to 1) of the way.
+  function roundPrinter(from, to, c, clearR, e) {
+    const r0 = Math.hypot(from.x - c.x, from.z - c.z), r1 = Math.hypot(to.x - c.x, to.z - c.z);
+    const a0 = Math.atan2(from.x - c.x, from.z - c.z), a1 = Math.atan2(to.x - c.x, to.z - c.z);
+    const da = Math.atan2(Math.sin(a1 - a0), Math.cos(a1 - a0));
+    const bump = Math.max(0, clearR - Math.min(r0, r1)) * Math.sin(Math.PI * e);
+    const r = r0 + (r1 - r0) * e + bump, a = a0 + da * e;
+    return { x: c.x + Math.sin(a) * r, z: c.z + Math.cos(a) * r };
+  }
   // Where along the route a distance s lands: { x, y, z, dir }.
   function along(route, s) {
     for (let i = 1; i < route.length; i++) {
@@ -1614,7 +1652,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       const kw = Math.min(1, pm.t / WATCH_S), ew = kw * kw * (3 - 2 * kw);
       [a, b].forEach((r, i) => {
         const to = pm.watch?.[i] ?? { x: pm.from[i].x + perp[0] * 0.45 * (i ? -1 : 1), z: pm.from[i].z + perp[1] * 0.45 * (i ? -1 : 1) };
-        r.pos.x = pm.from[i].x + (to.x - pm.from[i].x) * ew; r.pos.z = pm.from[i].z + (to.z - pm.from[i].z) * ew;
+        const at = roundPrinter(pm.from[i], to, c, pm.clearR, ew);
+        r.pos.x = at.x; r.pos.z = at.z;
         if (r.temp.anim !== (kw < 1 ? 'walk' : 'idle')) setAnim(r, kw < 1 ? 'walk' : 'idle');
         if (kw >= 1) r.temp.stage.beat = 'watch';
       });
