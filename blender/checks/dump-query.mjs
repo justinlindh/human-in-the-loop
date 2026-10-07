@@ -116,7 +116,7 @@ function edgeOf(A, B) {
 
 const fmtTrace =(l) => `t=${l.t}s ${l.id ?? '-'} ${l.what}${l.from || l.to ? ` ${l.from ?? '-'} -> ${l.to ?? '-'}` : ''}${l.by ? ` by ${l.by}` : ''}${l.why ? ` (${l.why})` : ''}${l.repeats ? ` x${l.repeats}` : ''}${l.decision ? ` [${l.decision}]` : ''}`;
 for (const fr of dump.frames) {
-  const head = `frame ${String(fr.frame).padStart(4)} t=${Number.isFinite(fr.t) ? fr.t.toFixed(2) : 'null'}s`;
+  const head = `frame ${String(fr.frame).padStart(4)} t=${Number.isFinite(fr.t) ? `${fr.t.toFixed(2)}s` : '?'}`;
   if (cmd === 'nav') {
     const [x, z] = String(a ?? '').split(',').map(Number);
     if (!Number.isFinite(x) || !Number.isFinite(z)) { console.error('dump-query: nav wants a floor point as x,z'); process.exit(2); }

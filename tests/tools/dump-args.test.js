@@ -18,11 +18,11 @@ describe('dump.mjs --frames', () => {
 });
 
 describe('dump-query on a frame without t', () => {
-  it('prints t as null instead of crashing', () => {
+  it('prints t as ? instead of crashing', () => {
     const f = join(tmp, 'dump.json');
     writeFileSync(f, JSON.stringify({ frames: [{ frame: 0, people: [], items: [], props: [] }] }));
     const r = spawnSync(process.execPath, [QUERY, f, 'visible', 'nobody'], { encoding: 'utf8' });
     expect(r.status).toBe(0);
-    expect(r.stdout).toContain('t=nulls');
+    expect(r.stdout).toContain('t=?');
   });
 });
