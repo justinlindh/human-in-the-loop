@@ -532,6 +532,53 @@ function wallMatFor(L) {
   return L.wall === 'block' ? surfaceMat('block', null, WALLS.block()) : mat(L.wall === 'sage' ? 'wall_sage' : 'wall_cream');
 }
 
+// A Classic drop ceiling for first-person views (never drawn overhead): off-white tiles at the wall
+// tops on a light grid, with a warm light panel every third tile, open over a roof terrace. Casts and
+// takes no shadows, so the room is lit as it is overhead. Low leaves out the grid.
+const CEILING_PANEL_EVERY = 3;
+const CEILING_GLOW = 0.55;       // the ceiling's own light, standing in for light bounced up off the room
+const CEILING_LAMP = 1.8;        // the light panels' glow
+const ceilingMats = new Map();
+function ceilingMat(name) {
+  let m = ceilingMats.get(name);
+  if (!m) { m = new THREE.MeshStandardMaterial({ color: color(name), emissive: color(name), emissiveIntensity: CEILING_GLOW, roughness: 0.95 }); ceilingMats.set(name, m); }
+  return m;
+}
+function buildCeiling(L, low) {
+  const g = new THREE.Group();
+  g.name = 'ceiling';
+  const y = L.wallH;
+  const decks = L.extras?.decks ?? [];
+  const open = (x, z) => decks.some((d) => x > d.x0 && x < d.x1 && z > d.z0 && z < d.z1);
+  const tile = new THREE.PlaneGeometry(1, 1).rotateX(Math.PI / 2);
+  const panel = new THREE.BoxGeometry(0.62, 0.02, 0.62);
+  const frame = new THREE.BoxGeometry(0.7, 0.012, 0.7);
+  const barX = new THREE.BoxGeometry(1, 0.01, 0.024), barZ = new THREE.BoxGeometry(0.024, 0.01, 1);
+  const flat = { cast: false, receive: false };
+  for (let i = 0; i < L.grid.w; i++) {
+    for (let k = 0; k < L.grid.h; k++) {
+      const x = -L.W / 2 + i + 0.5, z = -L.D / 2 + k + 0.5;
+      if (open(x, z)) continue;
+      g.add(mesh(tile, ceilingMat('ceiling_tile'), x, y, z, flat));
+      const lamp = i % CEILING_PANEL_EVERY === 1 && k % CEILING_PANEL_EVERY === 1;
+      if (lamp) {
+        g.add(mesh(frame, ceilingMat('ceiling_grid'), x, y - 0.006, z, flat));
+        g.add(mesh(panel, glow('lamp_warm', CEILING_LAMP), x, y - 0.012, z, flat));
+      }
+      if (low) continue;
+      // Tiles of 0.5 m: bars on this tile's edges, and through its middle unless a lamp sits there.
+      for (const d of lamp ? [-0.5] : [-0.5, 0]) {
+        g.add(mesh(barX, ceilingMat('ceiling_grid'), x, y - 0.005, z + d, flat));
+        g.add(mesh(barZ, ceilingMat('ceiling_grid'), x + d, y - 0.005, z, flat));
+      }
+    }
+  }
+  const merged = mergeStatic(g);
+  merged.name = 'ceiling';
+  merged.userData.low = low;
+  return merged;
+}
+
 // HQ expansion dressing (layout.js extras): the annex's carpet, the terrace deck with string lights,
 // metal thresholds where old walls stood, and pilasters left at their ends.
 function addExpansion(L, statics) {
@@ -1261,6 +1308,14 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
       const [ox, oz] = OUTWARD[key];
       cur.walls[key].visible = inside || ox * camDir.x + oz * camDir.y < 0.2;
     }
+    // The ceiling, Classic only, exists once someone first looks from inside.
+    const roof = inside && era === 'classic';
+    if (roof && (!cur.ceiling || cur.ceiling.userData.low !== low())) {
+      if (cur.ceiling) { cur.ceiling.removeFromParent(); cur.ceiling.traverse((o) => { if (o.isMesh && o.geometry.userData.merged) o.geometry.dispose(); }); }
+      cur.ceiling = buildCeiling(cur.L, low());
+      cur.root.add(cur.ceiling);
+    }
+    if (cur.ceiling) cur.ceiling.visible = roof;
     if (env) {
       const n = THREE.MathUtils.smoothstep(env.night, 0.2, 0.9);
       if (lampMat) setGlowBase(lampMat, THREE.MathUtils.lerp(0.9, 3.2, n));
