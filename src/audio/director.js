@@ -436,7 +436,7 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
       }
       if (running && t >= nextCoffee) {
         nextCoffee = t + WORLD.coffeeMinGap + rng() * WORLD.coffeeSpread;
-        const hasCoffee = (state.office?.placed ?? []).some((p) => p.itemId === 'espresso' || p.itemId === 'coffee_corner');
+        const hasCoffee = (state.office?.placed ?? []).some((p) => p.itemId === 'espresso');
         if (hasCoffee && present(state).length) out.push(...playCue('sfx.coffee', t));
       }
       if (nextAmbient === null) nextAmbient = t + VOICE.ambientMinGap + rng() * VOICE.ambientSpread;
