@@ -6,6 +6,7 @@ import { createCameraRig } from './camera.js';
 import { createLighting, createBackdrop } from './lighting.js';
 import { createPost } from './post.js';
 import { createFly } from './fly.js';
+import { createFirstPerson } from './firstperson.js';
 import { setRingsShown, setFaceMorphs } from './character.js';
 import { buildKitBoard, buildPropLineup, buildItemLineup, buildCharLineup, buildCharTurnaround, buildWardrobeLineup, buildIconBoard, buildFaceBoard } from './debug.js';
 import { setGlowScale, mat } from './materials.js';
@@ -179,7 +180,24 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   const post = createPost(renderer, scene, rig.camera, q);
   // The dev flying camera (fly.js): a keyframed perspective camera for trailer shots.
   const fly = createFly({ getWallH: () => office?.current?.L?.wallH ?? 3 });
-  let tiltWanted = true, flyCamOn = false;
+  let tiltWanted = true;
+  // First-person views (firstperson.js). The overhead view is saved on entry and put back on exit.
+  let overhead = null, drawCam = rig.camera;
+  const fp = createFirstPerson({ getOffice: () => office, getStaff: () => staff, onAutoExit: () => { leaveFirstPerson(); announceFirstPerson(); } });
+  function enterFirstPerson() {
+    if (!overhead) overhead = { at: rig.goal, zoom: rig.zoomGoal };
+    post.setTiltShift(false);
+  }
+  function leaveFirstPerson() {
+    if (!overhead) return;
+    rig.focus(overhead.at, overhead.zoom);
+    rig.update(10);
+    overhead = null;
+    post.setTiltShift(fly.active ? !!fly.path.tilt : tiltWanted);
+  }
+  function announceFirstPerson() {
+    if (typeof dispatchEvent === 'function') dispatchEvent(new CustomEvent('hitl:firstPerson', { detail: { mode: fp.mode } }));
+  }
 
   function applyQuality() {
     setRigEnabled(rigWanted());
@@ -205,6 +223,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     rig.resize(w, h);
     fly.camera.aspect = w / h;
     fly.camera.updateProjectionMatrix();
+    fp.camera.aspect = w / h;
+    fp.camera.updateProjectionMatrix();
   }
   resize();
 
@@ -351,11 +371,24 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     // validate(x, y, rot) -> boolean | { ok, reason }; the UI supplies it from the sim.
     set validate(fn) { if (build) build.validator = fn; },
     get validate() { return build?.validator ?? null; },
-    pickTile(x, y) { return build?.pickTile(x, y) ?? null; },
+    // Picking is the overhead view's: in first person nothing is picked.
+    pickTile(x, y) { return fp.mode === 'off' ? build?.pickTile(x, y) ?? null : null; },
     // Touch build mode: aim the ghost at the tile under a screen point; returns the placement corner.
-    aimBuild(x, y) { return build?.aim(x, y) ?? null; },
+    aimBuild(x, y) { return fp.mode === 'off' ? build?.aim(x, y) ?? null : null; },
     get buildGrabbing() { return !!build?.grabbing; },
-    pickPlaced(x, y) { return build?.pickPlaced(x, y) ?? null; },
+    pickPlaced(x, y) { return fp.mode === 'off' ? build?.pickPlaced(x, y) ?? null : null; },
+    // First-person views (firstperson.js), driven by ui: seeAs(staffId) and walk() enter (false when
+    // they can't), exit() puts the overhead view back as it was, input() takes this frame's move and
+    // look. 'hitl:firstPerson' { mode } fires when the view ends by itself.
+    firstPerson: {
+      seeAs(id) { const ok = fp.seeAs(id); if (ok) enterFirstPerson(); return ok; },
+      walk(spawn) { const ok = fp.walk(spawn); if (ok) enterFirstPerson(); return ok; },
+      exit() { fp.exit(); leaveFirstPerson(); },
+      mode() { return fp.mode; },
+      input(i) { fp.input(i); },
+      get camera() { return fp.camera; },
+      get walker() { return fp.walker; },
+    },
     // Warm plates under these placed ids (adjacency preview); null clears.
     highlightItems(ids) { build?.highlightItems(ids); },
     // The ghost's anchor tile and rotation, plus whether the validator accepted it.
@@ -385,6 +418,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       return { left: x0, top: y0, width: x1 - x0, height: y1 - y0 };
     },
     pick(x, y) {
+      if (fp.mode !== 'off') return { kind: null, id: null };
       const r = staff ? staff.pick(x, y, rig.camera, canvas) : { kind: null, id: null };
       if (r.kind) return r;
       const id = build?.pickPlaced(x, y);
@@ -417,13 +451,14 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       const t0 = performance.now();
       renderer.info.reset();
       rig.update(dt);
-      const flying = fly.step(dt);
-      const cam = flying ? fly.camera : rig.camera;
-      if (flying !== flyCamOn) {
-        flyCamOn = flying;
+      const inside = fp.step(dt);
+      const flying = !inside && fly.step(dt);
+      const cam = inside ? fp.camera : flying ? fly.camera : rig.camera;
+      if (cam !== drawCam) {
+        drawCam = cam;
         post.setCamera(cam);
         // Up close a lamp or a glowing stack fills more of the frame: bloom is held lower in flight.
-        post.bloom.strength = flying ? FLY_BLOOM : BLOOM;
+        post.bloom.strength = cam === rig.camera ? BLOOM : FLY_BLOOM;
       }
       // Someone standing right by the flying camera fills the frame edge as a big soft head.
       if (flying && staff) {
@@ -435,12 +470,13 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       debugRoot.userData.update?.(dt);
       const paused = speedZero || menuPaused;
       const simDt = paused ? 0 : dt;
-      office?.update(dt, { yaw: rig.yaw, env: lighting.env });
+      office?.update(dt, { yaw: rig.yaw, env: lighting.env, inside });
       nocT += dt;
       paintNoc(office?.current?.dyn.noc?.look, !!noc?.alert && !screens.nocAllClear, nocT, q === 'low');
       surroundings?.setViewYaw(rig.yaw);
       surroundings?.update(dt, lighting.env);
-      if (staff && office && (!flying || fly.path.fade)) office.fadeColumns(cam, staff.positions(), dt);
+      // In first person nobody is hidden behind a column the way the overhead view hides them: all solid.
+      if (staff && office && (!flying || fly.path.fade)) office.fadeColumns(cam, inside ? [] : staff.positions(), dt);
       // A screen takeover is a staged moment: it plays on behind a decision card.
       screens.update(screens.overlay && !speedZero ? dt : simDt, lighting.env);
       // A decision holds the office still, except the moment it stages (unless the game is paused).
