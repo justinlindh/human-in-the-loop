@@ -12,6 +12,8 @@ The gate a PR passes, in minutes: PRs merge on `smoke`, `commits` and the review
 - **toolkit**: every script has a `docs/toolkit` entry (`npm run toolkit -- --check`);
 - **build**: a production build.
 
+When a step fails, the table is followed by `--- red steps ---`, then `<step> failed:` with that step's own FAIL and Error lines (at most 40, or its last 25 lines when it prints none), then `--- end red steps ---`, so the reason is at the bottom of the log without a re-run. Each step's output is kept in a temporary directory under `~/.cache/hitl-ci/tmp`, removed when smoke exits.
+
 `--base` is what "touched" is measured against (default `origin/main`; the GitHub job passes the PR's base). Run `npm run smoke` in any worktree before pushing: it is the check CI will make.
 
 Everything else, which used to run on every PR (the whole-game cases, balance, the browser and render checks, golden, the phone check, the tool self-tests), runs when a release is cut: see [release](release.md). `npm run ci` still runs the old full local run by hand (`scripts/ci-local.sh`), selecting only the self-tests a change reaches ([ci-covers](ci-covers.md)).
