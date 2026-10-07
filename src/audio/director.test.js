@@ -219,8 +219,22 @@ describe('audio director', () => {
     expect(coffee).toBeLessThanOrEqual(5);
     const bare = createDirector();
     let none = 0;
-    for (let t = 0; t < 600; t += 0.5) none += bare.update(state(), t, { speed: 1, running: true }).filter((x) => x.cue === 'sfx.dog' || x.cue === 'sfx.coffee').length;
+    for (let t = 0; t < 600; t += 0.5) none += bare.update(state({ office: { placed: [{ itemId: 'water_cooler' }] } }), t, { speed: 1, running: true }).filter((x) => x.cue === 'sfx.dog' || x.cue === 'sfx.coffee').length;
     expect(none).toBe(0);
+  });
+
+  it('glugs now and then from a placed water cooler with someone in the office, and not otherwise', () => {
+    const count = (s) => {
+      const d = createDirector();
+      let n = 0;
+      for (let t = 0; t < 900; t += 0.5) n += d.update(s, t, { speed: 1, running: true }).filter((x) => x.cue === 'sfx.cooler').length;
+      return n;
+    };
+    const glugs = count(state({ office: { placed: [{ itemId: 'water_cooler' }] } }));
+    expect(glugs).toBeGreaterThanOrEqual(2);
+    expect(glugs).toBeLessThanOrEqual(9);
+    expect(count(state())).toBe(0);
+    expect(count(state({ office: { placed: [{ itemId: 'espresso' }] } }))).toBe(0);
   });
 
   it('keeps the typing bed quiet, scaled by who is working, and off when paused or in lockdown', () => {

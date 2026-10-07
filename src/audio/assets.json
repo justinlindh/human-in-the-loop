@@ -763,6 +763,10 @@
    "duration": 2.5,
    "candidate": true
   },
+  "cooler_glug": {
+   "file": "sfx/cooler_glug.ogg",
+   "duration": 0.6
+  },
   "coffee": {
    "file": "sfx/coffee.ogg",
    "duration": 3.5,

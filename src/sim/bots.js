@@ -165,7 +165,7 @@ function furnish(s) {
 }
 
 // A simple layout heuristic: at most one piece of furniture a week, placed by suggestPlacement.
-const DECOR = [['plant', 3], ['coffee_corner', 6], ['whiteboard', 6], ['bookshelf', 8]];
+const DECOR = [['plant', 3], ['water_cooler', 6], ['whiteboard', 6], ['bookshelf', 8]];
 
 function decorate(s) {
   const desks = deskCapacity(s);

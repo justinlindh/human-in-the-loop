@@ -329,7 +329,7 @@ export function createBuildMode({ layer, ctx, controls }) {
   };
 }
 
-const ADJ_LABEL = { novelty: 'freshness', staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', uptimeFloor: 'minimum uptime', knowledgeGain: 'knowledge gain' };
+const ADJ_LABEL = { novelty: 'freshness', staminaRecovery: 'stamina recovery', meaningRecovery: 'meaning recovery', uptimeFloor: 'minimum uptime', knowledgeGain: 'knowledge gain', knowledgeShare: 'shared know-how' };
 
 // "Boosts 2 desks: +3% freshness" or, for a desk, "This desk gets +3% meaning recovery from a Plant".
 export function adjacencyWords(prev) {
@@ -340,14 +340,24 @@ export function adjacencyWords(prev) {
     const val = g.key === 'uptimeFloor' ? `+${Math.round(g.value * 100)} pts` : `+${Math.round(g.value * 100)}%`;
     const label = ADJ_LABEL[g.key] ?? g.key;
     const empty = g.empty ? ` (${g.empty} empty until someone sits there)` : '';
-    parts.push(g.count
-      ? `Boosts ${g.count} ${g.to}${g.count === 1 ? '' : 's'} nearby: ${val} ${label}${empty}`
-      : `No ${g.to}s within ${g.radius} tiles yet (${val} ${label} each)`);
+    if (g.key === 'knowledgeShare') {
+      parts.push(g.count
+        ? `${g.count} ${g.to}${g.count === 1 ? ' in reach closes' : 's in reach close'} ${val.slice(1)} of the gap to the group's expert each week, when 2 or more people are there${empty}`
+        : `No ${g.to}s within ${g.radius} tiles yet (each would close ${val.slice(1)} of the gap to the group's expert weekly)`);
+    } else {
+      parts.push(g.count
+        ? `Boosts ${g.count} ${g.to}${g.count === 1 ? '' : 's'} nearby: ${val} ${label}${empty}`
+        : `No ${g.to}s within ${g.radius} tiles yet (${val} ${label} each)`);
+    }
   }
   if (prev.receives?.length) {
     const byKey = new Map();
-    for (const r of prev.receives) byKey.set(r.key, (byKey.get(r.key) ?? 0) + r.value);
-    parts.push(`This desk gets ${[...byKey].map(([k, v]) => `+${Math.round(v * 100)}% ${ADJ_LABEL[k] ?? k}`).join(', ')}`);
+    // Bonuses add up, but the game counts one cooler crowd per person, so the cooler's share is the largest in reach.
+    for (const r of prev.receives) byKey.set(r.key, r.key === 'knowledgeShare' ? Math.max(byKey.get(r.key) ?? 0, r.value) : (byKey.get(r.key) ?? 0) + r.value);
+    const share = byKey.get('knowledgeShare');
+    byKey.delete('knowledgeShare');
+    if (byKey.size) parts.push(`This desk gets ${[...byKey].map(([k, v]) => `+${Math.round(v * 100)}% ${ADJ_LABEL[k] ?? k}`).join(', ')}`);
+    if (share !== undefined) parts.push(`This desk closes ${Math.round(share * 100)}% of the gap to the group's expert each week, with 2 or more people nearby`);
   }
   return parts.join('. ');
 }

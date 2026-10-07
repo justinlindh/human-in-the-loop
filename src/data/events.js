@@ -1248,7 +1248,7 @@ const list = [
   },
   {
     id: 'coffee_wanted', yak: { ignore: 1 }, kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
-    when: (s) => s.week >= 8 && !s.office.placed.some((i) => i.itemId === 'espresso' || i.itemId === 'coffee_corner'),
+    when: (s) => s.week >= 8 && !s.office.placed.some((i) => i.itemId === 'espresso'),
     chat: 'The office kettle is doing its best. Its best is not enough.',
     stage: { prop: 'french_press', anchor: 'kitchen' },
     title: 'The team wants a coffee machine',
@@ -1260,14 +1260,14 @@ const list = [
   },
   {
     id: 'coffee_wanted_corner', yak: { ignore: 1 }, kind: 'misc', weight: 2, cooldownWeeks: 52, random: true, subject: null,
-    when: (s) => s.week >= 8 && !s.office.placed.some((i) => i.itemId === 'espresso') && s.office.placed.some((i) => i.itemId === 'coffee_corner'),
-    chat: 'The coffee corner has a new review taped to it. One star. Written in coffee.',
+    when: (s) => s.week >= 8 && !s.office.placed.some((i) => i.itemId === 'espresso') && s.office.placed.some((i) => i.itemId === 'water_cooler'),
+    chat: 'The water cooler crowd has reviewed the office coffee. One star. It is taped to the cooler.',
     stage: { prop: 'printout', anchor: 'kitchen' },
-    title: 'The coffee corner has been reviewed',
-    text: 'The drip coffee in the corner has been formally reviewed. One star: "Keeps the three desks next to it alive. The rest of us are running on vibes." People want real espresso, for everyone.',
+    title: 'The office coffee has been reviewed',
+    text: 'The water cooler crowd ran out of things to say about the code and turned on the instant coffee. One star: "Tastes like a stand-up that should have been an email." It is taped to the cooler, where everyone will see it. People want real espresso.',
     choices: [
       { label: 'Buy an espresso machine', hint: 'Adds an Espresso Machine to the office at shop price; team meaning up', requires: 'canBuyEspresso', effects: { buyItem: 'espresso', teamMeaning: 2 }, outcome: 'The machine arrives. So does a queue.' },
-      { label: 'Not yet', hint: 'Team meaning down a little', effects: { teamMeaning: -1 }, leaves: { prop: 'printout', until: { item: 'espresso' } }, outcome: 'The drip machine soldiers on. It has heard the review. It does not care.' },
+      { label: 'Not yet', hint: 'Team meaning down a little', effects: { teamMeaning: -1 }, leaves: { prop: 'printout', until: { item: 'espresso' } }, outcome: 'The review stays taped to the cooler. Someone adds a second star in pen, out of pity.' },
     ],
   },
 ];

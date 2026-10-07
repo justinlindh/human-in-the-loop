@@ -8,6 +8,7 @@ import { staffMods } from './staff.js';
 import { remoteLearning } from './ladder.js';
 import { bumpDebt } from './debt.js';
 import { responding } from './responders.js';
+import { coolerShare } from './cooler.js';
 
 const LEARNING = new Set(['project', 'maintenance', 'oversight', 'hardProblem', 'security']);
 
@@ -63,6 +64,7 @@ export function knowledgeSystem(ctx) {
     if (p.seniority === 'junior' && mentees.has(p.id)) gain += B.knowledgeGainMentee * remoteLearning(state, p);
     p.knowledge = Math.min(100, p.knowledge + gain * staffMods(p).knowledgeGain * (1 + itemBonus(state, 'knowledgeGain')) * (p.remote ? B.remoteKnowledgeMult : 1));
   }
+  coolerShare(ctx);
 
   state.institutionalKnowledge = institutionalKnowledge(state);
 

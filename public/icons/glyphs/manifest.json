@@ -535,10 +535,6 @@
   "file": "glyphs/item.water_cooler.svg",
   "size": 30
  },
- "item.coffee_corner": {
-  "file": "glyphs/item.coffee_corner.svg",
-  "size": 30
- },
  "item.desk": {
   "file": "glyphs/item.desk.svg",
   "size": 30

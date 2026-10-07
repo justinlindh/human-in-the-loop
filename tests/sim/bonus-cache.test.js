@@ -10,8 +10,8 @@ describe('itemBonus cache', () => {
     const s = game(1);
     addDesks(s, 4);
     for (let i = 0; i < 3; i++) addStaff(s, 'engineer', 'mid');
-    s.office.placed.push({ id: 'i900', itemId: 'coffee_corner', level: 1, x: 0, y: 0, rot: 0 });
-    const check = () => { for (const key of ['staminaRecovery', 'knowledgeGain', 'output']) expect(itemBonus(s, key), key).toBe(fresh(s, key)); };
+    s.office.placed.push({ id: 'i900', itemId: 'water_cooler', level: 1, x: 0, y: 0, rot: 0 });
+    const check = () => { for (const key of ['knowledgeShare', 'knowledgeGain', 'output']) expect(itemBonus(s, key), key).toBe(fresh(s, key)); };
     check();
     const corner = s.office.placed.at(-1);
     const desk = s.office.placed.find((p) => p.itemId === 'desk');

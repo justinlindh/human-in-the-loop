@@ -167,8 +167,7 @@ describe('studio scene --compose', () => {
     }
   }, 260000);
 
-  // #1755: the visitor walks through the person on the espresso's step-out point. Once that is fixed this reports a failure: drop `.fails`.
-  it.fails('coffee wait: the visitor never walks into the person on the step-out point', async () => {
+  it('coffee wait: the visitor never walks into the person on the step-out point', async () => {
     const rows = await frames('coffeeWait');
     for (const r of rows) {
       const pairs = r.facts.intersections.filter((c) => /person:(ada|bo)\//.test(c.a) && /person:(ada|bo)\//.test(c.b) && c.a.split('/')[0] !== c.b.split('/')[0]);

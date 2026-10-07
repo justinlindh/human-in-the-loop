@@ -1568,15 +1568,15 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     return g;
   }
   function norm(x, z) { const l = Math.hypot(x, z) || 1; return [x / l, z / l]; }
-  // A step from `from` to `to` round the printer at `c` rather than through it: the angle about it
-  // eases from one to the other the short way, and the distance from it bulges out to `clearR` (its
-  // half diagonal and a body) at the middle of the step, at e (0 to 1) of the way.
   // How far roundPrinter's step from `from` to `to` goes, in metres.
   function arcLength(from, to, c, clearR) {
     let n = 0, p = from;
     for (let k = 1; k <= 12; k++) { const q = roundPrinter(from, to, c, clearR, k / 12); n += Math.hypot(q.x - p.x, q.z - p.z); p = q; }
     return n;
   }
+  // A step from `from` to `to` round the printer at `c` rather than through it: the angle about it
+  // eases from one to the other the short way, and the distance from it bulges out to `clearR` (its
+  // half diagonal and a body) at the middle of the step, at e (0 to 1) of the way.
   function roundPrinter(from, to, c, clearR, e) {
     const r0 = Math.hypot(from.x - c.x, from.z - c.z), r1 = Math.hypot(to.x - c.x, to.z - c.z);
     const a0 = Math.atan2(from.x - c.x, from.z - c.z), a1 = Math.atan2(to.x - c.x, to.z - c.z);
@@ -1623,8 +1623,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       if (pm.people.every((r) => !r.path.length) || pm.t > 12) {
         pm.phase = 'lift'; pm.t = 0;
         pm.liftFrom = pm.people.map((r) => ({ x: r.pos.x, z: r.pos.z }));
-        // Each steps onto their grip no faster than they walk, taking at least LIFT_STEP_S. The step
-        // eases in and out, so its top speed is 1.5 times its average.
+        // Each steps onto their grip over at least LIFT_STEP_S, and slowly enough that the step's top
+        // speed (1.5 times its average, since it eases in and out) is their walking speed.
         const grips = carrySpots(pm, along(pm.route, 0));
         pm.liftS = pm.people.map((r, i) => Math.max(LIFT_STEP_S, 1.5 * arcLength(pm.liftFrom[i], grips[i], pm.obj.position, pm.clearR) / (r.speed || 1)));
         pm.liftEnd = Math.max(...pm.liftS);

@@ -40,7 +40,7 @@ describe('office shop', () => {
       else expect(it.costs[1]).toBeGreaterThan(it.costs[0] * 2);
     }
     const furniture = Object.values(ITEMS).filter((i) => i.kind === 'furniture');
-    expect(furniture.map((i) => i.id).sort()).toEqual(['bookshelf', 'boombox', 'coffee_corner', 'couch', 'desk', 'foosball', 'meeting_table', 'ping_pong_table', 'plant', 'whiteboard']);
+    expect(furniture.map((i) => i.id).sort()).toEqual(['bookshelf', 'boombox', 'couch', 'desk', 'foosball', 'meeting_table', 'ping_pong_table', 'plant', 'water_cooler', 'whiteboard']);
     for (const it of furniture) expect(it.costs).toHaveLength(1);
   });
 
@@ -391,7 +391,7 @@ describe('everything stays JSON-safe and finite', () => {
     passOfficeGates(s);
     expect(dispatch(s, { type: 'upgradeOffice' }).ok).toBe(true);
     expect(dispatch(s, { type: 'upgradeOffice' }).ok).toBe(true);
-    for (const id of ['espresso', 'plant_wall', 'nap_pod', 'arcade', 'library', 'monitoring_wall', 'server_rack', 'server_rack', 'plant', 'whiteboard', 'coffee_corner', 'bookshelf', 'meeting_table']) {
+    for (const id of ['espresso', 'plant_wall', 'nap_pod', 'arcade', 'library', 'monitoring_wall', 'server_rack', 'server_rack', 'plant', 'whiteboard', 'water_cooler', 'bookshelf', 'meeting_table']) {
       expect(dispatch(s, placeAction(s, id)).ok, id).toBe(true);
     }
     s.research.done = ['eval_harness', 'observability', 'ci_cd', 'docs_culture', 'red_team_suite'];

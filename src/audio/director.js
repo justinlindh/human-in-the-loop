@@ -78,7 +78,7 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
   let playing = [];               // { bus, priority, until, t }
   const moods = new Map();        // staffId -> last mood
   let hadOutage = null;
-  let nextPet = null, nextCoffee = null;
+  let nextPet = null, nextCoffee = null, nextCooler = null;
   let typing = 0;
   const music = { era: null, eraSeen: null, bed: null, pendingEra: null, level: null, lowpass: undefined, paused: null, title: null, dancePaused: false, preloaded: false, lastBed: {} };
 
@@ -427,7 +427,7 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
       }
       // Ambient: rare, only while time runs and nothing holds the screen.
       const running = ctx.running !== false && (ctx.speed ?? 1) > 0 && !hold && !(state.lockdown && state.week < (state.lockdown.until ?? Infinity));
-      if (nextPet === null) { nextPet = t + WORLD.petMinGap + rng() * WORLD.petSpread; nextCoffee = t + WORLD.coffeeMinGap + rng() * WORLD.coffeeSpread; }
+      if (nextPet === null) { nextPet = t + WORLD.petMinGap + rng() * WORLD.petSpread; nextCoffee = t + WORLD.coffeeMinGap + rng() * WORLD.coffeeSpread; nextCooler = t + WORLD.coolerMinGap + rng() * WORLD.coolerSpread; }
       if (running && t >= nextPet) {
         nextPet = t + WORLD.petMinGap + rng() * WORLD.petSpread;
         const here = new Set(present(state).map((p) => p.id));
@@ -436,8 +436,13 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
       }
       if (running && t >= nextCoffee) {
         nextCoffee = t + WORLD.coffeeMinGap + rng() * WORLD.coffeeSpread;
-        const hasCoffee = (state.office?.placed ?? []).some((p) => p.itemId === 'espresso' || p.itemId === 'coffee_corner');
+        const hasCoffee = (state.office?.placed ?? []).some((p) => p.itemId === 'espresso');
         if (hasCoffee && present(state).length) out.push(...playCue('sfx.coffee', t));
+      }
+      if (running && t >= nextCooler) {
+        nextCooler = t + WORLD.coolerMinGap + rng() * WORLD.coolerSpread;
+        const hasCooler = (state.office?.placed ?? []).some((p) => p.itemId === 'water_cooler');
+        if (hasCooler && present(state).length) out.push(...playCue('sfx.cooler', t));
       }
       if (nextAmbient === null) nextAmbient = t + VOICE.ambientMinGap + rng() * VOICE.ambientSpread;
       if (running && t >= nextAmbient) {

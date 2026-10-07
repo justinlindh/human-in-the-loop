@@ -12,7 +12,7 @@ Placed in Build mode. Each level's cost and what it adds.
 | Desk Set | furniture | any | L1 $800; seats one person; every hire needs a free desk. From the Office Floor on, at most 30, plus 5 per expansion |
 | Meeting Table | furniture | any | L1 $3,000; with Daily Standups on, everyone in the weekly standup gains 0.3 knowledge |
 | Whiteboard | furniture | any | L1 $400; novelty +4% for each occupied desk within 2 tiles, shared across the team |
-| Coffee Corner | furniture | any | L1 $1,200; stamina recovery +8% for each occupied desk within 3 tiles, shared across the team |
+| Water Cooler | furniture | any | L1 $1,500; two or more people in the office with desks within 3 tiles each close 2% of the gap to the most knowledgeable of them a week, at most 1 knowledge |
 | Potted Plant | furniture | any | L1 $150; meaning recovery +4% for each occupied desk within 2 tiles, shared across the team |
 | Bookshelf | furniture | any | L1 $500; knowledge gain +5% for each occupied desk within 2 tiles, shared across the team |
 | Couch | furniture | any | L1 $600: meaning recovery +3%, stamina recovery +5% |

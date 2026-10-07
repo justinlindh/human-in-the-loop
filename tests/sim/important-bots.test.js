@@ -7,14 +7,14 @@ import { B } from '../../src/sim/balance.js';
 describe('issue #757: which bot posts are important', () => {
   const posts = [];
   beforeAll(() => {
-    // At today's event and prompt rates, so every kind of post turns up in three games.
+    // At today's event and prompt rates, so every kind of post turns up in six games.
     const keep = B.pacing.askRates;
     B.pacing.askRates = false;
     try {
       // Posts come from the weekly tick and from the bot's own actions, which present queued asks.
-      for (const seed of [1, 2, 3]) {
+      for (const seed of [1, 2, 3, 4, 5, 6]) {
         let state = null;
-        const take = (ev) => { for (const e of ev) if (e.type === 'chat' && e.fromId === null) posts.push({ ...e, prompts: state.chatPrompts }); };
+        const take = (ev) => { for (const e of ev) if (e.type === 'chat' && e.fromId === null) posts.push({ ...e, prompted: state.chatPrompts.some((p) => p.chatId === e.id) }); };
         runBot('balanced', seed, 520, { setup: (s) => { state = s; }, onWeek: (s, ev) => take(ev), onEvents: take });
       }
     } finally {
@@ -29,7 +29,7 @@ describe('issue #757: which bot posts are important', () => {
   });
 
   it('a Yak prompt and its outcome are flagged', () => {
-    const asked = posts.filter((e) => e.prompts?.some((p) => p.chatId === e.id));
+    const asked = posts.filter((e) => e.prompted);
     expect(asked.length).toBeGreaterThan(0);
     expect(asked.every((e) => e.important)).toBe(true);
   });

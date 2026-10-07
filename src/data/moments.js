@@ -41,7 +41,7 @@ export const MOMENT_CAPTIONS = {
   moonshot_pitch: 'The moonshot team taped up a logo. The plan is still pending.',
   conference_expo: 'An expo flyer is on the wall. Someone circled the free coffee.',
   coffee_wanted: 'A French press has appeared. It has a guard.',
-  coffee_wanted_corner: 'A one-star review is taped to the coffee corner.',
+  coffee_wanted_corner: 'A one-star review of the office coffee is taped to the water cooler.',
   pivot_pitch: 'The whiteboard says "the market has spoken". Nobody knows what it said.',
   incubator_house: 'A hand-painted INCUBATOR sign by the door. The mentor awaits an answer.',
   the_box: 'The rival made a very shiny cube. Everyone is staring at the poster.',
