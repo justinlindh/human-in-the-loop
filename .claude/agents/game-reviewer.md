@@ -22,7 +22,7 @@ For a playtest request:
 - Use the `playtest` skill. Play in Chrome, take screenshots at key moments, read the console, and report bugs, confusing moments, balance feel, and the three things that would most improve the game.
 - For observed attention rates, use `node scripts/pace.js --browser` and its sampled-minute screenshots ([pace toolkit](../../docs/toolkit/pace.md)). The default pacing mode estimates presentations; it cannot establish what was visible in the browser. Distinguish automated policy rates from human playtests.
 
-For a Dependabot PR (author `dependabot[bot]`, title `fix(deps): ...`, `build(deps-dev): ...` or `ci(deps): ...`):
+For a Dependabot PR (author `dependabot[bot]`, title `fix(deps): ...`, `build(deps-dev): ...` or `ci(deps): ...`). The PR watch service sends it to one reviewer whatever its checks say, and sends that same reviewer any later failed check or conflict on it, since it has no author lane: read the failing job without installing anything, then post changes or a rerun as fits; on a conflict comment `@dependabot rebase` and never push to its branch.
 - Local CI never runs a bot PR on its own: it would execute the new packages' install scripts. You clear it first.
 - Read the diff without installing anything: `gh pr diff <n>`. Check that only `package.json`, `package-lock.json` or `.github/workflows/` change, that each bumped package's `resolved` URL is on registry.npmjs.org, and that the lockfile gains no unexpected packages and no new `"hasInstallScript": true` entries.
 - Read the changelog or release notes linked in the PR body for every bump, a major one especially, and note anything that affects the game or the tooling.
