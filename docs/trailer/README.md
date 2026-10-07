@@ -26,7 +26,7 @@ Flags:
 
 - `--vo <dir>`: the voiceover, one WAV per line named by line id (`l1.wav`, `l2.wav`, ...). Without it the
   trailer is built with music and captions only, which is handy while editing cuts.
-- `--reuse`: keep clips already captured with the same capture item, pinned snapshot and game code (`src/`, `public/`, `scripts/capture.js`, `scripts/lib/`, including uncommitted changes there) and capture only the rest. A commit that touches none of those, such as docs or a config retime that leaves the item alone, reuses every clip.
+- `--reuse`: keep clips already captured with the same capture item, pinned snapshot and game code (the paths listed in `scripts/trailer/reuse.js`, including uncommitted and untracked files there; if git can't hash them, reuse is off for that run) and capture only the rest. A commit that touches none of those, such as docs or a config retime that leaves the item alone, reuses every clip.
 - `--reuse-from <clips>`: reuse inspected footage from a prior capture directory when the capture specification matches and its subject checks passed. The capture index records the original build and content hash. Both Yak shots are recaptured.
 - `--vertical`: also build the 1080x1920 cut.
 - `--no-captions`: skip the burned-in captions.

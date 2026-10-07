@@ -9,10 +9,18 @@ const sha = (...parts) => parts.reduce((h, p) => h.update(p).update('\n'), creat
 // (docs, other lanes' scripts, the trailer config) leaves a clip's key alone.
 const CODE_PATHS = ['src', 'public', 'index.html', 'vite.config.js', 'package-lock.json', 'scripts/capture.js', 'scripts/lib'];
 
-// Tracked blob ids plus any uncommitted change under those paths.
+// Tracked blob ids plus any uncommitted change and untracked file under those paths. When git
+// can't answer, the hash is unique to this run so no earlier clip matches.
 export function codeHash(root) {
   const git = (...a) => execFileSync('git', a, { cwd: root, encoding: 'utf8', maxBuffer: 1 << 28 });
-  try { return sha(git('ls-files', '-s', '--', ...CODE_PATHS), git('diff', 'HEAD', '--', ...CODE_PATHS)); } catch { return 'unknown'; }
+  try {
+    const untracked = git('ls-files', '-o', '--exclude-standard', '--', ...CODE_PATHS).split('\n').filter(Boolean);
+    return sha(git('ls-files', '-s', '--', ...CODE_PATHS), git('diff', 'HEAD', '--', ...CODE_PATHS),
+      ...untracked.map((f) => f + ':' + sha(readFileSync(join(root, f)))));
+  } catch {
+    console.error('trailer: the game code could not be hashed (git failed), so reuse is off for this run');
+    return `unknown-${Date.now()}-${Math.random()}`;
+  }
 }
 
 // The saved games a capture item loads, named in its setup as /<dir>/<name>.snap.

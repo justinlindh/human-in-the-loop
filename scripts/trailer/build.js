@@ -5,7 +5,7 @@
 // npm run trailer -- --vo shots/trailer/vo         voiceover lines as <dir>/<line id>.wav
 //   [--trailer main|era] [--out shots/trailer] [--reuse] [--reuse-from <clips>] [--vertical] [--no-captions] [--print-vo] [--software] [--audio-only]
 // --audio-only mixes mix.wav and music-stem.wav and stops: no capture, no video.
-// --reuse keeps clips already whose capture item, pinned snapshot and game code are unchanged. Every choice lives in config.js.
+// --reuse keeps clips whose capture item, pinned snapshot and game code are unchanged. Every choice lives in config.js.
 import { spawn, execFileSync, execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';

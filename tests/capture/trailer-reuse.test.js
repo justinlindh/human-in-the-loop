@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { captureKey, canReuse, snapshotHash } from '../../scripts/trailer/reuse.js';
+import { captureKey, canReuse, snapshotHash, codeHash } from '../../scripts/trailer/reuse.js';
 const item = { id: 'trailer-printer', actions: [{ at: 2, js: 'check()' }] };
 const beat = { id: 'printer', from: 2 };
 const record = { build: 'abc123', errors: 0, marks: [{ label: 'beat-check', beat: 'printer', t: 2, ok: true }] };
@@ -24,6 +24,13 @@ describe('explicit verified footage reuse', () => {
   });
   it.each(['yak', 'yak-react'])('requires a fresh %s shot even with a matching specification', id => {
     expect(canReuse({ ...input, beat: { ...beat, id }, record: { ...record, marks: [{ ...record.marks[0], beat: id }] } })).toBe(false);
+  });
+});
+describe('code hash', () => {
+  it('never matches an earlier run when git cannot answer', () => {
+    const root = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), 'nogit-'));
+    const a = codeHash(root), b = codeHash(root);
+    expect(a).not.toBe(b);
   });
 });
 describe('snapshot hash', () => {
