@@ -1,0 +1,32 @@
+{
+  "inventory": {
+    "query": "seed=1&speed=1&eras",
+    "seed": 1,
+    "week": 53
+  },
+  "float": {
+    "query": "seed=7&speed=1&eras",
+    "seed": 7,
+    "week": 78
+  },
+  "y2k": {
+    "query": "seed=7&speed=1&eras",
+    "seed": 7,
+    "week": 103
+  },
+  "bust": {
+    "query": "seed=7&speed=1&eras",
+    "seed": 7,
+    "week": 156
+  },
+  "web2": {
+    "query": "seed=7&speed=1&eras",
+    "seed": 7,
+    "week": 255
+  },
+  "ai": {
+    "query": "seed=7&speed=1&eras",
+    "seed": 7,
+    "week": 598
+  }
+}
