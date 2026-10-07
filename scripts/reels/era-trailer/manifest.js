@@ -1,7 +1,7 @@
 // The capture manifest for the era segment: one item per beat of ./config.js, named `trailer-<beat id>`.
 // The early eras open on pinned states (./snapshots, written by `node scripts/trailer/pin.mjs --trailer era`);
 // the jump into the AI eras reuses the main trailer's own item.
-import { CLEAN, CLEAR_CARDS, CHOOSE_WHEN, KEY, CLICK_STARTS } from '../../capture-manifest.js';
+import { PIN_PACING, CLEAN, CLEAR_CARDS, CHOOSE_WHEN, KEY, CLICK_STARTS } from '../../capture-manifest.js';
 import { LOAD_PIN } from '../../trailer/pins.js';
 import { ITEMS as MAIN } from '../../trailer/manifest.js';
 import { BEATS, PIN_DIR } from './config.js';
@@ -12,7 +12,7 @@ const CARDS_AWAY = Array.from({ length: 30 }, (_, i) => ({ at: i + 0.2, js: CLEA
 // after 3 s, as a player would.
 const early = (id, pin, extra = {}) => ({
   id, title: `Era segment: ${id}`, query: 'seed=7&speed=1&eras',
-  setup: `(async () => { await ${LOAD_PIN(pin, PIN_DIR)}; ${CLEAN}; const st = document.createElement('style'); st.textContent = '#ui .moment-cap { bottom: 7% !important; font-size: 2.3em; background: #fbf5ea !important; color: #2a2630 !important; border: 0.1em solid #2a2630; border-radius: 0.7em !important; font-weight: 600; box-shadow: 0 0.14em 0 #2a2630 !important; } #ui .moment-cap .mcap-skip { display: none !important; }'; document.head.append(st); })()`,
+  setup: `(async () => { ${PIN_PACING} await ${LOAD_PIN(pin, PIN_DIR)}; ${CLEAN}; const st = document.createElement('style'); st.textContent = '#ui .moment-cap { bottom: 7% !important; font-size: 2.3em; background: #fbf5ea !important; color: #2a2630 !important; border: 0.1em solid #2a2630; border-radius: 0.7em !important; font-weight: 600; box-shadow: 0 0.14em 0 #2a2630 !important; } #ui .moment-cap .mcap-skip { display: none !important; }'; document.head.append(st); })()`,
   actions: [...CARDS_AWAY, ...CHOOSE_WHEN(null, 0, 1, 30, 3)],
   ...extra,
 });
@@ -29,9 +29,7 @@ const OWN = [
   early('seg-float', 'float', { seconds: 14, actions: [...CARDS_AWAY, ...CHOOSE_WHEN(null, 0, 1, 30, 3),
     ...Array.from({ length: 26 }, (_, i) => ({ at: 0.5 + i / 2, js: "(() => { if (window.__HITL.state.pendingDecision?.eventId === 'dotcom_ipo_frenzy') window.__floatSeen = true; })()" })),
     { at: 13, js: "(() => { if (!window.__floatSeen) console.error('capture: the float offer never opened'); })()" }] }),
-  // The bust: the billboard goes FOR LEASE as the card lands.
-  early('seg-bust', 'bust', { seconds: 14 }),
-  // The millennium watch: the spotlight runs about 15 s once the week ticks.
+  // The millennium watch: the clock counts down to midnight about 14 to 17 s in.
   early('seg-y2k', 'y2k', { seconds: 30 }),
   // Build > Projects on a Web 2.0 company: the old-browser line on a project card.
   early('seg-web2', 'web2', {

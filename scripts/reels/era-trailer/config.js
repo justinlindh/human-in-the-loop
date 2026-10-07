@@ -1,4 +1,5 @@
 import { OUTPUT as MAIN_OUTPUT, PLAY_URL as MAIN_PLAY_URL } from '../../trailer/config.js';
+import { PIN_PACING } from '../../capture-manifest.js';
 
 // The era segment: about 15 s of quick cuts, one per era, each showing a mechanic or joke only that era has,
 // for the main trailer. Built alone (`npm run trailer -- --trailer era`) so it can be judged before it is
@@ -16,6 +17,7 @@ export const PIN_DIR = 'scripts/reels/era-trailer/snapshots';
 // A company founded at `startEra`, played in the page with the balanced bot until `cond` (a JS predicate on s,
 // checked after the bot's turn and before the tick), then `after` (JS over s), then loaded as a save.
 const FOUNDED = (startEra, seed, cond, after = '') => `(async () => {
+  ${PIN_PACING}
   const sim = await import('/src/sim/index.js');
   const b = await import('/src/sim/bots.js');
   const { saveGame } = await import('/src/save/save.js');
@@ -42,10 +44,9 @@ export const PIN_SOURCES = {
   inventory: { query: 'seed=1&speed=1&eras', setup: FOUNDED('preinternet', 1, '(s.products.find((p) => p.boxed)?.boxed.installed ?? 0) > 0', `
     const p = s.products.find((x) => x.boxed); s.cash = Math.max(s.cash, 50000);
     sim.dispatch(s, { type: 'orderBatch', productId: p.id, units: 500 });`) },
-  // The week before the banker's float offer, the Y2K week, the bust, and a Web 2.0 company with a web project.
+  // The week before the banker's float offer, the Y2K week, and a Web 2.0 company with a web project.
   float: { query: 'seed=7&speed=1&eras', setup: FOUNDED('dotcom', 7, "c.pendingDecision?.eventId === 'dotcom_ipo_frenzy'") },
   y2k: { query: 'seed=7&speed=1&eras', setup: FOUNDED('dotcom', 7, 's.week === 103') },
-  bust: { query: 'seed=7&speed=1&eras', setup: FOUNDED('dotcom', 7, 's.week === 156') },
   ai: { query: 'seed=7&speed=1&eras', setup: FOUNDED('dotcom', 7, "c.era.id === 'chatgbt' && s.era.id !== 'chatgbt'") },
   web2: { query: 'seed=7&speed=1&eras', setup: FOUNDED('dotcom', 7, "s.era.id === 'web2' && s.projects.some((p) => p.compatibility)") },
 };
@@ -54,7 +55,7 @@ export const PIN_SOURCES = {
 export const BEATS = [
   { id: 'inventory', item: 'seg-inventory', from: 1.5, dur: 3.0 },
   { id: 'float', item: 'seg-float', from: 7.0, dur: 3.0 },
-  { id: 'y2k', item: 'seg-y2k', from: 11.5, dur: 4.0 },
+  { id: 'y2k', item: 'seg-y2k', from: 14.3, dur: 4.0 },
   { id: 'ie6', item: 'seg-web2', from: 2.0, dur: 3.0 },
   { id: 'ai', item: 'seg-ai', from: 8.1, dur: 3.4 },
 ];

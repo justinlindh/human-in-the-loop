@@ -14,11 +14,6 @@
     "seed": 7,
     "week": 103
   },
-  "bust": {
-    "query": "seed=7&speed=1&eras",
-    "seed": 7,
-    "week": 156
-  },
   "web2": {
     "query": "seed=7&speed=1&eras",
     "seed": 7,
