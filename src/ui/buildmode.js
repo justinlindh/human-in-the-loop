@@ -342,7 +342,7 @@ export function adjacencyWords(prev) {
     const empty = g.empty ? ` (${g.empty} empty until someone sits there)` : '';
     if (g.key === 'knowledgeShare') {
       parts.push(g.count
-        ? `Weekly: ${g.count} ${g.to}${g.count === 1 ? '' : 's'} nearby close ${val.slice(1)} of the gap to the group's expert each week, with 2 or more people nearby${empty}`
+        ? `${g.count} ${g.to}${g.count === 1 ? ' in reach closes' : 's in reach close'} ${val.slice(1)} of the gap to the group's expert each week, when 2 or more people are there${empty}`
         : `No ${g.to}s within ${g.radius} tiles yet (each would close ${val.slice(1)} of the gap to the group's expert weekly)`);
     } else {
       parts.push(g.count

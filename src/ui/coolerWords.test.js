@@ -10,7 +10,9 @@ describe('the water cooler effect words', () => {
     expect(it.costs[0]).toBe(B.cooler.price);
     const pct = Math.round(B.cooler.share * 100);
     expect(adjacencyWords({ gives: { key: 'knowledgeShare', value: B.cooler.share, to: 'desk', count: 3, radius: 3 } }))
-      .toBe(`Weekly: 3 desks nearby close ${pct}% of the gap to the group's expert each week, with 2 or more people nearby`);
+      .toBe(`3 desks in reach close ${pct}% of the gap to the group's expert each week, when 2 or more people are there`);
+    expect(adjacencyWords({ gives: { key: 'knowledgeShare', value: B.cooler.share, to: 'desk', count: 1, radius: 3 } }))
+      .toBe(`1 desk in reach closes ${pct}% of the gap to the group's expert each week, when 2 or more people are there`);
     expect(adjacencyWords({ receives: [{ key: 'knowledgeShare', value: B.cooler.share }] }))
       .toBe(`This desk closes ${pct}% of the gap to the group's expert each week, with 2 or more people nearby`);
   });
