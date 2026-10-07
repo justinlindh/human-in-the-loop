@@ -146,7 +146,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     props = createProps(office, screens);
     surroundings = createSurroundings({ parent: scene, low: () => q === 'low', lighting });
     staff = createStaffSync({ office, parent: scene, labels: floating, fx, rig, caricature: (p) => portraits.caricature(p), setDim: (k) => { partyDim = k; }, setAccent: (p, i, c) => lighting.setAccent(p, i, c), setPictureLight: (a, b, i) => lighting.setPictureLight(a, b, i), getProps: () => props, low: () => q === 'low' });
-    build = createBuild({ office, getCamera: () => rig.camera, canvas });
+    build = createBuild({ office, getCamera: () => rig.camera, canvas, hint: (q) => staff?.perks.playHint(q) ?? null, markers: () => staff?.perks.markers ?? [] });
     rival = createRival({ office });
     Promise.all([loadModels(), rigLoaded]).then(() => { ready = true; });
   }
@@ -360,6 +360,9 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     highlightItems(ids) { build?.highlightItems(ids); },
     // The ghost's anchor tile and rotation, plus whether the validator accepted it.
     get buildTarget() { return build?.target ?? null; },
+    // Why an item would get no games (perks.playHint): { placedId } for a placed one, or the build
+    // preview's { itemId, x, y, rot, level?, moveId? }. null, or { code: 'sides', self, ids }.
+    playHint(q) { return staff?.perks.playHint(q) ?? null; },
     get hoverPlaced() { return build?.hoverId ?? null; },
     // Steps characters, labels, and effects without drawing (for headless verification).
     advance(seconds, step = 1 / 30) {

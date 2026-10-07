@@ -1399,9 +1399,11 @@ export async function runPairCheck(R, S, label, { dt = 1 / 30 } = {}) {
     turn = Math.max(turn, ...rods.map((r) => (r ? 2 * Math.acos(Math.min(1, Math.abs(r.quaternion.dot(r.userData.q0 ??= r.quaternion.clone())))) : 0)));
   }
   // Foosball is played from the two long sides only: with a plant against one, no game starts there.
+  // The hint says so: in the preview of the plant, and on the placed table once it stands there.
+  const hintPreview = R.perks.playHint({ itemId: 'plant', x: spot.x, y: spot.y + 1, rot: 0 })?.ids?.includes('pair_table') === true && R.perks.playHint({ placedId: 'pair_table' }) === null;
   S.office.placed.push({ id: 'pair_block', itemId: 'plant', level: 1, x: spot.x, y: spot.y + 1, rot: 0 });
   step(30);
-  const blockedSide = !R.perks.send(ids, 'pair_table', { dur: 6 });
+  const blockedSide = !R.perks.send(ids, 'pair_table', { dur: 6 }) && hintPreview && R.perks.playHint({ placedId: 'pair_table' })?.self === true;
   S.office.placed = S.office.placed.filter((p) => p.id !== 'pair_table' && p.id !== 'pair_block');
   step(60);
   // A new toy: the same table placed live (visits not held) draws two people as soon as two are free
