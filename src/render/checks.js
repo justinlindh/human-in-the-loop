@@ -1398,7 +1398,11 @@ export async function runPairCheck(R, S, label, { dt = 1 / 30 } = {}) {
     if (Math.abs(ball.position.x) > 0.43 || Math.abs(ball.position.z) > 0.24) off++;
     turn = Math.max(turn, ...rods.map((r) => (r ? 2 * Math.acos(Math.min(1, Math.abs(r.quaternion.dot(r.userData.q0 ??= r.quaternion.clone())))) : 0)));
   }
-  S.office.placed = S.office.placed.filter((p) => p.id !== 'pair_table');
+  // Foosball is played from the two long sides only: with a plant against one, no game starts there.
+  S.office.placed.push({ id: 'pair_block', itemId: 'plant', level: 1, x: spot.x, y: spot.y + 1, rot: 0 });
+  step(30);
+  const blockedSide = !R.perks.send(ids, 'pair_table', { dur: 6 });
+  S.office.placed = S.office.placed.filter((p) => p.id !== 'pair_table' && p.id !== 'pair_block');
   step(60);
   // A new toy: the same table placed live (visits not held) draws two people as soon as two are free
   // (at once in a full office; a two-person garage waits for them to get back from the last game).
@@ -1410,7 +1414,7 @@ export async function runPairCheck(R, S, label, { dt = 1 / 30 } = {}) {
   step(60);
   R.perks.hold = true;
   const game = travel > 1 && off === 0 && turn > 0.3 && newToy !== null;
-  return { name: `pairs:${label}`, pass: readyAt !== null && playedAt !== null && game, staff: S.staff.length, readyAt, playedAt, table: spot, ballTravel: +travel.toFixed(2), offPitch: off, rodTurn: +turn.toFixed(2), newToyAt: newToy };
+  return { name: `pairs:${label}`, pass: readyAt !== null && playedAt !== null && game && blockedSide, staff: S.staff.length, readyAt, playedAt, table: spot, ballTravel: +travel.toFixed(2), offPitch: off, rodTurn: +turn.toFixed(2), newToyAt: newToy, blockedSide };
 }
 
 // The sky backdrop redraws at most a few times a second; a change inside that window must still be

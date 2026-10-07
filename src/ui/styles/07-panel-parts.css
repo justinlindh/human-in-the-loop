@@ -69,6 +69,7 @@
 .hitl .pick .pr { width: 0.6em; height: 1.6em; border-radius: 0.3em; border: 0.12em solid var(--ink); flex: none; }
 .hitl .pick .busy { font-size: 0.65em; background: var(--cream-3); border-radius: 1em; padding: 0 0.4em; }
 .hitl .summary { margin-top: 0.6em; display: flex; flex-direction: column; gap: 0.35em; }
+.hitl .blockwhy { font-weight: 800; font-size: 0.95em; text-align: center; padding: 0.35em 0.5em; border-radius: 0.5em; background: var(--cream-3); }
 .hitl .sumrow { display: flex; justify-content: space-between; align-items: center; font-size: 0.9em; }
 .hitl .btn.big { font-size: 1.15em; padding: 0.55em 0.9em; margin-top: 0.3em; }
 
