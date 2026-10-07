@@ -1,8 +1,8 @@
 // Screens a short sound-effect candidate for a ringing or reverberant tail before it goes anywhere near the
 // owner's desk. Two checks, both relative to the clip itself so a 10 ms click is not judged like a bell:
-//   decay: how long the envelope takes to fall 40 dB below its peak and stay there. A short cue (a clip that
-//          is audible for no longer than `shortMax`, trailing silence not counted) must settle within `decay`; longer clips are loops, ambience or stingers
-//          and are judged by ear.
+//   decay: how long the envelope takes to fall 40 dB below its peak and stay there. A short cue (a clip
+//          audible for no longer than `shortMax`, leading and trailing silence not counted) must settle
+//          within `decay`; longer clips are loops, ambience or stingers and are judged by ear.
 //   end:   the peak of the clip's last stretch (a quarter of the clip, at most 50 ms) against the clip's peak.
 //          A clip cut off while still loud fails.
 //
@@ -47,7 +47,8 @@ export function screen(x, sr, bars = BARS) {
   let last = peakAt;
   for (let i = env.length - 1; i > peakAt; i--) if (env[i] > floor) { last = i; break; }
   const decay = (last - peakAt) * step;
-  const sounding = (last + 1) * step; // length up to where it stays 40 dB down: trailing silence does not count
+  const first = env.findIndex((v) => v > floor);
+  const sounding = (last - first + 1) * step; // first to last frame above 40 dB down: padding does not count
   const tailLen = Math.max(1, Math.round(Math.min(0.05, dur / 4) * sr));
   const end = db(peakOf(x, x.length - tailLen)) - db(peakOf(x));
   const failed = [];
