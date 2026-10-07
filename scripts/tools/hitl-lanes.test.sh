@@ -109,6 +109,10 @@ rm -f "$tmp/arrive"
 # The recheck itself: a message stamped after the given time holds; one before it does not; the gates run again.
 ac lane --recheck 2999-01-01T00:00:00.000Z; [ $rc -eq 0 ] || fail "--recheck passes when nothing is newer: $rc $(cat "$tmp/out")"
 ac lane --recheck 2000-01-01T00:00:00.000Z; [ $rc -eq 3 ] && grep -q 'new message since the check' "$tmp/out" || fail "--recheck holds on a newer message: $rc $(cat "$tmp/out")"
+# A stale session that also holds the lane's brief and has the newer mtime is not the one to scan.
+printf '{"x":"You are `lane`"}\n{"type":"assistant","timestamp":"2020-01-01T00:00:00.000Z"}\n' >"$tmp/stale.jsonl"; touch "$tmp/stale.jsonl"
+ac lane --recheck 2000-01-01T00:00:00.000Z; [ $rc -eq 3 ] && grep -q 'new message since the check' "$tmp/out" || fail "--recheck scans the transcript written last, not the newest mtime: $rc $(cat "$tmp/out")"
+rm -f "$tmp/stale.jsonl"
 echo '[{"from":"x"}]' >"$teams/session-a/inboxes/lane.json"
 ac lane --recheck 2999-01-01T00:00:00.000Z; [ $rc -eq 3 ] && grep -q 'unread messages' "$tmp/out" || fail "--recheck runs the inbox gate again: $rc $(cat "$tmp/out")"
 echo '[]' >"$teams/session-a/inboxes/lane.json"
