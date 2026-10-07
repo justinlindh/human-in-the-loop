@@ -26,6 +26,7 @@ describe('clip groups', () => {
     const on = (only) => Object.entries(groupsFor(only)).filter(([, v]) => v).map(([g]) => g);
     expect(on(['desk:f3'])).toEqual(['seats']);
     expect(on(['printer'])).toEqual(['props', 'y2k']);
+    expect(on(['moment:cooler'])).toEqual(['props']);
     expect(on(null)).toEqual(Object.keys(GROUPS));
   });
 
