@@ -267,7 +267,8 @@ tool_step release bash "$SELF/release.test.sh"
 tool_step main-red bash "$SELF/main-red.test.sh"
 tool_step pwa-plugin bash "$SELF/pwa-plugin.test.sh"
 # Install, update, kill and relaunch in WebKit (about two minutes): the main guard's full run only.
-pwa_inputs='^(src/dev/pwa\.js$|src/main\.js$|index\.html$|package(-lock)?\.json$|vite\.config\.js$|scripts/(pwa|vite-pwa|lib/))'
+# It builds the whole game and serves it, so the game's source, its assets and page, the build config and the PWA scripts are its inputs.
+pwa_inputs='^(src/|public/|index\.html$|package(-lock)?\.json$|vite\.config\.js$|scripts/(pwa|vite-pwa|lib/))'
 if [ "${CI_FULL:-}" = 1 ]; then
   if [ "$full_delta" = 1 ] && ! grep -qE "$pwa_inputs" <<<"$delta"; then
     record pwa-webkit "skipped: nothing it reads differs from the last green full run" 0; timing_log kind=step tool=ci-local step=pwa-webkit skipped=1 wall_s=0 exit=0
@@ -370,8 +371,12 @@ gh_step test:fast test npm run test:fast -- --maxWorkers="$VITEST_WORKERS"
 # A PR run does not play them: the main guard (CI_FULL=1) plays all of them on every main commit and files
 # the issue when one breaks, and the author fixes forward.
 full_check() { npm run test:full -- --maxWorkers="$VITEST_WORKERS"; }
-full_inputs='^(src/|tests/|public/(data|models)/|package(-lock)?\.json$|vite\.config\.js$|scripts/(balance\.js$|lib/|events/|tools/|studio/))'
-if [ "${CI_FULL:-}" = 1 ] && [ "$full_delta" = 1 ] && ! grep -qE "$full_inputs" <<<"$delta"; then
+# The whole-game tests import or read much of the repository, so they are skipped only when every changed file
+# is on this short list of paths none of them reads (checked against the files they import, transitively, and
+# against every file under tests/): CI config, design docs, the dashboard and systemd units, memes.
+no_full_inputs='^(\.github/|docs/(proposals|superpowers|readme|trailer|reels)/|scripts/(systemd|dashboard)/|public/memes/|CLAUDE\.md$)'
+full_reads="$(grep -vE "$no_full_inputs" <<<"$delta" | grep . || true)"
+if [ "${CI_FULL:-}" = 1 ] && [ "$full_delta" = 1 ] && [ -z "$full_reads" ]; then
   record test:full "skipped: nothing it reads differs from the last green full run" 0; timing_log kind=step tool=ci-local step=test:full skipped=1 wall_s=0 exit=0
 elif [ "${CI_FULL:-}" = 1 ]; then pstep test:full full_check
 else record test:full "skipped: the whole-game cases run on main (the main guard)" 0; timing_log kind=step tool=ci-local step=test:full skipped=1 wall_s=0 exit=0; fi
