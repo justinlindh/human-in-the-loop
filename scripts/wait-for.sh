@@ -201,7 +201,7 @@ behind_main() { # <branch> <head>
   ! git merge-base --is-ancestor origin/main "$2" 2>/dev/null
 }
 
-last="" seen_head="" head_since=0 warned=0 required="" lag_said="" snap_head="" fix_tried=0
+last="" seen_head="" head_since=0 warned=0 required="" rules_read=0 lag_said="" snap_head="" fix_tried=0
 while :; do
   read_pr || { live=0; sleep "$poll"; continue; }
   live=0
@@ -212,8 +212,11 @@ while :; do
     node "$(dirname "$0")/tools/pr-snapshot.mjs" --refresh >/dev/null 2>&1; snap_head="$h"
   fi
   if [ -z "$required" ]; then
-    required="$(gh api "$api/branches/$(jq -r .baseRefName <<<"$json")/protection" 2>/dev/null \
-      | jq -r '[.required_status_checks.contexts[]? | select(type == "string" and . != "review")] | join(" ")' 2>/dev/null)" || required=""
+    prot="$(gh api "$api/branches/$(jq -r .baseRefName <<<"$json")/protection" 2>/dev/null)" || prot=""
+    required="$(jq -r '[.required_status_checks.contexts[]? | select(type == "string" and . != "review")] | join(" ")' <<<"$prot" 2>/dev/null)" || required=""
+    # With the rules read, only the required checks (and review) can fail the wait; a failing check that
+    # nothing requires is not this watcher's business.
+    rules_read=0; jq -e '.required_status_checks.contexts | type == "array"' <<<"$prot" >/dev/null 2>&1 && rules_read=1
     [ -n "$required" ] || required="local-ci"
   fi
   state="$(jq -r .state <<<"$json")"
@@ -239,8 +242,9 @@ while :; do
   # A ci-rerun label means auto-CI will replace the head's local-ci result, so an old failure there
   # counts as still waiting. Auto-CI sets local-ci pending when it picks the rerun up.
   rerun="$(jq -r '[.labels[]?.name] | index("ci-rerun") != null' <<<"$json")"
-  failing="$(jq -r --argjson rerun "$rerun" '[.statusCheckRollup[]? | if .__typename == "CheckRun" then {n: .name, s: (.conclusion // "")} else {n: .context, s: .state} end
+  failing="$(jq -r --argjson rerun "$rerun" --argjson only "$rules_read" --arg req "$required review" '($req | split(" ")) as $r | [.statusCheckRollup[]? | if .__typename == "CheckRun" then {n: .name, s: (.conclusion // "")} else {n: .context, s: .state} end
     | select(($rerun and .n == "local-ci") | not)
+    | select($only == 0 or (.n as $n | $r | index($n) != null))
     | select(.s == "FAILURE" or .s == "ERROR" or .s == "CANCELLED" or .s == "TIMED_OUT" or .s == "ACTION_REQUIRED") | "\(.n)=\(.s | ascii_downcase)"] | join(" ")' <<<"$json")"
   pending="$(jq -r '[.statusCheckRollup[]? | select(.__typename == "CheckRun" and (.status != "COMPLETED")) | .name] | join(" ")' <<<"$json")"
   review="$(jq -r '[.statusCheckRollup[]? | select(.__typename == "StatusContext" and .context == "review") | .state] | first // "NONE"' <<<"$json")"
