@@ -77,6 +77,11 @@ test('see-as sits just ahead of the eyes and looks where the head looks', () => 
   expect(fp.camera.position.y).toBeCloseTo(0.8);
   expect(fp.camera.position.x).toBeCloseTo(1.07);
   expect(fp.camera.getWorldDirection(new THREE.Vector3()).x).toBeGreaterThan(0.99);
+  // Not controllable: look and move input change nothing.
+  fp.input({ yaw: 1, pitch: 0.5, moveZ: 1 });
+  fp.step(1 / 60);
+  expect(fp.camera.getWorldDirection(new THREE.Vector3()).x).toBeGreaterThan(0.99);
+  expect(fp.camera.position.x).toBeCloseTo(1.07);
 });
 
 test('see-as refuses someone who is away, and ends by itself when they go', () => {
