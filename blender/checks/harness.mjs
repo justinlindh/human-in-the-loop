@@ -102,7 +102,8 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
     // Cold-start cost outside any one scene: the render lock, the Vite server and the browser
     // launch. Fixed per startHarness() call, before any page opens.
     phases: timer.phases,
-    // A page on `query`, ready to step. errors collects page errors and console errors.
+    // A page on `query`, ready to step. errors collects page errors and console errors, failedLoads
+    // the requests that failed.
     async openScene(query, { width = 960, height = 640, time = 0.45, slot = 0 } = {}) {
       const pt = phaseTimer();
       const page = await launched[slot % launched.length].browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
@@ -113,6 +114,10 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
       page.on('request', (r) => { requests.add(r.url()); allRequests.add(r.url()); });
       page.on('pageerror', (e) => errors.push(e.message));
       page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+      // Requests that failed or answered 400 or above, each `<url>: <reason>`.
+      const failedLoads = [];
+      page.on('requestfailed', (r) => failedLoads.push(`${r.url()}: ${r.failure()?.errorText ?? 'failed'}`));
+      page.on('response', (r) => { if (r.status() >= 400) failedLoads.push(`${r.url()}: HTTP ${r.status()}`); });
       // Pages never touch the network: a request off the harness's own server is aborted, recorded as
       // a page error, and fails opening the page, so no result depends on what the network returned.
       const blocked = [];
@@ -182,7 +187,7 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
       pt.mark('toolPreload');
       // Cold-start cost for this one page: navigation, model/font readiness, and tool preload. Added
       // to startHarness()'s own phases, this is where openScene's time actually goes.
-      return { page, errors, requests, phases: pt.phases };
+      return { page, errors, requests, failedLoads, phases: pt.phases };
     },
     async close() { await Promise.all(launched.map((l) => l.browser.close())); await server.close(); },
   };

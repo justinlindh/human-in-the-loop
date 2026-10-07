@@ -2385,6 +2385,8 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     },
     // Whether someone is in a seated pose (for checks).
     isSeated(id) { return !!recs.get(id)?.char.seated; },
+    // Whether someone is in the office and drawn (not away, remote or gone).
+    shown(id) { const r = recs.get(id); return !!r && !r.hidden && r.mode === 'placed'; },
     // Floor positions of everyone visible, for effects that react to where people are.
     positions() { const out = []; for (const r of recs.values()) if (!r.hidden) out.push(r.pos); return out; },
     // Checks: put someone in a temp and optionally set them walking across the office.

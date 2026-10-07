@@ -36,15 +36,22 @@ note() { echo "$*" >>"$LOGS/notes"; }
 # passed in full. A check's result depends only on its inputs, so one whose inputs are none of those files
 # passed before and is skipped. reaches <regex> <files>: the check's gate matches the PR's files and, when a
 # delta is known, also the delta. The main guard (CI_FULL=1) never uses a delta.
-have_delta=0; delta=""
+have_delta=0; delta=""; full_delta=0
 if [ "${CI_FULL:-}" != 1 ] && [ -n "${CI_DELTA_FILE:-}" ] && [ -f "$CI_DELTA_FILE" ]; then have_delta=1; delta="$(cat "$CI_DELTA_FILE")"; fi
+# The main guard (CI_FULL=1) hands over the commit its last green run passed (CI_FULL_BASE). A check that
+# reads none of the files differing from that commit passed there and is skipped; one that reads any of
+# them runs. Without the base, or one the repository does not have, every check runs.
+if [ "${CI_FULL:-}" = 1 ] && [ -n "${CI_FULL_BASE:-}" ] && git cat-file -e "${CI_FULL_BASE}^{commit}" 2>/dev/null; then
+  full_delta=1; have_delta=1; delta="$(git diff --name-only --no-renames "$CI_FULL_BASE" HEAD)"
+fi
 # An empty delta (the tree equals the passed one) matches nothing, so every gated check is skipped.
 reaches() {
   grep -qE "$1" <<<"$2" || return 1
   [ "$have_delta" = 1 ] || return 0
   grep -qE "$1" <<<"$delta"
 }
-[ "$have_delta" = 1 ] && note "Checks whose inputs match the tree this PR last passed were skipped: $(grep -c . <<<"$delta" || true) file(s) differ (scripts/ci-delta.sh)."
+if [ "$full_delta" = 1 ]; then note "Checks whose inputs match ${CI_FULL_BASE:0:7}, the commit the last green full run checked, were skipped: $(grep -c . <<<"$delta" || true) file(s) differ."
+elif [ "$have_delta" = 1 ]; then note "Checks whose inputs match the tree this PR last passed were skipped: $(grep -c . <<<"$delta" || true) file(s) differ (scripts/ci-delta.sh)."; fi
 load1() { cut -d' ' -f1 /proc/loadavg 2>/dev/null || echo 0; }
 
 # At most HITL_CI_SLOTS runs at once on the machine (scripts/lib/ci-capacity.sh); a run past the cap
@@ -146,7 +153,10 @@ pjoin() { # <start time> [phase name]
 # package files and vite.config.js (the tools' dependencies and dev servers); the main guard
 # (CI_FULL=1) runs them on every main commit.
 tool_changes=1
-if [ "${CI_FULL:-}" != 1 ]; then
+if [ "$full_delta" = 1 ]; then
+  tool_mb="$CI_FULL_BASE"; tool_files="$delta"
+  reaches '^(scripts/|\.claude/|package\.json$|package-lock\.json$|vite\.config\.js$)' "$tool_files" || tool_changes=0
+elif [ "${CI_FULL:-}" != 1 ]; then
   tool_mb="$(git merge-base "$BASE" HEAD 2>/dev/null)" || tool_mb=""
   # The file list is read whole before matching: grep -q exits at the first match and a writer still
   # sending would die of SIGPIPE, which pipefail turns into "no match" (the self-tests skipped).
@@ -158,7 +168,7 @@ fi
 # Of the self-tests, a PR runs only those whose tool the change touches (ci-covers.sh reads each toolkit
 # entry's `covers:`); the main guard runs them all. Without a merge base every self-test runs.
 tool_select=0; tool_relevant=""
-if [ "${CI_FULL:-}" != 1 ] && [ -n "${tool_mb:-}" ] && [ "$tool_changes" = 1 ]; then
+if { [ "${CI_FULL:-}" != 1 ] || [ "$full_delta" = 1 ]; } && [ -n "${tool_mb:-}" ] && [ "$tool_changes" = 1 ]; then
   tool_relevant="$(printf '%s\n' "$tool_files" | bash "$SELF/ci-covers.sh" "$PWD")" && tool_select=1
 fi
 # Under ci-pr (CI_PR_SELFTESTS=1) a self-test the PR changes runs as the PR wrote it, in place in the
@@ -257,7 +267,13 @@ tool_step release bash "$SELF/release.test.sh"
 tool_step main-red bash "$SELF/main-red.test.sh"
 tool_step pwa-plugin bash "$SELF/pwa-plugin.test.sh"
 # Install, update, kill and relaunch in WebKit (about two minutes): the main guard's full run only.
-if [ "${CI_FULL:-}" = 1 ]; then step pwa-webkit node "$SELF/pwa-webkit.js"; fi
+# It builds the whole game and serves it, so the game's source, its assets and page, the build config and the PWA scripts are its inputs.
+pwa_inputs='^(src/|public/|index\.html$|package(-lock)?\.json$|vite\.config\.js$|scripts/(pwa|vite-pwa|lib/))'
+if [ "${CI_FULL:-}" = 1 ]; then
+  if [ "$full_delta" = 1 ] && ! grep -qE "$pwa_inputs" <<<"$delta"; then
+    record pwa-webkit "skipped: nothing it reads differs from the last green full run" 0; timing_log kind=step tool=ci-local step=pwa-webkit skipped=1 wall_s=0 exit=0
+  else step pwa-webkit node "$SELF/pwa-webkit.js"; fi
+fi
 tool_step test-push bash "$SELF/test-push.test.sh"
 tool_step ci-pr-trust bash "$SELF/ci-pr-trust.test.sh"
 tool_step drive bash "$SELF/tools/drive.test.sh"
@@ -355,7 +371,14 @@ gh_step test:fast test npm run test:fast -- --maxWorkers="$VITEST_WORKERS"
 # A PR run does not play them: the main guard (CI_FULL=1) plays all of them on every main commit and files
 # the issue when one breaks, and the author fixes forward.
 full_check() { npm run test:full -- --maxWorkers="$VITEST_WORKERS"; }
-if [ "${CI_FULL:-}" = 1 ]; then pstep test:full full_check
+# The whole-game tests import or read much of the repository, so they are skipped only when every changed file
+# is on this short list of paths none of them reads (checked against the files they import, transitively, and
+# against every file under tests/): CI config, design docs, the dashboard and systemd units, memes.
+no_full_inputs='^(\.github/|docs/(proposals|superpowers|readme|trailer|reels)/|scripts/(systemd|dashboard)/|public/memes/|CLAUDE\.md$)'
+full_reads="$(grep -vE "$no_full_inputs" <<<"$delta" | grep . || true)"
+if [ "${CI_FULL:-}" = 1 ] && [ "$full_delta" = 1 ] && [ -z "$full_reads" ]; then
+  record test:full "skipped: nothing it reads differs from the last green full run" 0; timing_log kind=step tool=ci-local step=test:full skipped=1 wall_s=0 exit=0
+elif [ "${CI_FULL:-}" = 1 ]; then pstep test:full full_check
 else record test:full "skipped: the whole-game cases run on main (the main guard)" 0; timing_log kind=step tool=ci-local step=test:full skipped=1 wall_s=0 exit=0; fi
 gh_step build test npm run build
 # Trailer and landing beats (tests/sim/trailer-beats/replay.mjs, sim only, about 20 s), for changes to

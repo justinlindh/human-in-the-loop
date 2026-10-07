@@ -10,7 +10,9 @@ import { buildPlacedModel } from './office.js';
 // setMode(null)                               off
 // setMode({ select: true })                   hover highlight on placed items
 // setMode({ itemId, rot, level?, moveId? })   ghost placement; moveId hides the item being moved
-export function createBuild({ office, getCamera, canvas }) {
+// hint(q): why an item placed as q would leave a table unplayed (perks.playHint), or null.
+// markers(): the "!" bubbles over such tables (sprites with userData.placedId), picked as their table.
+export function createBuild({ office, getCamera, canvas, hint = () => null, markers = () => [] }) {
   const group = new THREE.Group();
   group.name = 'build';
   let attached = null;
@@ -29,10 +31,12 @@ export function createBuild({ office, getCamera, canvas }) {
   const ghostMats = {
     ok: new THREE.MeshStandardMaterial({ color: color('tone_good'), transparent: true, opacity: 0.72, roughness: 0.6, depthWrite: false, emissive: color('tone_good'), emissiveIntensity: 0.3 }),
     bad: new THREE.MeshStandardMaterial({ color: color('alarm_red'), transparent: true, opacity: 0.72, roughness: 0.6, depthWrite: false, emissive: color('alarm_red'), emissiveIntensity: 0.35 }),
+    warn: new THREE.MeshStandardMaterial({ color: color('tone_warn'), transparent: true, opacity: 0.72, roughness: 0.6, depthWrite: false, emissive: color('tone_warn'), emissiveIntensity: 0.3 }),
   };
   const plateMats = {
     ok: new THREE.MeshBasicMaterial({ color: color('tone_good'), transparent: true, opacity: 0.5, depthWrite: false }),
     bad: new THREE.MeshBasicMaterial({ color: color('alarm_red'), transparent: true, opacity: 0.5, depthWrite: false }),
+    warn: new THREE.MeshBasicMaterial({ color: color('tone_warn'), transparent: true, opacity: 0.5, depthWrite: false }),
     hover: new THREE.MeshBasicMaterial({ color: color('lamp_warm'), transparent: true, opacity: 0.45, depthWrite: false }),
   };
   const plateGeo = new THREE.PlaneGeometry(0.94, 0.94).rotateX(-Math.PI / 2);
@@ -109,7 +113,10 @@ export function createBuild({ office, getCamera, canvas }) {
   function pickPlaced(cx, cy) {
     const cur = office.current;
     if (!cur) return null;
-    const hits = ray(cx, cy).intersectObjects(cur.furniture.children, true);
+    // A "!" bubble over a table counts as the table.
+    const mark = ray(cx, cy).intersectObjects(markers(), false)[0];
+    if (mark) return mark.object.userData.placedId;
+    const hits = raycaster.intersectObjects(cur.furniture.children, true);
     for (const h of hits) {
       let o = h.object;
       while (o && o.userData.placedId === undefined) o = o.parent;
@@ -165,12 +172,13 @@ export function createBuild({ office, getCamera, canvas }) {
   }
 
   function validate(x, y, rot) {
-    if (!validator) return { ok: true };
     const key = `${mode.itemId}|${x}|${y}|${rot}|${mode.moveId ?? ''}`;
     let v = validCache.get(key);
     if (!v) {
-      const r = validator(x, y, rot);
+      const r = validator ? validator(x, y, rot) : true;
       v = typeof r === 'object' && r ? { ok: !!r.ok, reason: r.reason ?? null } : { ok: !!r, reason: null };
+      // A placement that is allowed but leaves a table with no games warns instead.
+      v.hint = v.ok ? hint({ itemId: mode.itemId, level: mode.level ?? 1, x, y, rot, moveId: mode.moveId ?? null }) : null;
       validCache.set(key, v);
     }
     return v;
@@ -254,7 +262,7 @@ export function createBuild({ office, getCamera, canvas }) {
     const f = footprint(mode.itemId, rot);
     const { x, y } = corner(cur.L, t, rot);
     const v = validate(x, y, rot);
-    target = { x, y, rot, ok: v.ok, reason: v.reason };
+    target = { x, y, rot, ok: v.ok, reason: v.reason, hint: v.hint };
     const tr = placedTransform(cur.L, { itemId: mode.itemId, x, y, rot });
     if (!ghost.visible) { ghost.position.set(tr.x, 0, tr.z); ghost.rotation.y = tr.rotY; ghost.visible = true; }
     const k = 1 - Math.exp(-dt * 18);
@@ -264,9 +272,17 @@ export function createBuild({ office, getCamera, canvas }) {
     if (dr < -Math.PI) dr += Math.PI * 2;
     ghost.rotation.y += dr * k;
     ghost.position.y = 0.02 + Math.sin(performance.now() / 260) * 0.015;
-    const m = v.ok ? ghostMats.ok : ghostMats.bad;
+    const tone = !v.ok ? 'bad' : v.hint ? 'warn' : 'ok';
+    const m = ghostMats[tone];
     ghost.traverse((c) => { if (c.isMesh && c.material !== m) c.material = m; });
-    setPlates(footprintTiles(cur.L, x, y, f.w, f.h), v.ok ? plateMats.ok : plateMats.bad);
+    // Amber plates also under the placed tables this would leave unplayed.
+    const blocked = (v.hint?.ids ?? []).flatMap((id) => {
+      const e = office.placed.get(id);
+      if (!e) return [];
+      const fe = footprint(e.itemId, e.rot);
+      return footprintTiles(cur.L, e.x, e.y, fe.w, fe.h);
+    });
+    setPlates([...footprintTiles(cur.L, x, y, f.w, f.h), ...blocked], plateMats[tone]);
   }
 
   function dispose() {

@@ -20,6 +20,8 @@
 //   --interval <s>       seconds between looks when waiting (default 60)
 //   --timeout <s>        give up waiting after this long (exit 4); default no limit
 //   --json               the queue as JSON
+//   --skip <list>        leave these out of every mode, so a --wait can stand while they wait: comma-separated
+//                        [owner/name#]n[@head] (repeatable); with @head (a prefix) a push to another head brings it back
 // A PR with a required check pending or missing is listed but does not end a --wait or hold a --drain open: its CI
 // will finish and it will move to READY.
 // --wait and --drain at an interval of 15 s or more read the current repository's PRs from the shared
@@ -27,6 +29,7 @@
 // one-shot run always asks GitHub.
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { constants } from 'node:os';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { ensureFresh } from './pr-snapshot.mjs';
@@ -79,11 +82,19 @@ export const line = (w) => `${w.group} ${w.repo ? `${w.repo}` : ''}#${w.number} 
 
 // The checks branch protection requires on main, less review, read from the API (cached for a few minutes);
 // null when they cannot be read, and queue() then falls back to every reported check.
+// gh, synchronously. A signal sent to the whole group lands in gh while this process is blocked on it, before
+// this process's own handler can run, so a gh that died of a signal ends this run as that signal would.
+function gh(args, opts = {}) {
+  const r = spawnSync('gh', args, { encoding: 'utf8', ...opts });
+  if (r.signal) process.exit(128 + (constants.signals[r.signal] ?? 15));
+  return r;
+}
+
 const rulesCache = new Map();
 export function requiredChecks(repo, now = Date.now()) {
   const hit = rulesCache.get(repo ?? '');
   if (hit && now - hit.at < 300000) return hit.names;
-  const r = spawnSync('gh', ['api', `repos/${repo ?? '{owner}/{repo}'}/branches/main/protection`], { encoding: 'utf8' });
+  const r = gh(['api', `repos/${repo ?? '{owner}/{repo}'}/branches/main/protection`]);
   let names = null;
   if (r.status === 0) { try { const c = JSON.parse(r.stdout).required_status_checks?.contexts; if (Array.isArray(c)) names = c.filter((n) => typeof n === 'string' && n !== 'review'); } catch { /* unreadable */ } }
   rulesCache.set(repo ?? '', { at: now, names });
@@ -98,7 +109,7 @@ export function trustedLogins(file) {
 // the shared snapshot (pr-snapshot.mjs), refreshed when older than maxAgeMs. A one-shot run, a faster
 // interval and another repository ask GitHub directly.
 const MIN_SNAPSHOT_AGE_MS = 15000;
-async function look(trusted, repos, maxAgeMs) {
+async function lookAll(trusted, repos, maxAgeMs) {
   const out = [];
   for (const repo of repos) {
     let prs;
@@ -108,7 +119,7 @@ async function look(trusted, repos, maxAgeMs) {
       if (snap.isStale) console.error(`review-queue: GitHub could not be read (${snap.error ?? 'unknown'}); using the snapshot from ${Math.round((Date.now() - snap.fetchedAt) / 1000)} s ago`);
       prs = snap.prs.filter((p) => (p.baseRefName ?? 'main') === 'main');
     } else {
-      const r = spawnSync('gh', ['pr', 'list', ...(repo ? ['--repo', repo] : []), '--base', 'main', '--state', 'open', '--limit', '100', '--json', FIELDS], { encoding: 'utf8', maxBuffer: 1 << 26 });
+      const r = gh(['pr', 'list', ...(repo ? ['--repo', repo] : []), '--base', 'main', '--state', 'open', '--limit', '100', '--json', FIELDS], { maxBuffer: 1 << 26 });
       if (r.status !== 0) throw new Error(`gh pr list failed${repo ? ` for ${repo}` : ''}: ${(r.stderr || r.stdout).trim().split('\n').slice(-1)[0]}`);
       prs = JSON.parse(r.stdout);
     }
@@ -120,8 +131,26 @@ async function look(trusted, repos, maxAgeMs) {
 const sleep = (s) => new Promise((resolve) => setTimeout(resolve, s * 1000));
 const key = (w) => `${w.group} ${w.repo ?? ''}#${w.number}@${w.head}`;
 
+// --skip values ("[owner/name#]n[@head]", comma-separated) as [{ repo, number, head }], or null when one is malformed.
+export function parseSkip(values = []) {
+  const out = [];
+  for (const s of values.flatMap((v) => v.split(',')).map((s) => s.trim()).filter(Boolean)) {
+    const m = /^(?:([\w.-]+\/[\w.-]+)#)?#?(\d+)(?:@([0-9a-f]{4,40}))?$/i.exec(s);
+    if (!m) return null;
+    out.push({ repo: m[1] ?? null, number: Number(m[2]), head: m[3]?.toLowerCase() ?? null });
+  }
+  return out;
+}
+// A skip with no repo matches the PR number in any repository looked in; with @head, only that head (compared
+// on the 8 characters a line shows).
+export const skipped = (w, skips) => skips.some((s) => s.number === w.number && (!s.repo || s.repo === (w.repo ?? null))
+  && (!s.head || w.head.startsWith(s.head.slice(0, 8))));
+
 async function main() {
-  const { values } = parseArgs({ options: { wait: { type: 'boolean' }, drain: { type: 'boolean' }, interval: { type: 'string' }, timeout: { type: 'string' }, json: { type: 'boolean' }, repo: { type: 'string', multiple: true } } });
+  const { values } = parseArgs({ options: { wait: { type: 'boolean' }, drain: { type: 'boolean' }, interval: { type: 'string' }, timeout: { type: 'string' }, json: { type: 'boolean' }, repo: { type: 'string', multiple: true }, skip: { type: 'string', multiple: true } } });
+  const skips = parseSkip(values.skip);
+  if (!skips) { console.error(`review-queue: --skip wants [owner/name#]n[@head], comma-separated (got ${values.skip.join(' ')})`); return 2; }
+  const look = async (...a) => (await lookAll(...a)).filter((w) => !skipped(w, skips));
   const interval = Number(values.interval ?? 60), timeout = values.timeout == null ? Infinity : Number(values.timeout);
   if (!(interval > 0) || !(timeout > 0)) { console.error('review-queue: --interval and --timeout want a positive number'); return 2; }
   if (values.wait && values.drain) { console.error('review-queue: --wait and --drain are alternatives'); return 2; }

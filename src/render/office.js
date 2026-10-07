@@ -792,6 +792,7 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
   const growMat = paletteMaterial('pal_grow');
 
   let navVersion = 0;
+  const probes = new Map();   // obstaclesAt's unplaced models, one per item, level and stage
   function nav() {
     if (!cur.nav) {
       const rects = [];
@@ -1251,14 +1252,15 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
   }
 
   const camDir = new THREE.Vector2();
-  function update(dt, { yaw = Math.PI / 4, env } = {}) {
+  // inside: a first-person view, which sees every wall (no cutaway).
+  function update(dt, { yaw = Math.PI / 4, env, inside = false } = {}) {
     if (!cur) return;
     if (eraQueue.length) rebuildForEra();
     updateBatch(dt);
     camDir.set(Math.sin(yaw), Math.cos(yaw));
     for (const key of WALL_KEYS) {
       const [ox, oz] = OUTWARD[key];
-      cur.walls[key].visible = ox * camDir.x + oz * camDir.y < 0.2;
+      cur.walls[key].visible = inside || ox * camDir.x + oz * camDir.y < 0.2;
     }
     if (env) {
       const n = THREE.MathUtils.smoothstep(env.night, 0.2, 0.9);
@@ -1363,6 +1365,19 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
       for (const r of cur.floorRects ?? []) out.push({ by: 'floor', ...r });
       for (const [bx, by] of cur.L.blocked) out.push({ by: 'pillar', x0: bx - cur.L.W / 2, x1: bx + 1 - cur.L.W / 2, z0: by - cur.L.D / 2, z1: by + 1 - cur.L.D / 2 });
       return out;
+    },
+    // The obstacle rects an item would have at { itemId, level, x, y, rot } if placed there (the build
+    // preview's what-if), measured from its model as obstacles() measures a placed one.
+    obstaclesAt(p) {
+      if (!cur) return [];
+      const key = `${p.itemId}|${p.level ?? 1}|${cur.stage}`;
+      let probe = probes.get(key);
+      if (!probe) { probe = { itemId: p.itemId, obj: buildPlacedModel({ itemId: p.itemId, level: p.level ?? 1, rot: 0 }, cur.stage) }; probes.set(key, probe); }
+      probe.target = placedTransform(cur.L, p);
+      let rects;
+      // An item dressed only once placed (the NOC) is measured by its footprint.
+      try { rects = obstaclesOf(probe); } catch { const t = probe.target; rects = [{ x0: t.x - t.w / 2, x1: t.x + t.w / 2, z0: t.z - t.h / 2, z1: t.z + t.h / 2 }]; }
+      return rects.map((r) => ({ by: 'probe', itemId: p.itemId, ...r }));
     },
     // Floor rectangles of staged props standing in the office ({ x0, x1, z0, z1 }). A change
     // rebuilds the walking grid, which re-routes walkers and steps aside anyone standing inside.
