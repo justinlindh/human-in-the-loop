@@ -22,7 +22,7 @@ const skip = new Set((values.skip ?? 'screen,tooltip').split(',').filter(Boolean
 const seeded = [];
 // A row's value is its worst depth over all its states, so a row seen in both a mock and a seeded game keeps only
 // its non-seeded states and is compared on those; its depth is compared only when no seeded state fed it.
-let mixed = 0;
+const mixedIn = [];
 const rows = (file) => {
   const all = JSON.parse(readFileSync(file, 'utf8')).violations.filter((v) => !skip.has(v.check));
   const kept = [];
@@ -30,9 +30,10 @@ const rows = (file) => {
     const states = v.states ?? [v.state];
     const plain = values.seeds ? states : states.filter((st) => !/^seed:/.test(st));
     if (!plain.length) continue;
-    if (plain.length < states.length) { mixed++; kept.push({ ...v, states: plain, mixed: true }); } else kept.push({ ...v, states: plain });
+    if (plain.length < states.length) { kept.push({ ...v, states: plain, mixed: true }); } else kept.push({ ...v, states: plain });
   }
   seeded.push(all.length - kept.length);
+  mixedIn.push(kept.filter((v) => v.mixed).length);
   return new Map(kept.map((v) => [v.key, v]));
 };
 const [a, b] = positionals.map(rows);
@@ -57,6 +58,6 @@ show('first only', out.onlyFirst, (r) => `${r.key}  ${r.value} m at ${r.state}`)
 show('second only', out.onlySecond, (r) => `${r.key}  ${r.value} m at ${r.state}`);
 show('differ', out.differ, (r) => `${r.key}  first ${r.first} m, second ${r.second} m at ${r.state}`);
 show('states', out.states, (r) => `${r.key}  first only: ${r.firstOnly.join(', ') || '-'}; second only: ${r.secondOnly.join(', ') || '-'}`);
-console.log(`sweep-parity: ${out.match.length} of ${a.size} rows match within ${tolerance} m; ${out.onlyFirst.length} in the first run only, ${out.onlySecond.length} in the second only, ${out.differ.length} differ, ${out.states.length} seen in different states (skipping ${[...skip].join(', ') || 'nothing'}${values.seeds ? '' : `; ${Math.max(...seeded)} rows seen only in seeded games left out, ${mixed} seen in both kinds compared on their non-seeded states with depths not compared; --seeds compares them all`})`);
+console.log(`sweep-parity: ${out.match.length} of ${a.size} rows match within ${tolerance} m; ${out.onlyFirst.length} in the first run only, ${out.onlySecond.length} in the second only, ${out.differ.length} differ, ${out.states.length} seen in different states (skipping ${[...skip].join(', ') || 'nothing'}${values.seeds ? '' : `; ${Math.max(...seeded)} rows seen only in seeded games left out, ${Math.max(...mixedIn)} seen in both kinds compared on their non-seeded states with depths not compared; --seeds compares them all`})`);
 if (values.json) writeFileSync(values.json, JSON.stringify(out, null, 1));
 process.exit(out.onlyFirst.length || out.onlySecond.length || out.differ.length || out.states.length ? 1 : 0);
