@@ -5,13 +5,13 @@
 // npm run trailer -- --vo shots/trailer/vo         voiceover lines as <dir>/<line id>.wav
 //   [--trailer main|era] [--out shots/trailer] [--reuse] [--reuse-from <clips>] [--vertical] [--no-captions] [--print-vo] [--software] [--audio-only]
 // --audio-only mixes mix.wav and music-stem.wav and stops: no capture, no video.
-// --reuse keeps clips already captured from the same commit. Every choice lives in config.js.
+// --reuse keeps clips already whose capture item, pinned snapshot and game code are unchanged. Every choice lives in config.js.
 import { spawn, execFileSync, execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
-import { captureKey, canReuse } from './reuse.js';
+import { captureKey, canReuse, codeHash, subjectOf } from './reuse.js';
 import { renderGraphics } from './cards.js';
 
 function parseArgs(argv) {
@@ -81,10 +81,12 @@ const commit = (() => { try { return execSync('git rev-parse --short HEAD', { cw
 const indexFile = join(CLIPS, 'index.json');
 const clipBeats = BEATS.filter((b) => b.item);
 const captured = () => (existsSync(indexFile) ? JSON.parse(readFileSync(indexFile, 'utf8')).items : {});
-// A clip is reused only when its capture item and the commit are unchanged.
+// A clip is reused only when its capture item, pinned snapshot and the game code it renders are unchanged.
 const { ITEMS: CAPTURE_ITEMS } = await import(pathToFileURL(join(ROOT, TRAILER.dir, 'manifest.js')).href);
 const itemOf = (b) => CAPTURE_ITEMS.find(it => it.id === `trailer-${b.id}`);
-const keyOf = (b) => captureKey(commit, itemOf(b));
+const code = codeHash(ROOT);
+const subjectFor = (b) => subjectOf(ROOT, itemOf(b), code);
+const keyOf = (b) => captureKey(subjectFor(b), itemOf(b));
 const keyFile = (b) => join(CLIPS, `trailer-${b.id}.key`);
 const fresh = (b) => { const i = captured()[`trailer-${b.id}`]; return i && i.errors === 0 && existsSync(join(CLIPS, `trailer-${b.id}.mp4`)) && existsSync(keyFile(b)) && readFileSync(keyFile(b), 'utf8') === keyOf(b); };
 // Imported footage retains its original build and content hash in the capture index.
@@ -95,7 +97,7 @@ if (typeof args['reuse-from'] === 'string' && !args['audio-only']) {
   for (const beat of clipBeats) {
     const id = 'trailer-' + beat.id, record = old.items[id];
     const keyPath = join(source, id + '.key');
-    if (!existsSync(keyPath) || !canReuse({ beat, item: itemOf(beat), record, key: readFileSync(keyPath, 'utf8') })) continue;
+    if (!existsSync(keyPath) || !canReuse({ beat, item: itemOf(beat), record, key: readFileSync(keyPath, 'utf8'), subject: subjectFor(beat) })) continue;
     const file = id + '.mp4';
     const sha256 = createHash('sha256').update(readFileSync(join(source, file))).digest('hex');
     copyFileSync(join(source, file), join(CLIPS, file));
