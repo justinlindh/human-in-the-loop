@@ -1,0 +1,17 @@
+# The PR watcher (scripts/tools/pr-watch-service.mjs), run from auto CI's worktree of main. It
+# restarts daily to pick up the watcher's code as main moves.
+[Unit]
+Description=Human in the Loop: PR watcher
+
+[Service]
+Type=simple
+Nice=10
+Environment=HITL_WATCH_TREE=%h/.cache/hitl-ci/auto/worktree
+Environment=TMPDIR=%h/.cache/hitl-ci/tmp
+ExecStart=/bin/bash -c 'cd "$HITL_WATCH_TREE" && exec node scripts/tools/pr-watch-service.mjs'
+Restart=always
+RestartSec=10
+RuntimeMaxSec=1d
+
+[Install]
+WantedBy=default.target

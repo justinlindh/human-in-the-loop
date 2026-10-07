@@ -9,8 +9,8 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 UNITS="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 CLONE="$HOME/.cache/hitl-ci/main-guard/clone"
 if [ "${1:-}" = --remove ]; then
-  systemctl --user disable --now hitl-main-guard.timer hitl-auto-ci.timer hitl-tmp-clean.timer hitl-feature-media.timer hitl-changelog.timer hitl-dashboard.service 2>/dev/null || true
-  rm -f "$UNITS/hitl-changelog.service" "$UNITS/hitl-changelog.timer" "$UNITS/hitl-feature-media.service" "$UNITS/hitl-feature-media.timer" "$UNITS/hitl-main-guard.service" "$UNITS/hitl-main-guard.timer" "$UNITS/hitl-auto-ci.service" "$UNITS/hitl-auto-ci.timer" "$UNITS/hitl-tmp-clean.service" "$UNITS/hitl-tmp-clean.timer" "$UNITS/hitl-dashboard.service"
+  systemctl --user disable --now hitl-main-guard.timer hitl-auto-ci.timer hitl-tmp-clean.timer hitl-feature-media.timer hitl-changelog.timer hitl-dashboard.service hitl-pr-watch.service 2>/dev/null || true
+  rm -f "$UNITS/hitl-changelog.service" "$UNITS/hitl-changelog.timer" "$UNITS/hitl-feature-media.service" "$UNITS/hitl-feature-media.timer" "$UNITS/hitl-main-guard.service" "$UNITS/hitl-main-guard.timer" "$UNITS/hitl-auto-ci.service" "$UNITS/hitl-auto-ci.timer" "$UNITS/hitl-tmp-clean.service" "$UNITS/hitl-tmp-clean.timer" "$UNITS/hitl-dashboard.service" "$UNITS/hitl-pr-watch.service"
   rm -rf "$UNITS/hitl-dashboard.service.d"
   rm -rf "$UNITS/hitl-main-guard.service.d"
   systemctl --user daemon-reload
@@ -42,7 +42,7 @@ install -m 644 "$HERE/hitl-auto-ci.service" "$HERE/hitl-auto-ci.timer" "$HERE/hi
 gh label create ci-rerun --color 0E8A16 --description "Asks auto CI for a fresh local CI run of the PR's current head" >/dev/null 2>&1 || true
 # The owner dashboard binds this machine's private address on its default route (HITL_DASH_HOST
 # overrides it), checked by the dashboard's own rule: one private address, never a wildcard.
-install -m 644 "$HERE/hitl-dashboard.service" "$UNITS/"
+install -m 644 "$HERE/hitl-dashboard.service" "$HERE/hitl-pr-watch.service" "$UNITS/"
 dash_host="${HITL_DASH_HOST:-$(ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p')}"
 if ! node -e "import('$HERE/../dashboard/lib.mjs').then((m) => process.exit(m.bindAllowed(process.argv[1]) ? 0 : 1))" "$dash_host"; then
   echo "install: '$dash_host' isn't one private address; the dashboard binds 127.0.0.1 instead" >&2
@@ -51,7 +51,7 @@ fi
 mkdir -p "$UNITS/hitl-dashboard.service.d"
 printf '[Service]\nEnvironment=HITL_DASH_HOST=%s\n' "$dash_host" >"$UNITS/hitl-dashboard.service.d/host.conf"
 systemctl --user daemon-reload
-systemctl --user enable --now hitl-auto-ci.timer hitl-tmp-clean.timer hitl-feature-media.timer hitl-changelog.timer hitl-dashboard.service
+systemctl --user enable --now hitl-auto-ci.timer hitl-tmp-clean.timer hitl-feature-media.timer hitl-changelog.timer hitl-dashboard.service hitl-pr-watch.service
 systemctl --user restart hitl-dashboard.service
 echo "owner dashboard: http://$dash_host:${HITL_DASH_PORT:-8790}/"
 systemctl --user list-timers 'hitl-*' --no-pager
