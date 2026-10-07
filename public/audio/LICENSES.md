@@ -164,6 +164,7 @@ All are CC0 1.0 (public domain), from Kenney's packs (kenney.nl) and from freeso
 | `sfx/foosball.ogg` | Kenney (kenney.nl), CC0 1.0: impact-sounds impactWood_light_001 |
 | `sfx/arcade.ogg` | Kenney (kenney.nl), CC0 1.0: digital-audio pepSound1 |
 | `sfx/pingpong.ogg` | freesound.org 'ping pong ball.WAV' by cj_ascoli, CC0 1.0 (https://freesound.org/people/cj_ascoli/sounds/444372/) |
+| `sfx/cooler_glug.ogg` | freesound.org 'drain finishing/glug' by brittmosel, CC0 1.0 (https://freesound.org/people/brittmosel/sounds/529300/), cut to 0.6 s with a fade |
 | `sfx/coffee.ogg` | freesound.org 'Coffee Machine - Select Pod.wav' by SpaceJoe, CC0 1.0 (https://freesound.org/people/SpaceJoe/sounds/344458/) |
 | `sfx/dog.ogg` | freesound.org 'single bark - small to medium dog' by haulaway, CC0 1.0 (https://freesound.org/people/haulaway/sounds/630648/) |
 | `sfx/cat.ogg` | freesound.org 'cat meow short' by skymary, CC0 1.0 (https://freesound.org/people/skymary/sounds/412017/) |

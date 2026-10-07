@@ -64,6 +64,7 @@ export const CUES = {
   'sfx.arcade': { bus: 'sfx', files: ['sfx/arcade'], cooldown: 25, priority: 2, gain: 0.6 },
   'sfx.pingpong': { bus: 'sfx', files: ['sfx/pingpong'], cooldown: 25, priority: 2, gain: 0.6 },
   'sfx.coffee': { bus: 'sfx', files: ['sfx/coffee'], cooldown: 60, priority: 2, gain: 0.6 },
+  'sfx.cooler': { bus: 'sfx', files: ['sfx/cooler_glug'], cooldown: 60, priority: 2, gain: 0.6, delivered: true },
   'sfx.dog': { bus: 'sfx', files: ['sfx/dog'], cooldown: 60, priority: 2, gain: 0.6 },
   'sfx.cat': { bus: 'sfx', files: ['sfx/cat'], cooldown: 60, priority: 2, gain: 0.6 },
   'sfx.bubble': { bus: 'sfx', files: ['sfx/pop'], cooldown: 0.25, priority: 1, scaleWithSpeed: true, jitter: { gain: 0.1 } },
@@ -302,6 +303,7 @@ export function isFirstLaunch(e, s) {
 export const WORLD = {
   petMinGap: 90, petSpread: 90,         // s between pet sounds
   coffeeMinGap: 120, coffeeSpread: 120, // s between coffee sounds
+  coolerMinGap: 100, coolerSpread: 120, // s between water cooler glugs
   typingMax: 0.5,                       // typing loop gain with everyone at their desk
 };
 // A placed perk item -> its in-use sound.
