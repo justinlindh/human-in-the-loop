@@ -36,6 +36,7 @@ const BODY_R = 0.2;            // a standing person's footprint radius     // wh
 // Walks keep a cell off furniture where the room allows (a chibi head is wider than the body and
 // reaches chair backs and desk edges at head height); a tight aisle is still taken.
 const WALK_CLEAR = { clear: 0.35, soft: true };
+const BESIDE_DRIFT = 0.3;      // per metre moved, how much nearness to the item a moved use spot gives up
 const CELEBRATE_ROOM = 0.25;   // clear floor around someone who stops to celebrate
 const CELEBRATE_APART = 0.5;   // and nobody else nearer than this
 const GLIDE_M = 0.8;           // further than this from their spot (beyond a seat's last step), people walk to it
@@ -388,6 +389,26 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     return { x: seat.x + Math.sin(back) * CHAIR_BACK_M, z: seat.z + Math.cos(back) * CHAIR_BACK_M };
   }
 
+  function bodyInFurniture(q) {
+    return office.obstacles().some((o) => q.x > o.x0 - BODY_R && q.x < o.x1 + BODY_R && q.z > o.z0 - BODY_R && q.z < o.z1 + BODY_R);
+  }
+
+  // For a blocked use spot: the clear point (in steps of a grid cell round it) nearest the item's own
+  // edge, so a person moved off a blocked side stands at another side, not further out on this one.
+  function besideItem(nav, q) {
+    const o = office.obstacles().find((b) => b.by === q.item);
+    if (!o) return standClear(nav, q);
+    let best = null, bs = Infinity;
+    for (let i = -3; i <= 3; i++) for (let k = -3; k <= 3; k++) {
+      const x = q.x + i * nav.cell, z = q.z + k * nav.cell;
+      if (nav.isBlocked(x, z) || bodyInFurniture({ x, z })) continue;
+      const edge = Math.hypot(Math.max(0, o.x0 - x, x - o.x1), Math.max(0, o.z0 - z, z - o.z1));
+      const s = edge + BESIDE_DRIFT * Math.hypot(x - q.x, z - q.z);
+      if (s < bs) { best = { x, z }; bs = s; }
+    }
+    return best ?? standClear(nav, q);
+  }
+
   // The nearest point to `q` (within a metre, in steps of a grid cell) with BODY_R clear all round;
   // the nearest walkable point when none is.
   function standClear(nav, q) {
@@ -403,7 +424,13 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const nav = office.nav();
     // A standing goal inside furniture, or close enough that the head would be, moves to the nearest
     // point with a body's width clear.
-    if (!goal.seated && !goal.onItem && nav.isBlocked(goal.x, goal.z, BODY_R)) Object.assign(goal, standClear(nav, goal));
+    // A spot for using an item (goal.item) is measured against the furniture itself rather than the
+    // walk grid's cells, which would push it a whole cell back from the item; moved, it faces the item.
+    if (goal.item && bodyInFurniture(goal)) {
+      Object.assign(goal, besideItem(nav, goal));
+      const c = office.placed.get(goal.item)?.target;
+      if (c) goal.yaw = Math.atan2(c.x - goal.x, c.z - goal.z);
+    } else if (!goal.item && !goal.seated && !goal.onItem && nav.isBlocked(goal.x, goal.z, BODY_R)) Object.assign(goal, standClear(nav, goal));
     // A seat is reached from behind its chair; the last step onto it happens once they arrive.
     let to = goal;
     if (goal.seated) to = seatApproach(goal);
