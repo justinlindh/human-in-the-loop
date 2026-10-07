@@ -1252,14 +1252,15 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
   }
 
   const camDir = new THREE.Vector2();
-  function update(dt, { yaw = Math.PI / 4, env } = {}) {
+  // inside: a first-person view, which sees every wall (no cutaway).
+  function update(dt, { yaw = Math.PI / 4, env, inside = false } = {}) {
     if (!cur) return;
     if (eraQueue.length) rebuildForEra();
     updateBatch(dt);
     camDir.set(Math.sin(yaw), Math.cos(yaw));
     for (const key of WALL_KEYS) {
       const [ox, oz] = OUTWARD[key];
-      cur.walls[key].visible = ox * camDir.x + oz * camDir.y < 0.2;
+      cur.walls[key].visible = inside || ox * camDir.x + oz * camDir.y < 0.2;
     }
     if (env) {
       const n = THREE.MathUtils.smoothstep(env.night, 0.2, 0.9);
