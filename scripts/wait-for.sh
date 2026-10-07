@@ -75,8 +75,9 @@ fi
 # The reviewer's last verdict review on the PR, as `<changes|pass> <head sha it judged> <login> <url>` (the
 # verdict is in the review body; the review status on a head is the other record of it).
 last_verdict() {
-  gh pr view "${R[@]}" "$pr" --json reviews -q '[.reviews[] | select((.body // "") | test("Verdict: (pass|changes requested)"; "i"))] | last // empty
-    | "\(if (.body | test("Verdict: changes requested"; "i")) then "changes" else "pass" end) \(.commit.oid // "-") \(.author.login) \(.url)"' 2>/dev/null
+  # A verdict review's body starts `**Verdict: pass**` or `**Verdict: changes requested**` (review-verdict.sh).
+  gh api "$api/pulls/$pr/reviews?per_page=100" --jq '[.[] | select((.body // "") | test("^\\*\\*Verdict: (pass|changes requested)\\*\\*"))] | last // empty
+    | "\(if (.body | startswith("**Verdict: changes requested")) then "changes" else "pass" end) \(.commit_id // "-") \(.user.login) \(.html_url)"' 2>/dev/null
 }
 is_merge() { # <sha> <branch>
   git cat-file -e "$1^{commit}" 2>/dev/null || git fetch -q origin "$2" 2>/dev/null

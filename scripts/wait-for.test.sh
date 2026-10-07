@@ -267,10 +267,15 @@ behind_gh SUCCESS; : >"$tmp/merged-after"; QTEST=false qrun --update --timeout 1
 verdict_gh() { # <review state or NONE> <verdict line or empty> <head sha>
   local roll='[{__typename: "StatusContext", context: "local-ci", state: "SUCCESS"}]'
   [ "$1" = NONE ] || roll="[{__typename: \"StatusContext\", context: \"review\", state: \"$1\"}, {__typename: \"StatusContext\", context: \"local-ci\", state: \"SUCCESS\"}]"
+  # The reviews as the API returns them: a verdict review's body starts with its bold verdict line, and a
+  # pass may quote an earlier changes-requested verdict further down.
+  local kind sha login url; read -r kind sha login url <<<"$2"
+  jq -n --arg k "$kind" --arg s "$sha" --arg l "$login" --arg u "$url" '[{body: "just a comment, Verdict: changes requested is not its first line", commit_id: $s, user: {login: "other"}, html_url: "https://example.test/c"},
+    {body: (if $k == "changes" then "**Verdict: changes requested** (head x)\n\nfix it" else "**Verdict: pass** (head x)\n\nthe earlier **Verdict: changes requested** is fixed" end), commit_id: $s, user: {login: $l}, html_url: $u}]' >"$tmp/reviews.json"
   cat >"$tmp/bin/gh" <<F
 #!/usr/bin/env bash
 case "\$*" in
-  *"--json reviews"*) echo "$2" ;;
+  api*pulls/*/reviews*) f=""; while [ \$# -gt 0 ]; do [ "\$1" = --jq ] && f="\$2"; shift; done; jq -r "\$f" "$tmp/reviews.json" ;;
   "pr view"*) jq -n '{state: "OPEN", headRefOid: "$3", headRefName: "topic", baseRefName: "main", mergeStateStatus: "CLEAN", mergeable: "MERGEABLE", labels: [], statusCheckRollup: $roll}' ;;
   api*/protection*) exit 1 ;;
   *) exit 1 ;;
