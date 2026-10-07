@@ -36,6 +36,10 @@ const PERKS = {
 const SEAT_HIP_Y = 0.47;
 const GATHER_SLACK = 4;          // seconds a pair game waits past the longer walk before giving up
 const CHAT_TURN_S = 2;           // seconds the second person at the cooler waits before their first sip
+// How far a cooler chatter turns from their partner toward the room (0 to 1): the one whose partner
+// lies away from the default camera turns further, so both faces read.
+const CHAT_OUT = { near: 0.25, away: 0.7 };
+const CAM_YAW = Math.PI / 4;     // the default camera's yaw (camera.js)
 const STAND_M = 0.4;            // a person stands this far in front of the item they use
 const COVER_M = 0.1;            // a point this near other furniture counts as inside it
 const MODEL_SPOTS = {
@@ -179,6 +183,12 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     return MODEL_SPOTS[e.obj.userData.model] ?? null;
   }
 
+  // Whether chat spot i's partner lies away from the default camera (from the spots as authored).
+  function chatAway(e, def, f, i) {
+    const s = def.spots(f), p = toWorld(e.target, ...s[i]), q = toWorld(e.target, ...s[1 - i]);
+    return (q.x - p.x) * Math.sin(CAM_YAW) + (q.z - p.z) * Math.cos(CAM_YAW) < 0;
+  }
+
   function spotFor(e, def, i, other) {
     const ms = modelSpots(e)?.[i];
     if (ms) {
@@ -207,11 +217,13 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     if (def.face === 'front') yaw = e.target.rotY;
     else if (def.face === 'axis') yaw = e.target.rotY + (f.w > f.h ? Math.PI / 2 : 0);
     else if (def.face === 'partner') {
-      // Toward the other spot, turned a little out toward the room, so both faces stay in view.
+      // Toward the other spot, turned out toward the room, the one facing away from the camera
+      // further, so both faces stay in view.
       const [ox, oz] = def.spots(f)[1 - i];
       const q = toWorld(e.target, ox, oz), out = toWorld(e.target, lx, lz + 1);
       const a = Math.atan2(q.x - p.x, q.z - p.z), b = Math.atan2(out.x - p.x, out.z - p.z);
-      yaw = Math.atan2(Math.sin(a) * 0.75 + Math.sin(b) * 0.25, Math.cos(a) * 0.75 + Math.cos(b) * 0.25);
+      const w = chatAway(e, def, f, i) ? CHAT_OUT.away : CHAT_OUT.near;
+      yaw = Math.atan2(Math.sin(a) * (1 - w) + Math.sin(b) * w, Math.cos(a) * (1 - w) + Math.cos(b) * w);
     } else yaw = Math.atan2(e.target.x - p.x, e.target.z - p.z);
     void other;
     return { x: p.x, z: p.z, yaw, anim: 'idle' };
