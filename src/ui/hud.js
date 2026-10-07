@@ -1,5 +1,6 @@
 import { pnow } from './pclock.js';
 import { phoneLayout } from './media.js';
+import { sparkValues, sparkTone, sparkSig, drawCashSpark } from './cashSpark.js';
 import { SIMX } from './simapi.js';
 import { progressBar, goalsDoneText } from './goalProgress.js';
 import { setTip } from './tooltip.js';
@@ -125,7 +126,14 @@ export function createHud({ root, controls, ui }) {
 
   const cashVal = h('div.val.num');
   const cashSub = h('div.sub');
-  const cash = h('div.chip.cash', { title: 'Cash on hand. Below zero for 8 weeks and the lab folds.' }, h('div.lbl', { text: 'Cash' }), cashVal, cashSub);
+  // The cash chip opens the money chart; where there is room it also draws the last weeks of cash.
+  const cashSpark = h('canvas.cashspark', { 'aria-hidden': 'true' });
+  const cash = h('div.chip.cash', {
+    title: 'Cash on hand. Below zero for 8 weeks and the lab folds. Tap for the money chart.', role: 'button', tabIndex: 0,
+    onclick: () => ui.openMoney?.(),
+    onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ui.openMoney?.(); } },
+  }, h('div.cashtxt', null, h('div.lbl', { text: 'Cash' }), cashVal, cashSub), cashSpark);
+  let sparkSigLast = null;
 
   const mrrVal = h('span.num');
   const mrrTrend = h('span.trend');
@@ -365,6 +373,15 @@ export function createHud({ root, controls, ui }) {
         setText(cashSub, net === null ? 'Runway: fine' : `${fmtMoney(net, { sign: true })}/wk`);
         setClass(cashSub, 'sub');
       }
+    }
+    // The line redraws only when the history grows or its colour changes, and not at all on Low quality.
+    const lowQ = controls.getQuality?.() === 'low';
+    if (lowQ !== cashSpark.hidden) cashSpark.hidden = lowQ;
+    if (!lowQ) {
+      const vals = sparkValues(s.history);
+      const tone = sparkTone(vals, cashSub.className);
+      const sig = sparkSig(s.history, tone);
+      if (sig !== sparkSigLast && cashSpark.clientWidth) { sparkSigLast = sig; drawCashSpark(cashSpark, vals, tone); }
     }
 
     const m = totalMrr(s);
