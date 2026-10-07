@@ -3,7 +3,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { chmodSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { join, resolve } from 'node:path';
-import { queue, line } from '../../scripts/tools/review-queue.mjs';
+import { queue, line, parseSkip, skipped } from '../../scripts/tools/review-queue.mjs';
 
 const QUEUE = resolve(__dirname, '../../scripts/tools/review-queue.mjs');
 
@@ -63,6 +63,25 @@ describe('who is waiting, and in which group', () => {
     expect(g(noLocalCi(8, ['commits', 'SUCCESS'], ['smoke', 'SUCCESS']), null).group).toBe('READY');
     expect(g(noLocalCi(9, ['commits', 'SUCCESS'], ['smoke', 'PENDING']), null).group).toBe('CI');
     expect(g(noLocalCi(10), null)).toMatchObject({ group: 'CI', waiting: ['checks none'] });
+  });
+});
+
+describe('--skip', () => {
+  const w = (number, head, repo) => ({ number, head, ...(repo ? { repo } : {}) });
+  it('reads [owner/name#]n[@head] lists and matches on number, repo and head', () => {
+    expect(parseSkip(['12,#13', 'me/site#14@ABCDEF12'])).toEqual([
+      { repo: null, number: 12, head: null }, { repo: null, number: 13, head: null }, { repo: 'me/site', number: 14, head: 'abcdef12' }]);
+    expect(parseSkip([])).toEqual([]);
+    expect(parseSkip(['12@zz'])).toBe(null);
+    const s = parseSkip(['12', '14@abcdef12', 'me/site#15']);
+    expect(skipped(w(12, '00000000'), s)).toBe(true);
+    expect(skipped(w(12, '00000000', 'me/site'), s)).toBe(true);
+    expect(skipped(w(14, 'abcdef12'), s)).toBe(true);
+    expect(skipped(w(14, 'bbbbbbbb'), s)).toBe(false);
+    expect(skipped(w(15, '00000000', 'me/site'), s)).toBe(true);
+    expect(skipped(w(15, '00000000'), s)).toBe(false);
+    expect(skipped(w(16, '00000000'), s)).toBe(false);
+    expect(skipped(w(14, 'abcdef12'), parseSkip(['14@abcdef1234567890']))).toBe(true);
   });
 });
 
@@ -135,6 +154,22 @@ describe('review-queue command', () => {
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
   }, 20000);
 
+  it.concurrent('--wait --skip stands while only skipped PRs wait, and wakes on a skipped PR at a new head', async () => {
+    const t = setup([pr(2), pr(4)]);
+    try {
+      expect(run(t.env, '--skip', '2,4').status).toBe(3);
+      const child = spawn(process.execPath, [QUEUE, '--wait', '--interval', '0.2', '--skip', '2', '--skip', '4@4aaaaaaa'], { env: t.env });
+      let out = '';
+      child.stdout.on('data', (d) => { out += d; });
+      const closed = new Promise((res) => child.on('close', (code) => res(code)));
+      await new Promise((r) => setTimeout(r, 600));
+      expect(out).toBe('');
+      t.set([pr(2), pr(4, { headRefOid: '4b'.padEnd(40, 'b') })]);
+      expect(await closed).toBe(0);
+      expect(lines(out)).toEqual(['READY #4 4bbbbbbb tools/x4: t4']);
+    } finally { rmSync(t.dir, { recursive: true, force: true }); }
+  }, 20000);
+
   it.concurrent('--drain prints each PR once and exits only when none is left that needs a look', async () => {
     const t = setup([pr(7)]);
     try {
@@ -202,6 +237,7 @@ describe('review-queue command', () => {
       expect(run(t.env, '--wait', '--drain').status).toBe(2);
       expect(run(t.env, '--bogus').status).not.toBe(0);
       expect(run(t.env, '--wait', '--interval', '0.1', '--timeout', '0.3').status).toBe(4);
+      for (const bad of ['x', '12@', '12@zz', 'me#12', '1,,x']) expect(run(t.env, '--skip', bad).status, bad).toBe(2);
       t.set('fail');
       const r = run(t.env);
       expect(r.status).toBe(2);
