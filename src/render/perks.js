@@ -25,7 +25,8 @@ const PERKS = {
   bookshelf: { cap: 1, anim: 'browse', dur: [5, 9], weight: 1, spots: (f) => [[0, f.h / 2 + 0.45]], face: 'item', emote: 'lightbulb' },
   plant_wall: { cap: 1, anim: 'water', dur: [3.5, 5], weight: 0.6, spots: (f) => [[0, f.h / 2 + 0.45]], face: 'item' },
   pingpong: { pair: true, anim: 'paddle', dur: [8, 12], weight: 1.3, spots: (f) => [[-(f.w / 2 + 0.2), 0], [f.w / 2 + 0.2, 0]], face: 'item' },
-  foosball: { pair: true, anim: 'play', dur: [7, 11], weight: 1.2, spots: (f) => [[0, -(f.h / 2 + 0.3)], [0, f.h / 2 + 0.3]], face: 'item' },
+  // sides: played only from its own spots, so a table with either side blocked gets no game.
+  foosball: { pair: true, anim: 'play', dur: [7, 11], weight: 1.2, spots: (f) => [[0, -(f.h / 2 + 0.2)], [0, f.h / 2 + 0.2]], face: 'item', sides: true },
   // Two people in front of the water cooler, paper cups in hand, chatting.
   cooler: { pair: true, anim: 'cupsip', dur: [8, 12], weight: 2, spots: (f) => [[-0.35, f.h / 2 - 0.1], [0.35, f.h / 2 - 0.1]], face: 'partner', chat: true },
 };
@@ -42,6 +43,7 @@ const CHAT_OUT = { near: 0.25, away: 0.7 };
 const CAM_YAW = Math.PI / 4;     // the default camera's yaw (camera.js)
 const STAND_M = 0.4;            // a person stands this far in front of the item they use
 const COVER_M = 0.1;            // a point this near other furniture counts as inside it
+const STAND_R = 0.2;            // a standing person's footprint radius, as sync measures it
 const MODEL_SPOTS = {
   arcade_l1: [{ x: 0, z: 0.62, anim: 'play', look: [0, -0.2] }],
   arcade_l2: [{ x: 0.55, z: 0.35, anim: 'playsit', seat: 0.5, look: [0, -0.2] }],
@@ -224,7 +226,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
       const a = Math.atan2(q.x - p.x, q.z - p.z), b = Math.atan2(out.x - p.x, out.z - p.z);
       const w = chatAway(e, def, f, i) ? CHAT_OUT.away : CHAT_OUT.near;
       yaw = Math.atan2(Math.sin(a) * (1 - w) + Math.sin(b) * w, Math.cos(a) * (1 - w) + Math.cos(b) * w);
-    } else yaw = Math.atan2(e.target.x - p.x, e.target.z - p.z);
+    } else return { x: p.x, z: p.z, yaw: Math.atan2(e.target.x - p.x, e.target.z - p.z), anim: 'idle', item: e.id };
     void other;
     return { x: p.x, z: p.z, yaw, anim: 'idle' };
   }
@@ -281,6 +283,16 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     return obsCache.obs.some((o) => o.by !== e.id && spot.x > o.x0 - m && spot.x < o.x1 + m && spot.z > o.z0 - m && spot.z < o.z1 + m);
   }
 
+  // Whether every spot of the item has a standing body's room clear of all furniture, its own included.
+  function spotsOpen(e, def) {
+    if (obsCache?.v !== office.navVersion) obsCache = { v: office.navVersion, obs: office.obstacles() };
+    const m = STAND_R;
+    return def.spots(footprint(e.itemId, 0)).every((_, i) => {
+      const s = spotFor(e, def, i);
+      return !obsCache.obs.some((o) => s.x > o.x0 - m && s.x < o.x1 + m && s.z > o.z0 - m && s.z < o.z1 + m);
+    });
+  }
+
   function freeSlots() {
     const out = [];
     for (const e of office.placed.values()) {
@@ -288,7 +300,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
       if (!kind) continue;
       const def = PERKS[kind];
       if (def.pair) {
-        if (!slots.has(`${e.id}:0`) && !slots.has(`${e.id}:1`) && !(def.chat && chatFrontTaken(e, def))) out.push({ e, kind, def, i: 0 });
+        if (!slots.has(`${e.id}:0`) && !slots.has(`${e.id}:1`) && !(def.chat && chatFrontTaken(e, def)) && !(def.sides && !spotsOpen(e, def))) out.push({ e, kind, def, i: 0 });
         continue;
       }
       const n = modelSpots(e)?.length ?? def.spots(footprint(e.itemId, 0)).length;
@@ -514,7 +526,8 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
   function updatePairs(dt) {
     for (let i = sessions.length - 1; i >= 0; i--) {
       const s = sessions[i];
-      const ok = s.a.temp?.pair === s && s.b.temp?.pair === s && recs.has(s.a.id) && recs.has(s.b.id);
+      // A game whose side is built over mid-visit ends rather than move a player round the table.
+      const ok = s.a.temp?.pair === s && s.b.temp?.pair === s && recs.has(s.a.id) && recs.has(s.b.id) && !(s.def.sides && !spotsOpen(s.e, s.def));
       if (!ok) { endPair(s, false); sessions.splice(i, 1); continue; }
       s.t += dt;
       if (s.phase === 'gather') {
@@ -686,7 +699,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
       for (const r of rs) { r.temp = null; r.path = []; }
       cleanSlots();
       if (def.pair) {
-        if (rs.length < 2 || def.chat && chatFrontTaken(e, def, rs)) return false;
+        if (rs.length < 2 || def.chat && chatFrontTaken(e, def, rs) || def.sides && !spotsOpen(e, def)) return false;
         startPair({ e, kind, def, i: 0 }, rs[0], rs[1]);
         if (dur) sessions[sessions.length - 1].dur = dur;
         return true;
