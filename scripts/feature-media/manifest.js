@@ -201,6 +201,10 @@ const YAK_PROMPTS = ['strain_vent', 'incident_blame', 'launch_hype', 'rival_itch
 const LEFT_BEHIND = new Map([['rival_jab', 0], ['alumni_reunion', 0], ['mission_statement', 0], ['ai_summit_hackathon', 1], ['last_bet', 0]]);
 
 // Decisions whose prop is small: they open the game's own best view of it and scale the zoom with the office.
+// Gags that resolve with no card in a player's game (an ev.quiet event): their item opens the pre-tick save with
+// the quiet-events switch back on and shows what a player sees, the prop and its bubble, with no decision.
+const QUIET_GAGS = new Set(['pet_mishap', 'conference_expo', 'ping_pong']);
+const QUIET_ON =`Object.assign((await import('/src/sim/balance.js')).B.pacing, { quietEvents: true })`;
 const SMALL_PROP_DECISIONS = new Set(['no_show', 'junior_overwhelmed', 'founder_burnout', 'enterprise_rfp', 'phishing_ceo', 'alumni_reunion']);
 
 // [item id, camera zoom, era the item needs] of the shop items shown in docs/features/office.md.
@@ -764,16 +768,23 @@ export const ITEMS = [
 
   // docs/features/decisions.md: what each decision stages in the office while its card is up. The pre-tick
   // snapshot is opened, the game's tick raises the card, the card is hidden and the camera holds on the prop.
-  ...DECISION_PROPS.map(([id, query, prop, zoom = 5.5, center = false]) => ({
-    id: `decision-${id}`, title: `Decision prop: ${id}`, query: 'seed=1&speed=1', moment: ANY_CHOICE(query), pre: true, still: true, warmup: 8,
-    setup: `(() => { ${CLEAN}; ${NO_CARD}; ${NO_SAY}; })()`,
-    // A prop a choice leaves behind exists only after the card is answered (by key, as a player would).
-    // The held props are turned to their clearest view and framed at the office-scaled zoom.
-    actions: [...OPEN(SMALL_PROP_DECISIONS.has(id) ? [prop] : undefined), ...(LEFT_BEHIND.has(id) ? CHOOSE_WHEN(id, LEFT_BEHIND.get(id), 1, 8, 1.5) : []), ...FOLLOW([prop], zoom, 0, LEFT_BEHIND.has(id) ? 20 : 14, 0, center, SMALL_PROP_DECISIONS.has(id))],
-    screenshots: [LEFT_BEHIND.has(id) ? 14 : 5],
-    out: [{ path: `decisions/${id}.webp`, size: '1280x720', from: LEFT_BEHIND.has(id) ? 14 : 5 }],
-    publish: true,
-  })),
+  ...DECISION_PROPS.map(([id, query, prop, zoom = 5.5, center = false]) => {
+    const quiet = QUIET_GAGS.has(id);
+    return {
+      id: `decision-${id}`, title: `Decision prop: ${id}`, query: 'seed=1&speed=1', moment: ANY_CHOICE(query), pre: true, still: true, warmup: 8,
+      // A quiet gag opens the index's pre-tick save with the quiet-events switch back on, as a player's game has it.
+      setup: quiet ? `(async () => { ${QUIET_ON}; ${CLEAN}; ${NO_SAY}; })()` : `(() => { ${CLEAN}; ${NO_CARD}; ${NO_SAY}; })()`,
+      // A prop a choice leaves behind exists only after the card is answered (by key, as a player would).
+      // The held props are turned to their clearest view and framed at the office-scaled zoom.
+      actions: [...OPEN(SMALL_PROP_DECISIONS.has(id) ? [prop] : undefined),
+        ...(LEFT_BEHIND.has(id) && !quiet ? CHOOSE_WHEN(id, LEFT_BEHIND.get(id), 1, 8, 1.5) : []),
+        ...(quiet ? [{ at: 8.5, js:`(() => { const R = window.__hitlRender; if (window.__HITL.state.pendingDecision) console.error('capture: ${id} opened a card, expected a quiet event'); else if (!R.props.current().some((p) => p.prop === '${prop}')) console.error('capture: the ${id} prop is not up'); })()` }] : []),
+        ...FOLLOW([prop], zoom, 0, LEFT_BEHIND.has(id) && !quiet ? 20 : 14, 0, center, SMALL_PROP_DECISIONS.has(id))],
+      screenshots: [quiet ? 9 : LEFT_BEHIND.has(id) ? 14 : 5],
+      out: [{ path: `decisions/${id}.webp`, size: '1280x720', from: quiet ? 9 : LEFT_BEHIND.has(id) ? 14 : 5 }],
+      publish: true,
+    };
+  }),
 
   // docs/features/yak.md: the reply prompts. The pre-tick save of the week that raises each one is opened,
   // the game's tick posts it, and the large Yak (which keeps the game running) is scrolled to the prompt.
