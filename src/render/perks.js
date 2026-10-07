@@ -25,7 +25,7 @@ const PERKS = {
   bookshelf: { cap: 1, anim: 'browse', dur: [5, 9], weight: 1, spots: (f) => [[0, f.h / 2 + 0.45]], face: 'item', emote: 'lightbulb' },
   plant_wall: { cap: 1, anim: 'water', dur: [3.5, 5], weight: 0.6, spots: (f) => [[0, f.h / 2 + 0.45]], face: 'item' },
   pingpong: { pair: true, anim: 'paddle', dur: [8, 12], weight: 1.3, spots: (f) => [[-(f.w / 2 + 0.2), 0], [f.w / 2 + 0.2, 0]], face: 'item' },
-  foosball: { pair: true, anim: 'play', dur: [7, 11], weight: 1.2, spots: (f) => [[0, -(f.h / 2 + 0.3)], [0, f.h / 2 + 0.3]], face: 'item' },
+  foosball: { pair: true, anim: 'play', dur: [7, 11], weight: 1.2, spots: (f) => [[0, -(f.h / 2 + 0.2)], [0, f.h / 2 + 0.2]], face: 'item' },
   // Two people in front of the water cooler, paper cups in hand, chatting.
   cooler: { pair: true, anim: 'cupsip', dur: [8, 12], weight: 2, spots: (f) => [[-0.35, f.h / 2 - 0.1], [0.35, f.h / 2 - 0.1]], face: 'partner', chat: true },
 };
@@ -224,7 +224,7 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
       const a = Math.atan2(q.x - p.x, q.z - p.z), b = Math.atan2(out.x - p.x, out.z - p.z);
       const w = chatAway(e, def, f, i) ? CHAT_OUT.away : CHAT_OUT.near;
       yaw = Math.atan2(Math.sin(a) * (1 - w) + Math.sin(b) * w, Math.cos(a) * (1 - w) + Math.cos(b) * w);
-    } else yaw = Math.atan2(e.target.x - p.x, e.target.z - p.z);
+    } else return { x: p.x, z: p.z, yaw: Math.atan2(e.target.x - p.x, e.target.z - p.z), anim: 'idle', item: e.id };
     void other;
     return { x: p.x, z: p.z, yaw, anim: 'idle' };
   }
