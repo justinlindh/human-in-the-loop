@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { spawn, spawnSync } from 'node:child_process';
-import { chmodSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { toolTmp } from '../../scripts/tools/tmp.mjs';
 import { join, resolve } from 'node:path';
 import { queue, line, parseSkip, skipped } from '../../scripts/tools/review-queue.mjs';
@@ -125,18 +125,30 @@ describe('review-queue command', () => {
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
   });
 
-  it('--wait at an interval of 15 s or more reads the shared snapshot; a one-shot run still asks GitHub', () => {
+  it.concurrent('--wait at an interval of 15 s or more refreshes the shared snapshot on its first check, so a fresher GitHub wins', async () => {
     const t = setup([pr(4)]);
     try {
-      const env = { ...t.env, HITL_PR_SNAPSHOT: join(t.dir, 'snapshot.json') };
+      const snapFile = join(t.dir, 'snapshot.json');
+      const env = { ...t.env, HITL_PR_SNAPSHOT: snapFile };
       const first = run(env, '--wait', '--interval', '15', '--timeout', '20');
       expect([first.status, first.stdout.trim()]).toEqual([0, 'READY #4 4aaaaaaa tools/x4: t4']);
+      expect(JSON.parse(readFileSync(snapFile, 'utf8')).prs.map((p) => p.number)).toEqual([4]);
+      // #4 got its verdict: GitHub no longer lists it, but the snapshot, seconds old, still does.
       t.set([]);
-      const second = run(env, '--wait', '--interval', '15', '--timeout', '1');
-      expect([second.status, second.stdout.trim()]).toEqual([0, 'READY #4 4aaaaaaa tools/x4: t4']);
+      let out = '';
+      const child = spawn(process.execPath, [QUEUE, '--wait', '--interval', '15'], { env });
+      child.stdout.on('data', (d) => { out += d; });
+      const closed = new Promise((res) => child.on('close', res));
+      const refreshed = () => { try { return JSON.parse(readFileSync(snapFile, 'utf8')).prs.length === 0; } catch { return false; } };
+      await until(refreshed);
+      await new Promise((r) => setTimeout(r, 300));
+      child.kill('SIGTERM');
+      await closed;
+      expect(refreshed()).toBe(true);
+      expect(out).toBe('');
       expect(run(env).status).toBe(3);
     } finally { rmSync(t.dir, { recursive: true, force: true }); }
-  });
+  }, 20000);
 
   // The cases that wait out real polling run side by side; each has a scratch queue of its own.
   it.concurrent('--wait blocks until something wakes it and then prints all of it, pending CI included', async () => {
