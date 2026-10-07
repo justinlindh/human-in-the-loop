@@ -34,7 +34,8 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 | tools | checks and plumbing | `../gamedev-tools` | `blender/checks/`, `scripts/events/`, `scripts/tools/`, `scripts/studio/`, `tests/tools/` |
 | tools2 | checks and plumbing | `../gamedev-tools2` | the same paths as tools, on `tools/` branches; team-lead assigns each issue to one of the two |
 | perf | performance | `../gamedev-perf` | `scripts/perf/`, `scripts/lib/` |
-| reviewer | review and playtest | any (read-only) | nothing |
+| reviewer, reviewer2 | review and playtest | any (read-only) | nothing |
+| designer | game design and pacing | any (read-only for code) | `docs/proposals/`: balance and game-design calls, recorded on their issues; sim builds them |
 
 - When a permanent member joins or leaves, update this table and the team table in `README.md` in the same PR.
 - One owner per fix. When a bug or task is handed to a lane, that lane builds it. A lane asked only to diagnose reports the cause and the owning lane, and doesn't open a fix. If you find someone else is already on it, stop and tell team-lead.
@@ -42,6 +43,8 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 - Keep token use lean: look at contact sheets and crops rather than full frames, grep logs rather than reading them whole, and fan out read-only helper agents only for large audits, on a cheaper model where the tool allows.
 - Talk directly: sim and ui about state and action semantics, reason strings, and new events; sim and art about moods, assignments, and event timing; art and ui about palette, fonts, label stacking, and character clicks.
 - Go through team-lead for contract changes, disagreements between lanes, and blockers. Integration problems (main.js, merges, the snap and pacing tools) go to integrator.
+  - Before a contract PR goes to review, team-lead checks its text against the consuming lanes' open branches and the `designer` teammate's recorded decisions, and lists what was checked in the PR.
+  - A balance or game-design call has one owner: sim asks the `designer` teammate, who decides and records it on the issue, and team-lead gets the decision as a digest. Nobody re-asks team-lead on the same thread. A call that changes how the game plays still goes to the user for approval, as a draft with `awaiting-user`.
 - Anything that needs the user's eyes or ears (a clip, an audio pick, a visual change they asked for, a decision only they can make) goes to team-lead with the media files and the question. team-lead puts it on the user's review desk and tells them it's there. Don't only mention it in a report.
 - Wrap long-running commands (renders, ffmpeg, captures, balance runs) in `timeout`, and nice heavy batch jobs (`nice -n 10`). The machine is shared: a runaway job blocks your own turn, so you never see messages about it, and it starves every lane's CI.
 - Don't hold a turn open polling a long job. Start it with `run_in_background` (the harness wakes you when it ends) and do other work or end the turn; never loop `until grep ...; sleep` in the foreground; a background run's completion notice replaces it.
@@ -76,7 +79,7 @@ Message teammates by name with SendMessage. Other sessions that ListAgents shows
 - Comments describe what non-obvious code does now. No history, dates, or measurements in source.
 - Commit on a topic branch in your worktree. Never commit to `main`.
 - Changes reach `main` only through pull requests, one per batch, each from a fresh branch named `<lane>/<topic>` cut from `origin/main` (`gh pr create --base main --head <lane>/<topic>`). The pre-push hook (`npm run hooks` installs it) refuses pushes to a branch whose PR has merged or closed.
-  - The description lists the task, the commits, the evidence (test output, screenshots or clips) and `Fixes #n` lines. A visual change always has a screenshot, and a change to motion or timing has a clip.
+  - The description lists the task, the commits, the evidence (test output, screenshots or clips) and `Fixes #n` lines. A visual change always has a screenshot, and a change to motion or timing has a clip. Next to each full frame or clip, post a crop of the changed element at full size (a clip gets a strip of per-second crops), so a reviewer judges the change itself, not a thumbnail of the screen.
   - Opening a non-draft PR turns on auto-merge for you (a hook runs `gh pr merge <n> --auto --merge`), and GitHub merges it once every required check passes. Auto CI also turns it on for any ready PR that lacks it, such as one opened from a script, so a PR meant to wait must be a draft or carry `awaiting-user`.
   - After pushing to a PR, run `scripts/wait-for.sh <pr> --merged` in the background from the worktree that has its branch checked out. It follows the required checks and the review through to the merge and names what failed. Main does not require branches to be up to date, so it leaves a behind PR alone and merges main in only on a conflict or a failure a main merge could fix. Don't poll PR state with `sleep` loops. Start it with the tool's `run_in_background` and its longest timeout (`timeout: 7200000`), and re-arm it every time it times out (the limit is per run, not a cap on how long you keep watching); fix what it names on any other exit, then re-arm. Never `nohup ... &` (that dies with the tool call).
   - A PR that depends on a decision the user hasn't made yet is opened as a draft (`--draft`) with the `awaiting-user` label, without auto-merge, until team-lead confirms the answer.

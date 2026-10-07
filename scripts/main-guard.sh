@@ -176,7 +176,11 @@ gate() {
   # step's own output can be read after its run's temporary files are gone.
   rm -rf "$STATE/$cs-steps"; mkdir -p "$STATE/$cs-steps"
   export CI_LOGS="$STATE/$cs-steps"
-  run "${MAIN_GUARD_SUITE:-}" "$STATE/$cs.log" env CI_FULL=1 CI_SKIP_SWEEP=1 CI_DIR="$WT" bash "$WT/scripts/ci-local.sh" --base "$c^1" --summary "$summary"
+  # The last green commit is the base for skipping checks whose inputs have not changed since it passed
+  # them (MAIN_GUARD_NO_DELTA=1 runs everything). The commit itself is never its own base.
+  local base; base="$(cat "$STATE/last-green" 2>/dev/null)"
+  { [ "${MAIN_GUARD_NO_DELTA:-}" = 1 ] || [ "$base" = "$c" ]; } && base=""
+  run "${MAIN_GUARD_SUITE:-}" "$STATE/$cs.log" env CI_FULL=1 CI_SKIP_SWEEP=1 ${base:+CI_FULL_BASE=$base} CI_DIR="$WT" bash "$WT/scripts/ci-local.sh" --base "$c^1" --summary "$summary"
   ci_rc=$?
   unset CI_LOGS
   [ "$ci_rc" -eq 0 ] && rm -rf "$STATE/$cs-steps"

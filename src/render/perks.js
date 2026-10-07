@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mat } from './materials.js';
-import { footprint } from './layout.js';
+import { emoteMaterial } from './emotes.js';
+import { footprint, placedTransform } from './layout.js';
 import { kindOf, frontEdge } from './office.js';
 import { sinkDepth, furnitureMeshes } from './contact.js';
 import { between, draw } from './rand.js';
@@ -43,7 +44,9 @@ const CHAT_OUT = { near: 0.25, away: 0.7 };
 const CAM_YAW = Math.PI / 4;     // the default camera's yaw (camera.js)
 const STAND_M = 0.4;            // a person stands this far in front of the item they use
 const COVER_M = 0.1;            // a point this near other furniture counts as inside it
-const STAND_R = 0.2;            // a standing person's footprint radius, as sync measures it
+const MARKER_M = 0.5;           // size of the "!" bubble over a table that gets no games
+const MARKER_Y = 1.15;       // and its height above the floor
+const STAND_R = 0.2;           // a standing person's footprint radius, as sync measures it
 const MODEL_SPOTS = {
   arcade_l1: [{ x: 0, z: 0.62, anim: 'play', look: [0, -0.2] }],
   arcade_l2: [{ x: 0.55, z: 0.35, anim: 'playsit', seat: 0.5, look: [0, -0.2] }],
@@ -286,11 +289,45 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
   // Whether every spot of the item has a standing body's room clear of all furniture, its own included.
   function spotsOpen(e, def) {
     if (obsCache?.v !== office.navVersion) obsCache = { v: office.navVersion, obs: office.obstacles() };
+    return sidesOpen(e.itemId, def, e.target, obsCache.obs);
+  }
+
+  // Whether every spot of an item at `target` has a standing body's room inside the walls and clear
+  // of every rect in `obs` (the item's own included).
+  function sidesOpen(itemId, def, target, obs) {
+    const L = office.current?.L;
+    if (!L) return true;
     const m = STAND_R;
-    return def.spots(footprint(e.itemId, 0)).every((_, i) => {
-      const s = spotFor(e, def, i);
-      return !obsCache.obs.some((o) => s.x > o.x0 - m && s.x < o.x1 + m && s.z > o.z0 - m && s.z < o.z1 + m);
+    return def.spots(footprint(itemId, 0)).every(([lx, lz]) => {
+      const s = toWorld(target, lx, lz);
+      if (Math.abs(s.x) > L.W / 2 - m || Math.abs(s.z) > L.D / 2 - m) return false;
+      return !obs.some((o) => s.x > o.x0 - m && s.x < o.x1 + m && s.z > o.z0 - m && s.z < o.z1 + m);
     });
+  }
+
+  // Why an item would get no games: for a placed one ({ placedId }), or for the build preview
+  // ({ itemId, x, y, rot, level, moveId }), where it also names the placed tables it would block.
+  // null, or { code: 'sides', self, ids }.
+  function playHint(q) {
+    if (q?.placedId) {
+      const e = office.placed.get(q.placedId);
+      const def = e && PERKS[perkOf(e)];
+      return def?.sides && !spotsOpen(e, def) ? { code: 'sides', self: true, ids: [e.id] } : null;
+    }
+    if (!q?.itemId || !office.current) return null;
+    const base = office.obstacles().filter((o) => o.by !== q.moveId);
+    const mine = office.obstaclesAt(q);
+    const obs = [...base, ...mine];
+    const kind = PERKS[kindOf(q.itemId)] ? kindOf(q.itemId) : q.itemId;
+    const def = PERKS[kind];
+    const self = !!def?.sides && !sidesOpen(q.itemId, def, placedTransform(office.current.L, q), obs);
+    const ids = [];
+    for (const e of office.placed.values()) {
+      const d = PERKS[perkOf(e)];
+      if (!d?.sides || e.id === q.moveId) continue;
+      if (sidesOpen(e.itemId, d, e.target, base) && !sidesOpen(e.itemId, d, e.target, obs)) ids.push(e.id);
+    }
+    return self || ids.length ? { code: 'sides', self, ids } : null;
   }
 
   function freeSlots() {
@@ -655,8 +692,27 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     }
   }
 
+  // A "!" bubble over each placed table that gets no games, refreshed when the furniture changes.
+  const markers = new Map();
+  let markedAt = -1;
+  function updateMarkers() {
+    if (markedAt === office.navVersion) return;
+    markedAt = office.navVersion;
+    const want = new Set();
+    for (const e of office.placed.values()) {
+      const def = PERKS[perkOf(e)];
+      if (!def?.sides || spotsOpen(e, def)) continue;
+      want.add(e.id);
+      let m = markers.get(e.id);
+      if (!m) { m = new THREE.Sprite(emoteMaterial('exclamation')); m.scale.setScalar(MARKER_M); m.renderOrder = 4; m.userData.placedId = e.id; parent.add(m); markers.set(e.id, m); }
+      m.position.set(e.target.x, MARKER_Y, e.target.z);
+    }
+    for (const [id, m] of markers) if (!want.has(id)) { m.removeFromParent(); markers.delete(id); }
+  }
+
   function update(dt, state) {
     cleanSlots();
+    updateMarkers();
     updatePairs(dt);
     spotNewToys();
     tryNewToys(dt, state);
@@ -683,6 +739,9 @@ export function createPerks({ office, recs, walkTo, emote, parent, isBusy, low =
     // New toys still waiting for takers, and why (checks): [{ id, t, wait, busy, free }].
     get newToys() { return newToys.map((n) => ({ id: n.id, t: +n.t.toFixed(2), wait: +n.wait.toFixed(1), held, free: [...recs.values()].filter((r) => eligible(r) && r.staff.mood !== 'burnout').length })); },
     pairReady,
+    playHint,
+    // The "!" bubbles over placed tables that get no games, for picking.
+    get markers() { return [...markers.values()]; },
     // Pair games that got as far as playing, since the renderer started (for checks).
     get played() { return played; },
     set hold(on) { held = !!on; },

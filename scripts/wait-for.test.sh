@@ -33,6 +33,10 @@ pr OPEN 'check=SUCCESS,review=SUCCESS'
 w --repo o/site; [ $rc -eq 124 ] && grep -q 'waiting on: commits' "$tmp/out" || fail "a required check not reported yet keeps it waiting: $rc $(cat "$tmp/out")"
 pr OPEN 'check=FAILURE,commits=SUCCESS'
 w --repo o/site; [ $rc -eq 2 ] && grep -q 'check=failure' "$tmp/out" || fail "a failing check: $rc $(cat "$tmp/out")"
+pr OPEN 'check=SUCCESS,commits=SUCCESS,review=SUCCESS,balance=FAILURE,local-ci=FAILURE'
+w --repo o/site; [ $rc -eq 0 ] && ! grep -q 'failing' "$tmp/out" || fail "a failing check that branch protection does not require does not end the wait: $rc $(cat "$tmp/out")"
+pr OPEN 'check=SUCCESS,commits=SUCCESS,review=FAILURE,balance=FAILURE'
+w --repo o/site; [ $rc -eq 2 ] && grep -q 'review=failure' "$tmp/out" && ! grep -q 'balance=failure' "$tmp/out" || fail "a failing review still ends the wait, naming only required checks: $rc $(cat "$tmp/out")"
 pr OPEN 'check=SKIPPED,commits=NEUTRAL'
 w --repo o/site; [ $rc -eq 0 ] || fail "skipped and neutral check runs satisfy required checks: $rc $(cat "$tmp/out")"
 PATH="$tmp/bin:$PATH" bash "$HERE/wait-for.sh" --help | grep -q '^Exit: 0 green' || fail "--help prints the exit codes"
@@ -257,6 +261,50 @@ fail_gh; qrun --no-update --timeout 1
 [ $rc -eq 2 ] && ! grep -q 'merged origin/main' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" = "$before" ] || fail "--no-update never merges main in, even for a failure: $rc $(cat "$tmp/out")"
 behind_gh SUCCESS; : >"$tmp/merged-after"; QTEST=false qrun --update --timeout 1
 [ $rc -eq 5 ] || fail "failing tests after merging main exit 5: $rc $(cat "$tmp/out")"
+
+# A changes-requested verdict ends the wait at once and never merges main; a head that only merges main on
+# top of a judged head keeps that verdict until a fresh one.
+verdict_gh() { # <review state or NONE> <verdict line or empty> <head sha>
+  local roll='[{__typename: "StatusContext", context: "local-ci", state: "SUCCESS"}]'
+  [ "$1" = NONE ] || roll="[{__typename: \"StatusContext\", context: \"review\", state: \"$1\"}, {__typename: \"StatusContext\", context: \"local-ci\", state: \"SUCCESS\"}]"
+  # The reviews as the API returns them: a verdict review's body starts with its bold verdict line, and a
+  # pass may quote an earlier changes-requested verdict further down.
+  local kind sha login url; read -r kind sha login url <<<"$2"
+  jq -n --arg k "$kind" --arg s "$sha" --arg l "$login" --arg u "$url" '[{body: "just a comment, Verdict: changes requested is not its first line", commit_id: $s, user: {login: "other"}, html_url: "https://example.test/c"},
+    {body: (if $k == "changes" then "**Verdict: changes requested** (head x)\n\nfix it" else "**Verdict: pass** (head x)\n\nthe earlier **Verdict: changes requested** is fixed" end), commit_id: $s, user: {login: $l}, html_url: $u}]' >"$tmp/reviews.json"
+  cat >"$tmp/bin/gh" <<F
+#!/usr/bin/env bash
+case "\$*" in
+  api*pulls/*/reviews*) f=""; while [ \$# -gt 0 ]; do [ "\$1" = --jq ] && f="\$2"; shift; done; jq -r "\$f" "$tmp/reviews.json" ;;
+  "pr view"*) jq -n '{state: "OPEN", headRefOid: "$3", headRefName: "topic", baseRefName: "main", mergeStateStatus: "CLEAN", mergeable: "MERGEABLE", labels: [], statusCheckRollup: $roll}' ;;
+  api*/protection*) exit 1 ;;
+  *) exit 1 ;;
+esac
+F
+}
+git -C "$tmp/work" fetch -q origin; ( cd "$tmp/work" && g reset -q --hard origin/topic ); moves
+judged="$(git -C "$tmp/work" rev-parse topic)"
+before="$(git -C "$tmp/origin.git" rev-parse topic)"
+# review=failure on a branch that is behind main: exit 2 at once, naming the reviewer and the link, nothing merged.
+verdict_gh FAILURE "changes $judged reviewer-bot https://example.test/r/1" "$judged"; qrun --update --timeout 1
+[ $rc -eq 2 ] && grep -q 'changes requested (review=failure) by reviewer-bot: https://example.test/r/1' "$tmp/out" && ! grep -q 'merged origin/main' "$tmp/out" && [ "$(git -C "$tmp/origin.git" rev-parse topic)" = "$before" ] \
+  || fail "a changes-requested verdict exits at once and merges no main: $rc $(cat "$tmp/out")"
+# A head that is only a main merge on top of the judged head, review status none: the verdict still stands.
+( cd "$tmp/work" && g merge -q --no-edit origin/main >/dev/null 2>&1 ); merged_head="$(git -C "$tmp/work" rev-parse topic)"
+[ "$merged_head" != "$judged" ] || fail "test setup: main was merged into topic"
+verdict_gh NONE "changes $judged reviewer-bot https://example.test/r/1" "$merged_head"; qrun --timeout 1
+[ $rc -eq 2 ] && grep -q "changes were requested on ${judged:0:8} by reviewer-bot and only main was merged since" "$tmp/out" \
+  || fail "a main merge on a judged head keeps the changes-requested verdict: $rc $(cat "$tmp/out")"
+# The same head with a fresh passing verdict is not held; a pass verdict on the old head does not hold it either.
+verdict_gh SUCCESS "changes $judged reviewer-bot https://example.test/r/1" "$merged_head"; qrun --timeout 0
+[ $rc -eq 0 ] || fail "a fresh pass on the merged head ends green: $rc $(cat "$tmp/out")"
+verdict_gh NONE "pass $judged reviewer-bot https://example.test/r/1" "$merged_head"; qrun --timeout 0
+[ $rc -eq 0 ] && ! grep -q 'changes were requested' "$tmp/out" || fail "an earlier pass does not hold a merge head: $rc $(cat "$tmp/out")"
+# A real commit of the author's own after the verdict is not a main merge: the old verdict does not hold it
+# (the wait is then the plain one, for the fresh verdict).
+( cd "$tmp/work" && g commit -q --allow-empty -m "the fix" ); fixed_head="$(git -C "$tmp/work" rev-parse topic)"
+verdict_gh NONE "changes $judged reviewer-bot https://example.test/r/1" "$fixed_head"; qrun --timeout 0
+[ $rc -eq 0 ] && ! grep -q 'changes were requested' "$tmp/out" || fail "the author's own commit after a verdict is not held by it: $rc $(cat "$tmp/out")"
 
 [ $fails -eq 0 ] && echo "wait-for: all cases pass"
 exit $fails

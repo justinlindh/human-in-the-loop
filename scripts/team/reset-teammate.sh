@@ -1,23 +1,28 @@
 #!/usr/bin/env bash
 # Compacts an idle teammate's context with /compact, from outside its session.
-# Usage: scripts/team/reset-teammate.sh <name> compact [max-wait-seconds] [--log <file>]
+# Usage: scripts/team/reset-teammate.sh <name> compact [max-wait-seconds] [--log <file>] [--before-send <command>] [--confirm-wait <seconds>]
 # Finds the teammate's tmux pane by the "@<name>" bar on its last lines, waits until it is idle at
 # the prompt (default wait 1800 s), prints its context size, sends /compact, and confirms it from the
-# transcript's compact_boundary line. --log appends a row (time, name, mode, context size,
-# transcript) to that file.
+# transcript's compact_boundary record. --log appends a row (time, name, mode, context size,
+# transcript) to that file. --before-send runs a command (bash -c) once the pane is idle, just before
+# /compact is typed: a nonzero exit ends the run with that code and sends nothing. The idle wait is
+# max-wait; the confirm wait is --confirm-wait (default 600 s, a compaction can take minutes), and ends
+# at once when the pane sits idle for 30 s (RESET_IDLE_GRACE) without a boundary, printing its last lines.
 # clear is refused: a /clear'ed teammate keeps working, but its end-of-turn reports stop reaching
 # team-lead, so the lead loses it silently. Respawn the teammate instead when a compact isn't enough.
 # The transcript directory is Claude Code's, for the main checkout's path (found from any worktree): ~/.claude/projects/<the path
 # with every character outside A-Z a-z 0-9 turned into a dash>. CLAUDE_PROJECTS_DIR names another one.
-# A teammate's transcript is the newest one, touched in the last day, whose first lines hold its spawn
-# brief ("You are `<name>`"). Run it from the team lead's session, never for the session you are in.
+# A teammate's transcript is, of those touched in the last day whose first lines hold its spawn brief
+# ("You are `<name>`"), the one with the newest last record; a boundary in any of them confirms the compact. Run it from the team lead's session, never for the session you are in.
 # Exit: 0 done, 1 not found, still busy or not confirmed, 2 usage.
 set -uo pipefail
-usage="usage: scripts/team/reset-teammate.sh <name> compact [max-wait-seconds] [--log <file>]"
-pos=(); log=""
+usage="usage: scripts/team/reset-teammate.sh <name> compact [max-wait-seconds] [--log <file>] [--before-send <command>] [--confirm-wait <seconds>]"
+pos=(); log=""; before_send=""; confirm_wait=600
 while [ $# -gt 0 ]; do
   case "$1" in
     --log) log="${2:?$usage}"; shift 2 ;;
+    --before-send) before_send="${2:?$usage}"; shift 2 ;;
+    --confirm-wait) confirm_wait="${2:?$usage}"; shift 2 ;;
     -*) echo "$usage" >&2; exit 2 ;;
     *) pos+=("$1"); shift ;;
   esac
@@ -47,14 +52,13 @@ for p in $(tmux list-panes -a -F '#{pane_id}'); do
 done
 [ -n "$pane" ] || { echo "no pane shows @$name" >&2; exit 1; }
 
-transcript() { # the teammate's newest transcript (the brief sits in its first lines)
-  local f
-  for f in $(find "$proj" -maxdepth 1 -name '*.jsonl' -mmin -1440 -printf '%T@ %p\n' | sort -rn | cut -d' ' -f2-); do
-    # Not head | grep -q: grep stops at the match, head dies of SIGPIPE on the rest of these large
-    # lines, and pipefail turns that into no match.
-    grep -q "You are \`$name\`" < <(head -n 20 "$f") && { echo "$f"; return; }
-  done
-}
+# The pick rules live in one helper shared with hitl-autocompact.sh (a copy of this script outside the
+# repository uses the helper of the repository it is run from).
+for picker in "$here" "$(git rev-parse --show-toplevel 2>/dev/null)" "$repo"; do
+  picker="$picker/scripts/tools/lane-transcript.sh"; [ -f "$picker" ] && break
+done
+candidates() { bash "$picker" "$proj" "$name" --all; } # every recent transcript whose first lines hold the brief
+transcript() { bash "$picker" "$proj" "$name"; }       # the one written most recently
 tokens() { # context size of the newest assistant turn in a transcript
   # A record can carry the usage object more than once; count only the first.
   tac "$1" | grep -m1 '"cache_read_input_tokens"' | grep -o '"usage":{[^}]*}' | head -1 \
@@ -64,19 +68,60 @@ busy() { tmux capture-pane -p -t "$pane" | tail -8 | grep -qE '… \(|esc to int
 
 before="$(transcript)"
 [ -n "$before" ] || { echo "no transcript in $proj starts with $name's brief" >&2; exit 1; }
-pre="$(tokens "$before")"; n0="$(grep -c compact_boundary "$before")"
+case "$confirm_wait" in ''|*[!0-9]*) echo "confirm-wait must be a number of seconds" >&2; exit 2 ;; esac
+# Only the transcript's own boundary records count, not a message that mentions the word.
+boundaries() { # counted over every candidate, so the compact is seen whichever file the lane writes it to
+  local f n=0; for f in $(candidates); do n=$((n + $(grep -c '"subtype":"compact_boundary"' "$f"))); done; echo "$n"
+}
+pre="$(tokens "$before")"; n0="$(boundaries)"
 end=$((SECONDS + maxwait))
 while busy || { sleep "${RESET_POLL:-4}"; busy; }; do
   [ $SECONDS -ge $end ] && { echo "$name still busy after ${maxwait}s" >&2; exit 1; }
   sleep "${RESET_POLL:-5}"
 done
 
-tmux send-keys -t "$pane" "/$mode" Enter
-ok=0
-for _ in $(seq 1 120); do
-  [ "$(grep -c compact_boundary "$before")" -gt "$n0" ] && { ok=1; break; }
+# The pane has to stay idle for RESET_SETTLE seconds (default 20) before anything is typed: a lane that
+# just ended its turn can look idle while its prompt does not take keys yet. Busy again restarts the count.
+calm=$SECONDS
+while [ $((SECONDS - calm)) -lt "${RESET_SETTLE:-20}" ]; do
+  sleep "${RESET_POLL:-5}"
+  busy && calm=$SECONDS
+  [ $SECONDS -ge $((end + ${RESET_SETTLE:-20})) ] && { echo "$name never stayed idle for ${RESET_SETTLE:-20}s" >&2; exit 1; }
+done
+
+# The caller's last look, right before the command is typed: a nonzero exit stops here, sending nothing.
+if [ -n "$before_send" ]; then
+  bash -c "$before_send"; rc=$?
+  [ $rc -eq 0 ] || exit "$rc"
+fi
+
+# The input box is below the rows a lane pane shows, and text an earlier run left in it would get the command
+# appended and be sent as one message. pane-input.sh clears the box, types the command and checks the box holds
+# exactly the command (zooming the pane for a moment to see it); Enter goes only then.
+for pi in "$here" "$(git rev-parse --show-toplevel 2>/dev/null)" "$repo"; do
+  pi="$pi/scripts/tools/pane-input.sh"; [ -f "$pi" ] && break
+done
+bash "$pi" put "$pane" "/$mode" || { echo "$name: /$mode not typed; nothing was sent" >&2; exit 1; }
+tmux send-keys -t "$pane" Enter
+sleep "${RESET_KEY_GAP:-1}"
+typed="$(tmux capture-pane -p -t "$pane" | grep -v '^[[:space:]]*$' | tail -4)"
+# Confirmed by the transcript's new boundary. A compaction can take minutes (the pane shows its spinner), so
+# the wait is --confirm-wait (default 600 s), apart from max-wait; but a pane that sits idle for RESET_IDLE_GRACE
+# seconds (default 30) with no boundary refused the command (nothing to compact, an error): that ends it now.
+ok=0; idle=0; cend=$((SECONDS + confirm_wait))
+while :; do
+  [ "$(boundaries)" -gt "$n0" ] && { ok=1; break; }
+  [ $SECONDS -ge $cend ] && { echo "$name: /$mode not confirmed after ${confirm_wait}s" >&2; break; }
+  if busy; then idle=0; else
+    [ "$idle" = 0 ] && idle=$SECONDS
+    if [ $((SECONDS - idle)) -ge "${RESET_IDLE_GRACE:-30}" ]; then
+      echo "$name: /$mode not confirmed: the pane went idle without compacting. Its last lines:" >&2
+      tmux capture-pane -p -t "$pane" | grep -v '^[[:space:]]*$' | tail -4 >&2
+      printf 'The pane right after /%s was typed:\n%s\n' "$mode" "$typed" >&2; break
+    fi
+  fi
   sleep "${RESET_POLL:-5}"
 done
-[ "$ok" = 1 ] || { echo "$name: /$mode not confirmed" >&2; exit 1; }
+[ "$ok" = 1 ] || exit 1
 [ -z "$log" ] || printf '%s\t%s\t%s\tpre=%s\ttranscript=%s\n' "$(date -u +%FT%TZ)" "$name" "$mode" "$pre" "$(basename "$before")" >>"$log"
 echo "$name: /$mode done (context before: $pre tokens)"

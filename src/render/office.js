@@ -532,6 +532,53 @@ function wallMatFor(L) {
   return L.wall === 'block' ? surfaceMat('block', null, WALLS.block()) : mat(L.wall === 'sage' ? 'wall_sage' : 'wall_cream');
 }
 
+// A Classic drop ceiling for first-person views (never drawn overhead): off-white tiles at the wall
+// tops on a light grid, with a warm light panel every third tile, open over a roof terrace. Casts and
+// takes no shadows, so the room is lit as it is overhead. Low leaves out the grid.
+const CEILING_PANEL_EVERY = 3;
+const CEILING_GLOW = 0.55;       // the ceiling's own light, standing in for light bounced up off the room
+const CEILING_LAMP = 1.8;        // the light panels' glow
+const ceilingMats = new Map();
+function ceilingMat(name) {
+  let m = ceilingMats.get(name);
+  if (!m) { m = new THREE.MeshStandardMaterial({ color: color(name), emissive: color(name), emissiveIntensity: CEILING_GLOW, roughness: 0.95 }); ceilingMats.set(name, m); }
+  return m;
+}
+function buildCeiling(L, low) {
+  const g = new THREE.Group();
+  g.name = 'ceiling';
+  const y = L.wallH;
+  const decks = L.extras?.decks ?? [];
+  const open = (x, z) => decks.some((d) => x > d.x0 && x < d.x1 && z > d.z0 && z < d.z1);
+  const tile = new THREE.PlaneGeometry(1, 1).rotateX(Math.PI / 2);
+  const panel = new THREE.BoxGeometry(0.62, 0.02, 0.62);
+  const frame = new THREE.BoxGeometry(0.7, 0.012, 0.7);
+  const barX = new THREE.BoxGeometry(1, 0.01, 0.024), barZ = new THREE.BoxGeometry(0.024, 0.01, 1);
+  const flat = { cast: false, receive: false };
+  for (let i = 0; i < L.grid.w; i++) {
+    for (let k = 0; k < L.grid.h; k++) {
+      const x = -L.W / 2 + i + 0.5, z = -L.D / 2 + k + 0.5;
+      if (open(x, z)) continue;
+      g.add(mesh(tile, ceilingMat('ceiling_tile'), x, y, z, flat));
+      const lamp = i % CEILING_PANEL_EVERY === 1 && k % CEILING_PANEL_EVERY === 1;
+      if (lamp) {
+        g.add(mesh(frame, ceilingMat('ceiling_grid'), x, y - 0.006, z, flat));
+        g.add(mesh(panel, glow('lamp_warm', CEILING_LAMP), x, y - 0.012, z, flat));
+      }
+      if (low) continue;
+      // Tiles of 0.5 m: bars on this tile's edges, and through its middle unless a lamp sits there.
+      for (const d of lamp ? [-0.5] : [-0.5, 0]) {
+        g.add(mesh(barX, ceilingMat('ceiling_grid'), x, y - 0.005, z + d, flat));
+        g.add(mesh(barZ, ceilingMat('ceiling_grid'), x + d, y - 0.005, z, flat));
+      }
+    }
+  }
+  const merged = mergeStatic(g);
+  merged.name = 'ceiling';
+  merged.userData.low = low;
+  return merged;
+}
+
 // HQ expansion dressing (layout.js extras): the annex's carpet, the terrace deck with string lights,
 // metal thresholds where old walls stood, and pilasters left at their ends.
 function addExpansion(L, statics) {
@@ -792,6 +839,7 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
   const growMat = paletteMaterial('pal_grow');
 
   let navVersion = 0;
+  const probes = new Map();   // obstaclesAt's unplaced models, one per item, level and stage
   function nav() {
     if (!cur.nav) {
       const rects = [];
@@ -1251,15 +1299,24 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
   }
 
   const camDir = new THREE.Vector2();
-  function update(dt, { yaw = Math.PI / 4, env } = {}) {
+  // inside: a first-person view, which sees every wall (no cutaway).
+  function update(dt, { yaw = Math.PI / 4, env, inside = false } = {}) {
     if (!cur) return;
     if (eraQueue.length) rebuildForEra();
     updateBatch(dt);
     camDir.set(Math.sin(yaw), Math.cos(yaw));
     for (const key of WALL_KEYS) {
       const [ox, oz] = OUTWARD[key];
-      cur.walls[key].visible = ox * camDir.x + oz * camDir.y < 0.2;
+      cur.walls[key].visible = inside || ox * camDir.x + oz * camDir.y < 0.2;
     }
+    // The ceiling, Classic only, exists once someone first looks from inside.
+    const roof = inside && era === 'classic';
+    if (roof && (!cur.ceiling || cur.ceiling.userData.low !== low())) {
+      if (cur.ceiling) { cur.ceiling.removeFromParent(); cur.ceiling.traverse((o) => { if (o.isMesh && o.geometry.userData.merged) o.geometry.dispose(); }); }
+      cur.ceiling = buildCeiling(cur.L, low());
+      cur.root.add(cur.ceiling);
+    }
+    if (cur.ceiling) cur.ceiling.visible = roof;
     if (env) {
       const n = THREE.MathUtils.smoothstep(env.night, 0.2, 0.9);
       if (lampMat) setGlowBase(lampMat, THREE.MathUtils.lerp(0.9, 3.2, n));
@@ -1363,6 +1420,19 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
       for (const r of cur.floorRects ?? []) out.push({ by: 'floor', ...r });
       for (const [bx, by] of cur.L.blocked) out.push({ by: 'pillar', x0: bx - cur.L.W / 2, x1: bx + 1 - cur.L.W / 2, z0: by - cur.L.D / 2, z1: by + 1 - cur.L.D / 2 });
       return out;
+    },
+    // The obstacle rects an item would have at { itemId, level, x, y, rot } if placed there (the build
+    // preview's what-if), measured from its model as obstacles() measures a placed one.
+    obstaclesAt(p) {
+      if (!cur) return [];
+      const key = `${p.itemId}|${p.level ?? 1}|${cur.stage}`;
+      let probe = probes.get(key);
+      if (!probe) { probe = { itemId: p.itemId, obj: buildPlacedModel({ itemId: p.itemId, level: p.level ?? 1, rot: 0 }, cur.stage) }; probes.set(key, probe); }
+      probe.target = placedTransform(cur.L, p);
+      let rects;
+      // An item dressed only once placed (the NOC) is measured by its footprint.
+      try { rects = obstaclesOf(probe); } catch { const t = probe.target; rects = [{ x0: t.x - t.w / 2, x1: t.x + t.w / 2, z0: t.z - t.h / 2, z1: t.z + t.h / 2 }]; }
+      return rects.map((r) => ({ by: 'probe', itemId: p.itemId, ...r }));
     },
     // Floor rectangles of staged props standing in the office ({ x0, x1, z0, z1 }). A change
     // rebuilds the walking grid, which re-routes walkers and steps aside anyone standing inside.

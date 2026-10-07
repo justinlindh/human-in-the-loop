@@ -25,6 +25,20 @@ describe.concurrent('play.mjs argument checks', () => {
     expect(r.stderr).toMatch(/--until is not a JS expression/);
   });
 
+  it('refuses a default choice that is not an option number', async () => {
+    const r = await play('--snapshot', resolve('package.json'), '--default-choice', 'abc');
+    expect(r.status).toBe(2);
+    expect(r.stderr).toMatch(/--default-choice takes an option number .* got "abc"/);
+  });
+
+  it('takes a bare --default-choice as option 0, not the next flag', async () => {
+    // The next flag is read as itself: this reaches the --until check, not a NaN choice.
+    const r = await play('--snapshot', resolve('package.json'), '--default-choice', '--until', 'S.week ===');
+    expect(r.status).toBe(2);
+    expect(r.stderr).toMatch(/--until is not a JS expression/);
+    expect(r.stderr).not.toMatch(/--default-choice/);
+  });
+
   it('refuses a log expression that is not JS', async () => {
     const r = await play('--snapshot', resolve('package.json'), '--log-js', '{ a: ');
     expect(r.status).toBe(2);

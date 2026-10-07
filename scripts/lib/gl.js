@@ -91,11 +91,16 @@ export async function launchChromium(chromium, { mode = glMode(), label = 'brows
 // holder, or an ancestor is). Otherwise it runs this same command again under
 // scripts/with-render-lock.sh, waits for it, and exits with its status, so nothing after the call
 // runs twice. Call it before starting servers or browsers. Under CI (no shared machine) it does nothing.
+// The command runs with a parent-death signal (setpriv --pdeathsig, kept across with-render-lock's
+// exec), so when this process dies, by any signal, the kernel sends the command TERM and its lock
+// frees. Without setpriv the command runs plainly and outlives a killed parent.
 export function holdRenderLock(mode, { env = process.env, argv = process.argv } = {}) {
   if (env.CI) return;
   const flag = mode === 'software' ? '--software' : '--gpu';
   if (spawnSync('bash', [WITH_RENDER_LOCK, flag, '--held'], { stdio: 'inherit' }).status === 0) return;
-  const r = spawnSync('bash', [WITH_RENDER_LOCK, flag, process.execPath, ...process.execArgv, ...argv.slice(1)], { stdio: 'inherit' });
+  const cmd = ['bash', WITH_RENDER_LOCK, flag, process.execPath, ...process.execArgv, ...argv.slice(1)];
+  const tied = spawnSync('setpriv', ['--pdeathsig', 'TERM', 'true'], { stdio: 'ignore' }).status === 0;
+  const r = tied ? spawnSync('setpriv', ['--pdeathsig', 'TERM', ...cmd], { stdio: 'inherit' }) : spawnSync(cmd[0], cmd.slice(1), { stdio: 'inherit' });
   process.exit(r.status ?? 1);
 }
 

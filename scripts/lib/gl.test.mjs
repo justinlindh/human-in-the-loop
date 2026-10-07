@@ -34,8 +34,22 @@ import { spawnSync } from 'node:child_process';
 holdRenderLock(process.argv[2]);
 const busy = (f) => spawnSync('flock', ['-n', f, 'true']).status !== 0;
 console.log(JSON.stringify({ soft: busy(${JSON.stringify(join(tmp, 'render-checks.lock'))}), gpu: busy(${JSON.stringify(join(tmp, 'gpu-render-1.lock'))}), holder: process.env.HITL_RENDER_LOCK_HELD === String(process.pid) }));
-process.exit(Number(process.argv[3] ?? 0));
+if (process.argv[3] === 'hang') { console.log('pid ' + process.pid); setInterval(() => {}, 1000); }
+else process.exit(Number(process.argv[3] ?? 0));
 `);
+// Kills the probe's top process alone with \`signal\` once the locked command runs, then reports whether
+// the GPU lock frees and the locked command is gone within 5 s.
+const killTop = (signal, path = process.env.PATH) => spawnSync('bash', ['-c', `
+  out=${JSON.stringify(join(tmp, 'hang.out'))}; : > "$out"
+  ${JSON.stringify(process.execPath)} ${JSON.stringify(probe)} gpu hang > "$out" 2>/dev/null & p=$!
+  for i in $(seq 100); do grep -q '^pid ' "$out" && break; sleep 0.1; done
+  child=$(sed -n 's/^pid //p' "$out"); [ -n "$child" ] || { echo "no child"; exit 2; }
+  kill -${signal} $p; wait $p 2>/dev/null
+  for i in $(seq 50); do
+    if flock -n ${JSON.stringify(join(tmp, 'gpu-render-1.lock'))} true && ! kill -0 "$child" 2>/dev/null; then echo freed; exit 0; fi
+    sleep 0.1
+  done
+  kill -9 "$child" 2>/dev/null; echo held; exit 1`], { env: { ...env, PATH: path }, encoding: 'utf8' }).stdout.trim();
 const env = { ...process.env, HITL_LOCK_DIR: tmp, HITL_GPU_SLOTS: '1', RENDER_LOCK_WAIT: '5', HITL_TIMINGS: 'off' };
 delete env.CI; delete env.HITL_RENDER_LOCK_HELD;
 const runProbe = (args, extra = {}, pre = []) => {
@@ -52,6 +66,8 @@ cases.push(
   ['a GPU run inside a GPU slot does not wait for a second one', () => assert.equal(runProbe(['gpu'], {}, [wrl, '--gpu']).status, 0)],
   ['under CI nothing is locked', () => assert.deepEqual(runProbe(['gpu'], { CI: 'true' }).out, { soft: false, gpu: false, holder: false })],
   ['the exit status passes through', () => assert.equal(runProbe(['gpu', '3']).status, 3)],
+  ['TERM to the top process alone stops the locked command and frees the lock', () => assert.equal(killTop('TERM'), 'freed')],
+  ['KILL to the top process alone stops the locked command and frees the lock', () => assert.equal(killTop('KILL'), 'freed')],
 );
 
 let fails = 0;
