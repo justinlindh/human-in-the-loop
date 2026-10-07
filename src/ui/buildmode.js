@@ -342,7 +342,7 @@ export function adjacencyWords(prev) {
     const empty = g.empty ? ` (${g.empty} empty until someone sits there)` : '';
     if (g.key === 'knowledgeShare') {
       parts.push(g.count
-        ? `Weekly: ${g.count} ${g.to}${g.count === 1 ? '' : 's'} nearby close ${val.slice(1)} of the gap to the group's expert (2+ people)${empty}`
+        ? `Weekly: ${g.count} ${g.to}${g.count === 1 ? '' : 's'} nearby close ${val.slice(1)} of the gap to the group's expert each week, with 2 or more people nearby${empty}`
         : `No ${g.to}s within ${g.radius} tiles yet (each would close ${val.slice(1)} of the gap to the group's expert weekly)`);
     } else {
       parts.push(g.count
@@ -352,11 +352,12 @@ export function adjacencyWords(prev) {
   }
   if (prev.receives?.length) {
     const byKey = new Map();
-    for (const r of prev.receives) byKey.set(r.key, (byKey.get(r.key) ?? 0) + r.value);
+    // Bonuses add up, but the game counts one cooler crowd per person, so the cooler's share is the largest in reach.
+    for (const r of prev.receives) byKey.set(r.key, r.key === 'knowledgeShare' ? Math.max(byKey.get(r.key) ?? 0, r.value) : (byKey.get(r.key) ?? 0) + r.value);
     const share = byKey.get('knowledgeShare');
     byKey.delete('knowledgeShare');
     if (byKey.size) parts.push(`This desk gets ${[...byKey].map(([k, v]) => `+${Math.round(v * 100)}% ${ADJ_LABEL[k] ?? k}`).join(', ')}`);
-    if (share !== undefined) parts.push(`This desk closes ${Math.round(share * 100)}% of the gap to the group's expert each week`);
+    if (share !== undefined) parts.push(`This desk closes ${Math.round(share * 100)}% of the gap to the group's expert each week, with 2 or more people nearby`);
   }
   return parts.join('. ');
 }
