@@ -184,6 +184,31 @@ function buildWall(L, key, wallMat) {
 // Rotation that turns a model's +Z front toward the room for a given wall.
 const WALL_ROT = { x: Math.PI / 2, z: 0, px: -Math.PI / 2, pz: Math.PI };
 
+// Window panes in first person: clear glass with a light tint, so the real street outside shows.
+// Barely reflective, so a dark night pane shows the lit city rather than streaks of the room.
+// Overhead keeps the painted pane, which reads better from above.
+const WINDOW_GLASS = { opacity: 0.16, roughness: 0.3, metalness: 0, envMapIntensity: 0.15 };
+let windowGlassMat = null;
+function windowGlass() {
+  return (windowGlassMat ??= new THREE.MeshStandardMaterial({ color: color('glass'), transparent: true, depthWrite: false, ...WINDOW_GLASS }));
+}
+
+// At night the glass takes on the night window's blue and holds more of it, so a pane reads as a
+// dark window onto the lit city rather than a grey wall next door.
+const NIGHT_GLASS_OPACITY = 0.5;
+const glassDay = new THREE.Color(), glassNight = new THREE.Color();
+function nightGlass(n) {
+  const m = windowGlass();
+  glassDay.set(color('glass'));
+  glassNight.set(color('window_night'));
+  m.color.copy(glassDay).lerp(glassNight, n);
+  m.opacity = THREE.MathUtils.lerp(WINDOW_GLASS.opacity, NIGHT_GLASS_OPACITY, n);
+}
+
+function setPanes(panes, clear) {
+  for (const c of panes) { c.material = clear ? windowGlass() : c.userData.painted; c.userData.noAO = clear; }
+}
+
 function openingModel(L, o, screens) {
   const wx = o.wall === 'x' ? -L.W / 2 - T / 2 : o.wall === 'px' ? L.W / 2 + T / 2 : o.at;
   const wz = o.wall === 'z' ? -L.D / 2 - T / 2 : o.wall === 'pz' ? L.D / 2 + T / 2 : o.at;
@@ -704,7 +729,7 @@ function buildStage(stageIdx, screens, expansion = 0) {
   }
 
   const wallMat = wallMatFor(L);
-  const walls = {};
+  const walls = {}, panes = [];
   for (const key of WALL_KEYS) {
     const wg = buildWall(L, key, wallMat);
     for (const o of L.openings.filter((op) => op.wall === key)) {
@@ -743,13 +768,15 @@ function buildStage(stageIdx, screens, expansion = 0) {
     merged.name = `wall_${key}`;
     walls[key] = merged;
     root.add(merged);
+    // The merge draws all of a wall's panes as one mesh with the painted window material.
+    merged.traverse((c) => { if (c.isMesh && c.material === screens.windowMaterial()) { c.userData.painted = c.material; panes.push(c); } });
   }
   const furniture = new THREE.Group();
   furniture.name = 'placed';
   root.add(furniture);
 
   return {
-    stage: stageIdx, expansion, key: `${stageIdx}:${expansion}`, L, root, walls, furniture, columns, columnSet,
+    stage: stageIdx, expansion, key: `${stageIdx}:${expansion}`, L, root, walls, panes, clearPanes: false, furniture, columns, columnSet,
     desks: [], zones: { door: inward(L) }, dyn: { screens: [], racks: [], wallScreens: [], meetingChairs: [], noc: null },
     bounds: new THREE.Box3(new THREE.Vector3(-L.W / 2 - T, 0, -L.D / 2 - T), new THREE.Vector3(L.W / 2 + T, L.wallH, L.D / 2 + T)),
     nav: null,
@@ -1317,10 +1344,12 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
       cur.root.add(cur.ceiling);
     }
     if (cur.ceiling) cur.ceiling.visible = roof;
+    if (cur.clearPanes !== inside) setPanes(cur.panes, (cur.clearPanes = inside));
     if (env) {
       const n = THREE.MathUtils.smoothstep(env.night, 0.2, 0.9);
       if (lampMat) setGlowBase(lampMat, THREE.MathUtils.lerp(0.9, 3.2, n));
       if (growMat) setGlowBase(growMat, THREE.MathUtils.lerp(1.4, 2.8, n));
+      if (cur.clearPanes) nightGlass(n);
     }
     const k = 1 - Math.exp(-dt * 10);
     for (const e of placed.values()) {
