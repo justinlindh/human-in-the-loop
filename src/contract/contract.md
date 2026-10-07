@@ -92,7 +92,7 @@ Product = {
 
 ```js
 { type: 'bubble', staffId, text, tone }   // tone: features|polish|reliability|novelty|good|bad
-{ type: 'toast', text, tone, trendId, topic, subjectId, short }    // short: on a toast with a topic, the bubble text, at most 32 characters ("Trend: AI agents", "75% done"); absent otherwise; tone: info|good|warn|bad; trendId: set when the toast announces a market trend, else absent; topic: set on status news only, one of 'progress'|'timeoff'|'back'|'mood'|'trend'|'blocked'|'reward'|'pet'|'rival'|'replyall' (ui may show it ambiently; 'replyall' marks the start of a reply-all storm while `B.pacing.letterMail` is on; minor incidents reach the ambient layer from the `incident` event with severity below 3, not from a toast); subjectId: the staff or product id the news is about, or null. Money, staff changes, goals and player-caused feedback carry no topic and always stay toasts
+{ type: 'toast', text, tone, trendId, topic, subjectId, short }    // short: on a toast with a topic, the bubble text, at most 32 characters ("Trend: AI agents", "75% done"); absent otherwise; tone: info|good|warn|bad; trendId: set when the toast announces a market trend, else absent; topic: set on status news only, one of 'progress'|'timeoff'|'back'|'mood'|'trend'|'blocked'|'reward'|'pet'|'rival'|'replyall'|'shared' (ui may show it ambiently; 'replyall' marks the start of a reply-all storm while `B.pacing.letterMail` is on; 'shared' is the water cooler's knowledge lift; minor incidents reach the ambient layer from the `incident` event with severity below 3, not from a toast); subjectId: the staff or product id the news is about, or null. Money, staff changes, goals and player-caused feedback carry no topic and always stay toasts
 { type: 'chat', id, week, channel, from, fromId, text, replyTo, reactions, mailId? }   // mailId: a mail this post points at (#17)
                                           // channel: general|incidents|wins|random|standup; from: staff name or a bot handle like '@pagerbot'
                                           // fromId: staff id or null for bots; replyTo: chat id or null; reactions: { [emoji]: count }
@@ -707,6 +707,15 @@ person.taste                    // a STATIONS id
 - Taste reactions and the occasional argument carry no stat penalty either way.
 - A music night overrides the radio in audio while it runs; the sim state is unchanged.
 - Boombox randomness comes from its own stream, so with `B.boombox.enabled` false a seeded game matches one without the feature.
+
+## Water cooler (#1640)
+
+Where people trade what they know. The Espresso Machine is the stamina item; the cooler spreads knowledge.
+
+- Item `water_cooler` replaces `coffee_corner`: furniture, 2x1, can go outdoors, price `B.cooler.price`. Effect: adjacency `{ radius: B.cooler.radius, key: 'knowledgeShare', value: B.cooler.share }`.
+- Saves: on load, a placed `coffee_corner` becomes a `water_cooler` with the same position and rotation, under a SAVE_VERSION bump. The id `coffee_corner` no longer exists after migration.
+- `knowledgeShare`, applied weekly by the knowledge system: a cooler's crowd is the human staff whose desks are within its radius, excluding agents, remote staff and anyone away. A crowd of 2 or more lifts each member by `share × (the crowd's highest knowledge − their own)`, at most `B.cooler.maxGain` a week. A desk in reach of two coolers counts once, in the crowd with the higher top. The effect sits outside `B.itemBonusCap` and pays nothing while the cooler is broken.
+- When a cooler lifts someone by at least `B.cooler.notifyGain` in a week, at most once per cooler per `B.cooler.notifyWeeks`, the sim emits a toast with topic `'shared'`: `subjectId` is the person who gained, `short` is 'Context shared', tone `good`, and the text names them and the crowd's top expert. ui shows it as a desk bubble, or a toast if no bubble claims it.
 
 ## AI job interviews (#670)
 
