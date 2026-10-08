@@ -60,7 +60,7 @@ const WATCH_AT = 1.05, WATCH_S = 1;   // where the carriers watch from (metres o
 // Room for a sledgehammer at the wall: furniture between lowY and highY within m metres of the spot
 // is in the swing's way; the search starts startM toward the camera's side of the hammer.
 // carryClear: the clearances its carrier's route tries to keep from furniture, widest first.
-const HAMMER_ROOM = { lowY: 0.35, highY: 1.4, m: 0.65, startM: 1.2, carryClear: [0.55, 0.45, 0.4] };
+const HAMMER_ROOM = { lowY: 0.35, highY: 1.4, m: 0.65, startM: 1.2, carryClear: [0.55, 0.45, 0.4, 0.3, 0.25] };
 const FAN_SIDE = 1.8;        // radians off the camera line to either side where a fanner stands
 const FAN_TURN = 1.0;        // radians a fanner faces off the source, toward the camera
 const CHEAT_TURN = 0.5;      // radians the consultants' scene turns off face-to-face toward the camera
@@ -69,7 +69,7 @@ const FAR_TURN = 0.44;       // radians a ring spot's facing may turn off its ce
 const SWING_AT = 0.9;        // and swings from this far off it
 const JAM_SCALE = 1.2;       // the jammed printer's scale as staged (props.js)
 const BAT_SHOULDER = [Math.PI, 0, -0.4];   // the bat's turn in the hand, resting back over the shoulder
-const HAMMER_SHOULDER = [2.6, 0, 0.2];   // the sledgehammer's, carried the same way, its head clear of the back and close in to the side
+const HAMMER_SHOULDER = [2.8, 0, 0.43];   // the sledgehammer's, carried the same way, its head out past the shoulder, where it still shows over a walker coming toward the camera
 const SHOULDER_UP_S = 0.3;  // seconds of walking before the hammer goes up on the shoulder, once the arm is there
 const CHAIR_CLEAR = 0.65;   // metres from a desk seat a carrier keeps: the chair reaches about 0.36 from it, plus a body
 const TWIST_STEP = 0.1, END_ON_HOLD = 0.8, TWIST_EASE = 0.3;   // metres: turn samples, how far an end-on stretch reaches, and its easing
@@ -530,7 +530,10 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     walkTo(r, goal, run);
     const nav = office.nav();
     let p = null;
-    for (const c of HAMMER_ROOM.carryClear) if ((p = nav.path(r.pos, goal, c))) break;
+    // From a pocket narrower than the clearance, the path starts at the nearest roomy cell, which can
+    // lie across the desks; such a way is refused for the soft one, which starts where they stand.
+    const ends = (q) => nav.roomAlong(q[0], q[1]) > 0 && nav.roomAlong(q.at(-2), q.at(-1)) > 0;
+    for (const c of HAMMER_ROOM.carryClear) if ((p = nav.path(r.pos, goal, c)) && (p.length < 2 || ends(p))) break; else p = null;
     p ??= nav.path(r.pos, goal, HAMMER_ROOM.carryClear[0], { soft: true }) ?? [];
     if (p.length > 1) r.path = [...p.slice(1, -1), { x: goal.x, z: goal.z }];
   }
