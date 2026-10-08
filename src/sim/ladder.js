@@ -41,13 +41,25 @@ function setRemote(ctx) {
 // The share of the team working from home this week.
 export const remoteShare = (state) => (state.staff.length ? state.staff.filter((p) => p.remote).length / state.staff.length : 0);
 
+// Whether a decision is still to be answered: open, in the ask queue, or scheduled.
+const cardWaiting = (state, eventId) => state.pendingDecision?.eventId === eventId
+  || (state.asks ?? []).some((a) => a.ref?.eventId === eventId)
+  || state.scheduled.some((x) => x.kind === 'event' && x.payload?.eventId === eventId);
+
+// The lockdown is asked first: its card names the stayer, and the office empties once it is answered.
 function lockdownStep(ctx) {
   const { state } = ctx;
   if (!state.lockdown && state.flags.lockdownWeek === undefined && eraAtLeast(state, 'classic') && (state.founding?.calendarOffset ?? 0) <= B.lockdownWeek && calendarWeek(state) >= B.lockdownWeek && state.staff.length) {
     const stayer = pick(ctx.rng, state.staff);
-    state.lockdown = { since: state.week, until: state.week + B.lockdownWeeks, stayerId: stayer.id };
     state.flags.lockdownWeek = state.week;
+    state.flags.lockdownStayer = stayer.id;
     raiseDecision(ctx, 'lockdown_start', stayer.id, { queue: true });
+    return;
+  }
+  if (!state.lockdown && state.flags.lockdownStayer !== undefined && !cardWaiting(state, 'lockdown_start')) {
+    const stayerId = state.staff.some((p) => p.id === state.flags.lockdownStayer) ? state.flags.lockdownStayer : null;
+    delete state.flags.lockdownStayer;
+    state.lockdown = { since: state.week, until: state.week + B.lockdownWeeks, stayerId };
     emitChat(ctx, { from: '@officebot', text: hasPlants(state) ? 'The office is closed until further notice. Please take your plants home.' : 'The office is closed until further notice. Please take your chair home. Only your chair.', important: true });
     return;
   }
