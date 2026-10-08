@@ -69,7 +69,7 @@ const FAR_TURN = 0.44;       // radians a ring spot's facing may turn off its ce
 const SWING_AT = 0.9;        // and swings from this far off it
 const JAM_SCALE = 1.2;       // the jammed printer's scale as staged (props.js)
 const BAT_SHOULDER = [Math.PI, 0, -0.4];   // the bat's turn in the hand, resting back over the shoulder
-const HAMMER_SHOULDER = [2.6, 0, 0.35];   // the sledgehammer's, carried the same way, its head clear of the back and close in to the side
+const HAMMER_SHOULDER = [2.8, 0, 0.43];   // the sledgehammer's, carried the same way, its head out past the shoulder, where it still shows over a walker coming toward the camera
 const SHOULDER_UP_S = 0.3;  // seconds of walking before the hammer goes up on the shoulder, once the arm is there
 const CHAIR_CLEAR = 0.65;   // metres from a desk seat a carrier keeps: the chair reaches about 0.36 from it, plus a body
 const TWIST_STEP = 0.1, END_ON_HOLD = 0.8, TWIST_EASE = 0.3;   // metres: turn samples, how far an end-on stretch reaches, and its easing
