@@ -617,6 +617,36 @@ export const ITEMS = [
     publish: true,
   })),
 
+  // docs/features/interface.md: Spot the AI. An Agents-era company with the AI Video Interviews policy on: the
+  // Hire tab, Watch the interview, the feed and the transcript line by line, then the one follow-up question.
+  {
+    id: 'iface-spot-the-ai', title: 'Interface: Spot the AI', query: 'seed=1&speed=0', warmup: 1,
+    setup: `(async () => {
+      const { createGame } = await import('/src/sim/state.js');
+      const { tick, dispatch } = await import('/src/sim/index.js');
+      const b = await import('/src/sim/bots.js');
+      const { saveGame } = await import('/src/save/save.js');
+      const s = createGame({ seed: 1, startEra: 'agents' });
+      for (let i = 0; i < 6 && !s.gameOver; i++) { b.botDecide('balanced', s); b.botTurn('balanced', s); tick(s); }
+      if (!dispatch(s, { type: 'setPolicy', id: 'ai_interviews', on: true }).ok) throw new Error('the AI Video Interviews policy would not switch on');
+      if (!saveGame(s, localStorage)) throw new Error('could not save the agents game');
+      const r = window.__HITL.controls.continueGame();
+      if (!r.ok) throw new Error('the game refused the agents save: ' + (r.reason ?? ''));
+      window.__HITL.setSpeed?.(0);
+    })()`,
+    actions: [
+      ...[0, 0.3, 0.6].map((at) => ({ at, js: CLEAR_CARDS })),
+      { at: 0.8, js: KEY('s', 'KeyS') }, { at: 1.4, js: CLICK_STARTS('Hire') },
+      { at: 3.0, js: CLICK_SEL('.iv-watch') },
+      { at: 4.5, js: `if (!document.querySelector('.iv')) console.error('capture: the Spot the AI card never opened')` },
+      { at: 11.5, js: CLICK_SEL('.iv-ask') },
+      { at: 14, js: `if (document.querySelectorAll('.iv-line').length < 4) console.error('capture: the interview transcript did not play')` },
+    ],
+    screenshots: [5, 14],
+    out: [{ path: 'iface/spot-the-ai.mp4', size: '1280x720', from: 1.4, seconds: 14.6, loop: 'none' }], seconds: 16,
+    publish: true,
+  },
+
   // docs/features/interface.md: Reports > Inventory of a pre-internet company with a boxed release and a batch on order.
   {
     id: 'iface-inventory', title: 'Interface: Reports > Inventory', query: 'seed=1&eras&speed=0', still: true, warmup: 1,
