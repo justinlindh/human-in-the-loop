@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { toolTmp } from '../../scripts/tools/tmp.mjs';
-import { apply, mediaPlan, problems } from '../../scripts/tools/changelog-apply.mjs';
+import { apply, fingerprint, keepFrom, mediaPlan, problems, recordOf } from '../../scripts/tools/changelog-apply.mjs';
 
 const SCRIPT = resolve(__dirname, '../../scripts/tools/changelog-apply.mjs');
 const tmp = mkdtempSync(join(toolTmp(), 'changelog-apply-test-'));
@@ -127,6 +127,101 @@ describe('apply with items to keep', () => {
     writeFileSync(keep, '{"headline":"x"}');
     expect(run(site, day, draft, '--keep', keep).status).toBe(2);
     expect(run(site, day, draft, '--keep').status).toBe(2);
+  });
+});
+
+describe('apply with media chosen by rule', () => {
+  const day = '2026-10-01';
+  const PM = 'https://github.com/justinlindh/human-in-the-loop/blob/pr-media';
+  const art = { area: 'Art', title: 'Kept', body: 'Hand-made.', media: [{ src: `media/${day}/old.webp`, kind: 'image' }] };
+  const sources = new Map([
+    [5, { stills: [{ url: `${PM}/pr-5/after.png?raw=true`, caption: 'The after shot' }, { url: `${FM}/old.webp?raw=true`, caption: '' }], clips: [] }],
+    [6, { stills: [], clips: [{ url: `${PM}/pr-6/walk.mp4?raw=true`, caption: 'A walk' }] }],
+  ]);
+  const convert = (src, dest) => { writeFileSync(dest, `webp:${readFileSync(src, 'utf8')}`); return true; };
+  const frame = (src, dest) => { writeFileSync(dest, 'frame'); return true; };
+
+  it('ignores the draft\'s media, takes the cited PRs\', cuts a frame for a clip-only PR, and flags an on-screen item left bare', () => {
+    const fetched = [];
+    const draft = { date: day, headline: 'H', items: [
+      { area: 'UI', title: 'Five', body: 'b', refs: ['#5'], media: [{ src: `${FM}/model-pick.webp?raw=true`, kind: 'image' }] },
+      { area: 'Office', title: 'Six', body: 'b', refs: ['#6'] },
+      { area: 'Office', title: 'Bare', body: 'b', refs: ['#7'] },
+      { area: 'Sound', title: 'Hum', body: 'b', refs: [] },
+    ] };
+    const r = apply({ site, day, draft, keep: { items: [art] }, sources, convert, frame, fetchFile: (url, dest) => { fetched.push(url); return fetchOk(url, dest); } });
+    const e = r.entries.find((x) => x.date === day);
+    expect(e.items.map((i) => [i.title, (i.media ?? []).map((m) => m.src)])).toEqual([
+      ['Kept', [`media/${day}/old.webp`]],
+      ['Five', [`media/${day}/5-after.webp`, `media/${day}/old.webp`]],
+      ['Six', [`media/${day}/6-walk-frame.webp`]],
+      ['Bare', []], ['Hum', []],
+    ]);
+    // The kept item's old.webp is linked by the feature still of the same name, never fetched over.
+    expect(fetched).toEqual(['https://raw.githubusercontent.com/justinlindh/human-in-the-loop/pr-media/pr-5/after.png', 'https://raw.githubusercontent.com/justinlindh/human-in-the-loop/pr-media/pr-6/walk.mp4']);
+    expect(readFileSync(join(site, `changelog/media/${day}/old.webp`), 'utf8')).toBe('x');
+    expect(readFileSync(join(site, `changelog/media/${day}/5-after.webp`), 'utf8')).toBe('webp:png');
+    expect(readdirSync(join(site, `changelog/media/${day}`)).sort()).toEqual(['5-after.webp', '6-walk-frame.webp', 'old.webp']);
+    expect(r.attached.map((a) => [a.title, a.srcs.length])).toEqual([['Five', 2], ['Six', 1], ['Bare', 0], ['Hum', 0]]);
+    // Each still carries its caption; one with none has no caption field.
+    expect(e.items[1].media).toEqual([{ src: `media/${day}/5-after.webp`, kind: 'image', caption: 'The after shot' }, { src: `media/${day}/old.webp`, kind: 'image' }]);
+    expect(e.items[2].media[0].caption).toBe('A walk');
+    expect(r.wanted.map((w) => w.title)).toEqual(['Bare']);
+  });
+
+  it('keeps the original still when it cannot be made webp, and drops what cannot be fetched', () => {
+    const draft = { date: day, headline: 'H', items: [{ area: 'UI', title: 'Five', body: 'b', refs: ['#5', '#6'] }] };
+    const r = apply({ site, day, draft, sources, convert: () => false, frame: () => false, fetchFile: (url, dest) => !/old\.webp/.test(url) && fetchOk(url, dest) });
+    expect(r.entries.find((x) => x.date === day).items[0].media).toEqual([{ src: `media/${day}/5-after.png`, kind: 'image', caption: 'The after shot' }]);
+    expect(r.notes).toEqual([expect.stringMatching(/could not download .*old\.webp/)]);
+    expect(readdirSync(join(site, `changelog/media/${day}`))).toEqual(['5-after.png']);
+  });
+
+  it('shows a file once when two picks land on the same name, and says so as a duplicate', () => {
+    const dup = new Map([[8, { stills: [{ url: `${PM}/pr-8/a.png?raw=true`, caption: 'A' }, { url: `${PM}/pr-8/v2/a.png?raw=true`, caption: 'A again' }], clips: [] }]]);
+    const draft = { date: day, headline: 'H', items: [{ area: 'UI', title: 'Eight', body: 'b', refs: ['#8'] }] };
+    const r = apply({ site, day, draft, sources: dup, convert, frame, fetchFile: fetchOk });
+    expect(r.entries.find((x) => x.date === day).items[0].media).toEqual([{ src: `media/${day}/8-a.webp`, kind: 'image', caption: 'A' }]);
+    expect(r.notes).toEqual([`skipped media: ${PM}/pr-8/v2/a.png?raw=true is the same file as media/${day}/8-a.webp, already shown`]);
+  });
+});
+
+describe('the record of what this tool wrote', () => {
+  const entryOf = (items, headline = 'Mine') => ({ date: '2026-10-01', headline, items });
+  const a = { area: 'UI', title: 'A', body: 'Text.', refs: ['#1'], media: [{ src: 'media/x/1.webp', kind: 'image' }] };
+  const b = { area: 'Art', title: 'B', body: 'Curated.', refs: [] };
+  it('records what it wrote, less what it kept, and a redraft keeps the rest', () => {
+    const rec = recordOf(entryOf([b, a], 'Mine'), { items: [b] });
+    expect(rec).toEqual({ headline: 'Mine', titles: ['A'], prints: { A: fingerprint(a) } });
+    expect(keepFrom(entryOf([b, a]), rec)).toEqual({ headline: null, items: [b] });
+    // A kept headline is not the tool's.
+    expect(recordOf(entryOf([a], 'Theirs'), { headline: 'Theirs', items: [] }).headline).toBe(null);
+  });
+  it('keeps an item of its own that was edited by hand since: new text or new stills', () => {
+    const rec = recordOf(entryOf([a]));
+    expect(keepFrom(entryOf([{ ...a, body: 'Fixed by hand.' }]), rec).items).toHaveLength(1);
+    expect(keepFrom(entryOf([{ ...a, media: [...a.media, { src: 'media/x/2.webp', kind: 'image' }] }]), rec).items).toHaveLength(1);
+    expect(keepFrom(entryOf([{ ...a, refs: ['#2'] }]), rec).items).toHaveLength(0);
+  });
+  it('reads an older record of titles only, and with no record keeps everything', () => {
+    expect(keepFrom(entryOf([a, b]), { headline: 'Mine', titles: ['A'] })).toEqual({ headline: null, items: [b] });
+    expect(keepFrom(entryOf([a, b]), null)).toEqual({ headline: 'Mine', items: [a, b] });
+  });
+  it('keep and record on the command line', () => {
+    const run = (...x) => spawnSync(process.execPath, [SCRIPT, ...x], { encoding: 'utf8' });
+    const pub = join(site, 'pub.json'), rec = join(site, 'rec.json');
+    writeFileSync(pub, JSON.stringify(entryOf([b, a])));
+    writeFileSync(rec, JSON.stringify(recordOf(entryOf([a]))));
+    const k = run('keep', pub, rec);
+    expect(k.status, k.stderr).toBe(0);
+    expect(JSON.parse(k.stdout)).toEqual({ headline: null, items: [b] });
+    expect(JSON.parse(run('keep', pub, join(site, 'missing.json')).stdout).items).toHaveLength(2);
+    const r = run('record', site, '2026-10-03');
+    expect(r.status, r.stderr).toBe(0);
+    expect(JSON.parse(r.stdout).titles).toEqual(['A thing']);
+    expect(run('record', site, '2026-01-01').status).toBe(1);
+    expect(run('keep').status).toBe(2);
+    expect(run(site, '2026-10-03', pub, '--stills', 'x').status).toBe(2);
   });
 });
 
