@@ -11,4 +11,4 @@ node scripts/tools/interrupt-test.mjs --after 10 -- node blender/checks/stage.mj
 node scripts/tools/interrupt-test.mjs --after 3 --signal INT -- node scripts/events/pair.js --bots balanced --seeds 400
 ```
 
-A tool whose children start in other process groups (`setsid`) shows up as survivors; one that makes its scratch under `TMPDIR` or `HITL_TMP` and does not remove it on a signal shows up as leftover temp dirs. The scratch dir itself is removed at the end.
+What is still running or left in the scratch dir after the command ends is checked again for up to 3 s, so a helper that cleans up after the command (a reaper) is not counted while it finishes. A tool whose children start in other process groups (`setsid`) shows up as survivors; one that makes its scratch under `TMPDIR` or `HITL_TMP` and does not remove it on a signal shows up as leftover temp dirs. The scratch dir itself is removed at the end.

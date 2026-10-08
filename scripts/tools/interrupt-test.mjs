@@ -70,15 +70,18 @@ try { process.kill(-child.pid, SIG); } catch { /* already gone */ }
 const done = await Promise.race([ended, sleep(grace * 1000).then(() => null)]);
 let stuck = false;
 if (!done) { stuck = true; try { process.kill(-child.pid, 'SIGKILL'); } catch { /* gone */ } await ended; }
-await sleep(500);
 const how = (x) => (x.signal ? `signal ${x.signal}` : String(x.code));
 const result = done ?? (await ended);
-const survivors = before.filter((p) => alive(p.pid)).concat(tree(child.pid).filter((p) => !before.some((b) => b.pid === p.pid)));
-const leftovers = readdirSync(scratch);
+// A tool may still be cleaning up after it exits (a helper removing a checkout): wait for what remains to go, up to
+// SETTLE seconds, and report what is still there then.
+const SETTLE = 3;
+const remaining = () => before.filter((p) => alive(p.pid)).concat(tree(child.pid).filter((p) => !before.some((b) => b.pid === p.pid)));
+let survivors = remaining(), leftovers = readdirSync(scratch);
+for (let t = 0; t < SETTLE * 10 && (survivors.length || leftovers.length); t++) { await sleep(100); survivors = remaining(); leftovers = readdirSync(scratch); }
 const okExit = !stuck && (expected.includes(String(result.code)) || (result.signal !== null && result.signal === SIG));
 
 console.log(stuck ? `exit: still running ${grace} s after ${SIG}; killed with SIGKILL` : `exit: ${how(result)}${okExit ? '' : ` (expected ${expected.join(' or ')} or ${SIG})`}`);
-console.log(survivors.length ? `survivors:\n${survivors.map((p) => `  pid ${p.pid} ${p.args.slice(0, 100)}`).join('\n')}` : 'survivors: none');
+console.log(survivors.length ? `survivors:\n${survivors.map((p) => `  pid ${p.pid} ${p.args.slice(0, 240)}`).join('\n')}` : 'survivors: none');
 console.log(leftovers.length ? `leftover temp dirs:\n${leftovers.map((n) => `  ${n}`).join('\n')}` : 'leftover temp dirs: none');
 if (tail.length) console.log(`last output:\n${tail.map((l) => `  ${l.slice(0, 160)}`).join('\n')}`);
 for (const p of survivors) { try { process.kill(p.pid, 'SIGKILL'); } catch { /* gone */ } }
