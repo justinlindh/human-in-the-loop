@@ -25,4 +25,20 @@ describe('issue #67: the Office Floor gate', () => {
     expect(totalMrr(s)).toBe(g.mrr);
     expect(officeGateReason(s, 1)).toBeNull();
   });
+
+  it('issue #1908: the dates read as a calendar quarter, with the founding offset', () => {
+    const s = game(1);
+    s.week = 0;
+    s.cash = 0;
+    expect(officeGateReason(s, 1)).toBe('Available from Q1 2021');
+    s.founding = { ...s.founding, calendarOffset: 52 };
+    expect(officeGateReason(s, 1)).toBe('Available from Q1 2022');
+    s.week = OFFICE_STAGES[1].gate.week;
+    s.stats.launches = 2;
+    s.brand = 30;
+    while (s.staff.length < 6) addStaff(s, 'engineer', 'mid');
+    expect(officeGateReason(s, 1)).toBe('Needs $250,000 MRR, or $450,000 in the bank from Q3 2022');
+    s.founding.calendarOffset = 0;
+    expect(officeGateReason(s, 1)).toBe('Needs $250,000 MRR, or $450,000 in the bank from Q3 2021');
+  });
 });

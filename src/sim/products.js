@@ -1,6 +1,6 @@
 import { addToRecord } from './record.js';
 import { B } from './balance.js';
-import { clamp, sum, dateOf, marketWeek, marketYear } from './util.js';
+import { clamp, sum, calendarDate, marketWeek, marketYear } from './util.js';
 import { dotcomAcquisition } from './dotcom.js';
 import { itemBonus } from './bonus.js';
 import { registerAction, registerSystem } from './registry.js';
@@ -201,7 +201,8 @@ registerAction('setOwner', (ctx, { productId, staffId }) => {
 // stage is an office stage index or one of OFFICE_STAGES.
 export function officeGateReason(state, stage) {
   const g = (typeof stage === 'number' ? OFFICE_STAGES[stage] : stage)?.gate ?? {};
-  if (g.week && state.week < g.week) return state.founding?.startEra ? `Available after ${g.week} company weeks` : `Available from ${dateOf(g.week).year}`;
+  const quarter = (week) => { const d = calendarDate(state, week); return `Q${d.quarter} ${d.year}`; };
+  if (g.week && state.week < g.week) return state.founding?.startEra ? `Available after ${g.week} company weeks` : `Available from ${quarter(g.week)}`;
   if (g.launches && state.stats.launches < g.launches) return `Needs ${g.launches} launches`;
   if (g.liveProducts && liveProducts(state).length < g.liveProducts) return `Needs ${g.liveProducts} live products`;
   if (g.staff && state.staff.length < g.staff) return `Needs ${g.staff} people`;
@@ -210,7 +211,7 @@ export function officeGateReason(state, stage) {
   const savings = g.orCash && state.week >= (g.orCashWeek ?? 0) && state.cash >= g.orCash;
   if (g.mrr && totalMrr(state) < g.mrr && !savings) {
     const need = `Needs $${g.mrr.toLocaleString('en-US')} MRR`;
-    const when = state.founding?.startEra ? `company week ${g.orCashWeek ?? 0}` : dateOf(g.orCashWeek ?? 0).year;
+    const when = state.founding?.startEra ? `company week ${g.orCashWeek ?? 0}` : quarter(g.orCashWeek ?? 0);
     return g.orCash ? `${need}, or $${g.orCash.toLocaleString('en-US')} in the bank from ${when}` : need;
   }
   return null;
