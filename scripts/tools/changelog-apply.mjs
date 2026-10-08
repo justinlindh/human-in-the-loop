@@ -30,7 +30,7 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { clipFrame, pickMedia, sourcesFor, toWebp, UNSEEN } from './changelog-media.mjs';
+import { aspect, CAP, clipFrame, pickMedia, POOL, sourcesFor, toWebp, UNSEEN, WIDE } from './changelog-media.mjs';
 import { basename, join } from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -84,9 +84,11 @@ const rawUrl = (u) => u.replace(/\?raw=true$/, '').replace(new RegExp(`^https://
 // Applies the draft to the entries list and the media folder; returns { entries, notes, attached, wanted }.
 // With `sources` (changelog-media.mjs sourcesFor), each drafted item's media is chosen by rule from the
 // PRs it cites (pickMedia) and the draft's own media is ignored: stills are fetched and made webp, and a
-// clip, when no cited PR has a still, gives a frame from its middle. `attached` lists what each item got;
-// `wanted` the items about something on screen left with no still.
-export function apply({ site, day, draft, keep = null, sources = null, fetchFile = defaultFetch, convert = toWebp, frame = clipFrame }) {
+// clip, when no cited PR has a still, gives a frame from its middle. Up to POOL candidates are fetched,
+// one much wider than tall goes behind the rest, and the first `cap` are kept (the still check passes a
+// larger cap and makes the final cut itself). `attached` lists what each item got; `wanted` the items
+// about something on screen left with no still.
+export function apply({ site, day, draft, keep = null, sources = null, cap = CAP, fetchFile = defaultFetch, convert = toWebp, frame = clipFrame, ratio = aspect }) {
   const root = join(site, 'changelog');
   const file = join(root, 'entries.json');
   const entries = JSON.parse(readFileSync(file, 'utf8'));
@@ -115,8 +117,8 @@ export function apply({ site, day, draft, keep = null, sources = null, fetchFile
     const item = { area: i.area.trim(), title: i.title.trim(), body: i.body.trim(), refs: i.refs ?? [] };
     if (keptTitles.has(item.title)) { notes.push(`left out the drafted "${item.title}": the entry keeps its own`); continue; }
     if (sources) {
-      const media = [];
-      for (const p of pickMedia(item.refs, sources)) {
+      let media = [];
+      for (const p of pickMedia(item.refs, sources, Math.max(cap, POOL))) {
         const base = basename(rawUrl(p.url)).replace(/[^\w.-]/g, '-');
         const feature = /\/feature-media\//.test(p.url);
         const name = p.kind === 'clip' ? `${p.pr}-${base.replace(/\.[^.]+$/, '')}-frame.webp` : feature ? base : `${p.pr}-${base}`;
@@ -125,6 +127,10 @@ export function apply({ site, day, draft, keep = null, sources = null, fetchFile
         else if (media.some((m) => m.src === src)) notes.push(`skipped media: ${p.url} is the same file as ${src}, already shown`);
         else media.push({ src, kind: 'image', ...(p.caption ? { caption: p.caption } : {}) });
       }
+      // A picture much wider than tall is likely a strip or a row of frames: it goes behind the others.
+      const wide = new Set(media.filter((m) => (ratio(join(root, m.src)) ?? 1) > WIDE).map((m) => m.src));
+      for (const s of wide) notes.push(`ranked down a likely sheet (wider than ${WIDE}:1): ${s}`);
+      media = [...media.filter((m) => !wide.has(m.src)), ...media.filter((m) => wide.has(m.src))].slice(0, cap);
       if (media.length) item.media = media;
       attached.push({ title: item.title, srcs: media.map((m) => m.src) });
       if (!media.length && !UNSEEN.test(item.area)) wanted.push(item);
@@ -184,14 +190,14 @@ export function recordOf(entry, keep = null) {
   return { headline: keep?.headline ? null : entry.headline, titles: items.map((i) => i.title), prints: Object.fromEntries(items.map((i) => [i.title, fingerprint(i)])) };
 }
 
-const USAGE = `usage: changelog-apply.mjs <site-checkout> <YYYY-MM-DD> <draft.json> [--keep <keep.json>] [--media <day-changes.json> [--stills <feature-media list>]]
+const USAGE = `usage: changelog-apply.mjs <site-checkout> <YYYY-MM-DD> <draft.json> [--keep <keep.json>] [--media <day-changes.json> [--stills <feature-media list>] [--cap <n>]]
        changelog-apply.mjs keep <published-entry.json> [<record.json>]     (what a redraft keeps, as JSON)
        changelog-apply.mjs record <site-checkout> <YYYY-MM-DD> [--keep <keep.json>]   (what this tool wrote, as JSON)`;
 const readJson = (f, what) => { try { return JSON.parse(readFileSync(f, 'utf8')); } catch (e) { throw Object.assign(new Error(`${what} is not JSON: ${e.message}`), { code: 2 }); } };
 
 function main(argv) {
   let a;
-  try { a = parseArgs({ args: argv, allowPositionals: true, options: { keep: { type: 'string' }, media: { type: 'string' }, stills: { type: 'string' } } }); }
+  try { a = parseArgs({ args: argv, allowPositionals: true, options: { keep: { type: 'string' }, media: { type: 'string' }, stills: { type: 'string' }, cap: { type: 'string' } } }); }
   catch (e) { console.error(`changelog-apply: ${e.message}\n${USAGE}`); return 2; }
   const { values: v, positionals: p } = a;
   try {
@@ -210,12 +216,13 @@ function main(argv) {
       return 0;
     }
     const [site, day, draftFile] = p;
-    if (!site || !/^\d{4}-\d\d-\d\d$/.test(day || '') || !draftFile || p.length > 3 || (v.stills && !v.media)) { console.error(USAGE); return 2; }
+    const cap = v.cap === undefined ? CAP : Number(v.cap);
+    if (!site || !/^\d{4}-\d\d-\d\d$/.test(day || '') || !draftFile || p.length > 3 || (v.stills && !v.media) || (v.cap !== undefined && !v.media) || !(Number.isInteger(cap) && cap >= 1)) { console.error(USAGE); return 2; }
     const draft = readJson(draftFile, 'the draft');
     const bad = problems(draft, day);
     if (bad.length) { console.error(`changelog-apply: the draft cannot be used:\n- ${bad.join('\n- ')}`); return 2; }
     const sources = v.media ? sourcesFor(readJson(v.media, 'the day-changes file'), day, v.stills ? readFileSync(v.stills, 'utf8').split('\n').map((s) => s.trim()).filter(Boolean) : []) : null;
-    const { entries, notes, attached, wanted, replaced } = apply({ site, day, draft, keep, sources });
+    const { entries, notes, attached, wanted, replaced } = apply({ site, day, draft, keep, sources, cap });
     for (const n of notes) console.error(`changelog-apply: ${n}`);
     writeFileSync(join(site, 'changelog', 'entries.json'), `${JSON.stringify(entries, null, 2)}\n`);
     const n = entries.find((e) => e.date === day).items.length;

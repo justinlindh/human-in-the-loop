@@ -17,9 +17,10 @@
 # Usage: scripts/tools/changelog-auto.sh [<YYYY-MM-DD>] [--force] [--dry]
 #        --dry stops before the push and the PR (the entry is left in the site clone's branch)
 # Env: CL_STATE (default ~/.cache/hitl-ci/changelog-auto), CL_GAME_ORIGIN (default this checkout's origin),
-#      CL_SITE_ORIGIN and CL_SITE_REPO (the site repository: git url and owner/name), CL_MODEL (default
-#      haiku), CL_CLAUDE (the claude command; a stand-in for tests), CL_BUDGET (dollars per draft, default
-#      2), GH (a stand-in for tests).
+#      CL_SITE_ORIGIN and CL_SITE_REPO (the site repository: git url and owner/name), CL_MODEL (the
+#      drafter, default haiku), CL_CHECK_MODEL (the still check, default sonnet), CL_STILL_CHECK=0 (no
+#      still check), CL_CLAUDE (the claude command; a stand-in for tests), CL_BUDGET (dollars per day for
+#      the draft and the still check together, default 2), GH (a stand-in for tests).
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/../lib/tmpdir.sh"
@@ -148,19 +149,27 @@ write_prompt() { # <feedback>
   } >"$prompt"
 }
 draft="$STATE/$day.draft.json"
+budget="${CL_BUDGET:-2}"; spent=0
+# The still check (below) makes the final cut of each item's stills, so the rules hand it more candidates.
+check=1; [ "${CL_STILL_CHECK:-1}" = 0 ] && check=0
+capargs=(); [ "$check" = 1 ] && capargs=(--cap 6)
 applied=0; feedback=""
 for attempt in 1 2; do
   write_prompt "$feedback"
   say "drafting (attempt $attempt, model $MODEL)"
+  left="$(node -e 'console.log(Math.max(0, Number(process.argv[1]) - Number(process.argv[2])).toFixed(2))' "$budget" "$spent")"
   if ! timeout 900 $CLAUDE -p "$(cat "$prompt")" --model "$MODEL" --tools Read --permission-mode dontAsk --strict-mcp-config --add-dir "$STATE" --add-dir "$site" \
-      --no-session-persistence --max-budget-usd "${CL_BUDGET:-2}" >"$STATE/$day.draft.raw" 2>>"$log" </dev/null; then
+      --no-session-persistence --max-budget-usd "$left" --output-format json >"$STATE/$day.draft.raw" 2>>"$log" </dev/null; then
     feedback="The drafting run itself failed."; continue
   fi
-  # The JSON object in the reply: from the first { to the last }.
-  if ! node -e 'const s=require("fs").readFileSync(process.argv[1],"utf8");const a=s.indexOf("{"),b=s.lastIndexOf("}");if(a<0||b<a)process.exit(1);JSON.parse(s.slice(a,b+1));require("fs").writeFileSync(process.argv[2],s.slice(a,b+1))' "$STATE/$day.draft.raw" "$draft" 2>>"$log"; then
-    feedback="The reply was not one JSON object."; continue
+  # The reply's text (claude's JSON output wraps it with what the run cost), then the JSON object in it:
+  # from the first { to the last }. The cost so far goes to $day.spent.
+  if ! node -e 'const fs=require("fs");let s=fs.readFileSync(process.argv[1],"utf8"),c=0;try{const j=JSON.parse(s);if(typeof j.result==="string"){s=j.result;c=Number(j.total_cost_usd)||0}}catch{}fs.writeFileSync(process.argv[3],String(Number(process.argv[4])+c));const a=s.indexOf("{"),b=s.lastIndexOf("}");if(a<0||b<a)process.exit(1);JSON.parse(s.slice(a,b+1));fs.writeFileSync(process.argv[2],s.slice(a,b+1))' \
+      "$STATE/$day.draft.raw" "$draft" "$STATE/$day.spent" "$spent" 2>>"$log"; then
+    spent="$(cat "$STATE/$day.spent" 2>/dev/null || echo "$spent")"; feedback="The reply was not one JSON object."; continue
   fi
-  if err="$(node "$HERE/changelog-apply.mjs" "$site" "$day" "$draft" ${kargs[@]+"${kargs[@]}"} --media "$data" --stills "$STATE/$day.stills.txt" 2>&1)"; then
+  spent="$(cat "$STATE/$day.spent")"
+  if err="$(node "$HERE/changelog-apply.mjs" "$site" "$day" "$draft" ${kargs[@]+"${kargs[@]}"} --media "$data" --stills "$STATE/$day.stills.txt" ${capargs[@]+"${capargs[@]}"} 2>&1)"; then
     applied=1; echo "$err" >>"$log"; echo "$err" >"$STATE/$day.apply.txt"
     grep '^changelog-apply: media: ' "$STATE/$day.apply.txt" | sed 's/^changelog-apply: //' | while IFS= read -r l; do say "$l"; done
     break
@@ -168,6 +177,15 @@ for attempt in 1 2; do
   echo "$err" >>"$log"; feedback="$err"
 done
 [ "$applied" = 1 ] || fail "no usable draft after two attempts (${feedback:0:200})"
+
+# 3b. The still check: a cheap model looks at each picked still next to its item, keeps up to three that
+# show what the item says, and captions them from what is visible, with what the draft left of the budget.
+left="$(node -e 'console.log(Math.max(0, Number(process.argv[1]) - Number(process.argv[2])).toFixed(2))' "$budget" "$spent")"
+# Sonnet: haiku's verdicts on the same stills change from run to run (an overhead frame passed as first person).
+cargs=(--budget "$left" --model "${CL_CHECK_MODEL:-sonnet}" --raw "$STATE/$day.check.raw"); [ "$check" = 1 ] || cargs=(--trim-only)
+CL_CLAUDE="$CLAUDE" node "$HERE/changelog-still-check.mjs" "$site" "$day" ${kargs[@]+"${kargs[@]}"} "${cargs[@]}" >"$STATE/$day.check.txt" 2>>"$log" || fail "the still check failed"
+cat "$STATE/$day.check.txt" >>"$log"
+grep -E '^(check|kept|turned down):' "$STATE/$day.check.txt" | while IFS= read -r l; do say "still check: $l"; done
 
 # 4. The site's own tests.
 ( cd "$site" && npm test ) >"$STATE/$day.test.log" 2>&1 </dev/null; rc=$?
@@ -193,14 +211,19 @@ body="$STATE/$day.pr.md"
   echo "## What"; echo
   echo "The changelog entry for $day, drafted from that day's merged player-visible PRs and their feature entries by the daily changelog run, then checked by the site's tests."; echo
   echo "## Changes"; echo; echo "$titles"; echo
-  wanted="$(sed -n 's/^changelog-apply: wanted: /- /p' "$STATE/$day.apply.txt" 2>/dev/null)"
+  wanted="$( { sed -n 's/^changelog-apply: wanted: /- /p' "$STATE/$day.apply.txt"; sed -n 's/^wanted: /- /p' "$STATE/$day.check.txt"; } 2>/dev/null)"
   if [ -n "$wanted" ]; then
     echo "## Stills wanted"; echo
-    echo "video: these items are about something on screen, and the PRs they cite gave no still (none posted, no clip to take a frame from, or a download that failed). Add a still to each (changelog/media/$day/, a crop when the thing is small) on this branch, or say in a comment why it needs none."; echo
+    echo "video: these items are about something on screen and have no still: the PRs they cite gave none (none posted, no clip to take a frame from, or a download that failed), or the still check turned down every one (reasons below). Add a still to each (changelog/media/$day/, a crop when the thing is small) on this branch, or say in a comment why it needs none."; echo
     echo "$wanted"; echo
   fi
+  down="$(sed -n 's/^turned down: /- /p' "$STATE/$day.check.txt" 2>/dev/null | sed "s#media/$day/##")"
+  if [ -n "$down" ]; then
+    echo "## Stills the still check turned down"; echo
+    echo "$down"; echo
+  fi
   echo "## For the reviewer"; echo
-  echo "Each item's stills were picked by rule from the PRs it cites (their feature stills first, then stills posted on the PR, else a frame from the middle of a PR clip), up to three. Check each still shows what its item says."; echo
+  echo "Each item's stills were picked by rule from the PRs it cites (their feature stills first, then stills posted on the PR, else a frame from the middle of a PR clip), then looked at by a cheap model next to the item's text, which kept up to three that show what the item says and wrote their captions ($(sed -n 's/^check: //p' "$STATE/$day.check.txt" 2>/dev/null | head -n 1)). Check each still shows what its item says."; echo
   echo "The text is written by a model from the day's merged PRs and feature entries, and it has been wrong before (multipliers, which starts exist). Check each number and each claim against the game's code and docs/effects at that day's commit before the verdict; the site cannot merge this PR without one."; echo
   echo "## Evidence"; echo
   echo "- **Checks:** \`npm test\` passes (the changelog and site checks)."

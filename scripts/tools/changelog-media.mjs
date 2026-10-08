@@ -15,18 +15,31 @@ const PR_MEDIA = new RegExp(`^https://(?:github\\.com/${GAME}/blob|raw\\.githubu
 const STILL = /\.(webp|png|jpe?g)(\?raw=true)?$/i;
 const CLIP = /\.(mp4|webm|mov)(\?raw=true)?$/i;
 
-// Stills per item, at most.
+// Stills per item, at most, and how many candidates are fetched for it, so a still ranked down after
+// fetching (a likely sheet) or turned down by the still check has others behind it.
 export const CAP = 3;
+export const POOL = 6;
+// Wider than this (width over height) reads as a strip or a row of frames, not one scene.
+export const WIDE = 2.2;
+
+// A picture's width over height, from ffprobe; null when it can't be read.
+export function aspect(file) {
+  const r = run('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', file]);
+  const [w, h] = String(r.stdout ?? '').trim().split(',').map(Number);
+  return w > 0 && h > 0 ? w / h : null;
+}
 
 // Lower is better: a before/main shot, a contact strip or side-by-side pair (a high-low quality pair too)
-// and a phone or tablet capture (the capture tools' `<w>x<h>` and `<w>x<h>t` touch sizes) are the weaker
-// picks for a changelog still; after/branch and desktop shots the stronger. Ties keep the PR's own order.
+// and a phone or tablet capture (a `<w>x<h>t` touch size, or a `<w>x<h>` size under 1200 wide; a desktop
+// size such as 1920x1080 is not) are the weaker picks for a changelog still; after/branch and desktop
+// shots the stronger. Ties keep the PR's own order.
 export function score(url) {
   const n = url.replace(/\?raw=true$/, '').split('/').pop().toLowerCase();
   let s = 0;
   if (/(^|[-_.])(main|before|old|control)([-_.]|$)/.test(n)) s += 4;
   if (/(strip|sheet|contact|grid|diff|pair|before-after|high-low|-vs-|step)/.test(n)) s += 2;
-  if (/(\d{3,4}x\d{3,4}t?([-_.]|$)|phone|small|narrow|ipad|tablet|land|portrait)/.test(n)) s += 1;
+  const size = /(\d{3,4})x\d{3,4}(t?)([-_.]|$)/.exec(n);
+  if ((size && (size[2] === 't' || Number(size[1]) < 1200)) || /(phone|small|narrow|ipad|tablet|land|portrait)/.test(n)) s += 1;
   if (/(^|[-_.])(after|branch|new|fixed|desktop)([-_.]|$)/.test(n)) s -= 1;
   return s;
 }
