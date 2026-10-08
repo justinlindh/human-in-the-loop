@@ -46,6 +46,10 @@ describe('sourcesFor', () => {
   it('ranks before, main, strip, pair and phone or tablet shots below after, branch and desktop shots', () => {
     expect(score('a/hud-after.png')).toBeLessThan(score('a/hud.png'));
     expect(score('a/fp-walk-desktop.png')).toBeLessThan(score('a/fp-walk.png'));
+    // A crop ranks ahead of the full frame it comes from, a phone one too.
+    expect(score('a/1775-crop-desk.png')).toBeLessThan(score('a/1775-b-button.png'));
+    expect(score('a/menu-crop-390x844t.png')).toBe(0);
+    expect(score('a/cropped.png')).toBe(0);
     expect(score('a/hud.png')).toBeLessThan(score('a/hud-390x844.png'));
     for (const n of ['fp-walk-820x1180t.png', 'hint-placed-1180x820.png', 'd-chart-390x844t.png', 'hud-ipad.png', 'hud-1920x1080t.png']) expect(score(`a/${n}`), n).toBe(1);
     // A desktop size is not a phone or tablet capture.

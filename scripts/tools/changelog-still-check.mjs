@@ -20,7 +20,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
-import { CAP, UNSEEN } from './changelog-media.mjs';
+import { CAP } from './changelog-media.mjs';
 
 const EM_DASH = String.fromCharCode(8212);
 // Below this there is not enough budget left for a run worth having.
@@ -36,6 +36,7 @@ export function prompt(items, root) {
     '- it shows a different view or thing than the item describes: an item about first person, walking or seeing as someone needs an eye-level still, so an overhead one fails it; a settings screen fails an item about an office object;',
     '- it is a contact sheet, a grid, a strip or row of frames, or a side-by-side before/after or main/branch comparison (several small panels, often with file names or timestamps printed on them);',
     '- it is a test or debug capture: bare geometry, a lone object on an empty background with labels, mostly blank;',
+    '- the thing the item describes is too small to make out: imagine the still shown at a quarter of its size, as the changelog page shows it; if the menu, button, form or object the item is about would be a few pixels across there (a full phone or tablet screenshot where the change is one small panel), turn it down as too small. A crop of that thing passes;',
     '- it shows nearly the same as a still of the same item you already passed (the same screen cropped a little differently).',
     '',
     'For each still that passes, write a caption of at most 12 words saying what is visible, the way a player would say it. No em dashes, never the word "startup" (say company or lab).',
@@ -92,8 +93,9 @@ export function judge(items, verdict, cap = CAP) {
 
 function runModel(text, { budget, model, dir, raw }) {
   const claude = (process.env.CL_CLAUDE || 'claude').split(' ');
+  // The run starts in the stills folder, so its reach is the stills and nothing else.
   const r = spawnSync('nice', ['-n', '10', 'timeout', '600', ...claude, '-p', text, '--model', model, '--tools', 'Read', '--permission-mode', 'dontAsk', '--strict-mcp-config',
-    '--add-dir', dir, '--no-session-persistence', '--max-budget-usd', String(budget), '--output-format', 'json'], { encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'pipe'] });
+    '--add-dir', dir, '--no-session-persistence', '--max-budget-usd', String(budget), '--output-format', 'json'], { cwd: dir, encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'pipe'] });
   if (raw) { try { writeFileSync(raw, r.stdout ?? ''); } catch { /* the reply is still used */ } }
   if (r.status !== 0) return { error: `the run failed (exit ${r.status}): ${(r.stderr || r.stdout || '').trim().split('\n').pop()?.slice(0, 200)}` };
   return parseReply(r.stdout);
@@ -132,7 +134,8 @@ function main(argv) {
   }
   for (const l of judge(items, verdict, cap)) console.log(l);
   for (const it of items) {
-    if (!it.media.length) { delete it.media; if (!UNSEEN.test(it.area)) console.log(`wanted: ${it.area}: ${it.title} (${(it.refs ?? []).join(' ') || 'no PRs'})`); }
+    // Its PRs posted stills, so it shows something on screen whatever its area (a fixes item too).
+    if (!it.media.length) { delete it.media; console.log(`wanted: ${it.area}: ${it.title} (${(it.refs ?? []).join(' ') || 'no PRs'})`); }
   }
   // Every item is an object inside `entries`, so the cut stills are already gone from it.
   const dir = join(root, 'media', day);
