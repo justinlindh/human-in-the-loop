@@ -34,8 +34,8 @@ describe('--patch-js with an awaited import', () => {
     expect(r.status).not.toBe(0);
     expect(r.stdout + r.stderr).toContain('patch-boom');
   });
-  it('onscreen.mjs runs it', () => {
-    const r = run(['blender/checks/onscreen.mjs', '--mock', 'floor', '--frames', '0', '--patch-js', IMPORTING, '--json', join(tmp, 'os.json')]);
+  it('onscreen.mjs --no-panels (the engine) runs it', () => {
+    const r = run(['blender/checks/onscreen.mjs', '--mock', 'floor', '--frames', '0', '--no-panels', '--patch-js', IMPORTING, '--json', join(tmp, 'os.json')]);
     expect(r.status, r.stderr.slice(-400) + r.stdout.slice(-400)).toBe(0);
   });
 });
