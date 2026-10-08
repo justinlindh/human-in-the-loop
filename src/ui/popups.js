@@ -11,6 +11,7 @@ import { pacingOn } from './pacing.js';
 import { B } from '../sim/balance.js';
 import { letterView } from './letterView.js';
 import { hasOpenChoice } from './mail.js';
+import { interviewBlock } from './interviewCard.js';
 
 const LEADERSHIP_IDS = new Set(['ceo_replace_support', 'four_day_week', 'ai_first_mandate', 'rebrand', 'pivot_pitch', 'open_plan_office',
   'hackathon_week', 'founder_burnout', 'ceo_support_fallout', 'four_day_week_review', 'ai_first_review']);
@@ -113,6 +114,7 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
     return row.childElementCount ? row : null;
   }
   let choiceBtns = [];
+  let interview = null; // the open interview card's feed and transcript
 
   function choose(i) {
     const d = ctx.getState().pendingDecision;
@@ -127,6 +129,8 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
 
   function renderDecision(s, d) {
     ctx.unmaxYak?.();
+    interview?.dispose();
+    interview = d.eventId === 'ai_interview_watch' ? interviewBlock(ctx, d, ctx.controls?.renderer ?? ctx.controls?.getRenderer?.() ?? null) : null;
     const leader = isLeadership(d);
     const subject = s.staff.find((p) => p.id === d.subjectId)
       ?? (leader ? s.staff.find((p) => p.founder) : null);
@@ -148,7 +152,7 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
       : h('div.dtext', null,
         subject ? h('div.subj', null, portrait(subject, 44), h('div', null, h('b', { text: subject.name }), h('div', null, roleChip(subject.role)))) : null,
         product ? h('span.pill.ink', null, icon('product', { size: 12 }), ` ${product.name}`) : null,
-        h('p', { text: d.text }));
+        h('p', { text: d.text }), interview?.el);
     const dock = h('div.modal-dock');
     // A postmortem opens with the incident's resolution: back up, how long, what it cost, what helped and hurt.
     const res = resolutionFor(d, s);
@@ -175,6 +179,8 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
     backdrop.style.display = 'none';
     backdrop.replaceChildren();
     choiceBtns = [];
+    interview?.dispose();
+    interview = null;
     shown = null;
     restoreDock();
   }
@@ -285,6 +291,7 @@ export function createPopups({ layer, ctx, toasts, restoreDock, resolutionFor = 
     }
     // A postmortem's resolution can arrive after its decision; redraw with the full summary.
     if (d && d === shown && shownRes && resolutionFor(d, s) !== shownRes) { renderDecision(s, d); return; }
+    if (d && d === shown) interview?.sync();
     if (!d && shown) hide();
     // Under oneLaunchCard a launch that lands while a launch card is open joins that card.
     if (launch && queue.length && !shown && !holdLaunch && pacingOn('oneLaunchCard')) {

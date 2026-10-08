@@ -69,7 +69,7 @@ export function hireWithDesk(ctx, c) {
 
 export function hireView(ctx) {
   return liveView(
-    (s) => `${s.candidates.map((c) => c.id).join()}|${s.staff.length}|${s.officeStage}|${capacityOf(s)}|${s.office?.placed?.length ?? ''}|${s.office?.expansion ?? ''}`,
+    (s) => `${s.candidates.map((c) => c.id).join()}|${s.staff.length}|${s.officeStage}|${capacityOf(s)}|${s.office?.placed?.length ?? ''}|${s.office?.expansion ?? ''}|${s.policies?.ai_interviews ? s.candidates.map((c) => (c.watched ? 1 : 0)).join('') : ''}`,
     (s, bind) => {
       const cap = capacityOf(s);
       const room = needsDesk(s) ? deskFits(s) : true;
@@ -107,13 +107,30 @@ export function hireView(ctx) {
           toggleClass(why, 'note', !r);
           setTip(btn, r ?? (desk ? `Place ${deskWords(n)}, then hire ${c.name}` : `Hire ${c.name}`));
         });
+        // Under the AI interview policy a tape can be watched, once per candidate, and only with no card open.
+        let watch = null;
+        if (s.policies?.ai_interviews) {
+          watch = h('button.btn.small.iv-watch', { type: 'button', onclick: () => {
+            if (!ctx.act({ type: 'watchInterview', candidateId: c.id }).ok) return;
+            ctx.sfx('open');
+            ctx.closeAll?.();
+            ctx.close?.();
+          } }, icon('decision', { size: 14 }), ' Watch the interview');
+          bind((st) => {
+            const why = c.watched ? 'Already watched' : st.pendingDecision ? 'Finish the open decision first' : null;
+            watch.disabled = !!why;
+            setTip(watch, why ?? `Watch ${c.name}'s interview tape and decide if they're a person`);
+          });
+        }
         grid.append(h('div.card.cand', null,
           h('div.row', null, portrait(c, 64), h('div', null,
             h('b.cname', { text: c.name }),
+            watch ? h('div.small.muted.iv-tag', { text: 'Interviewed by our bot' }) : null,
             h('div.row.wrap', null, roleChip(c.role), seniorityChip(c.seniority), h('span.num.small', { text: `Level ${c.level}` })))),
           h('div.row.wrap', null, strengthChip(c)),
           skillsBlock(c),
           h('div.row.wrap.traits', null, ...(c.traits.length ? traitChips(c.traits, s) : [h('span.faint.small', { text: 'No notable traits' })])),
+          watch ? h('div.row', null, watch) : null,
           h('div.row.money', null,
             h('div', null, h('div.num.sal', { text: `${fmtMoney(c.salary)}/wk` }), h('div.small.muted.num', { text: `fee ${fmtMoney(hireFee(c))}` })),
             h('span.spacer'), h('div.col.right', null, btn, why))));
