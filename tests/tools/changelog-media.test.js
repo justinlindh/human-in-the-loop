@@ -61,9 +61,12 @@ describe('pickMedia', () => {
   });
 });
 
+// A machine without ffmpeg (the hosted smoke runner) skips the real conversion; the run keeps the
+// original still there, which the apply tests cover.
+const hasFfmpeg = ['ffmpeg', 'ffprobe'].every((c) => spawnSync(c, ['-version']).status === 0);
 describe('ffmpeg steps', () => {
   const ff = (...a) => spawnSync('ffmpeg', ['-v', 'error', '-y', ...a]).status === 0;
-  it('makes a wide still a webp no wider than 1280 px, and cuts a webp frame from a clip', () => {
+  it.skipIf(!hasFfmpeg)('makes a wide still a webp no wider than 1280 px, and cuts a webp frame from a clip', () => {
     const png = join(tmp, 'wide.png'), clip = join(tmp, 'c.mp4');
     expect(ff('-f', 'lavfi', '-i', 'testsrc=size=2000x1000:rate=1', '-frames:v', '1', png)).toBe(true);
     expect(ff('-f', 'lavfi', '-i', 'testsrc=size=320x240:rate=10:duration=4', '-pix_fmt', 'yuv420p', clip)).toBe(true);
