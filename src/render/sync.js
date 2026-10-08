@@ -1571,7 +1571,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     // they wait at its edge until it moves off. Only its fixer walks up to it.
     const b = robot.blocker();
     r.robotHold = !!b && r.id !== b.fixer && Math.hypot(target.x - b.x, target.z - b.z) < b.r && Math.hypot(r.pos.x - b.x, r.pos.z - b.z) < b.r + 0.1;
-    if (!r.robotHold) r.robotHoldT = 0;
+    if (!r.robotHold) { r.robotHoldT = 0; r.steppingAside = false; }
     if (r.robotHold) {
       // They face the robot and give it a look, so the wait reads as waiting on it.
       const held = r.robotHoldT ?? 0;
@@ -1579,10 +1579,18 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       if (held < ROBOT_HOLD_LOOK_S && r.robotHoldT >= ROBOT_HOLD_LOOK_S || Math.floor(held / ROBOT_HOLD_AGAIN_S) < Math.floor(r.robotHoldT / ROBOT_HOLD_AGAIN_S)) {
         r.char.express(b.broken && held > ROBOT_HOLD_LOOK_S ? 'questioning' : 'sideeye', { hold: FACE_HOLD.notable });
       }
+      // When it drives off towards them, they step to the side of its way and let it pass.
+      const aside = stepAsideOf(b, r);
+      r.steppingAside = !!aside;
+      if (aside) {
+        dir.set(aside.x - r.pos.x, 0, aside.z - r.pos.z);
+        const d = dir.length(), step = r.speed * dt;
+        if (d > 0.01) r.pos.addScaledVector(dir, Math.min(1, step / d));
+      }
       keepOffRobot(r, target);
       r.yaw = angleLerp(r.yaw, Math.atan2(b.x - r.pos.x, b.z - r.pos.z), 1 - Math.exp(-dt * 6));
-      r.char.setMoveSpeed(0);
-      r.char.setAnim('idle');
+      r.char.setMoveSpeed(aside ? r.speed : 0);
+      r.char.setAnim(aside ? anim : 'idle');
       return;
     }
     dir.set(target.x - r.pos.x, 0, target.z - r.pos.z);
@@ -1835,6 +1843,30 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   // The walk grid doesn't know where the office robot is: a walker whose step lands inside its
   // circle slides round it to the open floor on its edge nearest where they are, favouring the side
   // toward their target. One heading for a point inside the circle walks on.
+  // Where someone standing in the moving robot's way steps to: level with them along its heading,
+  // just outside its circle, on whichever side keeps further off its next turns (and isn't
+  // furniture). Null when the robot is still, they are behind it or already clear of its way.
+  function stepAsideOf(b, r) {
+    const to = b.way?.find((q) => Math.hypot(q.x - b.x, q.z - b.z) > 0.05);
+    if (!to) return null;
+    const hl = Math.hypot(to.x - b.x, to.z - b.z), ux = (to.x - b.x) / hl, uz = (to.z - b.z) / hl;
+    const vx = r.pos.x - b.x, vz = r.pos.z - b.z;
+    const along = vx * ux + vz * uz, across = vz * ux - vx * uz;
+    // Inside the b.r + 0.1 band that keeps them waiting, so they don't walk back into its way.
+    const off = b.r + 0.08;
+    if (along <= 0 || Math.abs(across) >= off - 0.02) return null;
+    const nav = office.nav(), legs = [b, ...b.way];
+    const offWay = (p) => Math.min(...legs.slice(1).map((q, i) => segDist(p, legs[i], q)));
+    const sides = [1, -1].map((s) => ({ x: b.x + ux * along - uz * s * off, z: b.z + uz * along + ux * s * off }))
+      .filter((p) => !nav.isBlocked(p.x, p.z, BODY_R));
+    return sides.sort((p, q) => offWay(q) - offWay(p))[0] ?? null;
+  }
+  function segDist(p, a, q) {
+    const dx = q.x - a.x, dz = q.z - a.z, l2 = dx * dx + dz * dz;
+    const t = l2 ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.z - a.z) * dz) / l2)) : 0;
+    return Math.hypot(p.x - a.x - t * dx, p.z - a.z - t * dz);
+  }
+
   const ROUND = [0, 0.5, -0.5, 1, -1, 1.5, -1.5, 2, -2];
   function keepOffRobot(r, target) {
     const b = robot.blocker();
