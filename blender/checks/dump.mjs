@@ -73,6 +73,10 @@ if (sweepRow) {
   if (!key || key.startsWith('--')) { console.error('dump: --sweep-row wants <report.json> <state or violation key> [<person id>]'); process.exit(2); }
   let report;
   try { report = JSON.parse(readFileSync(resolve(reportFile), 'utf8')); } catch (e) { console.error(`dump: cannot read the report "${reportFile}" (${e.message.split('\n')[0]})`); process.exit(2); }
+  // A report from other code can show people elsewhere than this checkout plays them: say so first.
+  const { checkoutOf, checkoutMismatch } = await import('./checkout.mjs');
+  const mismatch = checkoutMismatch(report, checkoutOf(resolve(import.meta.dirname, '../..')));
+  if (mismatch) console.error(`dump: warning: ${mismatch}`);
   const rows = (report.violations ?? []).filter((v) => v.key === key || v.state === key || (v.states ?? []).includes(key));
   const inState = (st) => (report.violations ?? []).filter((v) => v.state === st || (v.states ?? []).includes(st));
   const state = /^seed:\d+:w\d+$/.test(key) ? key : (rows[0]?.states ?? [rows[0]?.state]).find((s) => /^seed:\d+:w\d+$/.test(s ?? ''));
