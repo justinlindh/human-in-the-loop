@@ -11,6 +11,7 @@ import { weeklyCosts } from '../../sim/economy.js';
 import { call, SIMX } from '../simapi.js';
 import { touchUI } from '../media.js';
 import { hasBoombox, radioCard } from '../radio.js';
+import { gateWords } from '../officeGate.js';
 
 const EFFECT_LABEL = {
   batchRelief: 'duplication cost relief', retailDemand: 'retail demand',
@@ -147,7 +148,7 @@ function legacyOfficePanel(ctx) {
 // Why the move to the next office is blocked (the sim's stage gate, then cash), or ''.
 function moveBlocker(s, next) {
   const gate = call('officeGateReason', s, next);
-  if (gate) return gate;
+  if (gate) return gateWords(s, next, gate);
   return s.cash < next.upgradeCost ? 'Not enough cash' : '';
 }
 
@@ -232,7 +233,7 @@ function buildPalette(ctx, arg) {
           const why = h('span.why.small');
           bind((st) => {
             const gate = nextStep ? call('officeGateReason', st, nextStep) : call('officeGateReason', st, stageIx);
-            const r = gate ?? (Number.isFinite(cost) && st.cash < cost ? 'Not enough cash' : '');
+            const r = gateWords(st, nextStep ?? stage, gate) ?? (Number.isFinite(cost) && st.cash < cost ? 'Not enough cash' : '');
             btn.disabled = !!r; setText(why, r ?? ''); setTip(btn, r ?? '');
           });
           right = h('div.col.right', null,

@@ -1,5 +1,8 @@
 /* ---------- office shop ---------- */
 .hitl .stagecard { display: flex; align-items: center; gap: 1em; flex-wrap: wrap; margin-bottom: 0.9em; }
+/* A move that is not open yet reads as closed: flat grey, not the bright green of one you can take. */
+.hitl .stagecard .btn.go:disabled { background: var(--cream-3); color: var(--ink-soft); text-shadow: none; opacity: 1; box-shadow: 0 0.1em 0 var(--ink); }
+.hitl .stagecard .why { max-width: 26em; text-align: right; color: var(--ink); }
 .hitl .shop { display: grid; grid-template-columns: repeat(auto-fill, minmax(18em, 1fr)); gap: 0.7em; }
 .hitl .item { display: flex; flex-direction: column; gap: 0.45em; }
 .hitl .item.owned { background: #eefaf3; }
