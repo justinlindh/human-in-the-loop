@@ -8,3 +8,9 @@ const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
 export function runJs(body, vars) {
   return new AsyncFunction(...Object.keys(vars), body)(...Object.values(vars));
 }
+
+// An expression's value with the same variables, for a per-frame trace: JSON-safe (undefined is null, a thing that
+// cannot be serialised or throws is { error }), so it can go into dump.json.
+export async function evalJs(expr, vars) {
+  try { return JSON.parse(JSON.stringify((await runJs(`return (${expr});`, vars)) ?? null)); } catch (e) { return { error: String(e.message ?? e) }; }
+}

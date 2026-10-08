@@ -5,7 +5,7 @@
 //   node blender/checks/dump.mjs --out <dir> [--mock floor | --seed N [--week W] [--bot balanced|none]]
 //        [--snapshot <path> | --moment '<find query>'] [--patch-js '<js>'] [--event '<json>'] [--warm 60]
 //        [--frames 0,30,60 | --clip <seconds> [--every 15]] [--size 1280x800] [--quality medium] [--trace]
-//        [--views 0,1,2,3] [--images | --browser] [--page-errors-ok]
+//        [--views 0,1,2,3] [--trace-js '<expr>'] [--images | --browser] [--page-errors-ok]
 //
 //   --images     also write the PNGs (the frame, and the annotated one); this needs a browser and a GPU.
 //                Without it, dump.json is made on the studio engine (Node, nothing drawn): same fields
@@ -22,6 +22,8 @@
 //   --frames     frames (at 30 fps, counted from the patch) to dump; default 0
 //   --views      camera turns to measure each person's and prop's visibility from (0 is the view as
 //                it is, n is n presses of E); without it, only the current view
+//   --trace-js   an expression (with S, R, d, the frame's dump, and frame, its number) evaluated at every dumped frame; its value goes in
+//                that frame's entry as traceJs (JSON; { error } if it throws). The engine forwards no console output
 //   --trace      the moment ownership trace from the start of the warm-up: each frame gets the
 //                entries since the one before (who set a person's temp, and every start, end,
 //                interrupt, replacement, refusal and decision freeze), and each person's temp names
@@ -73,6 +75,7 @@ function pageFailed(errors) {
   return true;
 }
 
+if (opt('trace-js')) { try { new Function('S', 'R', 'd', 'frame', `return (${opt('trace-js')});`); } catch (e) { console.error(`dump: --trace-js is not a JS expression: ${e.message}`); process.exit(2); } }
 const kill = setTimeout(() => { console.error(`dump: timed out after ${timeout} s`); process.exit(124); }, timeout * 1000);
 const dir = resolve(out);
 mkdirSync(dir, { recursive: true });
@@ -103,7 +106,7 @@ if (sweepRow) {
   if (!play) { console.error(`dump: --sweep-row: the report's mode "${report.mode}" is not one this dump knows`); process.exit(2); }
   const here = inState(state);
   const seedOpts = { seed: Number(m[1]), ...play, only: [Number(m[2])], stopAt: Number(m[2]), known: [], worst: {} };
-  const dumpOpts = { warm: 0, trace: argv.includes('--trace'), frames, views: opt('views') ? opt('views').split(',').map(Number) : null };
+  const dumpOpts = { warm: 0, patchJs: opt('patch-js'), traceJs: opt('trace-js'), trace: argv.includes('--trace'), frames, views: opt('views') ? opt('views').split(',').map(Number) : null };
   const notReached = (r) => { console.error(`dump: --sweep-row: seed ${m[1]} played to week ${r.end.week}${r.end.over ? ` (${r.end.over})` : ''} without a window at week ${m[2]}`); process.exit(1); };
   let r, dumped, engineName;
   if (!useBrowser) {
@@ -145,7 +148,7 @@ if (!useBrowser) {
   const seeded = opt('seed') ? { seed: Number(opt('seed')), ...(bot === 'none' && week ? { weeks: week } : {}) } : { mock: opt('mock', 'floor') };
   const page = { ...(target ? { snapshot: target.file } : seeded), quality: opt('quality', 'medium'), width: w, height: h };
   if (target) console.log(`dump: ${target.row ? `${target.row.id} seed ${target.row.seed} bot ${target.row.bot} week ${target.row.week}` : 'snapshot'} from ${target.file}`);
-  const [r] = await runCases([{ page, module: fileURLToPath(new URL('./dump-page.js', import.meta.url)), fn: 'dumpPage', arg: { warm, patchJs: opt('patch-js'), events: opt('event') ? JSON.parse(opt('event')) : null, loaded: !!target, bot: opt('seed') && bot !== 'none' ? bot : null, week, trace: argv.includes('--trace'), frames, width: w, height: h, views: opt('views') ? opt('views').split(',').map(Number) : null } }], { jobs: 1 });
+  const [r] = await runCases([{ page, module: fileURLToPath(new URL('./dump-page.js', import.meta.url)), fn: 'dumpPage', arg: { warm, patchJs: opt('patch-js'), traceJs: opt('trace-js'), events: opt('event') ? JSON.parse(opt('event')) : null, loaded: !!target, bot: opt('seed') && bot !== 'none' ? bot : null, week, trace: argv.includes('--trace'), frames, width: w, height: h, views: opt('views') ? opt('views').split(',').map(Number) : null } }], { jobs: 1 });
   clearTimeout(kill);
   if (r.error) { console.error(`dump: engine: ${r.error}`); process.exit(1); }
   const dumped = r.value;
@@ -185,15 +188,16 @@ try {
   const dumped = [];
   let at = 0;
   for (const f of frames) {
-    const shot = await page.evaluate(({ n, views, img }) => {
+    const shot = await page.evaluate(async ({ n, views, img, traceJs, frame }) => {
       const o = { views, images: img };
       window.__step(n);
       const R = window.__hitlRender, S = window.__HITL.state;
       const d = window.__dump.dumpFrame(R, S, { views: o.views });
       // The trace entries since the last dumped frame.
       if (R.trace?.on) { d.trace = R.trace.lines(600).filter((l) => l.seq > (window.__traceSeen ?? -1)); if (d.trace.length) window.__traceSeen = d.trace[d.trace.length - 1].seq; }
+      if (traceJs) d.traceJs = await (await import('/blender/checks/patch-js.js')).evalJs(traceJs, { S, R, d, frame });
       return { d, annotated: o.images ? window.__dump.annotate(R, d) : null };
-    }, { n: f - at, img: images, views: opt('views') ? opt('views').split(',').map(Number) : null });
+    }, { traceJs: opt('trace-js'), frame: f, n: f - at, img: images, views: opt('views') ? opt('views').split(',').map(Number) : null });
     at = f;
     const name = String(f).padStart(4, '0');
     if (images) {
