@@ -1692,7 +1692,8 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
       if (bat) {
         const to = pm.swingSpot;
         bat.pos.x = pm.from[2].x + (to.x - pm.from[2].x) * e; bat.pos.z = pm.from[2].z + (to.z - pm.from[2].z) * e;
-        bat.yaw = Math.atan2(c.x - bat.pos.x, c.z - bat.pos.z);
+        const aim = pm.aim ?? c;
+        bat.yaw = Math.atan2(aim.x - bat.pos.x, aim.z - bat.pos.z);
         if (k >= 1 && bat.temp.anim !== 'shoulder') setAnim(bat, 'shoulder');
       }
       // Both carriers turn to watch it get what it deserves.
@@ -1770,7 +1771,13 @@ export function createMoments({ office, recs, walkTo, emote, getProps, note = ()
     const cross = Math.hypot(a.x - p.x, a.z - p.z) + Math.hypot(b.x - q.x, b.z - q.z) > Math.hypot(a.x - q.x, a.z - q.z) + Math.hypot(b.x - p.x, b.z - p.z);
     return cross ? [q, p] : [p, q];
   }
-  function swingSpot(pm, c) {
+  // The batter's spot round the printer's middle once it is set down at full size (its pivot is off
+  // centre, so a spot round the pivot would sit nearer or further depending on how it was turned).
+  function swingSpot(pm, end) {
+    const mid = new THREE.Box3().setFromObject(pm.obj).getCenter(new THREE.Vector3());
+    const k = pm.scale1 / (pm.obj.scale.x || 1);
+    const c = { ...end, x: end.x + (mid.x - end.x) * k, z: end.z + (mid.z - end.z) * k };
+    pm.aim = c;
     const away = getYaw() + Math.PI;
     const ang = carryYaw(pm) + Math.PI / 2, perp = [Math.sin(ang), Math.cos(ang)];
     const carriers = pm.watch ?? [1, -1].map((k) => ({ x: c.x + perp[0] * (pm.side + 0.45) * k, z: c.z + perp[1] * (pm.side + 0.45) * k }));
