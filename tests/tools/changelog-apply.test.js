@@ -135,8 +135,8 @@ describe('apply with media chosen by rule', () => {
   const PM = 'https://github.com/justinlindh/human-in-the-loop/blob/pr-media';
   const art = { area: 'Art', title: 'Kept', body: 'Hand-made.', media: [{ src: `media/${day}/old.webp`, kind: 'image' }] };
   const sources = new Map([
-    [5, { stills: [`${PM}/pr-5/after.png?raw=true`, `${FM}/old.webp?raw=true`], clips: [] }],
-    [6, { stills: [], clips: [`${PM}/pr-6/walk.mp4?raw=true`] }],
+    [5, { stills: [{ url: `${PM}/pr-5/after.png?raw=true`, caption: 'The after shot' }, { url: `${FM}/old.webp?raw=true`, caption: '' }], clips: [] }],
+    [6, { stills: [], clips: [{ url: `${PM}/pr-6/walk.mp4?raw=true`, caption: 'A walk' }] }],
   ]);
   const convert = (src, dest) => { writeFileSync(dest, `webp:${readFileSync(src, 'utf8')}`); return true; };
   const frame = (src, dest) => { writeFileSync(dest, 'frame'); return true; };
@@ -163,15 +163,26 @@ describe('apply with media chosen by rule', () => {
     expect(readFileSync(join(site, `changelog/media/${day}/5-after.webp`), 'utf8')).toBe('webp:png');
     expect(readdirSync(join(site, `changelog/media/${day}`)).sort()).toEqual(['5-after.webp', '6-walk-frame.webp', 'old.webp']);
     expect(r.attached.map((a) => [a.title, a.srcs.length])).toEqual([['Five', 2], ['Six', 1], ['Bare', 0], ['Hum', 0]]);
+    // Each still carries its caption; one with none has no caption field.
+    expect(e.items[1].media).toEqual([{ src: `media/${day}/5-after.webp`, kind: 'image', caption: 'The after shot' }, { src: `media/${day}/old.webp`, kind: 'image' }]);
+    expect(e.items[2].media[0].caption).toBe('A walk');
     expect(r.wanted.map((w) => w.title)).toEqual(['Bare']);
   });
 
   it('keeps the original still when it cannot be made webp, and drops what cannot be fetched', () => {
     const draft = { date: day, headline: 'H', items: [{ area: 'UI', title: 'Five', body: 'b', refs: ['#5', '#6'] }] };
     const r = apply({ site, day, draft, sources, convert: () => false, frame: () => false, fetchFile: (url, dest) => !/old\.webp/.test(url) && fetchOk(url, dest) });
-    expect(r.entries.find((x) => x.date === day).items[0].media).toEqual([{ src: `media/${day}/5-after.png`, kind: 'image' }]);
+    expect(r.entries.find((x) => x.date === day).items[0].media).toEqual([{ src: `media/${day}/5-after.png`, kind: 'image', caption: 'The after shot' }]);
     expect(r.notes).toEqual([expect.stringMatching(/could not download .*old\.webp/)]);
     expect(readdirSync(join(site, `changelog/media/${day}`))).toEqual(['5-after.png']);
+  });
+
+  it('shows a file once when two picks land on the same name, and says so as a duplicate', () => {
+    const dup = new Map([[8, { stills: [{ url: `${PM}/pr-8/a.png?raw=true`, caption: 'A' }, { url: `${PM}/pr-8/v2/a.png?raw=true`, caption: 'A again' }], clips: [] }]]);
+    const draft = { date: day, headline: 'H', items: [{ area: 'UI', title: 'Eight', body: 'b', refs: ['#8'] }] };
+    const r = apply({ site, day, draft, sources: dup, convert, frame, fetchFile: fetchOk });
+    expect(r.entries.find((x) => x.date === day).items[0].media).toEqual([{ src: `media/${day}/8-a.webp`, kind: 'image', caption: 'A' }]);
+    expect(r.notes).toEqual([`skipped media: ${PM}/pr-8/v2/a.png?raw=true is the same file as media/${day}/8-a.webp, already shown`]);
   });
 });
 

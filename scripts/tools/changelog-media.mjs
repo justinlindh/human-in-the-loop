@@ -1,7 +1,8 @@
 // Where a changelog item's stills come from, chosen by rule rather than by the drafting model: the PRs
-// the item cites, each with its feature-media stills (docs/features links and art's `<kind>-<id>`
+// the item cites, each with the stills of features it adds (docs/features links and art's `<kind>-<id>`
 // stills on the feature-media branch) first, then the stills posted on the PR (body and comments, on
-// the pr-media branch), and, for an item none of whose PRs has a still, a frame cut from a PR's clip.
+// the pr-media branch, ranked by score), then stills of features it only changed; for an item none of
+// whose PRs has a still, a frame cut from a PR's clip. Each comes with a caption (sourcesFor).
 // Used by changelog-apply.mjs --media.
 import { spawnSync } from 'node:child_process';
 import { existsSync, renameSync, rmSync, statSync } from 'node:fs';
@@ -17,18 +18,25 @@ const CLIP = /\.(mp4|webm|mov)(\?raw=true)?$/i;
 // Stills per item, at most.
 export const CAP = 3;
 
-// Lower is better: a before/main shot, a contact strip or side-by-side pair and a phone-sized shot are the weaker picks
-// for a changelog still; after/branch shots the stronger. Ties keep the PR's own order.
+// Lower is better: a before/main shot, a contact strip or side-by-side pair (a high-low quality pair too)
+// and a phone or tablet capture (the capture tools' `<w>x<h>` and `<w>x<h>t` touch sizes) are the weaker
+// picks for a changelog still; after/branch and desktop shots the stronger. Ties keep the PR's own order.
 export function score(url) {
   const n = url.replace(/\?raw=true$/, '').split('/').pop().toLowerCase();
   let s = 0;
   if (/(^|[-_.])(main|before|old|control)([-_.]|$)/.test(n)) s += 4;
-  if (/(strip|sheet|contact|grid|diff|pair|before-after|-vs-|step)/.test(n)) s += 2;
-  if (/(390x844|phone|small|narrow|ipad|land|portrait)/.test(n)) s += 1;
-  if (/(^|[-_.])(after|branch|new|fixed)([-_.]|$)/.test(n)) s -= 1;
+  if (/(strip|sheet|contact|grid|diff|pair|before-after|high-low|-vs-|step)/.test(n)) s += 2;
+  if (/(\d{3,4}x\d{3,4}t?([-_.]|$)|phone|small|narrow|ipad|tablet|land|portrait)/.test(n)) s += 1;
+  if (/(^|[-_.])(after|branch|new|fixed|desktop)([-_.]|$)/.test(n)) s -= 1;
   return s;
 }
-const ranked = (urls) => urls.map((u, i) => ({ u, i, s: score(u) })).sort((a, b) => a.s - b.s || a.i - b.i).map((x) => x.u);
+const ranked = (list) => list.map((x, i) => ({ x, i, s: score(x.url) })).sort((a, b) => a.s - b.s || a.i - b.i).map((r) => r.x);
+
+// A caption a reader can check the still against: the feature's name for a feature still, the link's own
+// words for a posted still that has them, else the PR's summary (its title past `type(scope): `).
+const summary = (title = '') => { const s = title.replace(/^\w+(\([^)]*\))?!?:\s*/, '').trim(); return s ? s[0].toUpperCase() + s.slice(1) : ''; };
+const words = (label = '') => (/\s/.test(label.trim()) && !/\.(png|webp|jpe?g|gif|mp4)$/i.test(label.trim()) ? label.trim() : '');
+const tidy = (c) => { const t = c.replace(/\s+/g, ' ').trim(); return /startup/i.test(t) ? '' : t.length > 110 ? `${t.slice(0, 107).replace(/\s+\S*$/, '')} ...` : t; };
 
 // The stills and clips posted on a PR, from gh: its body and every comment (pr-media.sh posts there).
 export function ghPrMedia(n) {
@@ -37,46 +45,53 @@ export function ghPrMedia(n) {
   try { const j = JSON.parse(r.stdout); return extractMedia([j.body, ...(j.comments ?? []).map((c) => c.body)].join('\n')); } catch { return []; }
 }
 
-// For each PR of the day (day-changes.mjs output), its ranked stills and clips:
-// Map<number, { stills: [url], clips: [url] }>. `featureFiles` lists the feature-media branch's files.
+// For each PR of the day (day-changes.mjs output), its stills and clips in the order to pick them:
+// Map<number, { stills: [{ url, caption }], clips: [{ url, caption }] }>. Stills of a feature the PR adds
+// come first, then the stills posted on the PR (ranked), then stills of features it only changed (an
+// entry it touched in passing shows something else). `featureFiles` lists the feature-media branch's files.
 export function sourcesFor(dayChanges, day, featureFiles = [], { prMedia = ghPrMedia } = {}) {
   const d = dayChanges.days.find((x) => x.date === day) ?? { prs: [] };
   const out = new Map();
   for (const pr of d.prs) {
-    const feature = [];
+    const added = [], changed = [];
     for (const f of pr.features ?? []) {
       if (f.status === 'removed') continue;
+      const to = f.status === 'added' ? added : changed;
       // One form for a feature-media link (a blob link and the raw one are the same file).
-      for (const m of f.media ?? []) if (m.kind === 'still') feature.push(m.url.replace(new RegExp(`^https://github\\.com/${GAME}/blob/feature-media/([^?]+)(\\?raw=true)?$`), `${RAW}/$1`));
-      for (const name of stillsFor(f.ids, featureFiles)) feature.push(`${RAW}/${name}`);
+      for (const m of f.media ?? []) if (m.kind === 'still') to.push({ url: m.url.replace(new RegExp(`^https://github\\.com/${GAME}/blob/feature-media/([^?]+)(\\?raw=true)?$`), `${RAW}/$1`), caption: tidy(f.title ?? '') });
+      for (const name of stillsFor(f.ids, featureFiles)) to.push({ url: `${RAW}/${name}`, caption: tidy(f.title ?? '') });
     }
-    const posted = prMedia(pr.number).filter((m) => PR_MEDIA.test(m.url));
-    const stills = [...new Set([...feature, ...ranked(posted.filter((m) => STILL.test(m.url)).map((m) => m.url))])];
-    const clips = ranked(posted.filter((m) => CLIP.test(m.url)).map((m) => m.url));
+    const posted = prMedia(pr.number).filter((m) => PR_MEDIA.test(m.url)).map((m) => ({ url: m.url, caption: tidy(words(m.label) || summary(pr.title)) }));
+    const seen = new Set();
+    // `weak`: a still of a feature the PR only changed, taken only once no cited PR has a stronger one.
+    const stills = [...added, ...ranked(posted.filter((m) => STILL.test(m.url))), ...changed.map((m) => ({ ...m, weak: true }))].filter((m) => !seen.has(m.url) && seen.add(m.url));
+    const clips = ranked(posted.filter((m) => CLIP.test(m.url)));
     out.set(pr.number, { stills, clips });
   }
   return out;
 }
 
 // The media for one item from the PRs it cites ("#123"), up to `cap`: stills taken in turn across its
-// PRs, so each PR shows; with no still on offer, one clip per PR to cut a frame from.
-// [{ url, kind: 'still' | 'clip', pr }].
+// PRs, so each PR shows, the weak ones (features a PR only changed) only after every PR's others; with
+// no still on offer, one clip per PR to cut a frame from. [{ url, caption, kind: 'still' | 'clip', pr }].
 export function pickMedia(refs = [], sources, cap = CAP) {
   const prs = [...new Set(refs.map((r) => Number(String(r).replace('#', ''))))].filter((n) => sources.has(n));
   const out = [], seen = new Set();
-  const lists = prs.map((n) => ({ n, list: [...sources.get(n).stills] }));
-  for (let more = true; more && out.length < cap;) {
-    more = false;
-    for (const l of lists) {
-      while (l.list.length && seen.has(l.list[0])) l.list.shift();
-      if (!l.list.length || out.length >= cap) continue;
-      const u = l.list.shift(); seen.add(u); out.push({ url: u, kind: 'still', pr: l.n }); more = true;
+  for (const weak of [false, true]) {
+    const lists = prs.map((n) => ({ n, list: sources.get(n).stills.filter((m) => !!m.weak === weak) }));
+    for (let more = true; more && out.length < cap;) {
+      more = false;
+      for (const l of lists) {
+        while (l.list.length && seen.has(l.list[0].url)) l.list.shift();
+        if (!l.list.length || out.length >= cap) continue;
+        const { weak: _, ...m } = l.list.shift(); seen.add(m.url); out.push({ ...m, kind: 'still', pr: l.n }); more = true;
+      }
     }
   }
   if (out.length) return out;
   for (const n of prs) {
     const c = sources.get(n).clips[0];
-    if (c && out.length < cap) out.push({ url: c, kind: 'clip', pr: n });
+    if (c && out.length < cap) out.push({ ...c, kind: 'clip', pr: n });
   }
   return out;
 }

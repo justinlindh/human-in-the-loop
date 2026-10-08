@@ -186,7 +186,7 @@ rm -f "$CL_PR_OPEN"
 TZ=America/Los_Angeles CL_DAY=2026-10-07 CL_STUB_REFS='["#10"]' \
   CL_STUB_EXTRA=',{"area":"Office","title":"A plant","body":"Green.","refs":["#11"]},{"area":"Sound","title":"A hum","body":"Quiet.","refs":[]}' run 2026-10-07
 [ $rc -eq 0 ] && grep -q '2026-10-07: 1 player-visible change' "$tmp/out" || fail "a 03:00Z merge lands on its UTC day: rc=$rc $(cat "$tmp/out")"
-git -C "$tmp/site.git" show "changelog/2026-10-07:changelog/entries.json" | jq -e '.[0].items[0].media == [{"src": "media/2026-10-07/10-walk-frame.webp", "kind": "image"}] and .[0].items[1].media == null' >/dev/null \
+git -C "$tmp/site.git" show "changelog/2026-10-07:changelog/entries.json" | jq -e '.[0].items[0].media == [{"src": "media/2026-10-07/10-walk-frame.webp", "kind": "image", "caption": "A late thing"}] and .[0].items[1].media == null' >/dev/null \
   || fail "a clip-only PR gives its item a frame: $(git -C "$tmp/site.git" show "changelog/2026-10-07:changelog/entries.json" | jq -c '.[0].items')"
 git -C "$tmp/site.git" show "changelog/2026-10-07:changelog/media/2026-10-07/10-walk-frame.webp" | head -c 12 | grep -q WEBP || fail "the frame is a webp file"
 grep -q '^## Stills wanted' "$tmp/state/2026-10-07.pr.md" && grep -q '^- Office: A plant (#11)' "$tmp/state/2026-10-07.pr.md" && ! grep -q 'A hum' <(sed -n '/^## Stills wanted/,/^## For/p' "$tmp/state/2026-10-07.pr.md") \

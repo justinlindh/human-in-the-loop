@@ -121,8 +121,9 @@ export function apply({ site, day, draft, keep = null, sources = null, fetchFile
         const feature = /\/feature-media\//.test(p.url);
         const name = p.kind === 'clip' ? `${p.pr}-${base.replace(/\.[^.]+$/, '')}-frame.webp` : feature ? base : `${p.pr}-${base}`;
         const src = place(rawUrl(p.url), name, { clip: p.kind === 'clip' });
-        if (src && !media.some((m) => m.src === src)) media.push({ src, kind: 'image' });
-        else notes.push(`dropped media: could not ${p.kind === 'clip' ? 'cut a frame from' : 'download'} ${p.url}`);
+        if (!src) notes.push(`dropped media: could not ${p.kind === 'clip' ? 'cut a frame from' : 'download'} ${p.url}`);
+        else if (media.some((m) => m.src === src)) notes.push(`skipped media: ${p.url} is the same file as ${src}, already shown`);
+        else media.push({ src, kind: 'image', ...(p.caption ? { caption: p.caption } : {}) });
       }
       if (media.length) item.media = media;
       attached.push({ title: item.title, srcs: media.map((m) => m.src) });
