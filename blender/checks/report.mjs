@@ -11,6 +11,12 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 
+// The first `n` page-error messages on one line (each cut to 200 characters), and how many more there were.
+export function pageErrorDetail(errors, n = 2) {
+  const one = (e) => String(e).replace(/\s+/g, ' ').slice(0, 200);
+  return errors.slice(0, n).map(one).join(' | ') + (errors.length > n ? ` (+${errors.length - n} more)` : '');
+}
+
 export function createReport(name) {
   const rows = [], skips = [];
   return {
@@ -28,6 +34,8 @@ export function createReport(name) {
       console.log(line(cols));
       for (const r of rows) console.log(line(cols.map((c) => cell(r, c)), r));
       for (const s of skips) console.log(`${name.toUpperCase()} skip ${s.check}: ${s.why}`);
+      // What a failing row says about itself (a page error's message), under the table.
+      for (const r of rows) if (!r.pass && r.detail) console.log(`${name.toUpperCase()} detail ${r.check} ${r.view} ${r.metric}: ${r.detail}`);
       const failed = rows.filter((r) => !r.pass && !r.known).length;
       const known = rows.filter((r) => !r.pass && r.known);
       console.log(`${name}: ${rows.length - failed - known.length} of ${rows.length} passed${known.length ? `, ${known.length} known (${[...new Set(known.map((r) => `#${r.known}`))].join(', ')})` : ''}${skips.length ? `, ${skips.length} skipped` : ''}`);
