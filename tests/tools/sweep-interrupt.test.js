@@ -6,14 +6,15 @@ import { toolTmp } from '../../scripts/tools/tmp.mjs';
 
 const ROOT = resolve(__dirname, '../..');
 const TEST = 'scripts/tools/interrupt-test.mjs';
-const run = (args, timeout) => spawnSync(process.execPath, args, { encoding: 'utf8', cwd: ROOT, timeout });
+// A cached clean pass would make the plain sweep skip itself and exit 0 before the interrupt.
+const run = (args, timeout) => spawnSync(process.execPath, args, { encoding: 'utf8', cwd: ROOT, timeout, env: { ...process.env, HITL_NO_CHECK_CACHE: '1' } });
 
 // The engine builds scenes and samples in long synchronous stretches where a JavaScript signal handler cannot run,
 // so it takes SIGTERM at its default action and a reaper process ends the screen step and a control checkout and
 // removes the control's temp tree. Interrupted at any point, the run ends at once and leaves nothing behind.
 describe('an interrupted sweep', () => {
-  // The runs with a control checkout are in sweep-interrupt.full.test.js.
-  for (const [name, extra, after] of [['plain run', [], 2]]) {
+  // Early (still starting up) and later (sampling), plain and with a control checkout.
+  for (const [name, extra, after] of [['plain run', [], 2], ['--against run, starting up', ['--against', 'HEAD'], 0.3], ['--against run, sampling', ['--against', 'HEAD'], 2]]) {
     it(`ends on SIGTERM and leaves nothing behind (${name})`, () => {
       const r = run([TEST, '--after', String(after), '--grace', '10', '--', process.execPath, 'blender/checks/sweep.mjs', ...extra], 120000);
       expect(r.stdout, r.stderr).toMatch(/exit: (143|signal SIGTERM)\n/);
