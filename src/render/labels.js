@@ -40,6 +40,11 @@ function injectStyle() {
     border: 2px solid ${P.ink}; font: 600 12px Fredoka, sans-serif; }
   .hitl-note .in { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
   .hitl-note .in img { width: 18px; height: 18px; flex: none; }
+  .hitl-say.hitl-think .in { font-style: italic; border-radius: 20px; }
+  .hitl-say.hitl-think .in::after { transform: none; width: 9px; height: 9px; bottom: -13px; margin-left: -10px;
+    border-radius: 50%; border: 2.5px solid ${P.ink}; }
+  .hitl-say.hitl-think .in::before { content: ''; position: absolute; left: 50%; bottom: -22px; width: 5px; height: 5px;
+    margin-left: -16px; border-radius: 50%; background: ${P.paper}; border: 2px solid ${P.ink}; }
   .hitl-say.hitl-note .in { padding: 4px 10px 4px 6px; }
   .hitl-say.hitl-note.icon-only .in { padding: 4px; }
   .hitl-say.hitl-note.tone-bad .in, .hitl-say.hitl-note.tone-bad .in::after { background: ${P.tone_bad}; color: ${P.paper}; }
@@ -143,13 +148,14 @@ export function createLabels(parent) {
   }
 
   // Speech bubble for its reading time (or `seconds`); replaces any bubble already on the same person.
-  function say(text, follow, seconds = readSeconds(text), offsetY = 1.45, { moment = false } = {}) {
+  // thought: a thought bubble (italic, a trail of dots for its tail) instead of speech.
+  function say(text, follow, seconds = readSeconds(text), offsetY = 1.45, { moment = false, thought = false } = {}) {
     for (const o of live) if (o.kind === 'say' && o.follow === follow) o.t = o.life;
     const l = acquire();
     l.kind = 'say';
     l.moment = moment;
     l.speechText = text;
-    l.el.className = 'hitl-lbl hitl-say';
+    l.el.className = thought ? 'hitl-lbl hitl-say hitl-think' : 'hitl-lbl hitl-say';
     l.inner.textContent = text.length > 70 ? `${text.slice(0, 67)}...` : text;
     l.w = null;
     l.inner.style.background = '';

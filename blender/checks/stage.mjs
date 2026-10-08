@@ -137,6 +137,22 @@ const SPECS = {
     share('reads', 'face within 80 deg of the camera, or a "!" over the head', (x) => x.faceCam <= 80 || x.emote === 'exclamation', 0.9),
     share('visible', 'body >= 50% unblocked', (x) => x.visible >= 0.5, 0.8),
   ] },
+  // A hire interviewed by a laptop at the meeting table: seated facing it, then a wave at it.
+  'ai_interview.ask': { moment: 'ai_interview', beat: 'ask', role: 'candidate', rules: [
+    share('seated', 'seated at the table for the question', (x) => x.anim === 'sit', 0.9),
+    share('facingLaptop', 'face within 50 deg of the laptop', (x) => x.targetAngle <= 50, 0.8),
+    share('visible', 'body >= 50% unblocked', (x) => x.visible >= 0.5, 0.9),
+  ] },
+  'ai_interview.wave': { moment: 'ai_interview', beat: 'wave', role: 'candidate', rules: [
+    share('waving', 'waves while seated', (x) => x.anim === 'wavesit', 0.9),
+    share('handUp', 'a hand within 0.15 m below the eyes', (x) => Math.max(x.handsRel[0][1], x.handsRel[1][1]) >= -0.15, 0.7),
+    share('facingLaptop', 'face within 50 deg of the laptop', (x) => x.targetAngle <= 50, 0.8),
+    share('visible', 'body >= 50% unblocked', (x) => x.visible >= 0.5, 0.9),
+  ] },
+  'ai_interview.wonder': { moment: 'ai_interview', beat: 'wonder', role: 'candidate', rules: [
+    share('seated', 'still seated while wondering', (x) => x.anim === 'sit', 0.9),
+    share('visible', 'body >= 50% unblocked', (x) => x.visible >= 0.5, 0.9),
+  ] },
   // Someone clicked turns to the camera (seated, as far as the chair swivels) with a mood face.
   'click.clicked': { moment: 'click', beat: 'look', role: 'clicked', rules: [
     share('moodFace', 'a click face: delighted, side-eye or sad', (x) => ['delighted', 'sideeye', 'sad'].includes(x.face), 0.9),
@@ -397,6 +413,8 @@ const SCENARIOS = {
     setup: "(await import('/src/render/checks.js')).setupDeal(R, S, { first: true })" },
   fired: { query: 'mock=floor', patch: {}, seconds: 3,
     setup: "(await import('/src/render/checks.js')).setupFired(R, S)" },
+  ai_interview: { query: 'mock=floor', patch: {}, seconds: 9,
+    setup: "(await import('/src/render/checks.js')).setupAiInterview(R, S)" },
   click: { query: 'mock=floor', patch: {}, seconds: 2,
     setup: "(await import('/src/render/checks.js')).setupClick(R, S)" },
   click_voice: { moment: 'click', query: 'mock=floor', patch: {}, seconds: 2,

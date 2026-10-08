@@ -28,7 +28,7 @@ export const SLAP_AT = 0.5;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'cupsip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'hide', 'flinch', 'pointscreen', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake', 'facepalm', 'facepalmsit', 'pet', 'fidget', 'dilemma',
-  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff', 'growthpump', 'growthpumpsit', 'growthclap', 'growthclapsit', 'rackfix', 'slap', 'deal', 'dealsit', 'hurlspin', 'hurlthrow'];
+  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff', 'growthpump', 'growthpumpsit', 'growthclap', 'growthclapsit', 'rackfix', 'slap', 'deal', 'dealsit', 'hurlspin', 'hurlthrow', 'wavesit'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
 // for the moment before the rig model has loaded.
 const ALWAYS_CLIP = /^dance_/;
@@ -65,7 +65,7 @@ const PALM_SIT = [-2.75, 0.14, 0.27, -0.6, 0.08];
 // screen, not over it) and pitch (back, clear of the face), the ringing swing, the chin lift, the
 // bounce in the chair and the shoulder's lift (metres), so the bell clears the hat.
 const DEAL_POSE = [2.5, -0.3, 0.25, 0.2, 0.03, 0.16];
-const SEATED = new Set(['growthpumpsit', 'growthclapsit', 'dealsit', 'typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit']);
+const SEATED = new Set(['growthpumpsit', 'growthclapsit', 'dealsit', 'typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit', 'wavesit']);
 
 const roleMats = new Map();
 // A role's own colour shares the palette material; any other colour (an advisor's accent) gets its own.
@@ -559,6 +559,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   let animT = 0;
   let blinkIn = 2 + rand() * 3;
   let blinkT = 0;
+  let blinkHeld = null;   // true or false: the eyes follow setBlink instead of blinking on their own
   let emoteKind = null;
   let emoteT = 0;
   let tint = 0;
@@ -1157,6 +1158,13 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.headZ = -0.1;
         tgt.bodyY = s(t * 2.2 + phase) * 0.006;
         break;
+      // Seated, waving at a screen in front: the free hand rests on the table.
+      case 'wavesit':
+        tgt.lean = -0.1;
+        tgt.armRZ = 2.4 + s(t * 10) * 0.35;
+        tgt.armLX = -0.5; tgt.armLZ = 0.3;
+        tgt.headZ = -0.1;
+        break;
       default:
         break;
     }
@@ -1327,7 +1335,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     if (blinkIn <= 0) { blinkT = 0.12; blinkIn = (mood === 'burnout' ? 7 : 2.5) + rand() * 3.5; }
     if (faceExpr && (faceExpr.t -= dt) <= 0) faceExpr = null;
     if (faceLook && (faceLook.t -= dt) <= 0) faceLook = null;
-    const closed = blinkT > 0 || SLEEPING.has(anim) || anim === 'facepalm' || anim === 'facepalmsit';
+    const closed = (blinkHeld ?? blinkT > 0) || SLEEPING.has(anim) || anim === 'facepalm' || anim === 'facepalmsit';
     if (blinkT > 0) blinkT -= dt;
     updateFace(dt, closed);
     if (emote.visible) {
@@ -1415,6 +1423,15 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     express, lookAt,
     // Mouth opening for speech, 0..1 (a voice take's loudness envelope).
     setTalk(v) { faceTalk = Math.max(0, Math.min(1, v)); },
+    // Eyes shut (true) or open (false) from now on, with no blinks of their own; null hands blinking back.
+    setBlink(closed) { blinkHeld = closed == null ? null : !!closed; },
+    // One eye's centre in world space (side -1 left, 1 right, 0 between them), written into `out`.
+    eyeWorld(out, side = 0) {
+      const bb = eyes.geometry.boundingBox;
+      out.copy(eyeLocal);
+      out.x += side * (bb.max.x - bb.min.x) / 4;
+      return headGroup.localToWorld(out);
+    },
     // Blends the face alone (talk, expression) with every timer held: speech while the game is paused.
     faceOnly(dt) { updateFace(dt, SLEEPING.has(anim) || anim === 'facepalm' || anim === 'facepalmsit'); },
     // The expression shown now (a reaction, else the mood's face), cheap enough to read every frame.
