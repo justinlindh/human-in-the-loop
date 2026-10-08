@@ -6,6 +6,7 @@ import { icon } from '../icons.js';
 import { STATS, roleSkills, bestSkill, strengthChip, skillRow } from '../stats.js';
 import { CATALOG } from '../v2content.js';
 import { firstFit } from '../placement.js';
+import { hireFeeMult } from '../../sim/ai-interviews.js';
 
 export const DESK_ITEM = 'desk';
 export const deskCost = () => CATALOG[DESK_ITEM]?.costs?.[0] ?? 0;
@@ -13,8 +14,13 @@ export const deskCost = () => CATALOG[DESK_ITEM]?.costs?.[0] ?? 0;
 // Whether a new desk fits anywhere on the floor, in any rotation.
 export const deskFits = (s) => [0, 1].some((rot) => !!firstFit(s, DESK_ITEM, rot));
 
-export function hireFee(c) {
-  return (c.salary ?? 0) * (B.hireFeeWeeks ?? 2);
+// What hiring c costs now: the sim's fee, so with the state it includes fame relief and the AI interview
+// policy's multiplier. Without a state it is the plain fee.
+export function hireFee(c, s = null) {
+  const base = (c.salary ?? 0) * (B.hireFeeWeeks ?? 2);
+  if (!s) return base;
+  const relief = 1 - (B.fameHireRelief ?? 0) * (s.fame ?? 0) / 100;
+  return base * relief * hireFeeMult(s);
 }
 
 // Desks to place before one more person can start, in an office the player lays out. Usually 1;
@@ -29,12 +35,12 @@ export function hireBlocker(s, c, room = true) {
   if (needsDesk(s)) {
     if (!room) return 'No room for a desk';
     const n = desksNeeded(s);
-    const total = n * deskCost() + hireFee(c);
+    const total = n * deskCost() + hireFee(c, s);
     if (s.cash < total) return `Need ${fmtMoney(total)} for ${n === 1 ? 'desk' : `${n} desks`} and fee`;
     return null;
   }
   if (s.staff.length >= capacityOf(s)) return 'Office is full';
-  if (s.cash < hireFee(c)) return 'Not enough cash';
+  if (s.cash < hireFee(c, s)) return 'Not enough cash';
   return null;
 }
 
@@ -69,7 +75,7 @@ export function hireWithDesk(ctx, c) {
 
 export function hireView(ctx) {
   return liveView(
-    (s) => `${s.candidates.map((c) => c.id).join()}|${s.staff.length}|${s.officeStage}|${capacityOf(s)}|${s.office?.placed?.length ?? ''}|${s.office?.expansion ?? ''}`,
+    (s) => `${s.candidates.map((c) => c.id).join()}|${s.staff.length}|${s.officeStage}|${capacityOf(s)}|${s.office?.placed?.length ?? ''}|${s.office?.expansion ?? ''}|${s.policies?.ai_interviews ? s.candidates.map((c) => (c.watched ? 1 : 0)).join('') : ''}`,
     (s, bind) => {
       const cap = capacityOf(s);
       const room = needsDesk(s) ? deskFits(s) : true;
@@ -97,6 +103,8 @@ export function hireView(ctx) {
           },
         }, btnT);
         const why = h('span.why.small');
+        const feeEl = h('div.small.muted.num');
+        bind((st) => setText(feeEl, `fee ${fmtMoney(hireFee(c, st))}`));
         bind((st) => {
           const r = hireBlocker(st, c, room);
           const desk = needsDesk(st);
@@ -107,15 +115,32 @@ export function hireView(ctx) {
           toggleClass(why, 'note', !r);
           setTip(btn, r ?? (desk ? `Place ${deskWords(n)}, then hire ${c.name}` : `Hire ${c.name}`));
         });
+        // Under the AI interview policy a tape can be watched, once per candidate, and only with no card open.
+        let watch = null;
+        if (s.policies?.ai_interviews) {
+          watch = h('button.btn.small.iv-watch', { type: 'button', onclick: () => {
+            if (!ctx.act({ type: 'watchInterview', candidateId: c.id }).ok) return;
+            ctx.sfx('open');
+            ctx.closeAll?.();
+            ctx.close?.();
+          } }, icon('decision', { size: 14 }), ' Watch the interview');
+          bind((st) => {
+            const refused = c.watched ? 'Already watched' : st.pendingDecision ? 'Finish the open decision first' : null;
+            watch.disabled = !!refused;
+            setTip(watch, refused ?? `Watch ${c.name}'s interview tape and decide if they're a person`);
+          });
+        }
         grid.append(h('div.card.cand', null,
           h('div.row', null, portrait(c, 64), h('div', null,
             h('b.cname', { text: c.name }),
+            watch ? h('div.small.muted.iv-tag', { text: 'Interviewed by our bot' }) : null,
             h('div.row.wrap', null, roleChip(c.role), seniorityChip(c.seniority), h('span.num.small', { text: `Level ${c.level}` })))),
           h('div.row.wrap', null, strengthChip(c)),
           skillsBlock(c),
           h('div.row.wrap.traits', null, ...(c.traits.length ? traitChips(c.traits, s) : [h('span.faint.small', { text: 'No notable traits' })])),
+          watch ? h('div.row', null, watch) : null,
           h('div.row.money', null,
-            h('div', null, h('div.num.sal', { text: `${fmtMoney(c.salary)}/wk` }), h('div.small.muted.num', { text: `fee ${fmtMoney(hireFee(c))}` })),
+            h('div', null, h('div.num.sal', { text: `${fmtMoney(c.salary)}/wk` }), feeEl),
             h('span.spacer'), h('div.col.right', null, btn, why))));
       }
       return [header, grid];

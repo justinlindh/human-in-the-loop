@@ -1,0 +1,18 @@
+/* Spot the AI: the feed and the transcript inside the interview decision card. The docked card is narrow, so they stack. */
+.hitl .iv { display: flex; flex-direction: column; gap: 0.6em; }
+.hitl .iv-feed { position: relative; aspect-ratio: 4 / 3; width: min(100%, 17em); align-self: center; background: #1f1c24; border: 0.18em solid var(--ink); border-radius: 0.8em; overflow: hidden; display: grid; place-items: center; box-shadow: 0 0.18em 0 var(--ink); }
+.hitl .iv-feed canvas { width: 100%; height: 100%; display: block; }
+.hitl .iv-side { display: flex; flex-direction: column; gap: 0.5em; min-width: 0; }
+.hitl .iv-talk { display: flex; flex-direction: column; gap: 0.4em; max-height: 13em; min-height: 6em; overflow-y: auto; background: var(--cream-2); border: 0.14em solid var(--ink); border-radius: 0.8em; padding: 0.5em 0.6em; }
+.hitl .iv-line { display: flex; flex-direction: column; gap: 0.1em; animation: hitl-fade 200ms ease both; }
+.hitl .iv-who { font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); }
+.hitl .iv-line.bot .iv-text { font-style: italic; color: var(--ink-soft); }
+.hitl .iv-text { line-height: 1.35; }
+.hitl .iv-acts { align-items: center; gap: 0.5em; }
+.hitl .iv-ask { font-weight: 700; }
+.hitl .iv [hidden] { display: none; }
+.hitl .cand .iv-tag { margin-top: 0.1em; }
+@media (max-height: 760px) {
+  .hitl .iv-feed { width: min(100%, 13em); }
+  .hitl .iv-talk { max-height: 9em; }
+}
