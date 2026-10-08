@@ -187,9 +187,14 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
   // The robot is wider than a walker's corner-cutting allows: a way that keeps PATH_CLEAR from
   // anything blocked, or null when there is none (a gap narrower than the robot). Only the way home
   // falls back to the way that keeps as far off as it can.
+  // The way keeps off anyone standing still (seated people are in chairs the grid already blocks)
+  // when it can; walkers move off and are left to waits() and sidestep().
   function route(a, b, { home = false } = {}) {
     const nav = office.nav();
-    return nav.path(a, b, PATH_CLEAR) ?? (home ? nav.path(a, b, PATH_CLEAR, { soft: true }) : null);
+    const avoid = [...recs.values()]
+      .filter((w) => !w.hidden && w.mode !== 'hidden' && !w.path.length && !w.char?.seated && Math.hypot(w.pos.x - b.x, w.pos.z - b.z) > KEEP_OFF_R + 0.08 && Math.hypot(w.pos.x - a.x, w.pos.z - a.z) > KEEP_OFF_R)
+      .map((w) => ({ x: w.pos.x, z: w.pos.z, r: KEEP_OFF_R }));
+    return (avoid.length ? nav.path(a, b, PATH_CLEAR, { avoid }) : null) ?? nav.path(a, b, PATH_CLEAR) ?? (home ? nav.path(a, b, PATH_CLEAR, { soft: true }) : null);
   }
 
   // A person standing or walking within KEEP_OFF_R of the robot, ahead of it on its way.
@@ -197,7 +202,8 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     const tgt = r.path[0];
     const hx = tgt.x - r.pos.x, hz = tgt.z - r.pos.z, hl = Math.hypot(hx, hz) || 1;
     for (const w of recs.values()) {
-      if (w.hidden || w.mode === 'hidden' || tgt.around === w) continue;
+      // One waiting at its edge for it to move off is not waited for in turn.
+      if (w.hidden || w.mode === 'hidden' || tgt.around === w || w.robotHold) continue;
       const dx = w.pos.x - r.pos.x, dz = w.pos.z - r.pos.z, d = Math.hypot(dx, dz);
       if (d < KEEP_OFF_R + 0.08 && (dx * hx + dz * hz) / hl > 0.05) return w;
     }
@@ -511,6 +517,13 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
       const leg = route({ x: from.x, z: from.z }, { x: r.stop.x, z: r.stop.z });
       // No way there the robot fits through: on to the next stop.
       if (!leg) return nextStop();
+      // The grid keeps the way clear up to its last cell; the stretch from there onto the stop
+      // must clear the furniture by the robot's body too.
+      if (leg.length > 1) {
+        const a = leg[leg.length - 2], b = leg[leg.length - 1], boxes = furnitureBoxes();
+        const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.1));
+        for (let k = 1; k < n; k++) if (!clearOf({ x: a.x + (b.x - a.x) * k / n, z: a.z + (b.z - a.z) * k / n }, boxes)) return nextStop();
+      }
       leg.shift();
       r.path.push(...leg);
       if (!leg.length) r.path.push({ x: r.stop.x, z: r.stop.z });
@@ -835,6 +848,7 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     },
     get root() { return rec?.rig.root ?? null; },
     // The floor circle walkers keep out of: the robot's body plus a walker's, off its dock only.
-    blocker() { return rec && !rec.docked ? { x: rec.pos.x, z: rec.pos.z, r: KEEP_OFF_R } : null; },
+    // fixer: the one walking up to slap it, who may come inside.
+    blocker() { return rec && !rec.docked ? { x: rec.pos.x, z: rec.pos.z, r: KEEP_OFF_R, fixer: rec.fix?.who?.id ?? null } : null; },
   };
 }
