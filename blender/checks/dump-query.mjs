@@ -5,13 +5,14 @@
 //   node blender/checks/dump-query.mjs <dir or dump.json> rel <thing> <frame-of>
 //   node blender/checks/dump-query.mjs <dir or dump.json> near <thing> [metres]
 //   node blender/checks/dump-query.mjs <dir or dump.json> nav <x,z> [metres]
-//   node blender/checks/dump-query.mjs <dir or dump.json> path <person>
+//   node blender/checks/dump-query.mjs <dir or dump.json> path <person or robot>
 //   node blender/checks/dump-query.mjs <dir or dump.json> visible <person or prop> [--views 0,1,2,3]
 //   node blender/checks/dump-query.mjs <dir or dump.json> trace [person]
 //
 // A thing is a person's staff id, an item's placed id, or a prop's id (a prop name also works),
 // optionally with a point: .pos (default), .center (of its bounds), .head, .eyes, .hand0, .hand1,
-// .foot0, .foot1, .held. For example s3.hand1, f10.center, pizza_boxes. hand1 is the hand that holds
+// .foot0, .foot1, .held. For example s3.hand1, f10.center, pizza_boxes. `robot` is the office robot
+// (.pos or .center); path robot gives its job (plan, cause, the desk or person it heads to), goal and way. hand1 is the hand that holds
 // things (a mug, the hammer): character.js's arms[1], on the model's +x side.
 // In rel, right is the thing's own right as it faces forward (a person facing +z has +x on their
 // left), so hand1 reads as a small negative right.
@@ -52,6 +53,7 @@ function find(frame, spec) {
     const pt = { pos: p.pos, center: p.bounds && mid(p.bounds), head: p.head?.world, eyes: p.eyes, hand0: p.hands[0]?.world, hand1: p.hands[1]?.world, foot0: p.feet[0]?.world, foot1: p.feet[1]?.world, held: p.held?.world }[point];
     return { kind: 'person', thing: p, point: pt, yaw: p.yaw };
   }
+  if (id === 'robot') return frame.robot ? { kind: 'robot', thing: frame.robot, point: point === 'center' ? frame.robot.bounds && mid(frame.robot.bounds) : frame.robot.pos, yaw: frame.robot.yaw } : null;
   const it = frame.items.find((x) => x.id === id) ?? frame.props.find((x) => x.id === id || x.prop === id);
   if (it) return { kind: it.itemId ? 'item' : 'prop', thing: it, point: point === 'center' ? it.bounds && mid(it.bounds) : it.pos, yaw: it.yaw };
   return null;
@@ -141,6 +143,17 @@ for (const fr of dump.frames) {
     for (const l of lines) console.log(`${head}  ${fmtTrace(l)}`);
     continue;
   }
+  if (cmd === 'path' && a === 'robot') {
+    const r = fr.robot;
+    if (!r) { console.log(`${head}  robot: not in this frame${'robot' in fr ? '' : ' (a dump made before dump.js recorded the robot)'}`); continue; }
+    const pt = (q) => (q ? `(${q.x.toFixed(2)}, ${q.z.toFixed(2)})` : 'none');
+    const stop = r.stop && `stop ${pt(r.stop)}${r.stop.desk ? ` desk ${r.stop.desk}` : ''}${r.stop.who ? ` for ${r.stop.who}` : ''}`;
+    console.log(`${head}  robot at (${r.pos[0].toFixed(2)}, ${r.pos[2].toFixed(2)}) yaw ${r.yaw.toFixed(2)}; plan ${r.plan}${r.cause ? ` (${r.cause})` : ''}${r.docked ? ', docked' : ''}${r.party ? `, party ${r.party}` : ''}${r.fix ? `, being fixed by ${r.fix.fixer ?? '?'}` : ''}${stop ? `; ${stop}` : ''}`);
+    console.log(`  goal ${pt(r.goal)}`);
+    console.log(`  path: ${r.path ? (r.path.length ? r.path.map(pt).join(' ') : 'none (standing)') : `${r.pathLength} point(s); this dump has no points`}`);
+    if (r.pathHits) console.log(`  passes through: ${r.pathHits.length ? r.pathHits.map((h) => `${h.id} ${h.label} (${h.part}) at (${h.at[0]}, ${h.at[1]}), segment ${h.segment}`).join('; ') : 'nothing'}`);
+    continue;
+  }
   if (cmd === 'path') {
     const p = fr.people.find((q) => q.id === a);
     if (!p) { console.log(`${head}  ${a}: not in this frame`); continue; }
@@ -158,7 +171,7 @@ for (const fr of dump.frames) {
   if (!A) { console.log(`${head}  ${a}: not in this frame`); continue; }
   if (cmd === 'where') {
     const t = A.thing;
-    console.log(`${head}  ${a} ${f3(A.point)} yaw ${A.yaw?.toFixed(3)}${t.anim ? ` anim ${t.anim}` : ''}${t.moment ? ` moment ${t.moment}/${t.beat}` : ''}${t.screen ? ` screen [${t.screen.join(', ')}]` : ''}`);
+    console.log(`${head}  ${a} ${f3(A.point)} yaw ${A.yaw?.toFixed(3)}${A.kind === 'robot' ? ` plan ${t.plan}${t.cause ? ` (${t.cause})` : ''}` : ''}${t.anim ? ` anim ${t.anim}` : ''}${t.moment ? ` moment ${t.moment}/${t.beat}` : ''}${t.screen ? ` screen [${t.screen.join(', ')}]` : ''}`);
   } else if (cmd === 'dist' || cmd === 'rel') {
     const B = find(fr, b ?? '');
     if (!B || !A.point || !B.point) { console.log(`${head}  ${b}: not in this frame`); continue; }
@@ -173,7 +186,7 @@ for (const fr of dump.frames) {
     }
   } else if (cmd === 'near') {
     const r = Number(b ?? 1);
-    const all = [...fr.people.map((p) => ({ id: p.id, pos: p.pos })), ...fr.items.map((i) => ({ id: `${i.id} ${i.itemId}`, pos: i.bounds ? mid(i.bounds) : i.pos })), ...fr.props.map((p) => ({ id: p.prop, pos: p.bounds ? mid(p.bounds) : p.pos }))];
+    const all = [...fr.people.map((p) => ({ id: p.id, pos: p.pos })), ...(fr.robot ? [{ id: 'robot', pos: fr.robot.pos }] : []),...fr.items.map((i) => ({ id: `${i.id} ${i.itemId}`, pos: i.bounds ? mid(i.bounds) : i.pos })), ...fr.props.map((p) => ({ id: p.prop, pos: p.bounds ? mid(p.bounds) : p.pos }))];
     const hits = all.filter((x) => !x.id.startsWith(`${A.thing.id} `) && x.id !== A.thing.id).map((x) => ({ ...x, d: len(sub(x.pos, A.point)) })).filter((x) => x.d <= r).sort((x, y) => x.d - y.d);
     console.log(`${head}  ${hits.map((x) => `${x.id} ${x.d.toFixed(2)} m`).join(', ') || 'nothing'}`);
   } else { console.error(`dump-query: unknown command ${cmd}`); process.exit(2); }
