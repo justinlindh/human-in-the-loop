@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { interviewBlock, feedSeed } from './interviewCard.js';
+import { interviewBlock } from './interviewCard.js';
 import { pReset, pTick } from './pclock.js';
 
 beforeEach(() => pReset());
@@ -15,7 +15,7 @@ function setup({ feed = null, askOk = true } = {}) {
     flags.aiWatch.asked = true; d.vars.lines.push({ who: 'Ann', text: 'More detail.' });
     return { ok: true };
   });
-  const ctx = { getState: () => ({ flags }), act, sfx: vi.fn() };
+  const ctx = { getState: () => ({ flags, candidates: [{ id: 'c9' }] }), act, sfx: vi.fn() };
   const renderer = feed ? { interviewFeed: feed } : null;
   const b = interviewBlock(ctx, d, renderer);
   document.body.append(b.el);
@@ -73,17 +73,21 @@ it('a refused follow-up keeps the button and adds nothing', () => {
 
 it('mounts the renderer feed with the tape and disposes it with the card', () => {
   const dispose = vi.fn();
-  const canvas = document.createElement('canvas');
-  const feed = vi.fn(() => ({ canvas, dispose }));
+  const el = document.createElement('canvas');
+  const feed = vi.fn(() => ({ el, dispose }));
   const { b } = setup({ feed });
-  expect(feed).toHaveBeenCalledWith({ seed: feedSeed('c9'), tells: ['glitch'], decoy: 'cat' });
-  expect(document.querySelector('.iv-feed canvas')).toBe(canvas);
+  expect(feed).toHaveBeenCalledWith({ person: { id: 'c9' }, seed: 'c9', tells: ['glitch'], decoy: 'cat', width: 320 });
+  expect(document.querySelector('.iv-feed canvas')).toBe(el);
   b.dispose();
   expect(dispose).toHaveBeenCalledOnce();
 });
 
-it('keeps a placeholder frame when there is no feed', () => {
+it('shows the transcript alone when the renderer has no feed', () => {
   const { b } = setup();
-  expect(document.querySelector('.iv-feed').textContent).toContain('Connecting');
+  expect(document.querySelector('.iv-feed')).toBeNull();
+  expect(document.querySelector('.iv-talk')).not.toBeNull();
   b.dispose();
+  const none = setup({ feed: () => null });
+  expect(document.querySelector('.iv-feed')).toBeNull();
+  none.b.dispose();
 });

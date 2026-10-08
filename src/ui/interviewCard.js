@@ -5,16 +5,20 @@ import { pAfter, pClear } from './pclock.js';
 
 const LINE_MS = 1500;
 
-// FNV-1a of the candidate id: a stable seed for the feed.
-export const feedSeed = (id) => { let x = 2166136261; for (const ch of String(id)) x = Math.imul(x ^ ch.charCodeAt(0), 16777619); return x >>> 0; };
+const FEED_W = 320;
 
+// The renderer's webcam feed (a canvas it animates itself), or null where it can't draw one: the card then
+// shows the transcript alone.
 export function interviewBlock(ctx, d, renderer) {
   const lines = () => d.vars?.lines ?? [];
   const talk = h('div.iv-talk', { role: 'log', 'aria-live': 'polite' });
-  const feed = h('div.iv-feed', null, h('span.iv-wait', { text: 'Connecting to the call...' }));
   let handle = null;
-  try { handle = renderer?.interviewFeed?.({ seed: feedSeed(d.vars?.candidateId), tells: d.vars?.tells ?? [], decoy: d.vars?.decoy ?? null }) ?? null; } catch { handle = null; }
-  if (handle?.canvas) feed.replaceChildren(handle.canvas);
+  try {
+    const person = ctx.getState().candidates?.find((c) => c.id === d.vars?.candidateId) ?? null;
+    handle = renderer?.interviewFeed?.({ person, seed: d.vars?.candidateId, tells: d.vars?.tells ?? [], decoy: d.vars?.decoy ?? null, width: FEED_W }) ?? null;
+  } catch { handle = null; }
+  const feed = handle?.el ? h('div.iv-feed', null, handle.el) : null;
+  if (handle?.el) { handle.el.style.width = '100%'; handle.el.style.height = 'auto'; }
   const ask = h('button.btn.iv-ask', { type: 'button', onclick: () => {
     if (!ctx.act({ type: 'askFollowUp' }).ok) return;
     ctx.sfx('click');
