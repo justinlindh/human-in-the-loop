@@ -382,15 +382,16 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const own = new Set(obs.filter((o) => near(o, seat.x, seat.z, 0.05)).map((o) => o.by));
     const L = office.current.L;
     const back = seat.yaw + Math.PI;
-    const others = (x, z) => obs.some((o) => !own.has(o.by) && near(o, x, z, BODY_R));
     const ownNear = (x, z) => obs.some((o) => own.has(o.by) && near(o, x, z, HEAD_LEAN_M));
     for (const a of APPROACH_TURNS) {
-      // Back from a deep chair (a NOC's) until a walker arriving face first keeps their head off it,
-      // as far as the floor behind stays clear. A stop on a free grid cell never moves onto a blocked one.
+      // Back from any chair until a walker arriving face first keeps their head off the seat's own furniture,
+      // as far as the floor behind keeps the room a seat exit needs. A stop on a free grid cell never
+      // moves onto a blocked one.
       let d = CHAIR_BACK_M;
       const at = (m) => [seat.x + Math.sin(back + a) * m, seat.z + Math.cos(back + a) * m];
       const keepFree = !nav.isBlocked(...at(CHAIR_BACK_M));
-      while (d < CHAIR_BACK_MAX_M && ownNear(...at(d)) && !others(...at(d + 0.05)) && !(keepFree && nav.isBlocked(...at(d + 0.05)))) d += 0.05;
+      const roomy = (x, z) => !obs.some((o) => !own.has(o.by) && near(o, x, z, BODY_R + EXIT_SPREAD_M));
+      while (d < CHAIR_BACK_MAX_M && ownNear(...at(d)) && roomy(...at(d + 0.05)) && !(keepFree && nav.isBlocked(...at(d + 0.05)))) d += 0.05;
       const [x, z] = at(d);
       const inside = Math.abs(x) < L.W / 2 - BODY_R && Math.abs(z) < L.D / 2 - BODY_R;
       // Off the walk grid, the route would end at the nearest free cell and cut across to it. Away

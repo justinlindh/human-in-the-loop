@@ -243,15 +243,15 @@ export function createNav(L, obstacles, cell = 0.35) {
 
   // With a point `p`, the free cell whose center is nearest p, from the first ring round (i, k) that
   // has one and the ring after (a corner of one ring can lie further off than a side of the next);
-  // without, the first free cell found.
-  function nearestFree(i, k, blocked = grid0, p = null) {
+  // without, the first free cell found. A cell must be free in `also` too, when given.
+  function nearestFree(i, k, blocked = grid0, p = null, also = null) {
     let best = null, bestD = Infinity, stop = Infinity;
     for (let r = 0; r < Math.max(nx, nz) && r <= stop; r++) {
       for (let di = -r; di <= r; di++) {
         for (let dk = -r; dk <= r; dk++) {
           if (Math.max(Math.abs(di), Math.abs(dk)) !== r) continue;
           const a = i + di, b = k + dk;
-          if (a < 0 || b < 0 || a >= nx || b >= nz || blocked[a + b * nx]) continue;
+          if (a < 0 || b < 0 || a >= nx || b >= nz || blocked[a + b * nx] || also?.[a + b * nx]) continue;
           if (!p) return [a, b];
           const c = center(a, b), d = Math.hypot(c.x - p.x, c.z - p.z);
           if (d < bestD) { best = [a, b]; bestD = d; }
@@ -342,9 +342,9 @@ export function createNav(L, obstacles, cell = 0.35) {
     // A soft walk to a goal in furniture ends on a cell with the full clearance when one is about as
     // near, rather than on one tucked under a desk beside it.
     if (near && near[gi + gk * nx]) {
-      const [ri, rk] = nearestFree(ti, tk, near, to);
+      const [ri, rk] = nearestFree(ti, tk, near, to, blocked);
       const d = (i, k) => { const c = center(i, k); return Math.hypot(c.x - to.x, c.z - to.z); };
-      if (!near[ri + rk * nx] && d(ri, rk) <= d(gi, gk) + cell) [gi, gk] = [ri, rk];
+      if (!near[ri + rk * nx] && !blocked[ri + rk * nx] && d(ri, rk) <= d(gi, gk) + cell) [gi, gk] = [ri, rk];
     }
     let res = search(si, sk, gi, gk, blocked, near);
     let end = to;
