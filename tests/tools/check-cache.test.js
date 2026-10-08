@@ -84,7 +84,8 @@ describe('whole-check records keyed by the files a pass loaded', () => {
     const root = process.cwd();
     const graph = c.moduleGraph(`${root}/blender/checks/stage.mjs`).map((f) => f.slice(root.length + 1));
     expect(graph).toEqual(expect.arrayContaining(['blender/checks/stage.mjs', 'blender/checks/harness.mjs', 'blender/checks/cache.mjs', 'src/render/spots.js']));
-    expect(graph.some((f) => f.startsWith('src/ui/') || f.startsWith('src/audio/'))).toBe(false);
+    // The harness ticks the UI's presentation clock with each stepped frame; nothing else of the UI is imported.
+    expect(graph.filter((f) => f.startsWith('src/ui/') || f.startsWith('src/audio/'))).toEqual(['src/ui/pclock.js']);
     expect(graph.some((f) => f.includes('node_modules'))).toBe(false);
     expect(c.moduleGraph(`${root}/no/such/entry.mjs`)).toEqual([]);
   });
