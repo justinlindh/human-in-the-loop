@@ -6,7 +6,8 @@ import { toolTmp } from '../../scripts/tools/tmp.mjs';
 
 const ROOT = resolve(__dirname, '../..');
 const TEST = 'scripts/tools/interrupt-test.mjs';
-const run = (args, timeout) => spawnSync(process.execPath, args, { encoding: 'utf8', cwd: ROOT, timeout });
+// A cached clean pass would make the plain sweep skip itself and exit 0 before the interrupt.
+const run = (args, timeout) => spawnSync(process.execPath, args, { encoding: 'utf8', cwd: ROOT, timeout, env: { ...process.env, HITL_NO_CHECK_CACHE: '1' } });
 
 // The engine builds scenes and samples in long synchronous stretches where a JavaScript signal handler cannot run,
 // so it takes SIGTERM at its default action and a reaper process ends the screen step and a control checkout and
