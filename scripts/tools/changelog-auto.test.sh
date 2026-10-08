@@ -121,6 +121,45 @@ rm -f "$CL_PR_OPEN"; git -C "$tmp/site.git" branch -q -D "changelog/$DAY"
 CL_STUB_HEADLINE="Dry" run "$DAY" --force --dry
 [ $rc -eq 0 ] && grep -q 'dry run' "$tmp/out" && ! git -C "$tmp/site.git" rev-parse -q --verify "changelog/$DAY" >/dev/null && ! grep -q '^pr create' "$CL_GH_CALLS" || fail "--dry stops before the push: $(cat "$tmp/out")"
 
+# A day the site's main already has (hand-curated): an Art item with two stills, and "A thing", which this
+# tool wrote and published for the day above (its record names it).
+g clone -q "$tmp/site.git" "$tmp/sitework" && cd "$tmp/sitework" || exit 1
+mkdir -p "changelog/media/$DAY" && printf a >"changelog/media/$DAY/art-1.webp" && printf b >"changelog/media/$DAY/art-2.webp"
+jq --arg d "$DAY" '[{date: $d, headline: "Curated day", items: [
+  {area: "Art", title: "New art, rendered clean", body: "Stills.", media: [{src: "media/\($d)/art-1.webp", kind: "image"}, {src: "media/\($d)/art-2.webp", kind: "image"}]},
+  {area: "UI", title: "A thing", body: "It works.", refs: ["#9"]}]}] + .' changelog/entries.json >e.json && mv e.json changelog/entries.json
+g add -A && g commit -q -m curated && git push -q origin main
+cd "$HERE" || exit 1
+site_day() { jq -c --arg d "$DAY" '.[] | select(.date == $d)' "$tmp/state/site/changelog/entries.json"; }
+rm -f "$tmp/state/done/$DAY" "$CL_PR_OPEN"
+
+# Without --force the timer skips it, without calling the model.
+run "$DAY"
+[ $rc -eq 0 ] && grep -q "already has an entry on the site's main" "$tmp/out" && [ ! -s "$CL_CLAUDE_CALLS" ] && ! grep -q '^pr create' "$CL_GH_CALLS" || fail "a day on the site's main is skipped: rc=$rc $(cat "$tmp/out")"
+
+# --force keeps the curated Art item and its stills and the curated headline; "A thing" is redrafted.
+CL_STUB_HEADLINE="Redraft" CL_STUB_BODY="Redrafted." run "$DAY" --force --dry
+[ $rc -eq 0 ] && grep -q 'keeping 1 published item(s) and the headline' "$tmp/out" || fail "a forced published day says what it keeps: rc=$rc $(cat "$tmp/out")"
+site_day | jq -e '.headline == "Curated day" and ([.items[].title] == ["New art, rendered clean", "A thing"]) and .items[0].media[1].src == "media/'"$DAY"'/art-2.webp" and .items[1].body == "Redrafted."' >/dev/null \
+  || fail "the curated item and headline are kept and the tool's own item redrafted: $(site_day)"
+[ "$(ls "$tmp/state/site/changelog/media/$DAY" | tr '\n' ' ')" = "art-1.webp art-2.webp office-box.webp " ] || fail "the kept stills stay beside the new one: $(ls "$tmp/state/site/changelog/media/$DAY")"
+grep -q -- '- Art: New art, rendered clean' "$tmp/state/$DAY.prompt.md" || fail "the prompt lists the items that stay"
+
+# With no record of what this tool wrote, everything published is kept, and a drafted item with a kept title is left out.
+rm -f "$tmp/state/$DAY.ours.json"
+CL_STUB_HEADLINE="Redraft" CL_STUB_BODY="Redrafted." run "$DAY" --force --dry
+[ $rc -eq 0 ] && site_day | jq -e '[.items[].title] == ["New art, rendered clean", "A thing"] and .items[1].body == "It works."' >/dev/null \
+  && [ "$(ls "$tmp/state/site/changelog/media/$DAY" | tr '\n' ' ')" = "art-1.webp art-2.webp " ] || fail "with no record everything published is kept: rc=$rc $(site_day) $(cat "$tmp/out")"
+
+# Days are UTC's whatever the machine's zone: a merge at 03:00Z on the 7th is the 7th's (the 6th in Los Angeles).
+cat >"$CL_MERGED" <<'EOF'
+[{"number":10,"title":"feat(ui): a late thing","body":"## What\nA thing a player sees.","mergedAt":"2026-10-07T03:00:00Z","mergeCommit":{"oid":"0000000000000000000000000000000000000000"},"url":"u","author":{"login":"a"},"labels":[]}]
+EOF
+TZ=America/Los_Angeles CL_DAY=2026-10-07 run 2026-10-07 --dry
+[ $rc -eq 0 ] && grep -q '2026-10-07: 1 player-visible change' "$tmp/out" || fail "a 03:00Z merge lands on its UTC day: rc=$rc $(cat "$tmp/out")"
+TZ=America/Los_Angeles run 2026-10-06
+[ $rc -eq 0 ] && grep -q 'nothing to write' "$tmp/out" && [ ! -s "$CL_CLAUDE_CALLS" ] || fail "a 03:00Z merge is not the zone's day before: rc=$rc $(cat "$tmp/out")"
+
 # A quiet day writes nothing and does not call the model.
 echo '[]' >"$CL_MERGED"
 run 2026-10-04

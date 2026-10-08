@@ -1,18 +1,23 @@
 // Puts one day's drafted changelog entry into the site's changelog/entries.json, replacing that day's
 // entry if there is one, so running a day again leaves exactly one entry for it.
 //
-//   node scripts/tools/changelog-apply.mjs <site-checkout> <day> <draft.json>
+//   node scripts/tools/changelog-apply.mjs <site-checkout> <day> <draft.json> [--keep <keep.json>]
 //
 // The draft is one entry: { date, headline, items: [{ area, title, body, refs: [], media: [{ src,
 // kind: "image", caption }] }] }. It is checked against the site's own rules (strings present, the date
 // is the day, no em dash, no "startup", stills only) and its media is made shippable: a still on the
 // feature-media branch or from a PR's media branch is downloaded to changelog/media/<day>/ and linked
 // by that path; clips, GIFs and anything unreachable
-// are dropped and reported on stderr. The day's media folder is rebuilt each run, so a file no entry
-// shows never ships. Entries stay newest first. Exit 0 and a one-line summary on stdout; 2 when the
-// draft is unusable (the reasons on stderr), 1 on a read or write failure.
+// are dropped and reported on stderr.
+// --keep names what the day's entry must keep as it is ({ headline?, items: [...] }, the parts of a
+// published entry this tool did not write): those items come first, unchanged with their media, a
+// drafted item with the same title is left out, and a kept headline wins over the drafted one.
+// Afterwards the day's media folder holds only the files the entry shows, so a spare file never ships
+// and a kept item's still is never deleted. Entries stay newest first. Exit 0 and a one-line summary
+// on stdout; 2 when the draft or the options are unusable (the reasons on stderr), 1 on a read or
+// write failure.
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 
 const GAME = 'justinlindh/human-in-the-loop';
@@ -60,30 +65,45 @@ const defaultFetch = (url, dest) => {
 };
 
 // Applies the draft to the entries list and the media folder; returns { entries, notes }.
-export function apply({ site, day, draft, fetchFile = defaultFetch }) {
+export function apply({ site, day, draft, keep = null, fetchFile = defaultFetch }) {
   const root = join(site, 'changelog');
   const file = join(root, 'entries.json');
   const entries = JSON.parse(readFileSync(file, 'utf8'));
   const dir = join(root, 'media', day);
   const notes = [];
-  rmSync(dir, { recursive: true, force: true });
-  const entry = { date: draft.date, headline: draft.headline.trim(), items: [] };
+  const kept = keep?.items ?? [];
+  const keptTitles = new Set(kept.map((i) => i.title));
+  const keptSrcs = new Set(kept.flatMap((i) => (i.media ?? []).map((m) => m.src)));
+  const entry = { date: draft.date, headline: keep?.headline ?? draft.headline.trim(), items: [...kept] };
   for (const i of draft.items) {
     const item = { area: i.area.trim(), title: i.title.trim(), body: i.body.trim(), refs: i.refs ?? [] };
+    if (keptTitles.has(item.title)) { notes.push(`left out the drafted "${item.title}": the entry keeps its own`); continue; }
     const media = [];
     for (const m of i.media ?? []) {
       const plan = mediaPlan(m.src, { exists: (p) => existsSync(join(root, p)) });
       let src = plan.src;
       if (plan.download) {
-        mkdirSync(dir, { recursive: true });
-        if (fetchFile(plan.download, join(dir, plan.name))) src = `media/${day}/${plan.name}`;
-        else { rmSync(join(dir, plan.name), { force: true }); plan.drop = `could not download ${plan.download}`; }
+        const at = `media/${day}/${plan.name}`;
+        // A kept item's still is linked, never fetched over; a download lands beside its name first.
+        if (keptSrcs.has(at) && existsSync(join(root, at))) src = at;
+        else {
+          mkdirSync(dir, { recursive: true });
+          const part = join(dir, `${plan.name}.part`);
+          if (fetchFile(plan.download, part)) { renameSync(part, join(dir, plan.name)); src = at; }
+          else { rmSync(part, { force: true }); plan.drop = `could not download ${plan.download}`; }
+        }
       }
       if (!src) { notes.push(`dropped media: ${plan.drop}`); continue; }
       media.push({ src, kind: 'image', ...(m.caption ? { caption: String(m.caption).trim() } : {}) });
     }
     if (media.length) item.media = media;
     entry.items.push(item);
+  }
+  // The day's folder keeps only what the entry shows.
+  const shown = new Set(entry.items.flatMap((i) => (i.media ?? []).map((m) => m.src)));
+  if (existsSync(dir)) {
+    for (const f of readdirSync(dir)) if (!shown.has(`media/${day}/${f}`)) rmSync(join(dir, f), { recursive: true, force: true });
+    if (readdirSync(dir).length === 0) rmSync(dir, { recursive: true, force: true });
   }
   const rest = entries.filter((e) => e.date !== day);
   const at = rest.findIndex((e) => e.date < day);
@@ -92,17 +112,26 @@ export function apply({ site, day, draft, fetchFile = defaultFetch }) {
 }
 
 function main(argv) {
-  const [site, day, draftFile] = argv;
-  if (!site || !/^\d{4}-\d\d-\d\d$/.test(day || '') || !draftFile) { console.error('usage: changelog-apply.mjs <site-checkout> <YYYY-MM-DD> <draft.json>'); return 2; }
-  let draft;
+  const usage = 'usage: changelog-apply.mjs <site-checkout> <YYYY-MM-DD> <draft.json> [--keep <keep.json>]';
+  const k = argv.indexOf('--keep');
+  const keepFile = k >= 0 ? argv[k + 1] : null;
+  if (k >= 0 && !keepFile) { console.error(usage); return 2; }
+  const [site, day, draftFile, extra] = k >= 0 ? argv.filter((_, i) => i !== k && i !== k + 1) : argv;
+  if (!site || !/^\d{4}-\d\d-\d\d$/.test(day || '') || !draftFile || extra) { console.error(usage); return 2; }
+  let draft, keep = null;
   try { draft = JSON.parse(readFileSync(draftFile, 'utf8')); } catch (e) { console.error(`changelog-apply: the draft is not JSON: ${e.message}`); return 2; }
+  if (keepFile) {
+    try { keep = JSON.parse(readFileSync(keepFile, 'utf8')); } catch (e) { console.error(`changelog-apply: the keep file is not JSON: ${e.message}`); return 2; }
+    if (!Array.isArray(keep?.items)) { console.error('changelog-apply: the keep file has no items list'); return 2; }
+  }
   const bad = problems(draft, day);
   if (bad.length) { console.error(`changelog-apply: the draft cannot be used:\n- ${bad.join('\n- ')}`); return 2; }
   try {
-    const { entries, notes, replaced } = apply({ site, day, draft });
+    const { entries, notes, replaced } = apply({ site, day, draft, keep });
     for (const n of notes) console.error(`changelog-apply: ${n}`);
     writeFileSync(join(site, 'changelog', 'entries.json'), `${JSON.stringify(entries, null, 2)}\n`);
-    console.log(`changelog-apply: ${replaced ? 'replaced' : 'added'} ${day}: ${draft.items.length} item(s)`);
+    const n = entries.find((e) => e.date === day).items.length;
+    console.log(`changelog-apply: ${replaced ? 'replaced' : 'added'} ${day}: ${n} item(s)${keep ? `, ${keep.items.length} kept as published` : ''}`);
     return 0;
   } catch (e) { console.error(`changelog-apply: ${e.message}`); return 1; }
 }
