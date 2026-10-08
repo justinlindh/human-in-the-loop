@@ -337,7 +337,15 @@ export function createNav(L, obstacles, cell = 0.35) {
       }
     }
     let [si, sk] = nearestFree(Math.max(0, Math.min(nx - 1, ix(from.x))), Math.max(0, Math.min(nz - 1, iz(from.z))), blocked);
-    let [gi, gk] = nearestFree(Math.max(0, Math.min(nx - 1, ix(to.x))), Math.max(0, Math.min(nz - 1, iz(to.z))), blocked, to);
+    const ti = Math.max(0, Math.min(nx - 1, ix(to.x))), tk = Math.max(0, Math.min(nz - 1, iz(to.z)));
+    let [gi, gk] = nearestFree(ti, tk, blocked, to);
+    // A soft walk to a goal in furniture ends on a cell with the full clearance when one is about as
+    // near, rather than on one tucked under a desk beside it.
+    if (near && near[gi + gk * nx]) {
+      const [ri, rk] = nearestFree(ti, tk, near, to);
+      const d = (i, k) => { const c = center(i, k); return Math.hypot(c.x - to.x, c.z - to.z); };
+      if (!near[ri + rk * nx] && d(ri, rk) <= d(gi, gk) + cell) [gi, gk] = [ri, rk];
+    }
     let res = search(si, sk, gi, gk, blocked, near);
     let end = to;
     if (!res.found && avoid?.length) return null;
