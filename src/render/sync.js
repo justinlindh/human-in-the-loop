@@ -389,7 +389,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       // as far as the floor behind stays clear.
       let d = CHAIR_BACK_M;
       const at = (m) => [seat.x + Math.sin(back + a) * m, seat.z + Math.cos(back + a) * m];
-      while (d < CHAIR_BACK_MAX_M && ownNear(...at(d)) && !others(...at(d + 0.05)) && !nav.isBlocked(...at(d + 0.05))) d += 0.05;
+      while (d < CHAIR_BACK_MAX_M && ownNear(...at(d)) && !others(...at(d + 0.05))) d += 0.05;
       const [x, z] = at(d);
       const inside = Math.abs(x) < L.W / 2 - BODY_R && Math.abs(z) < L.D / 2 - BODY_R;
       // Off the walk grid, the route would end at the nearest free cell and cut across to it. Away
