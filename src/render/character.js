@@ -206,7 +206,7 @@ const RETAIL_BOX_GEO = {
 };
 const RETAIL_BOX_SHAKE = { rate: 7, swing: 0.12 };
 // A product's box is one of these colours, so two products' boxes tell apart.
-export const RETAIL_BOX_TINTS = ['marker_blue', 'marker_green', 'marker_orange', 'fabric_terracotta'];
+export const RETAIL_BOX_TINTS = ['marker_blue', 'marker_green', 'marker_orange', 'marker_purple'];
 const retailBoxMats = new Map();
 const retailBoxMat = (tint) => {
   const key = RETAIL_BOX_TINTS.includes(tint) ? tint : RETAIL_BOX_TINTS[0];

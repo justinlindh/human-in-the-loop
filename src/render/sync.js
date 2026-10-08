@@ -47,6 +47,10 @@ const REWALK_S = 3;            // seconds between tries for someone left short o
 const DOOR_SPREAD = 0.45;      // how far apart people leaving by the door head for
 // Facial expressions for events (faceEvent): seconds each holds, and who sees a firing.
 const FACE_HOLD = { deal: 2, notable: 2.5, hire: 4, launch: 3, award: 3, fired: 2, click: 2.5 };
+// Someone waiting on the robot gives it a look this long into the wait, and again every
+// ROBOT_HOLD_AGAIN_S while it stays.
+const ROBOT_HOLD_LOOK_S = 0.6;
+const ROBOT_HOLD_AGAIN_S = 6;
 // A voice bark's face by its emotion; it holds VOICE_FACE_TAIL s past the bark. VOICE_TALK scales
 // the bark's 0..1 loudness to mouth opening.
 const VOICE_FACE = { happy: 'delighted', excited: 'delighted', laughing: 'delighted', questioning: 'questioning', annoyed: 'sideeye', tired: 'tired', sighing: 'sad' };
@@ -1567,9 +1571,16 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     // they wait at its edge until it moves off. Only its fixer walks up to it.
     const b = robot.blocker();
     r.robotHold = !!b && r.id !== b.fixer && Math.hypot(target.x - b.x, target.z - b.z) < b.r && Math.hypot(r.pos.x - b.x, r.pos.z - b.z) < b.r + 0.1;
+    if (!r.robotHold) r.robotHoldT = 0;
     if (r.robotHold) {
+      // They face the robot and give it a look, so the wait reads as waiting on it.
+      const held = r.robotHoldT ?? 0;
+      r.robotHoldT = held + dt;
+      if (held < ROBOT_HOLD_LOOK_S && r.robotHoldT >= ROBOT_HOLD_LOOK_S || Math.floor(held / ROBOT_HOLD_AGAIN_S) < Math.floor(r.robotHoldT / ROBOT_HOLD_AGAIN_S)) {
+        r.char.express(b.broken && held > ROBOT_HOLD_LOOK_S ? 'questioning' : 'sideeye', { hold: FACE_HOLD.notable });
+      }
       keepOffRobot(r, target);
-      r.yaw = angleLerp(r.yaw, Math.atan2(target.x - r.pos.x, target.z - r.pos.z), 1 - Math.exp(-dt * 6));
+      r.yaw = angleLerp(r.yaw, Math.atan2(b.x - r.pos.x, b.z - r.pos.z), 1 - Math.exp(-dt * 6));
       r.char.setMoveSpeed(0);
       r.char.setAnim('idle');
       return;
@@ -2507,6 +2518,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         drift: r.drift ? { ...r.drift, step: r.drift.step?.map(n) ?? null } : { rule: null, other: null, step: null, refused: false },
         wait: r.wait ? { kind: r.wait.kind, timer: n(r.wait.timer) } : { kind: null, timer: 0 },
         narrow: r.narrow ?? [],
+        robotHold: r.robotHold ? n(r.robotHoldT ?? 0) : 0,
       };
     },
     // Whether someone is in a seated pose (for checks).
