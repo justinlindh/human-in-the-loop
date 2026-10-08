@@ -13,8 +13,14 @@ export const deskCost = () => CATALOG[DESK_ITEM]?.costs?.[0] ?? 0;
 // Whether a new desk fits anywhere on the floor, in any rotation.
 export const deskFits = (s) => [0, 1].some((rot) => !!firstFit(s, DESK_ITEM, rot));
 
-export function hireFee(c) {
-  return (c.salary ?? 0) * (B.hireFeeWeeks ?? 2);
+// What hiring c costs now: the sim's fee, so with the state it includes fame relief and the AI interview
+// policy's multiplier. Without a state it is the plain fee.
+export function hireFee(c, s = null) {
+  const base = (c.salary ?? 0) * (B.hireFeeWeeks ?? 2);
+  if (!s) return base;
+  const relief = 1 - (B.fameHireRelief ?? 0) * (s.fame ?? 0) / 100;
+  const mult = B.aiInterviews?.enabled && s.policies?.ai_interviews ? B.aiInterviews.feeMult : 1;
+  return base * relief * mult;
 }
 
 // Desks to place before one more person can start, in an office the player lays out. Usually 1;
@@ -29,12 +35,12 @@ export function hireBlocker(s, c, room = true) {
   if (needsDesk(s)) {
     if (!room) return 'No room for a desk';
     const n = desksNeeded(s);
-    const total = n * deskCost() + hireFee(c);
+    const total = n * deskCost() + hireFee(c, s);
     if (s.cash < total) return `Need ${fmtMoney(total)} for ${n === 1 ? 'desk' : `${n} desks`} and fee`;
     return null;
   }
   if (s.staff.length >= capacityOf(s)) return 'Office is full';
-  if (s.cash < hireFee(c)) return 'Not enough cash';
+  if (s.cash < hireFee(c, s)) return 'Not enough cash';
   return null;
 }
 
@@ -97,6 +103,8 @@ export function hireView(ctx) {
           },
         }, btnT);
         const why = h('span.why.small');
+        const feeEl = h('div.small.muted.num');
+        bind((st) => setText(feeEl, `fee ${fmtMoney(hireFee(c, st))}`));
         bind((st) => {
           const r = hireBlocker(st, c, room);
           const desk = needsDesk(st);
@@ -132,7 +140,7 @@ export function hireView(ctx) {
           h('div.row.wrap.traits', null, ...(c.traits.length ? traitChips(c.traits, s) : [h('span.faint.small', { text: 'No notable traits' })])),
           watch ? h('div.row', null, watch) : null,
           h('div.row.money', null,
-            h('div', null, h('div.num.sal', { text: `${fmtMoney(c.salary)}/wk` }), h('div.small.muted.num', { text: `fee ${fmtMoney(hireFee(c))}` })),
+            h('div', null, h('div.num.sal', { text: `${fmtMoney(c.salary)}/wk` }), feeEl),
             h('span.spacer'), h('div.col.right', null, btn, why))));
       }
       return [header, grid];

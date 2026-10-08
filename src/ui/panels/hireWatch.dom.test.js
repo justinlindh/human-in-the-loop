@@ -43,3 +43,25 @@ it('is greyed for a watched candidate and while another decision is open', () =>
   expect(view({ policy: true, pending: true }).buttons()[0].disabled).toBe(true);
   expect(view({ policy: true }).buttons()[0].disabled).toBe(false);
 });
+
+it('the fee shown and checked is the sim\'s: halved under the policy, and the same one hireProblem uses', async () => {
+  const { B } = await import('../../sim/balance.js');
+  const { hireProblem } = await import('../../sim/staff.js');
+  const { hireBlocker, hireFee } = await import('./hire.js');
+  const was = B.aiInterviews.enabled;
+  B.aiInterviews.enabled = true;
+  try {
+    const t = view({ policy: true });
+    const s = t.state;
+    const c = s.candidates[0];
+    const plain = c.salary * B.hireFeeWeeks * (1 - B.fameHireRelief * (s.fame ?? 0) / 100);
+    expect(hireFee(c, s)).toBeCloseTo(plain * B.aiInterviews.feeMult);
+    expect(hireFee(c)).toBeCloseTo(c.salary * B.hireFeeWeeks);
+    // Cash between the halved and the full fee: the sim and the panel agree it is enough.
+    s.staff.length = 0;
+    s.cash = Math.ceil(hireFee(c, s)) + 1;
+    expect(hireProblem(s, c.id)).toBeNull();
+    expect(hireBlocker(s, c, true)).toBeNull();
+    expect(document.body.textContent).toContain('fee');
+  } finally { B.aiInterviews.enabled = was; }
+});
