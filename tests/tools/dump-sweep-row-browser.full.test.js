@@ -29,6 +29,20 @@ describe('dump.mjs --sweep-row --browser', () => {
     expect(db.frames[0].items.map((i) => i.id).sort()).toEqual(de.frames[0].items.map((i) => i.id).sort());
   }, 320000);
 
+  // A page that logged an error may have stopped part way: no dump.json (an old one goes), exit 1, unless --page-errors-ok.
+  it('fails a browser dump whose page logged an error, unless --page-errors-ok', async () => {
+    const out = join(tmp, 'err');
+    const args = ['--out', out, '--mock', 'floor', '--browser', '--patch-js', 'console.error("dump-test boom")'];
+    const ok = await spawnAsync(process.execPath, [DUMP, ...args, '--page-errors-ok'], { timeout: 300000 });
+    expect(ok.status, ok.stderr).toBe(0);
+    expect(ok.stderr).toContain('dump: warning: 1 page error(s): dump-test boom (kept going: --page-errors-ok)');
+    expect(read(out).frames.length).toBe(1);
+    const bad = await spawnAsync(process.execPath, [DUMP, ...args], { timeout: 300000 });
+    expect(bad.status).toBe(1);
+    expect(bad.stderr).toContain('dump: 1 page error(s): dump-test boom; no dump.json written');
+    expect(() => read(out)).toThrow();
+  }, 620000);
+
   it('refuses --images', async () => {
     const r = await spawnAsync(process.execPath, [DUMP, '--out', join(tmp, 'i'), '--sweep-row', report, 'seed:1:w0', '--images'], { timeout: 30000 });
     expect(r.status).toBe(2);
