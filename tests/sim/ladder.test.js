@@ -29,11 +29,16 @@ describe('lockdown and the work policy', () => {
     expect(s.lockdown).toBe(null);
     s.week = B.lockdownWeek;
     step(s);
-    expect(s.lockdown).toEqual({ since: B.lockdownWeek, until: B.lockdownWeek + B.lockdownWeeks, stayerId: expect.any(String) });
+    // The card comes first: nobody leaves and nobody is on a call until it is answered.
     expect(s.pendingDecision.eventId).toBe('lockdown_start');
-    const stayer = s.staff.find((p) => p.id === s.lockdown.stayerId);
-    expect(s.pendingDecision.text).toContain(stayer.name);
+    expect(s.lockdown).toBe(null);
+    expect(s.staff.every((p) => !p.remote && !p.call)).toBe(true);
+    const named = s.staff.find((p) => s.pendingDecision.text.includes(p.name));
     choose(s, 'Laptops and a stipend for everyone');
+    s.week++;
+    step(s);
+    expect(s.lockdown).toEqual({ since: B.lockdownWeek + 1, until: B.lockdownWeek + 1 + B.lockdownWeeks, stayerId: named.id });
+    const stayer = s.staff.find((p) => p.id === s.lockdown.stayerId);
     for (const p of s.staff) expect(p.remote).toBe(p.id !== stayer.id);
     s.week = s.lockdown.until;
     step(s);
@@ -239,6 +244,9 @@ describe('video calls', () => {
     const s = classicGame(4);
     for (let i = 0; i < 4; i++) addStaff(s, 'engineer', 'mid');
     s.week = B.lockdownWeek;
+    step(s);
+    s.pendingDecision = null;
+    s.week++;
     let moments = 0;
     let flags = 0;
     for (let w = 0; w < B.lockdownWeeks; w++) {
