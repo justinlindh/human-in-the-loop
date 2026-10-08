@@ -288,7 +288,7 @@ export const B = {
   // hire), brandPerHire, a one-off team meaning hit when it is switched on, the chance a hire is staged
   // (the first always is), and the weekly chance two AIs interview each other.
   aiInterviews: {
-    enabled: false, feeMult: 0.5, refreshWeeks: 2, extraCandidates: 1, spread: 15, gamerChance: 0.2, polish: 20, revealWeeks: 4,
+    enabled: true, feeMult: 0.5, refreshWeeks: 2, extraCandidates: 1, spread: 15, gamerChance: 0.2, polish: 20, revealWeeks: 4,
     brandPerHire: -0.5, calibrateMeaning: -2, stageChance: 0.15, loopChance: 0.02, chatterChance: 0.08,
     // Spot the AI: the watched candidate is an AI this often; an AI shows a third tell and a decoy this often.
     watchAiChance: 0.5, thirdTellChance: 0.3, aiDecoyChance: 0.5,
