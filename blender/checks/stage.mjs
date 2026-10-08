@@ -18,7 +18,7 @@
 // Most rules are shares: the fraction of the beat's frames that meet a condition.
 import { spotReasons } from '../../src/render/spots.js';
 import { startHarness } from './harness.mjs';
-import { createReport } from './report.mjs';
+import { createReport, pageErrorDetail } from './report.mjs';
 import { graphBase, graphPassedAt, recordGraphPass, requestedFiles } from './cache.mjs';
 import { execFileSync, fork } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -579,7 +579,7 @@ for (const task of tasks) {
     if (res.skip) { for (const [k] of specs) if (view.turns === 0) rep.skip(k, res.skip); continue; }
     const sc = SCENARIOS[task.scenario];
     const firstRow = rep.rows.length;
-    if (errors.length) rep.row({ check: task.scenario, view: view.name, beat: '-', metric: 'pageErrors', value: errors.length, want: '0', pass: false });
+    if (errors.length) rep.row({ check: task.scenario, view: view.name, beat: '-', metric: 'pageErrors', value: errors.length, want: '0', pass: false, detail: pageErrorDetail(errors) });
     if (res.arriveTimedOut) {
       rep.row({ check: task.scenario, view: view.name, beat: '-', metric: 'arrived', value: 0, want: `${sc.arrive.role} reaches the beat within ${sc.arriveSeconds}s`, pass: false });
       continue;
