@@ -1444,7 +1444,10 @@ export async function runSkyCheck() {
 // A notable deal (`first`: the company's first) for the seated person with the most seated
 // neighbours within `near` metres, once people have settled at their desks (at most `maxFrames`).
 // Returns the seller's id, or null.
-export function setupDeal(R, S, { near = 3, maxFrames = 600, first = false } = {}) {
+// `boxed`: a boxed-software sale instead, with the picked person made the product's owner.
+// A boxed sale goes to the product's owner, or with `via: 'project'` to an ownerless product's
+// project crew (the pick is put on a project for it).
+export function setupDeal(R, S, { near = 3, maxFrames = 600, first = false, boxed = false, via = 'owner' } = {}) {
   R.perks.hold = true;
   S.pendingDecision = null;
   const settled = (id) => { const w = R.walkOf(id); return w && !w.hidden && !w.path.length && !w.temp && w.goal?.seated && w.goal; };
@@ -1456,6 +1459,19 @@ export function setupDeal(R, S, { near = 3, maxFrames = 600, first = false } = {
     else window.__advance(1);
   }
   if (!pick) return null;
+  if (boxed) {
+    const product = S.products[0];
+    if (!product) return null;
+    if (via === 'project') {
+      product.ownerId = null;
+      let job = S.projects.find((j) => j.productId === product.id);
+      if (!job) { job = { ...(S.projects[0] ?? {}), id: 'jbox', productId: product.id }; S.projects.push(job); }
+      S.staff.find((p) => p.id === pick).assignment = { type: 'project', targetId: job.id };
+    } else product.ownerId = pick;
+    R.sync(S);
+    R.handleEvents([{ type: 'deal', productId: product.id, units: 40, revenue: 7000, week: S.week, boxed: true, first, notable: true }], S);
+    return pick;
+  }
   R.handleEvents([{ type: 'deal', productId: S.products[0]?.id ?? null, customer: 'Initech Labs', customers: 3, mrr: 2400, week: S.week, sellerId: pick, first, notable: true }], S);
   return pick;
 }

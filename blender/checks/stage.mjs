@@ -90,6 +90,23 @@ const FUMES_RULES = [
   visibleRule, noFade,
 ];
 
+// A boxed sale has no seller in the sim: whoever the render picks (the product's owner, else its
+// project crew) raises the retail box the way a seller rings the bell, and the box clears the head
+// the way the bell does.
+const boxSeller = (scenario) => ({ moment: 'deal', scenario, beat: 'ring', role: 'seller', rules: [
+  share('handUp', 'the holder raises the box throughout the beat', (x) => x.anim === 'dealsit', 0.9),
+  share('boxUp', 'the box sits at least 0.08 m above the eyes', (x) => (x.held?.up ?? -1) >= 0.08, 0.7),
+  share('boxFront', 'the box is not behind the head', (x) => (x.held?.cam ?? -1) >= 0, 0.7),
+  share('fistClear', 'the raised fist sits beside the head on screen, not over the chest or behind the head', (x) => { const h = x.handsRel[0][1] >= x.handsRel[1][1] ? 0 : 1; return x.handsSide[h] >= 0.33 && x.handsCam[h] >= -0.08; }, 0.7),
+  share('facingCamera', 'the holder faces within 55 deg of the camera', (x) => x.faceCam <= 55, 0.8),
+  share('smug', 'a notable sale: the holder looks pleased with themselves', (x) => x.face === 'smug', 0.7),
+  share('visible', 'body >= 50% unblocked (seated behind a desk)', (x) => x.visible >= 0.5, 0.9),
+] });
+const boxCheer = (scenario) => ({ moment: 'deal', scenario, beat: 'cheer', role: 'coworker', rules: [
+  share('clapping', 'neighbours clap once their delay is over', (x) => x.anim === 'growthclapsit', 0.7),
+  share('turned', 'neighbours face within 75 deg of the holder', (x) => x.targetAngle <= 75, 0.7),
+] });
+
 const SPECS = {
   'y2k.countdown': { moment: 'y2k', beat: 'countdown', role: 'watcher', rules: Y2K_RULES },
   'y2k.nothing': { moment: 'y2k', beat: 'nothing', role: 'watcher', rules: Y2K_RULES },
@@ -130,6 +147,10 @@ const SPECS = {
   'dealFirst.coworker': { moment: 'deal', scenario: 'dealFirst', beat: 'cheer', role: 'coworker', rules: [
     share('clapping', 'neighbours clap once their delay is over', (x) => x.anim === 'growthclapsit', 0.7),
   ] },
+  'dealBoxed.seller': boxSeller('dealBoxed'),
+  'dealBoxed.coworker': boxCheer('dealBoxed'),
+  'dealBoxedCrew.seller': boxSeller('dealBoxedCrew'),
+  'dealBoxedCrew.coworker': boxCheer('dealBoxedCrew'),
   // Someone is fired: the nearest colleagues turn to watch them go, shocked, eyes on them.
   'fired.bystander': { moment: 'fired', beat: 'react', role: 'bystander', rules: [
     share('shocked', 'bystanders look shocked through the beat', (x) => x.face === 'shocked', 0.9),
@@ -414,6 +435,12 @@ const SCENARIOS = {
     setup: "(await import('/src/render/checks.js')).setupDeal(R, S)" },
   dealFirst: { query: 'mock=floor', patch: {}, seconds: 4,
     setup: "(await import('/src/render/checks.js')).setupDeal(R, S, { first: true })" },
+  // A notable boxed-software sale: the product's owner raises the retail box.
+  dealBoxed: { query: 'mock=floor', patch: {}, seconds: 4,
+    setup: "(await import('/src/render/checks.js')).setupDeal(R, S, { boxed: true })" },
+  // The same sale of a product nobody owns: someone on a project for it raises the box.
+  dealBoxedCrew: { query: 'mock=floor', patch: {}, seconds: 4,
+    setup: "(await import('/src/render/checks.js')).setupDeal(R, S, { boxed: true, via: 'project' })" },
   fired: { query: 'mock=floor', patch: {}, seconds: 3,
     setup: "(await import('/src/render/checks.js')).setupFired(R, S)" },
   ai_interview: { query: 'mock=floor', patch: {}, seconds: 9,
