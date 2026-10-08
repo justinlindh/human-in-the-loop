@@ -240,6 +240,9 @@ export function createInterviewFeeds({ ready, lowQuality = () => false, wardrobe
     c.update(dt);
     c.head.rotation.z += tilt;
     c.head.rotation.x += nod;
+    // The head's turn is set here, not left to the pose: the procedural pose (Low) turns the head
+    // toward a lookAt target and the rig clips do not, so the two qualities would differ.
+    c.head.rotation.y = 0;
     // A glance turns the head part of the way too.
     if (glance) {
       const k = bump(t, glance.t, glance.d, 0.18);
