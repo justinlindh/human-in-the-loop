@@ -69,6 +69,8 @@ if (sweepRow) {
   // the window starts, then dumped like any scene. On the engine by default, or with --browser in a harness page as a
   // browser sweep plays its seeds, to compare the two engines on one window.
   if (images) { console.error('dump: --sweep-row writes no PNGs; drop --images (--browser dumps the window in a browser)'); process.exit(2); }
+  // Taking the render lock may run this command again under it: take it before printing anything.
+  if (useBrowser) { const { holdRenderLock } = await import('../../scripts/lib/gl.js'); holdRenderLock(wantGpu() ? 'gpu' : 'software'); }
   const at = argv.indexOf('--sweep-row');
   const [reportFile, key] = [sweepRow, argv[at + 2]];
   const thing = argv[at + 3]?.startsWith('--') ? undefined : argv[at + 3];
