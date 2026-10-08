@@ -31,9 +31,12 @@ beforeEach(() => { enabled = B.aiInterviews.enabled; B.aiInterviews.enabled = tr
 afterEach(() => { B.aiInterviews.enabled = enabled; });
 
 describe('issue #670: AI job interviews', () => {
-  it('is off by default: the policy never unlocks and cannot be set', () => {
-    B.aiInterviews.enabled = enabled;
-    expect(enabled).toBe(false);
+  it('ships on: the policy and Spot the AI are in the game', () => {
+    expect(enabled).toBe(true);
+  });
+
+  it('with the flag off, the policy never unlocks and cannot be set', () => {
+    B.aiInterviews.enabled = false;
     const s = company();
     expect(POLICIES.ai_interviews.unlock(s)).toBe(false);
     expectFail(expect, dispatch, s, { type: 'setPolicy', id: 'ai_interviews', on: true }, POLICIES.ai_interviews.lockText);
