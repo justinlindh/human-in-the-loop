@@ -75,6 +75,16 @@ describe('dump-query accepts robot', () => {
     expect(q('near', 's1', '1.5').stdout.split('\n')[0]).toBe('frame    0 t=0.00s  robot 1.00 m');
   });
 
+  it('refuses a missing thing and a robot point it does not have', () => {
+    const none = q('path');
+    expect(none.status).toBe(2);
+    expect(none.stderr).toContain('path wants a thing');
+    expect(q('rel', 's1').status).toBe(2);
+    const hand = q('where', 'robot.hand1');
+    expect(hand.status).toBe(2);
+    expect(hand.stderr).toContain('the robot has .pos and .center, not .hand1');
+  });
+
   it('path robot gives its job, goal and way, and says when a dump has no robot record', () => {
     const out = q('path', 'robot').stdout.split('\n');
     expect(out[0]).toBe('frame    0 t=0.00s  robot at (2.00, -1.00) yaw 1.57; plan broken (unplug), being fixed by s1; stop (3.00, -1.00) desk f3');

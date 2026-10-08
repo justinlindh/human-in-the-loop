@@ -43,6 +43,12 @@ const viewsAt = args.indexOf('--views');
 const onlyViews = viewsAt >= 0 ? args.splice(viewsAt, 2)[1].split(',').map(Number) : null;
 const [src, cmd, a, b] = args;
 if (!src || !cmd) { console.error('usage: dump-query.mjs <dir|dump.json> where|dist|rel|near <thing> [thing|metres] | nav <x,z> [metres] | path <person> | visible <thing> [--views 0,1,2,3] | trace [person]'); process.exit(2); }
+if (['where', 'dist', 'rel', 'near', 'path', 'visible'].includes(cmd) && !a) { console.error(`dump-query: ${cmd} wants a thing (a person, item or prop id, or robot)`); process.exit(2); }
+if ((cmd === 'dist' || cmd === 'rel') && !b) { console.error(`dump-query: ${cmd} wants two things`); process.exit(2); }
+for (const spec of [a, ['dist', 'rel'].includes(cmd) ? b : null]) {
+  const [id, point] = String(spec ?? '').split('.');
+  if (id === 'robot' && point && point !== 'pos' && point !== 'center') { console.error(`dump-query: the robot has .pos and .center, not .${point}`); process.exit(2); }
+}
 const file = statSync(src).isDirectory() ? join(src, 'dump.json') : src;
 const dump = JSON.parse(readFileSync(file, 'utf8'));
 
