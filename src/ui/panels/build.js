@@ -7,6 +7,8 @@ import { ERA, agentsHere } from '../v2content.js';
 import { STATS, STAT } from '../stats.js';
 import { picker, personOption } from '../picker.js';
 import { openStaffUp, staffUpPool } from './bulkAssign.js';
+import { createSquadStrip } from '../squadPick.js';
+import { openAddPeople } from './addPeople.js';
 import { marketSize } from '../../sim/products.js';
 import { modelCostPerCustomer } from '../../sim/economy.js';
 import { compatibilityMult } from '../../sim/web2.js';
@@ -177,10 +179,23 @@ export function buildPanel(ctx, arg) {
     const team = h('div.picker');
     const avail = s.staff.filter(isAvailable);
     const countEl = h('span.aside');
+    const rows = new Map(); // staff id -> { row, tag }
+    // A squad chip and a row tap share form.team; this redraws the rows, the count and the chips from it.
+    function refreshTeam() {
+      for (const [id, r] of rows) {
+        toggleClass(r.row, 'on', form.team.has(id));
+        setText(r.tag, strip.squadOf(id)?.name ?? '');
+      }
+      setText(countEl, `${form.team.size} picked`);
+      strip.refresh();
+      newView.update(ctx.getState());
+    }
+    const strip = createSquadStrip({ ctx, picked: form.team, pool: avail, onChange: refreshTeam });
     for (const p of avail) {
       const onProj = p.assignment.type === 'project';
+      const tag = h('span.sqtag');
       const row = h('button.pick', {
-        onclick: () => { if (form.team.has(p.id)) form.team.delete(p.id); else form.team.add(p.id); toggleClass(row, 'on', form.team.has(p.id)); setText(countEl, `${form.team.size} picked`); newView.update(ctx.getState()); },
+        onclick: () => { if (form.team.has(p.id)) form.team.delete(p.id); else form.team.add(p.id); refreshTeam(); },
         title: onProj ? `Currently on ${assignmentText(s, p)}. Picking moves them.` : assignmentText(s, p),
       },
       h('span.check', null, icon('check')),
@@ -192,8 +207,10 @@ export function buildPanel(ctx, arg) {
       })(),
       h('span.pr', { style: { background: ROLES[p.role]?.color } }),
       h('span.pm', null, icon(`mood.${p.mood === 'away' ? 'away' : p.mood}`)),
+      tag,
       onProj ? h('span.busy', { text: 'busy' }) : null);
       toggleClass(row, 'on', form.team.has(p.id));
+      rows.set(p.id, { row, tag });
       team.append(row);
     }
     setText(countEl, `${form.team.size} picked`);
@@ -230,7 +247,7 @@ export function buildPanel(ctx, arg) {
         h('div.section', null, h('h3', null, `${needsModel ? 5 : 4}. Size`), sizeRow,
           compatibilityMult(s, form.angle) > 1 ? h('div.small.legacy-compat', { text: `Internet Exploder 6 compatibility: +${Math.round((compatibilityMult(s, form.angle) - 1) * 100)}% work included. A present senior Legacy Whisperer reduces the extra work. Senior engineers earn it after ${B.web2.legacyLaunches} contributed compatible launches, with a free trait slot. The estimate locks when you start.` }) : null)),
       h('div.buildside', null,
-        h('div.section', null, h('h3', null, `${needsModel ? 6 : 5}. Team`, countEl), avail.length ? team : h('div.empty', { text: 'Everyone is away.' }),
+        h('div.section', null, h('h3', null, `${needsModel ? 6 : 5}. Team`, countEl), avail.length ? strip.el : null, avail.length ? team : h('div.empty', { text: 'Everyone is away.' }),
           h('div.small.muted.teamhint', { text: 'Stronger people make a better product. More people make it faster.' })),
         summary));
   }
@@ -301,6 +318,7 @@ export function buildPanel(ctx, arg) {
         portrait(p, 26), h('span', { text: p.name.split(' ')[0] }),
         h('button.x', { onclick: () => ctx.act({ type: 'assign', staffId: p.id, assignment: { type: ROLES[p.role]?.defaultAssignment ?? 'idle', targetId: null } }) }, icon('close', { size: 12 })))),
       people.length ? null : automatedProject(s, j) ? h('span.small.muted', { text: agentsHere(s) ? 'Agents are building this.' : 'Automation is building this.' }) : h('span.bad-t.small', { text: 'Nobody is working on this!' }), addSel,
+      (s.squads ?? []).length ? h('button.btn.small.blue.addpeople-btn', { title: 'Pick people, or a whole squad', onclick: () => { ctx.sfx('click'); openAddPeople(ctx, j.id); } }, icon('team', { size: 14 }), ' Add people') : null,
       staffUpPool(s).length > 1 ? h('button.btn.small.blue.staffup-btn', { title: 'Move several people from maintenance or idle', onclick: () => { ctx.sfx('click'); openStaffUp(ctx, j.id); } }, icon('menu.staff', { size: 14 }), ' Staff up') : null);
       // A squad posted here gets a chip: its name and how many of it are on the project. Tap opens it.
       const squadChips = (s.squads ?? []).filter((q) => q.posting.type === 'project' && q.posting.targetId === j.id).map((q) => {
