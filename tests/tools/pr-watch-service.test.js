@@ -3,10 +3,10 @@ import { spawnSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { toolTmp } from '../../scripts/tools/tmp.mjs';
-import { authorLane, failingChecks, findTeam } from '../../scripts/tools/pr-watch-service.mjs';
+import { authorLane, failingChecks, findTeam, siteLane } from '../../scripts/tools/pr-watch-service.mjs';
 
 const SERVICE = resolve(__dirname, '../../scripts/tools/pr-watch-service.mjs');
-const MEMBERS = ['team-lead', 'reviewer', 'reviewer2', 'tools', 'tools2', 'integrator', 'sim', 'art', 'ui'];
+const MEMBERS = ['team-lead', 'reviewer', 'reviewer2', 'tools', 'tools2', 'integrator', 'sim', 'art', 'ui', 'video'];
 
 const run_ = (name, c) => ({ __typename: 'CheckRun', name, status: c === 'PENDING' ? 'IN_PROGRESS' : 'COMPLETED', conclusion: c === 'PENDING' ? '' : c });
 // `smoke` carries the state given; `commits` always passes.
@@ -24,9 +24,11 @@ function setup() {
   writeFileSync(fake, `import { readFileSync } from 'node:fs';
 const w = JSON.parse(readFileSync(${JSON.stringify(join(dir, 'world.json'))}, 'utf8'));
 const a = process.argv.slice(2), s = a.join(' ');
-if (a[0] === 'pr' && a[1] === 'list') console.log(JSON.stringify(w.prs));
-else if (a[0] === 'pr' && a[1] === 'view') { const c = w.prs.find((p) => String(p.number) === a[2]) ?? (w.closed ?? {})[a[2]]; if (!c) process.exit(1); console.log(JSON.stringify(c)); }
-else if (s.includes('/protection')) console.log(JSON.stringify({ required_status_checks: { contexts: ['commits', 'smoke', 'review'] } }));
+// The site repository (-R or a repos/ path naming it) answers from site and siteClosed.
+const site = s.includes('humanintheloopgame-site'), prs = (site ? w.site : w.prs) ?? [], closed = (site ? w.siteClosed : w.closed) ?? {};
+if (a[0] === 'pr' && a[1] === 'list') console.log(JSON.stringify(prs));
+else if (a[0] === 'pr' && a[1] === 'view') { const c = prs.find((p) => String(p.number) === a[2]) ?? closed[a[2]]; if (!c) process.exit(1); console.log(JSON.stringify(c)); }
+else if (s.includes('/protection')) console.log(JSON.stringify({ required_status_checks: { contexts: site ? ['check', 'commits', 'review'] : ['commits', 'smoke', 'review'] } }));
 // wait-for's verdict query prints "changes <sha> <login> <url>"; the service's prints "<sha> <login> <url>".
 else if (s.includes('/reviews') && s.includes('then "changes"')) console.log(w.verdict ? 'changes ' + w.verdict : '');
 else if (s.includes('/reviews') && s.includes('user.login')) console.log(w.verdict ?? '');
@@ -120,6 +122,39 @@ describe('pr-watch-service', () => {
         expect.stringMatching(/^PR #30 .*conflicts with main\. Comment "@dependabot rebase"/),
         expect.stringMatching(/^PR #30 .*required check failed: smoke/),
       ] });
+    } finally { t.done(); }
+  }, 120000);
+
+  it('watches the site repository too: ready to a reviewer, a changelog PR\'s author events to video, numbers kept apart', () => {
+    const t = setup();
+    // A site PR: the site requires check and commits.
+    const sitePr = (number, branch, over = {}, check = 'SUCCESS') => ({ ...pr(number, branch, over), statusCheckRollup: [run_('check', check), run_('commits', 'SUCCESS')] });
+    try {
+      t.empty();
+      t.world({ prs: [pr(1, 'tools/a')], site: [sitePr(33, 'changelog/2026-10-03'), sitePr(34, 'changelog/2026-10-05', {}, 'FAILURE'), sitePr(35, 'video/x', { mergeable: 'CONFLICTING' }, 'PENDING'), sitePr(1, 'web/y')] });
+      expect(t.once().status).toBe(0);
+      const S = 'justinlindh/humanintheloopgame-site';
+      expect(t.told()).toEqual({
+        reviewer: [expect.stringMatching(/^PR #1 \(tools\/a\) at 1aaaaaaa is ready/),
+          `Site PR ${S}#1 (web/y) at 1aaaaaaa is ready for review: t1. It is assigned to you; the other reviewer is not told. Review it and post the verdict with scripts/review-verdict.sh 1 pass|changes <body-file> --repo ${S}.`],
+        reviewer2: [expect.stringMatching(/^Site PR justinlindh\/humanintheloopgame-site#33 \(changelog\/2026-10-03\) at 33aaaaaa is ready for review: .*--repo justinlindh\/humanintheloopgame-site\.$/)],
+        video: [expect.stringMatching(/^Site PR justinlindh\/humanintheloopgame-site#34 \(changelog\/2026-10-05\) at 34aaaaaa: required check failed: check=failure\./),
+          `Site PR ${S}#35 (video/x) at 35aaaaaa conflicts with main. Merge origin/main into video/x in your checkout of ${S} (merge, never rebase) and push.`],
+      });
+      expect(t.inbox('reviewer2')[0].summary).toBe('pr-watch: site#33 ready');
+      t.drain();
+      expect(t.once().status).toBe(0);
+      expect(t.told()).toEqual({});
+      // Site #1 merging tells its author lane once and leaves game #1 alone.
+      t.world({ prs: [pr(1, 'tools/a')], site: [sitePr(33, 'changelog/2026-10-03'), sitePr(34, 'changelog/2026-10-05', {}, 'FAILURE'), sitePr(35, 'video/x', { mergeable: 'CONFLICTING' }, 'PENDING')],
+        siteClosed: { 1: { state: 'MERGED', mergeCommit: { oid: 'c0ffee0012345678' } } } });
+      expect(t.once().status).toBe(0);
+      expect(t.told()).toEqual({ 'team-lead': [`Site PR ${S}#1 (web/y) merged at c0ffee00. Message the teammates its Affects section names who must act now; nothing else to watch.`] });
+      const st = JSON.parse(readFileSync(join(t.dir, 'state.json'), 'utf8'));
+      expect(st.open['1']).toMatchObject({ branch: 'tools/a', lane: 'tools' });
+      expect(st.open['site#1']).toBeUndefined();
+      expect(Object.keys(st.sent).filter((k) => k.startsWith('site#1@') || k.startsWith('site#1:'))).toEqual([]);
+      expect(readFileSync(join(t.dir, 'watch.log'), 'utf8')).toMatch(/ready site#33@33a{38}:ready>reviewer2 -> reviewer2 sent /);
     } finally { t.done(); }
   }, 120000);
 
@@ -239,6 +274,9 @@ describe('pr-watch-service parts', () => {
     expect(authorLane('sim/a', MEMBERS)).toBe('sim');
     expect(authorLane('codex/a', MEMBERS)).toBe('team-lead');
     expect(authorLane('dependabot/npm/x', MEMBERS)).toBe(null);
+    expect(siteLane('changelog/2026-10-07', MEMBERS)).toBe('video');
+    expect(siteLane('ui/a', MEMBERS)).toBe('ui');
+    expect(siteLane('web/a', MEMBERS)).toBe('team-lead');
   });
 
   it('reports a failed required check only once nothing on the head is running', () => {
