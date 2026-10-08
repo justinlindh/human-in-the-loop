@@ -1158,10 +1158,29 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   // A notable deal: the seller, seated at their desk, rings a bell held up on the camera side,
   // turned toward the camera as far as the chair allows, and the nearest seated coworkers turn to
   // clap. Low plays the seller alone. Nobody stands or walks, and the clock never holds for it.
+  // Who can raise the deal at their desk right now.
+  const dealReady = (r) => !!r && !r.hidden && !r.temp && !r.path.length && r.char.seated && !!r.goal && r.staff.mood !== 'away';
+  // A boxed sale has no seller: the product's owner raises the box, else someone working on the
+  // product, else someone in sales, whoever of them is at their desk.
+  function boxSeller(e) {
+    const owner = lastState?.products?.find((p) => p.id === e.productId)?.ownerId;
+    const staff = lastState?.staff ?? [];
+    const tiers = [
+      owner != null ? [owner] : [],
+      staff.filter((s) => e.productId != null && s.assignment?.targetId === e.productId).map((s) => s.id),
+      staff.filter((s) => s.assignment?.type === 'sales').map((s) => s.id),
+    ];
+    for (const ids of tiers) {
+      const r = ids.map((id) => recs.get(id)).find(dealReady);
+      if (r) return r;
+    }
+    return null;
+  }
   function dealBell(e) {
-    const seller = e.notable && e.sellerId && recs.get(e.sellerId);
-    if (!seller || seller.hidden || seller.temp || seller.path.length || !seller.char.seated || !seller.goal) return;
-    if (seller.staff.mood === 'away' || spotlights.current() || standup || incentives.party || incentives.dance) return;
+    if (!e.notable) return;
+    const seller = e.boxed ? boxSeller(e) : e.sellerId && recs.get(e.sellerId);
+    if (!dealReady(seller)) return;
+    if (spotlights.current() || standup || incentives.party || incentives.dance) return;
     const turn = (r, yaw) => {
       const d = Math.atan2(Math.sin(yaw - r.goal.yaw), Math.cos(yaw - r.goal.yaw));
       return r.goal.yaw + Math.max(-DEAL.turnLimit, Math.min(DEAL.turnLimit, d));
@@ -1176,10 +1195,11 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       anim: 'typing', t: DEAL.seconds, keepPos: true, moment: 'deal', stage: { beat: 'ring', role: 'seller', get held() { return seller.char.dealBell(); } },
       tick: (r, dt) => { r.yaw = angleLerp(r.yaw, turnTo, 1 - Math.exp(-dt * 8)); return false; },
     };
+    seller.char.setDealProp(e.boxed ? 'box' : 'bell');
     seller.char.gesture('deal', DEAL.seconds, Math.sin(turnTo - camYaw) >= 0 ? 1 : -1);
-    // 'hitl:dealBell' { staffId, seconds } when the bell is rung on screen, so its sound plays only
-    // with the picture (a skipped beat stays silent).
-    if (typeof dispatchEvent === 'function') dispatchEvent(new CustomEvent('hitl:dealBell', { detail: { staffId: seller.id, seconds: DEAL.seconds } }));
+    // 'hitl:dealBell' { staffId, seconds, boxed } when the deal is raised on screen, so its sound plays
+    // only with the picture (a skipped beat stays silent); boxed: a retail box, not the bell.
+    if (typeof dispatchEvent === 'function') dispatchEvent(new CustomEvent('hitl:dealBell', { detail: { staffId: seller.id, seconds: DEAL.seconds, boxed: !!e.boxed } }));
     if (low()) return;
     const crowd = [...recs.values()]
       .filter((r) => r !== seller && !r.hidden && !r.temp && !r.path.length && r.char.seated && r.goal && r.staff.mood !== 'away' && r.pos.distanceTo(seller.pos) < DEAL.nearby)

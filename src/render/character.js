@@ -198,6 +198,14 @@ const BELL_GEO = {
 };
 const BELL_RING = { rate: 16, swing: 0.35 };
 let bellMetal = null;
+// A boxed-software sale raises the product's retail box in the same fist: a fat shrink-wrapped box
+// that reads as a box from any side, with a paper band across the front and the fist at its foot.
+const RETAIL_BOX_GEO = {
+  body: new THREE.BoxGeometry(0.15, 0.2, 0.1).translate(0, -0.37, 0),
+  band: new THREE.BoxGeometry(0.156, 0.055, 0.106).translate(0, -0.4, 0),
+};
+const RETAIL_BOX_SHAKE = { rate: 7, swing: 0.12 };
+let retailBoxMat = null;
 
 // Parts are modeled in their pivot's space, so the node transform from the file is kept as is.
 function part(tpl, name) {
@@ -1293,22 +1301,34 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
 
   // Something carried in the right hand (moments.js: a sledgehammer), or null.
   let held = null;
-  // The deal bell in arm `side` (0 left, 1 right) while the deal plays; -1 puts it away.
-  let bell = null, bellT = 0;
-  function syncBell(side, dt) {
-    if (side < 0) { if (bell) bell.visible = false; return; }
-    if (!bell) {
+  // What the deal gesture raises in arm `side` (0 left, 1 right) while it plays, -1 puts it away:
+  // the bell, or for a boxed-software sale (setDealProp('box')) the retail box.
+  let bell = null, retailBox = null, bellT = 0, dealProp = 'bell';
+  function buildDealProp(kind) {
+    const g = new THREE.Group();
+    if (kind === 'box') {
+      retailBoxMat ??= new THREE.MeshStandardMaterial({ color: color('marker_blue'), roughness: 0.3 });
+      g.add(new THREE.Mesh(RETAIL_BOX_GEO.body, retailBoxMat), new THREE.Mesh(RETAIL_BOX_GEO.band, mat('paper')));
+    } else {
       bellMetal ??= new THREE.MeshStandardMaterial({ color: color('metal_soft'), emissive: color('metal_soft'), emissiveIntensity: 0.45, roughness: 0.25, metalness: 0.5 });
-      bell = new THREE.Group();
-      bell.add(new THREE.Mesh(BELL_GEO.handle, mat('alarm_red')), new THREE.Mesh(BELL_GEO.cup, bellMetal), new THREE.Mesh(BELL_GEO.lip, bellMetal), new THREE.Mesh(BELL_GEO.clapper, mat('ink')));
-      bell.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+      g.add(new THREE.Mesh(BELL_GEO.handle, mat('alarm_red')), new THREE.Mesh(BELL_GEO.cup, bellMetal), new THREE.Mesh(BELL_GEO.lip, bellMetal), new THREE.Mesh(BELL_GEO.clapper, mat('ink')));
     }
-    const arm = arms[side].shoulder;
-    if (bell.parent !== arm) arm.add(bell);
-    bell.visible = true;
-    bellT += dt;
-    bell.rotation.x = Math.sin(bellT * BELL_RING.rate) * BELL_RING.swing;
+    g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    return g;
   }
+  function syncBell(side, dt) {
+    if (side < 0) { if (bell) bell.visible = false; if (retailBox) retailBox.visible = false; return; }
+    const prop = dealProp === 'box' ? (retailBox ??= buildDealProp('box')) : (bell ??= buildDealProp('bell'));
+    const other = prop === retailBox ? bell : retailBox;
+    if (other) other.visible = false;
+    const arm = arms[side].shoulder;
+    if (prop.parent !== arm) arm.add(prop);
+    prop.visible = true;
+    bellT += dt;
+    const ring = prop === retailBox ? RETAIL_BOX_SHAKE : BELL_RING;
+    prop.rotation.x = Math.sin(bellT * ring.rate) * ring.swing;
+  }
+  function setDealProp(kind) { dealProp = kind === 'box' ? 'box' : 'bell'; }
 
   function setHeld(obj) {
     if (held === obj) return;
@@ -1444,7 +1464,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   return {
     setWardrobe,
     gesture: playGesture,
-    root, head: headGroup, dealBell: () => bell, setShadows, setAnim, setHeld, setMoveSpeed, setAnimRate, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
+    root, head: headGroup, dealBell: () => (dealProp === 'box' ? retailBox : bell), setDealProp, setShadows, setAnim, setHeld, setMoveSpeed, setAnimRate, update, breathe, setEmote, setTint, setMood, setLegend, setTired, setRingScale, dispose, pickProxy,
     express, lookAt,
     // Mouth opening for speech, 0..1 (a voice take's loudness envelope).
     setTalk(v) { faceTalk = Math.max(0, Math.min(1, v)); },
