@@ -32,8 +32,10 @@ import { between, draw, fixed } from './rand.js';
 
 const WALK = 1.25;
 const TASTE_EMOTE_S = 3;       // how long a like or dislike of the boombox's station shows
-const CHAIR_BACK_M = 0.55;
-const BODY_R = 0.2;            // a standing person's footprint radius     // where a sitter stops behind their chair before sliding onto it
+const CHAIR_BACK_M = 0.55;     // where a sitter stops behind their chair before sliding onto it
+const CHAIR_BACK_MAX_M = 0.85; // how far back that stop moves to keep a walker's head off the seat's own furniture
+const HEAD_LEAN_M = 0.3;       // how far ahead of the body a walker's head reaches
+const BODY_R = 0.2;            // a standing person's footprint radius
 // Walks keep a cell off furniture where the room allows (a chibi head is wider than the body and
 // reaches chair backs and desk edges at head height); a tight aisle is still taken.
 const WALK_CLEAR = { clear: 0.35, soft: true };
@@ -380,8 +382,15 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     const own = new Set(obs.filter((o) => near(o, seat.x, seat.z, 0.05)).map((o) => o.by));
     const L = office.current.L;
     const back = seat.yaw + Math.PI;
+    const others = (x, z) => obs.some((o) => !own.has(o.by) && near(o, x, z, BODY_R));
+    const ownNear = (x, z) => obs.some((o) => own.has(o.by) && near(o, x, z, HEAD_LEAN_M));
     for (const a of APPROACH_TURNS) {
-      const x = seat.x + Math.sin(back + a) * CHAIR_BACK_M, z = seat.z + Math.cos(back + a) * CHAIR_BACK_M;
+      // Back from a deep chair (a NOC's) until a walker arriving face first keeps their head off it,
+      // as far as the floor behind stays clear.
+      let d = CHAIR_BACK_M;
+      const at = (m) => [seat.x + Math.sin(back + a) * m, seat.z + Math.cos(back + a) * m];
+      while (d < CHAIR_BACK_MAX_M && ownNear(...at(d)) && !others(...at(d + 0.05)) && !nav.isBlocked(...at(d + 0.05))) d += 0.05;
+      const [x, z] = at(d);
       const inside = Math.abs(x) < L.W / 2 - BODY_R && Math.abs(z) < L.D / 2 - BODY_R;
       // Off the walk grid, the route would end at the nearest free cell and cut across to it. Away
       // from straight behind, the slide between the seat and the point must clear other furniture too.
