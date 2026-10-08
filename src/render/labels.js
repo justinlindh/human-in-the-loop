@@ -46,6 +46,8 @@ function injectStyle() {
   .hitl-say.hitl-think .in::before { content: ''; position: absolute; left: 50%; bottom: -22px; width: 5px; height: 5px;
     margin-left: -16px; border-radius: 50%; background: ${P.paper}; border: 2px solid ${P.ink}; }
   .hitl-say.hitl-note .in { padding: 4px 10px 4px 6px; }
+  .hitl-say.hitl-bot .in, .hitl-say.hitl-bot .in::after { background: ${P.bot_paper}; }
+  .hitl-say.hitl-bot .in { border-radius: 6px; }
   .hitl-say.hitl-note.icon-only .in { padding: 4px; }
   .hitl-say.hitl-note.tone-bad .in, .hitl-say.hitl-note.tone-bad .in::after { background: ${P.tone_bad}; color: ${P.paper}; }
   .hitl-say.hitl-note.tone-good.icon-check .in, .hitl-say.hitl-note.tone-good.icon-check .in::after { background: ${P.tone_good}; color: ${P.paper}; }
@@ -149,13 +151,13 @@ export function createLabels(parent) {
 
   // Speech bubble for its reading time (or `seconds`); replaces any bubble already on the same person.
   // thought: a thought bubble (italic, a trail of dots for its tail) instead of speech.
-  function say(text, follow, seconds = readSeconds(text), offsetY = 1.45, { moment = false, thought = false } = {}) {
+  function say(text, follow, seconds = readSeconds(text), offsetY = 1.45, { moment = false, thought = false, bot = false } = {}) {
     for (const o of live) if (o.kind === 'say' && o.follow === follow) o.t = o.life;
     const l = acquire();
     l.kind = 'say';
     l.moment = moment;
     l.speechText = text;
-    l.el.className = thought ? 'hitl-lbl hitl-say hitl-think' : 'hitl-lbl hitl-say';
+    l.el.className = `hitl-lbl hitl-say${thought ? ' hitl-think' : ''}${bot ? ' hitl-bot' : ''}`;
     l.inner.textContent = text.length > 70 ? `${text.slice(0, 67)}...` : text;
     l.w = null;
     l.inner.style.background = '';

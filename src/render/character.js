@@ -28,7 +28,7 @@ export const SLAP_AT = 0.5;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'cupsip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'hide', 'flinch', 'pointscreen', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake', 'facepalm', 'facepalmsit', 'pet', 'fidget', 'dilemma',
-  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff', 'growthpump', 'growthpumpsit', 'growthclap', 'growthclapsit', 'rackfix', 'slap', 'deal', 'dealsit', 'hurlspin', 'hurlthrow', 'wavesit'];
+  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff', 'growthpump', 'growthpumpsit', 'growthclap', 'growthclapsit', 'rackfix', 'slap', 'deal', 'dealsit', 'hurlspin', 'hurlthrow', 'wavesit', 'tablesit'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
 // for the moment before the rig model has loaded.
 const ALWAYS_CLIP = /^dance_/;
@@ -65,7 +65,7 @@ const PALM_SIT = [-2.75, 0.14, 0.27, -0.6, 0.08];
 // screen, not over it) and pitch (back, clear of the face), the ringing swing, the chin lift, the
 // bounce in the chair and the shoulder's lift (metres), so the bell clears the hat.
 const DEAL_POSE = [2.5, -0.3, 0.25, 0.2, 0.03, 0.16];
-const SEATED = new Set(['growthpumpsit', 'growthclapsit', 'dealsit', 'typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit', 'wavesit']);
+const SEATED = new Set(['growthpumpsit', 'growthclapsit', 'dealsit', 'typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit', 'wavesit', 'tablesit']);
 
 const roleMats = new Map();
 // A role's own colour shares the palette material; any other colour (an advisor's accent) gets its own.
@@ -1162,8 +1162,16 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
       case 'wavesit':
         tgt.lean = -0.1;
         tgt.armRZ = 2.4 + s(t * 10) * 0.35;
-        tgt.armLX = -0.5; tgt.armLZ = 0.3;
+        tgt.armLX = TYPE_REACH - 0.2; tgt.armLZ = 0.3;
         tgt.headZ = -0.1;
+        break;
+      // Seated at a table, forearms resting on it and hands together, leaning in to listen.
+      case 'tablesit':
+        tgt.lean = 0.08;
+        tgt.headX = 0.04 + s(t * 0.7 + phase) * 0.03;
+        tgt.headZ = s(t * 0.5 + phase) * 0.06;
+        tgt.armLX = tgt.armRX = TYPE_REACH - 0.2;
+        tgt.armLZ = 0.36; tgt.armRZ = -0.36;
         break;
       default:
         break;

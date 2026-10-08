@@ -27,6 +27,7 @@ export const AI_INTERVIEW = {
   wave: [4.9, 6.1],
   reach: 0.42,             // metres from the seat to the laptop, toward the table
   tableTop: 0.69,
+  botLift: 0.85,           // metres above the laptop that its speech bubbles hang from
 };
 
 const BEATS = [[0, 'ask'], [2.6, 'answer'], [3.3, 'talkedOver'], [4.9, 'wave'], [6.2, 'wonder']];
@@ -86,7 +87,8 @@ export function createAiInterview({ labels, parent, low = () => false }) {
     stop();
     const laptop = placeLaptop(seat);
     const said = new Set();
-    // The bubbles of the laptop rise from just above its screen.
+    // The laptop's bubbles hang high above it, over the candidate's head rather than across their
+    // face (the laptop sits between them and the camera); their screen tint says who is talking.
     const anchor = new THREE.Object3D();
     anchor.position.set(0, 0.1, 0);
     laptop.add(anchor);
@@ -94,7 +96,7 @@ export function createAiInterview({ labels, parent, low = () => false }) {
     const T = AI_INTERVIEW.seconds;
     const stage = { beat: 'ask', role: 'candidate', target: laptop };
     return {
-      anim: 'sit', t: T, back: true, moment: 'ai_interview', goal: { x: seat.x, z: seat.z, yaw: seat.yaw },
+      anim: 'tablesit', t: T, back: true, moment: 'ai_interview', goal: { x: seat.x, z: seat.z, yaw: seat.yaw },
       enter: { t: 0, side: approach, from: { x: approach.x, z: approach.z } }, seat: true,
       stage,
       tick: (rr, dt, tp) => {
@@ -105,10 +107,10 @@ export function createAiInterview({ labels, parent, low = () => false }) {
         AI_INTERVIEW.lines.forEach(([at, who, text, secs, thought], i) => {
           if (e < at || said.has(i)) return;
           said.add(i);
-          labels.say(text, who === 'bot' ? anchor : rr.char.root, secs, who === 'bot' ? 0.12 : 1.45, { moment: true, thought: !!thought });
+          labels.say(text, who === 'bot' ? anchor : rr.char.root, secs, who === 'bot' ? AI_INTERVIEW.botLift : 1.45, { moment: true, thought: !!thought, bot: who === 'bot' });
         });
         const [w0, w1] = AI_INTERVIEW.wave;
-        rr.char.setAnim(e >= w0 && e < w1 ? 'wavesit' : 'sit');
+        rr.char.setAnim(e >= w0 && e < w1 ? 'wavesit' : 'tablesit');
         if (rr.char.lookAt && laptop) rr.char.lookAt(laptop, { hold: 0.2 });
         return true;
       },
