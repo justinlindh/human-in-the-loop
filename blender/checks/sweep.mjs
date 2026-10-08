@@ -58,6 +58,7 @@ import { existsSync } from 'node:fs';
 import { planReplay, mentions, isWorse, SEED_PLAY } from './sweep-plan.js';
 import { createWorktree } from '../../scripts/tools/worktree.mjs';
 import { graphBase, graphOutput, graphPassedAt, recordGraphPass, requestedFiles } from './cache.mjs';
+import { checkoutOf } from './checkout.mjs';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -138,6 +139,8 @@ const issueOf = new Map(baseline.accepted.filter((b) => b.issue).map((b) => [b.k
 // --replay still answers the same question.
 const against = opt('against') ?? null;
 const repoRoot = resolve(HERE, '../..');
+// The code this run plays, as the run starts: report.json carries it so a reader can tell it from their own.
+const checkout = checkoutOf(repoRoot);
 async function startControl(spec) {
   const asRoot = existsSync(spec) && existsSync(join(spec, '.git'));
   let rev;
@@ -149,7 +152,7 @@ async function startControl(spec) {
   }
   // A checkout given by path counts with its uncommitted edits to tracked files (a control patch).
   const patch = asRoot ? execFileSync('git', ['-C', spec, 'diff', 'HEAD', '--binary'], { maxBuffer: 1 << 28 }) : null;
-  const overlay = Object.fromEntries(['sweep.mjs', 'sample.js', 'sweep-plan.js', 'cache.mjs'].map((f) => [`blender/checks/${f}`, join(HERE, f)]));
+  const overlay = Object.fromEntries(['sweep.mjs', 'sample.js', 'sweep-plan.js', 'cache.mjs', 'checkout.mjs'].map((f) => [`blender/checks/${f}`, join(HERE, f)]));
   for (const f of ['worktree.mjs', 'tmp.mjs']) overlay[`scripts/tools/${f}`] = join(repoRoot, 'scripts/tools', f);
   // An engine run on the other checkout is this checkout's engine on that checkout's game code.
   if (engine) {
@@ -208,6 +211,11 @@ const REPORTS = ['report.json', 'report.md'];
 if (passedAt && REPORTS.every((f) => existsSync(graphOutput('sweep', cacheKey, f)))) {
   mkdirSync(outDir, { recursive: true });
   for (const f of REPORTS) copyFileSync(graphOutput('sweep', cacheKey, f), join(outDir, f));
+  // Every file the pass loaded is unchanged, so its rows hold for this checkout: the copy names this one.
+  try {
+    const r = JSON.parse(readFileSync(join(outDir, 'report.json'), 'utf8'));
+    writeFileSync(join(outDir, 'report.json'), JSON.stringify({ ...r, checkout }, null, 1));
+  } catch { /* a report that can't be read is handed back as it is */ }
   console.log(`sweep: inputs unchanged since ${passedAt}, skipped (its report is in ${outDir})`);
   process.exit(0);
 }
@@ -455,7 +463,7 @@ for (const v of all) {
 // status: baseline, new (fails), or advisory (new, seen only in seeded games, fast mode). Every
 // check measures render output, so art owns what it finds.
 const status = (v) => (fresh.includes(v) ? 'new' : advisory.includes(v) ? 'advisory' : 'baseline');
-writeFileSync(`${outDir}/report.json`, JSON.stringify({ mode: full ? 'full' : (replayed?.mode ?? 'fast'), windows, violations: all.map(({ crop, ...v }) => ({ ...v, status: status(v), owner: 'art' })), ...(screenLoads ? { loaded: requestedFiles(requested) } : {}) }, null, 1));
+writeFileSync(`${outDir}/report.json`, JSON.stringify({ mode: full ? 'full' : (replayed?.mode ?? 'fast'), checkout, windows, violations: all.map(({ crop, ...v }) => ({ ...v, status: status(v), owner: 'art' })), ...(screenLoads ? { loaded: requestedFiles(requested) } : {}) }, null, 1));
 // The same as a markdown table, for a PR comment (crops are named by file, not path).
 const md = ['| check | what | value (m, or share on screen) | state | t (s) | status | crop |', '|---|---|---|---|---|---|---|'];
 for (const v of all) md.push(`| ${v.check} | ${v.detail ?? `${v.a} ~ ${v.b}`} | ${v.value} | ${v.state} | ${v.t} | ${refKeys.includes(v.key) && !worse(v) ? (controlReport ? 'control' : 'baseline') : 'NEW'} | ${v.crop ? `${v.key.replace(/[^a-z0-9_-]+/gi, '_')}.png` : ''} |`);
