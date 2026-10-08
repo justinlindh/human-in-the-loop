@@ -817,6 +817,7 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
       if (!rec) return null;
       const last = rec.path.length ? rec.path[rec.path.length - 1] : null;
       return { plan: rec.plan, cause: rec.cause ?? null, docked: !!rec.docked, pos: [+rec.pos.x.toFixed(2), +rec.pos.z.toFixed(2)], yaw: +rec.yaw.toFixed(2), path: rec.path.length,
+        way: rec.path.map((q) => ({ x: +q.x.toFixed(2), z: +q.z.toFixed(2) })),
         target: last && { x: +last.x.toFixed(2), z: +last.z.toFixed(2) }, stop: rec.stop && { x: +rec.stop.x.toFixed(2), z: +rec.stop.z.toFixed(2), who: rec.stop.who?.id ?? null, desk: rec.stop.desk ?? null },
         party: rec.party?.role ?? null, settled: !!rec.arrived && !rec.path.length && (rec.faceYaw == null || Math.abs(Math.atan2(Math.sin(rec.yaw - rec.faceYaw), Math.cos(rec.yaw - rec.faceYaw))) < 0.15), partyFace: rec.party?.spot.face ? { x: rec.party.spot.face.x, z: rec.party.spot.face.z } : null, eyes: rec.eyes, fix: rec.fix && { fixer: rec.fix.who?.id ?? null, slapped: rec.fix.slapped }, cone: !!rec.rig.cone.parent, note: rec.rig.note.visible, googly: rec.rig.googly.visible };
     },

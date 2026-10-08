@@ -2,7 +2,7 @@
 // and staged prop on the current frame, and an annotated copy of the frame.
 //
 //   prepare()            loads what the dump reads from the sim; await it once before dumping
-//   dumpFrame(R, S, { views }) -> { people: [...], items: [...], props: [...], nav, spots, camera }
+//   dumpFrame(R, S, { views }) -> { people: [...], items: [...], props: [...], robot, nav, spots, camera }
 //                           views (camera turns, e.g. [0, 1, 2, 3]) adds each person's and prop's
 //                           visible share and occluder per turn, from the staging probe
 //   annotate(R, frame)   -> PNG data URL: the frame with ids, screen boxes, facing arrows, gaze rays,
@@ -121,7 +121,7 @@ function spotsOf(R) {
 // than the desk they sit at and the item their goal is on.
 function pathHits(F, pos, walk, seat) {
   if (!walk?.path?.length) return [];
-  const skip = new Set([seat].filter(Boolean));
+  const skip = new Set([seat].flat().filter(Boolean));
   const pts = [{ x: pos.x, z: pos.z }, ...walk.path];
   const out = [];
   for (let j = 1; j < pts.length && out.length < 3; j++) {
@@ -156,6 +156,26 @@ function lowest(mesh) {
   let best = null;
   for (let i = 0; i < pos.count; i += 3) { v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld); if (!best || v.y < best.y) best = v.clone(); }
   return best;
+}
+
+// The office robot while it is in the office: where it is and what it is doing. plan is its job
+// (dock, rounds, home, party, broken), cause a breakdown's, stop the desk or person it is heading to,
+// goal the end of its path, and path its remaining way (when the renderer gives one).
+export function robotOf(R, F = []) {
+  const bot = R.robot, root = bot?.root, pk = bot?.peek?.();
+  if (!root?.parent || !pk) return null;
+  const box = new THREE.Box3();
+  root.traverse((m) => { if (m.isMesh && m.visible) box.union(new THREE.Box3().setFromObject(m)); });
+  const pos = new THREE.Vector3().setFromMatrixPosition(root.matrixWorld);
+  const yaw = new THREE.Euler().setFromQuaternion(root.getWorldQuaternion(new THREE.Quaternion()), 'YXZ').y;
+  const path = pk.way ?? null;
+  return {
+    id: 'robot', pos: r3(pos), yaw: +yaw.toFixed(3), bounds: boxJson(box), screen: screenBox(R, box), visible: root.visible,
+    plan: pk.plan, cause: pk.cause, docked: pk.docked, stop: pk.stop, goal: pk.target, party: pk.party, fix: pk.fix, settled: pk.settled,
+    pathLength: pk.path, path,
+    // Swept with a walker's body radius, past its dock and the desk it serves.
+    pathHits: path ? pathHits(F, pos, { path }, [pk.stop?.desk, [...(R.office?.placed.values() ?? [])].find((e) => e.itemId === 'office_robot')?.id]) : null,
+  };
 }
 
 export function dumpFrame(R, S, { views = null } = {}) {
@@ -216,7 +236,7 @@ export function dumpFrame(R, S, { views = null } = {}) {
         visible: seen?.[0]?.visible ?? null, occluder: seen?.[0]?.occluder ?? null, views: views ? seen : null });
     }
     const c = document.querySelector('canvas');
-    return { people, items, props, nav: navOf(R, F), spots, spotSearches: JSON.parse(JSON.stringify(R.debug?.spots ?? {})), camera: { pos: r3(R.camera.position), zoom: R.camera.zoom, width: c.width, height: c.height } };
+    return { people, items, props, robot: robotOf(R, F), nav: navOf(R, F), spots, spotSearches: JSON.parse(JSON.stringify(R.debug?.spots ?? {})), camera: { pos: r3(R.camera.position), zoom: R.camera.zoom, width: c.width, height: c.height } };
   });
 }
 
@@ -259,6 +279,19 @@ export function annotate(R, f) {
     g.strokeStyle = '#4dd2ff'; g.lineWidth = 1.5;
     g.strokeRect(...p.screen);
     label(p.prop, p.screen[0], p.screen[1] + p.screen[3] + 15, '#4dd2ff');
+  }
+  // The robot: its box, its job, and the rest of its way (green) to its goal.
+  const bot = f.robot;
+  if (bot?.path?.length) {
+    g.strokeStyle = '#39ff14'; g.lineWidth = 2;
+    g.beginPath(); const s0 = at(bot.pos); g.moveTo(s0.x, s0.y);
+    for (const q of bot.path) { const s = at([q.x, 0.02, q.z]); g.lineTo(s.x, s.y); }
+    g.stroke();
+  }
+  if (bot?.screen) {
+    g.strokeStyle = '#39ff14'; g.lineWidth = 2;
+    g.strokeRect(...bot.screen);
+    label(`robot ${bot.plan}${bot.cause ? `:${bot.cause}` : ''}`, bot.screen[0], bot.screen[1], '#39ff14');
   }
   for (const p of f.people) {
     // The rest of the path (cyan) to the goal (a ring), and where the body would pass through

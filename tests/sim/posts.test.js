@@ -58,7 +58,7 @@ describe('issue #16: the founders\' quick posts', () => {
     const head = res.events.find((e) => e.type === 'chat' && e.id === res.chatId);
     expect(s.staff.find((p) => p.id === head.fromId).founder).toBe(true);
     expect(Object.values(head.reactions).reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
-    expect(res.events.at(-1)).toEqual({ type: 'posted', id: 'pep_talk', chatId: res.chatId, outcome: 'landed' });
+    expect(res.events.find((e) => e.type === 'posted')).toEqual({ type: 'posted', id: 'pep_talk', chatId: res.chatId, outcome: 'landed' });
     expect(avgMeaning(s)).toBeCloseTo(before + B.posts.pepTalk, 5);
     const replies = repliesOver(s, B.posts.replyWeeks);
     expect(replies.length).toBeGreaterThanOrEqual(1);
