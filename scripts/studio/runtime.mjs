@@ -12,6 +12,13 @@ const HOLD_S = 1e9;
 export async function createRuntime({ state, mock = 'floor', quality = 'low', rig = null, era = null, traceRandom = false, initialPerkDelay, script = [], initialSync = true, width, height, transform } = {}) {
   const clock = installPlatform(fileURLToPath(new URL('../../', import.meta.url)), { quality, rig });
   installLoader({ initialPerkDelay, transform });
+  // The UI's presentation clock (src/ui/pclock.js) moves a frame with every stepped frame, as the game's frame
+  // loop and the harness page move it, and starts at 0 with each scene, as a fresh page does. A checkout from
+  // before it existed has nothing to move.
+  const pclock = await import('../../src/ui/pclock.js').catch(() => null);
+  pclock?.pReset?.();
+  const tick = clock.tick;
+  clock.tick = () => { const n = tick(); pclock?.pTick(1000 / 30); return n; };
   const { createRenderer } = await import('../../src/render/index.js');
   const { createMockSim } = await import('../../src/dev/mockSim.js');
   const S = state ?? createMockSim({ scenario: mock, seed: 7 }).state;

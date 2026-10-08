@@ -68,7 +68,29 @@ async function feedEvents(R, S, game) {
   const { createYakPacer } = await import('../../src/yak-pacing.js');
   const yak = createYakPacer();
   let gameT = 0;
-  const present = (events) => { if (events?.length) R.handleEvents(events, S); };
+  // Status news the game's interface sends to the world instead of a toast (src/ui/index.js, through ui's own
+  // routeAmbient): the renderer draws it over its subject, and those bubbles hold back standup turns, so the
+  // engine sends it as the page does, after the renderer has the events. A checkout from before routeAmbient
+  // sends none.
+  const amb = await import('../../src/ui/ambient.js').catch(() => null);
+  const { pacingOn = () => false } = await import('../../src/ui/pacing.js').catch(() => ({}));
+  const ambient = amb?.routeAmbient ? amb.createAmbient() : null;
+  // The interface remembers each product's score at its last launch, for an update's "shipped" bubble.
+  const launchScores = new Map();
+  const toWorld = (e) => {
+    let prevScore;
+    if (e.type === 'launch') {
+      const p = S.products?.find((x) => x.id === e.productId);
+      prevScore = launchScores.get(e.productId);
+      if (p) launchScores.set(e.productId, p.score);
+    }
+    amb.routeAmbient(ambient, e, S, { quiet: pacingOn('quietToasts'), oneLaunchCard: pacingOn('oneLaunchCard'), prevScore });
+  };
+  const present = (events) => {
+    if (!events?.length) return;
+    R.handleEvents(events, S);
+    if (ambient) for (const e of events) toWorld(e);
+  };
   game.emit = (events, direct = false) => {
     if (!events?.length) return;
     const urgentIds = new Set((S.chatPrompts ?? []).filter((p) => !p.resolved).map((p) => p.chatId));

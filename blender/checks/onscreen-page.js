@@ -32,7 +32,8 @@ export const onscreenShots = async (o) => {
     if (o.engine) { window.__step(n); R.scene.updateMatrixWorld(true); return; }
     R.render = (dt, opt) => render.call(R, dt, { ...opt, draw: false });
     try {
-      for (let i = 0; i < n; i++) { window.__tick(1000 / 30); for (const cb of window.__rafQ.splice(0)) cb(performance.now()); }
+      // The game's own frame loop moves the UI's presentation clock, so only the wall clock is ticked here.
+      for (let i = 0; i < n; i++) { (window.__clockTick ?? window.__tick)(1000 / 30); for (const cb of window.__rafQ.splice(0)) cb(performance.now()); }
     } finally { R.render = render; }
   };
   const out = [];

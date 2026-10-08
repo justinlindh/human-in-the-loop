@@ -142,6 +142,14 @@ export async function startHarness({ gpu = wantGpu(), browsers = 1, auditDraws =
       pt.mark('fonts');
       await page.evaluate(async (tod) => {
         const R = window.__hitlRender, S = window.__HITL.state;
+        // A stepped frame moves the UI's presentation clock (src/ui/pclock.js) too, as the game's frame loop does,
+        // which the held requestAnimationFrame never runs. __clockTick moves only the wall clock, for a caller
+        // that runs the game's frame loop itself.
+        const pclock = await import('/src/ui/pclock.js').catch(() => null);
+        if (pclock && !window.__clockTick) {
+          const wall = window.__clockTick = window.__tick;
+          window.__tick = (ms) => { wall(ms); pclock.pTick(ms); };
+        }
         R.setSpeed?.(1);
         R.setPaused?.(false);
         R.setTimeOfDay?.(tod);

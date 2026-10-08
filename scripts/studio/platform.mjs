@@ -29,6 +29,14 @@ function matches(el, selector) {
     return true;
   });
 }
+// A text node: its text joins its parent's textContent; it matches no selector.
+class TextNode {
+  constructor(text) { this.nodeType = 3; this.data = String(text); this.parentNode = null; }
+  get textContent() { return this.data; }
+  set textContent(v) { this.data = v == null ? '' : String(v); }
+  get nodeValue() { return this.data; }
+  remove() { this.parentNode?.removeChild(this); }
+}
 function descendants(root, out = []) { for (const c of root.children ?? []) { out.push(c); descendants(c, out); } return out; }
 
 // A small working DOM tree: children, classes, text and selector queries behave as in a page, so a
@@ -54,7 +62,7 @@ export class Element {
   get firstChild() { return this.children[0] ?? null; }
   get lastChild() { return this.children[this.children.length - 1] ?? null; }
   appendChild(child) { child.parentNode?.removeChild?.(child); child.parentNode = this; this.children.push(child); return child; }
-  append(...children) { children.forEach(c => this.appendChild(c)); }
+  append(...children) { children.forEach(c => this.appendChild(typeof c === 'string' ? new TextNode(c) : c)); }
   prepend(child) { child.parentNode?.removeChild?.(child); child.parentNode = this; this.children.unshift(child); }
   insertBefore(child, ref) { child.parentNode?.removeChild?.(child); const i = this.children.indexOf(ref); child.parentNode = this; this.children.splice(i < 0 ? this.children.length : i, 0, child); return child; }
   removeChild(child) { this.children = this.children.filter(c => c !== child); child.parentNode = null; return child; }
@@ -79,7 +87,7 @@ export class Element {
 export function installPlatform(root, { quality = 'low', rig = null } = {}) {
   const g = globalThis;
   g.window = g; g.self = g; g.Element = Element; g.HTMLElement = Element;
-  g.document = { createElement: tag => new Element(tag), createElementNS: (_, tag) => new Element(tag),
+  g.document = { createElement: tag => new Element(tag), createElementNS: (_, tag) => new Element(tag), createTextNode: (text) => new TextNode(text),
     getElementById: (id) => descendants(g.document).find((el) => el instanceof Element && el.id === id) ?? null,
     querySelectorAll: (selector) => descendants(g.document).filter((el) => el instanceof Element && matches(el, selector)),
     querySelector: (selector) => g.document.querySelectorAll(selector)[0] ?? null,
@@ -97,7 +105,8 @@ export function installPlatform(root, { quality = 'low', rig = null } = {}) {
   const listeners = new Map();
   g.addEventListener = (type, fn) => { if (!listeners.has(type)) listeners.set(type, new Set()); listeners.get(type).add(fn); };
   g.removeEventListener = (type, fn) => { listeners.get(type)?.delete(fn); };
-  g.dispatchEvent = (event) => { for (const fn of [...(listeners.get(event.type) ?? [])]) fn(event); return true; };
+  // As a page's: false when a listener called preventDefault() on a cancelable event.
+  g.dispatchEvent = (event) => { for (const fn of [...(listeners.get(event.type) ?? [])]) fn(event); return !event.defaultPrevented; };
   g.matchMedia = () => ({ matches: false, addEventListener: noop, removeEventListener: noop });
   g.ResizeObserver = class { observe() {} disconnect() {} };
   g.Image = class extends Element { constructor() { super('img'); } set src(value) { this.source = value; } };
