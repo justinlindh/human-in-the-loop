@@ -29,7 +29,7 @@ export const dumpPage = async (o) => {
   const settle = () => R.scene.updateMatrixWorld(true);
   window.__step(o.warm);
   settle();
-  if (o.patchJs) new Function('S', 'R', o.patchJs)(S, R);
+  if (o.patchJs) await (await import('/blender/checks/patch-js.js')).runJs(o.patchJs, { S, R });
   if (o.events) R.handleEvents([].concat(o.events), S);
   const frames = [];
   let at = 0, seen = -1;

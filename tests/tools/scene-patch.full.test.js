@@ -18,4 +18,9 @@ describe('scene.mjs --patch-js', () => {
     expect(r.stdout).toContain('scene: report "[\\"function\\",\\"function\\"]"');
     expect(existsSync(out)).toBe(true);
   }, 250000);
+
+  it('dump.mjs --browser runs the same patch', () => {
+    const r = spawnSync(process.execPath, ['blender/checks/dump.mjs', '--browser', '--mock', 'floor', '--software', '--out', join(tmp, 'dump'), '--frames', '0', '--patch-js', "const m = await import('/src/render/checks.js'); if (typeof m.setupDeal !== 'function') throw new Error('no setupDeal');"], { encoding: 'utf8', cwd: ROOT, timeout: 240000 });
+    expect(r.status, r.stderr.slice(-400) + r.stdout.slice(-400)).toBe(0);
+  }, 250000);
 });

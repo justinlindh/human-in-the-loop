@@ -97,8 +97,8 @@ export async function renderScene(H, o) {
     if (o.cropAround?.trim().startsWith('[')) around = JSON.parse(o.cropAround);
     for (let i = 0; i < (o.frames ? o.before ?? 0 : 0); i++) out.push(grab());
     apply(o.patch);
-    // An async body: it can await an import of a module, and the still waits for it to finish.
-    if (o.patchJs) await new (Object.getPrototypeOf(async () => {}).constructor)('S', 'R', o.patchJs)(S, R);
+    // An async body (patch-js.js): it can await an import of a module, and the still waits for it to finish.
+    if (o.patchJs) await (await import('/blender/checks/patch-js.js')).runJs(o.patchJs, { S, R });
     if (o.event) R.handleEvents([].concat(o.event), S);
     if (o.focusOn) { window.__step(3); const f = (0, eval)(o.focusOn); R.focusAt(f[0], f[2], o.zoom ?? 2.5); window.__step(1); }
     if (o.cropAround) { window.__step(3); around = (0, eval)(o.cropAround); }
