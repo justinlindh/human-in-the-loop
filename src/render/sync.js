@@ -1165,10 +1165,16 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   function boxSeller(e) {
     const owner = lastState?.products?.find((p) => p.id === e.productId)?.ownerId;
     const staff = lastState?.staff ?? [];
+    const projects = lastState?.projects ?? [];
+    const onProduct = (s) => s.assignment?.type === 'project' && e.productId != null && projects.find((j) => j.id === s.assignment.targetId)?.productId === e.productId;
+    const on = (type) => staff.filter((s) => s.assignment?.type === type).map((s) => s.id);
+    // Owner, then the crew of a project on this product, then sales, then upkeep, then anyone free.
     const tiers = [
       owner != null ? [owner] : [],
-      staff.filter((s) => e.productId != null && s.assignment?.targetId === e.productId).map((s) => s.id),
-      staff.filter((s) => s.assignment?.type === 'sales').map((s) => s.id),
+      staff.filter(onProduct).map((s) => s.id),
+      on('sales'),
+      on('maintenance'),
+      staff.map((s) => s.id),
     ];
     for (const ids of tiers) {
       const r = ids.map((id) => recs.get(id)).find(dealReady);
@@ -1196,6 +1202,9 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       tick: (r, dt) => { r.yaw = angleLerp(r.yaw, turnTo, 1 - Math.exp(-dt * 8)); return false; },
     };
     seller.char.setDealProp(e.boxed ? 'box' : 'bell');
+    // faceEvent finds a seller by sellerId; the box holder is picked here, so their face is set here.
+    if (e.boxed && e.first) seller.char.express('delighted', { hold: FACE_HOLD.deal });
+    else if (e.boxed && seller.smugWeek !== e.week) { seller.smugWeek = e.week; seller.char.express('smug', { hold: FACE_HOLD.notable }); }
     seller.char.gesture('deal', DEAL.seconds, Math.sin(turnTo - camYaw) >= 0 ? 1 : -1);
     // 'hitl:dealBell' { staffId, seconds, boxed } when the deal is raised on screen, so its sound plays
     // only with the picture (a skipped beat stays silent); boxed: a retail box, not the bell.
