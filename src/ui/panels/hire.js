@@ -6,6 +6,7 @@ import { icon } from '../icons.js';
 import { STATS, roleSkills, bestSkill, strengthChip, skillRow } from '../stats.js';
 import { CATALOG } from '../v2content.js';
 import { firstFit } from '../placement.js';
+import { hireFeeMult } from '../../sim/ai-interviews.js';
 
 export const DESK_ITEM = 'desk';
 export const deskCost = () => CATALOG[DESK_ITEM]?.costs?.[0] ?? 0;
@@ -19,8 +20,7 @@ export function hireFee(c, s = null) {
   const base = (c.salary ?? 0) * (B.hireFeeWeeks ?? 2);
   if (!s) return base;
   const relief = 1 - (B.fameHireRelief ?? 0) * (s.fame ?? 0) / 100;
-  const mult = B.aiInterviews?.enabled && s.policies?.ai_interviews ? B.aiInterviews.feeMult : 1;
-  return base * relief * mult;
+  return base * relief * hireFeeMult(s);
 }
 
 // Desks to place before one more person can start, in an office the player lays out. Usually 1;
@@ -125,9 +125,9 @@ export function hireView(ctx) {
             ctx.close?.();
           } }, icon('decision', { size: 14 }), ' Watch the interview');
           bind((st) => {
-            const why = c.watched ? 'Already watched' : st.pendingDecision ? 'Finish the open decision first' : null;
-            watch.disabled = !!why;
-            setTip(watch, why ?? `Watch ${c.name}'s interview tape and decide if they're a person`);
+            const refused = c.watched ? 'Already watched' : st.pendingDecision ? 'Finish the open decision first' : null;
+            watch.disabled = !!refused;
+            setTip(watch, refused ?? `Watch ${c.name}'s interview tape and decide if they're a person`);
           });
         }
         grid.append(h('div.card.cand', null,
