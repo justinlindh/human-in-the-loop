@@ -194,7 +194,7 @@ describe('actions', () => {
   it('upgradeOffice waits for its gate, then needs cash', () => {
     const s = game();
     s.cash = 1e7;
-    expectFail(expect, dispatch, s, { type: 'upgradeOffice' }, 'Available from 2021');
+    expectFail(expect, dispatch, s, { type: 'upgradeOffice' }, 'Available from 2021 · Q1 · Wk 1');
     s.week = 104;
     expectFail(expect, dispatch, s, { type: 'upgradeOffice' }, 'Needs 2 launches');
     s.stats.launches = 2;
