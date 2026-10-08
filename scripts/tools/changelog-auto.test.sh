@@ -37,6 +37,10 @@ case "$*" in
   "issue list"*) [ -f "$CL_ISSUE_OPEN" ] && echo 7 ;;
   "issue create"*) : >"$CL_ISSUE_OPEN" ;;
   "issue close"*) rm -f "$CL_ISSUE_OPEN" ;;
+  # PR 9 posts two stills (a before shot in a comment ranks after the after shot); PR 10 only a clip.
+  "pr view 9 "*) echo '{"body":"![a](https://github.com/justinlindh/human-in-the-loop/blob/pr-media/pr-9/before-main.png?raw=true)","comments":[{"body":"![b](https://github.com/justinlindh/human-in-the-loop/blob/pr-media/pr-9/after.png?raw=true) [c](https://github.com/justinlindh/human-in-the-loop/blob/pr-media/pr-9/x.mp4?raw=true)"}]}' ;;
+  "pr view 10 "*) echo '{"body":"","comments":[{"body":"[clip](https://github.com/justinlindh/human-in-the-loop/blob/pr-media/pr-10/walk.mp4?raw=true)"}]}' ;;
+  "pr view "*) echo '{"body":"","comments":[]}' ;;
 esac
 exit 0
 EOF
@@ -50,14 +54,20 @@ case "${CL_STUB_MODE:-ok}" in
   garbage) echo "I could not do that." ;;
   retry) if [ "$n" -eq 1 ]; then H="Bad $(printf '\xe2\x80\x94') dash"; else H="${CL_STUB_HEADLINE:-Good}"; fi
          printf '{"date":"%s","headline":"%s","items":[{"area":"UI","title":"A thing","body":"It works.","refs":["#9"]}]}' "$CL_DAY" "$H" ;;
-  *) printf 'Here is the entry:\n{"date":"%s","headline":"%s","items":[{"area":"UI","title":"A thing","body":"%s","refs":["#9"],"media":[{"src":"https://github.com/justinlindh/human-in-the-loop/blob/feature-media/office-box.webp?raw=true","kind":"image","caption":"Box"}]}]}\n' "$CL_DAY" "${CL_STUB_HEADLINE:-Good}" "${CL_STUB_BODY:-It works.}" ;;
+  # The model's own media pick is ignored: stills come from the cited PRs.
+  *) printf 'Here is the entry:\n{"date":"%s","headline":"%s","items":[{"area":"UI","title":"A thing","body":"%s","refs":%s,"media":[{"src":"https://github.com/justinlindh/human-in-the-loop/blob/feature-media/office-box.webp?raw=true","kind":"image","caption":"Box"}]}%s]}\n' "$CL_DAY" "${CL_STUB_HEADLINE:-Good}" "${CL_STUB_BODY:-It works.}" "${CL_STUB_REFS:-[\"#9\"]}" "${CL_STUB_EXTRA:-}" ;;
 esac
 EOF
-# A stand-in curl: writes the file named by -o, so no still is fetched from the network.
-cat >"$tmp/bin/curl" <<'EOF'
+# A stand-in curl: copies a real small png, or a real two-second clip for a .mp4, to the file named by -o,
+# so no still is fetched from the network and ffmpeg has real input.
+ffmpeg -v error -f lavfi -i testsrc=size=320x240:rate=10 -frames:v 1 "$tmp/still.png" || exit 1
+ffmpeg -v error -f lavfi -i testsrc=size=320x240:rate=10:duration=2 -pix_fmt yuv420p "$tmp/clip.mp4" || exit 1
+cat >"$tmp/bin/curl" <<EOF
 #!/usr/bin/env bash
-while [ $# -gt 0 ]; do [ "$1" = -o ] && { printf 'still' >"$2"; exit 0; }; shift; done
-exit 1
+url=""; out=""
+while [ \$# -gt 0 ]; do case "\$1" in -o) out="\$2"; shift ;; http*) url="\$1" ;; esac; shift; done
+[ -n "\$out" ] || exit 1
+case "\$url" in *.mp4) cp "$tmp/clip.mp4" "\$out" ;; *) cp "$tmp/still.png" "\$out" ;; esac
 EOF
 chmod +x "$tmp/bin/gh" "$tmp/bin/claude" "$tmp/bin/curl"
 export PATH="$tmp/bin:$PATH" GH="$tmp/bin/gh" CL_CLAUDE="$tmp/bin/claude" CL_GAME_ORIGIN="$tmp/game.git" CL_SITE_ORIGIN="$tmp/site.git" CL_SITE_REPO=x/site CL_STATE="$tmp/state"
@@ -72,8 +82,11 @@ site_entry() { git -C "$tmp/site.git" show "changelog/$DAY:changelog/entries.jso
 run "$DAY"
 [ $rc -eq 0 ] && [ "$(site_entry)" = "Good" ] && grep -q "^pr create --repo x/site --base main --head changelog/$DAY --title feat(site): changelog for $DAY" "$CL_GH_CALLS" && grep -q '^pr merge .* --auto --merge' "$CL_GH_CALLS" \
   || fail "a player-visible day opens a site PR with the entry: rc=$rc $(cat "$tmp/out") $(cat "$CL_GH_CALLS")"
-git -C "$tmp/site.git" show "changelog/$DAY:changelog/entries.json" | jq -e '.[0].date == "'"$DAY"'" and .[0].items[0].media[0].src == "media/'"$DAY"'/office-box.webp"' >/dev/null || fail "the entry is newest first and the still is copied into the day folder"
-git -C "$tmp/site.git" cat-file -e "changelog/$DAY:changelog/media/$DAY/office-box.webp" || fail "the still file is committed in the day folder"
+git -C "$tmp/site.git" show "changelog/$DAY:changelog/entries.json" | jq -e '.[0].date == "'"$DAY"'" and ([.[0].items[0].media[].src] == ["media/'"$DAY"'/9-after.webp", "media/'"$DAY"'/9-before-main.webp"])' >/dev/null \
+  || fail "the entry is newest first and its stills are the cited PR's, after shot first, as webp, not the model's pick: $(git -C "$tmp/site.git" show "changelog/$DAY:changelog/entries.json" | jq -c '.[0].items[0].media')"
+git -C "$tmp/site.git" show "changelog/$DAY:changelog/media/$DAY/9-after.webp" | head -c 12 | grep -q 'WEBP' || fail "the still file is committed in the day folder as webp"
+grep -q "media: A thing: media/$DAY/9-after.webp, media/$DAY/9-before-main.webp" "$tmp/out" || fail "the run says which stills each item got: $(cat "$tmp/out")"
+grep -q 'Stills wanted' "$tmp/state/$DAY.pr.md" && fail "an item with stills is not flagged as wanting one"
 grep -q 'office-box.webp' "$tmp/state/$DAY.stills.txt" || fail "the feature-media file list is read for the digest"
 grep -q '/home/\|/tmp/' "$tmp/state/$DAY.pr.md" && fail "the PR body holds a local path"
 grep -q 'Check each number and each claim' "$tmp/state/$DAY.pr.md" || fail "the PR body asks the reviewer to fact-check the text"
@@ -121,13 +134,14 @@ rm -f "$CL_PR_OPEN"; git -C "$tmp/site.git" branch -q -D "changelog/$DAY"
 CL_STUB_HEADLINE="Dry" run "$DAY" --force --dry
 [ $rc -eq 0 ] && grep -q 'dry run' "$tmp/out" && ! git -C "$tmp/site.git" rev-parse -q --verify "changelog/$DAY" >/dev/null && ! grep -q '^pr create' "$CL_GH_CALLS" || fail "--dry stops before the push: $(cat "$tmp/out")"
 
-# A day the site's main already has (hand-curated): an Art item with two stills, and "A thing", which this
-# tool wrote and published for the day above (its record names it).
+# A day the site's main already has (hand-curated): an Art item with two stills, and "A thing" exactly as
+# this tool wrote and published it for the day above (its record names it, text and stills).
 g clone -q "$tmp/site.git" "$tmp/sitework" && cd "$tmp/sitework" || exit 1
 mkdir -p "changelog/media/$DAY" && printf a >"changelog/media/$DAY/art-1.webp" && printf b >"changelog/media/$DAY/art-2.webp"
+cp "$tmp/still.png" "changelog/media/$DAY/9-after.webp" && cp "$tmp/still.png" "changelog/media/$DAY/9-before-main.webp"
 jq --arg d "$DAY" '[{date: $d, headline: "Curated day", items: [
   {area: "Art", title: "New art, rendered clean", body: "Stills.", media: [{src: "media/\($d)/art-1.webp", kind: "image"}, {src: "media/\($d)/art-2.webp", kind: "image"}]},
-  {area: "UI", title: "A thing", body: "It works.", refs: ["#9"]}]}] + .' changelog/entries.json >e.json && mv e.json changelog/entries.json
+  {area: "UI", title: "A thing", body: "It works.", refs: ["#9"], media: [{src: "media/\($d)/9-after.webp", kind: "image"}, {src: "media/\($d)/9-before-main.webp", kind: "image"}]}]}] + .' changelog/entries.json >e.json && mv e.json changelog/entries.json
 g add -A && g commit -q -m curated && git push -q origin main
 cd "$HERE" || exit 1
 site_day() { jq -c --arg d "$DAY" '.[] | select(.date == $d)' "$tmp/state/site/changelog/entries.json"; }
@@ -142,21 +156,41 @@ CL_STUB_HEADLINE="Redraft" CL_STUB_BODY="Redrafted." run "$DAY" --force --dry
 [ $rc -eq 0 ] && grep -q 'keeping 1 published item(s) and the headline' "$tmp/out" || fail "a forced published day says what it keeps: rc=$rc $(cat "$tmp/out")"
 site_day | jq -e '.headline == "Curated day" and ([.items[].title] == ["New art, rendered clean", "A thing"]) and .items[0].media[1].src == "media/'"$DAY"'/art-2.webp" and .items[1].body == "Redrafted."' >/dev/null \
   || fail "the curated item and headline are kept and the tool's own item redrafted: $(site_day)"
-[ "$(ls "$tmp/state/site/changelog/media/$DAY" | tr '\n' ' ')" = "art-1.webp art-2.webp office-box.webp " ] || fail "the kept stills stay beside the new one: $(ls "$tmp/state/site/changelog/media/$DAY")"
+[ "$(ls "$tmp/state/site/changelog/media/$DAY" | tr '\n' ' ')" = "9-after.webp 9-before-main.webp art-1.webp art-2.webp " ] || fail "the kept stills stay beside the new ones: $(ls "$tmp/state/site/changelog/media/$DAY")"
+[ "$(cat "$tmp/state/site/changelog/media/$DAY/art-1.webp")" = a ] || fail "a kept still is not fetched over"
 grep -q -- '- Art: New art, rendered clean' "$tmp/state/$DAY.prompt.md" || fail "the prompt lists the items that stay"
+
+# "A thing" edited by hand after it was published (same title, new text): the record's fingerprint no longer
+# matches, so it is kept, and the drafted one with its title is left out.
+cd "$tmp/sitework" || exit 1
+jq --arg d "$DAY" 'map(if .date == $d then .items[1].body = "Fixed by hand." else . end)' changelog/entries.json >e.json && mv e.json changelog/entries.json
+g commit -q -am "hand edit" && git push -q origin main
+cd "$HERE" || exit 1
+CL_STUB_HEADLINE="Redraft" CL_STUB_BODY="Redrafted." run "$DAY" --force --dry
+[ $rc -eq 0 ] && grep -q 'keeping 2 published item(s) and the headline' "$tmp/out" && site_day | jq -e '[.items[].title] == ["New art, rendered clean", "A thing"] and .items[1].body == "Fixed by hand."' >/dev/null \
+  || fail "an item edited by hand keeps its edit: rc=$rc $(site_day) $(cat "$tmp/out")"
 
 # With no record of what this tool wrote, everything published is kept, and a drafted item with a kept title is left out.
 rm -f "$tmp/state/$DAY.ours.json"
 CL_STUB_HEADLINE="Redraft" CL_STUB_BODY="Redrafted." run "$DAY" --force --dry
-[ $rc -eq 0 ] && site_day | jq -e '[.items[].title] == ["New art, rendered clean", "A thing"] and .items[1].body == "It works."' >/dev/null \
-  && [ "$(ls "$tmp/state/site/changelog/media/$DAY" | tr '\n' ' ')" = "art-1.webp art-2.webp " ] || fail "with no record everything published is kept: rc=$rc $(site_day) $(cat "$tmp/out")"
+[ $rc -eq 0 ] && site_day | jq -e '[.items[].title] == ["New art, rendered clean", "A thing"] and .items[1].body == "Fixed by hand."' >/dev/null \
+  && [ "$(ls "$tmp/state/site/changelog/media/$DAY" | tr '\n' ' ')" = "9-after.webp 9-before-main.webp art-1.webp art-2.webp " ] || fail "with no record everything published is kept: rc=$rc $(site_day) $(cat "$tmp/out")"
 
 # Days are UTC's whatever the machine's zone: a merge at 03:00Z on the 7th is the 7th's (the 6th in Los Angeles).
 cat >"$CL_MERGED" <<'EOF'
 [{"number":10,"title":"feat(ui): a late thing","body":"## What\nA thing a player sees.","mergedAt":"2026-10-07T03:00:00Z","mergeCommit":{"oid":"0000000000000000000000000000000000000000"},"url":"u","author":{"login":"a"},"labels":[]}]
 EOF
-TZ=America/Los_Angeles CL_DAY=2026-10-07 run 2026-10-07 --dry
+# PR 10 posts only a clip, so its item gets a frame from the clip's middle. An item citing no PR of the day
+# that has media is listed for video in the PR body, unless its area is not about the screen.
+rm -f "$CL_PR_OPEN"
+TZ=America/Los_Angeles CL_DAY=2026-10-07 CL_STUB_REFS='["#10"]' \
+  CL_STUB_EXTRA=',{"area":"Office","title":"A plant","body":"Green.","refs":["#11"]},{"area":"Sound","title":"A hum","body":"Quiet.","refs":[]}' run 2026-10-07
 [ $rc -eq 0 ] && grep -q '2026-10-07: 1 player-visible change' "$tmp/out" || fail "a 03:00Z merge lands on its UTC day: rc=$rc $(cat "$tmp/out")"
+git -C "$tmp/site.git" show "changelog/2026-10-07:changelog/entries.json" | jq -e '.[0].items[0].media == [{"src": "media/2026-10-07/10-walk-frame.webp", "kind": "image"}] and .[0].items[1].media == null' >/dev/null \
+  || fail "a clip-only PR gives its item a frame: $(git -C "$tmp/site.git" show "changelog/2026-10-07:changelog/entries.json" | jq -c '.[0].items')"
+git -C "$tmp/site.git" show "changelog/2026-10-07:changelog/media/2026-10-07/10-walk-frame.webp" | head -c 12 | grep -q WEBP || fail "the frame is a webp file"
+grep -q '^## Stills wanted' "$tmp/state/2026-10-07.pr.md" && grep -q '^- Office: A plant (#11)' "$tmp/state/2026-10-07.pr.md" && ! grep -q 'A hum' <(sed -n '/^## Stills wanted/,/^## For/p' "$tmp/state/2026-10-07.pr.md") \
+  || fail "an on-screen item with no still is flagged for video, a sound item is not: $(cat "$tmp/state/2026-10-07.pr.md")"
 TZ=America/Los_Angeles run 2026-10-06
 [ $rc -eq 0 ] && grep -q 'nothing to write' "$tmp/out" && [ ! -s "$CL_CLAUDE_CALLS" ] || fail "a 03:00Z merge is not the zone's day before: rc=$rc $(cat "$tmp/out")"
 
