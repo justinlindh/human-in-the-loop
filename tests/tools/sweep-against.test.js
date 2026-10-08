@@ -45,6 +45,10 @@ describe('sweep --against', () => {
       const control = JSON.parse(readFileSync(join(out, 'control/report.json'), 'utf8'));
       const mine = JSON.parse(readFileSync(join(out, 'report.json'), 'utf8'));
       expect(existsSync(join(out, 'control/report.md'))).toBe(true);
+      // Each report names the code it played: the control its own checkout, with the mock edit uncommitted.
+      const head = execFileSync('git', ['-C', ROOT, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+      expect(mine.checkout.commit).toBe(head);
+      expect(control.checkout).toEqual({ commit: head, dirty: true });
       const only = control.violations.map((v) => v.key).filter((k) => !mine.violations.some((v) => v.key === k));
       expect(only.some((k) => k.includes('espresso'))).toBe(true);
       const printed = r.stdout.split('\n').filter((l) => l.startsWith('sweep: gone vs ctl: ')).map((l) => l.slice('sweep: gone vs ctl: '.length));

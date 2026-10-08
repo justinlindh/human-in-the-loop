@@ -23,6 +23,14 @@ describe('dump.mjs --sweep-row', () => {
     expect(d.frames[0].people.length).toBeGreaterThan(0);
     expect(run('--sweep-row', report, 'person|person|person').status).toBe(0);
   });
+  it('warns when the report names no commit or another commit than this checkout', () => {
+    expect(run('--sweep-row', report, 'seed:1:w0').stderr).toContain("dump: warning: report has no commit; can't check it was made from this checkout");
+    const other = join(tmp, 'other.json');
+    writeFileSync(other, JSON.stringify({ ...JSON.parse(readFileSync(report, 'utf8')), checkout: { commit: '0123456789abcdef0123456789abcdef01234567', dirty: false } }));
+    const r = run('--sweep-row', other, 'seed:1:w0');
+    expect(r.status).toBe(0);
+    expect(r.stderr).toMatch(/dump: warning: report made at 01234567, this checkout is at [0-9a-f]{8}( \(with uncommitted changes\))?: its scenes may differ/);
+  });
   it('exits 1 when the named person is not in the scene', () => {
     const r = run('--sweep-row', report, 'seed:1:w0', 's99999');
     expect(r.status).toBe(1);
