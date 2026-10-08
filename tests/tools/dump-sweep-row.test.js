@@ -49,4 +49,12 @@ describe('dump.mjs --sweep-row', () => {
     expect(r.status).toBe(1);
     expect(r.stderr).toContain('without a window at week 7');
   });
+  it('applies --patch-js (an awaited body) to the loaded window, and --trace-js writes a value into every frame', () => {
+    const r = run('--sweep-row', report, 'seed:1:w0', 's1', '--frames', '0,15', '--trace-js', 'S.staff.length',
+      '--patch-js', "await import('/src/render/checks.js'); S.staff[0].name = 'PatchedName';");
+    expect(r.status, r.stderr).toBe(0);
+    const d = JSON.parse(readFileSync(join(tmp, 'out/dump.json'), 'utf8'));
+    expect(d.frames.map((f) => f.people.some((p) => p.name === 'PatchedName'))).toEqual([true, true]);
+    expect(d.frames.map((f) => typeof f.traceJs)).toEqual(['number', 'number']);
+  });
 });

@@ -39,6 +39,7 @@ export const dumpPage = async (o) => {
     at = f;
     const d = dump.dumpFrame(R, S, { views: o.views });
     if (R.trace?.on) { d.trace = R.trace.lines(600).filter((l) => l.seq > seen); if (d.trace.length) seen = d.trace[d.trace.length - 1].seq; }
+    if (o.traceJs) d.traceJs = await (await import('/blender/checks/patch-js.js')).evalJs(o.traceJs, { S, R, d, frame: f });
     frames.push({ frame: f, t: +(f / 30).toFixed(3), ...d });
   }
   return frames;
