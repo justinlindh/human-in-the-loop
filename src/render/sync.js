@@ -4,7 +4,7 @@ import { createMomentSpeech } from './moment-speech.js';
 import { createSpeechBudget } from './speech-budget.js';
 import { createStandupSpeech, standupContext, standupRevision, standupText } from './standup-speech.js';
 import * as THREE from 'three';
-import { createCharacter, LYING } from './character.js';
+import { createCharacter, LYING, RETAIL_BOX_TINTS } from './character.js';
 import { wardrobeEra } from './wardrobe.js';
 import { PALETTE as P, ROLE_COLORS } from './palette.js';
 import { glow } from './materials.js';
@@ -47,6 +47,10 @@ const REWALK_S = 3;            // seconds between tries for someone left short o
 const DOOR_SPREAD = 0.45;      // how far apart people leaving by the door head for
 // Facial expressions for events (faceEvent): seconds each holds, and who sees a firing.
 const FACE_HOLD = { deal: 2, notable: 2.5, hire: 4, launch: 3, award: 3, fired: 2, click: 2.5 };
+// Someone waiting on the robot gives it a look this long into the wait, and again every
+// ROBOT_HOLD_AGAIN_S while it stays.
+const ROBOT_HOLD_LOOK_S = 0.6;
+const ROBOT_HOLD_AGAIN_S = 6;
 // A voice bark's face by its emotion; it holds VOICE_FACE_TAIL s past the bark. VOICE_TALK scales
 // the bark's 0..1 loudness to mouth opening.
 const VOICE_FACE = { happy: 'delighted', excited: 'delighted', laughing: 'delighted', questioning: 'questioning', annoyed: 'sideeye', tired: 'tired', sighing: 'sad' };
@@ -1182,6 +1186,12 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     }
     return null;
   }
+  // A product's box colour, the same every week.
+  function boxTint(productId) {
+    let h = 0;
+    for (const ch of String(productId ?? '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return RETAIL_BOX_TINTS[h % RETAIL_BOX_TINTS.length];
+  }
   function dealBell(e) {
     if (!e.notable) return;
     const seller = e.boxed ? boxSeller(e) : e.sellerId && recs.get(e.sellerId);
@@ -1201,7 +1211,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       anim: 'typing', t: DEAL.seconds, keepPos: true, moment: 'deal', stage: { beat: 'ring', role: 'seller', get held() { return seller.char.dealBell(); } },
       tick: (r, dt) => { r.yaw = angleLerp(r.yaw, turnTo, 1 - Math.exp(-dt * 8)); return false; },
     };
-    seller.char.setDealProp(e.boxed ? 'box' : 'bell');
+    seller.char.setDealProp(e.boxed ? 'box' : 'bell', boxTint(e.productId));
     // faceEvent finds a seller by sellerId; the box holder is picked here, so their face is set here.
     if (e.boxed && e.first) seller.char.express('delighted', { hold: FACE_HOLD.deal });
     else if (e.boxed && seller.smugWeek !== e.week) { seller.smugWeek = e.week; seller.char.express('smug', { hold: FACE_HOLD.notable }); }
@@ -1557,6 +1567,24 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   const dir = new THREE.Vector3();
   function stepWalker(r, dt, anim) {
     const target = r.path[0];
+    // Their way ends where the robot stands (it serves a desk, or stopped on a seat's approach):
+    // they wait at its edge until it moves off. Only its fixer walks up to it.
+    const b = robot.blocker();
+    r.robotHold = !!b && r.id !== b.fixer && Math.hypot(target.x - b.x, target.z - b.z) < b.r && Math.hypot(r.pos.x - b.x, r.pos.z - b.z) < b.r + 0.1;
+    if (!r.robotHold) r.robotHoldT = 0;
+    if (r.robotHold) {
+      // They face the robot and give it a look, so the wait reads as waiting on it.
+      const held = r.robotHoldT ?? 0;
+      r.robotHoldT = held + dt;
+      if (held < ROBOT_HOLD_LOOK_S && r.robotHoldT >= ROBOT_HOLD_LOOK_S || Math.floor(held / ROBOT_HOLD_AGAIN_S) < Math.floor(r.robotHoldT / ROBOT_HOLD_AGAIN_S)) {
+        r.char.express(b.broken && held > ROBOT_HOLD_LOOK_S ? 'questioning' : 'sideeye', { hold: FACE_HOLD.notable });
+      }
+      keepOffRobot(r, target);
+      r.yaw = angleLerp(r.yaw, Math.atan2(b.x - r.pos.x, b.z - r.pos.z), 1 - Math.exp(-dt * 6));
+      r.char.setMoveSpeed(0);
+      r.char.setAnim('idle');
+      return;
+    }
     dir.set(target.x - r.pos.x, 0, target.z - r.pos.z);
     const d = dir.length();
     const step = r.speed * dt;
@@ -1811,8 +1839,19 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
   function keepOffRobot(r, target) {
     const b = robot.blocker();
     if (!b) return;
+    // The robot stopped on a turn of their way that isn't where the walk ends: they go round it to
+    // the first turn past it instead.
+    const inside = (q) => Math.hypot(q.x - b.x, q.z - b.z) < b.r;
+    if (inside(target) && r.path.length > 1 && !inside(r.path[r.path.length - 1])) {
+      const i = r.path.findIndex((q) => !inside(q));
+      // A full cell off furniture where there is one: the way round can be a tighter squeeze than
+      // the route it replaces.
+      const nav = office.nav(), from = { x: r.pos.x, z: r.pos.z }, avoid = [{ x: b.x, z: b.z, r: b.r + BODY_R }];
+      const way = nav.path(from, r.path[i], WALK_CLEAR.clear, { avoid }) ?? walkPath(nav, from, r.path[i]);
+      if (way?.length > 1 && way.slice(1).every((q) => !inside(q))) { way.shift(); r.path.splice(0, i + 1, ...way); target = r.path[0]; }
+    }
     const dx = r.pos.x - b.x, dz = r.pos.z - b.z;
-    if (Math.hypot(dx, dz) >= b.r || Math.hypot(target.x - b.x, target.z - b.z) < b.r) return;
+    if (Math.hypot(dx, dz) >= b.r || (r.id === b.fixer && inside(target))) return;
     const a0 = Math.atan2(dz, dx), toward = Math.atan2(target.z - b.z, target.x - b.x);
     const side = Math.sin(toward - a0) >= 0 ? 1 : -1;
     const nav = office.nav();
@@ -2479,6 +2518,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         drift: r.drift ? { ...r.drift, step: r.drift.step?.map(n) ?? null } : { rule: null, other: null, step: null, refused: false },
         wait: r.wait ? { kind: r.wait.kind, timer: n(r.wait.timer) } : { kind: null, timer: 0 },
         narrow: r.narrow ?? [],
+        robotHold: r.robotHold ? n(r.robotHoldT ?? 0) : 0,
       };
     },
     // Whether someone is in a seated pose (for checks).

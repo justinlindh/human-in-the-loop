@@ -205,7 +205,14 @@ const RETAIL_BOX_GEO = {
   band: new THREE.BoxGeometry(0.156, 0.055, 0.106).translate(0, -0.4, 0),
 };
 const RETAIL_BOX_SHAKE = { rate: 7, swing: 0.12 };
-let retailBoxMat = null;
+// A product's box is one of these colours, so two products' boxes tell apart.
+export const RETAIL_BOX_TINTS = ['marker_blue', 'marker_green', 'marker_orange', 'marker_purple'];
+const retailBoxMats = new Map();
+const retailBoxMat = (tint) => {
+  const key = RETAIL_BOX_TINTS.includes(tint) ? tint : RETAIL_BOX_TINTS[0];
+  if (!retailBoxMats.has(key)) retailBoxMats.set(key, new THREE.MeshStandardMaterial({ color: color(key), roughness: 0.3 }));
+  return retailBoxMats.get(key);
+};
 
 // Parts are modeled in their pivot's space, so the node transform from the file is kept as is.
 function part(tpl, name) {
@@ -1303,12 +1310,11 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
   let held = null;
   // What the deal gesture raises in arm `side` (0 left, 1 right) while it plays, -1 puts it away:
   // the bell, or for a boxed-software sale (setDealProp('box')) the retail box.
-  let bell = null, retailBox = null, bellT = 0, dealProp = 'bell';
+  let bell = null, retailBox = null, bellT = 0, dealProp = 'bell', boxTint = null;
   function buildDealProp(kind) {
     const g = new THREE.Group();
     if (kind === 'box') {
-      retailBoxMat ??= new THREE.MeshStandardMaterial({ color: color('marker_blue'), roughness: 0.3 });
-      g.add(new THREE.Mesh(RETAIL_BOX_GEO.body, retailBoxMat), new THREE.Mesh(RETAIL_BOX_GEO.band, mat('paper')));
+      g.add(new THREE.Mesh(RETAIL_BOX_GEO.body, retailBoxMat(boxTint)),new THREE.Mesh(RETAIL_BOX_GEO.band, mat('paper')));
     } else {
       bellMetal ??= new THREE.MeshStandardMaterial({ color: color('metal_soft'), emissive: color('metal_soft'), emissiveIntensity: 0.45, roughness: 0.25, metalness: 0.5 });
       g.add(new THREE.Mesh(BELL_GEO.handle, mat('alarm_red')), new THREE.Mesh(BELL_GEO.cup, bellMetal), new THREE.Mesh(BELL_GEO.lip, bellMetal), new THREE.Mesh(BELL_GEO.clapper, mat('ink')));
@@ -1321,6 +1327,7 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     const prop = dealProp === 'box' ? (retailBox ??= buildDealProp('box')) : (bell ??= buildDealProp('bell'));
     const other = prop === retailBox ? bell : retailBox;
     if (other) other.visible = false;
+    if (prop === retailBox) prop.children[0].material = retailBoxMat(boxTint);
     const arm = arms[side].shoulder;
     if (prop.parent !== arm) arm.add(prop);
     prop.visible = true;
@@ -1328,7 +1335,8 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
     const ring = prop === retailBox ? RETAIL_BOX_SHAKE : BELL_RING;
     prop.rotation.x = Math.sin(bellT * ring.rate) * ring.swing;
   }
-  function setDealProp(kind) { dealProp = kind === 'box' ? 'box' : 'bell'; }
+  // tint: one of RETAIL_BOX_TINTS for the box.
+  function setDealProp(kind, tint = null) { dealProp = kind === 'box' ? 'box' : 'bell'; boxTint = tint; }
 
   function setHeld(obj) {
     if (held === obj) return;
