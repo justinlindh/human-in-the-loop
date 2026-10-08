@@ -9,7 +9,8 @@
 #
 # Idempotent: a day has one branch, changelog/<day>, and one PR. Running a day again drafts it afresh and
 # replaces that day's entry; an open PR gets a new commit, a merged one gets a new PR only when the text
-# changed. A day that finished is not drafted again by the timer (--force runs it anyway).
+# changed. A day that finished, or that already has an entry on the site's main, is not drafted again by
+# the timer; --force runs it anyway but keeps the published items it did not write.
 # A failure (no usable draft, failing tests, a push that fails) opens an issue labelled changelog-red in
 # this repository, or comments on the open one, and a passing run closes it. No broken PR is opened.
 #
@@ -37,7 +38,8 @@ for a in "$@"; do
     *) echo "usage: changelog-auto.sh [<YYYY-MM-DD>] [--force] [--dry]" >&2; exit 2 ;;
   esac
 done
-[ -n "$day" ] || day="$(date -d yesterday +%F)"
+# The site's changelog groups merges by UTC day, so the day and its merges are UTC's.
+[ -n "$day" ] || day="$(date -u -d yesterday +%F)"
 date -d "$day" +%F >/dev/null 2>&1 || { echo "changelog-auto: not a day: $day" >&2; exit 2; }
 mkdir -p "$STATE/done"
 exec 7>"$STATE/lock"
@@ -77,9 +79,25 @@ if [ "$force" = 0 ] && [ -e "$STATE/done/$day" ]; then say "$day already done"; 
 clone "$game_origin" "$game" --no-checkout --filter=blob:none || fail "cloning the game repository failed"
 clone "$SITE_ORIGIN" "$site" || fail "cloning the site repository failed"
 
+# A day with an entry on the site's main is published (by this tool or by hand), so the timer leaves it.
+# --force redrafts it but keeps, unchanged with their stills, the published items and headline this
+# tool did not write: anything not in its record of what it published for the day ($day.ours.json; with
+# no record, everything published is kept).
+ours="$STATE/$day.ours.json"; keep="$STATE/$day.keep.json"; rm -f "$keep"
+published="$(git -C "$site" show origin/main:changelog/entries.json 2>>"$log" | jq -c --arg d "$day" 'first(.[] | select(.date == $d)) // empty' 2>>"$log")"
+if [ -n "$published" ]; then
+  if [ "$force" = 0 ]; then say "$day already has an entry on the site's main; not drafting it again (--force redrafts it and keeps what this tool did not write)"; touch "$STATE/done/$day"; exit 0; fi
+  record='{"headline":null,"titles":[]}'; [ -f "$ours" ] && record="$(cat "$ours")"
+  jq -n --argjson p "$published" --argjson o "$record" \
+    '{headline: (if $p.headline == $o.headline then null else $p.headline end), items: [$p.items[] | select(.title as $t | ($o.titles | index($t)) | not)]}' >"$keep" 2>>"$log" || fail "reading the published entry for $day failed"
+  if jq -e '.headline == null and (.items | length) == 0' "$keep" >/dev/null; then rm -f "$keep"
+  else say "keeping $(jq '.items | length' "$keep") published item(s)$(jq -r 'if .headline then " and the headline" else "" end' "$keep") this tool did not write"; fi
+fi
+kargs=(); [ -f "$keep" ] && kargs=(--keep "$keep")
+
 # 1. The day's player-visible changes.
 data="$STATE/$day.json"
-( cd "$game" && node "$HERE/day-changes.mjs" "$day" --no-fetch ) >"$data" 2>>"$log" || fail "day-changes.mjs failed for $day"
+( cd "$game" && node "$HERE/day-changes.mjs" "$day" --tz UTC --no-fetch ) >"$data" 2>>"$log" || fail "day-changes.mjs failed for $day"
 n="$(jq '[.days[0].prs[], .days[0].direct[]] | length' "$data" 2>/dev/null)" || fail "day-changes.mjs gave no JSON for $day"
 if [ "${n:-0}" -eq 0 ]; then say "no player-visible change on $day; nothing to write"; touch "$STATE/done/$day"; report_green; exit 0; fi
 say "$day: $n player-visible change(s)"
@@ -114,6 +132,11 @@ write_prompt() { # <feedback>
     echo "- $site/changelog/entries.json: the first three entries show the format and the voice. Match them."
     echo "- $STATE/$day.digest.md: what changed that day (merged PRs, the feature entries they changed with still links, and the generated effects numbers). It can be long; read it all (use offset and limit to page)."
     echo
+    if [ -f "$keep" ]; then
+      echo "The site already shows these items for $day, and they stay as they are. Write items only for changes they do not cover (a drafted item with one of these titles is left out):"
+      jq -r '.items[] | "- \(.area): \(.title)"' "$keep"
+      echo
+    fi
     echo "Write the entry: a headline for the day, then items, one per thing a player would notice. Rules:"
     echo "- Gameplay first, then how it looks. Say what a new object or choice does in play, with the numbers from the effects lines when they are there. Say it the way a player would, not the way a developer would."
     echo "- Group small fixes into one item. Skip anything a player cannot see or feel. Do not invent: every claim comes from the digest."
@@ -139,7 +162,7 @@ for attempt in 1 2; do
   if ! node -e 'const s=require("fs").readFileSync(process.argv[1],"utf8");const a=s.indexOf("{"),b=s.lastIndexOf("}");if(a<0||b<a)process.exit(1);JSON.parse(s.slice(a,b+1));require("fs").writeFileSync(process.argv[2],s.slice(a,b+1))' "$STATE/$day.draft.raw" "$draft" 2>>"$log"; then
     feedback="The reply was not one JSON object."; continue
   fi
-  if err="$(node "$HERE/changelog-apply.mjs" "$site" "$day" "$draft" 2>&1)"; then applied=1; echo "$err" >>"$log"; break; fi
+  if err="$(node "$HERE/changelog-apply.mjs" "$site" "$day" "$draft" ${kargs[@]+"${kargs[@]}"} 2>&1)"; then applied=1; echo "$err" >>"$log"; break; fi
   echo "$err" >>"$log"; feedback="$err"
 done
 [ "$applied" = 1 ] || fail "no usable draft after two attempts (${feedback:0:200})"
@@ -186,6 +209,9 @@ else
   say "opened $url"
   "$GH" pr merge "$url" --auto --merge >>"$log" 2>&1 || say "auto-merge could not be turned on (the site's merge rules decide)"
 fi
+# What this tool wrote for the day: the drafted headline (unless a kept one won) and the drafted titles.
+jq --argjson k "$( [ -f "$keep" ] && cat "$keep" || echo '{"items":[]}')" \
+  '{headline: (if $k.headline then null else (.headline | gsub("^\\s+|\\s+$"; "")) end), titles: ([.items[].title | gsub("^\\s+|\\s+$"; "")] - [$k.items[].title])}' "$draft" >"$ours" 2>>"$log" || say "could not record what was written for $day"
 touch "$STATE/done/$day"
 report_green
 exit 0

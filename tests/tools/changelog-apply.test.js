@@ -85,6 +85,51 @@ describe('apply', () => {
   });
 });
 
+describe('apply with items to keep', () => {
+  const day = '2026-10-01';
+  const art = { area: 'Art', title: 'New art', body: 'Stills.', media: [{ src: `media/${day}/art.webp`, kind: 'image' }, { src: `media/${day}/old.webp`, kind: 'image' }] };
+  beforeEach(() => writeFileSync(join(site, `changelog/media/${day}/art.webp`), 'a'));
+
+  it('keeps the items and headline it was given, with their stills, and leaves out a drafted item of the same title', () => {
+    const draft = { date: day, headline: 'Drafted', items: [
+      { area: 'Art', title: 'New art', body: 'A rewrite.', refs: [] },
+      { area: 'UI', title: 'A button', body: 'It clicks.', refs: ['#2'], media: [{ src: `${FM}/old.webp?raw=true`, kind: 'image' }, { src: `${FM}/new.webp?raw=true`, kind: 'image' }] },
+    ] };
+    let fetched = [];
+    const r = apply({ site, day, draft, keep: { headline: 'Curated', items: [art] }, fetchFile: (url, dest) => { fetched.push(url); return fetchOk(url, dest); } });
+    const e = r.entries.find((x) => x.date === day);
+    expect(e.headline).toBe('Curated');
+    expect(e.items.map((i) => [i.title, i.body])).toEqual([['New art', 'Stills.'], ['A button', 'It clicks.']]);
+    // old.webp is the kept item's: linked, not fetched over.
+    expect(e.items[1].media.map((m) => m.src)).toEqual([`media/${day}/old.webp`, `media/${day}/new.webp`]);
+    expect(fetched).toEqual(['https://raw.githubusercontent.com/justinlindh/human-in-the-loop/feature-media/new.webp']);
+    expect(readFileSync(join(site, `changelog/media/${day}/old.webp`), 'utf8')).toBe('x');
+    expect(readdirSync(join(site, `changelog/media/${day}`)).sort()).toEqual(['art.webp', 'new.webp', 'old.webp']);
+    expect(r.notes).toEqual(['left out the drafted "New art": the entry keeps its own']);
+  });
+
+  it('with no kept headline the drafted one is used, and a file nothing shows is removed', () => {
+    writeFileSync(join(site, `changelog/media/${day}/spare.webp`), 's');
+    const r = apply({ site, day, draft: entry(day), keep: { items: [art] } });
+    expect(r.entries.find((x) => x.date === day).headline).toBe(`Headline ${day}`);
+    expect(readdirSync(join(site, `changelog/media/${day}`)).sort()).toEqual(['art.webp', 'old.webp']);
+  });
+
+  it('takes --keep on the command line and refuses a bad keep file', () => {
+    const run = (...a) => spawnSync(process.execPath, [SCRIPT, ...a], { encoding: 'utf8' });
+    const draft = join(site, 'draft.json'), keep = join(site, 'keep.json');
+    writeFileSync(draft, JSON.stringify(entry(day)));
+    writeFileSync(keep, JSON.stringify({ headline: 'Curated', items: [art] }));
+    const r = run(site, day, draft, '--keep', keep);
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.stdout).toContain(`replaced ${day}: 2 item(s), 1 kept as published`);
+    expect(readEntries().find((x) => x.date === day).items[0]).toEqual(art);
+    writeFileSync(keep, '{"headline":"x"}');
+    expect(run(site, day, draft, '--keep', keep).status).toBe(2);
+    expect(run(site, day, draft, '--keep').status).toBe(2);
+  });
+});
+
 describe('command line', () => {
   const run = (...a) => spawnSync(process.execPath, [SCRIPT, ...a], { encoding: 'utf8' });
 
