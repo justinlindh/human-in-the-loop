@@ -26,7 +26,7 @@ import { icon } from './icons.js';
 import { createSettings } from './settings.js';
 import { watchFullscreen } from './fullscreen.js';
 import { pacingOn } from './pacing.js';
-import { createAmbient, gagDetail, incidentDetail, shippedDetail } from './ambient.js';
+import { createAmbient, routeAmbient } from './ambient.js';
 import { createTitle } from './title.js';
 import { erasPreview } from './eraPreview.js';
 import { createGameOver } from './gameover.js';
@@ -545,7 +545,7 @@ export function createUI({ root, getState, dispatch, controls }) {
           const text = trend && trend !== 'steady' ? `${e.text} ${trendSummary(trend)}` : e.text;
           // Status news (progress, time off, moods, trends) goes to the world under quietToasts; a toast without
           // a topic, or news nothing draws, stays a toast.
-          if (pacingOn('quietToasts') && e.topic && ambient.send(e)) break;
+          if (routeAmbient(ambient, e, state, { quiet: pacingOn('quietToasts') })) break;
           if (launchToastCarded(carded, e.text)) break;
           const opts = who ? { action: () => menu.open('staff', { staffId: who.id, pickPath: true }) } : {};
           if (e.subjectId) opts.subject = String(e.subjectId);
@@ -559,7 +559,7 @@ export function createUI({ root, getState, dispatch, controls }) {
         }
         case 'say': callGrid.say(e, state); break;
         // A card-less gag: a bubble over its subject. The sim's Yak line already names it, so an unclaimed one needs no toast.
-        case 'quietEvent': ambient.sendDetail(gagDetail(e, state)); break;
+        case 'quietEvent': routeAmbient(ambient, e, state); break;
         case 'hire': {
           const p = state.staff.find((s) => s.id === e.staffId);
           if (p) toasts.push(`${p.name} joined the team!`, 'good', { subject: String(p.id) });
@@ -569,7 +569,7 @@ export function createUI({ root, getState, dispatch, controls }) {
           resolutions.add(e);
           // A severe incident's resolution heads the postmortem decision that follows; a minor one gets a toast.
           if (e.severity >= 4) break;
-          if (pacingOn('quietToasts') && ambient.sendDetail(incidentDetail(e))) break;
+          if (routeAmbient(ambient, e, state, { quiet: pacingOn('quietToasts') })) break;
           toasts.push(`${state.products.find((x) => x.id === e.productId)?.name ?? 'The product'} is back up after ${e.weeks} week${e.weeks === 1 ? '' : 's'}.`, 'good', {
             action: () => {
               let close = null;
@@ -582,7 +582,7 @@ export function createUI({ root, getState, dispatch, controls }) {
         }
         case 'incident': {
           const p = state.products.find((x) => x.id === e.productId);
-          if (pacingOn('quietToasts') && ambient.sendDetail(incidentDetail(e))) break;
+          if (routeAmbient(ambient, e, state, { quiet: pacingOn('quietToasts') })) break;
           toasts.push(e.caught ? `An overseer caught an incident${p ? ` on ${p.name}` : ''}!` : `Incident${p ? ` on ${p.name}` : ''} (SEV${6 - e.severity})`, e.caught ? 'good' : 'bad');
           break;
         }
@@ -595,7 +595,7 @@ export function createUI({ root, getState, dispatch, controls }) {
           // Under oneLaunchCard an update never gets a card: a "shipped" bubble over the team says it, and
           // the sim's toast stays only when nothing draws the bubble.
           if (p && p.version > 1 && pacingOn('oneLaunchCard')) {
-            if (ambient.sendDetail(shippedDetail(p, prev))) carded.push(p.name);
+            if (routeAmbient(ambient, e, state, { oneLaunchCard: true, prevScore: prev })) carded.push(p.name);
             break;
           }
           if (!p || p.version <= 1 || prev === undefined || Math.abs(p.score - prev) > 0.5) {

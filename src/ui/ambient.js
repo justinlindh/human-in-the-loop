@@ -95,3 +95,21 @@ export function incidentDetail(e) {
   if (e.caught) return { ...common, text: 'Caught early', icon: 'shield', tone: 'good' };
   return { ...common, text: `SEV${6 - e.severity}`, icon: 'warn', tone: 'bad' };
 }
+
+// Which sim events leave the toast stack for the world, in one place so the game and any other host (the
+// studio sweep) route them the same way. Returns true when the event was handled (drawn, or merged into one
+// just shown) and false when the caller should show it its usual way. Flags: quiet is the quietToasts
+// switch (status toasts and minor incidents); oneLaunchCard routes a product update's "shipped" bubble;
+// prevScore is the update's score before it shipped.
+export function routeAmbient(ambient, e, state, { quiet = true, oneLaunchCard = false, prevScore } = {}) {
+  switch (e?.type) {
+    case 'toast': return quiet && !!e.topic && ambient.send(e);
+    case 'quietEvent': return ambient.sendDetail(gagDetail(e, state));
+    case 'incident': case 'incidentResolved': return quiet && ambient.sendDetail(incidentDetail(e));
+    case 'launch': {
+      const p = (state?.products ?? []).find((x) => x.id === e.productId);
+      return !!p && p.version > 1 && oneLaunchCard && ambient.sendDetail(shippedDetail(p, prevScore));
+    }
+    default: return false;
+  }
+}
