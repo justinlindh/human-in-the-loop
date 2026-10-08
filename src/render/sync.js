@@ -1881,6 +1881,17 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       const nav = office.nav(), from = { x: r.pos.x, z: r.pos.z }, avoid = [{ x: b.x, z: b.z, r: b.r + BODY_R }];
       const way = nav.path(from, r.path[i], WALK_CLEAR.clear, { avoid }) ?? walkPath(nav, from, r.path[i]);
       if (way?.length > 1 && way.slice(1).every((q) => !inside(q))) { way.shift(); r.path.splice(0, i + 1, ...way); target = r.path[0]; }
+    } else if (!inside(target) && !inside(r.pos) && segDist(b, r.pos, target) < b.r) {
+      // The straight leg to their next turn runs through the robot's circle: they take a way round it
+      // when there is one not much longer (tried once per turn and robot spot).
+      const key = `${target.x},${target.z},${b.x.toFixed(1)},${b.z.toFixed(1)}`;
+      if (r.robotLeg !== key) {
+        r.robotLeg = key;
+        const nav = office.nav(), from = { x: r.pos.x, z: r.pos.z };
+        const way = nav.path(from, target, WALK_CLEAR.clear, { avoid: [{ x: b.x, z: b.z, r: b.r + BODY_R }] });
+        const len = (w) => w.slice(1).reduce((s, q, k) => s + Math.hypot(q.x - w[k].x, q.z - w[k].z), 0);
+        if (way?.length > 2 && len(way) < 2 * Math.hypot(target.x - from.x, target.z - from.z) + 1.5) { way.shift(); way[way.length - 1] = target; r.path.splice(0, 1, ...way); target = r.path[0]; }
+      }
     }
     const dx = r.pos.x - b.x, dz = r.pos.z - b.z;
     if (Math.hypot(dx, dz) >= b.r || (r.id === b.fixer && inside(target))) return;
