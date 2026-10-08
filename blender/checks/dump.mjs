@@ -13,7 +13,8 @@
 //   --bot        who plays a seeded game to --week (default balanced; none only ticks the weeks)
 //   --patch-js   statements run with S (state) and R (renderer) after the warm-up, before frame 0
 //   --sweep-row  <report.json> <state or violation key> [<person id>]: the scene a sweep window sampled (seed:3:w556), as the
-//                window starts; the engine only. Prints the report's rows in that window, and whether the person is there.
+//                window starts, on the engine (or with --browser, in a page as a browser sweep plays it; no --images).
+//                Prints the report's rows in that window, and whether the person is there.
 //   --snapshot   start from an indexed moment's snapshot (scripts/events/find.js prints paths)
 //   --moment     start from the first indexed moment matching a find query, e.g. 'printer_jam --choice 0'
 //   --event      an event or list of events handed to the renderer with the patch
@@ -65,8 +66,11 @@ mkdirSync(dir, { recursive: true });
 const sweepRow = opt('sweep-row');
 if (sweepRow) {
   // The exact scene a sweep window sampled: the report's seed replayed as the sweep plays it (its mode's steps), stopped as
-  // the window starts, then dumped like any scene. Engine only: the sweep's own samplers run there.
-  if (useBrowser) { console.error('dump: --sweep-row runs on the engine; drop --images and --browser'); process.exit(2); }
+  // the window starts, then dumped like any scene. On the engine by default, or with --browser in a harness page as a
+  // browser sweep plays its seeds, to compare the two engines on one window.
+  if (images) { console.error('dump: --sweep-row writes no PNGs; drop --images (--browser dumps the window in a browser)'); process.exit(2); }
+  // Taking the render lock may run this command again under it: take it before printing anything.
+  if (useBrowser) { const { holdRenderLock } = await import('../../scripts/lib/gl.js'); holdRenderLock(wantGpu() ? 'gpu' : 'software'); }
   const at = argv.indexOf('--sweep-row');
   const [reportFile, key] = [sweepRow, argv[at + 2]];
   const thing = argv[at + 3]?.startsWith('--') ? undefined : argv[at + 3];
@@ -85,17 +89,38 @@ if (sweepRow) {
   const play = SEED_PLAY[report.mode ?? 'fast'];
   if (!play) { console.error(`dump: --sweep-row: the report's mode "${report.mode}" is not one this dump knows`); process.exit(2); }
   const here = inState(state);
-  const host = await import('../../scripts/studio/sweep-host.mjs');
-  const r = await host.hostSeed({ seed: Number(m[1]), ...play, only: [Number(m[2])], stopAt: Number(m[2]), known: [], worst: {} });
-  if (!r.stopped) { console.error(`dump: --sweep-row: seed ${m[1]} played to week ${r.end.week}${r.end.over ? ` (${r.end.over})` : ''} without a window at week ${m[2]}`); process.exit(1); }
-  const { dumpPage } = await import('./dump-page.js');
-  const dumped = await dumpPage({ warm: 0, trace: argv.includes('--trace'), frames, width: w, height: h, views: opt('views') ? opt('views').split(',').map(Number) : null });
+  const seedOpts = { seed: Number(m[1]), ...play, only: [Number(m[2])], stopAt: Number(m[2]), known: [], worst: {} };
+  const dumpOpts = { warm: 0, trace: argv.includes('--trace'), frames, views: opt('views') ? opt('views').split(',').map(Number) : null };
+  const notReached = (r) => { console.error(`dump: --sweep-row: seed ${m[1]} played to week ${r.end.week}${r.end.over ? ` (${r.end.over})` : ''} without a window at week ${m[2]}`); process.exit(1); };
+  let r, dumped, engineName;
+  if (!useBrowser) {
+    const host = await import('../../scripts/studio/sweep-host.mjs');
+    r = await host.hostSeed(seedOpts);
+    if (!r.stopped) notReached(r);
+    const { dumpPage } = await import('./dump-page.js');
+    dumped = await dumpPage({ ...dumpOpts, width: w, height: h });
+    engineName = 'studio engine';
+  } else {
+    // As sweep.mjs's browser seeds: a low-quality seeded page at the sweep's size, the index's pacing pinned,
+    // the sweep's own sampler played to the window; then the frames are dumped in that page.
+    const { pinIndexPacing } = await import('../../scripts/events/play.js');
+    const HS = await startHarness({ gpu: wantGpu() });
+    try {
+      const { page, errors } = await HS.openScene(`quality=low&seed=${m[1]}`, { width: 1600, height: 1000 });
+      await pinIndexPacing(page);
+      r = await page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleSeed(o), { ...seedOpts, crops: 0 });
+      if (!r.stopped) { await HS.close(); notReached(r); }
+      dumped = await page.evaluate(async (o) => (await import('/blender/checks/dump-page.js')).dumpPage(o), dumpOpts);
+      if (errors.length) console.error(`dump: page errors: ${errors.slice(0, 3).join('; ')}`);
+      engineName = `browser, ${HS.renderer}`;
+    } finally { await HS.close(); }
+  }
   clearTimeout(kill);
-  writeFileSync(`${dir}/dump.json`, JSON.stringify({ scene: { sweepRow: state, report: reportFile, why: r.stopped.why, mode: report.mode ?? 'fast' }, warm: 0, frames: dumped }, null, 1));
+  writeFileSync(`${dir}/dump.json`, JSON.stringify({ scene: { sweepRow: state, report: reportFile, why: r.stopped.why, mode: report.mode ?? 'fast', engine: useBrowser ? 'browser' : 'studio' }, warm: 0, frames: dumped }, null, 1));
   console.log(`dump: ${state} (${r.stopped.why}), the scene as the window starts; the report's rows in it: ${here.length ? `${here.slice(0, 6).map((v) => v.detail).join('; ')}${here.length > 6 ? `; and ${here.length - 6} more` : ''}` : 'none'}`);
   const people = dumped[0].people;
   if (thing) console.log(people.some((p) => p.id === thing) ? `dump: ${thing} is in the scene${(() => { const p = people.find((q) => q.id === thing); return ` at (${p.pos[0].toFixed(2)}, ${p.pos[2].toFixed(2)})`; })()}` : `dump: ${thing} is not in the scene (${people.length} people)`);
-  console.log(`dump: ${dumped.length} frame(s), ${people.length} people -> ${out}/dump.json (studio engine)`);
+  console.log(`dump: ${dumped.length} frame(s), ${people.length} people -> ${out}/dump.json (${engineName})`);
   process.exit(thing && !people.some((p) => p.id === thing) ? 1 : 0);
 }
 if (!useBrowser) {
