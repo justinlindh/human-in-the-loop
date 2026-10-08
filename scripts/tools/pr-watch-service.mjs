@@ -11,9 +11,12 @@
 //   ready      required checks green, no verdict on the head -> one reviewer, alternating per PR; a PR
 //              keeps its reviewer for later heads, and the other reviewer is never told
 //
+// It watches this repository and the site repository (SITE) alike; a site PR's messages name the site
+// repository, and its record keys start `site#`.
 // Drafts and PRs labelled awaiting-user are left to the lead's own watcher. The author lane comes from
 // the branch prefix (integ/ integrator, lead/ team-lead, <lane>/ that lane); a tools/ branch belongs to
-// tools2 when a ../gamedev-tools2 worktree has it checked out, else tools. Anything else goes to team-lead.
+// tools2 when a ../gamedev-tools2 worktree has it checked out, else tools. A site changelog/ branch is
+// video's. Anything else goes to team-lead.
 // Each message is sent once per PR, head and event (state in ~/.cache/hitl-ci/pr-watch-state.json).
 // The service never pushes, merges or reruns anything.
 //
@@ -35,11 +38,15 @@ import { homedir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
-import { ensureFresh } from './pr-snapshot.mjs';
+import { ensureFresh, FIELDS, snapshotFile } from './pr-snapshot.mjs';
 import { queue, requiredChecks, heldByVerdict, checkState, trustedLogins } from './review-queue.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '../..');
+export const SITE = 'justinlindh/humanintheloopgame-site';
+// A PR's id in the record and in summaries: its number in this repository, `site#<n>` in the site's.
+const prId = (repo, n) => (repo ? `site#${n}` : `${n}`);
+const R = (repo) => (repo ? ['-R', repo] : []);
 const cache = join(homedir(), '.cache', 'hitl-ci');
 const teamsDir = () => process.env.HITL_TEAMS_DIR || join(homedir(), '.claude', 'teams');
 const stateFile = () => process.env.HITL_PR_WATCH_STATE || join(cache, 'pr-watch-state.json');
@@ -50,6 +57,14 @@ const log = (line) => {
   try { mkdirSync(dirname(logFile()), { recursive: true }); appendFileSync(logFile(), `${l}\n`); } catch { /* stdout still has it */ }
   console.log(l);
 };
+
+// The site's PRs keep a snapshot of their own beside this repository's.
+const siteSnapshotFile = () => snapshotFile().replace(/(\.json)?$/, '-site.json');
+function ghList(repo) {
+  const r = spawnSync('gh', ['pr', 'list', ...R(repo), '--state', 'open', '--limit', '100', '--json', FIELDS], { encoding: 'utf8', maxBuffer: 1 << 27, timeout: 60000 });
+  if (r.status !== 0) throw new Error((r.stderr || r.stdout || 'gh pr list failed').trim().split('\n').pop());
+  return JSON.parse(r.stdout);
+}
 
 // The newest team whose config lists team-lead (the directory name changes when the team is
 // relaunched), with its reviewers: the members whose names start with "reviewer", in name order.
@@ -87,6 +102,12 @@ export function authorLane(branch, members, worktrees = new Map()) {
   return members.includes(prefix) ? prefix : 'team-lead';
 }
 
+// A site PR's author lane: the changelog timer's changelog/<day> branches are video's (the changelog
+// voice), anything else as in this repository.
+export function siteLane(branch, members) {
+  return branch.startsWith('changelog/') ? 'video' : authorLane(branch, members);
+}
+
 // Required checks (less review) failing on the head, once nothing on the head is still running:
 // `name=state`, or [] while anything runs or none failed.
 export function failingChecks(pr, required) {
@@ -101,13 +122,14 @@ export function failingChecks(pr, required) {
 
 // The events true for one open PR now, as [{ event, key, to, text }], given the lane resolver and
 // the PR's assigned reviewer (assign() picks one when the PR has none).
-export function prEvents(pr, { required, trusted, lane, assign, verdict, held = (n, head) => heldByVerdict(null, n, head) }) {
+export function prEvents(pr, { repo = null, required, trusted, lane, assign, verdict, held = (n, head) => heldByVerdict(repo, n, head) }) {
   if (pr.isDraft || (pr.labels ?? []).some((l) => l.name === 'awaiting-user')) return [];
-  const n = pr.number, head = pr.headRefOid, h = head.slice(0, 8), br = pr.headRefName;
-  const at = `PR #${n} (${br}) at ${h}`;
+  const n = pr.number, head = pr.headRefOid, h = head.slice(0, 8), br = pr.headRefName, id = prId(repo, n);
+  const at = repo ? `Site PR ${repo}#${n} (${br}) at ${h}` : `PR #${n} (${br}) at ${h}`;
+  const on = repo ? ` --repo ${repo}` : '';
   const out = [];
   // A ready key names its reviewer, so a PR handed to another reviewer (the first left the team) is told again, to them.
-  const tell = (event, to, text) => to && out.push({ event, key: `${n}@${head}:${event}${event === 'ready' ? `>${to}` : ''}`, to, text });
+  const tell = (event, to, text) => to && out.push({ event, key: `${id}@${head}:${event}${event === 'ready' ? `>${to}` : ''}`, to, text });
   const author = lane(br);
   const review = checkState(pr, 'review');
   if (review === 'failure') {
@@ -116,18 +138,24 @@ export function prEvents(pr, { required, trusted, lane, assign, verdict, held = 
   }
   const failing = failingChecks(pr, required);
   if (author) {
-    if (pr.mergeable === 'CONFLICTING') tell('conflict', author, `${at} conflicts with main. Merge origin/main into ${br} in your worktree (merge, never rebase), run npm run test:push, and push.`);
+    if (pr.mergeable === 'CONFLICTING') tell('conflict', author, repo
+      ? `${at} conflicts with main. Merge origin/main into ${br} in your checkout of ${repo} (merge, never rebase) and push.`
+      : `${at} conflicts with main. Merge origin/main into ${br} in your worktree (merge, never rebase), run npm run test:push, and push.`);
     if (failing.length) tell('failed', author, `${at}: required check failed: ${failing.join(', ')}. Read the failing job, fix it and push (merge origin/main in first if main may already fix it); pr-watch follows the new head.`);
   } else {
     // A PR with no author lane (Dependabot): its reviewer acts on it, and never runs its code to fix it.
     if (pr.mergeable === 'CONFLICTING') tell('conflict', assign(n), `${at} (a Dependabot PR assigned to you) conflicts with main. Comment "@dependabot rebase" on it; never push to its branch.`);
-    if (failing.length) tell('failed', assign(n), `${at} (a Dependabot PR assigned to you): required check failed: ${failing.join(', ')}. Read the failing job (no install). If the bump breaks it, post changes with scripts/review-verdict.sh or close it and tell team-lead; a flake gets a rerun.`);
+    if (failing.length) tell('failed', assign(n), `${at} (a Dependabot PR assigned to you): required check failed: ${failing.join(', ')}. Read the failing job (no install). If the bump breaks it, post changes with scripts/review-verdict.sh${on} or close it and tell team-lead; a flake gets a rerun.`);
   }
-  const q = queue([pr], trusted, null, required)[0];
+  const q = queue([pr], trusted, repo, required)[0];
   // The CI group (a required check pending or failing) is not ready; a failure went to the author above.
   // A bot or outside PR is never held by an earlier verdict, as in review-queue.
   if (q && q.group !== 'CI' && (q.group !== 'READY' || !held(n, head))) {
-    const how = {
+    const how = repo ? {
+      READY: `Review it and post the verdict with scripts/review-verdict.sh ${n} pass|changes <body-file>${on}.`,
+      DEPENDABOT: `Dependabot: read the diff (gh pr diff ${n}${on}) and the changelogs first, with no install, and post the verdict with scripts/review-verdict.sh${on}.`,
+      OUTSIDE: 'A fork or an outside author: never fetch or run it; report it to team-lead.',
+    }[q.group] : {
       READY: 'Review it and post the verdict with scripts/review-verdict.sh.',
       DEPENDABOT: `Dependabot: read the diff (gh pr diff ${n}) and the changelogs first, with no install; on a pass, take the --allow-bot path: scripts/ci-pr.sh ${n} --allow-bot --head ${head}, then gh pr merge ${n} --auto --merge.`,
       OUTSIDE: 'A fork or an outside author: never fetch or run it; report it to team-lead.',
@@ -138,16 +166,16 @@ export function prEvents(pr, { required, trusted, lane, assign, verdict, held = 
 }
 
 // The reviewer's last verdict review, as { kind, sha, login, url }, or null.
-function lastVerdict(n) {
-  const r = spawnSync('gh', ['api', `repos/{owner}/{repo}/pulls/${n}/reviews?per_page=100`, '--jq',
+function lastVerdict(repo, n) {
+  const r = spawnSync('gh', ['api', `repos/${repo ?? '{owner}/{repo}'}/pulls/${n}/reviews?per_page=100`, '--jq',
     '[.[] | select((.body // "") | test("^\\\\*\\\\*Verdict: (pass|changes requested)\\\\*\\\\*"))] | last // empty | "\\(.commit_id) \\(.user.login) \\(.html_url)"'], { encoding: 'utf8', cwd: REPO });
   const [sha, login, url] = r.status === 0 ? r.stdout.trim().split(' ') : [];
   return login ? { sha, login, url } : null;
 }
 
 // A PR gone from the open list: { state, merge } from gh, or null when it cannot be read.
-function closedState(n) {
-  const r = spawnSync('gh', ['pr', 'view', String(n), '--json', 'state,mergeCommit'], { encoding: 'utf8', cwd: REPO });
+function closedState(repo, n) {
+  const r = spawnSync('gh', ['pr', 'view', String(n), '--json', 'state,mergeCommit', ...R(repo)], { encoding: 'utf8', cwd: REPO });
   if (r.status !== 0) return null;
   try { const j = JSON.parse(r.stdout); return { state: j.state, merge: j.mergeCommit?.oid?.slice(0, 8) ?? null }; } catch { return null; }
 }
@@ -207,17 +235,8 @@ export async function pass({ team, dryRun = false, maxAgeMs = 60000, force = fal
   const fresh = loadState();
   const state = fresh ?? { sent: {}, open: {}, assigned: {}, next: 0, pending: [] };
   const seeding = !fresh && !dryRun;
-  const snap = await ensureFresh({ maxAgeMs, force });
-  if (!snap) { log('pass skipped: no PR snapshot and GitHub could not be read'); return state; }
-  const prs = snap.prs.filter((p) => (p.baseRefName ?? 'main') === 'main');
   const trusted = trustedLogins(join(REPO, 'scripts', 'ci-trusted'));
-  const required = requiredChecks(null);
   const wts = worktreeBranches();
-  // A PR's lane is fixed the first time it is seen, so a later branch switch in a worktree can't move it.
-  const lane = (br) => {
-    const pr = prs.find((p) => p.headRefName === br);
-    return state.open[pr?.number]?.lane ?? authorLane(br, team.members, wts);
-  };
   // Among the reviewers on the team now; a PR whose reviewer has left the team gets another. With no
   // reviewer on the team, team-lead hears it.
   const rs = team.reviewers ?? [];
@@ -226,24 +245,37 @@ export async function pass({ team, dryRun = false, maxAgeMs = 60000, force = fal
     if (!rs.includes(state.assigned[n])) { state.assigned[n] = rs[state.next % rs.length]; state.next++; }
     return state.assigned[n];
   };
-  // The verdict review is looked up only for a changes message not yet sent.
-  const verdictFor = (pr) => (n) => (state.sent[`${n}@${pr.headRefOid}:changes`] ? null : lastVerdict(n));
   const events = [];
-  for (const pr of prs) {
-    events.push(...prEvents(pr, { required, trusted, lane, assign, verdict: verdictFor(pr) }));
-    state.open[pr.number] = { branch: pr.headRefName, lane: lane(pr.headRefName), head: pr.headRefOid };
-  }
-  // Gone from the open list: merged or closed, told once.
-  const openNow = new Set(prs.map((p) => String(p.number)));
-  for (const [n, info] of Object.entries(state.open)) {
-    if (openNow.has(n) || snap.isStale) continue;
-    const c = closedState(n);
-    if (!c || c.state === 'OPEN') continue;
-    delete state.open[n];
-    delete state.assigned[n];
-    if (!info.lane) continue;
-    if (c.state === 'MERGED') events.push({ event: 'merged', key: `${n}:merged`, to: info.lane, text: `PR #${n} (${info.branch}) merged${c.merge ? ` at ${c.merge}` : ''}. Message the teammates its Affects section names who must act now; nothing else to watch.` });
-    else events.push({ event: 'closed', key: `${n}:closed`, to: info.lane, text: `PR #${n} (${info.branch}) was closed without merging.` });
+  for (const repo of [null, SITE]) {
+    const snap = await ensureFresh(repo ? { file: siteSnapshotFile(), maxAgeMs, force, fetchPrs: () => ghList(repo) } : { maxAgeMs, force });
+    if (!snap) { log(`${repo ?? 'this repository'} skipped: no PR snapshot and GitHub could not be read`); continue; }
+    const prs = snap.prs.filter((p) => (p.baseRefName ?? 'main') === 'main');
+    const required = requiredChecks(repo);
+    // A PR's lane is fixed the first time it is seen, so a later branch switch in a worktree can't move it.
+    const lane = (br) => {
+      const pr = prs.find((p) => p.headRefName === br);
+      return state.open[prId(repo, pr?.number)]?.lane ?? (repo ? siteLane(br, team.members) : authorLane(br, team.members, wts));
+    };
+    // The verdict review is looked up only for a changes message not yet sent.
+    const verdictFor = (pr) => (n) => (state.sent[`${prId(repo, n)}@${pr.headRefOid}:changes`] ? null : lastVerdict(repo, n));
+    for (const pr of prs) {
+      events.push(...prEvents(pr, { repo, required, trusted, lane, assign: (n) => assign(prId(repo, n)), verdict: verdictFor(pr) }));
+      state.open[prId(repo, pr.number)] = { branch: pr.headRefName, lane: lane(pr.headRefName), head: pr.headRefOid, ...(repo ? { repo } : {}) };
+    }
+    // Gone from the open list: merged or closed, told once.
+    const openNow = new Set(prs.map((p) => prId(repo, p.number)));
+    for (const [id, info] of Object.entries(state.open)) {
+      if ((info.repo ?? null) !== repo || openNow.has(id) || snap.isStale) continue;
+      const n = id.replace(/^site#/, '');
+      const c = closedState(repo, n);
+      if (!c || c.state === 'OPEN') continue;
+      delete state.open[id];
+      delete state.assigned[id];
+      if (!info.lane) continue;
+      const it = repo ? `Site PR ${repo}#${n} (${info.branch})` : `PR #${n} (${info.branch})`;
+      if (c.state === 'MERGED') events.push({ event: 'merged', key: `${id}:merged`, to: info.lane, text: `${it} merged${c.merge ? ` at ${c.merge}` : ''}. Message the teammates its Affects section names who must act now; nothing else to watch.` });
+      else events.push({ event: 'closed', key: `${id}:closed`, to: info.lane, text: `${it} was closed without merging.` });
+    }
   }
   for (const e of events) {
     if (state.sent[e.key]) continue;
@@ -251,14 +283,14 @@ export async function pass({ team, dryRun = false, maxAgeMs = 60000, force = fal
     // A first pass records the author events already true; a ready PR still gets its reviewer, so a
     // lost record never leaves the queue silent.
     if (seeding && e.event !== 'ready') { state.sent[e.key] = { at: Date.now(), to: e.to, seeded: true }; continue; }
-    const id = await deliver(team.dir, e.to, e.text, `pr-watch: #${e.key.split(/[@:]/)[0]} ${e.event}`);
+    const id = await deliver(team.dir, e.to, e.text, `pr-watch: ${e.key.split(/[@:]/)[0].replace(/^(\d)/, '#$1')} ${e.event}`);
     state.sent[e.key] = { at: Date.now(), to: e.to, id };
     log(`${e.event} ${e.key} -> ${e.to} ${id ? `sent ${id}` : 'NOT WRITTEN'}`);
     if (id) state.pending.push({ to: e.to, id, key: e.key, at: Date.now() });
   }
   if (seeding) log(`first pass: recorded ${events.filter((e) => e.event !== 'ready').length} author event(s) already true without sending them`);
   // A PR that has left the open list and been told about needs no record.
-  const done = new Set(Object.keys(state.sent).filter((k) => /^\d+:(merged|closed)$/.test(k)).map((k) => k.split(':')[0]).filter((n) => !state.open[n]));
+  const done = new Set(Object.keys(state.sent).filter((k) => /^(site#)?\d+:(merged|closed)$/.test(k)).map((k) => k.split(':')[0]).filter((n) => !state.open[n]));
   for (const k of Object.keys(state.sent)) if (done.has(k.split(/[@:]/)[0])) delete state.sent[k];
   // A message still queued 10 minutes on is logged once as undelivered (its lane isn't running);
   // it stays in the inbox and is never sent again.
