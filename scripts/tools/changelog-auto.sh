@@ -81,15 +81,15 @@ clone "$SITE_ORIGIN" "$site" || fail "cloning the site repository failed"
 
 # A day with an entry on the site's main is published (by this tool or by hand), so the timer leaves it.
 # --force redrafts it but keeps, unchanged with their stills, the published items and headline this
-# tool did not write: anything not in its record of what it published for the day ($day.ours.json; with
-# no record, everything published is kept).
+# tool did not write: anything not in its record of what it published for the day ($day.ours.json, each
+# item's title and a fingerprint of its text and media, so an item edited by hand since is kept; with no
+# record, everything published is kept).
 ours="$STATE/$day.ours.json"; keep="$STATE/$day.keep.json"; rm -f "$keep"
 published="$(git -C "$site" show origin/main:changelog/entries.json 2>>"$log" | jq -c --arg d "$day" 'first(.[] | select(.date == $d)) // empty' 2>>"$log")"
 if [ -n "$published" ]; then
   if [ "$force" = 0 ]; then say "$day already has an entry on the site's main; not drafting it again (--force redrafts it and keeps what this tool did not write)"; touch "$STATE/done/$day"; exit 0; fi
-  record='{"headline":null,"titles":[]}'; [ -f "$ours" ] && record="$(cat "$ours")"
-  jq -n --argjson p "$published" --argjson o "$record" \
-    '{headline: (if $p.headline == $o.headline then null else $p.headline end), items: [$p.items[] | select(.title as $t | ($o.titles | index($t)) | not)]}' >"$keep" 2>>"$log" || fail "reading the published entry for $day failed"
+  echo "$published" >"$STATE/$day.published.json"
+  node "$HERE/changelog-apply.mjs" keep "$STATE/$day.published.json" "$ours" >"$keep" 2>>"$log" || fail "reading the published entry for $day failed"
   if jq -e '.headline == null and (.items | length) == 0' "$keep" >/dev/null; then rm -f "$keep"
   else say "keeping $(jq '.items | length' "$keep") published item(s)$(jq -r 'if .headline then " and the headline" else "" end' "$keep") this tool did not write"; fi
 fi
@@ -140,12 +140,10 @@ write_prompt() { # <feedback>
     echo "Write the entry: a headline for the day, then items, one per thing a player would notice. Rules:"
     echo "- Gameplay first, then how it looks. Say what a new object or choice does in play, with the numbers from the effects lines when they are there. Say it the way a player would, not the way a developer would."
     echo "- Group small fixes into one item. Skip anything a player cannot see or feel. Do not invent: every claim comes from the digest."
-    echo "- Stills only. Each item may carry media: [{ \"src\": <a still URL from the digest, exactly as written>, \"kind\": \"image\", \"caption\": <short> }]. Use at most 3 stills per item, and only stills the digest lists. Never a clip or GIF."
-    echo "- Every new object or choice (a feature the digest marks added) gets its still in its item, when the digest lists one for it. When the day adds more than 3 new objects, split them across items so each item has at most 3 stills and every new object still gets its own."
-    echo "- refs: the PR numbers behind the item, like [\"#1451\"]."
+    echo "- refs: every PR number behind the item, like [\"#1451\", \"#1460\"]. The item's stills are picked from these PRs after you reply, so list each PR the item is about, and no others. Do not add media yourself."
     echo "- No em dashes (use a comma, a colon or two sentences). Say company or lab, never startup."
     echo
-    echo "Reply with exactly one JSON object and nothing else (no code fence): { \"date\": \"$day\", \"headline\": ..., \"items\": [ { \"area\": ..., \"title\": ..., \"body\": ..., \"refs\": [...], \"media\": [...] } ] }"
+    echo "Reply with exactly one JSON object and nothing else (no code fence): { \"date\": \"$day\", \"headline\": ..., \"items\": [ { \"area\": ..., \"title\": ..., \"body\": ..., \"refs\": [...] } ] }"
     [ -n "$1" ] && { echo; echo "Your last draft was refused. Fix exactly these problems and reply with the whole corrected JSON object:"; echo "$1"; }
   } >"$prompt"
 }
@@ -162,7 +160,11 @@ for attempt in 1 2; do
   if ! node -e 'const s=require("fs").readFileSync(process.argv[1],"utf8");const a=s.indexOf("{"),b=s.lastIndexOf("}");if(a<0||b<a)process.exit(1);JSON.parse(s.slice(a,b+1));require("fs").writeFileSync(process.argv[2],s.slice(a,b+1))' "$STATE/$day.draft.raw" "$draft" 2>>"$log"; then
     feedback="The reply was not one JSON object."; continue
   fi
-  if err="$(node "$HERE/changelog-apply.mjs" "$site" "$day" "$draft" ${kargs[@]+"${kargs[@]}"} 2>&1)"; then applied=1; echo "$err" >>"$log"; break; fi
+  if err="$(node "$HERE/changelog-apply.mjs" "$site" "$day" "$draft" ${kargs[@]+"${kargs[@]}"} --media "$data" --stills "$STATE/$day.stills.txt" 2>&1)"; then
+    applied=1; echo "$err" >>"$log"; echo "$err" >"$STATE/$day.apply.txt"
+    grep '^changelog-apply: media: ' "$STATE/$day.apply.txt" | sed 's/^changelog-apply: //' | while IFS= read -r l; do say "$l"; done
+    break
+  fi
   echo "$err" >>"$log"; feedback="$err"
 done
 [ "$applied" = 1 ] || fail "no usable draft after two attempts (${feedback:0:200})"
@@ -191,7 +193,14 @@ body="$STATE/$day.pr.md"
   echo "## What"; echo
   echo "The changelog entry for $day, drafted from that day's merged player-visible PRs and their feature entries by the daily changelog run, then checked by the site's tests."; echo
   echo "## Changes"; echo; echo "$titles"; echo
+  wanted="$(sed -n 's/^changelog-apply: wanted: /- /p' "$STATE/$day.apply.txt" 2>/dev/null)"
+  if [ -n "$wanted" ]; then
+    echo "## Stills wanted"; echo
+    echo "video: these items are about something on screen, and the PRs they cite gave no still (none posted, no clip to take a frame from, or a download that failed). Add a still to each (changelog/media/$day/, a crop when the thing is small) on this branch, or say in a comment why it needs none."; echo
+    echo "$wanted"; echo
+  fi
   echo "## For the reviewer"; echo
+  echo "Each item's stills were picked by rule from the PRs it cites (their feature stills first, then stills posted on the PR, else a frame from the middle of a PR clip), up to three. Check each still shows what its item says."; echo
   echo "The text is written by a model from the day's merged PRs and feature entries, and it has been wrong before (multipliers, which starts exist). Check each number and each claim against the game's code and docs/effects at that day's commit before the verdict; the site cannot merge this PR without one."; echo
   echo "## Evidence"; echo
   echo "- **Checks:** \`npm test\` passes (the changelog and site checks)."
@@ -209,9 +218,9 @@ else
   say "opened $url"
   "$GH" pr merge "$url" --auto --merge >>"$log" 2>&1 || say "auto-merge could not be turned on (the site's merge rules decide)"
 fi
-# What this tool wrote for the day: the drafted headline (unless a kept one won) and the drafted titles.
-jq --argjson k "$( [ -f "$keep" ] && cat "$keep" || echo '{"items":[]}')" \
-  '{headline: (if $k.headline then null else (.headline | gsub("^\\s+|\\s+$"; "")) end), titles: ([.items[].title | gsub("^\\s+|\\s+$"; "")] - [$k.items[].title])}' "$draft" >"$ours" 2>>"$log" || say "could not record what was written for $day"
+# What this tool wrote for the day, as published: the headline unless a kept one won, and each of its
+# items' title and fingerprint.
+node "$HERE/changelog-apply.mjs" record "$site" "$day" ${kargs[@]+"${kargs[@]}"} >"$ours.tmp" 2>>"$log" && mv "$ours.tmp" "$ours" || say "could not record what was written for $day"
 touch "$STATE/done/$day"
 report_green
 exit 0
