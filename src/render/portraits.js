@@ -67,8 +67,9 @@ export function createPortraits({ ready, lowQuality = () => false, wardrobe = ()
     camera.lookAt(0, 0.86, 0);
     // Warm the programs up asynchronously with a sample character; portraits wait until ready.
     // The probe is kept (out of the scene) so its programs stay cached: disposing the last user of
-    // a program frees it, and every portrait would then compile it again synchronously.
-    const probe = build({ appearance: {}, role: 'engineer', mood: 'ok' });
+    // a program frees it, and every portrait would then compile it again synchronously. Its own id
+    // keeps it off the renderer's shared 'timing' stream, which only pages with a UI would draw from.
+    const probe = build({ id: 'portrait-probe', appearance: {}, role: 'engineer', mood: 'ok' });
     gl.compileAsync(scene, camera).then(() => { compiled = true; }, () => { compiled = true; }).finally(() => scene.remove(probe.root));
     return true;
   }
