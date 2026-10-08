@@ -5,11 +5,12 @@
 //   node blender/checks/dump.mjs --out <dir> [--mock floor | --seed N [--week W] [--bot balanced|none]]
 //        [--snapshot <path> | --moment '<find query>'] [--patch-js '<js>'] [--event '<json>'] [--warm 60]
 //        [--frames 0,30,60 | --clip <seconds> [--every 15]] [--size 1280x800] [--quality medium] [--trace]
-//        [--views 0,1,2,3] [--images | --browser]
+//        [--views 0,1,2,3] [--images | --browser] [--page-errors-ok]
 //
 //   --images     also write the PNGs (the frame, and the annotated one); this needs a browser and a GPU.
 //                Without it, dump.json is made on the studio engine (Node, nothing drawn): same fields
 //   --browser    make dump.json in the browser without PNGs (to compare with the engine)
+//   --page-errors-ok  a browser run whose page logged errors still writes dump.json (default: exit 1, none written)
 //   --bot        who plays a seeded game to --week (default balanced; none only ticks the weeks)
 //   --patch-js   statements run with S (state) and R (renderer) after the warm-up, before frame 0
 //   --sweep-row  <report.json> <state or violation key> [<person id>]: the scene a sweep window sampled (seed:3:w556), as the
@@ -35,9 +36,9 @@
 import { spotReasons } from '../../src/render/spots.js';
 import { startHarness, wantGpu } from './harness.mjs';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { SEED_PLAY } from './sweep-plan.js';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
@@ -59,6 +60,18 @@ const timeout = Number(opt('timeout', 600));
 
 const images = argv.includes('--images');
 const useBrowser = images || argv.includes('--browser');
+
+// A browser page that logged an error may have stopped part way, and its dump would read as a real difference:
+// such a run writes no dump.json (and drops an old one in --out) and exits 1, unless --page-errors-ok.
+const pageErrorsOk = argv.includes('--page-errors-ok');
+function pageFailed(errors) {
+  if (!errors.length) return false;
+  const list = `${errors.length} page error(s): ${errors.slice(0, 3).join('; ')}${errors.length > 3 ? '; ...' : ''}`;
+  if (pageErrorsOk) { console.error(`dump: warning: ${list} (kept going: --page-errors-ok)`); return false; }
+  rmSync(join(resolve(out), 'dump.json'), { force: true });
+  console.error(`dump: ${list}; no dump.json written (--page-errors-ok keeps going)`);
+  return true;
+}
 
 const kill = setTimeout(() => { console.error(`dump: timed out after ${timeout} s`); process.exit(124); }, timeout * 1000);
 const dir = resolve(out);
@@ -109,9 +122,10 @@ if (sweepRow) {
       const { page, errors } = await HS.openScene(`quality=low&seed=${m[1]}`, { width: 1600, height: 1000 });
       await pinIndexPacing(page);
       r = await page.evaluate(async (o) => (await import('/blender/checks/sample.js')).sampleSeed(o), { ...seedOpts, crops: 0 });
+      if (pageFailed(errors)) { await HS.close(); process.exit(1); }
       if (!r.stopped) { await HS.close(); notReached(r); }
       dumped = await page.evaluate(async (o) => (await import('/blender/checks/dump-page.js')).dumpPage(o), dumpOpts);
-      if (errors.length) console.error(`dump: page errors: ${errors.slice(0, 3).join('; ')}`);
+      if (pageFailed(errors)) { await HS.close(); process.exit(1); }
       engineName = `browser, ${HS.renderer}`;
     } finally { await HS.close(); }
   }
@@ -188,11 +202,13 @@ try {
     }
     dumped.push({ frame: f, t: +(f / 30).toFixed(3), ...shot.d });
   }
-  writeFileSync(`${dir}/dump.json`, JSON.stringify({ scene: target ? { snapshot: target.file, row } : Object.fromEntries(q), warm, frames: dumped }, null, 1));
-  const last = dumped[dumped.length - 1];
-  for (const line of spotReasons(last.spotSearches)) console.log(`spots: ${line}`);
-  console.log(`dump: ${dumped.length} frame(s), ${last.people.length} people, ${last.items.length} items, ${last.props.length} props -> ${out}/dump.json (${H.renderer})`);
-  if (errors.length) { console.error(`dump: page errors: ${errors.slice(0, 3).join('; ')}`); process.exitCode = 1; }
+  if (pageFailed(errors)) process.exitCode = 1;
+  else {
+    writeFileSync(`${dir}/dump.json`, JSON.stringify({ scene: target ? { snapshot: target.file, row } : Object.fromEntries(q), warm, frames: dumped }, null, 1));
+    const last = dumped[dumped.length - 1];
+    for (const line of spotReasons(last.spotSearches)) console.log(`spots: ${line}`);
+    console.log(`dump: ${dumped.length} frame(s), ${last.people.length} people, ${last.items.length} items, ${last.props.length} props -> ${out}/dump.json (${H.renderer})`);
+  }
 } finally {
   await H.close();
   clearTimeout(kill);
