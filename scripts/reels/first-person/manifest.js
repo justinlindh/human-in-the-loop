@@ -20,14 +20,19 @@ const LOOK = (yawPerS, pitchPerS, from, to, fps = 30) => Array.from({ length: Ma
 const PICK = (re) => `(() => { const R = window.__hitlRender, s = window.__HITL.state, re = ${re};
   const p = s.staff.find((x) => re.test(R.probe(x.id)?.anim ?? '')); if (p) window.__who = p.id; else console.error('capture: nobody matches ' + re); })()`;
 // Every 0.25 s from `from` to `to`: the first time someone matches, opens their card and presses "See as".
-const SEE_WHEN = (re, from, to) => Array.from({ length: Math.round((to - from) * 4) }, (_, i) => ({ at: from + i / 4, js: `(() => {
+// A last action 0.3 s after the window fails the item (console.error) when nobody matched or first person is not on.
+const SEE_WHEN = (re, from, to) => [...Array.from({ length: Math.max(1, Math.round((to - from) * 4)) }, (_, i) => ({ at: from + i / 4, js: `(() => {
   if (window.__entered) return;
   const R = window.__hitlRender, re = ${re}, p = window.__HITL.state.staff.find((x) => re.test(R.probe(x.id)?.anim ?? ''));
   if (!p) return;
   window.__HITL_UI.openStaff(p.id);
   const b = [...document.querySelectorAll('.seeas')].find((x) => x.getClientRects().length);
   if (b) { b.click(); window.__entered = p.id; }
-})()` }));
+})()` })), { at: to + 0.3, js: `(() => {
+  const fp = window.__hitlRender.firstPerson;
+  if (!window.__entered) console.error('capture: nobody matching ' + ${JSON.stringify(re)} + ' was found between ${from} s and ${to} s, so See as never ran');
+  else if (!fp || fp.mode() === 'off' || !fp.mode()) console.error('capture: See as was pressed for ' + window.__entered + ' but first person is not on (mode ' + fp?.mode() + ')');
+})()` }];
 
 const shot = (id, title, extra) => ({ id, title, query: 'seed=9&speed=1', setup: OPEN(), ...extra });
 
