@@ -46,7 +46,7 @@ describe('HQ expansion', () => {
     expect(JSON.stringify(s.office.placed)).toBe(placed);
     expect(weeklyCosts(s).rent).toBe(rent + OFFICE_STAGES[2].expansions[0].rent);
     expect(deskCap(s)).toBe(B.hqDeskCap + B.expansionDeskStep);
-    expectFail(expect, dispatch, s, { type: 'upgradeOffice' }, 'Available from Q1 2030');
+    expectFail(expect, dispatch, s, { type: 'upgradeOffice' }, 'Available from 2030 · Q1 · Wk 1');
   });
 
   it('desks stop at the cap, and only outdoor items go on the terrace', () => {
