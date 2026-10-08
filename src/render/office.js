@@ -651,10 +651,11 @@ const COLUMN_FADE = 0.25;      // opacity of a column standing in front of someo
 // All of a stage's columns in two instanced pairs (shaft and cap): an opaque pair that casts
 // shadows, and a see-through pair with a per-instance opacity for columns fading in or out.
 // A column moves between the pairs as it fades, so any number of columns costs 2 to 4 draws.
-function makeColumns(L, columns) {
+export function makeColumns(L, columns) {
   const H = L.wallH, n = columns.length;
-  const shaft = roundedBox(0.34, H, 0.34, 0.03).translate(0, H / 2, 0);
-  const capGeo = roundedBox(0.38, 0.04, 0.38, 0.01).translate(0, H + 0.02, 0);
+  // roundedBox geometry is shared by everything of that size: move copies, never the shared one.
+  const shaft = roundedBox(0.34, H, 0.34, 0.03).clone().translate(0, H / 2, 0);
+  const capGeo = roundedBox(0.38, 0.04, 0.38, 0.01).clone().translate(0, H + 0.02, 0);
   const faded = (base) => {
     const m = base.clone();
     m.transparent = true;
