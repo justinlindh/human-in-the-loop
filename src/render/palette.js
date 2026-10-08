@@ -5,6 +5,7 @@ export const PALETTE = {
   // Extremes
   ink: '#2a2630',
   paper: '#fbf5ea',
+  bot_paper: '#d9f6f1',  // speech from a screen (the AI interviewer)
 
   // Structure
   wall_cream: '#f0e4cf',

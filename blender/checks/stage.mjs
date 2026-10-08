@@ -137,6 +137,25 @@ const SPECS = {
     share('reads', 'face within 80 deg of the camera, or a "!" over the head', (x) => x.faceCam <= 80 || x.emote === 'exclamation', 0.9),
     share('visible', 'body >= 50% unblocked', (x) => x.visible >= 0.5, 0.8),
   ] },
+  // A hire interviewed by a laptop at the meeting table: seated facing it, then tapping its screen.
+  'ai_interview.ask': { moment: 'ai_interview', beat: 'ask', role: 'candidate', rules: [
+    share('seated', 'seated at the table for the question, forearms on it', (x) => x.anim === 'tablesit', 0.9),
+    share('handsOnTable', 'both hands at or above the tabletop', (x) => Math.min(x.hands[0][1], x.hands[1][1]) >= 0.66, 0.9),
+    share('facingLaptop', 'face within 50 deg of the laptop', (x) => x.targetAngle <= 50, 0.8),
+    share('laptopSeen', 'the laptop >= 70% unblocked (its screen is the joke)', (x) => x.targetVisible >= 0.7, 0.9),
+    share('visible', 'body >= 50% unblocked', (x) => x.visible >= 0.5, 0.9),
+  ] },
+  'ai_interview.tap': { moment: 'ai_interview', beat: 'tap', role: 'candidate', rules: [
+    share('tapping', 'taps the screen while seated', (x) => x.anim === 'tapsit' || x.anim === 'tapsitl', 0.9),
+    share('handLifted', 'the tapping hand 6 cm above the resting one', (x) => Math.abs(x.hands[0][1] - x.hands[1][1]) >= 0.06, 0.8),
+    share('handAtScreen', 'the tapping hand at screen height (0.75 to 0.93 m, above the 0.69 m tabletop)', (x) => { const y = Math.max(x.hands[0][1], x.hands[1][1]); return y >= 0.75 && y <= 0.93; }, 0.8),
+    share('facingLaptop', 'face within 50 deg of the laptop', (x) => x.targetAngle <= 50, 0.8),
+    share('visible', 'body >= 50% unblocked', (x) => x.visible >= 0.5, 0.9),
+  ] },
+  'ai_interview.wonder': { moment: 'ai_interview', beat: 'wonder', role: 'candidate', rules: [
+    share('seated', 'still seated while wondering', (x) => x.anim === 'tablesit', 0.9),
+    share('visible', 'body >= 50% unblocked', (x) => x.visible >= 0.5, 0.9),
+  ] },
   // Someone clicked turns to the camera (seated, as far as the chair swivels) with a mood face.
   'click.clicked': { moment: 'click', beat: 'look', role: 'clicked', rules: [
     share('moodFace', 'a click face: delighted, side-eye or sad', (x) => ['delighted', 'sideeye', 'sad'].includes(x.face), 0.9),
@@ -397,6 +416,8 @@ const SCENARIOS = {
     setup: "(await import('/src/render/checks.js')).setupDeal(R, S, { first: true })" },
   fired: { query: 'mock=floor', patch: {}, seconds: 3,
     setup: "(await import('/src/render/checks.js')).setupFired(R, S)" },
+  ai_interview: { query: 'mock=floor', patch: {}, seconds: 9,
+    setup: "(await import('/src/render/checks.js')).setupAiInterview(R, S)" },
   click: { query: 'mock=floor', patch: {}, seconds: 2,
     setup: "(await import('/src/render/checks.js')).setupClick(R, S)" },
   click_voice: { moment: 'click', query: 'mock=floor', patch: {}, seconds: 2,

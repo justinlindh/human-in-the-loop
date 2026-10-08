@@ -18,6 +18,7 @@ import { createMoments } from './moments.js';
 import { createMomentCamera } from './momentcam.js';
 import { createSpotlights } from './spotlight.js';
 import { createGrowthMoments } from './growth-moments.js';
+import { createAiInterview, AI_INTERVIEW } from './ai-interview.js';
 import { createOfficeGrowth, promotionWeek } from './growth-office.js';
 import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { holdSeconds } from './reading.js';
@@ -612,7 +613,18 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       if (r.isNew) {
         r.isNew = false;
         r.goal = g; r.goalKey = g.key;
-        if (hired.has(s.id) && !firstSync && !g.hidden) {
+        const seat = interview.wanted(s.id) && hired.has(s.id) && !firstSync && !g.hidden ? interviewSeat() : null;
+        interview.drop(s.id);
+        if (seat) {
+          // Interviewed by a laptop in the meeting room first, then off to the desk (ai-interview.js).
+          hired.delete(s.id);
+          const side = seatApproach(seat);
+          r.pos.set(side.x, 0, side.z);
+          r.yaw = seat.yaw;
+          r.mode = 'placed';
+          r.temp = interview.start(r, seat, side);
+          r.char.express('delighted', { hold: FACE_HOLD.hire });
+        } else if (hired.has(s.id) && !firstSync && !g.hidden) {
           hired.delete(s.id);
           const d = cur.zones.door;
           r.pos.set(d.x, 0, d.z);
@@ -691,6 +703,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     for (const e of events ?? []) {
       switch (e.type) {
         case 'hire': if (e.staffId) hired.add(e.staffId); break;
+        case 'aiInterview': if (e.staged && e.staffId) interview.want(e.staffId); break;
         case 'decisionResolved': momentSpeech.clear(e.eventId); moments.decided(e); getProps()?.decided?.(e); break;
         // Resolved with no card: its stage goes up for a beat and its moment plays as if answered.
         case 'quietEvent': getProps()?.quiet?.(e); moments.decided({ ...e, quiet: true }); break;
@@ -1182,6 +1195,18 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       r.face = { yaw, t: seconds };
     },
   });
+  const interview = createAiInterview({ labels, parent: group, low, camYaw: () => rig?.yaw ?? Math.PI / 4 });
+  // A free meeting chair for the ai_interview moment, or null when there is none or another moment,
+  // a standup or a decision has the office (the beat is then dropped and the hire walks in as usual).
+  function interviewSeat() {
+    if (spotlights.current() || standup || incentives.party || incentives.dance || lastState?.pendingDecision || interview.active) return null;
+    // Free chairs, three-quarter away from the camera first: the laptop ahead of the sitter then
+    // shows its screen to the camera, and the sitter turns to it in profile.
+    const cam = rig?.yaw ?? Math.PI / 4;
+    const off = (st) => Math.abs(Math.abs(Math.atan2(Math.sin(st.yaw - cam), Math.cos(st.yaw - cam))) - AI_INTERVIEW.seatOff);
+    const seats = [...(office.current?.zones?.meeting?.seats ?? [])].sort((a, b) => off(a) - off(b));
+    return seats.find((st) => ![...recs.values()].some((o) => !o.hidden && Math.hypot(o.pos.x - st.x, o.pos.z - st.z) < 0.6)) ?? null;
+  }
   const growth = createGrowthMoments();
   let growthGlow = null;
   let growthCast = [];
@@ -2324,6 +2349,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     robot.update(dt);
     radio.update(dt);
     incentives.update(dt);
+    interview.update(dt);
     moments.update(dt, lastState);
     updateResponders(lastState);
     updateMomentSpeech(dt);

@@ -1291,10 +1291,11 @@ export async function runCelebrationChecks(R, S, { dt = 1 / 30 } = {}) {
   const step = () => { window.__tick(dt * 1000); R.sync(S); R.render(dt, { draw: false }); };
   for (let i = 0; i < 180; i++) step();
   // 'fired' goes last: it takes the fired person out of the state.
-  for (const kind of ['growth', 'company_party', 'deal', 'click', 'fired']) {
+  for (const kind of ['growth', 'company_party', 'deal', 'click', 'ai_interview', 'fired']) {
     if (kind === 'growth') S.staff.find((p) => p.id === 's6').legend = true;
     else if (kind === 'deal') setupDeal(R, S);
     else if (kind === 'click') setupClick(R, S);
+    else if (kind === 'ai_interview') setupAiInterview(R, S, { settle: 0 });
     else if (kind === 'fired') setupFired(R, S);
     else R.handleEvents([{ type: 'celebrate', staffId: null }], S);
     let worst = 0, worstWho = null, samples = 0, seen = false, ended = false;
@@ -1310,6 +1311,8 @@ export async function runCelebrationChecks(R, S, { dt = 1 / 30 } = {}) {
         const own = kind === 'company_party' || kind === 'deal' || kind === 'click' || kind === 'fired' || st.role === 'coworker' || st.beat === 'walk' ? new Set([rec.seat]) : new Set();
         // A seated bystander stays in the chair they were in while desks are reassigned round them.
         if (kind === 'fired' && R.isSeated(id)) own.add(nearestDesk(R, root.position.x, root.position.z));
+        // The interview sits at the meeting table, in its chair, until they get up from it.
+        if (kind === 'ai_interview' && st.beat !== 'walk') own.add(R.office.current.zones.meeting?.id);
         const overlap = bodyInside(root, furnitureOf(R, own), false);
         samples++;
         if (overlap > worst) { worst = overlap; worstWho = id; }
@@ -1501,6 +1504,32 @@ export function setupFired(R, S, { near = 4, maxFrames = 600 } = {}) {
   R.handleEvents([{ type: 'resign', staffId: pick, name: p.name, fired: true, reason: 'fired' }], S);
   S.staff = S.staff.filter((x) => x.id !== pick);
   return pick;
+}
+
+// The ai_interview moment: hires the first candidate under the AI interview policy, as the sim
+// reports it (a hire and a staged aiInterview in one tick), once the office has settled for
+// `settle` frames. Returns the new hire's id, or null when the office has no free meeting chair.
+export function setupAiInterview(R, S, { settle = 60 } = {}) {
+  R.perks.hold = true;
+  S.pendingDecision = null;
+  if (!R.office.current.zones.meeting) {
+    const L = R.office.current.L, nav = R.office.nav();
+    let tile = null;
+    for (let y = 1; y < L.grid.h - 2 && !tile; y++) for (let x = 1; x < L.grid.w - 3 && !tile; x++) {
+      let ok = true;
+      for (let i = -1; i <= 3 && ok; i++) for (let j = -1; j <= 2 && ok; j++) if (nav.isBlocked(x + i - L.W / 2 + 0.5, y + j - L.D / 2 + 0.5)) ok = false;
+      if (ok) tile = { x, y };
+    }
+    if (tile) S.office.placed.push({ id: 'interview_table', itemId: 'meeting_table', level: 1, x: tile.x, y: tile.y, rot: 0 });
+    R.sync(S);
+  }
+  window.__advance?.(settle);
+  const c = S.candidates?.shift();
+  if (!c || !R.office.current.zones.meeting) return null;
+  S.staff.push(c);
+  R.handleEvents([{ type: 'hire', staffId: c.id }, { type: 'aiInterview', candidateId: c.id, staffId: c.id, staged: true }], S);
+  R.sync(S);
+  return R.walkOf(c.id)?.temp?.moment === 'ai_interview' ? c.id : null;
 }
 
 // A passer on open floor beside an idle pet. Only the fixture positions actors; the

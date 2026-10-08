@@ -25,6 +25,8 @@ export const MOMENT_KINDS = {
   respond: { spotlight: false },
   // A notable deal: the seller's hand up at the desk while the week plays on.
   deal: { spotlight: false, seconds: 3 },
+  // A hire under AI Video Interviews: interviewed by a laptop in the meeting room, then off to the desk.
+  ai_interview: { spotlight: false, seconds: 8.6 },
   // Someone fired: the nearest colleagues turn to watch them go, shocked.
   fired: { spotlight: false, seconds: 2 },
   // Someone the player clicks turns to the camera with a face for their mood.

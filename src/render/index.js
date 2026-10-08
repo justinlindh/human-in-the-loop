@@ -26,6 +26,7 @@ import { createStaffSync } from './sync.js';
 import { reseed, reset as resetRand } from './rand.js';
 import { createBuild } from './build.js';
 import { createPortraits } from './portraits.js';
+import { createInterviewFeeds } from './interview-feed.js';
 import { advisorPerson } from './advisors.js';
 import { createRival } from './rival.js';
 import { nocLook, paintNoc } from './noc.js';
@@ -134,6 +135,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
   let ready = false;
   let currentWardrobe = null;
   const portraits = createPortraits({ ready: () => ready, lowQuality: () => q === 'low', wardrobe: () => currentWardrobe });
+  const feeds = createInterviewFeeds({ ready: () => ready, lowQuality: () => q === 'low', wardrobe: () => currentWardrobe });
   let firstStage = true;
   if (debugBuild) {
     const b = debugBuild(debugRoot);
@@ -363,6 +365,8 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
     // An advisor's portrait (advisors.js): key 'cfo' | 'people' | 'tech'; idea: the "has an idea" frame.
     advisorPortrait(key, { idea = false, size } = {}) { const p = advisorPerson(key, { idea }); return p ? portraits.portrait(p, { size }) : null; },
     portraitLive(person, opts) { return portraits.portraitLive(person, opts); },
+    // The Spot the AI call feed (see interview-feed.js): { el, dispose, drawAt } or null.
+    interviewFeed(opts) { return feeds.create(opts); },
     // A celebrating big-head render (the framed caricature), as a canvas.
     caricature(person, px) { return portraits.caricature(person, px); },
     get portraitStats() { return portraits.stats; },
@@ -489,6 +493,7 @@ export function createRenderer({ canvas, labelsEl, quality = 'high' }) {
       props?.update(dt, simDt);
       build?.update(dt, scene);
       portraits.update(dt);
+      feeds.update(dt);
       washT = screens.overlay === 'red' ? washT + dt : 0;
       const wash = washT ? RED_WASH.k * Math.min(1, washT * 2) * (1 - RED_WASH.pulse * (0.5 + 0.5 * Math.cos(washT * RED_WASH.hz * Math.PI * 2))) : 0;
       lighting.setAlarm(Math.max(fx.alarmLevel, wash));
