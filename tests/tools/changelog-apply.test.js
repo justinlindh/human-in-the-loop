@@ -177,6 +177,20 @@ describe('apply with media chosen by rule', () => {
     expect(readdirSync(join(site, `changelog/media/${day}`))).toEqual(['5-after.png']);
   });
 
+  it('fetches up to six candidates, puts a very wide one (a likely strip) behind the rest, and keeps the cap', () => {
+    const many = new Map([[9, { stills: ['strip', 'b', 'c', 'd', 'e', 'f', 'g'].map((n) => ({ url: `${PM}/pr-9/${n}.png?raw=true`, caption: n })), clips: [] }]]);
+    const draft = { date: day, headline: 'H', items: [{ area: 'UI', title: 'Nine', body: 'b', refs: ['#9'] }] };
+    const fetched = [];
+    const ratio = (f) => (f.endsWith('9-strip.webp') ? 4 : 16 / 9);
+    const r = apply({ site, day, draft, sources: many, convert, frame, ratio, fetchFile: (url, dest) => { fetched.push(url); return fetchOk(url, dest); } });
+    expect(fetched).toHaveLength(6);
+    expect(r.entries.find((x) => x.date === day).items[0].media.map((x) => x.src)).toEqual(['b', 'c', 'd'].map((n) => `media/${day}/9-${n}.webp`));
+    expect(r.notes).toContain(`ranked down a likely sheet (wider than 2.2:1): media/${day}/9-strip.webp`);
+    // With a larger cap (the still check makes the cut) the strip stays in, last.
+    const big = apply({ site, day, draft, sources: many, cap: 6, convert, frame, ratio, fetchFile: fetchOk });
+    expect(big.entries.find((x) => x.date === day).items[0].media.map((x) => x.src).at(-1)).toBe(`media/${day}/9-strip.webp`);
+  });
+
   it('shows a file once when two picks land on the same name, and says so as a duplicate', () => {
     const dup = new Map([[8, { stills: [{ url: `${PM}/pr-8/a.png?raw=true`, caption: 'A' }, { url: `${PM}/pr-8/v2/a.png?raw=true`, caption: 'A again' }], clips: [] }]]);
     const draft = { date: day, headline: 'H', items: [{ area: 'UI', title: 'Eight', body: 'b', refs: ['#8'] }] };

@@ -47,7 +47,9 @@ describe('sourcesFor', () => {
     expect(score('a/hud-after.png')).toBeLessThan(score('a/hud.png'));
     expect(score('a/fp-walk-desktop.png')).toBeLessThan(score('a/fp-walk.png'));
     expect(score('a/hud.png')).toBeLessThan(score('a/hud-390x844.png'));
-    for (const n of ['fp-walk-820x1180t.png', 'hint-placed-1180x820.png', 'd-chart-390x844t.png', 'hud-ipad.png']) expect(score(`a/${n}`), n).toBe(1);
+    for (const n of ['fp-walk-820x1180t.png', 'hint-placed-1180x820.png', 'd-chart-390x844t.png', 'hud-ipad.png', 'hud-1920x1080t.png']) expect(score(`a/${n}`), n).toBe(1);
+    // A desktop size is not a phone or tablet capture.
+    for (const n of ['hud-1920x1080.png', 'hud-1280x800.png']) expect(score(`a/${n}`), n).toBe(0);
     expect(score('a/hud-390x844.png')).toBeLessThan(score('a/hud-strip.png'));
     expect(score('a/fp-walk-high-low.png')).toBe(score('a/hud-strip.png'));
     expect(score('a/hud-strip.png')).toBeLessThan(score('a/hud-main.png'));

@@ -46,6 +46,14 @@ exit 0
 EOF
 cat >"$tmp/bin/claude" <<'EOF'
 #!/usr/bin/env bash
+# The still check's run: its own call log, and the verdict the case sets (by default one that judges
+# nothing, so the rules' picks stand).
+case "$2" in "You check the stills"*)
+  echo "$*" >>"$CL_CLAUDE_CALLS.check"
+  v="${CL_STUB_CHECK:-}"; [ -n "$v" ] || v='{"items":[]}'
+  printf '{"type":"result","result":%s,"total_cost_usd":0.02}\n' "$(printf '%s' "$v" | jq -Rs .)"
+  exit 0 ;;
+esac
 echo "call" >>"$CL_CLAUDE_CALLS"
 echo "$*" >>"$CL_CLAUDE_CALLS.args"
 n="$(wc -l <"$CL_CLAUDE_CALLS")"
@@ -55,7 +63,9 @@ case "${CL_STUB_MODE:-ok}" in
   retry) if [ "$n" -eq 1 ]; then H="Bad $(printf '\xe2\x80\x94') dash"; else H="${CL_STUB_HEADLINE:-Good}"; fi
          printf '{"date":"%s","headline":"%s","items":[{"area":"UI","title":"A thing","body":"It works.","refs":["#9"]}]}' "$CL_DAY" "$H" ;;
   # The model's own media pick is ignored: stills come from the cited PRs.
-  *) printf 'Here is the entry:\n{"date":"%s","headline":"%s","items":[{"area":"UI","title":"A thing","body":"%s","refs":%s,"media":[{"src":"https://github.com/justinlindh/human-in-the-loop/blob/feature-media/office-box.webp?raw=true","kind":"image","caption":"Box"}]}%s]}\n' "$CL_DAY" "${CL_STUB_HEADLINE:-Good}" "${CL_STUB_BODY:-It works.}" "${CL_STUB_REFS:-[\"#9\"]}" "${CL_STUB_EXTRA:-}" ;;
+  # Wrapped as --output-format json wraps it, with what the run cost.
+  *) printf 'Here is the entry:\n{"date":"%s","headline":"%s","items":[{"area":"UI","title":"A thing","body":"%s","refs":%s,"media":[{"src":"https://github.com/justinlindh/human-in-the-loop/blob/feature-media/office-box.webp?raw=true","kind":"image","caption":"Box"}]}%s]}\n' "$CL_DAY" "${CL_STUB_HEADLINE:-Good}" "${CL_STUB_BODY:-It works.}" "${CL_STUB_REFS:-[\"#9\"]}" "${CL_STUB_EXTRA:-}" \
+       | jq -Rs '{type: "result", result: ., total_cost_usd: 0.02}' ;;
 esac
 EOF
 # A stand-in curl: copies a real small png, or a real two-second clip for a .mp4, to the file named by -o,
@@ -75,7 +85,7 @@ export CL_GH_CALLS="$tmp/ghcalls" CL_CLAUDE_CALLS="$tmp/claudecalls" CL_PR_OPEN=
 cat >"$CL_MERGED" <<EOF
 [{"number":9,"title":"feat(ui): a thing","body":"## What\nA thing a player sees.","mergedAt":"${DAY}T20:00:00Z","mergeCommit":{"oid":"0000000000000000000000000000000000000000"},"url":"u","author":{"login":"a"},"labels":[]}]
 EOF
-run() { rm -f "$CL_GH_CALLS" "$CL_CLAUDE_CALLS"; : >"$CL_GH_CALLS"; : >"$CL_CLAUDE_CALLS"; bash "$HERE/changelog-auto.sh" "$@" >"$tmp/out" 2>&1; rc=$?; }
+run() { rm -f "$CL_GH_CALLS" "$CL_CLAUDE_CALLS" "$CL_CLAUDE_CALLS.check"; : >"$CL_GH_CALLS"; : >"$CL_CLAUDE_CALLS"; bash "$HERE/changelog-auto.sh" "$@" >"$tmp/out" 2>&1; rc=$?; }
 site_entry() { git -C "$tmp/site.git" show "changelog/$DAY:changelog/entries.json" 2>/dev/null | jq -r --arg d "$DAY" '.[]|select(.date==$d)|.headline'; }
 
 # A day with a player-visible PR: drafted, tested, pushed, and a PR opened with auto-merge.
@@ -193,6 +203,33 @@ grep -q '^## Stills wanted' "$tmp/state/2026-10-07.pr.md" && grep -q '^- Office:
   || fail "an on-screen item with no still is flagged for video, a sound item is not: $(cat "$tmp/state/2026-10-07.pr.md")"
 TZ=America/Los_Angeles run 2026-10-06
 [ $rc -eq 0 ] && grep -q 'nothing to write' "$tmp/out" && [ ! -s "$CL_CLAUDE_CALLS" ] || fail "a 03:00Z merge is not the zone's day before: rc=$rc $(cat "$tmp/out")"
+
+# The still check: PR 9's two stills go to the model with the item; one it turns down leaves the entry and
+# the folder and is listed with its reason, the other keeps the caption the model wrote.
+cat >"$CL_MERGED" <<'EOF'
+[{"number":9,"title":"feat(ui): a thing","body":"## What\nA thing a player sees.","mergedAt":"2026-10-02T12:00:00Z","mergeCommit":{"oid":"0000000000000000000000000000000000000000"},"url":"u","author":{"login":"a"},"labels":[]}]
+EOF
+b2="$tmp/site.git"; rm -f "$CL_PR_OPEN"
+CL_DAY=2026-10-02 CL_STUB_CHECK='{"items":[{"item":1,"stills":[{"still":1,"pass":false,"reason":"an overhead view, not first person"},{"still":2,"pass":true,"reason":"shows the desk","caption":"A desk seen up close"}]}]}' run 2026-10-02
+[ $rc -eq 0 ] && [ -s "$CL_CLAUDE_CALLS.check" ] && git -C "$b2" show "changelog/2026-10-02:changelog/entries.json" | jq -e '.[] | select(.date == "2026-10-02") | .items[0].media == [{"src": "media/2026-10-02/9-before-main.webp", "kind": "image", "caption": "A desk seen up close"}]' >/dev/null \
+  || fail "the still check keeps what passes with its caption: rc=$rc $(cat "$tmp/out")"
+! git -C "$b2" cat-file -e "changelog/2026-10-02:changelog/media/2026-10-02/9-after.webp" 2>/dev/null || fail "a turned-down still leaves the folder"
+grep -q '^## Stills the still check turned down' "$tmp/state/2026-10-02.pr.md" && grep -q '^- A thing: 9-after.webp: an overhead view, not first person' "$tmp/state/2026-10-02.pr.md" || fail "the PR body lists what the check turned down: $(cat "$tmp/state/2026-10-02.pr.md")"
+grep -q -- '--max-budget-usd 1.98 ' "$CL_CLAUDE_CALLS.check" || fail "the check gets what the draft left of the budget: $(cat "$CL_CLAUDE_CALLS.check" | grep -o -- '--max-budget-usd [0-9.]*')"
+grep -q 'Open every still with the Read tool' "$CL_CLAUDE_CALLS.check" && grep -q "changelog/media/2026-10-02/9-after.webp" "$CL_CLAUDE_CALLS.check" || fail "the check is shown each still's path"
+
+# Every still turned down: the item is listed for video.
+rm -f "$CL_PR_OPEN" "$tmp/state/done/2026-10-02"; git -C "$b2" branch -q -D changelog/2026-10-02
+CL_DAY=2026-10-02 CL_STUB_CHECK='{"items":[{"item":1,"stills":[{"still":1,"pass":false,"reason":"a grid"},{"still":2,"pass":false,"reason":"a strip"}]}]}' run 2026-10-02 --force
+[ $rc -eq 0 ] && grep -q '^- UI: A thing (#9)' <(sed -n '/^## Stills wanted/,/^## /p' "$tmp/state/2026-10-02.pr.md") \
+  && git -C "$b2" show "changelog/2026-10-02:changelog/entries.json" | jq -e '.[] | select(.date == "2026-10-02") | .items[0].media == null' >/dev/null || fail "an item whose stills were all turned down is wanted: rc=$rc $(cat "$tmp/state/2026-10-02.pr.md")"
+
+# CL_STILL_CHECK=0, or no budget left: no check run, and the rules' first three stand.
+CL_DAY=2026-10-02 CL_STILL_CHECK=0 run 2026-10-02 --force --dry
+[ $rc -eq 0 ] && [ ! -e "$CL_CLAUDE_CALLS.check" ] && grep -q "trim-only" "$tmp/state/2026-10-02.check.txt" || fail "CL_STILL_CHECK=0 runs no check: $(cat "$tmp/out")"
+CL_DAY=2026-10-02 CL_BUDGET=0.01 run 2026-10-02 --force --dry
+[ $rc -eq 0 ] && [ ! -e "$CL_CLAUDE_CALLS.check" ] && grep -q 'not run, \$0.00 of the budget left' "$tmp/state/2026-10-02.check.txt" \
+  && jq -e '.[] | select(.date == "2026-10-02") | (.items[0].media | length) == 2' "$tmp/state/site/changelog/entries.json" >/dev/null || fail "with no budget left the rules' picks stand: $(cat "$tmp/state/2026-10-02.check.txt")"
 
 # A quiet day writes nothing and does not call the model.
 echo '[]' >"$CL_MERGED"
