@@ -178,7 +178,7 @@ try {
       }
     }
     window.__step(o.warm);
-    if (o.patchJs) new Function('S', 'R', o.patchJs)(S, R);
+    if (o.patchJs) await (await import('/blender/checks/patch-js.js')).runJs(o.patchJs, { S, R });
     if (o.events) R.handleEvents([].concat(o.events), S);
   }, { warm, patchJs: opt('patch-js'), events: opt('event') ? JSON.parse(opt('event')) : null, bot: opt('seed') && bot !== 'none' ? bot : null, week, loaded: !!target, trace: argv.includes('--trace') });
   const canvas = await page.$('canvas');

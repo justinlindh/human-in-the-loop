@@ -10,7 +10,7 @@ export const onscreenShots = async (o) => {
   // A loaded snapshot announces its open decision, as the game does after continueGame (the engine does not).
   if (o.engine && o.loaded && G.state.pendingDecision) R.handleEvents([{ type: 'decision' }], G.state);
   window.__settle(o.warm);
-  if (o.patchJs) new Function('S', 'R', o.patchJs)(G.state, R);
+  if (o.patchJs) await (await import('/blender/checks/patch-js.js')).runJs(o.patchJs, { S: G.state, R });
   if (o.events) R.handleEvents([].concat(o.events), G.state);
   const canvas = document.querySelector('canvas');
   const cr = canvas.getBoundingClientRect();

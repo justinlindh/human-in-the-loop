@@ -21,7 +21,8 @@ export async function playStage({ moment, patch, steps, setup, seconds, turns, a
   for (let i = 0; i < turns; i++) { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e' })); window.dispatchEvent(new KeyboardEvent('keyup', { key: 'e' })); }
   window.__step(90);
   Object.assign(S, JSON.parse(JSON.stringify(patch)));
-  if (setup) await new Function('R', 'S', `return (async () => { ${setup}; })()`)(R, S);
+  const { runJs } = await import('/blender/checks/patch-js.js');
+  if (setup) await runJs(setup, { R, S });
   const robotContact = moment === 'robot' ? (await import('/blender/checks/robot-contact.js')).robotContact : null;
   const petProbe = moment === 'pet' || moment === 'robot' ? (await import('/src/render/probe.js')).createProbe({ scene: R.scene, camera: R.camera, office: R.office }) : null;
   const samples = [];
@@ -36,7 +37,7 @@ export async function playStage({ moment, patch, steps, setup, seconds, turns, a
   const cap = arrive ? (arriveSeconds + beatSeconds) * 30 : seconds * 30;
   let f = 0;
   for (; f < cap; f++) {
-    for (const st of steps ?? []) if (st.at === f) new Function('S', 'R', st.js)(S, R);
+    for (const st of steps ?? []) if (st.at === f) await runJs(st.js, { S, R });
     window.__step(1);
     for (const [id, m] of R.moments.active) if (m === moment) actors.add(id);
     // The moment's own actors (visitors) are staged too.
