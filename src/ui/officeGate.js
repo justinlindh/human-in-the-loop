@@ -4,16 +4,18 @@
 // worded it.
 import { fmtMoney } from './dom.js';
 import { calendarDate } from '../sim/util.js';
+import { totalMrr } from '../sim/products.js';
 
-const mrrOf = (s) => (s.products ?? []).filter((p) => !p.killed).reduce((a, p) => a + (Number.isFinite(p.mrr) ? p.mrr : 0), 0);
+const mrrOf = totalMrr;
 const REVENUE_OR_SAVINGS = /^Needs \$[\d,]+ MRR, or \$[\d,]+ in the bank from /;
 const FROM_DATE = /^Available from /;
 
-// "Q3 2021" on the calendar, or "company week 135" for an era start, and how many weeks away it is.
+// The date in the HUD's own form ("2021 · Q3 · Wk 32"), or "company week 135" for an era start, and how many
+// weeks away it is. The week is named so a quarter that has already begun does not read as now.
 function whenOf(s, week) {
   const left = Math.max(0, week - s.week);
   const d = calendarDate(s, week);
-  return { label: s.founding?.startEra ? `company week ${week}` : `Q${d.quarter} ${d.year}`, weeks: `${left} week${left === 1 ? '' : 's'}` };
+  return { label: s.founding?.startEra ? `company week ${week}` : `${d.year} · Q${d.quarter} · Wk ${d.week}`, weeks: `${left} week${left === 1 ? '' : 's'}` };
 }
 
 // stage: the stage or expansion step being gated; reason: the sim's reason for it.
