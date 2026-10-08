@@ -59,6 +59,7 @@ import { planReplay, mentions, isWorse, SEED_PLAY } from './sweep-plan.js';
 import { createWorktree } from '../../scripts/tools/worktree.mjs';
 import { graphBase, graphOutput, graphPassedAt, recordGraphPass, requestedFiles } from './cache.mjs';
 import { checkoutOf } from './checkout.mjs';
+import { seedInChild } from './sweep-seed.mjs';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -152,7 +153,7 @@ async function startControl(spec) {
   }
   // A checkout given by path counts with its uncommitted edits to tracked files (a control patch).
   const patch = asRoot ? execFileSync('git', ['-C', spec, 'diff', 'HEAD', '--binary'], { maxBuffer: 1 << 28 }) : null;
-  const overlay = Object.fromEntries(['sweep.mjs', 'sample.js', 'sweep-plan.js', 'cache.mjs', 'checkout.mjs'].map((f) => [`blender/checks/${f}`, join(HERE, f)]));
+  const overlay = Object.fromEntries(['sweep.mjs', 'sweep-seed.mjs', 'sample.js', 'sweep-plan.js', 'cache.mjs', 'checkout.mjs'].map((f) => [`blender/checks/${f}`, join(HERE, f)]));
   for (const f of ['worktree.mjs', 'tmp.mjs']) overlay[`scripts/tools/${f}`] = join(repoRoot, 'scripts/tools', f);
   // An engine run on the other checkout is this checkout's engine on that checkout's game code.
   if (engine) {
@@ -374,10 +375,13 @@ try {
     await page?.close();
   }
   if (engine) {
-    // In this process, so no time limit can cut a seed short; the seed limit applies to browser runs.
+    // Each seed in a fresh process (sweep-seed.mjs), so what the mocks and earlier seeds left in the game's
+    // modules can't change how it plays, and a fresh dump or replay of any window sees what this run saw. No
+    // time limit cuts a seed short; the seed limit applies to browser runs.
     for (const seed of M.seeds) {
       const s0 = wall();
-      const r = await host.hostSeed({ seed, weeks: M.weeks, every: M.every, seconds: M.seconds, stagedSeconds: M.stagedSeconds, maxStaged: M.maxStaged, step: M.step, known, worst: acceptedWorst, cropAll, item, only: plan?.seeds[seed] ?? null });
+      const r = await seedInChild({ seed, weeks: M.weeks, every: M.every, seconds: M.seconds, stagedSeconds: M.stagedSeconds, maxStaged: M.maxStaged, step: M.step, known, worst: acceptedWorst, cropAll, item, only: plan?.seeds[seed] ?? null }, { reap: (group) => reap({ group }) });
+      for (const f of r.loaded) globalThis.__hitlLoaded?.add(f);
       found.push(...r.violations);
       windows.push(...r.windows);
       console.log(`sweep: seed:${seed} played to week ${r.end.week}${r.end.over ? ` (${r.end.over})` : ''}; windows: ${r.windows.map((w) => `w${w.state.split(':w')[1]} ${w.why}`).join(', ')}`);
