@@ -18,7 +18,7 @@ import { createMoments } from './moments.js';
 import { createMomentCamera } from './momentcam.js';
 import { createSpotlights } from './spotlight.js';
 import { createGrowthMoments } from './growth-moments.js';
-import { createAiInterview } from './ai-interview.js';
+import { createAiInterview, AI_INTERVIEW } from './ai-interview.js';
 import { createOfficeGrowth, promotionWeek } from './growth-office.js';
 import { MOMENT_KINDS } from './spotlight-kinds.js';
 import { holdSeconds } from './reading.js';
@@ -1195,14 +1195,15 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
       r.face = { yaw, t: seconds };
     },
   });
-  const interview = createAiInterview({ labels, parent: group, low });
+  const interview = createAiInterview({ labels, parent: group, low, camYaw: () => rig?.yaw ?? Math.PI / 4 });
   // A free meeting chair for the ai_interview moment, or null when there is none or another moment,
   // a standup or a decision has the office (the beat is then dropped and the hire walks in as usual).
   function interviewSeat() {
     if (spotlights.current() || standup || incentives.party || incentives.dance || lastState?.pendingDecision || interview.active) return null;
-    // Free chairs, the one facing the camera most first: its sitter's face shows over the table.
+    // Free chairs, three-quarter away from the camera first: the laptop ahead of the sitter then
+    // shows its screen to the camera, and the sitter turns to it in profile.
     const cam = rig?.yaw ?? Math.PI / 4;
-    const off = (st) => Math.abs(Math.atan2(Math.sin(st.yaw - cam), Math.cos(st.yaw - cam)));
+    const off = (st) => Math.abs(Math.abs(Math.atan2(Math.sin(st.yaw - cam), Math.cos(st.yaw - cam))) - AI_INTERVIEW.seatOff);
     const seats = [...(office.current?.zones?.meeting?.seats ?? [])].sort((a, b) => off(a) - off(b));
     return seats.find((st) => ![...recs.values()].some((o) => !o.hidden && Math.hypot(o.pos.x - st.x, o.pos.z - st.z) < 0.6)) ?? null;
   }

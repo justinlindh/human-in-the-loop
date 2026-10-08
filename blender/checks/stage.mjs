@@ -137,16 +137,18 @@ const SPECS = {
     share('reads', 'face within 80 deg of the camera, or a "!" over the head', (x) => x.faceCam <= 80 || x.emote === 'exclamation', 0.9),
     share('visible', 'body >= 50% unblocked', (x) => x.visible >= 0.5, 0.8),
   ] },
-  // A hire interviewed by a laptop at the meeting table: seated facing it, then a wave at it.
+  // A hire interviewed by a laptop at the meeting table: seated facing it, then tapping its screen.
   'ai_interview.ask': { moment: 'ai_interview', beat: 'ask', role: 'candidate', rules: [
     share('seated', 'seated at the table for the question, forearms on it', (x) => x.anim === 'tablesit', 0.9),
     share('handsOnTable', 'both hands at or above the tabletop', (x) => Math.min(x.hands[0][1], x.hands[1][1]) >= 0.66, 0.9),
     share('facingLaptop', 'face within 50 deg of the laptop', (x) => x.targetAngle <= 50, 0.8),
+    share('laptopSeen', 'the laptop >= 70% unblocked (its screen is the joke)', (x) => x.targetVisible >= 0.7, 0.9),
     share('visible', 'body >= 50% unblocked', (x) => x.visible >= 0.5, 0.9),
   ] },
-  'ai_interview.wave': { moment: 'ai_interview', beat: 'wave', role: 'candidate', rules: [
-    share('waving', 'waves while seated', (x) => x.anim === 'wavesit', 0.9),
-    share('handUp', 'a hand within 0.15 m below the eyes', (x) => Math.max(x.handsRel[0][1], x.handsRel[1][1]) >= -0.15, 0.7),
+  'ai_interview.tap': { moment: 'ai_interview', beat: 'tap', role: 'candidate', rules: [
+    share('tapping', 'taps the screen while seated', (x) => x.anim === 'tapsit' || x.anim === 'tapsitl', 0.9),
+    share('handLifted', 'the tapping hand 6 cm above the resting one', (x) => Math.abs(x.hands[0][1] - x.hands[1][1]) >= 0.06, 0.8),
+    share('handAtScreen', 'the tapping hand at screen height (0.75 to 0.93 m, above the 0.69 m tabletop)', (x) => { const y = Math.max(x.hands[0][1], x.hands[1][1]); return y >= 0.75 && y <= 0.93; }, 0.8),
     share('facingLaptop', 'face within 50 deg of the laptop', (x) => x.targetAngle <= 50, 0.8),
     share('visible', 'body >= 50% unblocked', (x) => x.visible >= 0.5, 0.9),
   ] },

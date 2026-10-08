@@ -3,11 +3,11 @@ import { getModel } from './models.js';
 import { PALETTE as P } from './palette.js';
 
 // The ai_interview moment: a hire made under the AI Video Interviews policy starts the job in the
-// meeting room, interviewed by a laptop. The avatar asks, talks over the answer, the candidate waves
-// at it and wonders whether it is still listening, then gets up and walks to their desk.
+// meeting room, interviewed by a laptop. The avatar asks, talks over the answer, the candidate taps
+// its screen and wonders whether it is still listening, then gets up and walks to their desk.
 // Ambient: it never holds the clock, and it is dropped when the office is busy with another moment.
 //
-// createAiInterview({ labels, parent, low }) -> {
+// createAiInterview({ labels, parent, low, camYaw }) -> {
 //   want(staffId)                    the next arrival of this person is interviewed (the aiInterview event)
 //   wanted(staffId) -> boolean
 //   start(r, seat, approach) -> temp  seats them and returns their r.temp; the laptop goes on the table
@@ -24,15 +24,21 @@ export const AI_INTERVIEW = {
     [3.3, 'bot', 'Great answer! Next question.', 1.9],
     [6.2, 'me', 'Is it still listening?', 2.3, true],
   ],
-  wave: [4.9, 6.1],
-  reach: 0.42,             // metres from the seat to the laptop, toward the table
+  tap: [4.9, 6.1],
+  reach: 0.34,           // metres from the seat to the laptop, toward the table
+  side: 0.52,              // radians the laptop sits off the seat's straight ahead
+  cheat: 0.6,              // radians its screen is turned from the candidate toward the camera
+  seatOff: 2.36,           // radians off the camera's heading of the chair chosen (three-quarter away)
   tableTop: 0.69,
-  botLift: 0.85,           // metres above the laptop that its speech bubbles hang from
+  screenTop: 0.24,         // metres above the table of the laptop's screen top, where its bubbles rise
+  botLift: 0.12,           // metres above that the bubble's tail ends
 };
 
-const BEATS = [[0, 'ask'], [2.6, 'answer'], [3.3, 'talkedOver'], [4.9, 'wave'], [6.2, 'wonder']];
+const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 
-export function createAiInterview({ labels, parent, low = () => false }) {
+const BEATS = [[0, 'ask'], [2.6, 'answer'], [3.3, 'talkedOver'], [4.9, 'tap'], [6.2, 'wonder']];
+
+export function createAiInterview({ labels, parent, low = () => false, camYaw = () => Math.PI / 4 }) {
   const want = new Set();
   let cur = null;
   let screen = null;
@@ -70,11 +76,25 @@ export function createAiInterview({ labels, parent, low = () => false }) {
     return screen;
   }
 
+  // Where the laptop goes for a seat: ahead of it and off to the side nearer the camera, so the
+  // candidate's head never hides it, with its screen cheated round toward the camera so the avatar's
+  // face shows. The candidate turns half way toward it in the chair.
+  function layout(seat) {
+    const cam = camYaw();
+    const s = Math.sign(wrap(cam - seat.yaw)) || 1;
+    const dYaw = seat.yaw + s * AI_INTERVIEW.side;
+    const x = seat.x + Math.sin(dYaw) * AI_INTERVIEW.reach, z = seat.z + Math.cos(dYaw) * AI_INTERVIEW.reach;
+    const face = dYaw + Math.PI, toCam = wrap(cam - face);
+    const yaw = face + Math.sign(toCam) * Math.min(AI_INTERVIEW.cheat, Math.abs(toCam));
+    // A positive turn is to the sitter's right: they tap with the hand on the laptop's (and the camera's) side.
+    return { x, z, yaw, bodyYaw: seat.yaw + s * AI_INTERVIEW.side * 0.5, tap: s > 0 ? 'tapsit' : 'tapsitl' };
+  }
+
   function placeLaptop(seat) {
     const lap = getModel('laptop');
-    const fx = Math.sin(seat.yaw), fz = Math.cos(seat.yaw);
-    lap.position.set(seat.x + fx * AI_INTERVIEW.reach, AI_INTERVIEW.tableTop, seat.z + fz * AI_INTERVIEW.reach);
-    lap.rotation.y = seat.yaw + Math.PI;
+    const at = layout(seat);
+    lap.position.set(at.x, AI_INTERVIEW.tableTop, at.z);
+    lap.rotation.y = at.yaw;
     const s = makeScreen();
     lap.traverse((o) => { if (o.isMesh && o.name.endsWith('_screen')) o.material = s.mat; });
     lap.userData.noAO = true;
@@ -84,19 +104,25 @@ export function createAiInterview({ labels, parent, low = () => false }) {
 
   function start(r, seat, approach) {
     want.delete(r.id);
+    const at = layout(seat);
     stop();
     const laptop = placeLaptop(seat);
     const said = new Set();
-    // The laptop's bubbles hang high above it, over the candidate's head rather than across their
-    // face (the laptop sits between them and the camera); their screen tint says who is talking.
+    // The laptop's bubbles rise from the top of its screen, in a screen tint.
     const anchor = new THREE.Object3D();
-    anchor.position.set(0, 0.1, 0);
+    anchor.position.set(0, AI_INTERVIEW.screenTop, 0);
+    laptop.updateMatrixWorld(true);
+    laptop.traverse((o) => {
+      if (!o.isMesh || !o.name.endsWith('_screen')) return;
+      const box = new THREE.Box3().setFromObject(o);
+      anchor.position.copy(laptop.worldToLocal(new THREE.Vector3((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2)));
+    });
     laptop.add(anchor);
     cur = { r, laptop, anchor, t: 0, beat: 'ask' };
     const T = AI_INTERVIEW.seconds;
     const stage = { beat: 'ask', role: 'candidate', target: laptop };
     return {
-      anim: 'tablesit', t: T, back: true, moment: 'ai_interview', goal: { x: seat.x, z: seat.z, yaw: seat.yaw },
+      anim: 'tablesit', t: T, back: true, moment: 'ai_interview', goal: { x: seat.x, z: seat.z, yaw: at.bodyYaw },
       enter: { t: 0, side: approach, from: { x: approach.x, z: approach.z } }, seat: true,
       stage,
       tick: (rr, dt, tp) => {
@@ -109,8 +135,8 @@ export function createAiInterview({ labels, parent, low = () => false }) {
           said.add(i);
           labels.say(text, who === 'bot' ? anchor : rr.char.root, secs, who === 'bot' ? AI_INTERVIEW.botLift : 1.45, { moment: true, thought: !!thought, bot: who === 'bot' });
         });
-        const [w0, w1] = AI_INTERVIEW.wave;
-        rr.char.setAnim(e >= w0 && e < w1 ? 'wavesit' : 'tablesit');
+        const [w0, w1] = AI_INTERVIEW.tap;
+        rr.char.setAnim(e >= w0 && e < w1 ? at.tap : 'tablesit');
         if (rr.char.lookAt && laptop) rr.char.lookAt(laptop, { hold: 0.2 });
         return true;
       },

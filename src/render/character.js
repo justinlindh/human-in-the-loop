@@ -28,12 +28,17 @@ export const SLAP_AT = 0.5;
 
 const ANIMS = ['idle', 'typing', 'walk', 'run', 'slumped', 'burnout', 'celebrate', 'sip', 'cupsip', 'eat', 'recoil', 'peer', 'shoulder', 'swing', 'sigh', 'fan', 'despair', 'readpaper', 'slump', 'fanfrantic', 'carryhold', 'shoulderwalk', 'batswing', 'hide', 'flinch', 'pointscreen', 'wave', 'carry',
   'lie', 'sit', 'sprawl', 'play', 'paddle', 'browse', 'water', 'groan', 'playsit', 'read', 'nap', 'tired', 'desknap', 'point', 'press', 'whisper', 'shake', 'facepalm', 'facepalmsit', 'pet', 'fidget', 'dilemma',
-  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff', 'growthpump', 'growthpumpsit', 'growthclap', 'growthclapsit', 'rackfix', 'slap', 'deal', 'dealsit', 'hurlspin', 'hurlthrow', 'wavesit', 'tablesit'];
+  'dance_polka', 'dance_robot', 'dance_bossa', 'dance_lofi', 'dance_bob', 'dance_stiff', 'growthpump', 'growthpumpsit', 'growthclap', 'growthclapsit', 'rackfix', 'slap', 'deal', 'dealsit', 'hurlspin', 'hurlthrow', 'tapsit', 'tapsitl', 'tablesit'];
 // Dances always play their authored clips (rig on or off); the procedural pose is a stand-in bounce
 // for the moment before the rig model has loaded.
 const ALWAYS_CLIP = /^dance_/;
 // Shoulder angle that puts seated hands on the keys, before subtracting the pose's forward lean.
 const TYPE_REACH = -1.32;
+// A seated tap on a laptop screen: the arm reaches forward to screen height, turned out toward a
+// laptop off to that side, and lifts off the screen between taps.
+const TAP_SIT_X = -2.1;
+const TAP_SIT_OUT = 0.2;
+const TAP_SIT_LIFT = 0.18;
 const BLEND_S = 0.3;
 // Ground speed of the walk clip at its authored rate (chibi_rig.py): playback scales from it with
 // the walker's speed so feet do not slide.
@@ -65,7 +70,7 @@ const PALM_SIT = [-2.75, 0.14, 0.27, -0.6, 0.08];
 // screen, not over it) and pitch (back, clear of the face), the ringing swing, the chin lift, the
 // bounce in the chair and the shoulder's lift (metres), so the bell clears the hat.
 const DEAL_POSE = [2.5, -0.3, 0.25, 0.2, 0.03, 0.16];
-const SEATED = new Set(['growthpumpsit', 'growthclapsit', 'dealsit', 'typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit', 'wavesit', 'tablesit']);
+const SEATED = new Set(['growthpumpsit', 'growthclapsit', 'dealsit', 'typing', 'slumped', 'burnout', 'sit', 'sprawl', 'playsit', 'read', 'tired', 'desknap', 'recoil', 'sigh', 'facepalmsit', 'tapsit', 'tapsitl', 'tablesit']);
 
 const roleMats = new Map();
 // A role's own colour shares the palette material; any other colour (an advisor's accent) gets its own.
@@ -1158,13 +1163,25 @@ export function createCharacter(appearance = {}, roleColor = PALETTE.role_engine
         tgt.headZ = -0.1;
         tgt.bodyY = s(t * 2.2 + phase) * 0.006;
         break;
-      // Seated, waving at a screen in front: the free hand rests on the table.
-      case 'wavesit':
-        tgt.lean = -0.1;
-        tgt.armRZ = 2.4 + s(t * 10) * 0.35;
+      // Seated at a table, leaning in to tap a laptop screen ahead and to the right ("hello?"); the
+      // other forearm rests on the table.
+      case 'tapsit': {
+        const tap = Math.max(0, s(t * 9)) * TAP_SIT_LIFT;
+        tgt.lean = 0.22;
+        tgt.headX = 0.08; tgt.headZ = -0.1;
+        tgt.armRX = TAP_SIT_X - tap; tgt.armRZ = TAP_SIT_OUT;
         tgt.armLX = TYPE_REACH - 0.2; tgt.armLZ = 0.3;
-        tgt.headZ = -0.1;
         break;
+      }
+      // The same tap with the left hand, at a screen ahead and to the left.
+      case 'tapsitl': {
+        const tap = Math.max(0, s(t * 9)) * TAP_SIT_LIFT;
+        tgt.lean = 0.22;
+        tgt.headX = 0.08; tgt.headZ = 0.1;
+        tgt.armLX = TAP_SIT_X - tap; tgt.armLZ = -TAP_SIT_OUT;
+        tgt.armRX = TYPE_REACH - 0.2; tgt.armRZ = -0.3;
+        break;
+      }
       // Seated at a table, forearms resting on it and hands together, leaning in to listen.
       case 'tablesit':
         tgt.lean = 0.08;
