@@ -18,6 +18,8 @@ describe('prompt and reply', () => {
     expect(p).toMatch(/first write in "shows" what is actually in the picture, starting with the camera/);
     expect(p).toMatch(/needs an eye-level still, so an overhead one fails it/);
     expect(p).toMatch(/nearly the same as a still of the same item you already passed/);
+    expect(p).toMatch(/too small to make out: imagine the still shown at a quarter of its size/);
+    expect(p).toMatch(/A crop of that thing passes/);
     expect(p).toMatch(/contact sheet, a grid, a strip/);
   });
   it('reads the verdict from claude\'s JSON output or from plain text, and says when there is none', () => {
@@ -61,7 +63,7 @@ describe('judge', () => {
 describe('command line', () => {
   let site;
   const stub = join(tmp, 'claude-stub.sh');
-  writeFileSync(stub, `#!/usr/bin/env bash\necho "$*" >> "$STUB_LOG"\n[ -n "$STUB_FAIL" ] && exit 3\nprintf '%s' "$STUB_REPLY"\n`);
+  writeFileSync(stub, `#!/usr/bin/env bash\necho "$*" >> "$STUB_LOG"\necho "cwd=$PWD" >> "$STUB_LOG"\n[ -n "$STUB_FAIL" ] && exit 3\nprintf '%s' "$STUB_REPLY"\n`);
   chmodSync(stub, 0o755);
   const run = (args, env = {}) => spawnSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8', env: { ...process.env, CL_CLAUDE: stub, STUB_LOG: join(tmp, 'log'), ...env } });
   const day = () => JSON.parse(readFileSync(join(site, 'changelog/entries.json'), 'utf8')).find((e) => e.date === DAY);
@@ -72,7 +74,8 @@ describe('command line', () => {
     writeFileSync(join(site, 'changelog/entries.json'), JSON.stringify([{ date: DAY, headline: 'H', items: [
       { area: 'Art', title: 'Kept', body: 'Curated.', media: [m('k1', 'by hand')] },
       { area: 'Office', title: 'A', body: 'Cooler.', refs: ['#1'], media: [m('a1'), m('a2')] },
-      { area: 'Interface', title: 'B', body: 'First person.', refs: ['#2'], media: [m('b1')] },
+      // A fixes item: emptied by the check it is still wanted, since its PRs posted stills.
+      { area: 'Fixes', title: 'B', body: 'First person.', refs: ['#2'], media: [m('b1')] },
     ] }]));
     writeFileSync(join(site, 'keep.json'), JSON.stringify({ items: [{ title: 'Kept' }] }));
     rmSync(join(tmp, 'log'), { force: true });
@@ -90,11 +93,13 @@ describe('command line', () => {
       `kept: A: media/${DAY}/a1.webp (The cooler)`,
       `turned down: A: media/${DAY}/a2.webp: a strip`,
       `turned down: B: media/${DAY}/b1.webp: an overhead view, not first person`,
-      'wanted: Interface: B (#2)',
+      'wanted: Fixes: B (#2)',
     ]);
     expect(day().items.map((i) => [i.title, i.media])).toEqual([['Kept', [m('k1', 'by hand')]], ['A', [m('a1', 'The cooler')]], ['B', undefined]]);
     expect(readdirSync(join(site, 'changelog/media', DAY)).sort()).toEqual(['a1.webp', 'k1.webp']);
     const call = readFileSync(join(tmp, 'log'), 'utf8');
+    // The run starts in the day's stills folder.
+    expect(call).toContain(`cwd=${join(site, 'changelog/media', DAY)}\n`);
     expect(call).toMatch(/--model sonnet --tools Read --permission-mode dontAsk --strict-mcp-config --add-dir \S+\/changelog\/media\/2026-10-07 --no-session-persistence --max-budget-usd 0.5 --output-format json/);
     expect(call).not.toContain('k1.webp');
   });

@@ -41,6 +41,8 @@ export function score(url) {
   const size = /(\d{3,4})x\d{3,4}(t?)([-_.]|$)/.exec(n);
   if ((size && (size[2] === 't' || Number(size[1]) < 1200)) || /(phone|small|narrow|ipad|tablet|land|portrait)/.test(n)) s += 1;
   if (/(^|[-_.])(after|branch|new|fixed|desktop)([-_.]|$)/.test(n)) s -= 1;
+  // A crop shows the change at a size the changelog page can show; the full frame around it may not.
+  if (/(^|[-_.])crop([-_.]|$)/.test(n)) s -= 1;
   return s;
 }
 const ranked = (list) => list.map((x, i) => ({ x, i, s: score(x.url) })).sort((a, b) => a.s - b.s || a.i - b.i).map((r) => r.x);
