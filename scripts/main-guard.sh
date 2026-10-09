@@ -88,12 +88,21 @@ sync_shared() {
     else echo "main-guard: npm ci failed in the shared checkout"; fi
   fi
 }
-# True while any process waits (blocked in flock) for the exclusive software render lock.
+# True while any process waits (blocked in flock) for the exclusive software render lock. /proc/locks
+# lists blocked waiters as "N: -> FLOCK ... <major>:<minor>:<inode> ...", which does not depend on kernel
+# symbol names; the wchan scan is the fallback when /proc/locks is unreadable.
 someone_waits() {
   local soft; soft="$(readlink -f "$LOCKS/render-checks.lock" 2>/dev/null)" || return 1
+  if [ -r /proc/locks ]; then
+    local dev ino id
+    read -r dev ino < <(stat -c '%d %i' "$soft" 2>/dev/null) || return 1
+    id="$(printf '%02x:%02x:%d' $(( (dev >> 8) & 0xfff )) $(( (dev & 0xff) | ((dev >> 12) & 0xfff00) )) "$ino")"
+    awk -v id="$id" '$2 == "->" && $0 ~ (" " id " ") { f = 1 } END { exit !f }' /proc/locks
+    return
+  fi
   local q f
   for q in /proc/[0-9]*; do
-    [ "$(cat "$q/wchan" 2>/dev/null)" = locks_lock_inode_wait ] || continue
+    case "$(cat "$q/wchan" 2>/dev/null)" in *flock*inode_wait*|*locks_lock_inode_wait*) ;; *) continue ;; esac
     for f in "$q"/fd/*; do [ "$(readlink -f "$f" 2>/dev/null)" = "$soft" ] && return 0; done
   done
   return 1
