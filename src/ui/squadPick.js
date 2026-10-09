@@ -63,7 +63,7 @@ export function createSquadStrip({ ctx, picked, pool, targetProjectId = null, on
     const mode = sq.afterLaunch ?? 'upkeep';
     // One row: the label, then the two options as a single segmented control of equal halves.
     const seg = h('div.sqseg', { role: 'group', 'aria-label': 'After launch' },
-      ...[['upkeep', 'Upkeep crew'], ['maintenance', 'Maintenance']].map(([m, label]) => {
+      ...[['upkeep', 'Upkeep'], ['maintenance', 'Maintenance']].map(([m, label]) => {
         const b = h('button.sqsegb', { type: 'button', title: m === 'upkeep' ? 'Keep the engineers who know the product on upkeep and bench the rest for two weeks' : 'Send everyone to maintenance', onclick: () => { if (ctx.act({ type: 'setSquadAfterLaunch', squadId: sq.id, mode: m }).ok) render(); } }, label);
         toggleClass(b, 'on', mode === m);
         b.setAttribute('aria-pressed', mode === m ? 'true' : 'false');

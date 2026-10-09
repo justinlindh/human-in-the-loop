@@ -26,7 +26,7 @@
 .hitl .sqafter { display: flex; align-items: center; gap: 0.6em; margin-top: 0.3em; border-top: 0.1em dashed var(--line); padding-top: 0.4em; }
 .hitl .sqafterlbl { flex: none; }
 .hitl .sqseg { flex: 1; display: grid; grid-template-columns: 1fr 1fr; min-width: 0; border: 0.14em solid var(--ink); border-radius: 0.7em; overflow: hidden; }
-.hitl .sqsegb { min-width: 0; min-height: 36px; padding: 0.2em 0.4em; font-weight: 700; font-size: 0.85em; background: var(--cream); border: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hitl .sqsegb { min-width: 0; min-height: 36px; padding: 0.2em 0.25em; font-weight: 700; font-size: 0.8em; background: var(--cream); border: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hitl .sqsegb + .sqsegb { border-left: 0.14em solid var(--ink); }
 .hitl .sqsegb.on { background: var(--ink); color: var(--cream); }
 .hitl .pick .sqtag:empty { display: none; }
