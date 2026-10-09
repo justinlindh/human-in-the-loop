@@ -61,13 +61,15 @@ export function createSquadStrip({ ctx, picked, pool, targetProjectId = null, on
       portrait(x.p, 22), h('b.small', { text: first(x.p) }),
       x.kind === 'ok' ? h('span.small.faint', { text: picked.has(x.p.id) ? 'comes' : '' }) : h('span.sqwhy', { class: x.kind, text: x.text })));
     const mode = sq.afterLaunch ?? 'upkeep';
-    const after = h('div.sqafter', null, h('span.small.muted', { text: 'After launch' }),
-      ...[['upkeep', 'Keep upkeep crew'], ['maintenance', 'Everyone to maintenance']].map(([m, label]) => {
-        const b = h('button.btn.small.suchip', { type: 'button', onclick: () => { if (ctx.act({ type: 'setSquadAfterLaunch', squadId: sq.id, mode: m }).ok) render(); } }, label);
+    // One row: the label, then the two options as a single segmented control of equal halves.
+    const seg = h('div.sqseg', { role: 'group', 'aria-label': 'After launch' },
+      ...[['upkeep', 'Upkeep crew'], ['maintenance', 'Maintenance']].map(([m, label]) => {
+        const b = h('button.sqsegb', { type: 'button', title: m === 'upkeep' ? 'Keep the engineers who know the product on upkeep and bench the rest for two weeks' : 'Send everyone to maintenance', onclick: () => { if (ctx.act({ type: 'setSquadAfterLaunch', squadId: sq.id, mode: m }).ok) render(); } }, label);
         toggleClass(b, 'on', mode === m);
         b.setAttribute('aria-pressed', mode === m ? 'true' : 'false');
         return b;
       }));
+    const after = h('div.sqafter', null, h('span.small.muted.sqafterlbl', { text: 'After launch' }), seg);
     return h('div.sqbreak', null, ...rows, after);
   }
 
@@ -82,7 +84,8 @@ export function createSquadStrip({ ctx, picked, pool, targetProjectId = null, on
       const ticked = tickedOf(st).length;
       const on = chosen.has(sq.id) && ticked > 0;
       const near = !on && ticked > 0 && ticked * 2 >= sq.memberIds.length;
-      const count = on || near ? `${ticked} of ${sq.memberIds.length}` : `${can} of ${sq.memberIds.length} can come`;
+      const elsewhere = sq.posting?.type === 'project' && sq.posting.targetId !== targetProjectId ? (s.projects ?? []).find((j) => j.id === sq.posting.targetId) : null;
+      const count = `${on || near ? `${ticked} of ${sq.memberIds.length}` : `${can} of ${sq.memberIds.length} can come`}${elsewhere ? ` · on ${projectLabel(s, elsewhere)}` : ''}`;
       const main = h('button.sqchipmain', { type: 'button', disabled: !can, title: st.reason ?? '', onclick: () => toggle(sq) },
         lead ? portrait(lead, 26) : icon('team', { size: 18 }),
         h('span.sqtxt', null, h('b', { text: sq.name }),
@@ -106,5 +109,34 @@ export function createSquadStrip({ ctx, picked, pool, targetProjectId = null, on
     refresh() { for (const id of [...chosen]) { const sq = (ctx.getState().squads ?? []).find((q) => q.id === id); if (!sq || !tickedOf(squadStand(ctx.getState(), sq, targetProjectId)).length) chosen.delete(id); } render(); },
     // The squad whose chip put this ticked person in the list, for the stripe on their row.
     squadOf(id) { return picked.has(id) ? (ctx.getState().squads ?? []).find((q) => chosen.has(q.id) && q.memberIds.includes(id)) ?? null : null; },
+    // What confirming does: the squads to post (with who to leave off) and the people to assign by hand.
+    plan() { return postPlan(ctx.getState(), picked, chosen, targetProjectId); },
   };
+}
+
+// The squads whose chip is on post as squads, leaving off the members who could come but were unticked;
+// everyone else ticked is assigned as a person.
+export function postPlan(s, picked, chosen, targetProjectId) {
+  const squads = [];
+  const covered = new Set();
+  for (const sq of s.squads ?? []) {
+    if (!chosen.has(sq.id)) continue;
+    const st = squadStand(s, sq, targetProjectId);
+    const ticked = st.comers.filter((x) => picked.has(x.p.id));
+    if (!ticked.length) continue;
+    squads.push({ squadId: sq.id, exclude: st.comers.filter((x) => !picked.has(x.p.id)).map((x) => x.p.id) });
+    for (const x of ticked) covered.add(x.p.id);
+  }
+  return { squads, people: [...picked].filter((id) => !covered.has(id)) };
+}
+
+// Runs a plan against a project. Returns how many people ended up on it and how many were asked for.
+export function commitPlan(ctx, plan, projectId, wanted) {
+  let placed = 0;
+  for (const q of plan.squads) {
+    const res = ctx.act({ type: 'postSquad', squadId: q.squadId, posting: { type: 'project', targetId: projectId }, ...(q.exclude.length ? { exclude: q.exclude } : {}) });
+    if (res.ok) placed += res.placed?.length ?? 0;
+  }
+  for (const id of plan.people) if (ctx.act({ type: 'assign', staffId: id, assignment: { type: 'project', targetId: projectId } }).ok) placed++;
+  return { placed, wanted };
 }

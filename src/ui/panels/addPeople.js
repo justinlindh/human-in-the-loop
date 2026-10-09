@@ -1,10 +1,10 @@
-// Add people to a running project: the squad strip over a list of everyone who could come. Ticked people
-// are assigned one by one; a squad chip only ticks its members who can come.
+// Add people to a running project: the squad strip over a list of everyone who could come. A chip that is on
+// posts its squad (leaving off anyone unticked); other ticked people are assigned one by one.
 import { h, setText, toggleClass } from '../dom.js';
 import { ROLES } from '../content.js';
 import { portrait } from '../widgets.js';
 import { icon } from '../icons.js';
-import { createSquadStrip } from '../squadPick.js';
+import { createSquadStrip, commitPlan } from '../squadPick.js';
 import { isAvailable, projectLabel, assignmentText } from './common.js';
 
 export function openAddPeople(ctx, projectId) {
@@ -39,8 +39,7 @@ export function openAddPeople(ctx, projectId) {
   }));
 
   function commit() {
-    let added = 0;
-    for (const id of picked) if (ctx.act({ type: 'assign', staffId: id, assignment: { type: 'project', targetId: projectId } }).ok) added++;
+    const { placed: added } = commitPlan(ctx, strip.plan(), projectId, picked.size);
     if (added) { ctx.sfx('confirm'); ctx.toast(`${added} ${added === 1 ? 'person' : 'people'} added to ${projectLabel(ctx.getState(), proj)}`, 'good'); }
     close?.();
   }

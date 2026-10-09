@@ -7,7 +7,7 @@ import { ERA, agentsHere } from '../v2content.js';
 import { STATS, STAT } from '../stats.js';
 import { picker, personOption } from '../picker.js';
 import { openStaffUp, staffUpPool } from './bulkAssign.js';
-import { createSquadStrip } from '../squadPick.js';
+import { createSquadStrip, commitPlan } from '../squadPick.js';
 import { openAddPeople } from './addPeople.js';
 import { marketSize } from '../../sim/products.js';
 import { modelCostPerCustomer } from '../../sim/economy.js';
@@ -26,6 +26,7 @@ const SIZE_INFO = { small: { name: 'Small' }, medium: { name: 'Medium' }, large:
 export function buildPanel(ctx, arg) {
   let tab = arg?.projectId || arg?.productId ? 'projects' : 'new';
   const form = { name: suggestName(null, ctx.getState().era.id, ctx.getState().seed), category: null, angle: null, model: 'chatgbt', size: 'small', team: null };
+  let getPlan = null; // the team picker's plan for confirming: squads to post and people to assign
   // A starter preset (from the tutorial): fields plus the founders as the team.
   const preset = arg?.preset ?? null;
   if (preset) {
@@ -191,6 +192,7 @@ export function buildPanel(ctx, arg) {
       newView.update(ctx.getState());
     }
     const strip = createSquadStrip({ ctx, picked: form.team, pool: avail, onChange: refreshTeam });
+    getPlan = () => strip.plan();
     for (const p of avail) {
       const onProj = p.assignment.type === 'project';
       const tag = h('span.sqtag');
@@ -276,13 +278,14 @@ export function buildPanel(ctx, arg) {
   function start() {
     const why = blocker(ctx.getState());
     if (why) { ctx.toast(why, 'warn'); return; }
+    // Taken before the project exists: which squads post as squads and who is assigned by hand.
+    const plan = getPlan?.() ?? { squads: [], people: [...form.team] };
     const res = ctx.act({ type: 'startProject', kind: 'new', name: form.name.trim(), category: form.category, angle: form.angle, model: modelNeeded() ? form.model : null, size: form.size });
     if (!res.ok) return;
     const s = ctx.getState();
     const proj = s.projects.find((j) => j.id === res.projectId);
-    let placed = 0;
-    if (proj) for (const id of form.team) if (ctx.act({ type: 'assign', staffId: id, assignment: { type: 'project', targetId: proj.id } }).ok) placed++;
-    if (placed < form.team.size) ctx.toast(`Only ${placed} of ${form.team.size} picked people could join ${proj?.name ?? 'the project'}.`, 'warn');
+    const done = proj ? commitPlan(ctx, plan, proj.id, form.team.size) : { placed: 0, wanted: form.team.size };
+    if (done.placed < done.wanted) ctx.toast(`Only ${done.placed} of ${done.wanted} picked people could join ${proj?.name ?? 'the project'}.`, 'warn');
     ctx.sfx('confirm');
     form.name = suggestName(null, ctx.getState().era.id, ctx.getState().seed);
     form.team = null;
