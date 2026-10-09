@@ -554,6 +554,15 @@ describe('audio director', () => {
       expect(cheered(run(d, era, 110))).toBe(true);
     });
 
+    it('ships the radio click and tuning cues, delivered', () => {
+      for (const cue of ['sfx.radio_click', 'sfx.radio_tune']) expect(CUES[cue]).toMatchObject({ bus: 'sfx', delivered: true });
+      const d = createDirector({ seed: 3, beds });
+      const cues = (cmds) => cmds.filter((c) => c.op === 'play').map((c) => c.cue);
+      run(d, state(), 0);
+      expect(cues(run(d, radio('lofi'), 5))).toEqual(['sfx.radio_click']);
+      expect(cues(run(d, radio('funk'), 10))).toEqual(['sfx.radio_tune']);
+    });
+
     it('plays the tuning and click cues when they exist: a click on and off, tuning between stations', () => {
       const had = { ...CUES };
       CUES['sfx.radio_tune'] = { bus: 'sfx', files: ['sfx/radio_tune'], cooldown: 0, priority: 2 };

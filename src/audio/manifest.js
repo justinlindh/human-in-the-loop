@@ -96,6 +96,9 @@ export const CUES = {
   'sfx.deal_bell_web2': { bus: 'sfx', files: ['sfx/deal_bell_web2'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
   'sfx.deal_bell_agents': { bus: 'sfx', files: ['sfx/deal_bell_agents'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
   'sfx.deal_box': { bus: 'sfx', files: ['sfx/deal_box'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
+  // The boombox: a button click when the radio goes on or off, a knob turn when the station changes.
+  'sfx.radio_click': { bus: 'sfx', files: ['sfx/radio_click'], cooldown: 0.5, priority: 2, gain: 0.8, delivered: true },
+  'sfx.radio_tune': { bus: 'sfx', files: ['sfx/radio_tune'], cooldown: 0.5, priority: 2, gain: 0.8, delivered: true },
   // The sledgehammer moment's 1984 parody: a rising sting under the run-in and the screen's smash.
   'moment.sledge_run': { bus: 'sfx', files: ['sfx/sledge_run'], cooldown: 1, priority: 6, gain: 0.8, delivered: true },
   'moment.sledge_shatter': { bus: 'sfx', files: ['sfx/sledge_shatter'], cooldown: 1, priority: 9, gain: 0.9, delivered: true },

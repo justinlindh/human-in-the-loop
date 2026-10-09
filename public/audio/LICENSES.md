@@ -187,6 +187,8 @@ All are CC0 1.0 (public domain), from Kenney's packs (kenney.nl) and from freeso
 | `sfx/deal_bell_preinternet.ogg` | freesound.org 'Typewriter Bell.wav' by ramsamba, CC0 1.0 (https://freesound.org/people/ramsamba/sounds/318687/), cut to 0.7 s with a fade, levelled to -20 LUFS |
 | `sfx/deal_bell_dotcom.ogg` | freesound.org 'Computer Chimes - Notification.aif' by marlonnnnnn, CC0 1.0 (https://freesound.org/people/marlonnnnnn/sounds/351879/), cut to 0.7 s with a fade, levelled to -20 LUFS |
 | `sfx/deal_bell_web2.ogg` | freesound.org '[UI Sound] Approval - High Pitched Bell Synth' by GabFitzgerald, CC0 1.0 (https://freesound.org/people/GabFitzgerald/sounds/625174/), cut to 0.7 s with a fade, levelled to -20 LUFS |
+| `sfx/radio_click.ogg` | freesound.org 'AutoRadio-Tlacitko.WAV' by Dr. Macak, CC0 1.0 (https://freesound.org/people/Dr.%20Macak/sounds/484421/), cut to 0.5 s with a fade, levelled |
+| `sfx/radio_tune.ogg` | freesound.org 'radio knob' by keatonblack, CC0 1.0 (https://freesound.org/people/keatonblack/sounds/731859/), the first 0.88 s with a fade, levelled |
 | `sfx/deal_bell_agents.ogg` | freesound.org 'Simple or Cute UI / UX / Interface Pause sound' by Feraly_, CC0 1.0 (https://freesound.org/people/Feraly_/sounds/836452/), levelled to -20 LUFS |
 | `sfx/sledge_leader.ogg` | the 1984-parody leader's drone: Qwen3-TTS 1.7B VoiceDesign (Apache-2.0), invented gibberish in the game's lexicon, slow flat delivery from the prompt (no pitch or time change), cut pause to pause (8.1 s loop) and band-limited with slap echoes for a PA sound; released CC0 by the project |
 | `sfx/sledge_run.ogg` | the run-in sting: ACE-Step 1.5 XL-sft 4B plus 4B planner, recipe stinger_sledge_run, seed 9961, cut to 2.8 s; released CC0 by the project |
