@@ -527,7 +527,7 @@ Actions:
 { type: 'disbandSquad', squadId }                 // members keep their current work
 { type: 'setSquadMembers', squadId, memberIds }   // replaces the members, same rules as createSquad
 { type: 'setSquadLead', squadId, staffId }        // staffId null clears it; must be a member
-{ type: 'postSquad', squadId, posting: { type, targetId } }   // -> { ok, placed: [staffId], skipped: [{ staffId, reason }] }; ok false with the first reason when nobody can be placed; clears benchUntil
+{ type: 'postSquad', squadId, posting: { type, targetId }, exclude? }   // -> { ok, placed: [staffId], skipped: [{ staffId, reason }] }; exclude: optional [staffId], members the player left off: they keep their work and are skipped with reason 'Left off'; ids not in the squad are ignored; a non-array is refused ('Bad exclude list'); ok false with the first reason when nobody can be placed; clears benchUntil
 { type: 'setSquadAfterLaunch', squadId, mode }    // 'upkeep' | 'maintenance'
 ```
 
