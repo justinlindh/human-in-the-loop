@@ -557,50 +557,108 @@ function wallMatFor(L) {
   return L.wall === 'block' ? surfaceMat('block', null, WALLS.block()) : mat(L.wall === 'sage' ? 'wall_sage' : 'wall_cream');
 }
 
-// A Classic drop ceiling for first-person views (never drawn overhead): off-white tiles at the wall
-// tops on a light grid, with a warm light panel every third tile, open over a roof terrace. Casts and
-// takes no shadows, so the room is lit as it is overhead. Low leaves out the grid.
-const CEILING_PANEL_EVERY = 3;
+// Each era's ceiling for first-person views (never drawn overhead), at the wall tops and open over a
+// roof terrace. Casts and takes no shadows, so the room is lit as it is overhead.
+//   surface: the ceiling plane's colour; grid: a drop ceiling's 0.5 m grid bars in that colour.
+//   panels: [lamp colour, every n tiles, w, d] flat light panels in a frame (troffers when d > w).
+//   cans: [lamp colour, every n tiles] round recessed downlights, on a checker.
+//   ducts: [colour, every n rows] round ducts hung along x.
+//   strips: [lamp colour, every n rows, drop] linear lights hung along x.
+//   slats: colour of timber baffles along z, four to a tile.
+//   beams: [colour, every n rows] timber beams along x.
+//   pendants: [shade colour, lamp colour, every n tiles, drop]; off: every other pendant is dark.
+// Low keeps the surface and the lights and leaves out the grid, ducts, slats, beams and cords.
+const CEILINGS = {
+  preinternet: { surface: 'ceiling_tile_aged', grid: 'ceiling_grid_aged', panels: ['lamp_cool', 2, 0.5, 1.0] },
+  dotcom: { surface: 'ceiling_deck', ducts: ['metal_soft', 4], pendants: ['ceiling_shade_pop', 'lamp_warm', 3, 0.45] },
+  'dotcom-bust': { surface: 'ceiling_deck', ducts: ['metal_soft', 4], pendants: ['ceiling_shade_pop', 'lamp_warm', 3, 0.45], off: true },
+  web2: { surface: 'ceiling_plaster', cans: ['lamp_warm', 2] },
+  classic: { surface: 'ceiling_tile', grid: 'ceiling_grid', panels: ['lamp_warm', 3, 0.62, 0.62] },
+  chatgbt: { surface: 'ceiling_deck', ducts: ['metal_dark', 4], strips: ['lamp_cool', 2, 0.25] },
+  agents: { surface: 'ceiling_deck', slats: 'wood_light', strips: ['screen_cyan', 3, 0.2] },
+  consolidation: { surface: 'ceiling_tile_grey', grid: 'ceiling_grid_grey', panels: ['lamp_cool', 4, 0.62, 0.62] },
+  plateau: { surface: 'ceiling_plaster_warm', beams: ['wood_honey', 2], pendants: ['pot_terracotta', 'lamp_warm', 3, 0.4] },
+};
 const CEILING_GLOW = 0.55;       // the ceiling's own light, standing in for light bounced up off the room
-const CEILING_LAMP = 1.8;        // the light panels' glow
+const CEILING_LAMP = 1.8;        // the lights' glow
+const CEILING_STRIP = 0.6;       // of that, for strip lights, which bloom along their whole length
 const ceilingMats = new Map();
 function ceilingMat(name) {
   let m = ceilingMats.get(name);
   if (!m) { m = new THREE.MeshStandardMaterial({ color: color(name), emissive: color(name), emissiveIntensity: CEILING_GLOW, roughness: 0.95 }); ceilingMats.set(name, m); }
   return m;
 }
-function buildCeiling(L, low) {
+const ceilingGeo = new Map();
+function cgeo(key, make) {
+  let g = ceilingGeo.get(key);
+  if (!g) ceilingGeo.set(key, (g = make()));
+  return g;
+}
+function buildCeiling(L, low, eraId = 'classic') {
+  const spec = CEILINGS[eraId] ?? CEILINGS.classic;
   const g = new THREE.Group();
   g.name = 'ceiling';
   const y = L.wallH;
   const decks = L.extras?.decks ?? [];
   const open = (x, z) => decks.some((d) => x > d.x0 && x < d.x1 && z > d.z0 && z < d.z1);
-  const tile = new THREE.PlaneGeometry(1, 1).rotateX(Math.PI / 2);
-  const panel = new THREE.BoxGeometry(0.62, 0.02, 0.62);
-  const frame = new THREE.BoxGeometry(0.7, 0.012, 0.7);
-  const barX = new THREE.BoxGeometry(1, 0.01, 0.024), barZ = new THREE.BoxGeometry(0.024, 0.01, 1);
   const flat = { cast: false, receive: false };
+  const add = (geo, m, x, yy, z) => g.add(mesh(geo, m, x, yy, z, flat));
+  const tile = cgeo('tile', () => new THREE.PlaneGeometry(1, 1).rotateX(Math.PI / 2));
+  const barX = cgeo('barX', () => new THREE.BoxGeometry(1, 0.01, 0.024)), barZ = cgeo('barZ', () => new THREE.BoxGeometry(0.024, 0.01, 1));
+  const lit = (name, k = 1) => glow(name, CEILING_LAMP * k);
   for (let i = 0; i < L.grid.w; i++) {
     for (let k = 0; k < L.grid.h; k++) {
       const x = -L.W / 2 + i + 0.5, z = -L.D / 2 + k + 0.5;
       if (open(x, z)) continue;
-      g.add(mesh(tile, ceilingMat('ceiling_tile'), x, y, z, flat));
-      const lamp = i % CEILING_PANEL_EVERY === 1 && k % CEILING_PANEL_EVERY === 1;
-      if (lamp) {
-        g.add(mesh(frame, ceilingMat('ceiling_grid'), x, y - 0.006, z, flat));
-        g.add(mesh(panel, glow('lamp_warm', CEILING_LAMP), x, y - 0.012, z, flat));
+      add(tile, ceilingMat(spec.surface), x, y, z);
+      let lamp = false;
+      if (spec.panels) {
+        const [c, n, w, d] = spec.panels;
+        if (i % n === 1 && k % n === 1) {
+          lamp = true;
+          add(cgeo(`frame${w},${d}`, () => new THREE.BoxGeometry(w + 0.08, 0.012, d + 0.08)), ceilingMat(spec.grid ?? spec.surface), x, y - 0.006, z);
+          add(cgeo(`panel${w},${d}`, () => new THREE.BoxGeometry(w, 0.02, d)), lit(c), x, y - 0.012, z);
+        }
+      }
+      if (spec.cans && i % spec.cans[1] === k % 2) {
+        add(cgeo('can', () => new THREE.CylinderGeometry(0.09, 0.09, 0.012, 16)), lit(spec.cans[0]), x, y - 0.006, z);
+      }
+      if (spec.strips && k % spec.strips[1] === 1) {
+        const [c, , drop] = spec.strips;
+        add(cgeo('strip', () => new THREE.BoxGeometry(1, 0.035, 0.07)), lit(c, CEILING_STRIP), x, y - drop, z);
+        if (!low && i % 2 === 0) add(cgeo(`hang${drop}`, () => new THREE.CylinderGeometry(0.006, 0.006, drop, 4)), ceilingMat('metal_dark'), x, y - drop / 2, z);
+      }
+      if (spec.pendants && i % spec.pendants[2] === 1 && k % spec.pendants[2] === 1) {
+        const [shade, c, , drop] = spec.pendants;
+        const n = spec.pendants[2];
+        const dark = spec.off && (Math.floor(i / n) + Math.floor(k / n)) % 2 === 1;
+        add(cgeo('shade', () => new THREE.CylinderGeometry(0.07, 0.17, 0.14, 16, 1, true)), ceilingMat(shade), x, y - drop, z);
+        add(cgeo('bulb', () => new THREE.CylinderGeometry(0.11, 0.11, 0.01, 16)), dark ? ceilingMat('screen_off') : lit(c), x, y - drop - 0.05, z);
+        if (!low) add(cgeo(`cord${drop}`, () => new THREE.CylinderGeometry(0.008, 0.008, drop, 4)), ceilingMat('metal_dark'), x, y - drop / 2 + 0.035, z);
       }
       if (low) continue;
-      // Tiles of 0.5 m: bars on this tile's edges, and through its middle unless a lamp sits there.
-      for (const d of lamp ? [-0.5] : [-0.5, 0]) {
-        g.add(mesh(barX, ceilingMat('ceiling_grid'), x, y - 0.005, z + d, flat));
-        g.add(mesh(barZ, ceilingMat('ceiling_grid'), x + d, y - 0.005, z, flat));
+      if (spec.grid) {
+        // Tiles of 0.5 m: bars on this tile's edges, and through its middle unless a lamp sits there.
+        for (const d of lamp ? [-0.5] : [-0.5, 0]) {
+          add(barX, ceilingMat(spec.grid), x, y - 0.005, z + d);
+          add(barZ, ceilingMat(spec.grid), x + d, y - 0.005, z);
+        }
+      }
+      if (spec.ducts && k % spec.ducts[1] === 2) {
+        add(cgeo('duct', () => new THREE.CylinderGeometry(0.15, 0.15, 1, 14, 1, true).rotateZ(Math.PI / 2)), ceilingMat(spec.ducts[0]), x, y - 0.26, z - 0.5);
+      }
+      if (spec.slats) {
+        for (const d of [-0.375, -0.125, 0.125, 0.375]) add(cgeo('slat', () => new THREE.BoxGeometry(0.06, 0.16, 1)), ceilingMat(spec.slats), x + d, y - 0.08, z);
+      }
+      if (spec.beams && k % spec.beams[1] === 0) {
+        add(cgeo('beam', () => new THREE.BoxGeometry(1, 0.18, 0.14)), ceilingMat(spec.beams[0]), x, y - 0.09, z - 0.5);
       }
     }
   }
   const merged = mergeStatic(g);
   merged.name = 'ceiling';
   merged.userData.low = low;
+  merged.userData.era = eraId;
   return merged;
 }
 
@@ -1337,14 +1395,15 @@ export function createOffice({ parent, screens, lighting, low = () => false }) {
       const [ox, oz] = OUTWARD[key];
       cur.walls[key].visible = inside || ox * camDir.x + oz * camDir.y < 0.2;
     }
-    // The ceiling, Classic only, exists once someone first looks from inside.
-    const roof = inside && era === 'classic';
-    if (roof && (!cur.ceiling || cur.ceiling.userData.low !== low())) {
+    // The era's ceiling exists once someone first looks from inside, and is rebuilt when the era or
+    // the quality setting changes while it shows.
+    const roofEra = eraArtActive() && CEILINGS[artEra] ? artEra : era;
+    if (inside && (!cur.ceiling || cur.ceiling.userData.low !== low() || cur.ceiling.userData.era !== roofEra)) {
       if (cur.ceiling) { cur.ceiling.removeFromParent(); cur.ceiling.traverse((o) => { if (o.isMesh && o.geometry.userData.merged) o.geometry.dispose(); }); }
-      cur.ceiling = buildCeiling(cur.L, low());
+      cur.ceiling = buildCeiling(cur.L, low(), roofEra);
       cur.root.add(cur.ceiling);
     }
-    if (cur.ceiling) cur.ceiling.visible = roof;
+    if (cur.ceiling) cur.ceiling.visible = inside;
     if (cur.clearPanes !== inside) setPanes(cur.panes, (cur.clearPanes = inside));
     if (env) {
       const n = THREE.MathUtils.smoothstep(env.night, 0.2, 0.9);
