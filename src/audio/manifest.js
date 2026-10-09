@@ -100,10 +100,12 @@ export const CUES = {
   'moment.sledge_run': { bus: 'sfx', files: ['sfx/sledge_run'], cooldown: 1, priority: 6, gain: 0.8, delivered: true },
   'moment.sledge_shatter': { bus: 'sfx', files: ['sfx/sledge_shatter'], cooldown: 1, priority: 9, gain: 0.9, delivered: true },
 };
-// The cue for a notable deal's beat. A boxed sale (the seller raises a retail box) has its own sound;
-// otherwise the era picks the bell, and an era not listed here (Classic, the ChatGBT moment) rings the handbell.
+// A notable deal's beat: a boxed sale (the seller raises a retail box) has its own sound; otherwise the era
+// picks the bell, and an era not listed in DEAL_CUES (Classic, the ChatGBT moment) rings the handbell. All of
+// them share one clock: at most one deal sound per DEAL_GAP_S seconds, whichever cue it is.
+export const DEAL_BOX = 'sfx.deal_box';
+export const DEAL_GAP_S = 30;
 export const DEAL_CUES = {
-  boxed: 'sfx.deal_box',
   preinternet: 'sfx.deal_bell_preinternet',
   dotcom: 'sfx.deal_bell_dotcom',
   web2: 'sfx.deal_bell_web2',

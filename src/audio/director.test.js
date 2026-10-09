@@ -457,6 +457,16 @@ describe('audio director', () => {
     expect(CUES['sfx.deal_box']).toMatchObject({ bus: 'sfx', cooldown: 30, delivered: true });
   });
 
+  it('a boxed sale and an era bell share one 30 s clock', () => {
+    const plays = (cmds) => cmds.filter((c) => c.op === 'play').map((c) => c.cue);
+    const d = createDirector();
+    d.events([], state({ era: { id: 'preinternet' } }), 0);
+    expect(plays(d.dealBell({ boxed: true }, 10))).toEqual(['sfx.deal_box']);
+    expect(plays(d.dealBell({ boxed: false }, 15))).toEqual([]);
+    expect(plays(d.dealBell({ boxed: true }, 39))).toEqual([]);
+    expect(plays(d.dealBell({ boxed: false }, 41))).toEqual(['sfx.deal_bell_preinternet']);
+  });
+
   it('pings when a letter is presented, and stays quiet for a prompt or a decision', () => {
     const d = createDirector();
     const plays = (cmds) => cmds.filter((c) => c.op === 'play').map((c) => c.cue);

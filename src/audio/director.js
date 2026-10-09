@@ -16,7 +16,7 @@
 //   { op: 'stopAll', bus }
 
 import { ASSETS, entryFor } from './loader.js';
-import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, ROTATE_BEDS, ERA_EXTRAS, DEAL_CUES, musicKey, radioKey, isRadioKey, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
+import { BUSES, CUES, ON_EVENT, UI_CUES, MUSIC, ROTATE_BEDS, ERA_EXTRAS, DEAL_CUES, DEAL_BOX, DEAL_GAP_S, musicKey, radioKey, isRadioKey, CROSSFADE_BARS, PAUSE_LOWPASS, PAUSE_GAIN, MOOD,
   VOICE_VARIANTS, VOICE, GROUP_CUES, isFirstLaunch, resignReason, isWarmExit, WORLD, PROP_CUES,
   MUSIC_NIGHT, MUSIC_NIGHT_SECONDS, isMusicNightDecision, MUSIC_BARS, PLAYLIST_MIN_S, PLAYLIST_LOOKAHEAD_S, PLAYLIST_PRELOAD_S, MOMENT_CUES, MOMENT_HITS, MOMENT_SCENES, FOCUS_KEEP, SPOTLIGHT_KEEP, SPOTLIGHT_DEFAULT, OFFICE_PROP_CUES, OFFICE_PROP_LOOPS } from './manifest.js';
 
@@ -88,6 +88,7 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
   const loopLevel = {};
   const momentsOn = new Set();
   let lastStateRef = null;
+  let lastDeal = null; // when a deal sound last played
   let dealEra = null; // the era id of the latest state, for sounds that follow a renderer event
   function officeProps(state, t, quiet) {
     const out = [];
@@ -321,7 +322,7 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
       spotlight = ctx.spotlight ? (typeof ctx.spotlight === 'object' ? ctx.spotlight : { kind: typeof ctx.spotlight === 'string' ? ctx.spotlight : null }) : null;
       // A new or loaded game brings a new state object: no moment from the old one can still be playing.
       if (state?.era?.id) dealEra = state.era.id;
-      if (state && state !== lastStateRef) { if (lastStateRef) momentsOn.clear(); lastStateRef = state; }
+      if (state && state !== lastStateRef) { if (lastStateRef) { momentsOn.clear(); lastDeal = null; } lastStateRef = state; }
       if (sceneLoop && !momentsOn.has(sceneLoop.key)) out.push(...stopSceneLoop());
       if (Number.isFinite(ctx.speed)) speedNow = Math.max(1, ctx.speed);
       const hold = !!(ctx.menuPause || ctx.decision);
@@ -475,8 +476,11 @@ export function createDirector({ seed = 1, quality = 'high', beds: bedOverride =
     // hitl:dealBell from the renderer: the seller's deal beat is playing on screen. A boxed sale has its
     // own sound; otherwise the era's bell, or the handbell for an era without one.
     dealBell(detail, t) {
-      const cue = detail?.boxed ? DEAL_CUES.boxed : DEAL_CUES[dealEra] ?? 'sfx.deal_handbell';
-      return playCue(cue, t);
+      if (lastDeal !== null && t - lastDeal < DEAL_GAP_S) return [];
+      const cue = detail?.boxed ? DEAL_BOX : DEAL_CUES[dealEra] ?? 'sfx.deal_handbell';
+      const out = playCue(cue, t);
+      if (out.some((c) => c.op === 'play')) lastDeal = t;
+      return out;
     },
 
     get musicState() { return { ...music }; },
