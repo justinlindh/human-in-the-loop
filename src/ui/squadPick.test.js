@@ -13,7 +13,7 @@ function world() {
     staff: [person('a'), person('b', { assignment: { type: 'maintenance', targetId: 'prod1' } }), person('c'), person('d', { assignment: { type: 'project', targetId: 'jB' } }),
       person('e', { mood: 'away' }), person('x'), person('y', { mood: 'away' })],
     squads: [
-      { id: 'q1', name: 'Payments', memberIds: ['a', 'b', 'c', 'd', 'e'], leadId: 'a', posting: { type: 'idle', targetId: null }, afterLaunch: 'upkeep', cohesion: 5, crewIds: ['b'] },
+      { id: 'q1', name: 'Payments', memberIds: ['a', 'b', 'c', 'd', 'e'], leadId: 'a', posting: { type: 'idle', targetId: null }, afterLaunch: 'upkeep', cohesion: 0.5, crewIds: ['b'] },
       { id: 'q2', name: 'Platform', memberIds: ['y'], leadId: 'y', posting: { type: 'idle', targetId: null }, afterLaunch: 'upkeep', cohesion: 0, crewIds: [] },
     ],
   };
@@ -101,4 +101,29 @@ it('with nobody left off, no exclude is sent', () => {
   document.querySelector('.sqchipmain').click();
   commitPlan(ctx, strip.plan(), 'jA', picked.size);
   expect(ctx.act.mock.calls.find(([a]) => a.type === 'postSquad')[0]).toEqual({ type: 'postSquad', squadId: 'q1', posting: { type: 'project', targetId: 'jA' } });
+});
+
+it('the cohesion bar shows the 0..1 cohesion as a share of its width', () => {
+  const { ctx, pool, s } = world();
+  s.squads[1].cohesion = 1;
+  const strip = createSquadStrip({ ctx, picked: new Set(), pool, targetProjectId: 'jA', onChange() {} });
+  document.body.append(strip.el);
+  const widths = [...document.querySelectorAll('.sqcoh i')].map((i) => i.style.width);
+  expect(widths).toEqual(['50%', '100%']);
+});
+
+it('a squad posted to maintenance still brings its non-engineers to a project', () => {
+  const { s } = world();
+  const q = s.squads[0];
+  q.posting = { type: 'maintenance', targetId: null };
+  s.staff.find((p) => p.id === 'c').role = 'designer';
+  expect(memberStand(s, q, s.staff.find((p) => p.id === 'c'), 'jA')).toMatchObject({ kind: 'ok', comes: true });
+  expect(squadStand(s, q, 'jA').comers.map((x) => x.p.id)).toContain('c');
+});
+
+it('members already on the project are left off the post so they are not counted twice', () => {
+  const { s } = world();
+  s.staff.find((p) => p.id === 'a').assignment = { type: 'project', targetId: 'jA' };
+  const plan = postPlan(s, new Set(['c', 'd']), new Set(['q1']), 'jA');
+  expect(plan.squads).toEqual([{ squadId: 'q1', exclude: ['a'] }]);
 });

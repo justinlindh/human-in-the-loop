@@ -4,20 +4,19 @@
 import { h, toggleClass } from './dom.js';
 import { portrait } from './widgets.js';
 import { icon } from './icons.js';
-import { cantPost } from './panels/squads.js';
 import { projectLabel } from './panels/common.js';
 
 const first = (p) => p.name.split(' ')[0];
 
 // How one squad member stands for a posting to targetProjectId:
-// { kind: 'ok' | 'moves' | 'crew' | 'away' | 'cant', text, comes } where comes says the chip would tick them.
+// { kind: 'ok' | 'moves' | 'here' | 'crew' | 'away', text, comes } where comes says the chip would tick them.
+// The target is always a project, which takes any role, so the squad's current posting never blocks anyone.
 export function memberStand(s, sq, p, targetProjectId) {
   if (p.mood === 'away' || p.assignment?.type === 'sabbatical') return { kind: 'away', text: 'away', comes: false };
   if ((sq.crewIds ?? []).includes(p.id)) {
     const prod = (s.products ?? []).find((x) => x.id === p.assignment?.targetId);
     return { kind: 'crew', text: `upkeep: stays on ${prod?.name ?? 'its product'}`, comes: false };
   }
-  if (cantPost(sq, p)) return { kind: 'cant', text: 'Only engineers do maintenance', comes: false };
   const a = p.assignment ?? { type: 'idle' };
   if (a.type === 'project' && a.targetId === targetProjectId) return { kind: 'here', text: 'already on this project', comes: false };
   if (a.type === 'project') {
@@ -90,7 +89,7 @@ export function createSquadStrip({ ctx, picked, pool, targetProjectId = null, on
         lead ? portrait(lead, 26) : icon('team', { size: 18 }),
         h('span.sqtxt', null, h('b', { text: sq.name }),
           h('span.small.sqcount', { text: st.reason ?? count }),
-          h('span.sqcoh', null, h('i', { style: { width: `${Math.round(Math.min(1, (sq.cohesion ?? 0) / 10) * 100)}%` } }))));
+          h('span.sqcoh', null, h('i', { style: { width: `${Math.round(Math.max(0, Math.min(1, sq.cohesion ?? 0)) * 100)}%` } }))));
       const chev = h('button.sqchev', { type: 'button', 'aria-label': `Who can come from ${sq.name}`, 'aria-expanded': open.has(sq.id) ? 'true' : 'false',
         onclick: () => { if (open.has(sq.id)) open.delete(sq.id); else open.add(sq.id); render(); } }, icon(open.has(sq.id) ? 'caret.down' : 'caret.right', { size: 14 }));
       const chip = h('div.sqchip', { class: `${on ? 'on' : ''} ${can ? '' : 'off'}`.trim() }, main, chev);
@@ -124,7 +123,9 @@ export function postPlan(s, picked, chosen, targetProjectId) {
     const st = squadStand(s, sq, targetProjectId);
     const ticked = st.comers.filter((x) => picked.has(x.p.id));
     if (!ticked.length) continue;
-    squads.push({ squadId: sq.id, exclude: st.comers.filter((x) => !picked.has(x.p.id)).map((x) => x.p.id) });
+    // Left off: members who could come but were unticked, and those already on this project (re-posting them
+    // would only inflate the count).
+    squads.push({ squadId: sq.id, exclude: st.stands.filter((x) => x.kind === 'here' || (x.comes && !picked.has(x.p.id))).map((x) => x.p.id) });
     for (const x of ticked) covered.add(x.p.id);
   }
   return { squads, people: [...picked].filter((id) => !covered.has(id)) };
