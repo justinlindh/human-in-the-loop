@@ -238,7 +238,7 @@ export const B = {
   // The boombox: its price, and the recovery bonus for desks within radius while it plays. While it plays, at
   // most one taste remark per tasteGapWeeks (tasteChance a week once the gap has passed), and a swapChance a
   // week that someone changes the station to theirs.
-  boombox: { enabled: false, cost: 350, radius: 3, meaning: 0.05, tasteGapWeeks: 6, tasteChance: 0.5, argueChance: 0.35, swapChance: 0.012 },
+  boombox: { enabled: true, cost: 350, radius: 3, meaning: 0.05, tasteGapWeeks: 6, tasteChance: 0.5, argueChance: 0.35, swapChance: 0.012 },
   // The inbox: one ambient roll and one actionable roll a week, at most actionOpen mails with an open choice,
   // each open for expiryWeeks; at most kept mails in all, oldest settled first. A reply-all storm grows for
   // up to replyAllWeeks. botLateWeeks is how long the late-answering bot leaves mail. The rest are the

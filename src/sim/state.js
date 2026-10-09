@@ -15,6 +15,7 @@ import { findSpot, assignSeats } from './office.js';
 import { applyEraStart } from './era-start.js';
 import { startEraId } from '../data/era-modes.js';
 import { buildTakeover } from './takeover.js';
+import { tasteFor } from './radio.js';
 
 export const FUNCTIONS = ['engineering', 'support', 'sales', 'marketing', 'qa', 'ops'];
 // state.robot from the week an office robot is placed.
@@ -28,7 +29,14 @@ function founderPair(founders) {
 }
 
 export function createGame({ seed = 1, companyName = 'Loopworks', logoColor = '#ffb020', tagline = '', founders, funding = 'bootstrapped', startEra = 'classic', startMode = 'garage' } = {}) {
-  if (startMode === 'takeover') return buildTakeover({ seed, companyName, logoColor, tagline, founders, funding, startEra });
+  const opts = { seed, companyName, logoColor, tagline, founders, funding, startEra };
+  const state = startMode === 'takeover' ? buildTakeover(opts) : buildGarage(opts);
+  // Tastes are set here rather than on the first tick, so a week-0 save reloads equal to the game it saved.
+  if (B.boombox.enabled) for (const p of state.staff) p.taste ??= tasteFor(state, p.id);
+  return state;
+}
+
+function buildGarage({ seed, companyName, logoColor, tagline, founders, funding, startEra }) {
   const fundingId = FUNDING[funding] ? funding : 'bootstrapped';
   const pair = founderPair(founders);
   const state = {
