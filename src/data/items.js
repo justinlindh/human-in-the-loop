@@ -98,8 +98,8 @@ export const ITEMS = Object.fromEntries([
 ]);
 
 // The boombox: its adjacency pays only while the radio is on (src/sim/bonus.js). The item always exists, so a
-// placed one still loads; while B.boombox.enabled is false, onlyEras is empty, which keeps it out of the shop
-// and refuses a new one.
+// placed one still loads if B.boombox.enabled is ever turned off; then onlyEras is empty, which keeps it out
+// of the shop and refuses a new one.
 export function boomboxItem() {
   return { id: 'boombox', name: 'Boombox', desc: 'One working tape deck, a bent antenna and strong opinions. People nearby recover a little faster while it plays.',
     kind: 'furniture', minStage: 0, costs: [B.boombox.cost], effects: [{}], requires: null, footprint: { w: 1, h: 1 },

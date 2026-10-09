@@ -6,6 +6,7 @@ import { itemBonus } from '../../src/sim/bonus.js';
 import { suggestPlacement, purchaseProblem } from '../../src/sim/office.js';
 import { saveGame, loadGame } from '../../src/save/save.js';
 import { B } from '../../src/sim/balance.js';
+import { createGame } from '../../src/sim/state.js';
 import { ITEMS, boomboxItem } from '../../src/data/items.js';
 import { STATIONS, STATION_IDS } from '../../src/data/stations.js';
 import { game, addStaff, addDesks, expectFail } from './helpers.js';
@@ -41,6 +42,12 @@ describe('issue #139: the boombox', () => {
     expect(ITEMS.boombox.onlyEras).toEqual([]);
     expect(purchaseProblem(s, 'boombox')).toBe('Not available');
     expect(dispatch(s, { type: 'placeItem', itemId: 'boombox', ...suggestPlacement(s, 'plant') }).ok).toBe(false);
+  });
+
+  it.each(['garage', 'takeover'])('a new %s game gives every founder and starting hire a taste, so a save at week 0 round-trips', (startMode) => {
+    const s = createGame({ seed: 9, startMode, startEra: 'chatgbt' });
+    expect(s.staff.length).toBeGreaterThan(0);
+    for (const p of s.staff) expect(p.taste).toBe(tasteFor(s, p.id));
   });
 
   it('a save with a placed boombox still loads and plays when the flag is off again', () => {
