@@ -8,14 +8,14 @@ import { icon } from './icons.js';
 // new button usually lands at the right end and positions stay the same from game to game.
 export const MENU = [
   { id: 'build', label: 'Build', key: 'B', accent: '#4f8cff' },
-  { id: 'staff', label: 'Staff', key: 'S', accent: '#34c38f' },
+  { id: 'staff', label: 'Staff', key: 'T', accent: '#34c38f' },
   { id: 'office', label: 'Office', key: 'F', accent: '#d98c5f' },
   { id: 'reports', label: 'Reports', key: 'R', accent: '#5b6cff' },
   { id: 'marketing', label: 'Marketing', key: 'M', accent: '#ffb020' },
   { id: 'policies', label: 'Policies', key: 'P', accent: '#8a6fd1' },
   { id: 'ops', label: 'Ops', key: 'O', accent: '#e5484d' },
   { id: 'models', label: 'Models', key: 'V', accent: '#9b6bff' },
-  { id: 'automation', label: 'Automation', key: 'A', accent: '#3fb6b0' },
+  { id: 'automation', label: 'Automation', key: 'U', accent: '#3fb6b0' },
 ];
 
 // Bottom menu plus the single open panel. Panels are { title, icon, accent, wide?, build(ctx, arg) -> { el, update?(state), foot? , destroy?() } }.
