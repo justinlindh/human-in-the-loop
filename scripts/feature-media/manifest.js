@@ -212,7 +212,7 @@ const ITEM_STILLS = [
   ['disk_duplicator', 3.2, 'preinternet'], ['retail_shelf', 3.2, 'preinternet'], ['dotcom_banner', 3.2, 'dotcom'],
   ['desk'], ['meeting_table'], ['whiteboard'], ['water_cooler'], ['plant'], ['bookshelf'], ['couch'], ['foosball'], ['ping_pong_table'],
   ['espresso'], ['plant_wall'], ['nap_pod'], ['arcade'], ['standing_desk'], ['whiteboard_wall'], ['library'], ['monitoring_wall'], ['noc'],
-  ['office_robot'], ['server_rack'], ['trophy_case'],
+  ['office_robot'], ['server_rack'], ['trophy_case'], ['boombox'],
 ];
 
 // A real game played to week 176 with the Incentives Program on and the ladder set to `reward`'s rung, then
@@ -543,6 +543,7 @@ export const ITEMS = [
       ${era ? `s.era = { id: '${era}', since: s.week };` : ''}
       // An empty office, so the one item is the subject.
       s.office.placed = []; s.staff = [];
+      ${itemId === 'boombox' ? "s.radio = { on: true, station: 'lofi' };" : ''}
       const { suggestPlacement } = await import('/src/sim/office.js');
       const spot = suggestPlacement(s, ${JSON.stringify(itemId)});
       if (!spot) throw new Error('no free spot for ${itemId}');
