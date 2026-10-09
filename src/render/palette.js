@@ -122,9 +122,18 @@ export const PALETTE = {
   tone_bad: '#e5484d',
   tone_warn: '#ffb020',
 
-  // First-person drop ceiling
+  // First-person ceilings, one look per era
   ceiling_tile: '#eee8dc',
   ceiling_grid: '#d9d2c4',
+  ceiling_tile_aged: '#e2d6b8',
+  ceiling_grid_aged: '#c9bb98',
+  ceiling_tile_grey: '#d6d8dc',
+  ceiling_grid_grey: '#b3b7bf',
+  ceiling_plaster: '#f4f1ea',
+  ceiling_plaster_warm: '#efe1cc',
+  ceiling_deck: '#4a4756',
+  ceiling_shade_pop: '#ef7a3c',
+  lamp_cool: '#e4f0ff',
 
   // Sky and light
   sky_day_top: '#bfd8ea',
