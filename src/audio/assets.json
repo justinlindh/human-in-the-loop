@@ -841,6 +841,14 @@
    "file": "sfx/letter_ping.ogg",
    "duration": 0.5
   },
+  "radio_click": {
+   "file": "sfx/radio_click.ogg",
+   "duration": 0.5
+  },
+  "radio_tune": {
+   "file": "sfx/radio_tune.ogg",
+   "duration": 0.9
+  },
   "deal_handbell": {
    "file": "sfx/deal_handbell.ogg",
    "duration": 0.867
