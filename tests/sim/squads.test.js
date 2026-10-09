@@ -89,6 +89,44 @@ describe('squads: state and actions (#938)', () => {
     expect(dispatch(s, { type: 'postSquad', squadId: only.id, posting: { type: 'maintenance', targetId: null } }).ok).toBe(false);
   });
 
+  it('issue #1909: postSquad leaves members in exclude where they are, reported as "Left off"', () => {
+    const s = floor();
+    const [a, b, c] = [eng(s), eng(s), eng(s)];
+    const sq = make(s, 'Core', [a.id, b.id, c.id]);
+    const j = project(s);
+    const before = { ...c.assignment };
+    const r = dispatch(s, { type: 'postSquad', squadId: sq.id, posting: { type: 'project', targetId: j.id }, exclude: [c.id] });
+    expect(r.ok).toBe(true);
+    expect(r.placed.sort()).toEqual([a.id, b.id].sort());
+    expect(r.skipped).toEqual([{ staffId: c.id, reason: 'Left off' }]);
+    expect(c.assignment).toEqual(before);
+    expect(sq.memberIds).toContain(c.id);
+    expect(sq.posting).toEqual({ type: 'project', targetId: j.id });
+    // Ids outside the squad are ignored; an empty list is the same as none.
+    const all = dispatch(s, { type: 'postSquad', squadId: sq.id, posting: { type: 'maintenance', targetId: null }, exclude: ['nobody'] });
+    expect(all.placed.sort()).toEqual([a.id, b.id, c.id].sort());
+    expect(dispatch(s, { type: 'postSquad', squadId: sq.id, posting: { type: 'project', targetId: j.id }, exclude: [] }).placed).toHaveLength(3);
+  });
+
+  it('issue #1909: excluding every member places nobody and changes nothing', () => {
+    const s = floor();
+    const [a, b] = [eng(s), eng(s)];
+    const sq = make(s, 'Core', [a.id, b.id]);
+    const j = project(s);
+    const posting = { ...sq.posting };
+    const r = dispatch(s, { type: 'postSquad', squadId: sq.id, posting: { type: 'project', targetId: j.id }, exclude: [a.id, b.id] });
+    expect(r).toMatchObject({ ok: false, reason: 'Left off' });
+    expect(sq.posting).toEqual(posting);
+    expect(a.assignment.targetId).not.toBe(j.id);
+  });
+
+  it('issue #1909: exclude must be a list of staff ids', () => {
+    const s = floor();
+    const sq = make(s, 'Core', [eng(s).id]);
+    const j = project(s);
+    expect(dispatch(s, { type: 'postSquad', squadId: sq.id, posting: { type: 'project', targetId: j.id }, exclude: 'x' })).toMatchObject({ ok: false, reason: 'Bad exclude list' });
+  });
+
   it('a plain assign leaves the member in the squad; disband keeps their work', () => {
     const s = floor();
     const [a, b] = [eng(s), eng(s)];
