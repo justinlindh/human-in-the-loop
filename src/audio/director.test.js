@@ -429,16 +429,32 @@ describe('audio director', () => {
     const d = createDirector();
     const plays = (cmds) => cmds.filter((c) => c.op === 'play').map((c) => c.cue);
     const deal = (notable, extra = {}) => ({ type: 'deal', productId: 'p1', week: 1, notable, ...extra });
-    for (const [i, era] of ['preinternet', 'dotcom', 'web2', 'classic', 'agents'].entries()) {
+    const bells = [['preinternet', 'sfx.deal_bell_preinternet'], ['dotcom', 'sfx.deal_bell_dotcom'], ['web2', 'sfx.deal_bell_web2'],
+      ['classic', 'sfx.deal_handbell'], ['agents', 'sfx.deal_bell_agents']];
+    for (const [i, [era, cue]] of bells.entries()) {
       const s = state({ era: { id: era } });
       expect(plays(d.events([deal(true), deal(true, { boxed: true })], s, 100 + i * 100))).toEqual([]);
-      expect(plays(d.dealBell({ staffId: 's1', seconds: 3 }, 100 + i * 100))).toEqual(['sfx.deal_handbell']);
+      expect(plays(d.dealBell({ staffId: 's1', seconds: 3 }, 100 + i * 100))).toEqual([cue]);
     }
     expect(plays(d.dealBell({ staffId: 's1' }, 500.5))).toEqual([]);
     expect(plays(d.dealBell({ staffId: 's1' }, 520))).toEqual([]);
-    expect(plays(d.dealBell({ staffId: 's1' }, 531))).toEqual(['sfx.deal_handbell']);
-    expect(CUES['sfx.deal_handbell']).toMatchObject({ bus: 'sfx', cooldown: 30 });
+    expect(plays(d.dealBell({ staffId: 's1' }, 531))).toEqual(['sfx.deal_bell_agents']);
+    for (const [, cue] of bells) expect(CUES[cue]).toMatchObject({ bus: 'sfx', cooldown: 30, delivered: true });
     expect(CUES['sfx.sales_register']).toBeUndefined();
+  });
+
+  it('a boxed sale plays its own sound in every era, and eras without a bell fall back to the handbell', () => {
+    const plays = (cmds) => cmds.filter((c) => c.op === 'play').map((c) => c.cue);
+    for (const [i, era] of ['preinternet', 'dotcom', 'classic', 'agents'].entries()) {
+      const d = createDirector();
+      d.events([], state({ era: { id: era } }), 10 + i);
+      expect(plays(d.dealBell({ staffId: 's1', boxed: true }, 100))).toEqual(['sfx.deal_box']);
+    }
+    const d = createDirector();
+    d.events([], state({ era: { id: 'chatgbt' } }), 10);
+    expect(plays(d.dealBell({ staffId: 's1' }, 100))).toEqual(['sfx.deal_handbell']);
+    expect(plays(createDirector().dealBell({ staffId: 's1' }, 100))).toEqual(['sfx.deal_handbell']);
+    expect(CUES['sfx.deal_box']).toMatchObject({ bus: 'sfx', cooldown: 30, delivered: true });
   });
 
   it('pings when a letter is presented, and stays quiet for a prompt or a decision', () => {
