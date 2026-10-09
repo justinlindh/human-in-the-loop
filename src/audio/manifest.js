@@ -88,11 +88,30 @@ export const CUES = {
   'sfx.cd_tray': { bus: 'sfx', files: ['sfx/cd_tray'], cooldown: 30, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
   'sfx.retail_box': { bus: 'sfx', files: ['sfx/retail_box'], cooldown: 30, priority: 1, scaleWithSpeed: true, gain: 0.7, delivered: true },
   'sfx.dotcom_bell': { bus: 'sfx', files: ['sfx/dotcom_bell'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
-  // The seller's two-shake handbell on a notable closed deal (hitl:dealBell from the renderer), in every era.
+  // The seller's two-shake handbell on a notable closed deal (hitl:dealBell from the renderer): the
+  // Classic bell, and the fallback for any era without its own (see DEAL_CUES).
   'sfx.deal_handbell': { bus: 'sfx', files: ['sfx/deal_handbell'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
+  'sfx.deal_bell_preinternet': { bus: 'sfx', files: ['sfx/deal_bell_preinternet'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
+  'sfx.deal_bell_dotcom': { bus: 'sfx', files: ['sfx/deal_bell_dotcom'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
+  'sfx.deal_bell_web2': { bus: 'sfx', files: ['sfx/deal_bell_web2'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
+  'sfx.deal_bell_agents': { bus: 'sfx', files: ['sfx/deal_bell_agents'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
+  'sfx.deal_box': { bus: 'sfx', files: ['sfx/deal_box'], cooldown: 30, priority: 3, gain: 0.8, delivered: true },
   // The sledgehammer moment's 1984 parody: a rising sting under the run-in and the screen's smash.
   'moment.sledge_run': { bus: 'sfx', files: ['sfx/sledge_run'], cooldown: 1, priority: 6, gain: 0.8, delivered: true },
   'moment.sledge_shatter': { bus: 'sfx', files: ['sfx/sledge_shatter'], cooldown: 1, priority: 9, gain: 0.9, delivered: true },
+};
+// A notable deal's beat: a boxed sale (the seller raises a retail box) has its own sound; otherwise the era
+// picks the bell, and an era not listed in DEAL_CUES (Classic, the ChatGBT moment) rings the handbell. All of
+// them share one clock: at most one deal sound per DEAL_GAP_S seconds, whichever cue it is.
+export const DEAL_BOX = 'sfx.deal_box';
+export const DEAL_GAP_S = 30;
+export const DEAL_CUES = {
+  preinternet: 'sfx.deal_bell_preinternet',
+  dotcom: 'sfx.deal_bell_dotcom',
+  web2: 'sfx.deal_bell_web2',
+  agents: 'sfx.deal_bell_agents',
+  consolidation: 'sfx.deal_bell_agents',
+  plateau: 'sfx.deal_bell_agents',
 };
 // A period cue that follows an event's main sound, after `delay` seconds so a stinger is not masked.
 // Boxed (on-prem) software in the early eras sounds like a retail box; otherwise a launch is a

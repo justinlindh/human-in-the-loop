@@ -845,6 +845,26 @@
    "file": "sfx/deal_handbell.ogg",
    "duration": 0.867
   },
+  "deal_box": {
+   "file": "sfx/deal_box.ogg",
+   "duration": 0.7
+  },
+  "deal_bell_preinternet": {
+   "file": "sfx/deal_bell_preinternet.ogg",
+   "duration": 0.7
+  },
+  "deal_bell_dotcom": {
+   "file": "sfx/deal_bell_dotcom.ogg",
+   "duration": 0.7
+  },
+  "deal_bell_web2": {
+   "file": "sfx/deal_bell_web2.ogg",
+   "duration": 0.7
+  },
+  "deal_bell_agents": {
+   "file": "sfx/deal_bell_agents.ogg",
+   "duration": 0.22
+  },
   "sledge_leader": {
    "file": "sfx/sledge_leader.ogg",
    "duration": 8.115
