@@ -36,8 +36,9 @@
 // dump-query.mjs. Units and fields are described in dump.js. The browser runs render on the GPU
 // (--software for SwiftShader), under the render lock the harness takes.
 import { spotReasons } from '../../src/render/spots.js';
-import { startHarness, wantGpu } from './harness.mjs';
 import { resolveTarget, openAt } from '../../scripts/events/load.js';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { SEED_PLAY } from './sweep-plan.js';
 import { join, resolve } from 'node:path';
@@ -62,6 +63,8 @@ const timeout = Number(opt('timeout', 600));
 
 const images = argv.includes('--images');
 const useBrowser = images || argv.includes('--browser');
+// The harness pulls in playwright, which handles SIGINT, SIGTERM and SIGHUP in JavaScript; only browser runs load it.
+const { startHarness, wantGpu } = useBrowser ? await import('./harness.mjs') : {};
 
 // A browser page that logged an error may have stopped part way, and its dump would read as a real difference:
 // such a run writes no dump.json (and drops an old one in --out) and exits 1, unless --page-errors-ok.
@@ -77,6 +80,9 @@ function pageFailed(errors) {
 
 if (opt('trace-js')) { try { new Function('S', 'R', 'd', 'frame', `return (${opt('trace-js')});`); } catch (e) { console.error(`dump: --trace-js is not a JS expression: ${e.message}`); process.exit(2); } }
 const kill = setTimeout(() => { console.error(`dump: timed out after ${timeout} s`); process.exit(124); }, timeout * 1000);
+// The timer above cannot fire inside the engine's long synchronous stretches; a watchdog process ends those.
+const watchdog = spawn(process.execPath, [fileURLToPath(new URL('../../scripts/tools/watchdog.mjs', import.meta.url)), String(process.pid), String(timeout + 2), `dump: timed out after ${timeout} s`], { stdio: ['pipe', 'ignore', 'inherit'] });
+watchdog.unref(); watchdog.stdin.unref(); watchdog.stdin.on('error', () => {});
 const dir = resolve(out);
 mkdirSync(dir, { recursive: true });
 const sweepRow = opt('sweep-row');
@@ -111,9 +117,21 @@ if (sweepRow) {
   let r, dumped, engineName;
   if (!useBrowser) {
     const host = await import('../../scripts/studio/sweep-host.mjs');
+    const { dumpPage } = await import('./dump-page.js');
+    // Replay and dump run in this process in long synchronous stretches, where a JavaScript signal handler never
+    // runs: leave the signals at their default action so a SIGTERM ends the run at once.
+    const defaultSignals = () => { for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.removeAllListeners(sig); };
+    defaultSignals();
     r = await host.hostSeed(seedOpts);
     if (!r.stopped) notReached(r);
-    const { dumpPage } = await import('./dump-page.js');
+    // The visibility probes cast thousands of rays a frame: through per-mesh trees, as on every harness page.
+    // The tree module makes three.js objects on load, so it loads on the tool stream.
+    const { fastRaycast } = await import('../../scripts/studio/page-host.mjs');
+    const gameRandom = Math.random;
+    Math.random = globalThis.__tool(() => Math.random);
+    try { await import('./bvh.js'); } finally { Math.random = gameRandom; }
+    globalThis.__fastRaycast = fastRaycast(globalThis.__hitlRender);
+    defaultSignals();
     dumped = await dumpPage({ ...dumpOpts, width: w, height: h });
     engineName = 'studio engine';
   } else {
