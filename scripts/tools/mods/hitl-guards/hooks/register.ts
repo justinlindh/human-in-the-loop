@@ -17,6 +17,26 @@ async function git($: EngineInterface, cwd: string, ...args: string[]) {
   return $.process.run(['git', ...args], { cwd, timeoutMs: 10000 })
 }
 
+// The mod loads for every session on the machine; its hooks act only in a checkout of this repo (a git top
+// level with scripts/hooks/claude/lanes.txt) and pass everything else straight on.
+const homeOf = new Map<string, boolean>()
+async function inRepo($: EngineInterface): Promise<boolean> {
+  try {
+    const cwd = await $.session.cwd()
+    const known = homeOf.get(cwd)
+    if (known !== undefined) return known
+    const top = (await git($, cwd, 'rev-parse', '--show-toplevel')).stdout.trim()
+    let home = false
+    if (top) {
+      try { await $.fs.read(`${top}/scripts/hooks/claude/lanes.txt`); home = true } catch { /* another repo */ }
+    }
+    homeOf.set(cwd, home)
+    return home
+  } catch {
+    return false
+  }
+}
+
 // Tracked files a command would rewrite from the shell, each with its owner lane by lanes.txt.
 async function trackedWrites($: EngineInterface, writes: ShellWrite[]) {
   const out: { path: string; how: string; rel: string; owners: string[] }[] = []
@@ -97,6 +117,7 @@ export const register: Register = on => {
   // A render or a capture waits for the machine instead of being refused: while the 1-minute load is at
   // or above the limit it holds, up to ten minutes, then runs, or refuses if the load never dropped.
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    if (!(await inRepo($))) return next(e)
     let waited = 0
     try {
       if (isRenderJob(e.command) && e.run_in_background) {
@@ -122,6 +143,7 @@ export const register: Register = on => {
   // Session trailers in a commit message or PR text: the commit-msg hook refuses them after the gate.
   // Local paths in PR text become repo-relative. After a non-draft `gh pr create`, auto-merge is checked.
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    if (!(await inRepo($))) return next(e)
     let command = e.command
     try { command = stripTrailers(command) } catch { /* fail open */ }
     try {
@@ -144,6 +166,7 @@ export const register: Register = on => {
   // Rewrites of tracked files from the shell: lane-guard only sees Edit and Write, so answer up front
   // with the tool to use and the lane that owns the file.
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    if (!(await inRepo($))) return next(e)
     try {
       const writes = shellWrites(e.command)
       if (writes.length) {
@@ -160,6 +183,7 @@ export const register: Register = on => {
   // A branch switch under a watcher: wait-for.sh merges main into whatever branch the worktree has
   // checked out, and a job.sh job reads the files the switch replaces.
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    if (!(await inRepo($))) return next(e)
     try {
       const sw = branchSwitch(e.command)
       if (sw) {
@@ -175,6 +199,7 @@ export const register: Register = on => {
   // A background command's notification carries only its status; add its exit code and last lines,
   // and flag a check that exited 0 without printing a result row.
   on('session.append', async ($, e, next) => {
+    if (!(await inRepo($))) return next(e)
     try {
       if (e.origin.kind !== 'task-notification') return next(e)
       const blocks = typeof e.message.content === 'string' ? [{ type: 'text' as const, text: e.message.content }] : e.message.content ?? []
