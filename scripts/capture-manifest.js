@@ -394,7 +394,7 @@ export const ITEMS = [
   },
   {
     id: '3-2-portraits', title: '3.2 Portraits in menus', query: 'seed=24&speed=0', still: true, setup: PLAY({ weeks: 120 }),
-    actions: [{ at: 0.5, js: KEY('s', 'KeyS') }, { at: 3.5, js: `window.__HITL_UI.openStaff(window.__HITL.state.staff[1].id)` }],
+    actions: [{ at: 0.5, js: KEY('t', 'KeyT') }, { at: 3.5, js: `window.__HITL_UI.openStaff(window.__HITL.state.staff[1].id)` }],
     screenshots: [3, 6],
   },
   // The procedural poses and the authored rig (?rig=1), same scene, for comparison. The camera
@@ -431,7 +431,7 @@ export const ITEMS = [
   { id: '4-1-hud', title: '4.1 HUD, Needs You, Goals, Active effects', query: 'seed=28&speed=0', still: true, setup: PLAY({ weeks: 150 }), screenshots: [2] },
   {
     id: '4-2-staff-hire', title: '4.2 Staff and Hire', query: 'seed=28&speed=0', still: true, setup: PLAY({ weeks: 150 }),
-    actions: [{ at: 0.5, js: KEY('s', 'KeyS') }, { at: 3.5, js: CLICK_STARTS('Hire') }], screenshots: [3, 6],
+    actions: [{ at: 0.5, js: KEY('t', 'KeyT') }, { at: 3.5, js: CLICK_STARTS('Hire') }], screenshots: [3, 6],
   },
   {
     id: '4-3-build-panel', title: '4.3 Starting a product', query: 'seed=29&speed=0', seconds: 14, setup: PLAY({ weeks: 40 }),
@@ -536,7 +536,7 @@ export const ITEMS = [
   {
     id: '6-2-sfx', title: '6.2 UI and world effects', query: 'mock=floor&speed=1', seconds: 22, sound: true,
     actions: [
-      { at: 1, js: KEY('s', 'KeyS') }, { at: 3, js: KEY('Escape') },
+      { at: 1, js: KEY('t', 'KeyT') }, { at: 3, js: KEY('Escape') },
       { at: 5, js: `window.__HITL.emit([{ type: 'hire', staffId: window.__HITL.state.staff[0].id }])` },
       { at: 7, js: `window.__HITL.emit([{ type: 'incident', kind: 'bug', productId: window.__HITL.state.products[0].id, caught: true, severity: 2 }])` },
       { at: 9, js: `window.__HITL.emit([{ type: 'incident', kind: 'outage', productId: window.__HITL.state.products[0].id, caught: false, severity: 3 }])` },
@@ -684,7 +684,7 @@ export const ITEMS = [
     id: 'trail-hire', group: 'trailer', title: 'Trailer: hiring a candidate', query: 'seed=1&speed=1&time=day', seconds: 5, warmup: 1,
     // Toasts stay, so the hire's own toast lands; the rest of the overlays go.
     setup: `(async () => { await ${PLAY({ weeks: 400, until: "s.office.stage === 1 && s.staff.length >= 8 && s.candidates.length && s.staff.length < (sim.deskCapacity?.(s) ?? s.office.placed.filter((p) => p.itemId === 'desk').length)", after: IN_OFFICE + 's.cash = Math.max(s.cash, 50000);' })}; ${BUILD_ONLY.replace('#ui .toasts, ', '')}; ${NO_SAY}; })()`,
-    actions: [...CLEAR_EARLY, { at: 0.4, js: KEY('s', 'KeyS') }, { at: 0.7, js: CLICK_STARTS('Hire') }, { at: 2.0, js: CLICK('Hire') }, ...CAMLOG(5)],
+    actions: [...CLEAR_EARLY, { at: 0.4, js: KEY('t', 'KeyT') }, { at: 0.7, js: CLICK_STARTS('Hire') }, { at: 2.0, js: CLICK('Hire') }, ...CAMLOG(5)],
     screenshots: [1.5, 2.5, 4],
   },
   {

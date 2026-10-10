@@ -429,16 +429,42 @@ describe('audio director', () => {
     const d = createDirector();
     const plays = (cmds) => cmds.filter((c) => c.op === 'play').map((c) => c.cue);
     const deal = (notable, extra = {}) => ({ type: 'deal', productId: 'p1', week: 1, notable, ...extra });
-    for (const [i, era] of ['preinternet', 'dotcom', 'web2', 'classic', 'agents'].entries()) {
+    const bells = [['preinternet', 'sfx.deal_bell_preinternet'], ['dotcom', 'sfx.deal_bell_dotcom'], ['web2', 'sfx.deal_bell_web2'],
+      ['classic', 'sfx.deal_handbell'], ['agents', 'sfx.deal_bell_agents']];
+    for (const [i, [era, cue]] of bells.entries()) {
       const s = state({ era: { id: era } });
       expect(plays(d.events([deal(true), deal(true, { boxed: true })], s, 100 + i * 100))).toEqual([]);
-      expect(plays(d.dealBell({ staffId: 's1', seconds: 3 }, 100 + i * 100))).toEqual(['sfx.deal_handbell']);
+      expect(plays(d.dealBell({ staffId: 's1', seconds: 3 }, 100 + i * 100))).toEqual([cue]);
     }
     expect(plays(d.dealBell({ staffId: 's1' }, 500.5))).toEqual([]);
     expect(plays(d.dealBell({ staffId: 's1' }, 520))).toEqual([]);
-    expect(plays(d.dealBell({ staffId: 's1' }, 531))).toEqual(['sfx.deal_handbell']);
-    expect(CUES['sfx.deal_handbell']).toMatchObject({ bus: 'sfx', cooldown: 30 });
+    expect(plays(d.dealBell({ staffId: 's1' }, 531))).toEqual(['sfx.deal_bell_agents']);
+    for (const [, cue] of bells) expect(CUES[cue]).toMatchObject({ bus: 'sfx', cooldown: 30, delivered: true });
     expect(CUES['sfx.sales_register']).toBeUndefined();
+  });
+
+  it('a boxed sale plays its own sound in every era, and eras without a bell fall back to the handbell', () => {
+    const plays = (cmds) => cmds.filter((c) => c.op === 'play').map((c) => c.cue);
+    for (const [i, era] of ['preinternet', 'dotcom', 'classic', 'agents'].entries()) {
+      const d = createDirector();
+      d.events([], state({ era: { id: era } }), 10 + i);
+      expect(plays(d.dealBell({ staffId: 's1', boxed: true }, 100))).toEqual(['sfx.deal_box']);
+    }
+    const d = createDirector();
+    d.events([], state({ era: { id: 'chatgbt' } }), 10);
+    expect(plays(d.dealBell({ staffId: 's1' }, 100))).toEqual(['sfx.deal_handbell']);
+    expect(plays(createDirector().dealBell({ staffId: 's1' }, 100))).toEqual(['sfx.deal_handbell']);
+    expect(CUES['sfx.deal_box']).toMatchObject({ bus: 'sfx', cooldown: 30, delivered: true });
+  });
+
+  it('a boxed sale and an era bell share one 30 s clock', () => {
+    const plays = (cmds) => cmds.filter((c) => c.op === 'play').map((c) => c.cue);
+    const d = createDirector();
+    d.events([], state({ era: { id: 'preinternet' } }), 0);
+    expect(plays(d.dealBell({ boxed: true }, 10))).toEqual(['sfx.deal_box']);
+    expect(plays(d.dealBell({ boxed: false }, 15))).toEqual([]);
+    expect(plays(d.dealBell({ boxed: true }, 39))).toEqual([]);
+    expect(plays(d.dealBell({ boxed: false }, 41))).toEqual(['sfx.deal_bell_preinternet']);
   });
 
   it('pings when a letter is presented, and stays quiet for a prompt or a decision', () => {
@@ -526,6 +552,15 @@ describe('audio director', () => {
       d.events([{ type: 'era', eraId: 'chatgbt' }], era, 100);
       expect(cheered(d.update(era, 101, { speed: 1, running: true, menuPause: true }))).toBe(false);
       expect(cheered(run(d, era, 110))).toBe(true);
+    });
+
+    it('ships the radio click and tuning cues, delivered', () => {
+      for (const cue of ['sfx.radio_click', 'sfx.radio_tune']) expect(CUES[cue]).toMatchObject({ bus: 'sfx', delivered: true });
+      const d = createDirector({ seed: 3, beds });
+      const cues = (cmds) => cmds.filter((c) => c.op === 'play').map((c) => c.cue);
+      run(d, state(), 0);
+      expect(cues(run(d, radio('lofi'), 5))).toEqual(['sfx.radio_click']);
+      expect(cues(run(d, radio('funk'), 10))).toEqual(['sfx.radio_tune']);
     });
 
     it('plays the tuning and click cues when they exist: a click on and off, tuning between stations', () => {

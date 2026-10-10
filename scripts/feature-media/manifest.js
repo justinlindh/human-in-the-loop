@@ -212,7 +212,7 @@ const ITEM_STILLS = [
   ['disk_duplicator', 3.2, 'preinternet'], ['retail_shelf', 3.2, 'preinternet'], ['dotcom_banner', 3.2, 'dotcom'],
   ['desk'], ['meeting_table'], ['whiteboard'], ['water_cooler'], ['plant'], ['bookshelf'], ['couch'], ['foosball'], ['ping_pong_table'],
   ['espresso'], ['plant_wall'], ['nap_pod'], ['arcade'], ['standing_desk'], ['whiteboard_wall'], ['library'], ['monitoring_wall'], ['noc'],
-  ['office_robot'], ['server_rack'], ['trophy_case'],
+  ['office_robot'], ['server_rack'], ['trophy_case'], ['boombox'],
 ];
 
 // A real game played to week 176 with the Incentives Program on and the ladder set to `reward`'s rung, then
@@ -392,7 +392,7 @@ export const ITEMS = [
     // and posts them to projects, so cohesion has time to build. Staff opens straight to the tab.
     id: 'site-still-squads', title: 'Landing page: the Squads tab in Staff', query: 'seed=8&speed=0', still: true, warmup: 0.5,
     setup: `(async () => { await ${PLAY({ weeks: 400, bot: 'squads', until: 's.squads.length >= 2 && s.squads.some((q) => q.cohesion >= 0.5)', after: IN_OFFICE })}; })()`,
-    actions: [...CLEAR_EARLY, { at: 3.3, js: KEY('s', 'KeyS') }, { at: 4, js: CLICK_STARTS('Squads') }],
+    actions: [...CLEAR_EARLY, { at: 3.3, js: KEY('t', 'KeyT') }, { at: 4, js: CLICK_STARTS('Squads') }],
     screenshots: [4.6],
     // Cropped to the Squads tab card, starting at its own top edge, with the office below.
     out: [{ path: 'img/squads.webp', size: '1280x720', crop: { x: 300 / 1920, y: 85 / 1080, w: 1340 / 1920, h: 710 / 1080 }, publishAs: 'site-still-squads' }], publish: true,
@@ -543,6 +543,7 @@ export const ITEMS = [
       ${era ? `s.era = { id: '${era}', since: s.week };` : ''}
       // An empty office, so the one item is the subject.
       s.office.placed = []; s.staff = [];
+      ${itemId === 'boombox' ? "s.radio = { on: true, station: 'lofi' };" : ''}
       const { suggestPlacement } = await import('/src/sim/office.js');
       const spot = suggestPlacement(s, ${JSON.stringify(itemId)});
       if (!spot) throw new Error('no free spot for ${itemId}');
@@ -636,7 +637,7 @@ export const ITEMS = [
     })()`,
     actions: [
       ...[0, 0.3, 0.6].map((at) => ({ at, js: CLEAR_CARDS })),
-      { at: 0.8, js: KEY('s', 'KeyS') }, { at: 1.4, js: CLICK_STARTS('Hire') },
+      { at: 0.8, js: KEY('t', 'KeyT') }, { at: 1.4, js: CLICK_STARTS('Hire') },
       { at: 3.0, js: CLICK_SEL('.iv-watch') },
       { at: 4.5, js: `if (!document.querySelector('.iv')) console.error('capture: the Spot the AI card never opened')` },
       { at: 11.5, js: CLICK_SEL('.iv-ask') },

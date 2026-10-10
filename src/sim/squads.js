@@ -114,29 +114,32 @@ registerAction('setSquadAfterLaunch', (ctx, { squadId, mode }) => {
   return { ok: true };
 });
 
-// Posts every member who can take the work; the rest keep what they were doing.
-export function postSquad(state, squad, posting) {
+// Posts every member who can take the work, except those in exclude (the player left them off); the rest keep
+// what they were doing.
+export function postSquad(state, squad, posting, exclude = []) {
   const placed = [];
   const skipped = [];
   const assignment = { type: posting.type, targetId: posting.type === 'project' ? posting.targetId : null };
   for (const id of squad.memberIds) {
     const p = findStaff(state, id);
+    const left = exclude.includes(id) ? 'Left off' : null;
     const crew = posting.type !== 'maintenance' && squad.crewIds.includes(id) ? 'On upkeep crew' : null;
-    const reason = crew ?? postingBlocker(p, posting) ?? tryAssign(state, p, assignment);
+    const reason = left ?? crew ?? postingBlocker(p, posting) ?? tryAssign(state, p, assignment);
     if (reason) skipped.push({ staffId: id, reason });
     else placed.push(id);
   }
   return { placed, skipped };
 }
 
-registerAction('postSquad', (ctx, { squadId, posting }) => {
+registerAction('postSquad', (ctx, { squadId, posting, exclude = [] }) => {
   const { state } = ctx;
   const squad = findSquad(state, squadId);
   if (!squad) return { ok: false, reason: 'No such squad' };
   if (!posting || !POSTINGS.has(posting.type)) return { ok: false, reason: 'Unknown posting' };
   if (posting.type === 'project' && !state.projects.some((j) => j.id === posting.targetId)) return { ok: false, reason: 'No such project' };
+  if (!Array.isArray(exclude)) return { ok: false, reason: 'Bad exclude list' };
   if (!squad.memberIds.length) return { ok: false, reason: 'The squad is empty' };
-  const { placed, skipped } = postSquad(state, squad, posting);
+  const { placed, skipped } = postSquad(state, squad, posting, exclude);
   if (!placed.length) return { ok: false, reason: skipped[0].reason, placed, skipped };
   squad.posting = { type: posting.type, targetId: posting.type === 'project' ? posting.targetId : null };
   squad.postedWeek = state.week;

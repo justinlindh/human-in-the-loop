@@ -12,7 +12,22 @@ const FLOOR_SPAN_M = 14.5;
 const REF_ASPECT = 1.6;
 // Screen space the HUD covers, in CSS px; the office is fitted into what is left.
 const INSET = { top: 90, bottom: 100, left: 120, right: 150 };
-const PAN_KEYS = new Set(['arrowup', 'arrowdown', 'arrowleft', 'arrowright']);
+// Keys that pan the view (lower-cased `KeyboardEvent.key`), as [x, y] screen directions.
+const LEFT = [1, 0], RIGHT = [-1, 0], UP = [0, 1], DOWN = [0, -1];
+export const PAN_KEYS = new Map([
+  ['arrowleft', LEFT], ['a', LEFT],
+  ['arrowright', RIGHT], ['d', RIGHT],
+  ['arrowup', UP], ['w', UP],
+  ['arrowdown', DOWN], ['s', DOWN],
+]);
+// The pan direction for the keys held: a key and its twin (W and the up arrow) count once.
+export function panDir(held) {
+  const dirs = new Set();
+  for (const k of held) { const d = PAN_KEYS.get(k); if (d) dirs.add(d); }
+  let x = 0, y = 0;
+  for (const [dx, dy] of dirs) { x += dx; y += dy; }
+  return [x, y];
+}
 
 export function createCameraRig(canvas) {
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
@@ -218,12 +233,8 @@ export function createCameraRig(canvas) {
 
   function update(dt) {
     const speed = 900 * dt;
-    let kx = 0, ky = 0;
-    if (keys.has('arrowleft')) kx += speed;
-    if (keys.has('arrowright')) kx -= speed;
-    if (keys.has('arrowup')) ky += speed;
-    if (keys.has('arrowdown')) ky -= speed;
-    if (kx || ky) panScreen(kx, ky);
+    const [kx, ky] = panDir(keys);
+    if (kx || ky) panScreen(kx * speed, ky * speed);
 
     const k = 1 - Math.exp(-dt * followRate);
     target.lerp(goal, k);

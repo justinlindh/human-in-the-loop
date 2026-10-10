@@ -841,9 +841,37 @@
    "file": "sfx/letter_ping.ogg",
    "duration": 0.5
   },
+  "radio_click": {
+   "file": "sfx/radio_click.ogg",
+   "duration": 0.5
+  },
+  "radio_tune": {
+   "file": "sfx/radio_tune.ogg",
+   "duration": 0.9
+  },
   "deal_handbell": {
    "file": "sfx/deal_handbell.ogg",
    "duration": 0.867
+  },
+  "deal_box": {
+   "file": "sfx/deal_box.ogg",
+   "duration": 0.7
+  },
+  "deal_bell_preinternet": {
+   "file": "sfx/deal_bell_preinternet.ogg",
+   "duration": 0.7
+  },
+  "deal_bell_dotcom": {
+   "file": "sfx/deal_bell_dotcom.ogg",
+   "duration": 0.7
+  },
+  "deal_bell_web2": {
+   "file": "sfx/deal_bell_web2.ogg",
+   "duration": 0.7
+  },
+  "deal_bell_agents": {
+   "file": "sfx/deal_bell_agents.ogg",
+   "duration": 0.22
   },
   "sledge_leader": {
    "file": "sfx/sledge_leader.ogg",

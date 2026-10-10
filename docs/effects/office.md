@@ -30,6 +30,6 @@ Placed in Build mode. Each level's cost and what it adds.
 | Network Operations Center | shop | any, ops | L1 $8,000: early catches +8%, outage fixing +10% · L2 $30,000: early catches +15%, outage fixing +20% · L3 $90,000: early catches +25%, outage fixing +35% |
 | Office Robot | shop | any, the Agents era | L1 $15,000: stamina recovery +8%, meaning recovery +3% · L2 $45,000: stamina recovery +12%, meaning recovery +5% · L3 $120,000: stamina recovery +16%, meaning recovery +7% |
 | Trophy Case | shop | any, after your first award | L1 $3,000: brand decay -15% · L2 $9,000: brand decay -30% · L3 $27,000: brand decay -45% |
-| Boombox | furniture | not in the game yet | L1 $350; meaning recovery +5% for each occupied desk within 3 tiles, shared across the team |
+| Boombox | furniture | any | L1 $350; meaning recovery +5% for each occupied desk within 3 tiles, shared across the team |
 
 A second copy of an item adds its level effect at 50%, and copies past the second add no level effect. Nearby bonuses are different: every copy counts in full, for each desk or item in reach. All items together are capped at ±50% on any one effect. A desk bonus counts only when someone sits at that desk, and is divided by headcount.

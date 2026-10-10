@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { toolTmp } from '../../scripts/tools/tmp.mjs';
-import { apply, mediaPlan, problems } from '../../scripts/tools/changelog-apply.mjs';
+import { apply, fingerprint, keepFrom, mediaPlan, problems, recordOf } from '../../scripts/tools/changelog-apply.mjs';
 
 const SCRIPT = resolve(__dirname, '../../scripts/tools/changelog-apply.mjs');
 const tmp = mkdtempSync(join(toolTmp(), 'changelog-apply-test-'));
@@ -82,6 +82,160 @@ describe('apply', () => {
     expect(r.entries.find((e) => e.date === '2026-10-01').items[0].media).toBeUndefined();
     expect(existsSync(join(site, 'changelog/media/2026-10-01/a.png'))).toBe(false);
     expect(r.notes[0]).toMatch(/could not download/);
+  });
+});
+
+describe('apply with items to keep', () => {
+  const day = '2026-10-01';
+  const art = { area: 'Art', title: 'New art', body: 'Stills.', media: [{ src: `media/${day}/art.webp`, kind: 'image' }, { src: `media/${day}/old.webp`, kind: 'image' }] };
+  beforeEach(() => writeFileSync(join(site, `changelog/media/${day}/art.webp`), 'a'));
+
+  it('keeps the items and headline it was given, with their stills, and leaves out a drafted item of the same title', () => {
+    const draft = { date: day, headline: 'Drafted', items: [
+      { area: 'Art', title: 'New art', body: 'A rewrite.', refs: [] },
+      { area: 'UI', title: 'A button', body: 'It clicks.', refs: ['#2'], media: [{ src: `${FM}/old.webp?raw=true`, kind: 'image' }, { src: `${FM}/new.webp?raw=true`, kind: 'image' }] },
+    ] };
+    let fetched = [];
+    const r = apply({ site, day, draft, keep: { headline: 'Curated', items: [art] }, fetchFile: (url, dest) => { fetched.push(url); return fetchOk(url, dest); } });
+    const e = r.entries.find((x) => x.date === day);
+    expect(e.headline).toBe('Curated');
+    expect(e.items.map((i) => [i.title, i.body])).toEqual([['New art', 'Stills.'], ['A button', 'It clicks.']]);
+    // old.webp is the kept item's: linked, not fetched over.
+    expect(e.items[1].media.map((m) => m.src)).toEqual([`media/${day}/old.webp`, `media/${day}/new.webp`]);
+    expect(fetched).toEqual(['https://raw.githubusercontent.com/justinlindh/human-in-the-loop/feature-media/new.webp']);
+    expect(readFileSync(join(site, `changelog/media/${day}/old.webp`), 'utf8')).toBe('x');
+    expect(readdirSync(join(site, `changelog/media/${day}`)).sort()).toEqual(['art.webp', 'new.webp', 'old.webp']);
+    expect(r.notes).toEqual(['left out the drafted "New art": the entry keeps its own']);
+  });
+
+  it('with no kept headline the drafted one is used, and a file nothing shows is removed', () => {
+    writeFileSync(join(site, `changelog/media/${day}/spare.webp`), 's');
+    const r = apply({ site, day, draft: entry(day), keep: { items: [art] } });
+    expect(r.entries.find((x) => x.date === day).headline).toBe(`Headline ${day}`);
+    expect(readdirSync(join(site, `changelog/media/${day}`)).sort()).toEqual(['art.webp', 'old.webp']);
+  });
+
+  it('takes --keep on the command line and refuses a bad keep file', () => {
+    const run = (...a) => spawnSync(process.execPath, [SCRIPT, ...a], { encoding: 'utf8' });
+    const draft = join(site, 'draft.json'), keep = join(site, 'keep.json');
+    writeFileSync(draft, JSON.stringify(entry(day)));
+    writeFileSync(keep, JSON.stringify({ headline: 'Curated', items: [art] }));
+    const r = run(site, day, draft, '--keep', keep);
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.stdout).toContain(`replaced ${day}: 2 item(s), 1 kept as published`);
+    expect(readEntries().find((x) => x.date === day).items[0]).toEqual(art);
+    writeFileSync(keep, '{"headline":"x"}');
+    expect(run(site, day, draft, '--keep', keep).status).toBe(2);
+    expect(run(site, day, draft, '--keep').status).toBe(2);
+  });
+});
+
+describe('apply with media chosen by rule', () => {
+  const day = '2026-10-01';
+  const PM = 'https://github.com/justinlindh/human-in-the-loop/blob/pr-media';
+  const art = { area: 'Art', title: 'Kept', body: 'Hand-made.', media: [{ src: `media/${day}/old.webp`, kind: 'image' }] };
+  const sources = new Map([
+    [5, { stills: [{ url: `${PM}/pr-5/after.png?raw=true`, caption: 'The after shot' }, { url: `${FM}/old.webp?raw=true`, caption: '' }], clips: [] }],
+    [6, { stills: [], clips: [{ url: `${PM}/pr-6/walk.mp4?raw=true`, caption: 'A walk' }] }],
+  ]);
+  const convert = (src, dest) => { writeFileSync(dest, `webp:${readFileSync(src, 'utf8')}`); return true; };
+  const frame = (src, dest) => { writeFileSync(dest, 'frame'); return true; };
+
+  it('ignores the draft\'s media, takes the cited PRs\', cuts a frame for a clip-only PR, and flags an on-screen item left bare', () => {
+    const fetched = [];
+    const draft = { date: day, headline: 'H', items: [
+      { area: 'UI', title: 'Five', body: 'b', refs: ['#5'], media: [{ src: `${FM}/model-pick.webp?raw=true`, kind: 'image' }] },
+      { area: 'Office', title: 'Six', body: 'b', refs: ['#6'] },
+      { area: 'Office', title: 'Bare', body: 'b', refs: ['#7'] },
+      { area: 'Sound', title: 'Hum', body: 'b', refs: [] },
+    ] };
+    const r = apply({ site, day, draft, keep: { items: [art] }, sources, convert, frame, fetchFile: (url, dest) => { fetched.push(url); return fetchOk(url, dest); } });
+    const e = r.entries.find((x) => x.date === day);
+    expect(e.items.map((i) => [i.title, (i.media ?? []).map((m) => m.src)])).toEqual([
+      ['Kept', [`media/${day}/old.webp`]],
+      ['Five', [`media/${day}/5-after.webp`, `media/${day}/old.webp`]],
+      ['Six', [`media/${day}/6-walk-frame.webp`]],
+      ['Bare', []], ['Hum', []],
+    ]);
+    // The kept item's old.webp is linked by the feature still of the same name, never fetched over.
+    expect(fetched).toEqual(['https://raw.githubusercontent.com/justinlindh/human-in-the-loop/pr-media/pr-5/after.png', 'https://raw.githubusercontent.com/justinlindh/human-in-the-loop/pr-media/pr-6/walk.mp4']);
+    expect(readFileSync(join(site, `changelog/media/${day}/old.webp`), 'utf8')).toBe('x');
+    expect(readFileSync(join(site, `changelog/media/${day}/5-after.webp`), 'utf8')).toBe('webp:png');
+    expect(readdirSync(join(site, `changelog/media/${day}`)).sort()).toEqual(['5-after.webp', '6-walk-frame.webp', 'old.webp']);
+    expect(r.attached.map((a) => [a.title, a.srcs.length])).toEqual([['Five', 2], ['Six', 1], ['Bare', 0], ['Hum', 0]]);
+    // Each still carries its caption; one with none has no caption field.
+    expect(e.items[1].media).toEqual([{ src: `media/${day}/5-after.webp`, kind: 'image', caption: 'The after shot' }, { src: `media/${day}/old.webp`, kind: 'image' }]);
+    expect(e.items[2].media[0].caption).toBe('A walk');
+    expect(r.wanted.map((w) => w.title)).toEqual(['Bare']);
+  });
+
+  it('keeps the original still when it cannot be made webp, and drops what cannot be fetched', () => {
+    const draft = { date: day, headline: 'H', items: [{ area: 'UI', title: 'Five', body: 'b', refs: ['#5', '#6'] }] };
+    const r = apply({ site, day, draft, sources, convert: () => false, frame: () => false, fetchFile: (url, dest) => !/old\.webp/.test(url) && fetchOk(url, dest) });
+    expect(r.entries.find((x) => x.date === day).items[0].media).toEqual([{ src: `media/${day}/5-after.png`, kind: 'image', caption: 'The after shot' }]);
+    expect(r.notes).toEqual([expect.stringMatching(/could not download .*old\.webp/)]);
+    expect(readdirSync(join(site, `changelog/media/${day}`))).toEqual(['5-after.png']);
+  });
+
+  it('fetches up to six candidates, puts a very wide one (a likely strip) behind the rest, and keeps the cap', () => {
+    const many = new Map([[9, { stills: ['strip', 'b', 'c', 'd', 'e', 'f', 'g'].map((n) => ({ url: `${PM}/pr-9/${n}.png?raw=true`, caption: n })), clips: [] }]]);
+    const draft = { date: day, headline: 'H', items: [{ area: 'UI', title: 'Nine', body: 'b', refs: ['#9'] }] };
+    const fetched = [];
+    const ratio = (f) => (f.endsWith('9-strip.webp') ? 4 : 16 / 9);
+    const r = apply({ site, day, draft, sources: many, convert, frame, ratio, fetchFile: (url, dest) => { fetched.push(url); return fetchOk(url, dest); } });
+    expect(fetched).toHaveLength(6);
+    expect(r.entries.find((x) => x.date === day).items[0].media.map((x) => x.src)).toEqual(['b', 'c', 'd'].map((n) => `media/${day}/9-${n}.webp`));
+    expect(r.notes).toContain(`ranked down a likely sheet (wider than 2.2:1): media/${day}/9-strip.webp`);
+    // With a larger cap (the still check makes the cut) the strip stays in, last.
+    const big = apply({ site, day, draft, sources: many, cap: 6, convert, frame, ratio, fetchFile: fetchOk });
+    expect(big.entries.find((x) => x.date === day).items[0].media.map((x) => x.src).at(-1)).toBe(`media/${day}/9-strip.webp`);
+  });
+
+  it('shows a file once when two picks land on the same name, and says so as a duplicate', () => {
+    const dup = new Map([[8, { stills: [{ url: `${PM}/pr-8/a.png?raw=true`, caption: 'A' }, { url: `${PM}/pr-8/v2/a.png?raw=true`, caption: 'A again' }], clips: [] }]]);
+    const draft = { date: day, headline: 'H', items: [{ area: 'UI', title: 'Eight', body: 'b', refs: ['#8'] }] };
+    const r = apply({ site, day, draft, sources: dup, convert, frame, fetchFile: fetchOk });
+    expect(r.entries.find((x) => x.date === day).items[0].media).toEqual([{ src: `media/${day}/8-a.webp`, kind: 'image', caption: 'A' }]);
+    expect(r.notes).toEqual([`skipped media: ${PM}/pr-8/v2/a.png?raw=true is the same file as media/${day}/8-a.webp, already shown`]);
+  });
+});
+
+describe('the record of what this tool wrote', () => {
+  const entryOf = (items, headline = 'Mine') => ({ date: '2026-10-01', headline, items });
+  const a = { area: 'UI', title: 'A', body: 'Text.', refs: ['#1'], media: [{ src: 'media/x/1.webp', kind: 'image' }] };
+  const b = { area: 'Art', title: 'B', body: 'Curated.', refs: [] };
+  it('records what it wrote, less what it kept, and a redraft keeps the rest', () => {
+    const rec = recordOf(entryOf([b, a], 'Mine'), { items: [b] });
+    expect(rec).toEqual({ headline: 'Mine', titles: ['A'], prints: { A: fingerprint(a) } });
+    expect(keepFrom(entryOf([b, a]), rec)).toEqual({ headline: null, items: [b] });
+    // A kept headline is not the tool's.
+    expect(recordOf(entryOf([a], 'Theirs'), { headline: 'Theirs', items: [] }).headline).toBe(null);
+  });
+  it('keeps an item of its own that was edited by hand since: new text or new stills', () => {
+    const rec = recordOf(entryOf([a]));
+    expect(keepFrom(entryOf([{ ...a, body: 'Fixed by hand.' }]), rec).items).toHaveLength(1);
+    expect(keepFrom(entryOf([{ ...a, media: [...a.media, { src: 'media/x/2.webp', kind: 'image' }] }]), rec).items).toHaveLength(1);
+    expect(keepFrom(entryOf([{ ...a, refs: ['#2'] }]), rec).items).toHaveLength(0);
+  });
+  it('reads an older record of titles only, and with no record keeps everything', () => {
+    expect(keepFrom(entryOf([a, b]), { headline: 'Mine', titles: ['A'] })).toEqual({ headline: null, items: [b] });
+    expect(keepFrom(entryOf([a, b]), null)).toEqual({ headline: 'Mine', items: [a, b] });
+  });
+  it('keep and record on the command line', () => {
+    const run = (...x) => spawnSync(process.execPath, [SCRIPT, ...x], { encoding: 'utf8' });
+    const pub = join(site, 'pub.json'), rec = join(site, 'rec.json');
+    writeFileSync(pub, JSON.stringify(entryOf([b, a])));
+    writeFileSync(rec, JSON.stringify(recordOf(entryOf([a]))));
+    const k = run('keep', pub, rec);
+    expect(k.status, k.stderr).toBe(0);
+    expect(JSON.parse(k.stdout)).toEqual({ headline: null, items: [b] });
+    expect(JSON.parse(run('keep', pub, join(site, 'missing.json')).stdout).items).toHaveLength(2);
+    const r = run('record', site, '2026-10-03');
+    expect(r.status, r.stderr).toBe(0);
+    expect(JSON.parse(r.stdout).titles).toEqual(['A thing']);
+    expect(run('record', site, '2026-01-01').status).toBe(1);
+    expect(run('keep').status).toBe(2);
+    expect(run(site, '2026-10-03', pub, '--stills', 'x').status).toBe(2);
   });
 });
 

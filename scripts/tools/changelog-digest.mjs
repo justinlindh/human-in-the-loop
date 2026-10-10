@@ -14,10 +14,13 @@ const oneLine = (s) => String(s).replace(/\s+/g, ' ').trim();
 
 const RAW = 'https://raw.githubusercontent.com/justinlindh/human-in-the-loop/feature-media';
 
-// `stills` lists the file names on the feature-media branch; a feature whose id has one there
-// (`<kind>-<id>.webp` or `.png`, any kind) gets it as a still line.
-export function digest(data, day = data.days[0]?.date, stills = []) {
-  const stillsFor = (ids = []) => stills.filter((n) => ids.some((id) => new RegExp(`^[a-z]+-${id.replace(/[^\w-]/g, '')}\\.(webp|png)$`).test(n)));
+// The feature-media branch's files (`names`) that are a still of one of these feature ids:
+// `<kind>-<id>.webp` or `.png`, any kind.
+export const stillsFor = (ids = [], names = []) => names.filter((n) => ids.some((id) => new RegExp(`^[a-z]+-${id.replace(/[^\w-]/g, '')}\\.(webp|png)$`).test(n)));
+
+// `featureFiles` lists the file names on the feature-media branch; a feature whose id has one there gets it
+// as a still line.
+export function digest(data, day = data.days[0]?.date, featureFiles = []) {
   const d = data.days.find((x) => x.date === day);
   if (!d) throw new Error(`no ${day} in the data`);
   const out = [`# ${day}: ${d.prs.length} merged PR(s), ${d.direct.length} direct commit(s)`, ''];
@@ -29,7 +32,7 @@ export function digest(data, day = data.days[0]?.date, stills = []) {
       if (f.status === 'removed') continue;
       out.push(`- Feature (${f.status}, ${f.file.replace('docs/features/', '')}): ${cut(oneLine(f.text), 1500)}`);
       const seen = new Set();
-      for (const u of [...f.media.filter((x) => x.kind === 'still').map((m) => m.url), ...stillsFor(f.ids).map((n) => `${RAW}/${n}`)]) if (!seen.has(u)) { seen.add(u); out.push(`  - still: ${u}`); }
+      for (const u of [...f.media.filter((x) => x.kind === 'still').map((m) => m.url), ...stillsFor(f.ids, featureFiles).map((n) => `${RAW}/${n}`)]) if (!seen.has(u)) { seen.add(u); out.push(`  - still: ${u}`); }
       for (const e of f.effects ?? []) out.push(`  - effects (${e.name}): ${cut(oneLine(e.kind === 'row' ? Object.entries(e.columns).slice(1).map(([k, v]) => `${k}: ${v}`).join('; ') : e.text), 450)}`);
     }
     out.push('');

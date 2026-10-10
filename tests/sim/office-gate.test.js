@@ -25,4 +25,23 @@ describe('issue #67: the Office Floor gate', () => {
     expect(totalMrr(s)).toBe(g.mrr);
     expect(officeGateReason(s, 1)).toBeNull();
   });
+
+  it('issue #1908: the dates read as the HUD calendar, with the founding offset', () => {
+    const s = game(1);
+    s.week = 0;
+    s.cash = 0;
+    expect(officeGateReason(s, 1)).toBe('Available from 2021 · Q1 · Wk 1');
+    s.founding = { ...s.founding, calendarOffset: 52 };
+    expect(officeGateReason(s, 1)).toBe('Available from 2022 · Q1 · Wk 1');
+    s.week = OFFICE_STAGES[1].gate.week;
+    s.stats.launches = 2;
+    s.brand = 30;
+    while (s.staff.length < 6) addStaff(s, 'engineer', 'mid');
+    expect(officeGateReason(s, 1)).toBe('Needs $250,000 MRR, or $450,000 in the bank from 2022 · Q3 · Wk 32');
+    s.founding.calendarOffset = 0;
+    const reason = officeGateReason(s, 1);
+    expect(reason).toBe('Needs $250,000 MRR, or $450,000 in the bank from 2021 · Q3 · Wk 32');
+    // The prefix ui's Office panel rewrites.
+    expect(reason).toMatch(/^Needs \$[\d,]+ MRR, or \$[\d,]+ in the bank from /);
+  });
 });
