@@ -851,6 +851,14 @@ export function createRobot({ office, recs, emote: staffEmote, parent, walkTo: w
     },
     // Test hook: set the robot down at (x, z), its plan unchanged, with nowhere left to walk.
     parkAt(x, z) { if (!rec) return false; rec.pos.set(x, 0, z); rec.path = []; return true; },
+    // Test hook: stop the working robot at (x, z) off its dock, as at a stop on its rounds, until a
+    // plan is forced.
+    holdAt(x, z) {
+      if (!rec) return false;
+      Object.assign(rec, { docked: false, plan: 'rounds', stops: [], stop: { x, z }, path: [], arrived: true, t: Infinity });
+      rec.pos.set(x, 0, z);
+      return true;
+    },
     get root() { return rec?.rig.root ?? null; },
     // The floor circle walkers keep out of: the robot's body plus a walker's, off its dock only.
     // fixer: the one walking up to slap it, who may come inside.

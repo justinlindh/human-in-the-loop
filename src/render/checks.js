@@ -1629,6 +1629,67 @@ export function setupRobotFix(R, S, { cause = 'spin', x = 13, y = 0, rot = 0 } =
   return { id };
 }
 
+// Someone walking from beside the robot's dock to the door finds the robot parked where their walk
+// ends and waits at its edge; then it is sent home, back the way they came. Returns { id }.
+export function setupRobotPass(R, S, { x = 4, y = 11, rot = 0 } = {}) {
+  R.perks.hold = true;
+  S.pendingDecision = null;
+  R.incentives?.reset();
+  R.robot?.reset();
+  const placed = S.office.placed.filter((p) => p.id !== 'check_robot');
+  if (!placed.some((p) => p.itemId === 'office_robot')) S.office.placed = [...placed, { id: 'check_robot', itemId: 'office_robot', level: 2, x, y, rot }];
+  S.robot = { status: 'ok', since: S.week, breakdowns: 0, sabotages: 0, calmUntil: 0, googly: false };
+  R.sync(S);
+  window.__advance(2);
+  const nav = R.office.nav(), [dx, dz] = R.robot.peek().pos;
+  const ids = S.staff.filter((p) => p.mood !== 'away' && !p.remote).map((p) => p.id);
+  const id = ids.find((i) => R.walkOf(i)?.mode === 'placed') ?? ids[0];
+  const from = nav.freePoint(dx, dz + 1.2);
+  R.standAt(id, from.x, from.z);
+  R.catchFor(id, null, { walk: true });
+  window.__advance(1);
+  const path = R.walkDebug(id)?.path ?? [];
+  if (!path.length) throw new Error('robot pass fixture: the walker has no path to the door');
+  const [ex, ez] = path[path.length - 1];
+  R.robot.holdAt(ex, ez);
+  return { id, end: { x: ex, z: ez } };
+}
+
+// The robot's body radius plus a standing person's (robot.js and sync.js BODY_R): closer than this
+// while it drives past, their bodies touch.
+const ROBOT_PASS_CLEAR_M = 0.44;
+// The pass-by: the walker waits at the parked robot's edge, it drives off through where they stand,
+// and they step out of its way. The two never come closer than their footprints, and the walker's
+// whole step (not only where it ends) keeps out of furniture.
+function robotPassAside(R, S) {
+  R.setQuality('medium');
+  const { id, end } = setupRobotPass(R, S);
+  const root = charOf(R.scene, id), at = new THREE.Vector3();
+  let held = 0, sent = false, aside = false, home = false, closest = Infinity, closestFrame = null, worst = 0, worstFrame = null, inRobot = 0, inRobotFrame = null;
+  for (let f = 0; f < 30 * 40 && !home; f++) {
+    // Held on the walker's last turn until they have waited a second, then sent home.
+    window.__advance(1);
+    const dbg = R.walkDebug(id), hold = dbg?.robotHold ?? 0;
+    held = Math.max(held, hold);
+    if (!sent && hold >= 1) { R.robot.force('home'); sent = true; continue; }
+    const p = R.robot.peek();
+    if (sent && p.docked) { home = true; break; }
+    root.getWorldPosition(at);
+    const rp = R.robot.root.position;
+    const inFurniture = bodyInside(root, furnitureOf(R, new Set(['check_robot', R.perks.peek(id)?.seat])));
+    if (inFurniture > worst) { worst = inFurniture; worstFrame = { f, at: [+at.x.toFixed(3), +at.z.toFixed(3)], anim: R.walkOf(id)?.anim ?? null, path: dbg?.path ?? null }; }
+    const v = bodyInside(root, meshes(R.robot.root), false);
+    if (v > inRobot) { inRobot = v; inRobotFrame = { f, sent, d: +Math.hypot(at.x - rp.x, at.z - rp.z).toFixed(3), walker: [+at.x.toFixed(3), +at.z.toFixed(3)], robot: [+rp.x.toFixed(3), +rp.z.toFixed(3)], hits: (() => { const h = []; exact?.(root, meshes(R.robot.root), (o) => !isArm(o), h); return h.map((x) => `${x.part} x ${x.target}`); })() }; }
+    if (dbg?.steppingAside) aside = true;
+    // The wait at its edge is KEEP_OFF_R's business; the pass starts once it has moved off its spot.
+    if (!sent || Math.hypot(rp.x - end.x, rp.z - end.z) < 0.01) continue;
+    const d = Math.hypot(at.x - rp.x, at.z - rp.z);
+    if (d < closest) { closest = d; closestFrame = { f, walker: [+at.x.toFixed(3), +at.z.toFixed(3)], robot: [+rp.x.toFixed(3), +rp.z.toFixed(3)], hold, aside: !!dbg?.steppingAside, way: R.robot.peek().way.slice(0, 2) }; }
+  }
+  return { name: 'moment:robot:pass-aside', pass: held >= 1 && sent && aside && home && closest >= ROBOT_PASS_CLEAR_M && worst < 0.01 && inRobot < 0.01,
+    held: +held.toFixed(2), sent, aside, home, closest: +closest.toFixed(3), clearM: ROBOT_PASS_CLEAR_M, insidePct: +(worst * 100).toFixed(2), inRobotPct: +(inRobot * 100).toFixed(2), closestFrame, worstFrame, inRobotFrame };
+}
+
 // The robot slap from each breakdown: the fixer reaches it, slaps it, and walks off; nobody stands in
 // furniture or in the robot, and the robot keeps out of furniture (except the chair it is stuck on).
 export async function runRobotChecks(R, S) {
@@ -1661,6 +1722,7 @@ export async function runRobotChecks(R, S) {
       slapped, ended, insidePct: +(worst * 100).toFixed(2), worstFrame, inRobotPct: +(inRobot * 100).toFixed(2), robotInsidePct: +(robotIn * 100).toFixed(2),
       ...(inRobot >= 0.01 && robotHits ? { robotHits } : {}) });
   }
+  results.push(robotPassAside(R, S));
   // At a waffle party it serves, at a music night it plays DJ: it gets to its post, keeps out of
   // furniture and people on the way there, while it's there and on the way home, and goes home after.
   for (const reward of ['waffle_party', 'music_night']) {
