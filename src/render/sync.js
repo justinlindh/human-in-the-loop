@@ -51,6 +51,7 @@ const FACE_HOLD = { deal: 2, notable: 2.5, hire: 4, launch: 3, award: 3, fired: 
 // ROBOT_HOLD_AGAIN_S while it stays.
 const ROBOT_HOLD_LOOK_S = 0.6;
 const ROBOT_HOLD_AGAIN_S = 6;
+const ASIDE_SAMPLE_M = 0.05;   // the step out of the robot's way is checked against furniture this often
 // A voice bark's face by its emotion; it holds VOICE_FACE_TAIL s past the bark. VOICE_TALK scales
 // the bark's 0..1 loudness to mouth opening.
 const VOICE_FACE = { happy: 'delighted', excited: 'delighted', laughing: 'delighted', questioning: 'questioning', annoyed: 'sideeye', tired: 'tired', sighing: 'sad' };
@@ -1857,8 +1858,13 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
     if (along <= 0 || Math.abs(across) >= off - 0.02) return null;
     const nav = office.nav(), legs = [b, ...b.way];
     const offWay = (p) => Math.min(...legs.slice(1).map((q, i) => segDist(p, legs[i], q)));
-    const sides = [1, -1].map((s) => ({ x: b.x + ux * along - uz * s * off, z: b.z + uz * along + ux * s * off }))
-      .filter((p) => !nav.isBlocked(p.x, p.z, BODY_R));
+    // The whole straight step there, not only where it ends, keeps off furniture.
+    const clearStep = (p) => {
+      const n = Math.max(1, Math.ceil(Math.hypot(p.x - r.pos.x, p.z - r.pos.z) / ASIDE_SAMPLE_M));
+      for (let k = 1; k <= n; k++) if (nav.isBlocked(r.pos.x + (p.x - r.pos.x) * k / n, r.pos.z + (p.z - r.pos.z) * k / n, BODY_R)) return false;
+      return true;
+    };
+    const sides = [1, -1].map((s) => ({ x: b.x + ux * along - uz * s * off, z: b.z + uz * along + ux * s * off })).filter(clearStep);
     return sides.sort((p, q) => offWay(q) - offWay(p))[0] ?? null;
   }
   function segDist(p, a, q) {
@@ -2562,6 +2568,7 @@ export function createStaffSync({ office, parent, labels, fx, rig, caricature = 
         wait: r.wait ? { kind: r.wait.kind, timer: n(r.wait.timer) } : { kind: null, timer: 0 },
         narrow: r.narrow ?? [],
         robotHold: r.robotHold ? n(r.robotHoldT ?? 0) : 0,
+        steppingAside: !!r.steppingAside,
       };
     },
     // Whether someone is in a seated pose (for checks).
