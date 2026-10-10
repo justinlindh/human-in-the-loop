@@ -4,19 +4,22 @@ import { register } from '../../scripts/tools/mods/hitl-guards/hooks/register.ts
 // The mod's Bash hooks against a fake engine: a session in /w, `$.process.run` answered by `answer`, the load
 // read from a list, `$.clock.sleep` counted instead of waited. `bash(command)` runs the Bash chain the way the
 // engine does and returns what the last hook answers; `ran` is the commands the chain let through.
-function engine({ loads = ['10 10 10 1/1 1\n'], answer = () => undefined } = {}) {
+// The session sits in `cwd`; unless `answer` says otherwise git's top level is `top` (none: not a repo), which
+// has lanes.txt unless `lanes` is false.
+function engine({ loads = ['10 10 10 1/1 1\n'], answer = () => undefined, cwd = '/w', top = '/w', lanes = true } = {}) {
   const hooks = [];
   register((event, matcher, hook) => hooks.push({ event, matcher: hook ? matcher : undefined, hook: hook ?? matcher }));
   const ran = [], statuses = [], calls = [];
   let sleeps = 0, reads = 0;
   const $ = {
-    session: { cwd: async () => '/w' },
+    session: { cwd: async () => cwd },
     env: { get: async () => '/home/u' },
     ui: { status: (s) => statuses.push(s) },
     clock: { sleep: async () => { sleeps++; } },
     fs: {
       read: async (path) => {
         if (path === '/proc/loadavg') return loads[Math.min(reads++, loads.length - 1)];
+        if (path.endsWith('/scripts/hooks/claude/lanes.txt') && lanes) return 'tools    scripts/tools/\n';
         throw new Error('no such file');
       },
       stat: async () => { throw new Error('no such file'); },
@@ -25,7 +28,8 @@ function engine({ loads = ['10 10 10 1/1 1\n'], answer = () => undefined } = {})
     process: {
       run: async (argv) => {
         calls.push(argv.join(' '));
-        const r = answer(argv) ?? { exitCode: 1, stdout: '', stderr: '' };
+        const topOf = argv.join(' ') === 'git rev-parse --show-toplevel' ? (top ? { stdout: `${top}\n` } : { exitCode: 128, stderr: 'fatal: not a git repository' }) : undefined;
+        const r = answer(argv) ?? topOf ?? { exitCode: 1, stdout: '', stderr: '' };
         return { exitCode: 0, stdout: '', stderr: '', ...r };
       },
     },
@@ -128,5 +132,27 @@ describe('local paths in gh pr text', () => {
     const t = engine({ answer: (argv) => (argv.join(' ') === 'git rev-parse --show-toplevel' ? { stdout: '/home/u/src/gamedev-tools2\n' } : argv.join(' ') === 'git worktree list --porcelain' ? { stdout: 'worktree /home/u/src/gamedev\nHEAD x\n\nworktree /home/u/src/gamedev-art\n' } : undefined) });
     const r = await t.bash('gh pr comment 5 --body "see /home/u/src/gamedev-tools2/docs/toolkit/x.md and /home/u/src/gamedev-art/a.js and /home/u/src/other/b.js"');
     expect(r._command).toBe('gh pr comment 5 --body "see docs/toolkit/x.md and a.js and /home/u/src/other/b.js"');
+  });
+});
+
+describe('only in a checkout of this repo', () => {
+  const RENDER = 'node blender/checks/golden.mjs';
+  const TRAILER = 'git commit -m "x\n\nClaude-Session: https://claude.ai/code/session_01ABC"';
+  const HOT = ['60 50 40 1/1 1'];
+  it('passes every call on untouched in a session outside any git repo, and in another git repo', async () => {
+    for (const where of [{ cwd: '/home/u', top: null }, { cwd: '/home/u/src/other', top: '/home/u/src/other', lanes: false }]) {
+      const t = engine({ ...where, loads: HOT });
+      const render = await t.bash(RENDER);
+      expect(render.deny, where.cwd).toBeUndefined();
+      expect(t.sleeps, where.cwd).toBe(0);
+      await t.bash(TRAILER);
+      expect(t.ran, where.cwd).toEqual([RENDER, TRAILER]);
+    }
+  });
+  it('acts in a lane worktree, found by its own top level', async () => {
+    const t = engine({ cwd: '/home/u/src/gamedev-art/src', top: '/home/u/src/gamedev-art', loads: HOT });
+    expect((await t.bash(RENDER)).deny).toMatch(/load is still 60/);
+    await t.bash(TRAILER);
+    expect(t.ran.at(-1)).toBe('git commit -m "x\n\n"');
   });
 });

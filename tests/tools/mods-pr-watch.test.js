@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { register } from '../../scripts/tools/mods/pr-watch/hooks/register.ts';
 
 // Runs the mod's hooks against a fake engine: state in memory, `$.process.run` answered by `answer`
-// (argv, cwd) => { code, out, err }, every prompt the mod submits recorded.
-function engine(answer) {
+// (argv, cwd) => { code, out, err }, every prompt the mod submits recorded. Unless `answer` says otherwise,
+// the session sits in a checkout of this repo: git's top level is /w, and it has lanes.txt unless `lanes` is false.
+function engine(answer, { lanes = true } = {}) {
   const hooks = [];
   register((event, matcher, hook) => hooks.push({ event, matcher: hook ? matcher : undefined, hook: hook ?? matcher }));
   const state = new Map(), prompts = [], statuses = [], tools = [], timers = [], calls = [];
@@ -15,13 +16,18 @@ function engine(answer) {
     tool: { register: async (t) => { tools.push(t.name); return { tool: `mcp__pr-watch__${t.name}` }; } },
     clock: { every: (ms, fn) => { timers.push({ ms, fn }); return { cancel() {} }; } },
     env: { get: async () => '/home/test' },
-    fs: { read: async (path) => { calls.push(['read', path]); return 'step output 1\nstep output 2'; } },
+    fs: { read: async (path) => {
+      calls.push(['read', path]);
+      if (path.endsWith('/scripts/hooks/claude/lanes.txt') && !lanes) throw new Error('no such file');
+      return 'step output 1\nstep output 2';
+    } },
     ui: { status: (s) => statuses.push(s) },
     prompt: { submit: async ({ text }) => { prompts.push(text); return {}; } },
     process: {
       run: async (argv, init = {}) => {
         calls.push([argv, init.cwd]);
-        const r = (await answer(argv, init.cwd)) ??{ code: 1, out: '', err: 'unanswered' };
+        const top = argv.join(' ') === 'git rev-parse --show-toplevel' ? { code: 0, out: '/w\n', err: '' } : undefined;
+        const r = (await answer(argv, init.cwd)) ?? top ?? { code: 1, out: '', err: 'unanswered' };
         return { exitCode: r.code, stdout: r.out, stderr: r.err };
       },
     },
@@ -50,6 +56,25 @@ describe('pr-watch session start', () => {
     expect(t.tools).toEqual(['watch_pr', 'unwatch_pr']);
     expect(t.timers).toHaveLength(1);
     expect(t.statuses.at(-1)).toBeUndefined();
+  });
+
+  it('registers nothing in a session outside any git repo, or in another git repo', async () => {
+    const outside = engine((argv) => (argv[0] === 'git' ? { code: 128, out: '', err: 'fatal: not a git repository' } : undefined));
+    expect(await outside.run('session.start', { cwd: '/home/u' })).toEqual({ cwd: '/home/u' });
+    const other = engine(() => undefined, { lanes: false });
+    await other.run('session.start', { cwd: '/home/u/src/other' });
+    for (const t of [outside, other]) {
+      expect(t.tools).toEqual([]);
+      expect(t.timers).toEqual([]);
+      expect(t.statuses).toEqual([]);
+    }
+  });
+
+  it('registers in a lane worktree, from its own top level', async () => {
+    const t = engine((argv, cwd) => (argv.join(' ') === 'git rev-parse --show-toplevel' ? { code: 0, out: `${cwd}\n` } : undefined));
+    await t.run('session.start', { cwd: '/home/u/src/gamedev-art' });
+    expect(t.tools).toEqual(['watch_pr', 'unwatch_pr']);
+    expect(t.calls).toContainEqual(['read', '/home/u/src/gamedev-art/scripts/hooks/claude/lanes.txt']);
   });
 });
 
