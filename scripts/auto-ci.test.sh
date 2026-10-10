@@ -231,6 +231,11 @@ run
 git -C "$tmp/mods" checkout -q -- a
 run
 [ "$(git -C "$tmp/mods" rev-parse HEAD)" = "$(git -C "$tmp/mods" rev-parse origin/main)" ] || fail "a clean mods worktree should follow origin/main"
+: >"$tmp/seed/c"; g -C "$tmp/seed" add c; g -C "$tmp/seed" commit -q -m three; g -C "$tmp/seed" push -q origin HEAD:main
+g -C "$tmp/mods" fetch -q origin
+echo scratch >"$tmp/mods/untracked"
+run
+[ "$(git -C "$tmp/mods" rev-parse HEAD)" = "$(git -C "$tmp/mods" rev-parse origin/main)" ] || fail "untracked files should not hold the mods worktree back"
 
 # Without AUTO_CI_PR_RUNS no run starts for a PR (it merges on GitHub's smoke check and the review).
 for f in "$tmp"/state/jobs/*; do [ -e "$f" ] && read -r p _ <"$f" && kill -KILL -- "-$p" 2>/dev/null; done; sleep 0.3
