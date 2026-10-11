@@ -54,10 +54,10 @@ log() { printf '%s %s\n' "$(date -Is)" "$*" >>"$STATE/log"; }
 alive() { kill -0 -- "-$1" 2>/dev/null; }
 
 # The mods worktree follows origin/main (the pass has just fetched), so mods loaded from it reload
-# on each merge. A worktree with local changes is left alone.
+# on each merge. A worktree with edits to tracked files is left alone; untracked files do not hold it.
 MODS="${AUTO_CI_MODS:-$HOME/src/gamedev-mods}"
 if [ -e "$MODS/.git" ]; then
-  if [ -n "$(git -C "$MODS" status --porcelain 2>/dev/null)" ]; then log "mods worktree has local changes; left as is"
+  if [ -n "$(git -C "$MODS" status --porcelain --untracked-files=no 2>/dev/null)" ]; then log "mods worktree has local changes; left as is"
   else git -C "$MODS" checkout -q --detach origin/main 2>/dev/null || log "mods worktree: checkout of origin/main failed"; fi
 fi
 
