@@ -187,9 +187,10 @@ export function placedTransform(L, p) {
 // Nav grid over the floor. Obstacles are axis-aligned rects { x0, z0, x1, z1 } in meters, with an
 // optional margin: a cell is blocked when its centre is within that of one (NAV_MARGIN by default).
 const NEAR_COST = 3;   // extra cost of a cell inside a soft clearance (one cell's move costs 1)
-// A free cell in a gap narrower than a body (furniture on both sides, across x or across z) costs
-// a walker this much more again, so a route squeezes through one only when going round is long.
-const PINCH_W = 0.45;
+// A free cell in a gap narrower than a walking body with its arm swing (furniture on both sides,
+// across x or across z) costs a walker this much more again, so a route squeezes through one only
+// when going round is long.
+const PINCH_W = 0.75;
 const PINCH_COST = 8;
 const NAV_MARGIN = 0.12;
 export function createNav(L, obstacles, cell = 0.35) {
