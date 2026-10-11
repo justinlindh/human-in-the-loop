@@ -68,17 +68,35 @@ function ghList(repo) {
 
 // The newest team whose config lists team-lead (the directory name changes when the team is
 // relaunched), with its reviewers: the members whose names start with "reviewer", in name order.
-export function findTeam(dir = teamsDir()) {
+// Other projects' teams live in the same directory:
+// Only this repository's teams count: one with a reviewer, or whose team-lead works in a checkout of this
+// repository (a git top level with scripts/hooks/claude/lanes.txt). HITL_PR_WATCH_TEAM (a team directory's
+// name or path) pins one team and skips the search.
+export function findTeam(dir = teamsDir(), pin = process.env.HITL_PR_WATCH_TEAM) {
+  const read = (at) => {
+    let cfg;
+    try { cfg = JSON.parse(readFileSync(join(at, 'config.json'), 'utf8')); } catch { return null; }
+    const members = (cfg.members ?? []).map((m) => m.name);
+    if (!members.includes('team-lead')) return null;
+    const reviewers = members.filter((n) => n.startsWith('reviewer')).sort();
+    const leadCwd = (cfg.members ?? []).find((m) => m.name === 'team-lead')?.cwd ?? null;
+    return { dir: at, members, reviewers, createdAt: cfg.createdAt ?? 0, leadCwd };
+  };
+  if (pin) return read(resolve(dir, pin));
   let best = null;
   for (const name of (() => { try { return readdirSync(dir); } catch { return []; } })()) {
-    let cfg;
-    try { cfg = JSON.parse(readFileSync(join(dir, name, 'config.json'), 'utf8')); } catch { continue; }
-    const members = (cfg.members ?? []).map((m) => m.name);
-    if (!members.includes('team-lead')) continue;
-    const reviewers = members.filter((n) => n.startsWith('reviewer')).sort();
-    if (!best || (cfg.createdAt ?? 0) > best.createdAt) best = { dir: join(dir, name), members, reviewers, createdAt: cfg.createdAt ?? 0 };
+    const team = read(join(dir, name));
+    if (!team || (best && team.createdAt <= best.createdAt)) continue;
+    if (team.reviewers.length || isCheckout(team.leadCwd)) best = team;
   }
   return best;
+}
+
+function isCheckout(cwd) {
+  if (!cwd) return false;
+  const r = spawnSync('git', ['-C', cwd, 'rev-parse', '--show-toplevel'], { encoding: 'utf8', timeout: 10000 });
+  const top = r.status === 0 ? r.stdout.trim() : '';
+  return !!top && existsSync(join(top, 'scripts/hooks/claude/lanes.txt'));
 }
 
 // The worktrees' checked-out branches, as branch -> worktree path.
@@ -310,11 +328,14 @@ async function main(argv) {
   catch (e) { console.error(`pr-watch: ${e.message}\nusage: node scripts/tools/pr-watch-service.mjs [--once] [--dry-run] [--interval <s>] [--status-every <min>]`); return 2; }
   const interval = Number(v.interval ?? 60), statusEvery = Number(v['status-every'] ?? 10);
   if (!(interval >= 15) || !(statusEvery > 0)) { console.error('pr-watch: --interval wants 15 s or more and --status-every a positive number of minutes'); return 2; }
-  const noTeam = `no team in ${teamsDir()} lists team-lead`;
+  const pin = process.env.HITL_PR_WATCH_TEAM;
+  const noTeam = pin ? `the pinned team ${pin} (HITL_PR_WATCH_TEAM) is not in ${teamsDir()} or does not list team-lead` : `no team of this repository in ${teamsDir()} (one with a reviewer, or whose team-lead works in a checkout of it)`;
+  const noReviewers = (team) => `WARNING: team ${basename(team.dir)} has no reviewers: every ready PR goes to team-lead${pin ? '' : ' (pin a team with HITL_PR_WATCH_TEAM)'}`;
   // A one-shot pass reads GitHub, not a snapshot up to an interval old.
   if (v['dry-run'] || v.once) {
     const team = findTeam();
     if (!team) { console.error(`pr-watch: ${noTeam}`); return 2; }
+    if (!team.reviewers.length) console.error(`pr-watch: ${noReviewers(team)}`);
     await pass({ team, dryRun: !!v['dry-run'], maxAgeMs: interval * 1000, force: true });
     return 0;
   }
@@ -326,12 +347,14 @@ async function main(argv) {
     const team = findTeam();
     if (!team) { if (teamDir !== '') log(`waiting: ${noTeam}`); teamDir = ''; }
     else {
-      if (team.dir !== teamDir) log(`team ${basename(team.dir)}, reviewers: ${team.reviewers.join(', ') || 'none (ready goes to team-lead)'}`);
+      if (team.dir !== teamDir) log(`team ${basename(team.dir)}${pin ? ' (pinned)' : ''}, lead in ${team.leadCwd ?? 'an unknown directory'}, reviewers: ${team.reviewers.join(', ') || 'none'}`);
+      if (team.dir !== teamDir && !team.reviewers.length) log(noReviewers(team));
       teamDir = team.dir;
       try { await pass({ team, maxAgeMs: interval * 1000 }); passes++; } catch (e) { log(`pass failed: ${e.stack ?? e.message}`); }
     }
     if (Date.now() - lastStatus >= statusEvery * 60000) {
       const s = loadState();
+      if (team && !team.reviewers.length) log(noReviewers(team));
       log(`status: alive, ${passes} pass(es), ${teamDir ? `team ${basename(teamDir)}` : 'no team'}, ${Object.keys(s?.open ?? {}).length} open PR(s) watched, ${s?.pending?.length ?? 0} message(s) waiting to be read`);
       lastStatus = Date.now();
     }
