@@ -29,6 +29,19 @@ async function run($: EngineInterface, argv: string[], cwd: string, timeoutMs = 
   }
 }
 
+// The mod loads for every session on the machine; it registers its tools and timer only in a checkout of
+// this repo (a git top level with scripts/hooks/claude/lanes.txt).
+async function inRepo($: EngineInterface, cwd: string): Promise<boolean> {
+  try {
+    const top = (await run($, ['git', 'rev-parse', '--show-toplevel'], cwd, 10_000)).out.trim()
+    if (!top) return false
+    await $.fs.read(`${top}/scripts/hooks/claude/lanes.txt`)
+    return true
+  } catch {
+    return false
+  }
+}
+
 const loadWatches = async ($: EngineInterface): Promise<PrWatch[]> => (await $.state.get(WATCHES)).value ?? []
 const saveWatches = ($: EngineInterface, watches: PrWatch[]) => $.state.set(WATCHES, watches)
 
@@ -137,6 +150,7 @@ async function poll($: EngineInterface): Promise<void> {
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
+    if (!(await inRepo($, e.cwd))) return next(e)
     sessionCwd = e.cwd
     await $.tool.register({
       name: 'watch_pr',
