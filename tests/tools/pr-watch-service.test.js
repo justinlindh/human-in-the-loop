@@ -160,7 +160,9 @@ describe('pr-watch-service', () => {
 
   it('hands ready PRs to the reviewers the team has now', () => {
     const t = setup();
-    const members = (names) => writeFileSync(join(t.team, 'config.json'), JSON.stringify({ createdAt: 1, members: names.map((name) => ({ name })) }));
+    // team-lead works in this checkout, so the team is this repository's even with no reviewer.
+    const lead = resolve(__dirname, '../..');
+    const members = (names) => writeFileSync(join(t.team, 'config.json'), JSON.stringify({ createdAt: 1, members: names.map((name) => ({ name, ...(name === 'team-lead' ? { cwd: lead } : {}) })) }));
     try {
       t.empty();
       // One reviewer: both ready PRs go to it.
@@ -179,7 +181,9 @@ describe('pr-watch-service', () => {
       // No reviewer at all: team-lead hears it.
       members(MEMBERS.filter((n) => !n.startsWith('reviewer')));
       t.world({ prs: [pr(1, 'tools/a', { headRefOid: '1'.padEnd(40, 'd') })] });
-      expect(t.once().status).toBe(0);
+      const alone = t.once();
+      expect(alone.status).toBe(0);
+      expect(alone.stderr).toMatch(/WARNING: team session-x has no reviewers: every ready PR goes to team-lead \(pin a team with HITL_PR_WATCH_TEAM\)/);
       expect(t.told()).toEqual({ 'team-lead': [expect.stringMatching(/^PR #1 \(tools\/a\) at 1ddddddd is ready/)] });
     } finally { t.done(); }
   }, 120000);
@@ -248,7 +252,7 @@ describe('pr-watch-service', () => {
       rmSync(join(t.team, 'config.json'));
       const r = t.once();
       expect(r.status).toBe(2);
-      expect(r.stderr).toMatch(/no team in .* lists team-lead/);
+      expect(r.stderr).toMatch(/no team of this repository in .*teams/);
     } finally { t.done(); }
   }, 120000);
 });
@@ -261,6 +265,35 @@ describe('pr-watch-service parts', () => {
       mk('session-old', 1, MEMBERS); mk('session-new', 5, ['team-lead', 'reviewer2', 'sim', 'reviewer']); mk('other-project', 9, ['lead', 'worker']);
       expect(findTeam(dir)).toMatchObject({ dir: join(dir, 'session-new'), reviewers: ['reviewer', 'reviewer2'] });
     } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  it("passes over a newer team of another project, takes one led from this repository's checkout, and honours a pin", () => {
+    const root = mkdtempSync(join(toolTmp(), 'pr-watch-teams-')), dir = join(root, 'teams');
+    try {
+      // A checkout of this repository (lanes.txt at its top level), another git repository, and a plain directory.
+      const repo = (name, lanes) => {
+        const at = join(root, name);
+        mkdirSync(join(at, 'scripts/hooks/claude'), { recursive: true });
+        if (lanes) writeFileSync(join(at, 'scripts/hooks/claude/lanes.txt'), 'tools scripts/tools/\n');
+        spawnSync('git', ['init', '-q', at]);
+        return at;
+      };
+      const ours = repo('gamedev', true), theirs = repo('dockers', false), plain = join(root, 'plain');
+      mkdirSync(join(ours, 'src'));
+      mkdirSync(plain);
+      mkdirSync(dir);
+      const mk = (name, createdAt, members) => { mkdirSync(join(dir, name)); writeFileSync(join(dir, name, 'config.json'), JSON.stringify({ createdAt, members: members.map(([n, cwd]) => ({ name: n, cwd })) })); };
+      mk('session-ours', 1, [['team-lead', ours], ['reviewer', ours], ['tools', ours]]);
+      mk('session-theirs', 5, [['team-lead', theirs]]);
+      mk('session-plain', 6, [['team-lead', plain]]);
+      expect(findTeam(dir, undefined)).toMatchObject({ dir: join(dir, 'session-ours'), reviewers: ['reviewer'] });
+      // A newer team of this repository without reviewers, its lead in a subdirectory of the checkout.
+      mk('session-lead-only', 7, [['team-lead', join(ours, 'src')]]);
+      expect(findTeam(dir, undefined)).toMatchObject({ dir: join(dir, 'session-lead-only'), reviewers: [] });
+      expect(findTeam(dir, 'session-ours')).toMatchObject({ dir: join(dir, 'session-ours') });
+      expect(findTeam(dir, join(dir, 'session-theirs'))).toMatchObject({ dir: join(dir, 'session-theirs'), reviewers: [] });
+      expect(findTeam(dir, 'session-missing')).toBeNull();
+    } finally { rmSync(root, { recursive: true, force: true }); }
   });
 
   it('names the author lane from the branch, and a tools/ branch from the worktree that has it', () => {
