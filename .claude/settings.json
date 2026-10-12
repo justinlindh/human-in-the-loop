@@ -3,6 +3,9 @@
     "commit": "",
     "pr": ""
   },
+  "env": {
+    "CLAUDE_CODE_PLUGIN_DIRS": "/home/justin/src/gamedev-mods/scripts/tools/mods/hitl-guards:/home/justin/src/gamedev-mods/scripts/tools/mods/pr-watch"
+  },
   "hooks": {
     "SessionStart": [
       {
